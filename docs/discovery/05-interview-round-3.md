@@ -3,12 +3,15 @@
 Round-2 answers first: Q10 voice = all (recorded and real-time both in v1), Q11 files =
 default, Q12 keys = default. Recorded in `decisions.md`.
 
-This round asks one decision per question. Each has options with trade-offs and a
-recommendation. You are technical, so the questions are technical. Backend work is on
-hold until Q13 to Q16 are answered, because they change the first migration and the
-first service.
+This round asks one decision per question. Each has options with trade-offs, a
+recommendation, and a default. As always, work proceeds on the default and you can
+overturn it at any time. (The first version of this document had no defaults and put
+backend work on hold. The product owner pointed out the omission. Rule 5 in the gap
+analysis records it.)
 
 ## Q13. What does your team know best?
+
+**Default (ASSUMED):** (a) TypeScript end to end. Reason: you named LiteLLM, OpenRouter and coding agents, and the provider layer is already TypeScript.
 
 This decides Q14 more than any other factor. A stack the team is fluent in beats a
 marginally better stack every time.
@@ -22,6 +25,8 @@ TypeScript (about 700 lines); rewriting it in Python now costs an hour, rewritin
 year of code later costs a rewrite.
 
 ## Q14. Backend shape
+
+**Default (ASSUMED):** (a) Fastify API service plus a worker process; Next.js serves only the frontend.
 
 - (a) **Separate API service in TypeScript (Fastify or NestJS) plus a worker process,
   Next.js only for the frontend.** Clean API for future clients (Slack bot, CLI), a real
@@ -37,6 +42,8 @@ real-time voice and collective analysis both need a long-lived process.
 
 ## Q15. Frontend
 
+**Default (ASSUMED):** (a) Next.js, React, Tailwind, shadcn/ui, as one app with role-based routes.
+
 - (a) **Next.js (App Router), React, Tailwind, shadcn/ui.** Largest component ecosystem,
   streaming UI is easy, coding agents know it best. Recommended.
 - (b) Nuxt (Vue), (c) SvelteKit. Fine choices; smaller ecosystems for chat and voice UI.
@@ -45,6 +52,8 @@ Sub-question: participant interview UI, admin panel, and requirements workspace 
 app with role-based routes (recommended), or separate apps?
 
 ## Q16. Database, storage, jobs, search
+
+**Default (ASSUMED):** (a) Postgres with pgvector, S3-compatible object storage (MinIO locally), pg-boss for jobs, no Redis.
 
 - (a) **Postgres with pgvector for embeddings; S3-compatible object storage for audio
   and files (MinIO locally, an EU bucket in production); pg-boss for the job queue so
@@ -57,6 +66,8 @@ app with role-based routes (recommended), or separate apps?
 
 ## Q17. Hosting and deployment
 
+**Default (ASSUMED):** (a) Docker Compose on an EU VPS for the pilot; every service containerized.
+
 - (a) **Docker Compose on an EU VPS (Hetzner, Scaleway, UpCloud) for the pilot.**
   Cheapest, EU data residency trivially true, everything containerized so it can move.
   Recommended for the first customer.
@@ -66,6 +77,8 @@ app with role-based routes (recommended), or separate apps?
 
 ## Q18. Authentication and identity
 
+**Default (ASSUMED):** (a) Auth.js with magic link and Google; anonymous employees on signed campaign links; SSO per customer later.
+
 - (a) **Auth.js (self-hosted) with email magic link and Google; anonymous employees use
   signed campaign links and never create an account; SSO (SAML or OIDC) added per
   customer later.** Recommended: no vendor, works with any backend from Q14.
@@ -74,6 +87,8 @@ app with role-based routes (recommended), or separate apps?
 - (c) Keycloak: full-featured, heavy to run.
 
 ## Q19. Admin panel: confirm the surface
+
+**Default (ASSUMED):** the surface below is v1 in full, with two deferrals: retention settings (fixed 24 months in v1) and consent text editing (one default text in v1).
 
 Proposed v1 admin panel, grouped by who uses it. Tell me what is missing and what
 should wait.
@@ -104,6 +119,8 @@ should wait.
 - Interview page: consent, chat, voice, files, resume, delete my data
 
 ## Q20. Architecture and design patterns
+
+**Default (ASSUMED):** the proposal below as written.
 
 Proposed, for your agreement or correction:
 

@@ -23,4 +23,11 @@
 | D-19 | Participation mode per campaign: identified, anonymous, or participant choice | DECIDED | intake v2 | 2026-09-08 |
 | D-20 | Opportunities scored on seven factors with solution class ai, automation, software, process, none | DECIDED | intake v2 | 2026-09-08 |
 | D-21 | Requirements interview adapts to technical level; detects ambiguity, contradiction, missing decisions, over-complexity; tags MVP vs future | DECIDED | intake v2 | 2026-09-08 |
-| D-22 | Backend, frontend, database, hosting, auth, admin surface, architecture: OPEN, round 3 | OPEN | round 3 | 2026-09-08 |
+| D-22 | Team is TypeScript end to end | ASSUMED | round 3 Q13 | 2026-09-08 |
+| D-23 | Backend: Fastify API service plus worker; Next.js frontend only | ASSUMED | round 3 Q14 | 2026-09-08 |
+| D-24 | Frontend: Next.js, React, Tailwind, shadcn/ui; one app, role-based routes | ASSUMED | round 3 Q15 | 2026-09-08 |
+| D-25 | Data: Postgres + pgvector, S3-compatible storage, pg-boss jobs, no Redis | ASSUMED | round 3 Q16 | 2026-09-08 |
+| D-26 | Hosting: Docker Compose on an EU VPS for the pilot | ASSUMED | round 3 Q17 | 2026-09-08 |
+| D-27 | Auth: Auth.js, magic link + Google; anonymous participants on signed links; SSO later | ASSUMED | round 3 Q18 | 2026-09-08 |
+| D-28 | Admin surface as proposed in round 3 Q19, retention and consent text fixed in v1 | ASSUMED | round 3 Q19 | 2026-09-08 |
+| D-29 | Architecture: modular monolith, ports and adapters, template-driven state machine, append-only events, jobs, row-level tenancy | ASSUMED | round 3 Q20 | 2026-09-08 |

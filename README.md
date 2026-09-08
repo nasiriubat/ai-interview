@@ -20,4 +20,4 @@ This repository is built using the product's own process. Start reading here:
 - `docs/discovery/00b-intake-v2.md` — expanded product description, verbatim
 - `docs/discovery/04-gap-analysis-intake-v2.md` — what intake v2 changes in the spec
 - `docs/discovery/05-interview-round-3.md` — stack, admin surface, architecture questions
-- `docs/spec/spec.md` — spec v1.0 (v1.1 follows round 3)
+- `docs/spec/spec.md` — spec v1.1, frozen for build
