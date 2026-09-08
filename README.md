@@ -16,4 +16,5 @@ This repository is built using the product's own process. Start reading here:
 - `docs/discovery/02-draft-spec.md` — draft spec v0.1
 - `docs/team/roles.md` — the role-based team and hand-offs
 
-Code arrives once `docs/spec/` v1.0 is frozen.
+- `docs/discovery/03-interview-round-2.md` — cost control, provider design, modality follow-ups
+- `docs/spec/spec.md` — spec v1.0, frozen for build
