@@ -28,7 +28,7 @@ artifact is what matters, not who produced it.
 4. **Hand-offs are files in this repo**, never chat history. A coding agent starting cold
    must be able to read `docs/` and know what to do.
 
-## Current sprint: Discovery
+## Current sprint: Build step 1 and 2
 
-Active role: Discovery Lead. Output: round-1 interview and draft spec v0.1.
-Next role to activate: Product Architect, once round-1 answers are in.
+Active roles: DevOps (scaffold, CI) and AI Engineer (`packages/ai` provider layer).
+Next role to activate: Backend Engineer (Prisma schema, auth, tenancy).
