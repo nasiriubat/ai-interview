@@ -17,4 +17,7 @@ This repository is built using the product's own process. Start reading here:
 - `docs/team/roles.md` — the role-based team and hand-offs
 
 - `docs/discovery/03-interview-round-2.md` — cost control, provider design, modality follow-ups
-- `docs/spec/spec.md` — spec v1.0, frozen for build
+- `docs/discovery/00b-intake-v2.md` — expanded product description, verbatim
+- `docs/discovery/04-gap-analysis-intake-v2.md` — what intake v2 changes in the spec
+- `docs/discovery/05-interview-round-3.md` — stack, admin surface, architecture questions
+- `docs/spec/spec.md` — spec v1.0 (v1.1 follows round 3)

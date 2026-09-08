@@ -16,6 +16,11 @@
 | D-12 | Primary quality metric: agent builds from spec without clarifying questions | DECIDED | round 1 Q6 answer | 2026-09-08 |
 | D-13 | Cost control: ledger with computed cost, enforced budgets (tenant, campaign, interview), per-purpose model routing, prompt caching and rolling summaries | DECIDED | round 2 A | 2026-09-08 |
 | D-14 | No agent framework; own thin provider layer with `anthropic` and `openai-compatible` adapters | ASSUMED (recommended, awaiting owner confirmation) | round 2 B | 2026-09-08 |
-| D-15 | Voice v1 = recorded audio transcribed by a configured speech-to-text provider | ASSUMED | round 2 Q10 | 2026-09-08 |
-| D-16 | File upload: PDF, Word, Markdown, text, CSV, Excel, PNG, JPEG; ingested once, referenced by summary | ASSUMED | round 2 Q11 | 2026-09-08 |
-| D-17 | Provider keys: platform-level providers under tenant budget, plus optional tenant-owned providers | ASSUMED | round 2 Q12 | 2026-09-08 |
+| D-15 | Voice in v1: recorded audio transcribed first, real-time speech-to-speech in the same release track | DECIDED | round 2 Q10 answer: all | 2026-09-08 |
+| D-16 | File upload: PDF, Word, Markdown, text, CSV, Excel, PNG, JPEG; ingested once, referenced by summary | DECIDED | round 2 Q11 answer: ok | 2026-09-08 |
+| D-17 | Provider keys: platform-level providers under tenant budget, plus optional tenant-owned providers | DECIDED | round 2 Q12 answer: ok | 2026-09-08 |
+| D-18 | Interview templates are data; the two workflows are seeded templates | DECIDED | intake v2 | 2026-09-08 |
+| D-19 | Participation mode per campaign: identified, anonymous, or participant choice | DECIDED | intake v2 | 2026-09-08 |
+| D-20 | Opportunities scored on seven factors with solution class ai, automation, software, process, none | DECIDED | intake v2 | 2026-09-08 |
+| D-21 | Requirements interview adapts to technical level; detects ambiguity, contradiction, missing decisions, over-complexity; tags MVP vs future | DECIDED | intake v2 | 2026-09-08 |
+| D-22 | Backend, frontend, database, hosting, auth, admin surface, architecture: OPEN, round 3 | OPEN | round 3 | 2026-09-08 |
