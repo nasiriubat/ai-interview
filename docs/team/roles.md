@@ -28,7 +28,7 @@ artifact is what matters, not who produced it.
 4. **Hand-offs are files in this repo**, never chat history. A coding agent starting cold
    must be able to read `docs/` and know what to do.
 
-## Current sprint: Discovery round 3 (backend on hold)
+## Current sprint: Build step 2
 
-Active role: Discovery Lead. Steps 1 and 2 of the build order are done. Step 3 waits on the stack decisions in round 3.
-Next role to activate: Product Architect (spec v1.1), then Backend Engineer in the chosen stack.
+Active role: Backend Engineer (`packages/db`). Round 3 proceeds on defaults.
+Next role to activate: Backend Engineer (`apps/api`).

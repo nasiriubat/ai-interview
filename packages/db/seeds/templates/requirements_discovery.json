@@ -1,0 +1,31 @@
+{
+  "key": "requirements_discovery",
+  "version": 1,
+  "name": "Product Requirements Discovery",
+  "objective": "Turn a rough idea or a discovered opportunity into a reviewable, implementation-ready specification by interviewing the idea owner about the problem, users, functionality, workflows, business rules, constraints, integrations, security, data, technical preferences and edge cases.",
+  "privacyMode": "identified",
+  "participantFields": [],
+  "coverageAreas": [
+    { "key": "problem", "name": "Product overview and problem", "description": "What problem, for whom, why now.", "doneWhen": "Problem statement with who has it and what happens if unsolved." },
+    { "key": "users", "name": "Target users and roles", "description": "Personas and their goals.", "doneWhen": "Each role has a goal and a first action." },
+    { "key": "stories", "name": "User stories", "description": "What each role does with the product.", "doneWhen": "Stories cover every MVP requirement." },
+    { "key": "functional", "name": "Functional requirements", "description": "Capabilities, each tagged mvp or future.", "doneWhen": "Every requirement has an id, a tag and at least one acceptance criterion." },
+    { "key": "rules", "name": "Business rules", "description": "Rules and edge cases that govern behavior.", "doneWhen": "Rules exist for every decision point in the flows." },
+    { "key": "acceptance", "name": "Acceptance criteria", "description": "How each story is verified.", "doneWhen": "Criteria are testable." },
+    { "key": "technical", "name": "Technical requirements", "description": "Team skills, backend, frontend, database, hosting, auth, architecture. One decision per question, each with a default.", "doneWhen": "Each decision is made or its default accepted." },
+    { "key": "data", "name": "Data requirements", "description": "Entities, fields, retention, privacy.", "doneWhen": "Entities and relationships are listed with retention." },
+    { "key": "integrations", "name": "Integrations", "description": "External systems and APIs.", "doneWhen": "Each integration has direction, data and auth." },
+    { "key": "security", "name": "Security and privacy", "description": "Auth, roles, data protection, compliance.", "doneWhen": "Roles, data classes and compliance needs are known." },
+    { "key": "nfr", "name": "Non-functional requirements", "description": "Performance, availability, scale, cost.", "doneWhen": "Targets are numbers or explicitly deferred." },
+    { "key": "admin", "name": "Administrative surface", "description": "What operators and admins need to configure and see. Enumerate it explicitly.", "doneWhen": "The admin surface is listed and each item is mvp or future." },
+    { "key": "mvp", "name": "MVP scope", "description": "The smallest version that solves the core problem.", "doneWhen": "Owner has confirmed the mvp set and challenged items were resolved." },
+    { "key": "future", "name": "Future scope", "description": "What is deliberately deferred.", "doneWhen": "Deferred items are listed with the reason." },
+    { "key": "phases", "name": "Implementation phases", "description": "Ordered, independently testable phases for a developer or coding agent.", "doneWhen": "Each phase has tasks, dependencies and acceptance." }
+  ],
+  "aiInstructions": "Estimate the user's technical level from the first answers and adapt: technical users get architecture, API and data questions; nontechnical users get behavior questions and plain-language recommendations for technical decisions. Ask one decision per question when the build impact is high; never bundle stack decisions. Never default a technology choice before asking what the team knows. Every question states why it matters and offers a default the user can accept in one word. Enumerate administrative surfaces explicitly and ask what is missing. Challenge MVP items that are not needed to solve the core problem. Run an issues pass every five turns: look for ambiguity, contradictions, missing decisions and unnecessary complexity, and raise them one at a time.",
+  "adaptivity": { "technicalLevelDetection": true, "issuesPassEveryTurns": 5, "oneDecisionPerQuestion": true, "defaultsRequired": true },
+  "outputs": ["spec_field"],
+  "analysisEnabled": false,
+  "chainToKey": null,
+  "chainMapping": null
+}

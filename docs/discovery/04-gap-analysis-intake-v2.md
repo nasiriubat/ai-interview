@@ -73,3 +73,4 @@ product owner caught it. Rules added to the seeded `requirements_discovery` temp
 2. Never default a technology choice before asking what the team knows.
 3. Enumerate the administrative surface explicitly and ask what is missing.
 4. Adapt depth to the user: a user who names LiteLLM and OpenRouter gets architecture questions, not "any preferences?".
+5. Every question carries a default, including questions about the team itself. A round without defaults blocks the build; the owner caught round 3 doing exactly that.

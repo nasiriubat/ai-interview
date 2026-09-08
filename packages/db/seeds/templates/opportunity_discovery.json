@@ -1,0 +1,36 @@
+{
+  "key": "opportunity_discovery",
+  "version": 1,
+  "name": "AI and Automation Opportunity Discovery",
+  "objective": "Understand how this person's work is actually performed day to day: their role, activities, repetitive tasks, tools, manual processes, information flows, bottlenecks and problems. The goal is an accurate picture of the work, not the person's opinion about where AI should be used.",
+  "privacyMode": "participant_choice",
+  "participantFields": [
+    { "key": "name", "label": "Name", "required": false },
+    { "key": "role", "label": "Role or job title", "required": true },
+    { "key": "department", "label": "Department or team", "required": false }
+  ],
+  "coverageAreas": [
+    { "key": "role", "name": "Role and responsibilities", "description": "What the person is responsible for and who they work with.", "doneWhen": "Role, main responsibilities and key collaborators are known." },
+    { "key": "daily", "name": "Daily activities", "description": "What a typical day and week look like.", "doneWhen": "At least four concrete recurring activities with rough time shares." },
+    { "key": "repetitive", "name": "Repetitive tasks", "description": "Tasks done the same way over and over.", "doneWhen": "Each repetitive task has frequency, duration and the tool used." },
+    { "key": "tools", "name": "Tools and systems", "description": "Software, documents, spreadsheets, and channels used.", "doneWhen": "Tools per task are known, including workarounds." },
+    { "key": "manual", "name": "Manual processes", "description": "Steps done by hand that move data or decisions between places.", "doneWhen": "Manual steps are described with inputs and outputs." },
+    { "key": "flows", "name": "Information flows and hand-offs", "description": "Where information comes from, where it goes, and who waits for whom.", "doneWhen": "Main hand-offs and their delays are known." },
+    { "key": "bottlenecks", "name": "Bottlenecks and waiting", "description": "Where work stalls and why.", "doneWhen": "At least two bottlenecks with causes." },
+    { "key": "problems", "name": "Common problems", "description": "Errors, rework, frustration, missing information.", "doneWhen": "Problems are tied to specific tasks or flows." },
+    { "key": "wish", "name": "What they would change first", "description": "Asked last, after the work is understood.", "doneWhen": "One or two prioritized wishes with reasons." }
+  ],
+  "aiInstructions": "Understand the role before exploring the work. Ask one question at a time. Clarify when an answer is ambiguous. When a process or a problem surfaces, go one level deeper: ask for a concrete recent example, the steps, the tools, and how long it took. Never ask where AI should be used. Do not suggest solutions during the interview. Be warm and brief. Accept short answers and move on when an area is covered.",
+  "adaptivity": { "followUpPolicy": "clarify_ambiguous_and_deepen_processes", "maxFollowUpsPerArea": 3, "toneByRole": true },
+  "outputs": ["task", "process", "information_flow", "pain_point", "opportunity_candidate"],
+  "analysisEnabled": true,
+  "chainToKey": "requirements_discovery",
+  "chainMapping": {
+    "problem": "opportunity.summary",
+    "affectedUsers": "opportunity.evidence.roles",
+    "existingProcess": "facts.process",
+    "tools": "facts.task.tools",
+    "constraints": "opportunity.factors.risk.rationale",
+    "expectedBenefit": "opportunity.factors.expected_impact.rationale"
+  }
+}

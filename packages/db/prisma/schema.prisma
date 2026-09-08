@@ -1,0 +1,421 @@
+// Spec v1.1 section 9. Every tenant-owned row carries companyId (FR-01).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ---------- Tenancy and identity ----------
+
+model Company {
+  id                 String   @id @default(cuid())
+  name               String
+  region             String   @default("eu")
+  monthlyBudgetCents Int      @default(0)
+  status             String   @default("active") // active | suspended
+  createdAt          DateTime @default(now())
+
+  users        User[]
+  participants Participant[]
+  templates    InterviewTemplate[]
+  campaigns    Campaign[]
+  sessions     Session[]
+  attachments  Attachment[]
+  facts        Fact[]
+  providers    Provider[]
+  routes       Route[]
+  budgets      Budget[]
+  llmCalls     LlmCall[]
+  auditLogs    AuditLog[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  companyId String
+  email     String
+  name      String?
+  role      String // platform_operator | admin | member
+  createdAt DateTime @default(now())
+
+  company      Company       @relation(fields: [companyId], references: [id])
+  participants Participant[]
+  sessions     Session[]     @relation("SessionOwner")
+  campaigns    Campaign[]
+
+  @@unique([companyId, email])
+  @@index([companyId])
+}
+
+/// A person taking part in a campaign. Anonymous participants have no user and only the
+/// fields the template asked for (FR-04).
+model Participant {
+  id         String   @id @default(cuid())
+  companyId  String
+  campaignId String
+  userId     String?
+  fields     Json     @default("{}")
+  tokenHash  String   @unique
+  createdAt  DateTime @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  campaign Campaign  @relation(fields: [campaignId], references: [id])
+  user     User?     @relation(fields: [userId], references: [id])
+  sessions Session[]
+
+  @@index([companyId, campaignId])
+}
+
+// ---------- Templates (FR-60 to FR-66) ----------
+
+model InterviewTemplate {
+  id                String   @id @default(cuid())
+  companyId         String? // null = platform seeded
+  key               String
+  version           Int      @default(1)
+  name              String
+  objective         String
+  privacyMode       String // identified | anonymous | participant_choice
+  participantFields Json     @default("[]")
+  coverageAreas     Json     @default("[]")
+  aiInstructions    String   @default("")
+  adaptivity        Json     @default("{}")
+  outputs           Json     @default("[]")
+  analysisEnabled   Boolean  @default(false)
+  chainToKey        String?
+  chainMapping      Json?
+  status            String   @default("draft") // draft | published | archived
+  createdAt         DateTime @default(now())
+
+  company   Company?   @relation(fields: [companyId], references: [id])
+  campaigns Campaign[]
+  sessions  Session[]
+
+  @@unique([companyId, key, version])
+  @@index([companyId])
+}
+
+// ---------- Campaigns and sessions ----------
+
+model Campaign {
+  id                  String   @id @default(cuid())
+  companyId           String
+  templateId          String
+  name                String
+  participationMode   String // identified | anonymous | participant_choice
+  linkTokenHash       String   @unique
+  maxTurns            Int      @default(60)
+  completionThreshold Int      @default(5)
+  weights             Json     @default("{}")
+  status              String   @default("draft") // draft | open | analyzing | closed
+  createdById         String
+  createdAt           DateTime @default(now())
+
+  company      Company           @relation(fields: [companyId], references: [id])
+  template     InterviewTemplate @relation(fields: [templateId], references: [id])
+  createdBy    User              @relation(fields: [createdById], references: [id])
+  participants Participant[]
+  sessions     Session[]
+  analyses     Analysis[]
+  budgets      Budget[]          @relation("CampaignBudget")
+  llmCalls     LlmCall[]
+
+  @@index([companyId])
+}
+
+model Session {
+  id             String    @id @default(cuid())
+  companyId      String
+  templateId     String
+  campaignId     String?
+  participantId  String?
+  ownerUserId    String?
+  sourceKind     String    @default("campaign") // campaign | text | handoff
+  handoff        Json?
+  status         String    @default("created") // created | consented | active | paused | completed | deleted
+  consentVersion String?
+  consentedAt    DateTime?
+  state          Json      @default("{}")
+  summary        String    @default("")
+  technicalLevel String?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  createdAt      DateTime  @default(now())
+
+  company     Company           @relation(fields: [companyId], references: [id])
+  template    InterviewTemplate @relation(fields: [templateId], references: [id])
+  campaign    Campaign?         @relation(fields: [campaignId], references: [id])
+  participant Participant?      @relation(fields: [participantId], references: [id])
+  owner       User?             @relation("SessionOwner", fields: [ownerUserId], references: [id])
+  messages    Message[]
+  events      SessionEvent[]
+  attachments Attachment[]
+  facts       Fact[]
+  specs       SpecVersion[]
+  llmCalls    LlmCall[]
+
+  @@index([companyId, campaignId])
+  @@index([companyId, ownerUserId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  sessionId String
+  seq       Int
+  role      String // user | assistant
+  modality  String   @default("text") // text | voice | file
+  content   String
+  createdAt DateTime @default(now())
+
+  session     Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+
+  @@unique([sessionId, seq])
+}
+
+/// Append-only (FR-51). state_delta, finding, attachment, admin_note, system.
+model SessionEvent {
+  id        String   @id @default(cuid())
+  sessionId String
+  seq       Int
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, seq])
+}
+
+model Attachment {
+  id            String   @id @default(cuid())
+  companyId     String
+  sessionId     String
+  messageId     String?
+  kind          String // audio | document | image
+  filename      String
+  mime          String
+  sizeBytes     Int
+  storageKey    String
+  extractedText String?
+  summary       String?
+  createdAt     DateTime @default(now())
+
+  company Company  @relation(fields: [companyId], references: [id])
+  session Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  message Message? @relation(fields: [messageId], references: [id])
+
+  @@index([companyId, sessionId])
+}
+
+// ---------- Facts, analysis, opportunities ----------
+
+model Fact {
+  id               String                      @id @default(cuid())
+  companyId        String
+  sessionId        String
+  kind             String // task | process | information_flow | pain_point | opportunity_candidate | spec_field
+  payload          Json
+  embedding        Unsupported("vector(1536)")?
+  extractorVersion String
+  extractedAt      DateTime                    @default(now())
+
+  company  Company               @relation(fields: [companyId], references: [id])
+  session  Session               @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  evidence OpportunityEvidence[]
+
+  @@index([companyId, sessionId])
+}
+
+model Analysis {
+  id         String    @id @default(cuid())
+  campaignId String
+  version    Int
+  status     String    @default("queued") // queued | running | done | failed
+  stats      Json      @default("{}")
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  campaign      Campaign      @relation(fields: [campaignId], references: [id])
+  opportunities Opportunity[]
+  reports       Report[]
+
+  @@unique([campaignId, version])
+}
+
+model Opportunity {
+  id            String   @id @default(cuid())
+  analysisId    String
+  title         String
+  summary       String
+  solutionClass String // ai | automation | software | process | none
+  factors       Json // seven factors, each { score, rationale }
+  rationale     String
+  rankScore     Float
+  status        String   @default("new") // new | shortlisted | promoted | dismissed
+  clusterKey    String
+  adminOverride Json?
+  createdAt     DateTime @default(now())
+
+  analysis Analysis              @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  evidence OpportunityEvidence[]
+
+  @@index([analysisId, rankScore])
+}
+
+model OpportunityEvidence {
+  opportunityId String
+  factId        String
+  snippet       String
+  anonymized    Boolean @default(true)
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  fact        Fact        @relation(fields: [factId], references: [id], onDelete: Cascade)
+
+  @@id([opportunityId, factId])
+}
+
+model Report {
+  id            String   @id @default(cuid())
+  analysisId    String
+  version       Int
+  markdown      String
+  pdfStorageKey String?
+  createdAt     DateTime @default(now())
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@unique([analysisId, version])
+}
+
+model SpecVersion {
+  id        String   @id @default(cuid())
+  sessionId String
+  version   Int
+  spec      Json
+  specMd    String
+  bundle    Json
+  issues    Json     @default("[]")
+  createdAt DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, version])
+}
+
+// ---------- Providers, routing, cost (FR-40 to FR-49) ----------
+
+model Provider {
+  id        String   @id @default(cuid())
+  companyId String? // null = platform-level
+  kind      String
+  name      String
+  baseUrl   String?
+  apiKeyEnc String
+  headers   Json     @default("{}")
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  company  Company?     @relation(fields: [companyId], references: [id])
+  prices   ModelPrice[]
+  routes   Route[]
+  llmCalls LlmCall[]
+
+  @@index([companyId])
+}
+
+model ModelPrice {
+  id                 String   @id @default(cuid())
+  providerId         String
+  model              String
+  inputPerMtok       Float
+  cachedInputPerMtok Float
+  outputPerMtok      Float
+  source             String // seed | admin | provider
+  updatedAt          DateTime @updatedAt
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, model])
+}
+
+model Route {
+  id              String  @id @default(cuid())
+  companyId       String? // null = platform default
+  purpose         String
+  providerId      String
+  model           String
+  effort          String?
+  maxOutputTokens Int
+  batchAllowed    Boolean @default(false)
+
+  company  Company? @relation(fields: [companyId], references: [id])
+  provider Provider @relation(fields: [providerId], references: [id])
+
+  @@unique([companyId, purpose])
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  companyId  String
+  scope      String // tenant | campaign | session
+  scopeId    String
+  limitCents Int
+  period     String // month | total
+  createdAt  DateTime @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  campaign Campaign? @relation("CampaignBudget", fields: [scopeId], references: [id], map: "Budget_campaign_fkey")
+
+  @@unique([scope, scopeId])
+  @@index([companyId])
+}
+
+model LlmCall {
+  id               String   @id @default(cuid())
+  companyId        String
+  purpose          String
+  providerId       String
+  model            String
+  promptVersion    String?
+  inputTokens      Int
+  cacheReadTokens  Int      @default(0)
+  cacheWriteTokens Int      @default(0)
+  outputTokens     Int
+  latencyMs        Int
+  status           String // ok | error | refused | budget_exceeded
+  costCents        Float
+  sessionId        String?
+  campaignId       String?
+  createdAt        DateTime @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  provider Provider  @relation(fields: [providerId], references: [id])
+  session  Session?  @relation(fields: [sessionId], references: [id])
+  campaign Campaign? @relation(fields: [campaignId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([campaignId])
+  @@index([sessionId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  companyId  String
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String
+  diff       Json?
+  createdAt  DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, createdAt])
+}
