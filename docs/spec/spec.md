@@ -1,6 +1,6 @@
 # Spec v1.0: AI Discovery Platform
 
-Status: FROZEN for build. Supersedes `docs/discovery/02-draft-spec.md`. Changes go
+Status: v1.0, under revision. Intake v2 and round 3 produce v1.1; see `docs/discovery/04-gap-analysis-intake-v2.md`. Supersedes `docs/discovery/02-draft-spec.md`. Changes go
 through the decision log (`docs/discovery/decisions.md`) and bump the version.
 Items marked `ASSUMED` are defaults the product owner has not overturned.
 
