@@ -4,6 +4,7 @@ import {
   PrismaSessionStore,
   type CallerFactory,
   type EmailPort,
+  type JobName,
   type JobPayload,
   type SettingsService,
 } from "@aidp/core";
@@ -21,7 +22,9 @@ export interface HandlerDeps {
  * Job handlers (spec 12, NFR-09). Each is idempotent: the engine records the sequence it
  * summarized or extracted up to, so a retried job does no duplicate work.
  */
-export function handlers(deps: HandlerDeps) {
+export type Handlers = { [N in JobName]: (payload: JobPayload<N>) => Promise<void> };
+
+export function handlers(deps: HandlerDeps): Handlers {
   const store = new PrismaSessionStore(deps.db);
   const prompts = new PrismaPromptSource(deps.db);
 
