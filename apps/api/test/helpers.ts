@@ -1,0 +1,186 @@
+import { createServer, type Server } from "node:http";
+import { randomBytes } from "node:crypto";
+import { encode } from "@auth/core/jwt";
+import { PrismaClient } from "@prisma/client";
+import { pino } from "pino";
+import { shippedTemplates } from "@aidp/db";
+import { Crypto, MemoryEmail, MemoryJobPublisher } from "@aidp/core";
+import { buildApp, type App } from "../src/app.js";
+import { loadConfig } from "../src/config.js";
+import { buildContext } from "../src/context.js";
+
+export const TURN_MARKER = "<<<TURN_META>>>";
+
+/** A fake OpenAI-compatible server: streams a scripted reply for chat, answers the models list. */
+export function fakeModelServer(
+  replies: () => string,
+): Promise<{ server: Server; url: string; requests: unknown[] }> {
+  const requests: unknown[] = [];
+  return new Promise((resolve) => {
+    const server = createServer((req, res) => {
+      let body = "";
+      req.on("data", (c: Buffer) => (body += c.toString()));
+      req.on("end", () => {
+        if (req.url?.endsWith("/models")) {
+          res.setHeader("content-type", "application/json");
+          res.end(
+            JSON.stringify({
+              data: [
+                { id: "fake-model", name: "Fake", pricing: { prompt: "0.000001", completion: "0.000002" } },
+              ],
+            }),
+          );
+          return;
+        }
+        requests.push(JSON.parse(body));
+        const text = replies();
+        res.setHeader("content-type", "text/event-stream");
+        for (let i = 0; i < text.length; i += 9) {
+          res.write(
+            `data: ${JSON.stringify({ model: "fake-model", choices: [{ delta: { content: text.slice(i, i + 9) } }] })}\n\n`,
+          );
+        }
+        res.write(
+          `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], usage: { prompt_tokens: 500, completion_tokens: 60 } })}\n\n`,
+        );
+        res.write("data: [DONE]\n\n");
+        res.end();
+      });
+    });
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address();
+      const port = typeof addr === "object" && addr ? addr.port : 0;
+      resolve({ server, url: `http://127.0.0.1:${port}/v1`, requests });
+    });
+  });
+}
+
+export interface TestWorld {
+  app: App;
+  db: PrismaClient;
+  email: MemoryEmail;
+  jobs: MemoryJobPublisher;
+  crypto: Crypto;
+  companyId: string;
+  adminToken: string;
+  operatorToken: string;
+  templateId: string;
+  close: () => Promise<void>;
+}
+
+export async function testWorld(modelUrl: string): Promise<TestWorld> {
+  const key = randomBytes(32).toString("base64");
+  const config = loadConfig({
+    ...process.env,
+    NODE_ENV: "test",
+    PLATFORM_ENCRYPTION_KEY: key,
+    AUTH_SECRET: "test-secret-test-secret-test-secret",
+    DATABASE_URL: process.env.DATABASE_URL ?? "",
+    LOG_LEVEL: "silent",
+  });
+  const db = new PrismaClient();
+  const email = new MemoryEmail();
+  const jobs = new MemoryJobPublisher();
+  const ctx = buildContext({ config, db, log: pino({ level: "silent" }), jobs, email });
+  const app = await buildApp(ctx);
+  await app.ready();
+
+  const suffix = Date.now().toString(36);
+  const company = await db.company.create({ data: { name: `Test ${suffix}`, monthlyBudgetCents: 100_000 } });
+  await db.budget.create({
+    data: {
+      companyId: company.id,
+      scope: "tenant",
+      scopeId: company.id,
+      limitCents: 100_000,
+      period: "month",
+    },
+  });
+  await db.user.create({ data: { companyId: company.id, email: `admin-${suffix}@test.io`, role: "admin" } });
+  const opCompany = await db.company.create({ data: { name: `Platform ${suffix}` } });
+  await db.user.create({
+    data: { companyId: opCompany.id, email: `op-${suffix}@test.io`, role: "platform_operator" },
+  });
+
+  const t = shippedTemplates()[0]!;
+  const template = await db.interviewTemplate.create({
+    data: {
+      companyId: company.id,
+      key: t.key,
+      version: 1,
+      name: t.name,
+      objective: t.objective,
+      privacyMode: t.privacyMode,
+      participantFields: t.participantFields,
+      coverageAreas: t.coverageAreas,
+      aiInstructions: t.aiInstructions,
+      adaptivity: t.adaptivity,
+      widgetPolicy: t.widgetPolicy,
+      outputs: t.outputs,
+      analysisEnabled: true,
+      status: "published",
+    },
+  });
+
+  const provider = await db.provider.create({
+    data: {
+      companyId: company.id,
+      kind: "openai_compatible",
+      name: "fake",
+      baseUrl: modelUrl,
+      apiKeyEnc: ctx.crypto.encrypt("k"),
+      headers: {},
+    },
+  });
+  await db.modelPrice.create({
+    data: {
+      providerId: provider.id,
+      model: "fake-model",
+      inputPerMtok: 1,
+      cachedInputPerMtok: 0.1,
+      outputPerMtok: 2,
+      source: "admin",
+    },
+  });
+  for (const purpose of ["interview_turn", "resume_summary", "extraction"]) {
+    await db.route.create({
+      data: {
+        companyId: company.id,
+        purpose,
+        providerId: provider.id,
+        model: "fake-model",
+        maxOutputTokens: 800,
+      },
+    });
+  }
+
+  const token = (e: string) =>
+    encode({ token: { email: e }, secret: config.AUTH_SECRET, salt: "authjs.session-token" });
+  return {
+    app,
+    db,
+    email,
+    jobs,
+    crypto: ctx.crypto,
+    companyId: company.id,
+    adminToken: await token(`admin-${suffix}@test.io`),
+    operatorToken: await token(`op-${suffix}@test.io`),
+    templateId: template.id,
+    close: async () => {
+      await app.close();
+      await db.$disconnect();
+    },
+  };
+}
+
+/** Parses an SSE body into events. */
+export function parseSse(body: string): { event: string; data: unknown }[] {
+  return body
+    .split("\n\n")
+    .filter((b) => b.trim())
+    .map((block) => {
+      const event = /event: (.+)/.exec(block)?.[1] ?? "message";
+      const data = /data: (.+)/.exec(block)?.[1] ?? "null";
+      return { event, data: JSON.parse(data) };
+    });
+}

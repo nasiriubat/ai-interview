@@ -9,7 +9,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r build && pnpm -r typecheck",
     "test": "pnpm -r build && pnpm -r test",
-    "lint": "eslint .",
+    "lint": "eslint packages apps evals",
     "check": "pnpm -r build && pnpm -r typecheck && pnpm lint && pnpm -r test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

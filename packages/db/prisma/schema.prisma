@@ -137,7 +137,6 @@ model Campaign {
   participants Participant[]
   sessions     Session[]
   analyses     Analysis[]
-  budgets      Budget[]          @relation("CampaignBudget")
   llmCalls     LlmCall[]
 
   @@index([companyId])
@@ -464,8 +463,7 @@ model Budget {
   period     String // month | total
   createdAt  DateTime @default(now())
 
-  company  Company   @relation(fields: [companyId], references: [id])
-  campaign Campaign? @relation("CampaignBudget", fields: [scopeId], references: [id], map: "Budget_campaign_fkey")
+  company Company @relation(fields: [companyId], references: [id])
 
   @@unique([scope, scopeId])
   @@index([companyId])

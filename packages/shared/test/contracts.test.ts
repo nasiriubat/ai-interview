@@ -10,7 +10,7 @@ import {
 } from "../src/index.js";
 
 const seed = (name: string): unknown =>
-  JSON.parse(readFileSync(new URL(`../../db/seeds/templates/${name}.json`, import.meta.url), "utf8"));
+  JSON.parse(readFileSync(new URL(`../../db/src/seed-templates/${name}.json`, import.meta.url), "utf8"));
 
 describe("seeded templates", () => {
   it.each(["opportunity_discovery", "requirements_discovery"])(
