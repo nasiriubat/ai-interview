@@ -39,7 +39,7 @@ export class InMemoryLedger implements LedgerSink, SpendSource {
 export function scopeIdOf(e: LedgerEntry, scope: BudgetScope): string | undefined {
   if (scope === "tenant") return e.companyId;
   if (scope === "campaign") return e.campaignId;
-  return e.interviewId;
+  return e.sessionId;
 }
 
 function sameMonth(a: Date, b: Date): boolean {

@@ -12,14 +12,16 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "echo 'no tests in shared'"
+    "test": "vitest run"
   },
   "dependencies": {
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
   }
 }

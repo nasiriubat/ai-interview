@@ -2,21 +2,94 @@
   "key": "requirements_discovery",
   "version": 1,
   "name": "Product Requirements Discovery",
+  "language": "en",
   "objective": "Turn a rough idea or a discovered opportunity into a reviewable, implementation-ready specification by interviewing the idea owner about the problem, users, functionality, workflows, business rules, constraints, integrations, security, data, technical preferences and edge cases.",
   "privacyMode": "identified",
   "participantFields": [],
+  "pathSelection": "technical_or_not",
+  "contextBlock": [
+    {
+      "key": "hosting",
+      "question": "Where will this run? Existing infrastructure, a cloud account, a managed platform, or nothing yet?",
+      "questionNontechnical": "Do you already have somewhere this would run, like a company server or a cloud account, or is that still open?",
+      "why": "Hosting changes architecture, cost, and compliance defaults.",
+      "options": [
+        { "key": "none", "label": "Nothing yet" },
+        { "key": "onprem", "label": "Company servers" },
+        {
+          "key": "cloud",
+          "label": "Cloud account",
+          "detail": "AWS, Azure, Google Cloud, Hetzner, or similar"
+        },
+        { "key": "managed", "label": "Managed platform", "detail": "Vercel, Railway, Render, or similar" }
+      ],
+      "default": "none"
+    },
+    {
+      "key": "existing_systems",
+      "question": "Which existing systems must this work with?",
+      "questionNontechnical": "Which tools or systems does this need to connect to, if any?",
+      "why": "Integrations shape data requirements and effort.",
+      "default": "none"
+    },
+    {
+      "key": "builder",
+      "question": "Who will build it?",
+      "options": [
+        { "key": "self", "label": "Myself" },
+        { "key": "team", "label": "An in-house team" },
+        { "key": "agency", "label": "An agency or freelancer" },
+        { "key": "agent", "label": "A coding agent", "detail": "Codex, Claude Code, or similar" }
+      ],
+      "why": "Decides how the specification and plan are phrased.",
+      "default": "agent"
+    },
+    {
+      "key": "team_skills",
+      "question": "What does the team know best?",
+      "questionNontechnical": "If someone technical is involved, what do they usually work with?",
+      "why": "A stack the team knows beats a marginally better stack.",
+      "default": "unknown"
+    },
+    {
+      "key": "timeline",
+      "question": "When does version one need to exist?",
+      "why": "Decides MVP scope.",
+      "default": "no fixed date"
+    },
+    {
+      "key": "budget",
+      "question": "Is there a budget range?",
+      "why": "Decides build-vs-buy defaults.",
+      "default": "not decided"
+    },
+    {
+      "key": "users_at_launch",
+      "question": "How many users at launch, roughly?",
+      "why": "Decides scale and hosting defaults.",
+      "default": "under 100"
+    },
+    {
+      "key": "compliance",
+      "question": "Any compliance needs? Personal data, health, finance, public sector?",
+      "why": "Changes data, hosting, and security requirements.",
+      "default": "personal data under GDPR"
+    }
+  ],
   "coverageAreas": [
     {
       "key": "problem",
       "name": "Product overview and problem",
       "description": "What problem, for whom, why now.",
-      "doneWhen": "Problem statement with who has it and what happens if unsolved."
+      "doneWhen": "Problem statement with who has it and what happens if unsolved.",
+      "essential": true
     },
     {
       "key": "users",
       "name": "Target users and roles",
       "description": "Personas and their goals.",
-      "doneWhen": "Each role has a goal and a first action."
+      "doneWhen": "Each role has a goal and a first action.",
+      "essential": true
     },
     {
       "key": "stories",
@@ -28,7 +101,8 @@
       "key": "functional",
       "name": "Functional requirements",
       "description": "Capabilities, each tagged mvp or future.",
-      "doneWhen": "Every requirement has an id, a tag and at least one acceptance criterion."
+      "doneWhen": "Every requirement has an id, a tag and at least one acceptance criterion.",
+      "essential": true
     },
     {
       "key": "rules",
@@ -45,8 +119,18 @@
     {
       "key": "technical",
       "name": "Technical requirements",
-      "description": "Team skills, backend, frontend, database, hosting, auth, architecture. One decision per question, each with a default.",
-      "doneWhen": "Each decision is made or its default accepted."
+      "description": "Backend, frontend, database, hosting, auth, architecture. One decision per question, each with a default.",
+      "doneWhen": "Each decision is made or its default accepted.",
+      "instructions": "Never bundle stack decisions. Never default a technology before the team_skills context answer is known.",
+      "paths": ["technical"]
+    },
+    {
+      "key": "technical_recommended",
+      "name": "Technical recommendations",
+      "description": "Derived technical choices explained in plain language.",
+      "doneWhen": "The user has confirmed or asked about each recommendation.",
+      "instructions": "Present each recommendation with a one-line reason; ask only for confirmation or questions.",
+      "paths": ["nontechnical"]
     },
     {
       "key": "data",
@@ -82,7 +166,8 @@
       "key": "mvp",
       "name": "MVP scope",
       "description": "The smallest version that solves the core problem.",
-      "doneWhen": "Owner has confirmed the mvp set and challenged items were resolved."
+      "doneWhen": "Owner has confirmed the mvp set and challenged items were resolved.",
+      "essential": true
     },
     {
       "key": "future",
@@ -94,18 +179,36 @@
       "key": "phases",
       "name": "Implementation phases",
       "description": "Ordered, independently testable phases for a developer or coding agent.",
-      "doneWhen": "Each phase has tasks, dependencies and acceptance."
+      "doneWhen": "Each phase has tasks, dependencies and acceptance.",
+      "essential": true
     }
   ],
-  "aiInstructions": "Estimate the user's technical level from the first answers and adapt: technical users get architecture, API and data questions; nontechnical users get behavior questions and plain-language recommendations for technical decisions. Ask one decision per question when the build impact is high; never bundle stack decisions. Never default a technology choice before asking what the team knows. Every question states why it matters and offers a default the user can accept in one word. Enumerate administrative surfaces explicitly and ask what is missing. Challenge MVP items that are not needed to solve the core problem. Run an issues pass every five turns: look for ambiguity, contradictions, missing decisions and unnecessary complexity, and raise them one at a time.",
+  "aiInstructions": "Ask one decision per question when the build impact is high; never bundle. Every question states why it matters and offers a default the user can accept in one word. On the nontechnical path, ask about behavior in plain language and present technical choices as recommendations with a one-line reason. On the technical path, ask architecture, API and data questions and record alternatives considered. Enumerate administrative surfaces explicitly and ask what is missing. Challenge MVP items that are not needed to solve the core problem. Flag conflicts between a choice and the context block answers.",
   "adaptivity": {
-    "technicalLevelDetection": true,
-    "issuesPassEveryTurns": 5,
-    "oneDecisionPerQuestion": true,
-    "defaultsRequired": true
+    "followUpPolicy": "clarify_ambiguous_and_deepen_processes",
+    "minimalAnswerThreshold": 3,
+    "offerPathSwitch": true,
+    "toneByRole": false
+  },
+  "widgetPolicy": {
+    "allowedTypes": ["single_choice", "multi_choice", "scale", "ranking", "yes_no"],
+    "maxPerTurns": 1,
+    "everyTurns": 1
+  },
+  "issueDetection": {
+    "enabled": true,
+    "everyTurns": 5,
+    "aggressiveness": "standard",
+    "typesEnabled": ["ambiguity", "contradiction", "missing_decision", "over_complexity"],
+    "pushBackOnce": true,
+    "mvpChallenge": true
   },
   "outputs": ["spec_field"],
   "analysisEnabled": false,
   "chainToKey": null,
-  "chainMapping": null
+  "chainMapping": null,
+  "closingQuestion": "Is there anything about this product we have not covered that a developer would need to know?",
+  "endSummary": true,
+  "maxTurns": 120,
+  "maxAssistantChars": 800
 }

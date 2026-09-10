@@ -19,7 +19,7 @@ export interface BudgetGuardOptions {
 }
 
 /**
- * Enforces tenant, campaign and interview budgets before a model call.
+ * Enforces tenant, campaign and session budgets before a model call.
  * Uses a conservative estimate for the pending call so a budget is never exceeded
  * by more than one call's worst case.
  */
@@ -37,12 +37,12 @@ export class BudgetGuard {
   }
 
   async check(
-    ctx: { companyId: string; campaignId?: string; interviewId?: string },
+    ctx: { companyId: string; campaignId?: string; sessionId?: string },
     estimateCents: number,
   ): Promise<BudgetCheck> {
     const scopes: { scope: BudgetScope; scopeId: string }[] = [{ scope: "tenant", scopeId: ctx.companyId }];
     if (ctx.campaignId) scopes.push({ scope: "campaign", scopeId: ctx.campaignId });
-    if (ctx.interviewId) scopes.push({ scope: "interview", scopeId: ctx.interviewId });
+    if (ctx.sessionId) scopes.push({ scope: "session", scopeId: ctx.sessionId });
     const limits = await this.limits.limitsFor(scopes);
     const at = this.now();
     const result: BudgetCheck = { allowed: true, warnings: [] };
