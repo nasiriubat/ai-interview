@@ -16,18 +16,31 @@ export function prisma(): PrismaClient {
  * companyId via a Prisma client extension, so a module cannot forget the scope.
  * Postgres row-level security (migration 0002) is the second fence.
  */
-export function forCompany(base: PrismaClient, companyId: string) {
+export function forCompany(base: PrismaClient, companyId: string): ScopedClient {
+  return buildScoped(base, companyId);
+}
+
+function buildScoped(base: PrismaClient, companyId: string) {
   return base.$extends({
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
           if (!SCOPED_MODELS.has(model)) return query(args);
           const a = args as { where?: Record<string, unknown>; data?: unknown };
-          if (operation.startsWith("find") || operation === "count" || operation === "aggregate" || operation === "groupBy" || operation.startsWith("update") || operation.startsWith("delete")) {
+          if (
+            operation.startsWith("find") ||
+            operation === "count" ||
+            operation === "aggregate" ||
+            operation === "groupBy" ||
+            operation.startsWith("update") ||
+            operation.startsWith("delete")
+          ) {
             a.where = { ...(a.where ?? {}), companyId };
           }
-          if (operation === "create" && a.data && typeof a.data === "object") a.data = { ...(a.data as Record<string, unknown>), companyId };
-          if (operation === "createMany" && Array.isArray(a.data)) a.data = (a.data as Array<Record<string, unknown>>).map((d) => ({ ...d, companyId }));
+          if (operation === "create" && a.data && typeof a.data === "object")
+            a.data = { ...(a.data as Record<string, unknown>), companyId };
+          if (operation === "createMany" && Array.isArray(a.data))
+            a.data = (a.data as Record<string, unknown>[]).map((d) => ({ ...d, companyId }));
           return query(args);
         },
       },
@@ -51,4 +64,4 @@ export const SCOPED_MODELS: ReadonlySet<string> = new Set([
   "AuditLog",
 ]);
 
-export type ScopedClient = ReturnType<typeof forCompany>;
+export type ScopedClient = ReturnType<typeof buildScoped>;

@@ -6,7 +6,12 @@ describe("PriceTable", () => {
     const t = PriceTable.withSeeds("anth");
     const p = t.get("anth", "claude-sonnet-5")!;
     // 1M input at $2, 1M cache read at $0.20, 1M cache write at 1.25 x $2, 1M output at $10
-    const cents = costCents(p, { inputTokens: 1_000_000, cacheReadTokens: 1_000_000, cacheWriteTokens: 1_000_000, outputTokens: 1_000_000 });
+    const cents = costCents(p, {
+      inputTokens: 1_000_000,
+      cacheReadTokens: 1_000_000,
+      cacheWriteTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
     expect(cents).toBeCloseTo((2 + 0.2 + 2.5 + 10) * 100, 6);
   });
 
@@ -17,7 +22,16 @@ describe("PriceTable", () => {
   });
 
   it("imports provider-published prices but never overwrites admin overrides", () => {
-    const t = new PriceTable([{ providerId: "or", model: "x/model", inputPerMtok: 9, cachedInputPerMtok: 9, outputPerMtok: 9, source: "admin" }]);
+    const t = new PriceTable([
+      {
+        providerId: "or",
+        model: "x/model",
+        inputPerMtok: 9,
+        cachedInputPerMtok: 9,
+        outputPerMtok: 9,
+        source: "admin",
+      },
+    ]);
     const n = t.importFromModels("or", [
       { id: "x/model", name: "x", inputPerMtok: 1, outputPerMtok: 2 },
       { id: "y/model", name: "y", inputPerMtok: 3, outputPerMtok: 4 },
@@ -25,7 +39,12 @@ describe("PriceTable", () => {
     ]);
     expect(n).toBe(1);
     expect(t.get("or", "x/model")!.inputPerMtok).toBe(9);
-    expect(t.get("or", "y/model")).toMatchObject({ inputPerMtok: 3, cachedInputPerMtok: 3, outputPerMtok: 4, source: "provider" });
+    expect(t.get("or", "y/model")).toMatchObject({
+      inputPerMtok: 3,
+      cachedInputPerMtok: 3,
+      outputPerMtok: 4,
+      source: "provider",
+    });
     expect(t.get("or", "z/nopricing")).toBeUndefined();
   });
 });

@@ -102,14 +102,18 @@ export const UsageSchema = z.object({
   outputTokens: z.number().int().nonnegative(),
 });
 export type Usage = z.infer<typeof UsageSchema>;
-export const emptyUsage = (): Usage => ({ inputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 });
+export const emptyUsage = (): Usage => ({
+  inputTokens: 0,
+  cacheReadTokens: 0,
+  cacheWriteTokens: 0,
+  outputTokens: 0,
+});
 
 export const StopReasonSchema = z.enum(["end_turn", "max_tokens", "refusal", "other"]);
 export type StopReason = z.infer<typeof StopReasonSchema>;
 
 export type ChatEvent =
-  | { type: "text"; text: string }
-  | { type: "done"; usage: Usage; stopReason: StopReason; model: string };
+  { type: "text"; text: string } | { type: "done"; usage: Usage; stopReason: StopReason; model: string };
 
 export interface TranscriptionInput {
   data: Uint8Array;
@@ -182,7 +186,11 @@ export const OpportunityFactSchema = z.object({
   dataNeeded: z.array(z.string()).default([]),
   risks: z.array(z.string()).default([]),
 });
-export const FactSchema = z.discriminatedUnion("kind", [TaskFactSchema, PainPointFactSchema, OpportunityFactSchema]);
+export const FactSchema = z.discriminatedUnion("kind", [
+  TaskFactSchema,
+  PainPointFactSchema,
+  OpportunityFactSchema,
+]);
 export type Fact = z.infer<typeof FactSchema>;
 export const ExtractionResultSchema = z.object({ facts: z.array(FactSchema) });
 export type ExtractionResult = z.infer<typeof ExtractionResultSchema>;

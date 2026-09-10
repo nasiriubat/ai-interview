@@ -1,9 +1,11 @@
 # 04 Analysis and scoring
 
 ## Trigger
+
 - FR-15 Runs when the campaign reaches its completion threshold (default 5 completed interviews or 30 percent of invited, whichever comes first) or when the admin presses Analyze now. Below threshold the result is labeled preliminary. Each run is a version; two versions can be diffed.
 
 ## Pipeline (background jobs, batch-priced where the provider allows)
+
 1. Normalize facts from every completed session, with role and department when known.
 2. Embed facts; cluster by similarity; a model pass merges or splits clusters and names them.
 3. Per cluster: summary, affected roles, participants mentioning it, aggregated frequency and time, tools, representative quotes.
@@ -12,31 +14,35 @@
 
 ## Factors (FR-16)
 
-| Factor | Scale | Meaning |
-|---|---|---|
-| expected_impact | 1 to 5 | Time, cost, quality, or revenue effect if solved |
-| affected_employees | 1 to 5 | Share of the organization touched |
-| frequency | 1 to 5 | How often the problem occurs |
-| implementation_complexity | 1 to 5, 5 simplest | Effort to deliver |
-| data_availability | 1 to 5 | Needed data exists and is accessible |
-| risk | 1 to 5, 5 lowest risk | Regulatory, safety, change-management risk |
-| ai_suitability | 1 to 5 | AI specifically, versus rules or software, fits |
+| Factor                    | Scale                 | Meaning                                          |
+| ------------------------- | --------------------- | ------------------------------------------------ |
+| expected_impact           | 1 to 5                | Time, cost, quality, or revenue effect if solved |
+| affected_employees        | 1 to 5                | Share of the organization touched                |
+| frequency                 | 1 to 5                | How often the problem occurs                     |
+| implementation_complexity | 1 to 5, 5 simplest    | Effort to deliver                                |
+| data_availability         | 1 to 5                | Needed data exists and is accessible             |
+| risk                      | 1 to 5, 5 lowest risk | Regulatory, safety, change-management risk       |
+| ai_suitability            | 1 to 5                | AI specifically, versus rules or software, fits  |
 
 Rank = weighted sum, weights admin-tunable, presets: balanced, quick wins, strategic.
 
 ## Anonymity rule
+
 - FR-17 A quote or a department breakdown appears only when at least k participants (default 3) are behind it. Department comparison is shown when each compared department has at least k.
 
 ## Report (FR-17a)
+
 Executive summary; participation and method; work map (clusters by area with time
 share, as Mermaid process maps); opportunities by solution class with the factor table;
 quick wins vs strategic bets; where AI is not appropriate and why; recommended next three
 opportunities for requirements discovery. Markdown and PDF; sections can be hidden.
 
 ## Admin actions on results
+
 Merge or split clusters, rename, override class or factors with a note, dismiss,
 shortlist, promote to requirements discovery (FR-18). Overrides survive re-runs.
 
 ## Admin knobs (ADM-ANALYSIS)
+
 Threshold, k, weights and presets, similarity strictness, report sections, preliminary
 visibility to members, department comparison on or off.

@@ -1,5 +1,17 @@
+import {
+  emptyUsage,
+  type Capabilities,
+  type ChatEvent,
+  type ChatMessage,
+  type ChatRequest,
+  type ModelInfo,
+  type ProviderKind,
+  type StopReason,
+  type Transcript,
+  type TranscriptionInput,
+  type Usage,
+} from "@aidp/shared";
 import { z } from "zod";
-import { emptyUsage, type Capabilities, type ChatEvent, type ChatMessage, type ChatRequest, type ModelInfo, type ProviderKind, type StopReason, type Transcript, type TranscriptionInput, type Usage } from "@aidp/shared";
 import { ProviderError, type Provider } from "./types.js";
 
 export type OpenAICompatibleKind = Exclude<ProviderKind, "anthropic">;
@@ -36,7 +48,8 @@ export class OpenAICompatibleProvider implements Provider {
     this.id = opts.id;
     this.kind = opts.kind;
     const base = opts.baseUrl ?? DEFAULT_BASE_URLS[opts.kind];
-    if (!base) throw new ProviderError(`Provider kind '${opts.kind}' requires a base URL`, "bad_request", false);
+    if (!base)
+      throw new ProviderError(`Provider kind '${opts.kind}' requires a base URL`, "bad_request", false);
     this.baseUrl = base.replace(/\/+$/, "");
     this.headers = {
       "content-type": "application/json",
@@ -58,7 +71,8 @@ export class OpenAICompatibleProvider implements Provider {
   async listModels(): Promise<ModelInfo[]> {
     if (this.kind === "litellm") {
       const info = await this.tryJson("/model/info");
-      if (info && Array.isArray(info.data)) return info.data.map(fromLiteLLMModel).filter(Boolean) as ModelInfo[];
+      if (info && Array.isArray(info.data))
+        return info.data.map(fromLiteLLMModel).filter(Boolean) as ModelInfo[];
     }
     const res = await this.request("/models", { method: "GET" });
     const body = (await res.json()) as { data?: unknown[] };
@@ -91,7 +105,12 @@ export class OpenAICompatibleProvider implements Provider {
     yield { type: "done", usage, stopReason: stop, model: seenModel };
   }
 
-  async complete<T>(model: string, req: ChatRequest, schema: z.ZodType<T>, schemaName = "result"): Promise<{ value: T; usage: Usage }> {
+  async complete<T>(
+    model: string,
+    req: ChatRequest,
+    schema: z.ZodType<T>,
+    schemaName = "result",
+  ): Promise<{ value: T; usage: Usage }> {
     const jsonSchema = z.toJSONSchema(schema, { target: "openapi-3.0", unrepresentable: "any" });
     const base = {
       model,
@@ -102,7 +121,13 @@ export class OpenAICompatibleProvider implements Provider {
     // First attempt: strict json_schema. Many OpenAI-compatible servers accept it.
     let res = await this.request("/chat/completions", {
       method: "POST",
-      body: JSON.stringify({ ...base, response_format: { type: "json_schema", json_schema: { name: schemaName, schema: jsonSchema, strict: true } } }),
+      body: JSON.stringify({
+        ...base,
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: schemaName, schema: jsonSchema, strict: true },
+        },
+      }),
       allowStatuses: [400, 422],
     });
     if (res.status === 400 || res.status === 422) {
@@ -127,22 +152,36 @@ export class OpenAICompatibleProvider implements Provider {
       throw new ProviderError("Structured output was not valid JSON", "parse", true, e);
     }
     const parsed = schema.safeParse(parsedJson);
-    if (!parsed.success) throw new ProviderError(`Structured output failed validation: ${parsed.error.message}`, "parse", true, parsed.error);
+    if (!parsed.success)
+      throw new ProviderError(
+        `Structured output failed validation: ${parsed.error.message}`,
+        "parse",
+        true,
+        parsed.error,
+      );
     return { value: parsed.data, usage: body.usage ? toUsage(body.usage) : emptyUsage() };
   }
 
-  async transcribe(model: string, input: TranscriptionInput): Promise<{ transcript: Transcript; usage: Usage }> {
-    if (!this.capabilities.transcription) throw new ProviderError("Provider does not transcribe audio", "unsupported", false);
+  async transcribe(
+    model: string,
+    input: TranscriptionInput,
+  ): Promise<{ transcript: Transcript; usage: Usage }> {
+    if (!this.capabilities.transcription)
+      throw new ProviderError("Provider does not transcribe audio", "unsupported", false);
     const form = new FormData();
     form.append("model", model);
-    form.append("file", new Blob([input.data.slice().buffer as ArrayBuffer], { type: input.mime }), input.filename);
+    form.append("file", new Blob([input.data.slice().buffer], { type: input.mime }), input.filename);
     if (input.language) form.append("language", input.language);
     form.append("response_format", "verbose_json");
-    const { "content-type": _ct, ...headers } = this.headers;
+    const headers = { ...this.headers };
+    delete headers["content-type"]; // let fetch set the multipart boundary
     const res = await this.request("/audio/transcriptions", { method: "POST", body: form, headers });
     const body = (await res.json()) as { text?: string; duration?: number };
     return {
-      transcript: { text: body.text ?? "", ...(body.duration !== undefined ? { durationSeconds: body.duration } : {}) },
+      transcript: {
+        text: body.text ?? "",
+        ...(body.duration !== undefined ? { durationSeconds: body.duration } : {}),
+      },
       usage: emptyUsage(), // transcription is priced per minute; the ledger prices it from durationSeconds
     };
   }
@@ -157,10 +196,17 @@ export class OpenAICompatibleProvider implements Provider {
     }
   }
 
-  private async request(path: string, init: { method: string; body?: BodyInit; headers?: Record<string, string>; allowStatuses?: number[] }): Promise<Response> {
+  private async request(
+    path: string,
+    init: { method: string; body?: BodyInit; headers?: Record<string, string>; allowStatuses?: number[] },
+  ): Promise<Response> {
     let res: Response;
     try {
-      res = await this.fetchImpl(`${this.baseUrl}${path}`, { method: init.method, headers: init.headers ?? this.headers, ...(init.body !== undefined ? { body: init.body } : {}) });
+      res = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method: init.method,
+        headers: init.headers ?? this.headers,
+        ...(init.body !== undefined ? { body: init.body } : {}),
+      });
     } catch (e) {
       throw new ProviderError(`Network error calling ${path}`, "network", true, e);
     }
@@ -183,16 +229,16 @@ interface OpenAIUsage {
 }
 interface OpenAIChunk {
   model?: string;
-  choices?: Array<{ delta?: { content?: string | null }; finish_reason?: string | null }>;
+  choices?: { delta?: { content?: string | null }; finish_reason?: string | null }[];
   usage?: OpenAIUsage | null;
 }
 interface OpenAICompletion {
-  choices?: Array<{ message?: { content?: string | null }; finish_reason?: string | null }>;
+  choices?: { message?: { content?: string | null }; finish_reason?: string | null }[];
   usage?: OpenAIUsage | null;
 }
 
-function toOpenAIMessages(req: ChatRequest): Array<{ role: string; content: unknown }> {
-  const out: Array<{ role: string; content: unknown }> = [];
+function toOpenAIMessages(req: ChatRequest): { role: string; content: unknown }[] {
+  const out: { role: string; content: unknown }[] = [];
   if (req.system) out.push({ role: "system", content: req.system });
   for (const m of req.messages) out.push({ role: m.role, content: toOpenAIContent(m) });
   return out;
@@ -201,7 +247,9 @@ function toOpenAIMessages(req: ChatRequest): Array<{ role: string; content: unkn
 function toOpenAIContent(m: ChatMessage): unknown {
   if (typeof m.content === "string") return m.content;
   return m.content.map((p) =>
-    p.type === "text" ? { type: "text", text: p.text } : { type: "image_url", image_url: { url: `data:${p.mime};base64,${p.base64}` } },
+    p.type === "text"
+      ? { type: "text", text: p.text }
+      : { type: "image_url", image_url: { url: `data:${p.mime};base64,${p.base64}` } },
   );
 }
 
@@ -230,9 +278,14 @@ function stripFences(s: string): string {
 
 /** OpenRouter publishes pricing as USD per token (strings). Convert to per million. */
 function fromOpenAIModel(raw: unknown): ModelInfo {
-  const m = raw as { id: string; name?: string; context_length?: number; pricing?: { prompt?: string | number; completion?: string | number; input_cache_read?: string | number } };
+  const m = raw as {
+    id: string;
+    name?: string;
+    context_length?: number;
+    pricing?: { prompt?: string | number; completion?: string | number; input_cache_read?: string | number };
+  };
   const perMtok = (v: string | number | undefined): number | undefined => {
-    if (v === undefined || v === null) return undefined;
+    if (v === undefined) return undefined;
     const n = typeof v === "number" ? v : Number(v);
     return Number.isFinite(n) && n >= 0 ? n * 1_000_000 : undefined;
   };
@@ -249,14 +302,23 @@ function fromOpenAIModel(raw: unknown): ModelInfo {
 
 /** LiteLLM /model/info entries carry per-token costs in model_info. */
 function fromLiteLLMModel(raw: unknown): ModelInfo | null {
-  const m = raw as { model_name?: string; model_info?: { input_cost_per_token?: number; output_cost_per_token?: number; cache_read_input_token_cost?: number; max_input_tokens?: number } };
+  const m = raw as {
+    model_name?: string;
+    model_info?: {
+      input_cost_per_token?: number;
+      output_cost_per_token?: number;
+      cache_read_input_token_cost?: number;
+      max_input_tokens?: number;
+    };
+  };
   if (!m.model_name) return null;
   const info: ModelInfo = { id: m.model_name, name: m.model_name };
   const mi = m.model_info ?? {};
   if (mi.max_input_tokens) info.contextWindow = mi.max_input_tokens;
   if (mi.input_cost_per_token !== undefined) info.inputPerMtok = mi.input_cost_per_token * 1_000_000;
   if (mi.output_cost_per_token !== undefined) info.outputPerMtok = mi.output_cost_per_token * 1_000_000;
-  if (mi.cache_read_input_token_cost !== undefined) info.cachedInputPerMtok = mi.cache_read_input_token_cost * 1_000_000;
+  if (mi.cache_read_input_token_cost !== undefined)
+    info.cachedInputPerMtok = mi.cache_read_input_token_cost * 1_000_000;
   return info;
 }
 
@@ -266,7 +328,7 @@ export async function* parseSse(body: ReadableStream<Uint8Array>): AsyncIterable
   const decoder = new TextDecoder();
   let buffer = "";
   try {
-    while (true) {
+    for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });

@@ -1,6 +1,7 @@
 # 10 Architecture
 
 ## Stack (decided)
+
 TypeScript end to end. Fastify API plus a worker process; Next.js (App Router), React,
 Tailwind, shadcn/ui as one app with role-based routes; Vercel AI SDK UI package on the
 frontend for streaming message parts and widgets; Postgres with pgvector;
@@ -9,6 +10,7 @@ an EU VPS for the pilot, containers everywhere so it can move; Mermaid in the br
 and a self-hosted Kroki for PDF and PlantUML rendering.
 
 ## Framework decision
+
 No agent framework (LangGraph, Mastra, or similar). Their value is durable execution
 with checkpoints; we get durability by persisting state and events per turn in
 Postgres and running long steps as pg-boss jobs. A graph runtime would add a second
@@ -18,6 +20,7 @@ frontend. If a later phase needs multi-step durable workflows beyond jobs, Tempo
 the addition.
 
 ## Patterns
+
 - Modular monolith: `identity`, `templates`, `campaigns`, `sessions` (engine), `analysis`, `requirements`, `providers` (with cost), `voice`, `files`, `exports`, `audit`, `settings`. Explicit module boundaries; microservices only when a module must scale alone.
 - Ports and adapters at every external edge (model providers, STT, TTS, object storage, email, GitHub, diagram rendering), each with an in-memory fake for tests.
 - Interview engine as a template-driven state machine; turn objects as structured output.
@@ -28,6 +31,7 @@ the addition.
 - Settings service: every knob in this spec is a typed setting with a default, a scope (platform, tenant, template, campaign), and an audit trail.
 
 ## Repository layout
+
 ```
 apps/web          Next.js: participant interview, admin dashboard, requirements workspace
 apps/api          Fastify: HTTP and WebSocket API, auth, module routers
@@ -44,6 +48,7 @@ docs/             Discovery, spec, team
 ## Diagrams
 
 ### System context
+
 ```mermaid
 flowchart LR
   P[Participant] -->|link, chat, voice, files| WEB[Web app]
@@ -66,6 +71,7 @@ flowchart LR
 ```
 
 ### Interview turn
+
 ```mermaid
 sequenceDiagram
   participant U as Participant
@@ -89,6 +95,7 @@ sequenceDiagram
 ```
 
 ### Session state
+
 ```mermaid
 stateDiagram-v2
   [*] --> created
@@ -105,6 +112,7 @@ stateDiagram-v2
 ```
 
 ### Pipeline
+
 ```mermaid
 flowchart LR
   I[Employee interviews] --> X[Fact extraction]

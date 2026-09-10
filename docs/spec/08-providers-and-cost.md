@@ -1,6 +1,7 @@
 # 08 Providers and cost
 
 ## Provider registry (FR-40 to FR-44)
+
 Kinds: `anthropic`, `openai`, `openrouter`, `litellm`, `openai_compatible`, plus
 `stt`, `tts`, and `realtime` provider kinds for voice. Fields: name, base URL,
 encrypted key, headers, enabled, platform-level or tenant-level. Live model lists;
@@ -10,6 +11,7 @@ output, effort, batch, vision, transcription, streaming speech) and the engine
 degrades gracefully.
 
 ## Purposes and routing (FR-42)
+
 `interview_turn`, `resume_summary`, `extraction`, `clustering`, `analysis_report`,
 `spec_turn`, `issue_detection`, `spec_generation`, `transcription`, `stt_stream`,
 `tts`, `realtime_voice`, `file_ingest`, `vision_ingest`, `embedding`. Each maps to
@@ -18,6 +20,7 @@ defaults. Chatty purposes default to the fast tier at low effort; one-shot,
 quality-critical purposes default to the strongest tier.
 
 ## Cost control (FR-45 to FR-49)
+
 - Ledger row per call: tenant, purpose, provider, model, prompt version, tokens (input, cache read, cache write, output), latency, status, computed cost, session and campaign.
 - Price table per provider and model: seeded, admin-editable, provider-imported; admin overrides win.
 - Budgets: tenant monthly (platform default; tenant may lower), campaign cap, session cap. Guard before each call with a conservative estimate; actuals recorded after.
@@ -26,5 +29,6 @@ quality-critical purposes default to the strongest tier.
 - Spend dashboard by tenant, campaign, purpose, model, day.
 
 ## Framework decision
+
 No agent framework. The model and cost layer is our own, on official SDKs and the Chat
 Completions protocol. Rationale in `10-architecture.md`.

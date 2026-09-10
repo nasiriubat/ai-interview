@@ -10,7 +10,11 @@ ledger row whether the call succeeds, fails, is refused, or is blocked by budget
 
 ```ts
 const caller = new ModelCaller({ routes, providerConfigs, registry, prices, ledger, budget });
-for await (const ev of caller.chat("interview_turn", { companyId, interviewId }, { system, messages, cachePrefix: true })) {
+for await (const ev of caller.chat(
+  "interview_turn",
+  { companyId, interviewId },
+  { system, messages, cachePrefix: true },
+)) {
   if (ev.type === "text") send(ev.text);
 }
 const facts = await caller.complete("extraction", ctx, { messages }, ExtractionResultSchema);
@@ -18,9 +22,9 @@ const facts = await caller.complete("extraction", ctx, { messages }, ExtractionR
 
 ## Adapters
 
-| Kind | Class | Notes |
-|---|---|---|
-| `anthropic` | `AnthropicProvider` | Official SDK. Prompt caching on the system prefix, `output_config.effort`, structured output through `messages.parse`. |
+| Kind                                                   | Class                      | Notes                                                                                                                                                                            |
+| ------------------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `anthropic`                                            | `AnthropicProvider`        | Official SDK. Prompt caching on the system prefix, `output_config.effort`, structured output through `messages.parse`.                                                           |
 | `openai`, `openrouter`, `litellm`, `openai_compatible` | `OpenAICompatibleProvider` | Chat Completions protocol. Streams with usage, `json_schema` structured output with JSON-mode fallback, audio transcription, model list with prices from OpenRouter and LiteLLM. |
 
 Capabilities are explicit on each adapter; `ModelCaller` only passes effort and cache

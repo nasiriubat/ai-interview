@@ -1,0 +1,64 @@
+// @ts-check
+import js from "@eslint/js";
+import prettier from "eslint-config-prettier";
+import importX from "eslint-plugin-import-x";
+import tseslint from "typescript-eslint";
+
+export default tseslint.config(
+  {
+    ignores: [
+      "**/dist/**",
+      "**/.next/**",
+      "**/node_modules/**",
+      "**/*.config.{js,ts,mjs}",
+      "**/prisma/migrations/**",
+    ],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
+  {
+    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
+    plugins: { "import-x": importX },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/explicit-module-boundary-types": "error",
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        { prefer: "type-imports", fixStyle: "inline-type-imports" },
+      ],
+      "@typescript-eslint/no-unnecessary-condition": "warn",
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      "@typescript-eslint/no-non-null-assertion": "error",
+      "import-x/order": [
+        "error",
+        {
+          "newlines-between": "never",
+          alphabetize: { order: "asc", caseInsensitive: true },
+          groups: ["builtin", "external", "internal", "parent", "sibling", "index"],
+        },
+      ],
+      "import-x/no-duplicates": "error",
+      "no-console": ["error", { allow: ["warn", "error"] }],
+      eqeqeq: ["error", "smart"],
+      curly: ["error", "multi-line"],
+    },
+  },
+  {
+    files: ["**/test/**", "**/*.test.ts", "**/seeds/**", "**/evals/**"],
+    rules: {
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "no-console": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-base-to-string": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
+    },
+  },
+  prettier,
+);

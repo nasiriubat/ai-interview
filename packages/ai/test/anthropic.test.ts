@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type Anthropic from "@anthropic-ai/sdk";
+import { describe, expect, it } from "vitest";
 import { AnthropicProvider } from "../src/providers/anthropic.js";
 
 /** A fake of the two SDK methods the adapter uses. */
@@ -7,7 +7,12 @@ function fakeClient(capture: { params?: unknown }) {
   const final = {
     model: "claude-sonnet-5",
     stop_reason: "end_turn",
-    usage: { input_tokens: 12, output_tokens: 3, cache_read_input_tokens: 800, cache_creation_input_tokens: 0 },
+    usage: {
+      input_tokens: 12,
+      output_tokens: 3,
+      cache_read_input_tokens: 800,
+      cache_creation_input_tokens: 0,
+    },
   };
   return {
     messages: {
@@ -33,11 +38,23 @@ describe("AnthropicProvider", () => {
     const capture: { params?: unknown } = {};
     const p = new AnthropicProvider({ id: "anth", apiKey: "k", client: fakeClient(capture) });
     const events = [];
-    for await (const ev of p.chat("claude-sonnet-5", { system: "You interview employees.", messages: [{ role: "user", content: "hello" }], maxOutputTokens: 500, effort: "low", cachePrefix: true })) events.push(ev);
+    for await (const ev of p.chat("claude-sonnet-5", {
+      system: "You interview employees.",
+      messages: [{ role: "user", content: "hello" }],
+      maxOutputTokens: 500,
+      effort: "low",
+      cachePrefix: true,
+    }))
+      events.push(ev);
     expect(events).toEqual([
       { type: "text", text: "Hi " },
       { type: "text", text: "there" },
-      { type: "done", usage: { inputTokens: 12, cacheReadTokens: 800, cacheWriteTokens: 0, outputTokens: 3 }, stopReason: "end_turn", model: "claude-sonnet-5" },
+      {
+        type: "done",
+        usage: { inputTokens: 12, cacheReadTokens: 800, cacheWriteTokens: 0, outputTokens: 3 },
+        stopReason: "end_turn",
+        model: "claude-sonnet-5",
+      },
     ]);
     expect(capture.params).toEqual({
       model: "claude-sonnet-5",
@@ -51,7 +68,13 @@ describe("AnthropicProvider", () => {
   it("sends the system prompt as a plain string when caching is off", async () => {
     const capture: { params?: unknown } = {};
     const p = new AnthropicProvider({ id: "anth", apiKey: "k", client: fakeClient(capture) });
-    for await (const _ of p.chat("m", { system: "s", messages: [{ role: "user", content: "x" }], maxOutputTokens: 10, cachePrefix: false })) void _;
+    for await (const ev of p.chat("m", {
+      system: "s",
+      messages: [{ role: "user", content: "x" }],
+      maxOutputTokens: 10,
+      cachePrefix: false,
+    }))
+      ev;
     expect((capture.params as { system: unknown }).system).toBe("s");
   });
 });

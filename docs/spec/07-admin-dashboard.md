@@ -5,6 +5,7 @@ plausibly change per customer or per month, it is a setting with a sensible defa
 not a constant in code.
 
 ## Stats
+
 - Participation: campaigns open; invited, started, completed; median length; drop-off by area; identified vs anonymous share; reminders sent.
 - Discovery results: opportunities by solution class; top ten by rank; evidence counts; "AI not appropriate" count.
 - Requirements: projects by status; average turns to completion; findings by type; exports made.
@@ -12,6 +13,7 @@ not a constant in code.
 - Health: job queue depth and failures; provider test results; storage used; prompt version canaries.
 
 ## Configurable without code
+
 - Templates: everything in `01`, with versions, rollback, preview, diff against shipped.
 - Prompts: every system prompt editable per tenant with the shipped version as reset and a diff view; canary a prompt version to a share of sessions.
 - Scoring: weights, presets, class thresholds.
@@ -25,6 +27,7 @@ not a constant in code.
 - Notifications: who gets budget warnings, completion notices, analysis-ready notices.
 
 ## Surface by role
+
 Platform operator: tenants (create, suspend, default budget, region), platform
 providers, routing defaults, seeded templates, global stats, flags per tenant.
 Company admin: users and roles; templates; campaigns and invitations; results and

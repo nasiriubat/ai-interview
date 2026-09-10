@@ -1,8 +1,8 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PrismaClient } from "@prisma/client";
 import { SEED_PRICES } from "@aidp/ai";
+import { PrismaClient } from "@prisma/client";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -11,7 +11,9 @@ export async function seed(db: PrismaClient): Promise<void> {
   const dir = join(here, "templates");
   for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
     const t = JSON.parse(readFileSync(join(dir, file), "utf8"));
-    const existing = await db.interviewTemplate.findFirst({ where: { companyId: null, key: t.key, version: t.version } });
+    const existing = await db.interviewTemplate.findFirst({
+      where: { companyId: null, key: t.key, version: t.version },
+    });
     const data = {
       companyId: null,
       key: t.key,
@@ -48,6 +50,8 @@ export async function seed(db: PrismaClient): Promise<void> {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const db = new PrismaClient();
   seed(db)
-    .then(() => console.log("seeded"))
+    .then(() => {
+      console.log("seeded");
+    })
     .finally(() => db.$disconnect());
 }

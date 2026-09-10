@@ -2,7 +2,7 @@ import type { BudgetLimit, BudgetScope } from "@aidp/shared";
 import type { SpendSource } from "./ledger.js";
 
 export interface BudgetLimitSource {
-  limitsFor(scopes: Array<{ scope: BudgetScope; scopeId: string }>): Promise<BudgetLimit[]>;
+  limitsFor(scopes: { scope: BudgetScope; scopeId: string }[]): Promise<BudgetLimit[]>;
 }
 
 export interface BudgetCheck {
@@ -10,7 +10,7 @@ export interface BudgetCheck {
   /** The limit that blocked the call, when not allowed. */
   blockedBy?: BudgetLimit & { spentCents: number };
   /** Limits past the warning threshold (default 80 percent) after this call. */
-  warnings: Array<BudgetLimit & { spentCents: number; fraction: number }>;
+  warnings: (BudgetLimit & { spentCents: number; fraction: number })[];
 }
 
 export interface BudgetGuardOptions {
@@ -36,8 +36,11 @@ export class BudgetGuard {
     this.now = opts.now ?? (() => new Date());
   }
 
-  async check(ctx: { companyId: string; campaignId?: string; interviewId?: string }, estimateCents: number): Promise<BudgetCheck> {
-    const scopes: Array<{ scope: BudgetScope; scopeId: string }> = [{ scope: "tenant", scopeId: ctx.companyId }];
+  async check(
+    ctx: { companyId: string; campaignId?: string; interviewId?: string },
+    estimateCents: number,
+  ): Promise<BudgetCheck> {
+    const scopes: { scope: BudgetScope; scopeId: string }[] = [{ scope: "tenant", scopeId: ctx.companyId }];
     if (ctx.campaignId) scopes.push({ scope: "campaign", scopeId: ctx.campaignId });
     if (ctx.interviewId) scopes.push({ scope: "interview", scopeId: ctx.interviewId });
     const limits = await this.limits.limitsFor(scopes);
@@ -61,7 +64,7 @@ export class BudgetGuard {
 /** Static limits, for tests and local dev. */
 export class StaticBudgetLimits implements BudgetLimitSource {
   constructor(private readonly all: BudgetLimit[]) {}
-  async limitsFor(scopes: Array<{ scope: BudgetScope; scopeId: string }>): Promise<BudgetLimit[]> {
+  async limitsFor(scopes: { scope: BudgetScope; scopeId: string }[]): Promise<BudgetLimit[]> {
     return this.all.filter((l) => scopes.some((s) => s.scope === l.scope && s.scopeId === l.scopeId));
   }
 }
@@ -69,7 +72,11 @@ export class StaticBudgetLimits implements BudgetLimitSource {
 export class BudgetExceededError extends Error {
   constructor(public readonly check: BudgetCheck) {
     const b = check.blockedBy;
-    super(b ? `Budget exceeded for ${b.scope} ${b.scopeId}: ${b.spentCents.toFixed(2)} of ${b.limitCents} cents used` : "Budget exceeded");
+    super(
+      b
+        ? `Budget exceeded for ${b.scope} ${b.scopeId}: ${b.spentCents.toFixed(2)} of ${b.limitCents} cents used`
+        : "Budget exceeded",
+    );
     this.name = "BudgetExceededError";
   }
 }

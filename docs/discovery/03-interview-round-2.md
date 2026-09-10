@@ -2,14 +2,14 @@
 
 ## Round-1 answers recorded
 
-| Q | Answer | Effect |
-|---|---|---|
-| Q1 customer | Multi-tenant OK, asked how AI cost is controlled | D-04 confirmed. Cost control becomes a first-class requirement (section A below). |
-| Q2 modality | Text, chat, voice, file upload: all | D-05 overturned. Voice and file upload are in v1 (section C). |
-| Q3 outputs | All | D-06 confirmed. |
-| Q4 developer-ready | Default | D-07 confirmed. |
-| Q5 stack | Asked about agentic frameworks; requires provider configurability from the admin dashboard, not only Claude, including LiteLLM and OpenRouter, with model selection | D-09 partly overturned. Provider layer redesigned (section B). |
-| Q6 worry | Default | D-12 confirmed. |
+| Q                  | Answer                                                                                                                                                              | Effect                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Q1 customer        | Multi-tenant OK, asked how AI cost is controlled                                                                                                                    | D-04 confirmed. Cost control becomes a first-class requirement (section A below). |
+| Q2 modality        | Text, chat, voice, file upload: all                                                                                                                                 | D-05 overturned. Voice and file upload are in v1 (section C).                     |
+| Q3 outputs         | All                                                                                                                                                                 | D-06 confirmed.                                                                   |
+| Q4 developer-ready | Default                                                                                                                                                             | D-07 confirmed.                                                                   |
+| Q5 stack           | Asked about agentic frameworks; requires provider configurability from the admin dashboard, not only Claude, including LiteLLM and OpenRouter, with model selection | D-09 partly overturned. Provider layer redesigned (section B).                    |
+| Q6 worry           | Default                                                                                                                                                             | D-12 confirmed.                                                                   |
 
 ## A. How AI cost is controlled
 
@@ -67,9 +67,9 @@ lines, with two adapters.** Reasons:
 
 The two adapters cover every provider you named:
 
-| Adapter | Serves | Transport |
-|---|---|---|
-| `anthropic` | Anthropic direct | Official Anthropic SDK: streaming, prompt caching, structured outputs, effort |
+| Adapter             | Serves                                                                         | Transport                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `anthropic`         | Anthropic direct                                                               | Official Anthropic SDK: streaming, prompt caching, structured outputs, effort                                      |
 | `openai-compatible` | OpenAI, OpenRouter, LiteLLM proxy, any OpenAI-compatible server (Ollama, vLLM) | Chat Completions protocol with a configurable base URL and headers; model list from the provider's models endpoint |
 
 Model selection: the admin picks a provider, the platform fetches its model list live
