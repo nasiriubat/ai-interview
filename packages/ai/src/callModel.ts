@@ -41,7 +41,7 @@ export interface CallRequest {
 export interface CallContext {
   companyId: string;
   campaignId?: string;
-  interviewId?: string;
+  sessionId?: string;
   ref?: { type: string; id: string };
   promptVersion?: string;
 }
@@ -210,7 +210,7 @@ export class ModelCaller {
       ...(ctx.promptVersion ? { promptVersion: ctx.promptVersion } : {}),
       ...(ctx.ref ? { ref: ctx.ref } : {}),
       ...(ctx.campaignId ? { campaignId: ctx.campaignId } : {}),
-      ...(ctx.interviewId ? { interviewId: ctx.interviewId } : {}),
+      ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
     };
     await this.deps.ledger.record(entry);
   }

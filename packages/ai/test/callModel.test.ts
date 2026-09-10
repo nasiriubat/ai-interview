@@ -97,7 +97,7 @@ describe("ModelCaller", () => {
     const out: string[] = [];
     for await (const ev of caller.chat(
       "interview_turn",
-      { companyId: "c1", interviewId: "i1" },
+      { companyId: "c1", sessionId: "i1" },
       { messages: [{ role: "user", content: "hi" }], cachePrefix: true },
     )) {
       if (ev.type === "text") out.push(ev.text);
@@ -108,7 +108,7 @@ describe("ModelCaller", () => {
     expect(ledger.entries).toHaveLength(1);
     expect(ledger.entries[0]).toMatchObject({
       companyId: "c1",
-      interviewId: "i1",
+      sessionId: "i1",
       purpose: "interview_turn",
       status: "ok",
     });

@@ -47,19 +47,19 @@ describe("BudgetGuard", () => {
 
   it("warns at 80 percent and checks campaign and interview scopes too", async () => {
     const ledger = new InMemoryLedger();
-    await ledger.record(entry({ costCents: 70, campaignId: "camp", interviewId: "int" }));
+    await ledger.record(entry({ costCents: 70, campaignId: "camp", sessionId: "int" }));
     const guard = new BudgetGuard(
       new StaticBudgetLimits([
         { scope: "tenant", scopeId: "c1", limitCents: 10_000, period: "month" },
         { scope: "campaign", scopeId: "camp", limitCents: 100, period: "total" },
-        { scope: "interview", scopeId: "int", limitCents: 75, period: "total" },
+        { scope: "session", scopeId: "int", limitCents: 75, period: "total" },
       ]),
       ledger,
       { now: () => new Date("2026-09-09T00:00:00Z") },
     );
-    const res = await guard.check({ companyId: "c1", campaignId: "camp", interviewId: "int" }, 10);
+    const res = await guard.check({ companyId: "c1", campaignId: "camp", sessionId: "int" }, 10);
     expect(res.allowed).toBe(false);
-    expect(res.blockedBy?.scope).toBe("interview");
+    expect(res.blockedBy?.scope).toBe("session");
     expect(res.warnings.map((w) => w.scope)).toEqual(["campaign"]);
   });
 });

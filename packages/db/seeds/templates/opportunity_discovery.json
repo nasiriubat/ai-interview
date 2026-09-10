@@ -2,6 +2,7 @@
   "key": "opportunity_discovery",
   "version": 1,
   "name": "AI and Automation Opportunity Discovery",
+  "language": "en",
   "objective": "Understand how this person's work is actually performed day to day: their role, activities, repetitive tasks, tools, manual processes, information flows, bottlenecks and problems. The goal is an accurate picture of the work, not the person's opinion about where AI should be used.",
   "privacyMode": "participant_choice",
   "participantFields": [
@@ -9,30 +10,37 @@
     { "key": "role", "label": "Role or job title", "required": true },
     { "key": "department", "label": "Department or team", "required": false }
   ],
+  "pathSelection": "none",
+  "contextBlock": [],
   "coverageAreas": [
     {
       "key": "role",
       "name": "Role and responsibilities",
       "description": "What the person is responsible for and who they work with.",
-      "doneWhen": "Role, main responsibilities and key collaborators are known."
+      "doneWhen": "Role, main responsibilities and key collaborators are known.",
+      "essential": true,
+      "maxFollowUps": 2
     },
     {
       "key": "daily",
       "name": "Daily activities",
       "description": "What a typical day and week look like.",
-      "doneWhen": "At least four concrete recurring activities with rough time shares."
+      "doneWhen": "At least four concrete recurring activities with rough time shares.",
+      "instructions": "Ask for yesterday or a typical day, then widen to the week."
     },
     {
       "key": "repetitive",
       "name": "Repetitive tasks",
       "description": "Tasks done the same way over and over.",
-      "doneWhen": "Each repetitive task has frequency, duration and the tool used."
+      "doneWhen": "Each repetitive task has frequency, duration and the tool used.",
+      "essential": true
     },
     {
       "key": "tools",
       "name": "Tools and systems",
       "description": "Software, documents, spreadsheets, and channels used.",
-      "doneWhen": "Tools per task are known, including workarounds."
+      "doneWhen": "Tools per task are known, including workarounds.",
+      "instructions": "If they cannot name a system, ask what the screen looks like."
     },
     {
       "key": "manual",
@@ -56,21 +64,30 @@
       "key": "problems",
       "name": "Common problems",
       "description": "Errors, rework, frustration, missing information.",
-      "doneWhen": "Problems are tied to specific tasks or flows."
+      "doneWhen": "Problems are tied to specific tasks or flows.",
+      "essential": true
     },
     {
       "key": "wish",
       "name": "What they would change first",
       "description": "Asked last, after the work is understood.",
-      "doneWhen": "One or two prioritized wishes with reasons."
+      "doneWhen": "One or two prioritized wishes with reasons.",
+      "maxFollowUps": 1
     }
   ],
   "aiInstructions": "Understand the role before exploring the work. Ask one question at a time. Clarify when an answer is ambiguous. When a process or a problem surfaces, go one level deeper: ask for a concrete recent example, the steps, the tools, and how long it took. Never ask where AI should be used. Do not suggest solutions during the interview. Be warm and brief. Accept short answers and move on when an area is covered.",
   "adaptivity": {
     "followUpPolicy": "clarify_ambiguous_and_deepen_processes",
-    "maxFollowUpsPerArea": 3,
+    "minimalAnswerThreshold": 3,
+    "offerPathSwitch": false,
     "toneByRole": true
   },
+  "widgetPolicy": {
+    "allowedTypes": ["single_choice", "multi_choice", "scale", "yes_no"],
+    "maxPerTurns": 1,
+    "everyTurns": 2
+  },
+  "issueDetection": { "enabled": false },
   "outputs": ["task", "process", "information_flow", "pain_point", "opportunity_candidate"],
   "analysisEnabled": true,
   "chainToKey": "requirements_discovery",
@@ -81,5 +98,9 @@
     "tools": "facts.task.tools",
     "constraints": "opportunity.factors.risk.rationale",
     "expectedBenefit": "opportunity.factors.expected_impact.rationale"
-  }
+  },
+  "closingQuestion": "Is there anything important about your work that I did not ask about?",
+  "endSummary": true,
+  "maxTurns": 60,
+  "maxAssistantChars": 500
 }
