@@ -36,8 +36,12 @@ class MemoryStore implements SessionStore {
   async saveState(_id: string, state: SessionState) {
     this.state = state;
   }
-  async saveSummary() {}
-  async appendEvent() {}
+  async saveSummary(): Promise<void> {
+    // summaries are not exercised by this eval
+  }
+  async appendEvent(): Promise<void> {
+    // events are not exercised by this eval
+  }
 }
 
 const settings = {

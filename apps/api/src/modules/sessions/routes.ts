@@ -37,7 +37,7 @@ export async function sessionRoutes(app: App, ctx: AppContext): Promise<void> {
     const messages = transcript
       ? (await ctx.db.message.findMany({ where: { sessionId: s.id }, orderBy: { seq: "asc" } })).map(toStored)
       : null;
-    const { participant: _p, ...session } = s;
+    const session = { ...s, participant: undefined };
     return {
       session: {
         ...session,

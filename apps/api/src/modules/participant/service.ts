@@ -129,12 +129,7 @@ export class ParticipantService {
       const inv = await this.db.invitation.findUnique({
         where: { tokenHash: this.crypto.hashToken(invitationToken) },
       });
-      if (
-        !inv ||
-        inv.campaignId !== campaign.id ||
-        inv.status === "revoked" ||
-        inv.expiresAt.getTime() < Date.now()
-      )
+      if (inv?.campaignId !== campaign.id || inv.status === "revoked" || inv.expiresAt.getTime() < Date.now())
         throw new AppError("forbidden", "Invitation is invalid or expired");
       const bound = await this.bindByEmailHash(campaign, inv.emailHash, inv.email);
       await this.db.invitation.update({
@@ -317,6 +312,6 @@ export class ParticipantService {
   }
 }
 
-function pick<T extends Record<string, string>>(o: T, keys: string[]): Record<string, string> {
+function pick(o: Record<string, string>, keys: string[]): Record<string, string> {
   return Object.fromEntries(Object.entries(o).filter(([k]) => keys.includes(k)));
 }

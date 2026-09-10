@@ -119,7 +119,7 @@ export class ProviderService {
     const p = await this.get(companyId, id);
     const models = await this.adapter(p).listModels();
     const table = new PriceTable();
-    const imported = table.importFromModels(p.id, models);
+    table.importFromModels(p.id, models);
     let importedPrices = 0;
     for (const m of models) {
       const price = table.get(p.id, m.id);
@@ -147,7 +147,6 @@ export class ProviderService {
       });
       importedPrices++;
     }
-    imported;
     return { models, importedPrices };
   }
 
