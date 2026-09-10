@@ -93,6 +93,11 @@ export async function runTurn(
         data: { status: "completed", endedAt: new Date() },
       });
       send("ended", { summaryAvailable: snapshot.template.endSummary });
+      if (row.campaignId && snapshot.template.analysisEnabled) {
+        await ctx.analysis.maybeQueueForCampaign(row.companyId, row.campaignId).catch((err: unknown) => {
+          ctx.log.warn({ err, sessionId }, "could not queue analysis");
+        });
+      }
     }
     if (result.followUps.summarize)
       await ctx.jobs.publish(

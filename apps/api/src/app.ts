@@ -20,6 +20,7 @@ import { authPlugin } from "./auth/plugin.js";
 import { PrincipalResolver } from "./auth/principal.js";
 import type { AppContext } from "./context.js";
 import { errorHandler } from "./lib/errors.js";
+import { analysisRoutes } from "./modules/analysis/routes.js";
 import { auditRoutes } from "./modules/audit/routes.js";
 import { campaignRoutes } from "./modules/campaigns/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
@@ -89,6 +90,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await providerRoutes(a, ctx);
       await statsRoutes(a, ctx);
       await auditRoutes(a, ctx);
+      await analysisRoutes(a, ctx);
       await operatorRoutes(a, ctx);
       a.get("/openapi.json", async () => a.swagger());
     },

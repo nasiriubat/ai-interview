@@ -12,8 +12,12 @@ import { buildContext } from "../src/context.js";
 export const TURN_MARKER = "<<<TURN_META>>>";
 
 /** A fake OpenAI-compatible server: streams a scripted reply for chat, answers the models list. */
+/** Non-streaming structured answers by json_schema name; used by the analysis passes. */
+export type Completions = (schemaName: string, userContent: string) => unknown;
+
 export function fakeModelServer(
   replies: () => string,
+  completions?: Completions,
 ): Promise<{ server: Server; url: string; requests: unknown[] }> {
   const requests: unknown[] = [];
   return new Promise((resolve) => {
@@ -32,7 +36,26 @@ export function fakeModelServer(
           );
           return;
         }
-        requests.push(JSON.parse(body));
+        const parsed = JSON.parse(body) as {
+          stream?: boolean;
+          response_format?: { json_schema?: { name?: string } };
+          messages?: { content: string }[];
+        };
+        requests.push(parsed);
+        if (!parsed.stream) {
+          const name = parsed.response_format?.json_schema?.name ?? "";
+          const content = completions
+            ? JSON.stringify(completions(name, parsed.messages?.at(-1)?.content ?? ""))
+            : "{}";
+          res.setHeader("content-type", "application/json");
+          res.end(
+            JSON.stringify({
+              choices: [{ message: { content }, finish_reason: "stop" }],
+              usage: { prompt_tokens: 300, completion_tokens: 120 },
+            }),
+          );
+          return;
+        }
         const text = replies();
         res.setHeader("content-type", "text/event-stream");
         for (let i = 0; i < text.length; i += 9) {
@@ -57,6 +80,7 @@ export function fakeModelServer(
 
 export interface TestWorld {
   app: App;
+  ctx: ReturnType<typeof buildContext>;
   db: PrismaClient;
   email: MemoryEmail;
   jobs: MemoryJobPublisher;
@@ -142,7 +166,7 @@ export async function testWorld(modelUrl: string): Promise<TestWorld> {
       source: "admin",
     },
   });
-  for (const purpose of ["interview_turn", "resume_summary", "extraction"]) {
+  for (const purpose of ["interview_turn", "resume_summary", "extraction", "clustering", "analysis_report"]) {
     await db.route.create({
       data: {
         companyId: company.id,
@@ -158,6 +182,7 @@ export async function testWorld(modelUrl: string): Promise<TestWorld> {
     encode({ token: { email: e }, secret: config.AUTH_SECRET, salt: "authjs.session-token" });
   return {
     app,
+    ctx,
     db,
     email,
     jobs,
