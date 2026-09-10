@@ -47,6 +47,7 @@ export default async function CampaignsPage(): Promise<React.JSX.Element> {
               <TableHead className="text-right">{s.started}</TableHead>
               <TableHead className="text-right">{s.completed}</TableHead>
               <TableHead>{s.created}</TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -70,6 +71,11 @@ export default async function CampaignsPage(): Promise<React.JSX.Element> {
                   {c.stats?.completed ?? t.admin.common.dash}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">{formatDate(c.createdAt)}</TableCell>
+                <TableCell className="text-right">
+                  <Button asChild size="sm" variant="ghost">
+                    <Link href={`/admin/campaigns/${c.id}/results`}>{s.results}</Link>
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
