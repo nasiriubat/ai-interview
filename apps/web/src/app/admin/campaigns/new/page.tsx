@@ -3,10 +3,13 @@ import * as React from "react";
 import { CampaignForm } from "@/components/admin/campaigns/CampaignForm";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
-export const metadata: Metadata = { title: t.admin.campaigns.createTitle };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.campaigns.createTitle };
+}
 
 export default async function NewCampaignPage(): Promise<React.JSX.Element> {
   await requireMe();

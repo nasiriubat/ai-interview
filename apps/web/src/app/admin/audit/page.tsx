@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import type { AuditEntry } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
-export const metadata: Metadata = { title: t.admin.audit.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.audit.title };
+}
 
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

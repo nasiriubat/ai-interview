@@ -1,8 +1,9 @@
 # @aidp/web
 
 The Next.js web app of the AI Discovery Platform: the participant interview on the
-public side, the staff admin under `/admin`. It talks only to the Phase 1 API
-(`docs/spec/16-api-contract-phase1.md`); it never touches the model or the database.
+public side, the staff admin under `/admin`. It talks only to the API contracts
+(`docs/spec/16-api-contract-phase1.md` and `17-api-contract-phase2.md`); it never
+touches the model or the database.
 
 ## Stack
 
@@ -10,6 +11,8 @@ Next.js 16 (App Router, `output: "standalone"`), React 19, TypeScript strict
 (`exactOptionalPropertyTypes` on), Tailwind CSS v4, shadcn-style components on
 `radix-ui`, Auth.js v5 (`next-auth@beta`) with Google and email magic links on the JWT
 strategy, zod 4 (schemas imported from `@aidp/shared`), Vitest + Testing Library.
+Phase 2 adds `react-markdown` + `remark-gfm` for the report and `mermaid` (loaded on
+demand in the browser) for the process maps.
 
 The shadcn registry (`ui.shadcn.com`) was not reachable from the build environment, so
 the components under `src/components/ui/` are written by hand in the shadcn "new-york"
@@ -37,20 +40,31 @@ Environment: `NEXT_PUBLIC_API_URL` (API origin, `/api/v1` is appended), `AUTH_SE
 
 ## Structure
 
-```
+````
 src/proxy.ts                     Auth.js gate for /admin/* (Next 16 "proxy", formerly middleware)
 src/auth.ts, src/auth.config.ts  Auth.js: Google + Nodemailer, JWT sessions, in-memory adapter
-src/i18n/en.ts                   every user-facing string (phase 2 adds languages here)
+src/i18n/en.ts                   every user-facing string; the type source for other languages
+src/i18n/fi.ts                   Finnish, typed as `Strings` so a missing key fails typecheck
+src/i18n/locale.ts               supported locales, `lang` cookie, Accept-Language resolution (pure)
+src/i18n/index.ts                `t`: a deep proxy resolving each string against the active locale
+src/i18n/server.ts               `requestLocale()` / `getStrings()` for server components and metadata
+src/i18n/LocaleProvider.tsx      publishes the locale to client components
 src/lib/env.ts                   API base URL, cookie names
 src/lib/api/
   errors.ts                      ApiError + `{ error: { code, message } }` unwrapping
   http.ts                        Transport abstraction, request() with zod validation, requestStream()
   schemas.ts                     zod response schemas (exact where the contract is, tolerant elsewhere)
   sse.ts                         SSE parser and the typed turn stream (text | turn | ended | error)
-  participant.ts, staff.ts       every endpoint of the contract, transport-agnostic
+  participant.ts, staff.ts       every endpoint of contracts 16 and 17, transport-agnostic
   server.ts                      server-side transports: Bearer token read from httpOnly cookies
   browser.ts                     browser clients that go through the /api/* proxies
   proxy.ts                       shared forwarding logic for the route-handler proxies
+src/lib/analysis/rank.ts         client-side re-ranking with `rankScore` from @aidp/shared, presets,
+                                 effective title/class/factors under admin overrides
+src/lib/analysis/override.ts     reducer for the override sheet and the minimal PATCH payload
+src/lib/report/mermaid.ts        splits report Markdown into Markdown and ```mermaid segments
+src/lib/report/sections.ts       maps report sections to Markdown chunks for the section toggles
+src/lib/admin/discoveryStats.ts  recognizes discovery tiles in `/stats` (by class, top by rank)
 src/app/api/participant/[...path]   proxy: moves participant tokens into the `aidp_participant` cookie
 src/app/api/staff/[...path]         proxy: attaches the Auth.js JWT as `Authorization: Bearer`
 src/app/api/preview/[templateId]    admin template preview: cookie + redirect to /p/session
@@ -60,16 +74,62 @@ src/app/p/session                the interview (streaming, widgets, progress, me
 src/app/auth/*                   sign-in, verify-request, error pages
 src/app/admin/*                  dashboard, templates, campaigns, sessions, settings, providers,
                                  routes, budgets, users, audit, operator/*
+src/app/admin/campaigns/[id]/results   analysis header, weights, filters, opportunity cards, compare
+src/app/admin/campaigns/[id]/report    the organization report (Markdown + Mermaid, sections, print)
 src/hooks/useInterview.ts        optimistic messages, SSE streaming, progress, ending, errors
-src/components/ui/*              shadcn-style primitives
+src/hooks/useAnalysisPolling.ts  polls the latest analysis every 5 s while queued or running
+src/hooks/useDebouncedSave.ts    persists a knob a moment after it stops changing
+src/components/ui/*              shadcn-style primitives (phase 2 adds `sheet`)
+src/components/common/*          language switch
 src/components/widgets/*         single_choice, multi_choice, scale, ranking, yes_no + renderer
 src/components/participant/*     arrival flow, message list, composer, mode switch, progress, menu, summary
-src/components/admin/*           shell, forms, template editor, campaign panels, settings, providers, ...
-test/                            Vitest: widgets, SSE reader, API error wrapper, interview hook
-```
+src/components/admin/*           shell, forms, template editor, campaign panels, settings, providers,
+                                 dashboard discovery tiles
+src/components/admin/results/*   analysis header, weights panel, filters, opportunity card, factor bars,
+                                 override sheet, promote dialog, compare versions
+src/components/report/*          ReportView, ReportMarkdown (react-markdown), MermaidDiagram
+test/                            Vitest: widgets, SSE reader, API error wrapper, interview hook,
+                                 locale resolution + `t` proxy, rank/override, Mermaid + sections
+````
 
 Server components load data directly from the API with the cookie token; client
 components mutate through the proxies and call `router.refresh()`.
+
+### Languages
+
+`en.ts` is the type source; `fi.ts` is declared as `Strings`, so a missing or extra key
+fails `tsc`. Components keep importing `t` from `@/i18n`: it is a deep proxy whose leaves
+resolve against the active locale when read, so module-scope shortcuts such as
+`const s = t.admin.campaigns` stay correct.
+
+The locale is the `lang` cookie when set (written by the language switch in the admin
+shell and the participant headers, then `router.refresh()`), else the first supported
+language in `Accept-Language`, else `en`. The root layout resolves it once per request
+(`requestLocale()`), sets `<html lang>`, stores it in a per-request React `cache` store
+for server components and hands it to `LocaleProvider` for client components. Page titles
+use `generateMetadata` with `getStrings()` because static `metadata` exports are
+evaluated at module load. Dates and numbers format with `Intl` in the active locale.
+
+Known limit: on the server, client components share one module-level locale variable
+during SSR; two concurrent requests in different languages could in theory interleave at
+a Suspense boundary. The RSC side is per-request and unaffected.
+
+### Results and report (phase 2)
+
+`/admin/campaigns/[id]/results` loads the campaign, its analyses (newest first), the
+selected one (`?version=<analysisId>`, default latest) and the campaign-scope settings.
+Ranks are recomputed in the browser with `rankScore` from `@aidp/shared` whenever the
+weights change; the preset and vector are saved to `analysis.weightsPreset` /
+`analysis.weights` at campaign scope after a short debounce. Admin overrides
+(`adminOverride`) are applied client-side over the generated title, class and factors so
+the same code path renders API answers whether or not the API already merged them.
+
+`/admin/campaigns/[id]/report` renders `report.markdown` with react-markdown (GFM, no raw
+HTML) and turns ```mermaid fences into SVG in the browser (`securityLevel: "strict"`;
+render errors fall back to the source). Section checkboxes hide chunks immediately and
+persist to `analysis.reportSections` at campaign scope. "Download Markdown" writes the
+visible Markdown to a Blob; "Print" uses the browser's print with a print stylesheet
+(navigation, toolbars and controls carry `print:hidden`).
 
 ### Tokens never reach client JavaScript
 
@@ -143,3 +203,39 @@ createdAt?`; PATCH with `{ status: "suspended" | "active" }` to suspend/activate
     `created, consented, active, paused, completed, deleted`.
 19. **Voice mode** is a disabled placeholder ("coming in phase 4"); `POST /p/session/mode`
     is only ever called with `chat` or `options`.
+
+Phase 2 (`17-api-contract-phase2.md`):
+
+20. **Report sections in the Markdown.** The contract lists `report.sections` but does not
+    say where each section starts in `report.markdown`. The web recognizes
+    `<!-- section: <key> -->` comment lines when present; otherwise the n-th level-2
+    heading (`## `, outside code fences) is taken to be the n-th entry of `report.sections`.
+    Content before the first section is always shown; headings beyond the list are
+    always shown. TODO: agree on markers.
+21. **Override PATCH semantics.** The web sends the full current override (fields equal to
+    the generated values are omitted) and assumes the API _replaces_ the stored override;
+    an empty body `{}` means "remove the override". Whether the returned `factors` already
+    have overrides merged is not specified; the web merges `adminOverride.factors` over
+    `factors` client-side, which is idempotent either way. Factor overrides without a
+    rationale are sent with the generated rationale (the shared schema requires one).
+22. **Analysis detail while queued.** `GET /analyses/:id` is only called for runs that are
+    not `queued`; for `running`/`failed` runs the web tolerates empty `opportunities` and a
+    null `report`. `stats.embedding` (`provider | lexical`) and `stats.error` are optional.
+23. **`/stats` discovery tiles.** Rendered only when recognized:
+    `discovery.opportunitiesByClass` (`{ ai, automation, software, process, none }`, also
+    accepted as `byClass` / `bySolutionClass`) and `discovery.topOpportunities`
+    (`[{ id?, title, rankScore, solutionClass?, campaignId?, campaignName? }]`, also
+    `topByRank` / `top`), either under `discovery` or at the top level. Anything else goes
+    through the generic renderer.
+24. **Settings at campaign scope.** `GET /settings?scope=campaign&scopeId=<id>` may return
+    only the overrides set at that scope; missing keys fall back to the shared defaults
+    (`balanced`, weights of 1, all report sections). Weights are saved together with the
+    preset every time, even when the preset is a shipped one.
+25. **Promote.** After `POST /opportunities/:id/promote` the web marks the opportunity
+    `promoted` locally and links to `/admin/sessions/<session.id>`; the requirements
+    workspace itself is a later phase. `handoff` is validated with the shared
+    `HandoffSchema` (all fields required).
+26. **Diff.** `changed` pairs are keyed by `after.id` in the UI; ranks in the diff are the
+    API's (stored weights), not re-ranked client-side.
+27. **Language.** The UI language is the `lang` cookie / `Accept-Language`; it is not sent
+    to the API. `analysis.language` (the report's language) stays a separate setting.

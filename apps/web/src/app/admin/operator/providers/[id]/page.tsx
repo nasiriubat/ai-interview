@@ -4,9 +4,12 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { ModelsPanel } from "@/components/admin/providers/ModelsPanel";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { staffServer } from "@/lib/api/server";
 
-export const metadata: Metadata = { title: t.admin.providers.models };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.providers.models };
+}
 
 interface Props {
   params: Promise<{ id: string }>;

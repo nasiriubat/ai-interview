@@ -9,6 +9,7 @@ import { ProgressAreas } from "./ProgressAreas";
 import { SessionMenu } from "./SessionMenu";
 import { StatusScreen } from "./StatusScreen";
 import { SummaryView } from "./SummaryView";
+import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { WidgetRenderer } from "@/components/widgets";
@@ -124,6 +125,7 @@ export function InterviewScreen({
           <h1 className="truncate text-base font-semibold">{title ?? t.participant.session.title}</h1>
           <div className="flex items-center gap-2">
             {!state.ended ? <ModeSwitch mode={mode} onChange={changeMode} /> : null}
+            <LanguageSwitch />
             <SessionMenu onPause={pause} onDone={done} onDelete={remove} disabled={busy || state.ended} />
           </div>
         </div>
