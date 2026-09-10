@@ -156,15 +156,18 @@ export function useInterview(api: ParticipantApi, initial: ParticipantSession): 
     [api],
   );
 
-  const needsFirstTurn = initial.messages.length === 0 && !isCompleted(initial.status);
+  // Abort an in-flight stream only when the component unmounts.
   React.useEffect(() => {
-    if (!startedRef.current) {
-      startedRef.current = true;
-      if (needsFirstTurn) void send(undefined);
-    }
     return () => {
       abortRef.current?.abort();
     };
+  }, []);
+
+  const needsFirstTurn = initial.messages.length === 0 && !isCompleted(initial.status);
+  React.useEffect(() => {
+    if (startedRef.current || !needsFirstTurn) return;
+    startedRef.current = true;
+    void send(undefined);
   }, [needsFirstTurn, send]);
 
   const activeWidget = React.useMemo((): Widget | undefined => {
