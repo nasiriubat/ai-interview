@@ -18,6 +18,7 @@ export const JOBS = {
     schema: z.object({ sessionId: z.string(), companyId: z.string() }),
     retryLimit: 5,
   },
+  "analysis.run": { schema: z.object({ analysisId: z.string(), companyId: z.string() }), retryLimit: 2 },
 } as const;
 
 export type JobName = keyof typeof JOBS;

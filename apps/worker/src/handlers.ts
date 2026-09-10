@@ -1,11 +1,13 @@
 import { extractFacts, updateRollingSummary, type Logger } from "@aidp/ai";
 import {
+  AnalysisService,
   PrismaPromptSource,
   PrismaSessionStore,
   type CallerFactory,
   type EmailPort,
   type JobName,
   type JobPayload,
+  type JobPublisher,
   type SettingsService,
 } from "@aidp/core";
 import type { Prisma, PrismaClient } from "@prisma/client";
@@ -15,6 +17,7 @@ export interface HandlerDeps {
   callers: CallerFactory;
   settings: SettingsService;
   email: EmailPort;
+  jobs: JobPublisher;
   log: Logger;
 }
 
@@ -27,6 +30,13 @@ export type Handlers = { [N in JobName]: (payload: JobPayload<N>) => Promise<voi
 export function handlers(deps: HandlerDeps): Handlers {
   const store = new PrismaSessionStore(deps.db);
   const prompts = new PrismaPromptSource(deps.db);
+  const analysis = new AnalysisService({
+    db: deps.db,
+    callers: deps.callers,
+    settings: deps.settings,
+    jobs: deps.jobs,
+    log: deps.log,
+  });
 
   return {
     "session.summarize": async ({ sessionId, companyId }: JobPayload<"session.summarize">): Promise<void> => {
@@ -82,6 +92,11 @@ export function handlers(deps: HandlerDeps): Handlers {
         }),
       ]);
       deps.log.info("session data deleted", { sessionId });
+    },
+
+    /** Collective analysis for a campaign (spec 04). Idempotent per analysis id. */
+    "analysis.run": async ({ analysisId }: JobPayload<"analysis.run">): Promise<void> => {
+      await analysis.run(analysisId);
     },
   };
 }

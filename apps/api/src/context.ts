@@ -1,4 +1,5 @@
 import {
+  AnalysisService,
   CallerFactory,
   Crypto,
   EngineFactory,
@@ -24,6 +25,7 @@ export interface AppContext {
   engines: EngineFactory;
   jobs: JobPublisher;
   email: EmailPort;
+  analysis: AnalysisService;
 }
 
 export function buildContext(input: {
@@ -52,5 +54,6 @@ export function buildContext(input: {
       : new MemoryEmail((m) => {
           log.info({ to: m.to, subject: m.subject }, "email (console)");
         }));
-  return { config, db, log, crypto, settings, callers, engines, jobs: input.jobs, email };
+  const analysis = new AnalysisService({ db, callers, settings, jobs: input.jobs, log: engineLogger(log) });
+  return { config, db, log, crypto, settings, callers, engines, jobs: input.jobs, email, analysis };
 }

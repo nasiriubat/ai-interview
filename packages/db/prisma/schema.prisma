@@ -257,8 +257,9 @@ model Analysis {
   id         String    @id @default(cuid())
   campaignId String
   version    Int
-  status     String    @default("queued") // queued | running | done | failed
-  stats      Json      @default("{}")
+  status      String    @default("queued") // queued | running | done | failed
+  preliminary Boolean   @default(false)
+  stats       Json      @default("{}")
   startedAt  DateTime?
   finishedAt DateTime?
   createdAt  DateTime  @default(now())
@@ -282,6 +283,11 @@ model Opportunity {
   status        String   @default("new") // new | shortlisted | promoted | dismissed
   clusterKey    String
   adminOverride Json?
+  stats         Json     @default("{}") // ClusterStats
+  dataNeeded    Json     @default("[]")
+  risks         Json     @default("[]")
+  whyNotAi      String?
+  promotedSessionId String?
   createdAt     DateTime @default(now())
 
   analysis Analysis              @relation(fields: [analysisId], references: [id], onDelete: Cascade)
@@ -307,6 +313,7 @@ model Report {
   analysisId    String
   version       Int
   markdown      String
+  sections      Json     @default("[]")
   pdfStorageKey String?
   createdAt     DateTime @default(now())
 
