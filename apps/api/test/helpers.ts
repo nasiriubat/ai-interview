@@ -1,10 +1,10 @@
-import { createServer, type Server } from "node:http";
 import { randomBytes } from "node:crypto";
+import { createServer, type Server } from "node:http";
+import { type Crypto, MemoryEmail, MemoryJobPublisher } from "@aidp/core";
+import { shippedTemplates } from "@aidp/db";
 import { encode } from "@auth/core/jwt";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
-import { shippedTemplates } from "@aidp/db";
-import { Crypto, MemoryEmail, MemoryJobPublisher } from "@aidp/core";
 import { buildApp, type App } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
 import { buildContext } from "../src/context.js";

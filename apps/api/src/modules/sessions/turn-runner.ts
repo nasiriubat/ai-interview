@@ -1,5 +1,5 @@
-import type { FastifyReply } from "fastify";
 import type { EngineEvent, UserAnswer } from "@aidp/ai";
+import type { FastifyReply } from "fastify";
 import type { AppContext } from "../../context.js";
 import { AppError } from "../../lib/errors.js";
 

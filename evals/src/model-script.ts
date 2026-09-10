@@ -1,6 +1,6 @@
-import type { ChatEvent, InterviewTemplate } from "@aidp/shared";
 import type { CallRequest, ModelCaller } from "@aidp/ai";
 import { TURN_MARKER } from "@aidp/ai";
+import type { ChatEvent, InterviewTemplate } from "@aidp/shared";
 
 /**
  * A deterministic stand-in for the interviewer model: it reads the engine focus from the
@@ -23,9 +23,9 @@ export class IdealScriptedModel {
       reason: "scripted",
     };
     if (area && continuing)
-      meta["stateDelta"] = { coverage: { [area]: { status: "covered", known: "answered" } } };
-    else if (area) meta["stateDelta"] = { coverage: { [area]: { status: "partial", known: "opened" } } };
-    if (summary) meta["endInterview"] = true;
+      meta.stateDelta = { coverage: { [area]: { status: "covered", known: "answered" } } };
+    else if (area) meta.stateDelta = { coverage: { [area]: { status: "partial", known: "opened" } } };
+    if (summary) meta.endInterview = true;
     const name = this.template.coverageAreas.find((a) => a.key === area)?.name ?? "that";
     const text = closing
       ? "Anything I missed?"

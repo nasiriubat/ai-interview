@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { BossJobs } from "@aidp/core";
+import { PrismaClient } from "@prisma/client";
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { buildContext } from "./context.js";

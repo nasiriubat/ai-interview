@@ -1,6 +1,6 @@
+import { BossJobs, CallerFactory, Crypto, MemoryEmail, SettingsService, SmtpEmail } from "@aidp/core";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
-import { BossJobs, CallerFactory, Crypto, MemoryEmail, SettingsService, SmtpEmail } from "@aidp/core";
 import { loadConfig } from "./config.js";
 import { handlers } from "./handlers.js";
 
@@ -14,11 +14,15 @@ async function main(): Promise<void> {
     db,
     crypto,
     settings,
-    onBudgetWarning: (ctx, warnings) => log.warn({ companyId: ctx.companyId, warnings }, "budget warning"),
+    onBudgetWarning: (ctx, warnings) => {
+      log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
+    },
   });
   const email = config.EMAIL_SMTP_URL
     ? new SmtpEmail(config.EMAIL_SMTP_URL, config.EMAIL_FROM)
-    : new MemoryEmail((m) => log.info({ to: m.to, subject: m.subject }, "email (console)"));
+    : new MemoryEmail((m) => {
+        log.info({ to: m.to, subject: m.subject }, "email (console)");
+      });
   const jobs = new BossJobs(config.DATABASE_URL);
   await jobs.start();
 
@@ -27,7 +31,14 @@ async function main(): Promise<void> {
     callers,
     settings,
     email,
-    log: { info: (m, meta) => log.info(meta ?? {}, m), warn: (m, meta) => log.warn(meta ?? {}, m) },
+    log: {
+      info: (m, meta) => {
+        log.info(meta ?? {}, m);
+      },
+      warn: (m, meta) => {
+        log.warn(meta ?? {}, m);
+      },
+    },
   });
   await jobs.consume("session.summarize", h["session.summarize"], config.WORKER_CONCURRENCY);
   await jobs.consume("session.extract", h["session.extract"], config.WORKER_CONCURRENCY);

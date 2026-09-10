@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { forbidden, unauthenticated } from "../lib/errors.js";
-import { bearerFrom, PrincipalResolver, type Principal, type Role } from "./principal.js";
+import { bearerFrom, type PrincipalResolver, type Principal, type Role } from "./principal.js";
 
 declare module "fastify" {
   interface FastifyRequest {

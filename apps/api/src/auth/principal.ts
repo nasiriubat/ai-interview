@@ -1,6 +1,6 @@
+import type { Crypto } from "@aidp/core";
 import { decode } from "@auth/core/jwt";
 import type { PrismaClient } from "@prisma/client";
-import type { Crypto } from "@aidp/core";
 
 export type Role = "platform_operator" | "admin" | "member";
 
@@ -38,7 +38,7 @@ export class PrincipalResolver {
           where: { email: email.toLowerCase() },
           include: { company: true },
         });
-        if (!user || user.company.status !== "active") return { kind: "anonymous" };
+        if (user?.company.status !== "active") return { kind: "anonymous" };
         return {
           kind: "staff",
           userId: user.id,
@@ -75,7 +75,7 @@ export function bearerFrom(
   cookies: Record<string, string | undefined>,
 ): string | undefined {
   if (header?.toLowerCase().startsWith("bearer ")) return header.slice(7).trim();
-  return cookies["aidp_participant"]
-    ? `pt.${cookies["aidp_participant"]}`
+  return cookies.aidp_participant
+    ? `pt.${cookies.aidp_participant}`
     : (cookies["__Secure-authjs.session-token"] ?? cookies["authjs.session-token"]);
 }

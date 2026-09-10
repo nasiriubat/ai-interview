@@ -2,8 +2,8 @@ import { InterviewEngine, LexicalRecall, type EngineSettings, type Logger } from
 import type { PrismaClient } from "@prisma/client";
 import type { CallerFactory } from "../providers/caller-factory.js";
 import type { SettingsService, SettingScopeRef } from "../settings/service.js";
-import { PrismaPromptSource } from "./prompt-source.js";
 import { PrismaSessionStore } from "./prisma-store.js";
+import { PrismaPromptSource } from "./prompt-source.js";
 
 export interface EngineBundle {
   engine: InterviewEngine;

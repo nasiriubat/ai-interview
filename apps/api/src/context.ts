@@ -1,5 +1,3 @@
-import type { Logger as PinoLogger } from "pino";
-import type { PrismaClient } from "@prisma/client";
 import {
   CallerFactory,
   Crypto,
@@ -10,6 +8,8 @@ import {
   type EmailPort,
   type JobPublisher,
 } from "@aidp/core";
+import type { PrismaClient } from "@prisma/client";
+import type { Logger as PinoLogger } from "pino";
 import type { Config } from "./config.js";
 import { engineLogger } from "./lib/logger.js";
 
@@ -40,13 +40,17 @@ export function buildContext(input: {
     db,
     crypto,
     settings,
-    onBudgetWarning: (ctx, warnings) => log.warn({ companyId: ctx.companyId, warnings }, "budget warning"),
+    onBudgetWarning: (ctx, warnings) => {
+      log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
+    },
   });
   const engines = new EngineFactory(db, callers, settings, engineLogger(log));
   const email =
     input.email ??
     (config.EMAIL_SMTP_URL
       ? new SmtpEmail(config.EMAIL_SMTP_URL, config.EMAIL_FROM)
-      : new MemoryEmail((m) => log.info({ to: m.to, subject: m.subject }, "email (console)")));
+      : new MemoryEmail((m) => {
+          log.info({ to: m.to, subject: m.subject }, "email (console)");
+        }));
   return { config, db, log, crypto, settings, callers, engines, jobs: input.jobs, email };
 }
