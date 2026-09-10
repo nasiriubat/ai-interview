@@ -42,7 +42,8 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
   const campaign = campaignR.value;
   const analyses = settled(analysesR);
   const list = analyses.data ?? [];
-  const selected = list.find((a) => a.id === requested) ?? list[0];
+  // Default to the newest finished run so a freshly queued analysis does not blank the page.
+  const selected = list.find((a) => a.id === requested) ?? list.find((a) => a.status === "done") ?? list[0];
 
   let detail: AnalysisDetail | null = null;
   let detailError: unknown = null;

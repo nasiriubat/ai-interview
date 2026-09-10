@@ -120,13 +120,17 @@ export function ResultsView({
         analyzing={analyzing}
       />
       <Flash flash={action.flash} />
-      {selected?.status === "failed" ? (
-        <Alert variant="destructive">
-          <AlertTriangleIcon />
-          <AlertTitle>{s.status.failed}</AlertTitle>
-          <AlertDescription>{s.failedBody(selected.stats.error ?? t.app.unknownError)}</AlertDescription>
-        </Alert>
-      ) : null}
+      {[latest, selected]
+        .filter((a, i, all) => a?.status === "failed" && all.indexOf(a) === i)
+        .map((a) =>
+          a ? (
+            <Alert key={a.id} variant="destructive">
+              <AlertTriangleIcon />
+              <AlertTitle>{s.versionOption(a.version, s.status.failed)}</AlertTitle>
+              <AlertDescription>{s.failedBody(a.stats.error ?? t.app.unknownError)}</AlertDescription>
+            </Alert>
+          ) : null,
+        )}
 
       {analyses.length === 0 ? (
         <EmptyState text={s.noAnalyses} />

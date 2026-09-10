@@ -125,7 +125,7 @@ export function InterviewScreen({
           <h1 className="truncate text-base font-semibold">{title ?? t.participant.session.title}</h1>
           <div className="flex items-center gap-2">
             {!state.ended ? <ModeSwitch mode={mode} onChange={changeMode} /> : null}
-            <LanguageSwitch className="hidden sm:flex" />
+            <LanguageSwitch />
             <SessionMenu onPause={pause} onDone={done} onDelete={remove} disabled={busy || state.ended} />
           </div>
         </div>
