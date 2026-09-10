@@ -19,13 +19,15 @@
     "prisma:validate": "prisma validate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "seed": "tsx seeds/seed.ts"
+    "seed": "tsx seeds/seed.ts",
+    "bootstrap": "tsx seeds/bootstrap.ts"
   },
   "dependencies": {
     "@aidp/shared": "workspace:*",
     "@prisma/client": "^6.19.0",
     "zod": "^4.0.0",
-    "@aidp/ai": "workspace:*"
+    "@aidp/ai": "workspace:*",
+    "@aidp/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
