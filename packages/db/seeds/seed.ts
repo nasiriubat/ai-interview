@@ -1,40 +1,60 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SEED_PRICES } from "@aidp/ai";
+import { InterviewTemplateSchema, type InterviewTemplate } from "@aidp/shared";
 import { PrismaClient } from "@prisma/client";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-/** Loads platform-seeded templates (FR-65) and Anthropic seed prices when a platform Anthropic provider exists. */
-export async function seed(db: PrismaClient): Promise<void> {
+/** Reads and validates the platform templates shipped in seeds/templates (FR-65). */
+export function loadSeedTemplates(): InterviewTemplate[] {
   const dir = join(here, "templates");
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
-    const t = JSON.parse(readFileSync(join(dir, file), "utf8"));
-    const existing = await db.interviewTemplate.findFirst({
-      where: { companyId: null, key: t.key, version: t.version },
-    });
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
+    .sort()
+    .map((f) => InterviewTemplateSchema.parse(JSON.parse(readFileSync(join(dir, f), "utf8"))));
+}
+
+/** Upserts platform templates and Anthropic seed prices when a platform Anthropic provider exists. */
+export async function seed(db: PrismaClient): Promise<{ templates: number; prices: number }> {
+  let templates = 0;
+  for (const t of loadSeedTemplates()) {
     const data = {
       companyId: null,
       key: t.key,
       version: t.version,
       name: t.name,
+      language: t.language,
       objective: t.objective,
       privacyMode: t.privacyMode,
       participantFields: t.participantFields,
+      pathSelection: t.pathSelection,
+      contextBlock: t.contextBlock,
       coverageAreas: t.coverageAreas,
       aiInstructions: t.aiInstructions,
       adaptivity: t.adaptivity,
+      widgetPolicy: t.widgetPolicy,
+      issueDetection: t.issueDetection,
       outputs: t.outputs,
       analysisEnabled: t.analysisEnabled,
       chainToKey: t.chainToKey,
-      chainMapping: t.chainMapping,
+      ...(t.chainMapping ? { chainMapping: t.chainMapping } : {}),
+      closingQuestion: t.closingQuestion,
+      endSummary: t.endSummary,
+      maxTurns: t.maxTurns,
+      maxAssistantChars: t.maxAssistantChars,
       status: "published",
     };
+    const existing = await db.interviewTemplate.findFirst({
+      where: { companyId: null, key: t.key, version: t.version },
+    });
     if (existing) await db.interviewTemplate.update({ where: { id: existing.id }, data });
     else await db.interviewTemplate.create({ data });
+    templates++;
   }
 
+  let prices = 0;
   const anthropic = await db.provider.findFirst({ where: { companyId: null, kind: "anthropic" } });
   if (anthropic) {
     for (const p of SEED_PRICES) {
@@ -43,15 +63,17 @@ export async function seed(db: PrismaClient): Promise<void> {
         create: { providerId: anthropic.id, ...p },
         update: {}, // never overwrite admin or provider prices
       });
+      prices++;
     }
   }
+  return { templates, prices };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const db = new PrismaClient();
   seed(db)
-    .then(() => {
-      console.log("seeded");
+    .then((r) => {
+      console.log(`seeded ${r.templates} templates, ${r.prices} prices`);
     })
     .catch((err: unknown) => {
       console.error(err);
