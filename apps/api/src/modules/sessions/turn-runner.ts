@@ -24,6 +24,17 @@ export async function runTurn(
     throw new AppError("conflict", `Session is ${row.status}`);
   if (row.status === "created") throw new AppError("conflict", "Consent is required before the first turn");
 
+  // One turn at a time per session (double taps, retries, dev double-mounts). Stale locks expire.
+  const lockedAt = new Date();
+  const locked = await ctx.db.session.updateMany({
+    where: {
+      id: sessionId,
+      OR: [{ turnLockedAt: null }, { turnLockedAt: { lt: new Date(lockedAt.getTime() - TURN_LOCK_TTL_MS) } }],
+    },
+    data: { turnLockedAt: lockedAt },
+  });
+  if (locked.count === 0) throw new AppError("conflict", "A turn is already in progress for this session");
+
   const chain = [
     ...(row.campaignId ? [{ scope: "campaign" as const, scopeId: row.campaignId }] : []),
     { scope: "template" as const, scopeId: row.templateId },
@@ -116,6 +127,12 @@ export async function runTurn(
             : "Something went wrong. Your answer is saved.",
     });
   } finally {
+    await ctx.db.session.updateMany({
+      where: { id: sessionId, turnLockedAt: lockedAt },
+      data: { turnLockedAt: null },
+    });
     reply.raw.end();
   }
 }
+
+const TURN_LOCK_TTL_MS = 120_000;

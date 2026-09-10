@@ -15,9 +15,11 @@ export async function staffTokenFromCookies(): Promise<string | undefined> {
   return undefined;
 }
 
+/** The API distinguishes participant credentials from staff JWTs by the `pt.` prefix (contract 16). */
 export async function participantTokenFromCookies(): Promise<string | undefined> {
   const jar = await cookies();
-  return jar.get(PARTICIPANT_COOKIE)?.value;
+  const raw = jar.get(PARTICIPANT_COOKIE)?.value;
+  return raw ? `pt.${decodeURIComponent(raw)}` : undefined;
 }
 
 /** Direct transport to the API with a Bearer token. */

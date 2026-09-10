@@ -56,6 +56,10 @@ describe("useInterview", () => {
     );
     const api = apiWith(sendTurn);
     const { result } = renderHook(() => useInterview(api, baseSession));
+    // The first turn is deferred by a tick; wait for the request, then for the stream to finish.
+    await waitFor(() => {
+      expect(sendTurn).toHaveBeenCalledTimes(1);
+    });
     await waitFor(() => {
       expect(result.current.state.pending).toBe(false);
     });
@@ -100,6 +104,10 @@ describe("useInterview", () => {
     );
     const api = apiWith(sendTurn);
     const { result } = renderHook(() => useInterview(api, baseSession));
+    // The first turn is deferred by a tick; wait for the request, then for the stream to finish.
+    await waitFor(() => {
+      expect(sendTurn).toHaveBeenCalledTimes(1);
+    });
     await waitFor(() => {
       expect(result.current.state.pending).toBe(false);
     });
