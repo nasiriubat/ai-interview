@@ -208,6 +208,48 @@ suite("participant flow end to end", () => {
     expect(world.jobs.published.some((j) => j.name === "privacy.delete-session")).toBe(true);
   });
 
+  it("refuses a second concurrent turn for the same session and recovers from a stale lock", async () => {
+    const { app, adminToken } = world;
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/campaigns",
+      headers: staff(adminToken),
+      payload: { templateId: world.templateId, name: "Lock test", verification: "open" },
+    });
+    const { campaign, link } = created.json<{ campaign: { id: string }; link: { url: string } }>();
+    await app.inject({
+      method: "POST",
+      url: `/api/v1/campaigns/${campaign.id}/open`,
+      headers: staff(adminToken),
+    });
+    const opened = await app.inject({
+      method: "POST",
+      url: `/api/v1/p/${link.url.split("/p/")[1]!}/open`,
+      payload: {},
+    });
+    const { participantToken, sessionId } = opened.json<{ participantToken: string; sessionId: string }>();
+    const pt = { authorization: `Bearer pt.${participantToken}` };
+    await app.inject({
+      method: "POST",
+      url: "/api/v1/p/session/consent",
+      headers: pt,
+      payload: { consentVersion: "v1" },
+    });
+
+    await world.db.session.update({ where: { id: sessionId }, data: { turnLockedAt: new Date() } });
+    const blocked = await app.inject({ method: "POST", url: "/api/v1/p/session/turns", headers: pt });
+    expect(blocked.statusCode).toBe(409);
+    expect(blocked.json<{ error: { message: string } }>().error.message).toMatch(/already in progress/);
+
+    await world.db.session.update({
+      where: { id: sessionId },
+      data: { turnLockedAt: new Date(Date.now() - 10 * 60_000) },
+    });
+    const allowed = await app.inject({ method: "POST", url: "/api/v1/p/session/turns", headers: pt });
+    expect(allowed.statusCode).toBe(200);
+    expect((await world.db.session.findUniqueOrThrow({ where: { id: sessionId } })).turnLockedAt).toBeNull();
+  });
+
   it("rejects unauthenticated and cross-tenant staff access and validates bodies", async () => {
     const { app, adminToken, operatorToken } = world;
     expect((await app.inject({ method: "GET", url: "/api/v1/campaigns" })).statusCode).toBe(401);

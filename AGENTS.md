@@ -15,16 +15,16 @@ This file is for coding agents and new engineers. It is the short version of
 
 ## Layout
 
-| Path | Owns |
-|---|---|
-| `packages/shared` | Zod contracts: purposes, providers, chat, widgets, facts, templates, session state, settings catalog |
-| `packages/db` | Prisma schema, migrations, scoped client, shipped templates, seeds and bootstrap |
-| `packages/ai` | Provider adapters, cost control, the interview engine, extraction, summary, prompts |
-| `packages/core` | Server infrastructure shared by API and worker: crypto, settings service, Prisma adapters, engine factory, jobs, email |
-| `apps/api` | Fastify HTTP and SSE API, one folder per module under `src/modules/` with `service.ts` (logic) and `routes.ts` (transport) |
-| `apps/worker` | pg-boss consumers |
-| `apps/web` | Next.js app: participant flow, admin, requirements workspace |
-| `evals` | Deterministic engine replays; model-backed evals later |
+| Path              | Owns                                                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared` | Zod contracts: purposes, providers, chat, widgets, facts, templates, session state, settings catalog                       |
+| `packages/db`     | Prisma schema, migrations, scoped client, shipped templates, seeds and bootstrap                                           |
+| `packages/ai`     | Provider adapters, cost control, the interview engine, extraction, summary, prompts                                        |
+| `packages/core`   | Server infrastructure shared by API and worker: crypto, settings service, Prisma adapters, engine factory, jobs, email     |
+| `apps/api`        | Fastify HTTP and SSE API, one folder per module under `src/modules/` with `service.ts` (logic) and `routes.ts` (transport) |
+| `apps/worker`     | pg-boss consumers                                                                                                          |
+| `apps/web`        | Next.js app: participant flow, admin, requirements workspace                                                               |
+| `evals`           | Deterministic engine replays; model-backed evals later                                                                     |
 
 ## Conventions
 

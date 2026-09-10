@@ -156,7 +156,8 @@ export function useInterview(api: ParticipantApi, initial: ParticipantSession): 
     [api],
   );
 
-  // Abort an in-flight stream only when the component unmounts.
+  // Abort an in-flight stream only when the component unmounts. The first-turn guard is
+  // reset too, so React's development double-mount (StrictMode) restarts the aborted turn.
   React.useEffect(() => {
     return () => {
       abortRef.current?.abort();
@@ -166,8 +167,15 @@ export function useInterview(api: ParticipantApi, initial: ParticipantSession): 
   const needsFirstTurn = initial.messages.length === 0 && !isCompleted(initial.status);
   React.useEffect(() => {
     if (startedRef.current || !needsFirstTurn) return;
-    startedRef.current = true;
-    void send(undefined);
+    // Deferred by a tick so React's development double-mount cancels the first schedule
+    // instead of firing two requests; the server also refuses concurrent turns.
+    const timer = setTimeout(() => {
+      startedRef.current = true;
+      void send(undefined);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [needsFirstTurn, send]);
 
   const activeWidget = React.useMemo((): Widget | undefined => {

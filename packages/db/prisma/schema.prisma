@@ -158,6 +158,7 @@ model Session {
   summary        String    @default("")
   path           String? // technical | nontechnical
   modePreference String    @default("chat") // chat | options | voice
+  turnLockedAt   DateTime? // set while a turn is running; guards against concurrent turns
   templateVersion Int      @default(1)
   startedAt      DateTime?
   endedAt        DateTime?
