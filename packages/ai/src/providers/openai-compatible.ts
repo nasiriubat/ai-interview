@@ -186,6 +186,31 @@ export class OpenAICompatibleProvider implements Provider {
     };
   }
 
+  async embed(model: string, texts: string[]): Promise<{ vectors: number[][]; usage: Usage }> {
+    if (texts.length === 0) return { vectors: [], usage: emptyUsage() };
+    const res = await this.request("/embeddings", {
+      method: "POST",
+      body: JSON.stringify({ model, input: texts }),
+    });
+    const body = (await res.json()) as {
+      data?: { index?: number; embedding?: number[] }[];
+      usage?: { prompt_tokens?: number };
+    };
+    const vectors: number[][] = new Array<number[]>(texts.length).fill([]);
+    for (const [i, d] of (body.data ?? []).entries()) vectors[d.index ?? i] = d.embedding ?? [];
+    if (vectors.some((v) => v.length === 0))
+      throw new ProviderError("Embedding response was incomplete", "parse", true);
+    return {
+      vectors,
+      usage: {
+        inputTokens: body.usage?.prompt_tokens ?? 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        outputTokens: 0,
+      },
+    };
+  }
+
   private async tryJson(path: string): Promise<Record<string, unknown> | null> {
     try {
       const res = await this.request(path, { method: "GET", allowStatuses: [404] });
