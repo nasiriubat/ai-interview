@@ -11,12 +11,14 @@ const TemplateBody = InterviewTemplateSchema.omit({ version: true });
 
 export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
   const svc = new TemplateService(ctx.db);
+  /** Flat record: the template fields plus id, owner, status and timestamps (contract 16). */
   const view = (t: Awaited<ReturnType<TemplateService["get"]>>) => ({
+    ...fromRow(t),
     id: t.id,
     companyId: t.companyId,
     status: t.status,
     createdAt: t.createdAt,
-    template: fromRow(t),
+    updatedAt: t.createdAt,
   });
 
   app.get("/templates", { preHandler: requireStaff() }, async (req) => ({

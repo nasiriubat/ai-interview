@@ -10,8 +10,13 @@ const Id = z.object({ id: z.string() });
 export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
   const svc = new CampaignService(ctx.db, ctx.crypto, ctx.settings, ctx.email, ctx.config.PUBLIC_WEB_URL);
 
+  /** Campaign rows never expose the link token hash. */
+  const publicCampaign = <T extends { linkTokenHash: string }>({
+    linkTokenHash: _hash,
+    ...c
+  }: T): Omit<T, "linkTokenHash"> => c;
   app.get("/campaigns", { preHandler: requireStaff() }, async (req) => ({
-    campaigns: await svc.list(req.companyId),
+    campaigns: (await svc.list(req.companyId)).map(publicCampaign),
   }));
 
   app.post(
@@ -42,7 +47,9 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
         targetId: campaign.id,
         diff: { name: campaign.name },
       });
-      return reply.status(201).send({ campaign, link: { url: link } });
+      return reply
+        .status(201)
+        .send({ campaign: { ...publicCampaign(campaign), link: { url: link } }, link: { url: link } });
     },
   );
 
@@ -52,7 +59,8 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
       svc.link(req.companyId, campaign.id),
       svc.stats(req.companyId, campaign.id),
     ]);
-    return { campaign, link: { url }, stats };
+    // link and stats travel inside the record as well, so a client that unwraps `campaign` keeps them.
+    return { campaign: { ...publicCampaign(campaign), link: { url }, stats }, link: { url }, stats };
   });
 
   app.patch(

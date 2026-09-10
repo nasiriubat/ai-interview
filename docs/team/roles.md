@@ -30,5 +30,5 @@ artifact is what matters, not who produced it.
 
 ## Current sprint: Phase 1 (see docs/spec/15-phase-plan.md)
 
-Done: contracts, database, engine, core, API, worker, evals. In progress: Frontend Engineer (participant flow and admin in `apps/web`). Next: integrate the web app with the API and run the phase 1 acceptance (an employee completes `opportunity_discovery` end to end on a phone).
+Phase 1 is built and accepted: an anonymous participant completed the start of `opportunity_discovery` on a phone-sized browser through the web app, API, engine and a fake model; admin pages render live data. Next: run the same flow with a real provider key, then phase 2 (analysis and report).
 Next milestone: an employee completes opportunity_discovery end to end on a phone.

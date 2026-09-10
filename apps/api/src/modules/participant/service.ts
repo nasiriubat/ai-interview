@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   emailDomain,
   newNumericCode,
@@ -11,6 +12,7 @@ import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } 
 import { AppError, notFound } from "../../lib/errors.js";
 
 export interface LinkView {
+  consentVersion: string;
   campaignId: string;
   companyId: string;
   name: string;
@@ -60,6 +62,10 @@ export class ParticipantService {
         participationMode: campaign.participationMode,
         verification: campaign.verification,
         consentText: values["campaign.consentText"] as string,
+        consentVersion: `v${createHash("sha256")
+          .update(values["campaign.consentText"] as string)
+          .digest("hex")
+          .slice(0, 12)}`,
         participantFields: campaign.template.participantFields,
         pathSelection: campaign.template.pathSelection,
         status: expired ? "expired" : campaign.status === "open" ? "open" : "closed",

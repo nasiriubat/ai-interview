@@ -28,6 +28,7 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
       participationMode: view.participationMode,
       verification: view.verification,
       consentText: view.consentText,
+      consentVersion: view.consentVersion,
       participantFields: view.participantFields,
       pathSelection: view.pathSelection,
     };

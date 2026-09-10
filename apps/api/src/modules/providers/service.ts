@@ -13,6 +13,18 @@ export interface ProviderInput {
   enabled?: boolean | undefined;
 }
 
+export interface RouteRowOut {
+  id: string;
+  purpose: Purpose;
+  companyId: string | null;
+  providerId: string;
+  model: string;
+  effort?: string;
+  maxOutputTokens: number;
+  batchAllowed: boolean;
+  inherited: boolean;
+}
+
 export interface ProviderPatch {
   kind?: string | undefined;
   name?: string | undefined;
@@ -212,40 +224,30 @@ export class ProviderService {
     });
   }
 
-  async routes(companyId: string | null): Promise<
-    {
-      purpose: Purpose;
-      route: {
-        providerId: string;
-        model: string;
-        effort: string | null;
-        maxOutputTokens: number;
-        batchAllowed: boolean;
-        inherited: boolean;
-      } | null;
-    }[]
-  > {
+  /** Flat `Route` rows in contract shape for every purpose that has a route; unrouted purposes are absent. */
+  async routes(companyId: string | null): Promise<RouteRowOut[]> {
     const rows = await this.db.route.findMany({
       where: companyId ? { OR: [{ companyId }, { companyId: null }] } : { companyId: null },
     });
-    return PURPOSES.map((purpose) => {
+    const out: RouteRowOut[] = [];
+    for (const purpose of PURPOSES) {
       const own = rows.find((r) => r.purpose === purpose && r.companyId === companyId);
       const platform = rows.find((r) => r.purpose === purpose && r.companyId === null);
       const r = own ?? platform;
-      return {
+      if (!r) continue;
+      out.push({
+        id: r.id,
         purpose,
-        route: r
-          ? {
-              providerId: r.providerId,
-              model: r.model,
-              effort: r.effort,
-              maxOutputTokens: r.maxOutputTokens,
-              batchAllowed: r.batchAllowed,
-              inherited: !own,
-            }
-          : null,
-      };
-    });
+        companyId: r.companyId,
+        providerId: r.providerId,
+        model: r.model,
+        ...(r.effort ? { effort: r.effort } : {}),
+        maxOutputTokens: r.maxOutputTokens,
+        batchAllowed: r.batchAllowed,
+        inherited: !own,
+      });
+    }
+    return out;
   }
 
   async setRoute(

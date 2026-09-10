@@ -25,12 +25,14 @@ const ProviderBody = z.object({
   headers: z.record(z.string(), z.string()).optional(),
   enabled: z.boolean().optional(),
 });
-const RouteBody = z.object({
-  providerId: z.string(),
-  model: z.string().min(1),
-  effort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
-  maxOutputTokens: z.number().int().min(16).max(128000),
-  batchAllowed: z.boolean().optional(),
+/** One row per purpose (contract 16). A row without provider or model clears the tenant override. */
+const RouteRow = z.object({
+  purpose: PurposeSchema,
+  providerId: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  effort: z.enum(["low", "medium", "high", "xhigh", "max"]).nullable().optional(),
+  maxOutputTokens: z.number().int().min(16).max(128000).nullable().optional(),
+  batchAllowed: z.boolean().nullable().optional(),
 });
 
 /** Providers, routing, prices, budgets. Platform operators without X-Company-Id manage platform-level rows. */
@@ -164,11 +166,22 @@ export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
     "/routes",
     {
       preHandler: requireStaff("admin"),
-      schema: { body: z.object({ routes: z.record(PurposeSchema, RouteBody.nullable()) }) },
+      schema: { body: z.object({ routes: z.array(RouteRow) }) },
     },
     async (req) => {
-      for (const [purpose, route] of Object.entries(req.body.routes))
-        await svc.setRoute(scope(req), PurposeSchema.parse(purpose), route);
+      for (const row of req.body.routes) {
+        const route =
+          row.providerId && row.model
+            ? {
+                providerId: row.providerId,
+                model: row.model,
+                effort: row.effort ?? undefined,
+                maxOutputTokens: row.maxOutputTokens ?? 4096,
+                batchAllowed: row.batchAllowed ?? false,
+              }
+            : null;
+        await svc.setRoute(scope(req), row.purpose, route);
+      }
       await audit(ctx.db, {
         companyId: req.companyId || "platform",
         actorId: staff(req).userId,
