@@ -1,6 +1,7 @@
 import type { ChatMessage, InterviewTemplate, SessionState } from "@aidp/shared";
 import { widgetResponseToText } from "@aidp/shared";
 import { estimateTokens } from "../cost/pricing.js";
+import { languageName } from "../util/language.js";
 import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js";
 import type { PromptDefinition } from "./prompts/index.js";
 import type { Focus } from "./selection.js";
@@ -22,6 +23,7 @@ export function renderSystemPrompt(prompt: PromptDefinition, template: Interview
     .join("\n");
   return prompt.body
     .replace("{{objective}}", template.objective)
+    .replace("{{language}}", languageName(template.language))
     .replace("{{aiInstructions}}", template.aiInstructions || "(none)")
     .replace("{{areas}}", areas)
     .replace("{{widgetTypes}}", template.widgetPolicy.allowedTypes.join(", ") || "none")

@@ -9,3 +9,4 @@ export * from "./callModel.js";
 export { defaultAnthropicRoutes } from "./routes/defaults.js";
 export * from "./engine/index.js";
 export * from "./analysis/index.js";
+export * from "./util/language.js";

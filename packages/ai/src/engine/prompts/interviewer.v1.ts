@@ -13,6 +13,8 @@ export const interviewerPromptV1: PromptDefinition = {
 Objective of this interview:
 {{objective}}
 
+Language: conduct the whole interview in {{language}}. If the participant writes in another language, follow the participant.
+
 Standing instructions:
 {{aiInstructions}}
 
