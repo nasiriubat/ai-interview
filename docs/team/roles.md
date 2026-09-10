@@ -30,5 +30,5 @@ artifact is what matters, not who produced it.
 
 ## Current sprint: Phase 1 (see docs/spec/15-phase-plan.md)
 
-Phase 1 is built and accepted: an anonymous participant completed the start of `opportunity_discovery` on a phone-sized browser through the web app, API, engine and a fake model; admin pages render live data. Next: run the same flow with a real provider key, then phase 2 (analysis and report).
+Phases 1 and 2 are built and accepted against a fake model: participant interviews on a phone-sized browser, and campaign analysis through the API, job queue, worker and pipeline with the results dashboard and report rendered in the browser. Next: a real-model run, then phase 3 (requirements interview).
 Next milestone: an employee completes opportunity_discovery end to end on a phone.
