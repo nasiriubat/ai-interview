@@ -1,4 +1,6 @@
+import { BarChart3Icon, FileTextIcon } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import * as React from "react";
 import { CampaignActions } from "@/components/admin/campaigns/CampaignActions";
@@ -8,15 +10,19 @@ import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { StatTile } from "@/components/admin/StatTile";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
 import { humanize } from "@/lib/utils";
 
-export const metadata: Metadata = { title: t.admin.campaigns.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.campaigns.title };
+}
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -52,7 +58,21 @@ export default async function CampaignPage({ params }: Props): Promise<React.JSX
         ]
           .filter(Boolean)
           .join(" · ")}
-        actions={<StatusBadge status={campaign.status} />}
+        actions={
+          <>
+            <StatusBadge status={campaign.status} />
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/campaigns/${campaign.id}/results`}>
+                <BarChart3Icon /> {s.results}
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/campaigns/${campaign.id}/report`}>
+                <FileTextIcon /> {s.report}
+              </Link>
+            </Button>
+          </>
+        }
       />
       <div className="grid gap-6">
         <CampaignActions campaign={campaign} />

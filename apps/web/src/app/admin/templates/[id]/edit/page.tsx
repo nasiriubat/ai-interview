@@ -4,12 +4,15 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { TemplateForm } from "@/components/admin/templates/TemplateForm";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { toTemplateInput } from "@/lib/admin/template";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
 
-export const metadata: Metadata = { title: t.admin.templates.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.templates.title };
+}
 
 interface Props {
   params: Promise<{ id: string }>;

@@ -1,16 +1,23 @@
 import {
   BudgetLimitSchema,
+  ClusterStatsSchema,
   CoverageStatusSchema,
+  FACTOR_KEYS,
   FactSchema,
+  type FactorKey,
+  HandoffSchema,
   InterviewTemplateSchema,
   ModalitySchema,
   ModelInfoSchema,
+  OpportunityOverrideSchema,
+  OpportunityStatusSchema,
   ParticipantFieldSchema,
   PathSchema,
   PathSelectionSchema,
   PrivacyModeSchema,
   ProviderKindSchema,
   RouteSchema,
+  SolutionClassSchema,
   WidgetResponseSchema,
   WidgetSchema,
 } from "@aidp/shared";
@@ -385,3 +392,119 @@ export const TenantEnvelopeSchema = z.preprocess(
 );
 
 export const HealthSchema = z.looseObject({ ok: z.boolean().optional(), status: z.string().optional() });
+
+// Phase 2: analysis and report (docs/spec/17)
+
+export const AnalysisStatusSchema = z.enum(["queued", "running", "done", "failed"]);
+export type AnalysisStatus = z.infer<typeof AnalysisStatusSchema>;
+export const EmbeddingModeSchema = z.enum(["provider", "lexical"]);
+export type EmbeddingMode = z.infer<typeof EmbeddingModeSchema>;
+
+export const AnalysisStatsSchema = z.looseObject({
+  sessions: z.number().default(0),
+  facts: z.number().default(0),
+  clusters: z.number().default(0),
+  participants: z.number().default(0),
+  thresholdMet: z.boolean().default(false),
+  error: z.string().nullish(),
+  embedding: EmbeddingModeSchema.nullish(),
+});
+export type AnalysisStats = z.infer<typeof AnalysisStatsSchema>;
+
+export const AnalysisSchema = z.looseObject({
+  id: z.string(),
+  campaignId: z.string().default(""),
+  version: z.number().int().default(1),
+  status: AnalysisStatusSchema,
+  preliminary: z.boolean().default(false),
+  stats: AnalysisStatsSchema.default({
+    sessions: 0,
+    facts: 0,
+    clusters: 0,
+    participants: 0,
+    thresholdMet: false,
+  }),
+  startedAt: iso.nullish(),
+  finishedAt: iso.nullish(),
+  createdAt: iso.default(""),
+});
+export type Analysis = z.infer<typeof AnalysisSchema>;
+export const AnalysisListSchema = listOf(AnalysisSchema, "analyses");
+export const AnalysisEnvelopeSchema = z.preprocess(
+  (raw) => (raw && typeof raw === "object" && "analysis" in raw ? raw.analysis : raw),
+  AnalysisSchema,
+);
+
+/** The contract's factor shape; the rationale is tolerated empty so a thin API answer still renders. */
+const OpportunityFactorSchema = z.looseObject({
+  score: z.number().min(1).max(5),
+  rationale: z.string().default(""),
+});
+export const OpportunityFactorsSchema = z.object(
+  Object.fromEntries(FACTOR_KEYS.map((k) => [k, OpportunityFactorSchema])) as Record<
+    FactorKey,
+    typeof OpportunityFactorSchema
+  >,
+);
+export type OpportunityFactors = z.infer<typeof OpportunityFactorsSchema>;
+
+export const EvidenceSchema = z.looseObject({
+  factId: z.string().default(""),
+  snippet: z.string(),
+  anonymized: z.boolean().default(true),
+});
+export type Evidence = z.infer<typeof EvidenceSchema>;
+
+export const OpportunitySchema = z.looseObject({
+  id: z.string(),
+  analysisId: z.string().default(""),
+  clusterKey: z.string().default(""),
+  title: z.string(),
+  summary: z.string().default(""),
+  solutionClass: SolutionClassSchema,
+  factors: OpportunityFactorsSchema,
+  rationale: z.string().default(""),
+  rankScore: z.number().default(0),
+  status: OpportunityStatusSchema.catch("new"),
+  adminOverride: OpportunityOverrideSchema.nullable().default(null),
+  stats: ClusterStatsSchema.loose(),
+  dataNeeded: z.array(z.string()).default([]),
+  risks: z.array(z.string()).default([]),
+  whyNotAi: z.string().nullish(),
+  evidence: z.array(EvidenceSchema).default([]),
+});
+export type Opportunity = z.infer<typeof OpportunitySchema>;
+export const OpportunityEnvelopeSchema = z.preprocess(
+  (raw) => (raw && typeof raw === "object" && "opportunity" in raw ? raw.opportunity : raw),
+  OpportunitySchema,
+);
+
+export const ReportSchema = z.looseObject({
+  id: z.string(),
+  analysisId: z.string().default(""),
+  version: z.number().int().default(1),
+  markdown: z.string().default(""),
+  sections: z.array(z.string()).default([]),
+  createdAt: iso.nullish(),
+});
+export type Report = z.infer<typeof ReportSchema>;
+
+export const AnalysisDetailSchema = z.looseObject({
+  analysis: AnalysisSchema,
+  opportunities: z.array(OpportunitySchema).default([]),
+  report: ReportSchema.nullable().default(null),
+});
+export type AnalysisDetail = z.infer<typeof AnalysisDetailSchema>;
+
+export const AnalysisDiffSchema = z.looseObject({
+  added: z.array(OpportunitySchema).default([]),
+  removed: z.array(OpportunitySchema).default([]),
+  changed: z.array(z.looseObject({ before: OpportunitySchema, after: OpportunitySchema })).default([]),
+});
+export type AnalysisDiff = z.infer<typeof AnalysisDiffSchema>;
+
+export const PromoteResultSchema = z.looseObject({
+  session: z.looseObject({ id: z.string(), templateKey: z.string().default("requirements_discovery") }),
+  handoff: HandoffSchema.loose(),
+});
+export type PromoteResult = z.infer<typeof PromoteResultSchema>;

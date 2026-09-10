@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
+import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
@@ -99,7 +100,7 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="bg-sidebar sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r p-4 md:flex">
+      <aside className="bg-sidebar sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r p-4 md:flex print:hidden">
         <Link href="/admin" className="mb-6 px-2 text-lg font-semibold">
           {t.app.name}
         </Link>
@@ -108,32 +109,35 @@ export function AdminShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="bg-background sticky top-0 z-20 flex items-center justify-between border-b px-4 py-2 md:hidden">
+        <header className="bg-background sticky top-0 z-20 flex items-center justify-between border-b px-4 py-2 md:hidden print:hidden">
           <Link href="/admin" className="font-semibold">
             {t.app.name}
           </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={t.admin.nav.menu}
-            aria-expanded={open}
-            aria-controls="mobile-nav"
-            onClick={() => {
-              setOpen((v) => !v);
-            }}
-          >
-            {open ? <XIcon /> : <MenuIcon />}
-          </Button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitch />
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t.admin.nav.menu}
+              aria-expanded={open}
+              aria-controls="mobile-nav"
+              onClick={() => {
+                setOpen((v) => !v);
+              }}
+            >
+              {open ? <XIcon /> : <MenuIcon />}
+            </Button>
+          </div>
         </header>
         {open ? (
-          <div id="mobile-nav" className="bg-background border-b p-4 md:hidden">
+          <div id="mobile-nav" className="bg-background border-b p-4 md:hidden print:hidden">
             {nav}
             <div className="mt-4">
               <UserBox me={me} signOutAction={signOutAction} />
             </div>
           </div>
         ) : null}
-        <main id="main" className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-8">
+        <main id="main" className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-8 print:max-w-none print:p-0">
           {children}
         </main>
       </div>
@@ -187,6 +191,9 @@ function UserBox({
           </div>
         </>
       ) : null}
+      <div className="hidden px-2 md:block">
+        <LanguageSwitch />
+      </div>
       <form action={signOutAction}>
         <Button type="submit" variant="ghost" size="sm" className="w-full justify-start">
           {t.app.signOut}

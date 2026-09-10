@@ -4,6 +4,7 @@ import * as React from "react";
 import { ArrivalFlow } from "@/components/participant/ArrivalFlow";
 import { StatusScreen } from "@/components/participant/StatusScreen";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { isApiError } from "@/lib/api/errors";
 import { participantApi } from "@/lib/api/participant";
 import { publicTransport } from "@/lib/api/server";
@@ -15,7 +16,9 @@ interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export const metadata: Metadata = { title: t.participant.arrival.eyebrow };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).participant.arrival.eyebrow };
+}
 
 export default async function ArrivalPage({ params, searchParams }: Props): Promise<React.JSX.Element> {
   const { linkToken } = await params;

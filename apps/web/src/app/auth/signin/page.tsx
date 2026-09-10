@@ -7,8 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 
-export const metadata: Metadata = { title: t.app.signIn };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).app.signIn };
+}
 
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
