@@ -14,12 +14,12 @@ developer or coding agent has to guess the requirements.
 
 ## 2. Users
 
-| Persona | Workflow | Goal |
-|---|---|---|
-| Employee | 1: Discovery interview | Describe their work honestly in under 30 minutes and see that it leads somewhere |
-| Company admin / innovation lead | 1 | See ranked, deduplicated opportunities across the company and pick what to pursue |
-| Idea owner (PM, founder, admin) | 2: Idea-to-spec interview | Turn a rough idea or a discovered opportunity into a spec a developer can act on |
-| Developer or coding agent | 2 | Receive a spec with no missing decisions |
+| Persona                         | Workflow                  | Goal                                                                              |
+| ------------------------------- | ------------------------- | --------------------------------------------------------------------------------- |
+| Employee                        | 1: Discovery interview    | Describe their work honestly in under 30 minutes and see that it leads somewhere  |
+| Company admin / innovation lead | 1                         | See ranked, deduplicated opportunities across the company and pick what to pursue |
+| Idea owner (PM, founder, admin) | 2: Idea-to-spec interview | Turn a rough idea or a discovered opportunity into a spec a developer can act on  |
+| Developer or coding agent       | 2                         | Receive a spec with no missing decisions                                          |
 
 ## 3. Workflows
 
@@ -56,12 +56,14 @@ developer or coding agent has to guess the requirements.
 ## 4. Functional requirements
 
 ### Tenancy, auth, roles
+
 - FR-01 A company is a tenant; all data is scoped by company. `ASSUMED`
 - FR-02 Roles: `admin`, `member`. Admins run campaigns and see dashboards; members are
   interviewed and can own spec projects. `ASSUMED`
 - FR-03 Sign in with email magic link or Google. `ASSUMED`
 
 ### Workflow 1
+
 - FR-10 Admin creates a campaign with a name, topic set (default provided), and
   invited emails or a shareable link.
 - FR-11 Employee must accept a consent screen before the first message; consent is
@@ -85,6 +87,7 @@ developer or coding agent has to guess the requirements.
   transcript and facts but keeps aggregated cluster counts. `ASSUMED`
 
 ### Workflow 2
+
 - FR-20 A spec project starts from free text or a promoted opportunity.
 - FR-21 The interview follows the completeness rubric; each question states why it is
   being asked and offers a default.
@@ -98,11 +101,13 @@ developer or coding agent has to guess the requirements.
 - FR-26 Spec versions are kept; re-opening the interview creates a new version.
 
 ### Cross-cutting
+
 - FR-30 Every LLM call is logged with prompt version, model, tokens, latency, and
   outcome for evals and cost tracking.
 - FR-31 Prompts are versioned files in the repo, not strings in code.
 
 ## 5. Non-functional requirements
+
 - NFR-01 First token of an interview reply within 2 s at p50; streaming throughout.
 - NFR-02 Data hosted in the EU; no transcript content leaves the LLM provider and the
   database. `ASSUMED`
@@ -169,13 +174,16 @@ for the next question plus a state delta (structured output), persist both, stre
 question. Extraction and clustering are separate calls with their own prompt versions.
 
 ## 9. Out of scope for v1
+
 Voice interviews, SSO, Slack and Teams, Jira and Linear export, billing, self-serve
 company sign-up, multi-language interviews (English only), mobile apps.
 
 ## 10. Open questions
+
 All nine questions in `01-interview-round-1.md`. Defaults are in force until answered.
 
 ## 11. Proposed build order (for the software farm)
+
 1. Product Architect: freeze `docs/spec/` v1.0 from this draft and round-1 answers.
 2. DevOps: monorepo scaffold, Postgres via Docker, CI with lint, typecheck, tests.
 3. Backend: schema, auth, tenancy helper, campaign and interview endpoints.

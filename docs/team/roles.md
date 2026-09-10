@@ -4,16 +4,16 @@ The system is built by a small set of named roles. Each role owns one artifact a
 hands it to the next role. A role can be a person or a coding agent; the hand-off
 artifact is what matters, not who produced it.
 
-| Role | Owns | Hand-off artifact | Hands to |
-|---|---|---|---|
-| Discovery Lead (interviewer) | The adaptive interview with the product owner. Asks, listens, resolves ambiguity, records decisions. | `docs/discovery/0N-interview-round-N.md`, `docs/discovery/decisions.md` | Product Architect |
-| Product Architect | System shape: workflows, data model, API contracts, module boundaries. | `docs/spec/` (the developer-ready spec) | All engineers |
-| AI Engineer | Interview engine, prompt design, extraction of structured facts from conversation, opportunity scoring, spec generation. | `packages/ai/` plus prompt files and eval sets | Backend Engineer, QA |
-| Backend Engineer | API, persistence, auth, tenancy, job orchestration. | `apps/api/` (or server routes) with migrations | Frontend Engineer |
-| Frontend Engineer | Interview UI, opportunity dashboard, spec viewer and export. | `apps/web/` | QA |
-| QA and Eval Engineer | Acceptance tests from the spec, LLM eval harness (does the interview extract the right facts, does the spec meet the rubric). | `tests/`, `evals/` | Release |
-| Security and Privacy | Consent, anonymization, PII handling, data retention, GDPR posture. | Privacy section of the spec, threat model | Product Architect |
-| DevOps | Local dev, CI, deploy, secrets. | `.github/workflows/`, `Dockerfile`, env docs | Release |
+| Role                         | Owns                                                                                                                          | Hand-off artifact                                                       | Hands to             |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------- |
+| Discovery Lead (interviewer) | The adaptive interview with the product owner. Asks, listens, resolves ambiguity, records decisions.                          | `docs/discovery/0N-interview-round-N.md`, `docs/discovery/decisions.md` | Product Architect    |
+| Product Architect            | System shape: workflows, data model, API contracts, module boundaries.                                                        | `docs/spec/` (the developer-ready spec)                                 | All engineers        |
+| AI Engineer                  | Interview engine, prompt design, extraction of structured facts from conversation, opportunity scoring, spec generation.      | `packages/ai/` plus prompt files and eval sets                          | Backend Engineer, QA |
+| Backend Engineer             | API, persistence, auth, tenancy, job orchestration.                                                                           | `apps/api/` (or server routes) with migrations                          | Frontend Engineer    |
+| Frontend Engineer            | Interview UI, opportunity dashboard, spec viewer and export.                                                                  | `apps/web/`                                                             | QA                   |
+| QA and Eval Engineer         | Acceptance tests from the spec, LLM eval harness (does the interview extract the right facts, does the spec meet the rubric). | `tests/`, `evals/`                                                      | Release              |
+| Security and Privacy         | Consent, anonymization, PII handling, data retention, GDPR posture.                                                           | Privacy section of the spec, threat model                               | Product Architect    |
+| DevOps                       | Local dev, CI, deploy, secrets.                                                                                               | `.github/workflows/`, `Dockerfile`, env docs                            | Release              |
 
 ## Working rules
 

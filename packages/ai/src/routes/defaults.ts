@@ -7,7 +7,13 @@ import type { Route } from "@aidp/shared";
  * `transcription` has no Anthropic default: it needs an OpenAI-compatible provider.
  */
 export function defaultAnthropicRoutes(providerId: string): Route[] {
-  const r = (purpose: Route["purpose"], model: string, effort: Route["effort"], maxOutputTokens: number, batchAllowed = false): Route => ({
+  const r = (
+    purpose: Route["purpose"],
+    model: string,
+    effort: Route["effort"],
+    maxOutputTokens: number,
+    batchAllowed = false,
+  ): Route => ({
     companyId: null,
     purpose,
     providerId,

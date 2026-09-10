@@ -1,7 +1,7 @@
+import type { LedgerEntry } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import { BudgetGuard, StaticBudgetLimits } from "../src/cost/budget.js";
 import { InMemoryLedger } from "../src/cost/ledger.js";
-import type { LedgerEntry } from "@aidp/shared";
 
 const entry = (over: Partial<LedgerEntry>): LedgerEntry => ({
   companyId: "c1",
@@ -20,9 +20,13 @@ describe("BudgetGuard", () => {
   it("blocks when the estimate would push tenant spend over the monthly limit", async () => {
     const ledger = new InMemoryLedger();
     await ledger.record(entry({ costCents: 90 }));
-    const guard = new BudgetGuard(new StaticBudgetLimits([{ scope: "tenant", scopeId: "c1", limitCents: 100, period: "month" }]), ledger, {
-      now: () => new Date("2026-09-09T00:00:00Z"),
-    });
+    const guard = new BudgetGuard(
+      new StaticBudgetLimits([{ scope: "tenant", scopeId: "c1", limitCents: 100, period: "month" }]),
+      ledger,
+      {
+        now: () => new Date("2026-09-09T00:00:00Z"),
+      },
+    );
     const res = await guard.check({ companyId: "c1" }, 20);
     expect(res.allowed).toBe(false);
     expect(res.blockedBy).toMatchObject({ scope: "tenant", spentCents: 90 });
@@ -31,9 +35,13 @@ describe("BudgetGuard", () => {
   it("ignores last month's spend for monthly limits", async () => {
     const ledger = new InMemoryLedger();
     await ledger.record(entry({ costCents: 90, createdAt: new Date("2026-08-31T23:00:00Z") }));
-    const guard = new BudgetGuard(new StaticBudgetLimits([{ scope: "tenant", scopeId: "c1", limitCents: 100, period: "month" }]), ledger, {
-      now: () => new Date("2026-09-09T00:00:00Z"),
-    });
+    const guard = new BudgetGuard(
+      new StaticBudgetLimits([{ scope: "tenant", scopeId: "c1", limitCents: 100, period: "month" }]),
+      ledger,
+      {
+        now: () => new Date("2026-09-09T00:00:00Z"),
+      },
+    );
     expect((await guard.check({ companyId: "c1" }, 20)).allowed).toBe(true);
   });
 

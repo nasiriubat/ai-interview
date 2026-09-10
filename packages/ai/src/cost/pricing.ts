@@ -10,8 +10,14 @@ export interface ModelPrice {
 }
 
 /** Seed prices for first-party providers (USD per million tokens). Admin-editable at runtime. */
-export const SEED_PRICES: ReadonlyArray<Omit<ModelPrice, "providerId">> = [
-  { model: "claude-fable-5-1", inputPerMtok: 10, cachedInputPerMtok: 0.25, outputPerMtok: 50, source: "seed" },
+export const SEED_PRICES: readonly Omit<ModelPrice, "providerId">[] = [
+  {
+    model: "claude-fable-5-1",
+    inputPerMtok: 10,
+    cachedInputPerMtok: 0.25,
+    outputPerMtok: 50,
+    source: "seed",
+  },
   { model: "claude-opus-5", inputPerMtok: 5, cachedInputPerMtok: 0.5, outputPerMtok: 25, source: "seed" },
   { model: "claude-sonnet-5", inputPerMtok: 2, cachedInputPerMtok: 0.2, outputPerMtok: 10, source: "seed" },
   { model: "claude-haiku-4-5", inputPerMtok: 1, cachedInputPerMtok: 0.1, outputPerMtok: 5, source: "seed" },
@@ -73,8 +79,17 @@ export function costCents(price: ModelPrice, usage: Usage): number {
 }
 
 /** Conservative pre-call estimate: all input at full price, output at the max allowed. */
-export function estimateCents(price: ModelPrice, estimatedInputTokens: number, maxOutputTokens: number): number {
-  return costCents(price, { inputTokens: estimatedInputTokens, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: maxOutputTokens });
+export function estimateCents(
+  price: ModelPrice,
+  estimatedInputTokens: number,
+  maxOutputTokens: number,
+): number {
+  return costCents(price, {
+    inputTokens: estimatedInputTokens,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    outputTokens: maxOutputTokens,
+  });
 }
 
 /** Rough token estimate for budget checks. Real counts come from the provider afterwards. */

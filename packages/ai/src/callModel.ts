@@ -1,6 +1,18 @@
-import type { z } from "zod";
-import type { ChatEvent, ChatMessage, ChatRequest, Effort, LedgerEntry, ProviderConfig, Purpose, Route, Transcript, TranscriptionInput, Usage } from "@aidp/shared";
+import type {
+  ChatEvent,
+  ChatMessage,
+  ChatRequest,
+  Effort,
+  LedgerEntry,
+  ProviderConfig,
+  Purpose,
+  Route,
+  Transcript,
+  TranscriptionInput,
+  Usage,
+} from "@aidp/shared";
 import { emptyUsage } from "@aidp/shared";
+import type { z } from "zod";
 import { BudgetExceededError, type BudgetGuard } from "./cost/budget.js";
 import type { LedgerSink } from "./cost/ledger.js";
 import { costCents, estimateCents, estimateTokens, type PriceTable } from "./cost/pricing.js";
@@ -42,7 +54,10 @@ export interface ModelCallerDeps {
   ledger: LedgerSink;
   budget: BudgetGuard;
   now?: () => Date;
-  onBudgetWarning?: (ctx: CallContext, warnings: Awaited<ReturnType<BudgetGuard["check"]>>["warnings"]) => void;
+  onBudgetWarning?: (
+    ctx: CallContext,
+    warnings: Awaited<ReturnType<BudgetGuard["check"]>>["warnings"],
+  ) => void;
 }
 
 /**
@@ -80,7 +95,13 @@ export class ModelCaller {
   }
 
   /** Structured output validated against a Zod schema. */
-  async complete<T>(purpose: Purpose, ctx: CallContext, req: CallRequest, schema: z.ZodType<T>, schemaName?: string): Promise<T> {
+  async complete<T>(
+    purpose: Purpose,
+    ctx: CallContext,
+    req: CallRequest,
+    schema: z.ZodType<T>,
+    schemaName?: string,
+  ): Promise<T> {
     const { route, provider, price } = await this.prepare(purpose, ctx, req);
     const fullReq = this.applyRoute(route, provider, req);
     const started = this.now();
@@ -104,7 +125,8 @@ export class ModelCaller {
     const route = await this.deps.routes.resolve(ctx.companyId, purpose);
     if (!route) throw new ProviderError(`No route configured for purpose '${purpose}'`, "unsupported", false);
     const provider = await this.providerFor(ctx.companyId, route.providerId);
-    if (!provider.transcribe) throw new ProviderError(`Provider '${route.providerId}' cannot transcribe audio`, "unsupported", false);
+    if (!provider.transcribe)
+      throw new ProviderError(`Provider '${route.providerId}' cannot transcribe audio`, "unsupported", false);
     const price = this.deps.prices.get(route.providerId, route.model);
     const check = await this.deps.budget.check(ctx, 0);
     if (!check.allowed) {
@@ -130,7 +152,9 @@ export class ModelCaller {
     const provider = await this.providerFor(ctx.companyId, route.providerId);
     const price = this.deps.prices.get(route.providerId, route.model);
     const inputTokens = estimateTokens((req.system ?? "") + JSON.stringify(req.messages));
-    const estimate = price ? estimateCents(price, inputTokens, req.maxOutputTokens ?? route.maxOutputTokens) : 0;
+    const estimate = price
+      ? estimateCents(price, inputTokens, req.maxOutputTokens ?? route.maxOutputTokens)
+      : 0;
     const check = await this.deps.budget.check(ctx, estimate);
     if (!check.allowed) {
       await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
@@ -142,7 +166,12 @@ export class ModelCaller {
 
   private async providerFor(companyId: string, providerId: string): Promise<Provider> {
     const cfg = await this.deps.providerConfigs.get(companyId, providerId);
-    if (!cfg || !cfg.enabled) throw new ProviderError(`Provider '${providerId}' is not available to this tenant`, "unsupported", false);
+    if (!cfg?.enabled)
+      throw new ProviderError(
+        `Provider '${providerId}' is not available to this tenant`,
+        "unsupported",
+        false,
+      );
     return this.deps.registry.get(cfg);
   }
 
@@ -159,7 +188,15 @@ export class ModelCaller {
     return out;
   }
 
-  private async record(purpose: Purpose, ctx: CallContext, route: Route, price: ReturnType<PriceTable["get"]>, usage: Usage, status: LedgerEntry["status"], started: Date): Promise<void> {
+  private async record(
+    purpose: Purpose,
+    ctx: CallContext,
+    route: Route,
+    price: ReturnType<PriceTable["get"]>,
+    usage: Usage,
+    status: LedgerEntry["status"],
+    started: Date,
+  ): Promise<void> {
     const entry: LedgerEntry = {
       companyId: ctx.companyId,
       purpose,

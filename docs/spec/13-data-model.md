@@ -33,6 +33,7 @@ erDiagram
 ```
 
 New or changed against the current schema:
+
 - `Invitation` (new): campaign, email hash, token hash, status, sent_at, opened_at, expires_at; links to Session when bound.
 - `Campaign`: verification mode (`invitation`, `email_code`, `open`), domain restriction, link expiry, email hashes for anonymous uniqueness.
 - `Session`: path (`technical`, `nontechnical`, null), context block answers, mode preference.

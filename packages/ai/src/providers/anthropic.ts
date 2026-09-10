@@ -1,7 +1,15 @@
+import type {
+  Capabilities,
+  ChatEvent,
+  ChatMessage,
+  ChatRequest,
+  ModelInfo,
+  StopReason,
+  Usage,
+} from "@aidp/shared";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
-import type { Capabilities, ChatEvent, ChatMessage, ChatRequest, ModelInfo, StopReason, Usage } from "@aidp/shared";
 import { ProviderError, type Provider } from "./types.js";
 
 export interface AnthropicProviderOptions {
@@ -52,22 +60,30 @@ export class AnthropicProvider implements Provider {
 
   async *chat(model: string, req: ChatRequest): AsyncIterable<ChatEvent> {
     const params = this.buildParams(model, req);
-    let stream: ReturnType<Anthropic["messages"]["stream"]>;
     try {
-      stream = this.client.messages.stream(params);
+      const stream = this.client.messages.stream(params);
       for await (const event of stream) {
         if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
           yield { type: "text", text: event.delta.text };
         }
       }
       const final = await stream.finalMessage();
-      yield { type: "done", usage: toUsage(final.usage), stopReason: toStopReason(final.stop_reason), model: final.model };
+      yield {
+        type: "done",
+        usage: toUsage(final.usage),
+        stopReason: toStopReason(final.stop_reason),
+        model: final.model,
+      };
     } catch (e) {
       throw mapError(e);
     }
   }
 
-  async complete<T>(model: string, req: ChatRequest, schema: z.ZodType<T>): Promise<{ value: T; usage: Usage }> {
+  async complete<T>(
+    model: string,
+    req: ChatRequest,
+    schema: z.ZodType<T>,
+  ): Promise<{ value: T; usage: Usage }> {
     const params = this.buildParams(model, req);
     try {
       const res = await this.client.messages.parse({
@@ -80,7 +96,7 @@ export class AnthropicProvider implements Provider {
       if (res.parsed_output == null) {
         throw new ProviderError("Structured output did not parse", "parse", true);
       }
-      return { value: res.parsed_output as T, usage: toUsage(res.usage) };
+      return { value: res.parsed_output, usage: toUsage(res.usage) };
     } catch (e) {
       throw mapError(e);
     }
@@ -100,7 +116,7 @@ export class AnthropicProvider implements Provider {
         : req.system;
     }
     if (req.effort) params.output_config = { effort: req.effort };
-    if (req.temperature !== undefined) params.temperature = req.temperature;
+    // `temperature` is not sent: current Claude models reject sampling parameters.
     return params;
   }
 }

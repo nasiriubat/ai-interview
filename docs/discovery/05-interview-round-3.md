@@ -94,6 +94,7 @@ Proposed v1 admin panel, grouped by who uses it. Tell me what is missing and wha
 should wait.
 
 **Platform operator (you)**
+
 - Tenants: create, suspend, default budget, region
 - Platform providers: add, key, test, model list, prices
 - Platform routing defaults per purpose
@@ -101,6 +102,7 @@ should wait.
 - Global spend and health
 
 **Company admin**
+
 - Users and roles
 - Interview templates: list, create from built-in, edit objective, privacy mode,
   participant fields, coverage areas, AI instructions, adaptivity rules, expected
@@ -116,6 +118,7 @@ should wait.
 - Audit log
 
 **Participant (no admin)**
+
 - Interview page: consent, chat, voice, files, resume, delete my data
 
 ## Q20. Architecture and design patterns

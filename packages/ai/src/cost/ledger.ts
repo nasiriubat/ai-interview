@@ -17,7 +17,12 @@ export class InMemoryLedger implements LedgerSink, SpendSource {
     this.entries.push(entry);
   }
 
-  async spentCents(scope: BudgetScope, scopeId: string, period: "month" | "total", at: Date): Promise<number> {
+  async spentCents(
+    scope: BudgetScope,
+    scopeId: string,
+    period: "month" | "total",
+    at: Date,
+  ): Promise<number> {
     return this.entries
       .filter((e) => scopeIdOf(e, scope) === scopeId)
       .filter((e) => period === "total" || sameMonth(e.createdAt, at))

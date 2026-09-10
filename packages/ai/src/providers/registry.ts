@@ -42,5 +42,10 @@ export class ProviderRegistry {
 }
 
 function sameConfig(a: ProviderConfig, b: ProviderConfig): boolean {
-  return a.kind === b.kind && a.apiKey === b.apiKey && a.baseUrl === b.baseUrl && JSON.stringify(a.headers) === JSON.stringify(b.headers);
+  return (
+    a.kind === b.kind &&
+    a.apiKey === b.apiKey &&
+    a.baseUrl === b.baseUrl &&
+    JSON.stringify(a.headers) === JSON.stringify(b.headers)
+  );
 }
