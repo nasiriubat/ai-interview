@@ -15,7 +15,7 @@
 | D-11 | Magic link + Google auth in v1; SSO and chat integrations v2 | ASSUMED | round 1 Q8 | 2026-09-08 |
 | D-12 | Primary quality metric: agent builds from spec without clarifying questions | DECIDED | round 1 Q6 answer | 2026-09-08 |
 | D-13 | Cost control: ledger with computed cost, enforced budgets (tenant, campaign, interview), per-purpose model routing, prompt caching and rolling summaries | DECIDED | round 2 A | 2026-09-08 |
-| D-14 | No agent framework; own thin provider layer with `anthropic` and `openai-compatible` adapters | ASSUMED (recommended, awaiting owner confirmation) | round 2 B | 2026-09-08 |
+| D-14 | No agent framework; own model and cost layer on official SDKs; Vercel AI SDK on the frontend only; Temporal if durable workflows are ever needed | DECIDED | design discussion, owner delegated | 2026-09-08 |
 | D-15 | Voice in v1: recorded audio transcribed first, real-time speech-to-speech in the same release track | DECIDED | round 2 Q10 answer: all | 2026-09-08 |
 | D-16 | File upload: PDF, Word, Markdown, text, CSV, Excel, PNG, JPEG; ingested once, referenced by summary | DECIDED | round 2 Q11 answer: ok | 2026-09-08 |
 | D-17 | Provider keys: platform-level providers under tenant budget, plus optional tenant-owned providers | DECIDED | round 2 Q12 answer: ok | 2026-09-08 |
@@ -23,11 +23,25 @@
 | D-19 | Participation mode per campaign: identified, anonymous, or participant choice | DECIDED | intake v2 | 2026-09-08 |
 | D-20 | Opportunities scored on seven factors with solution class ai, automation, software, process, none | DECIDED | intake v2 | 2026-09-08 |
 | D-21 | Requirements interview adapts to technical level; detects ambiguity, contradiction, missing decisions, over-complexity; tags MVP vs future | DECIDED | intake v2 | 2026-09-08 |
-| D-22 | Team is TypeScript end to end | ASSUMED | round 3 Q13 | 2026-09-08 |
-| D-23 | Backend: Fastify API service plus worker; Next.js frontend only | ASSUMED | round 3 Q14 | 2026-09-08 |
-| D-24 | Frontend: Next.js, React, Tailwind, shadcn/ui; one app, role-based routes | ASSUMED | round 3 Q15 | 2026-09-08 |
-| D-25 | Data: Postgres + pgvector, S3-compatible storage, pg-boss jobs, no Redis | ASSUMED | round 3 Q16 | 2026-09-08 |
-| D-26 | Hosting: Docker Compose on an EU VPS for the pilot | ASSUMED | round 3 Q17 | 2026-09-08 |
-| D-27 | Auth: Auth.js, magic link + Google; anonymous participants on signed links; SSO later | ASSUMED | round 3 Q18 | 2026-09-08 |
-| D-28 | Admin surface as proposed in round 3 Q19, retention and consent text fixed in v1 | ASSUMED | round 3 Q19 | 2026-09-08 |
-| D-29 | Architecture: modular monolith, ports and adapters, template-driven state machine, append-only events, jobs, row-level tenancy | ASSUMED | round 3 Q20 | 2026-09-08 |
+| D-22 | Team is TypeScript end to end | DECIDED | round 3 Q13, owner accepted | 2026-09-08 |
+| D-23 | Backend: Fastify API service plus worker; Next.js frontend only | DECIDED | round 3 Q14, owner accepted | 2026-09-08 |
+| D-24 | Frontend: Next.js, React, Tailwind, shadcn/ui; one app, role-based routes | DECIDED | round 3 Q15, owner accepted | 2026-09-08 |
+| D-25 | Data: Postgres + pgvector, S3-compatible storage, pg-boss jobs, no Redis | DECIDED | round 3 Q16, owner accepted | 2026-09-08 |
+| D-26 | Hosting: Docker Compose on an EU VPS for the pilot | DECIDED | round 3 Q17, owner accepted | 2026-09-08 |
+| D-27 | Auth: Auth.js, magic link + Google; anonymous participants on signed links; SSO later | DECIDED | round 3 Q18, owner accepted | 2026-09-08 |
+| D-28 | Admin surface as proposed in round 3 Q19, retention and consent text fixed in v1 | DECIDED | round 3 Q19, owner accepted with emphasis on stats and configurability | 2026-09-08 |
+| D-29 | Architecture: modular monolith, ports and adapters, template-driven state machine, append-only events, jobs, row-level tenancy | DECIDED | round 3 Q20, owner accepted | 2026-09-08 |
+| D-30 | Whole system is specified; delivery in phases; nothing labeled out of scope | DECIDED | design discussion | 2026-09-10 |
+| D-31 | Admin dashboard principle: show the numbers, hold the knobs; anything that may change per customer is a setting | DECIDED | owner | 2026-09-10 |
+| D-32 | Every assistant turn is a turn object: message, optional widget (choices with details and Other, scale, ranking, yes/no), voice hint, state delta | DECIDED | owner | 2026-09-10 |
+| D-33 | Participant can switch between chat, options view, and live voice at any time; mode remembered | DECIDED | owner | 2026-09-10 |
+| D-34 | Requirements interview: explicit technical or nontechnical path on the first screen; context block (hosting, systems, team, timeline, budget, users, compliance) before feature questions | DECIDED | owner | 2026-09-10 |
+| D-35 | Layered context: stable cached prefix, structured state with continuous fact extraction, incremental rolling summary, recent window, recall tool; no provider-side compaction | DECIDED | design discussion | 2026-09-10 |
+| D-36 | Analysis: threshold or manual trigger, versions with diff, embedding clustering plus model merge pass, seven factors, k-anonymity (k=3), report with process maps, admin overrides survive re-runs | DECIDED | design discussion | 2026-09-10 |
+| D-37 | Issue detection every five turns with four finding types and three aggressiveness levels; MVP challenge before finalizing; push back once on rejected confident findings | DECIDED | design discussion | 2026-09-10 |
+| D-38 | Uniqueness: one response per person via personal invitation links or email code; anonymous campaigns keep only a salted email hash on the campaign | DECIDED | owner | 2026-09-10 |
+| D-39 | Real-time voice as a cascade (streaming STT, engine, streaming TTS, barge-in); speech-to-speech later as an adapter that must call the engine | DECIDED | design discussion | 2026-09-10 |
+| D-40 | Diagrams: Mermaid in the browser and documents; self-hosted Kroki for PDF, PlantUML, C4, BPMN | DECIDED | design discussion | 2026-09-10 |
+| D-41 | Production readiness list (tracing, evals in CI, replay, idempotent jobs, flags, canaries, SLOs, load and chaos tests, backups) is part of the spec | DECIDED | design discussion | 2026-09-10 |
+| D-42 | External requirements users through links; second person in a session as a later phase | ASSUMED | round 5 defaults | 2026-09-10 |
+| D-43 | Languages beyond English (Finnish first) in phase 2 | ASSUMED | design discussion default | 2026-09-10 |

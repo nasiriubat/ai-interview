@@ -28,7 +28,7 @@ artifact is what matters, not who produced it.
 4. **Hand-offs are files in this repo**, never chat history. A coding agent starting cold
    must be able to read `docs/` and know what to do.
 
-## Current sprint: Build step 2
+## Current sprint: Phase 1 (see docs/spec/15-phase-plan.md)
 
-Active role: Backend Engineer (`packages/db`). Round 3 proceeds on defaults.
-Next role to activate: Backend Engineer (`apps/api`).
+Specification v2.0 is frozen. Active roles: Backend Engineer (API, templates, campaigns, settings), AI Engineer (engine, context, extraction), Frontend Engineer (participant UI).
+Next milestone: an employee completes opportunity_discovery end to end on a phone.
