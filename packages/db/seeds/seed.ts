@@ -53,5 +53,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     .then(() => {
       console.log("seeded");
     })
-    .finally(() => db.$disconnect());
+    .catch((err: unknown) => {
+      console.error(err);
+      process.exitCode = 1;
+    })
+    .finally(() => void db.$disconnect());
 }
