@@ -79,17 +79,27 @@ model InterviewTemplate {
   key               String
   version           Int      @default(1)
   name              String
+  language          String   @default("en")
   objective         String
   privacyMode       String // identified | anonymous | participant_choice
   participantFields Json     @default("[]")
+  pathSelection     String   @default("none") // none | technical_or_not
+  contextBlock      Json     @default("[]")
   coverageAreas     Json     @default("[]")
   aiInstructions    String   @default("")
   adaptivity        Json     @default("{}")
+  widgetPolicy      Json     @default("{}")
+  issueDetection    Json     @default("{}")
   outputs           Json     @default("[]")
   analysisEnabled   Boolean  @default(false)
   chainToKey        String?
   chainMapping      Json?
+  closingQuestion   String   @default("Is there anything important I did not ask about?")
+  endSummary        Boolean  @default(true)
+  maxTurns          Int      @default(60)
+  maxAssistantChars Int      @default(600)
   status            String   @default("draft") // draft | published | archived
+  createdById       String?
   createdAt         DateTime @default(now())
 
   company   Company?   @relation(fields: [companyId], references: [id])
@@ -109,12 +119,17 @@ model Campaign {
   name                String
   participationMode   String // identified | anonymous | participant_choice
   linkTokenHash       String   @unique
+  verification        String   @default("email_code") // invitation | email_code | open
+  allowedEmailDomains Json     @default("[]")
+  expiresAt           DateTime?
   maxTurns            Int      @default(60)
   completionThreshold Int      @default(5)
   weights             Json     @default("{}")
   status              String   @default("draft") // draft | open | analyzing | closed
   createdById         String
   createdAt           DateTime @default(now())
+  invitations         Invitation[]
+  emailHashes         CampaignEmailHash[]
 
   company      Company           @relation(fields: [companyId], references: [id])
   template     InterviewTemplate @relation(fields: [templateId], references: [id])
@@ -142,7 +157,9 @@ model Session {
   consentedAt    DateTime?
   state          Json      @default("{}")
   summary        String    @default("")
-  technicalLevel String?
+  path           String? // technical | nontechnical
+  modePreference String    @default("chat") // chat | options | voice
+  templateVersion Int      @default(1)
   startedAt      DateTime?
   endedAt        DateTime?
   createdAt      DateTime  @default(now())
@@ -158,6 +175,7 @@ model Session {
   facts       Fact[]
   specs       SpecVersion[]
   llmCalls    LlmCall[]
+  invitation  Invitation?
 
   @@index([companyId, campaignId])
   @@index([companyId, ownerUserId])
@@ -167,10 +185,13 @@ model Message {
   id        String   @id @default(cuid())
   sessionId String
   seq       Int
-  role      String // user | assistant
-  modality  String   @default("text") // text | voice | file
-  content   String
-  createdAt DateTime @default(now())
+  role           String // user | assistant
+  modality       String   @default("text") // text | voice | file | widget
+  content        String
+  widget         Json? // Widget offered with an assistant message
+  widgetResponse Json? // WidgetResponse recorded with a user message
+  areaKey        String?
+  createdAt      DateTime @default(now())
 
   session     Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   attachments Attachment[]
@@ -307,6 +328,79 @@ model SpecVersion {
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, version])
+}
+
+/// Personal one-time links and email-code bindings (FR-10, FR-04). One session per invitation.
+model Invitation {
+  id         String    @id @default(cuid())
+  campaignId String
+  emailHash  String // salted hash; the plain email is kept only when the campaign is identified
+  email      String?
+  tokenHash  String    @unique
+  status     String    @default("pending") // pending | sent | opened | bound | revoked | expired
+  sessionId  String?   @unique
+  sentAt     DateTime?
+  openedAt   DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  session  Session? @relation(fields: [sessionId], references: [id])
+
+  @@unique([campaignId, emailHash])
+}
+
+/// Uniqueness record for anonymous share links: proves an email responded without linking it to a session.
+model CampaignEmailHash {
+  campaignId String
+  emailHash  String
+  createdAt  DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, emailHash])
+}
+
+/// Short-lived email verification codes for share links.
+model EmailCode {
+  id         String   @id @default(cuid())
+  campaignId String
+  emailHash  String
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([campaignId, emailHash])
+}
+
+/// Settings catalog values by scope (packages/shared settings.ts defines keys and defaults).
+model Setting {
+  id        String   @id @default(cuid())
+  scope     String // platform | tenant | template | campaign
+  scopeId   String   @default("") // empty for platform
+  key       String
+  value     Json
+  version   Int      @default(1)
+  changedBy String?
+  updatedAt DateTime @updatedAt
+
+  @@unique([scope, scopeId, key])
+}
+
+/// Tenant overrides and canaries of the versioned prompt files shipped in packages/ai.
+model PromptVersion {
+  id          String   @id @default(cuid())
+  companyId   String?
+  key         String
+  version     Int
+  body        String
+  canaryShare Float    @default(0) // 0..1 share of sessions using this version
+  active      Boolean  @default(false)
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  @@unique([companyId, key, version])
 }
 
 // ---------- Providers, routing, cost (FR-40 to FR-49) ----------
