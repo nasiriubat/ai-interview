@@ -79,10 +79,11 @@ describe("InterviewEngine", () => {
         areaKey: "problems",
         stateDelta: { coverage: { daily: { status: "covered" } } },
       }),
-      turn("Anything I missed?", {
-        areaKey: "closing",
+      turn("Which of these hurts most?", {
+        areaKey: "problems",
         stateDelta: { coverage: { problems: { status: "covered" } } },
       }),
+      turn("Anything I missed?", { areaKey: "closing" }),
       turn("Thank you. Here is what I captured...", { areaKey: "summary", endInterview: true }),
     ]);
     const engine = new InterviewEngine({
