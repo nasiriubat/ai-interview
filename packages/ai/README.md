@@ -1,7 +1,6 @@
 # @aidp/ai
 
-Provider layer, cost control, and (next) the interview engines. Spec: `docs/spec/spec.md`
-sections 4 (FR-40 to FR-49) and 9.
+Provider layer, cost control, and (next) the interview engines. Spec: `docs/spec/08-providers-and-cost.md` and `docs/spec/10-architecture.md`.
 
 ## Rule
 
