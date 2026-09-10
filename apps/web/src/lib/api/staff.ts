@@ -1,7 +1,14 @@
-import type { BudgetLimit, InterviewTemplateInput, Route } from "@aidp/shared";
+import type { BudgetLimit, InterviewTemplateInput, OpportunityOverride, Route } from "@aidp/shared";
 import { type z } from "zod";
 import { request, type Transport } from "./http";
 import {
+  type Analysis,
+  type AnalysisDetail,
+  AnalysisDetailSchema,
+  type AnalysisDiff,
+  AnalysisDiffSchema,
+  AnalysisEnvelopeSchema,
+  AnalysisListSchema,
   AuditListSchema,
   type AuditEntry,
   BudgetListSchema,
@@ -18,8 +25,12 @@ import {
   ModelListSchema,
   type ModelPrice,
   OkSchema,
+  type Opportunity,
+  OpportunityEnvelopeSchema,
   PreviewSessionSchema,
   PriceListSchema,
+  type PromoteResult,
+  PromoteResultSchema,
   ProviderEnvelopeSchema,
   ProviderListSchema,
   ProviderTestSchema,
@@ -96,6 +107,9 @@ export interface SpendQuery {
   to?: string;
   groupBy?: SpendGroupBy;
 }
+
+/** Statuses an admin can set by hand; `promoted` only ever comes from `promote`. */
+export type OpportunityStatusInput = "new" | "shortlisted" | "dismissed";
 
 /**
  * Staff endpoints (docs/spec/16). Operator routes live under `/operator` and are exposed
@@ -182,6 +196,45 @@ export function staffApi(transport: Transport): StaffApi {
       get: (id) =>
         request(transport, { path: `/sessions/${id}`, schema: envelope(StaffSessionEnvelopeSchema) }),
       events: (id) => request(transport, { path: `/sessions/${id}/events`, schema: SessionEventListSchema }),
+    },
+
+    analyses: {
+      start: (campaignId) =>
+        request(transport, {
+          method: "POST",
+          path: `/campaigns/${campaignId}/analyses`,
+          body: {},
+          schema: envelope(AnalysisEnvelopeSchema),
+        }),
+      list: (campaignId) =>
+        request(transport, { path: `/campaigns/${campaignId}/analyses`, schema: AnalysisListSchema }),
+      get: (id) => request(transport, { path: `/analyses/${id}`, schema: AnalysisDetailSchema }),
+      diff: (id, otherId) =>
+        request(transport, { path: `/analyses/${id}/diff/${otherId}`, schema: AnalysisDiffSchema }),
+    },
+
+    opportunities: {
+      override: (id, override) =>
+        request(transport, {
+          method: "PATCH",
+          path: `/opportunities/${id}`,
+          body: override,
+          schema: envelope(OpportunityEnvelopeSchema),
+        }),
+      setStatus: (id, status) =>
+        request(transport, {
+          method: "POST",
+          path: `/opportunities/${id}/status`,
+          body: { status },
+          schema: envelope(OpportunityEnvelopeSchema),
+        }),
+      promote: (id) =>
+        request(transport, {
+          method: "POST",
+          path: `/opportunities/${id}/promote`,
+          body: {},
+          schema: PromoteResultSchema,
+        }),
     },
 
     settings: {
@@ -351,6 +404,18 @@ export interface StaffApi {
   sessions: {
     get(id: string): Promise<StaffSession>;
     events(id: string): Promise<SessionEvent[]>;
+  };
+  /** Contract 17: analysis runs are versioned per campaign. */
+  analyses: {
+    start(campaignId: string): Promise<Analysis>;
+    list(campaignId: string): Promise<Analysis[]>;
+    get(id: string): Promise<AnalysisDetail>;
+    diff(id: string, otherId: string): Promise<AnalysisDiff>;
+  };
+  opportunities: {
+    override(id: string, override: OpportunityOverride): Promise<Opportunity>;
+    setStatus(id: string, status: OpportunityStatusInput): Promise<Opportunity>;
+    promote(id: string): Promise<PromoteResult>;
   };
   settings: {
     get(q: SettingsQuery): Promise<SettingsResponse>;

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import * as React from "react";
+import { DiscoveryTiles } from "@/components/admin/DiscoveryTiles";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { SpendPanel } from "@/components/admin/SpendPanel";
 import { StatsGroups } from "@/components/admin/StatsGroups";
 import { t } from "@/i18n";
 import { getStrings } from "@/i18n/server";
+import { extractDiscoveryStats } from "@/lib/admin/discoveryStats";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
@@ -28,6 +30,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
   ]);
   const stats = settled(statsR);
   const spend = settled(spendR);
+  const split = stats.data ? extractDiscoveryStats(stats.data) : null;
   return (
     <>
       <PageHeader title={t.admin.dashboard.title} subtitle={t.admin.dashboard.subtitle} />
@@ -37,8 +40,9 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
         ) : (
           <LoadError error={spend.error} />
         )}
-        {stats.data ? (
-          <StatsGroups stats={stats.data} />
+        {split?.discovery ? <DiscoveryTiles discovery={split.discovery} /> : null}
+        {split ? (
+          <StatsGroups stats={split.rest} />
         ) : (
           <LoadError error={stats.error} title={t.admin.dashboard.statsUnavailable} />
         )}
