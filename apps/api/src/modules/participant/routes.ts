@@ -1,5 +1,5 @@
-import { WidgetResponseSchema } from "@aidp/shared";
 import { toStored } from "@aidp/core";
+import { WidgetResponseSchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { participant, requireParticipant } from "../../auth/plugin.js";
@@ -20,7 +20,17 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
 
   app.get("/p/:linkToken", { ...publicLimit, schema: { params: Link } }, async (req) => {
     const { view } = await svc.resolveLink(req.params.linkToken);
-    const { campaignId: _c, companyId: _co, ...campaign } = view;
+    const campaign = {
+      name: view.name,
+      productName: view.productName,
+      purpose: view.purpose,
+      expectedMinutes: view.expectedMinutes,
+      participationMode: view.participationMode,
+      verification: view.verification,
+      consentText: view.consentText,
+      participantFields: view.participantFields,
+      pathSelection: view.pathSelection,
+    };
     return { campaign, status: view.status };
   });
 

@@ -1,7 +1,7 @@
-import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
-import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from "fastify-type-provider-zod";
 import { BudgetExceededError, ProviderError } from "@aidp/ai";
 import { SettingsError } from "@aidp/core";
+import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from "fastify-type-provider-zod";
 
 export type ErrorCode =
   | "validation"
@@ -55,33 +55,50 @@ export function errorHandler(
       .status(status)
       .send({ error: { code, message, ...(details !== undefined ? { details } : {}) } });
   };
-  if (error instanceof AppError) return respond(error.status, error.code, error.message, error.details);
+  if (error instanceof AppError) {
+    respond(error.status, error.code, error.message, error.details);
+    return;
+  }
   if (hasZodFastifySchemaValidationErrors(error)) {
-    return respond(
+    respond(
       400,
       "validation",
       "Request validation failed",
       error.validation.map((v) => ({ path: v.instancePath, message: v.message })),
     );
+    return;
   }
   if (isResponseSerializationError(error)) {
     request.log.error({ err: error }, "response serialization failed");
-    return respond(500, "internal", "Response did not match its schema");
+    respond(500, "internal", "Response did not match its schema");
+    return;
   }
-  if (error instanceof BudgetExceededError) return respond(402, "budget_exceeded", error.message);
+  if (error instanceof BudgetExceededError) {
+    respond(402, "budget_exceeded", error.message);
+    return;
+  }
   if (error instanceof ProviderError) {
     request.log.warn({ err: error, code: error.code }, "provider error");
-    return respond(
+    respond(
       502,
       "provider_error",
       error.code === "refusal" ? "The model declined this request" : "The model provider failed",
     );
+    return;
   }
-  if (error instanceof SettingsError) return respond(400, "validation", error.message);
+  if (error instanceof SettingsError) {
+    respond(400, "validation", error.message);
+    return;
+  }
   const fastify = error as FastifyError;
-  if (fastify.statusCode === 429) return respond(429, "rate_limited", "Too many requests");
-  if (typeof fastify.statusCode === "number" && fastify.statusCode < 500)
-    return respond(fastify.statusCode, "validation", error.message);
+  if (fastify.statusCode === 429) {
+    respond(429, "rate_limited", "Too many requests");
+    return;
+  }
+  if (typeof fastify.statusCode === "number" && fastify.statusCode < 500) {
+    respond(fastify.statusCode, "validation", error.message);
+    return;
+  }
   request.log.error({ err: error }, "unhandled error");
   respond(500, "internal", "Internal error");
 }

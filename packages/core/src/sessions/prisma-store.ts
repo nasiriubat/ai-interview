@@ -28,8 +28,8 @@ export class PrismaSessionStore implements SessionStore {
           role: m.role,
           modality: m.modality,
           content: m.content,
-          ...(m.widget ? { widget: m.widget as Prisma.InputJsonValue } : {}),
-          ...(m.widgetResponse ? { widgetResponse: m.widgetResponse as Prisma.InputJsonValue } : {}),
+          ...(m.widget ? { widget: m.widget } : {}),
+          ...(m.widgetResponse ? { widgetResponse: m.widgetResponse } : {}),
           areaKey: m.areaKey ?? null,
         },
       });

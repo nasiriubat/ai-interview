@@ -1,7 +1,6 @@
-import type { InterviewTemplate as Template } from "@prisma/client";
-import { Prisma, type PrismaClient } from "@prisma/client";
 import { shippedTemplate } from "@aidp/db";
 import { InterviewTemplateSchema, type InterviewTemplate, type InterviewTemplateInput } from "@aidp/shared";
+import type { InterviewTemplate as Template, Prisma, type PrismaClient } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
 /** A template body as accepted by the API: everything but the version, which the service assigns. */

@@ -1,5 +1,5 @@
-import { pino, type Logger as PinoLogger } from "pino";
 import type { Logger } from "@aidp/ai";
+import { pino, type Logger as PinoLogger } from "pino";
 
 export function createLogger(level: string, pretty: boolean): PinoLogger {
   return pino({
@@ -12,7 +12,11 @@ export function createLogger(level: string, pretty: boolean): PinoLogger {
 /** Adapts pino to the small Logger port the engine uses. */
 export function engineLogger(log: PinoLogger): Logger {
   return {
-    warn: (message, meta) => log.warn(meta ?? {}, message),
-    info: (message, meta) => log.info(meta ?? {}, message),
+    warn: (message, meta) => {
+      log.warn(meta ?? {}, message);
+    },
+    info: (message, meta) => {
+      log.info(meta ?? {}, message);
+    },
   };
 }

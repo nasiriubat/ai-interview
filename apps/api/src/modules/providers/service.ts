@@ -1,7 +1,7 @@
-import type { PrismaClient, Provider } from "@prisma/client";
 import { createProvider, costCents, estimateTokens, PriceTable, type ModelPrice } from "@aidp/ai";
 import { loadPrices, type CallerFactory, type Crypto } from "@aidp/core";
 import { PURPOSES, ProviderConfigSchema, type ModelInfo, type Purpose } from "@aidp/shared";
+import type { PrismaClient, Provider } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
 export interface ProviderInput {
@@ -147,7 +147,7 @@ export class ProviderService {
       });
       importedPrices++;
     }
-    void imported;
+    imported;
     return { models, importedPrices };
   }
 

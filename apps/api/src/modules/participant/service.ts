@@ -1,4 +1,3 @@
-import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import {
   emailDomain,
   newNumericCode,
@@ -8,6 +7,7 @@ import {
   type EmailPort,
   type SettingsService,
 } from "@aidp/core";
+import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
 export interface LinkView {
@@ -186,8 +186,8 @@ export class ParticipantService {
   ): Promise<{ participantToken: string; sessionId: string; resume: boolean }> {
     const token = newToken(24);
     const fields: Record<string, string> = {};
-    if (emailHash) fields["_emailHash"] = emailHash; // uniqueness pointer; never shown
-    if (email && campaign.participationMode !== "anonymous") fields["email"] = email;
+    if (emailHash) fields._emailHash = emailHash; // uniqueness pointer; never shown
+    if (email && campaign.participationMode !== "anonymous") fields.email = email;
     const participant = await this.db.participant.create({
       data: {
         companyId: campaign.companyId,
@@ -232,7 +232,7 @@ export class ParticipantService {
       const provided = input.participantFields ?? {};
       const fields = anonymous
         ? {
-            ...(existing["_emailHash"] ? { _emailHash: existing["_emailHash"] } : {}),
+            ...(existing._emailHash ? { _emailHash: existing._emailHash } : {}),
             ...pick(provided, ["role", "department"]),
           }
         : { ...existing, ...provided };
@@ -305,7 +305,7 @@ export class ParticipantService {
     participant: Record<string, string>;
   } {
     const fields = { ...((participant?.fields ?? {}) as Record<string, string>) };
-    delete fields["_emailHash"];
+    delete fields._emailHash;
     return {
       id: session.id,
       status: session.status,

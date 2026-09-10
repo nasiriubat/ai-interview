@@ -28,7 +28,7 @@ export async function sessionRoutes(app: App, ctx: AppContext): Promise<void> {
     if (setting === "nobody") return false;
     if (setting === "admins") return true;
     const fields = (s.participant?.fields ?? {}) as Record<string, string>;
-    return s.campaign?.participationMode === "identified" && fields["transcriptOptIn"] === "true";
+    return s.campaign?.participationMode === "identified" && fields.transcriptOptIn === "true";
   };
 
   app.get("/sessions/:id", { preHandler: requireStaff(), schema: { params: Id } }, async (req) => {

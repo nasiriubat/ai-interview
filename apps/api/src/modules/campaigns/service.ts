@@ -1,4 +1,3 @@
-import type { Campaign, Invitation, PrismaClient } from "@prisma/client";
 import {
   emailDomain,
   newToken,
@@ -7,6 +6,7 @@ import {
   type EmailPort,
   type SettingsService,
 } from "@aidp/core";
+import type { Campaign, Invitation, PrismaClient } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
 

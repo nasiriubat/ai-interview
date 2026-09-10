@@ -1,4 +1,3 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
 import { extractFacts, updateRollingSummary, type Logger } from "@aidp/ai";
 import {
   PrismaPromptSource,
@@ -8,6 +7,7 @@ import {
   type JobPayload,
   type SettingsService,
 } from "@aidp/core";
+import type { Prisma, PrismaClient } from "@prisma/client";
 
 export interface HandlerDeps {
   db: PrismaClient;
