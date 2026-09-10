@@ -213,6 +213,9 @@ importers:
       '@aidp/ai':
         specifier: workspace:*
         version: link:../ai
+      '@aidp/core':
+        specifier: workspace:*
+        version: link:../core
       '@aidp/shared':
         specifier: workspace:*
         version: link:../shared
