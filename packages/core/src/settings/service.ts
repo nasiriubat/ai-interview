@@ -7,6 +7,7 @@ import {
   type SettingValue,
 } from "@aidp/shared";
 import type { PrismaClient } from "@prisma/client";
+import { ZodError } from "zod";
 
 export interface SettingScopeRef {
   scope: SettingScope;
@@ -73,7 +74,7 @@ export class SettingsService {
         written.push(key);
         continue;
       }
-      const parsed = parseSetting(key, v);
+      const parsed = parseValue(key, v);
       await this.db.setting.upsert({
         where: { scope_scopeId_key: { scope: ref.scope, scopeId: ref.scopeId, key } },
         create: { scope: ref.scope, scopeId: ref.scopeId, key, value: parsed as object, changedBy },
@@ -98,6 +99,16 @@ export class SettingsService {
       scopes: SETTINGS[key].scopes,
       default: SETTINGS[key].default,
     }));
+  }
+}
+
+function parseValue(key: SettingKey, value: unknown): unknown {
+  try {
+    return parseSetting(key, value);
+  } catch (e) {
+    if (e instanceof ZodError)
+      throw new SettingsError(`Invalid value for '${key}': ${e.issues.map((i) => i.message).join("; ")}`);
+    throw e;
   }
 }
 

@@ -1,25 +1,12 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SEED_PRICES } from "@aidp/ai";
-import { InterviewTemplateSchema, type InterviewTemplate } from "@aidp/shared";
 import { PrismaClient } from "@prisma/client";
-
-const here = dirname(fileURLToPath(import.meta.url));
-
-/** Reads and validates the platform templates shipped in seeds/templates (FR-65). */
-export function loadSeedTemplates(): InterviewTemplate[] {
-  const dir = join(here, "templates");
-  return readdirSync(dir)
-    .filter((f) => f.endsWith(".json"))
-    .sort()
-    .map((f) => InterviewTemplateSchema.parse(JSON.parse(readFileSync(join(dir, f), "utf8"))));
-}
+import { shippedTemplates } from "../src/seed-templates/index.js";
 
 /** Upserts platform templates and Anthropic seed prices when a platform Anthropic provider exists. */
 export async function seed(db: PrismaClient): Promise<{ templates: number; prices: number }> {
   let templates = 0;
-  for (const t of loadSeedTemplates()) {
+  for (const t of shippedTemplates()) {
     const data = {
       companyId: null,
       key: t.key,
