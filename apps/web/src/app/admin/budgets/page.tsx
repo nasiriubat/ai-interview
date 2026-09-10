@@ -5,10 +5,13 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { BudgetsPanel } from "@/components/admin/providers/BudgetsPanel";
 import { SpendPanel } from "@/components/admin/SpendPanel";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
-export const metadata: Metadata = { title: t.admin.budgets.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.budgets.title };
+}
 
 export default async function BudgetsPage(): Promise<React.JSX.Element> {
   const me = await requireMe();

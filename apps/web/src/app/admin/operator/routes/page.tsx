@@ -3,9 +3,12 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { RoutesForm } from "@/components/admin/providers/RoutesForm";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { staffServer } from "@/lib/api/server";
 
-export const metadata: Metadata = { title: t.admin.nav.platformRoutes };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.nav.platformRoutes };
+}
 
 export default async function PlatformRoutesPage(): Promise<React.JSX.Element> {
   const api = await staffServer();

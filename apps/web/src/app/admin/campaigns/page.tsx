@@ -8,11 +8,14 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
-export const metadata: Metadata = { title: t.admin.campaigns.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.campaigns.title };
+}
 
 export default async function CampaignsPage(): Promise<React.JSX.Element> {
   await requireMe();

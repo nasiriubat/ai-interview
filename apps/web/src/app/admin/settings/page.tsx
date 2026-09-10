@@ -4,10 +4,13 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { ScopePicker } from "@/components/admin/settings/ScopePicker";
 import { SettingsForm } from "@/components/admin/settings/SettingsForm";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
-export const metadata: Metadata = { title: t.admin.settings.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.settings.title };
+}
 
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
