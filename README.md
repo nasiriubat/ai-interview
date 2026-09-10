@@ -13,7 +13,7 @@ This repository is built using the product's own process. Start reading here:
 - `docs/discovery/00-intake.md` — the raw idea, verbatim
 - `docs/discovery/01-interview-round-1.md` — the discovery interview and its defaults
 - `docs/discovery/decisions.md` — decision log (DECIDED vs ASSUMED)
-- `docs/discovery/02-draft-spec.md` — draft spec v0.1
+- `docs/discovery/02-draft-spec.md` — draft spec v0.1 (historical)
 - `docs/team/roles.md` — the role-based team and hand-offs
 
 - `docs/discovery/03-interview-round-2.md` — cost control, provider design, modality follow-ups
