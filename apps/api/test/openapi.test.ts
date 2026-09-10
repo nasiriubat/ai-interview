@@ -1,0 +1,42 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { fakeModelServer, testWorld, type TestWorld } from "./helpers.js";
+
+const suite = process.env.DATABASE_URL ? describe : describe.skip;
+
+suite("OpenAPI and health", () => {
+  let world: TestWorld;
+  let close: () => void;
+  beforeAll(async () => {
+    const model = await fakeModelServer(() => "x");
+    world = await testWorld(model.url);
+    close = () => model.server.close();
+  });
+  afterAll(async () => {
+    await world.close();
+    close();
+  });
+
+  it("serves the OpenAPI document with every contract route and reports readiness", async () => {
+    const doc = await world.app.inject({ method: "GET", url: "/api/v1/openapi.json" });
+    expect(doc.statusCode).toBe(200);
+    const paths = Object.keys(doc.json<{ paths: Record<string, unknown> }>().paths);
+    for (const p of [
+      "/p/{linkToken}",
+      "/p/session/turns",
+      "/campaigns",
+      "/templates/{id}/diff-shipped",
+      "/settings",
+      "/providers/{id}/test",
+      "/routes",
+      "/budgets",
+      "/spend",
+      "/stats",
+      "/audit",
+      "/operator/tenants",
+    ]) {
+      expect(paths).toContain(p);
+    }
+    const ready = await world.app.inject({ method: "GET", url: "/api/v1/health/ready" });
+    expect(ready.json()).toEqual({ ok: true, database: true });
+  });
+});

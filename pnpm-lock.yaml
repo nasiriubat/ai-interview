@@ -146,6 +146,31 @@ importers:
         specifier: ^3.2.0
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
 
+  evals:
+    dependencies:
+      '@aidp/ai':
+        specifier: workspace:*
+        version: link:../packages/ai
+      '@aidp/db':
+        specifier: workspace:*
+        version: link:../packages/db
+      '@aidp/shared':
+        specifier: workspace:*
+        version: link:../packages/shared
+      zod:
+        specifier: ^4.0.0
+        version: 4.5.4
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
+
   packages/ai:
     dependencies:
       '@aidp/shared':

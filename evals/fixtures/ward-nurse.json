@@ -1,0 +1,29 @@
+{
+  "name": "Ward nurse, engaged participant",
+  "templateKey": "opportunity_discovery",
+  "answers": [
+    "I am a nurse on the surgical ward, I look after eight patients per shift and coordinate with the doctors and the lab.",
+    "Mornings are rounds and medication, then charting in two systems, then calls to the lab for results.",
+    "Charting is the same every day, about 45 minutes, in the patient system and again in the ward spreadsheet.",
+    "We use the patient system, a ward Excel file, and WhatsApp for quick questions to doctors.",
+    "Results from the lab come by phone, then I type them into the system by hand.",
+    "I wait for the lab most days, sometimes an hour, and the doctors wait for me.",
+    "The double entry causes mistakes, and nobody knows which number is right.",
+    "I would stop the double entry first."
+  ],
+  "expect": {
+    "firstFocus": "role",
+    "coveredByEnd": [
+      "role",
+      "daily",
+      "repetitive",
+      "tools",
+      "manual",
+      "flows",
+      "bottlenecks",
+      "problems",
+      "wish"
+    ],
+    "maxTurns": 22
+  }
+}
