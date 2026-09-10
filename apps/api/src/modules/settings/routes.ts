@@ -53,7 +53,7 @@ export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
         targetId: r.scopeId || "platform",
         diff: req.body.values,
       });
-      return { written, values: await ctx.settings.listAt(r) };
+      return { ok: true as const, written, values: await ctx.settings.listAt(r) };
     },
   );
 }
