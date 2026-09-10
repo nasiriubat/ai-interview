@@ -334,8 +334,8 @@ suite("participant flow end to end", () => {
     const routes = await app.inject({ method: "GET", url: "/api/v1/routes", headers: h });
     expect(
       routes
-        .json<{ routes: { purpose: string; route: unknown }[] }>()
-        .routes.find((r) => r.purpose === "interview_turn")?.route,
+        .json<{ routes: { purpose: string; model: string | null; inherited: boolean }[] }>()
+        .routes.find((r) => r.purpose === "interview_turn"),
     ).toMatchObject({ model: "fake-model", inherited: false });
 
     const auditLog = await app.inject({ method: "GET", url: "/api/v1/audit", headers: h });

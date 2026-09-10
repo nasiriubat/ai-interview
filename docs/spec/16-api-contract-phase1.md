@@ -36,7 +36,7 @@ All ids are strings. Times are ISO 8601.
 
 ### SSE stream for turns
 
-`Content-Type: text/event-stream`. Events:
+`Content-Type: text/event-stream`. One turn at a time per session: a second concurrent request gets 409. Events:
 
 - `event: text` `data: { "delta": string }`
 - `event: turn` `data: { message: Message, ended: boolean, progress: { areas: [{ key, name, status }] } }`
