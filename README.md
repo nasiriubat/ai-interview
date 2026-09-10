@@ -22,3 +22,8 @@ This repository is built using the product's own process. Start reading here:
 - `docs/discovery/05-interview-round-3.md` — stack, admin surface, architecture questions
 - `docs/spec/README.md` — specification v2.0 (index of 16 documents), frozen for build
 - `docs/spec/15-phase-plan.md` — whole-system delivery in phases
+
+## Code
+
+- `packages/shared` contracts, `packages/db` schema and migrations, `packages/ai` provider layer and interview engine, `packages/core` server infrastructure, `apps/api` HTTP and SSE API, `apps/worker` jobs, `apps/web` web app, `evals/` engine evals.
+- How to run: `docs/RUNNING.md`. Quality gate: `pnpm check`.

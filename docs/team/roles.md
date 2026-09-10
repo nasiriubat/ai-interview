@@ -30,5 +30,5 @@ artifact is what matters, not who produced it.
 
 ## Current sprint: Phase 1 (see docs/spec/15-phase-plan.md)
 
-Specification v2.0 is frozen. Active roles: Backend Engineer (API, templates, campaigns, settings), AI Engineer (engine, context, extraction), Frontend Engineer (participant UI).
+Done: contracts, database, engine, core, API, worker, evals. In progress: Frontend Engineer (participant flow and admin in `apps/web`). Next: integrate the web app with the API and run the phase 1 acceptance (an employee completes `opportunity_discovery` end to end on a phone).
 Next milestone: an employee completes opportunity_discovery end to end on a phone.
