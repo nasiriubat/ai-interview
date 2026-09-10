@@ -12,6 +12,7 @@ import { z } from "zod";
 import type { ModelCaller } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";
 import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js";
+import { languageName } from "../util/language.js";
 import { agglomerate } from "./cluster.js";
 import { LEXICAL_THRESHOLD, LexicalEmbeddings, type EmbeddingSource } from "./embeddings.js";
 import { renderReport, type ReportOpportunity } from "./report.js";
@@ -462,8 +463,4 @@ function snippet(f: Fact): string {
 
 function uniq(xs: (string | undefined)[]): string[] {
   return [...new Set(xs.filter((x): x is string => Boolean(x?.trim())))];
-}
-
-export function languageName(code: string): string {
-  return { en: "English", fi: "Finnish", sv: "Swedish", de: "German" }[code] ?? code;
 }
