@@ -4,6 +4,7 @@ import type { Path } from "@aidp/shared";
 import { CodeIcon, MessageCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,9 +24,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <main id="main" className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 p-6">
-      {children}
-    </main>
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+      <header className="flex justify-end px-6 pt-4">
+        <LanguageSwitch />
+      </header>
+      <main id="main" className="flex flex-1 flex-col justify-center gap-6 p-6">
+        {children}
+      </main>
+    </div>
   );
 }
 

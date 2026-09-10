@@ -3,10 +3,13 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { UsersPanel } from "@/components/admin/users/UsersPanel";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { hasRole, requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
-export const metadata: Metadata = { title: t.admin.users.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.users.title };
+}
 
 export default async function UsersPage(): Promise<React.JSX.Element> {
   const me = await requireMe();

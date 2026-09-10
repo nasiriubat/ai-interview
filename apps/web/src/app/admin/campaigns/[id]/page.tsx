@@ -11,12 +11,15 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
+import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
 import { humanize } from "@/lib/utils";
 
-export const metadata: Metadata = { title: t.admin.campaigns.title };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getStrings()).admin.campaigns.title };
+}
 
 interface Props {
   params: Promise<{ id: string }>;
