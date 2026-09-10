@@ -278,24 +278,31 @@ async function nameClusters(
     deps.logger.warn("cluster naming failed; using similarity drafts", {
       error: e instanceof Error ? e.message : String(e),
     });
-    return drafts.map((d) => ({
-      key: d.key,
-      name: factText(facts.find((f) => f.id === d.factIds[0])?.fact ?? facts[0]!.fact).slice(0, 80),
-      summary: "",
-      factIds: d.factIds,
-    }));
+    return drafts.map((d) => {
+      const first = facts.find((f) => f.id === d.factIds[0]);
+      return {
+        key: d.key,
+        name: (first ? factText(first.fact) : d.key).slice(0, 80),
+        summary: "",
+        factIds: d.factIds,
+      };
+    });
   }
 }
 
 /** Every fact in exactly one cluster: unknown ids dropped, duplicates removed, missing facts get singleton clusters. */
-export function reconcile(
-  clusters: { key: string; name: string; summary: string; factIds: string[] }[],
-  facts: AnalysisFact[],
-) {
+export interface NamedCluster {
+  key: string;
+  name: string;
+  summary: string;
+  factIds: string[];
+}
+
+export function reconcile(clusters: NamedCluster[], facts: AnalysisFact[]): NamedCluster[] {
   const known = new Set(facts.map((f) => f.id));
   const seen = new Set<string>();
   const usedKeys = new Set<string>();
-  const out: { key: string; name: string; summary: string; factIds: string[] }[] = [];
+  const out: NamedCluster[] = [];
   for (const c of clusters) {
     const ids: string[] = [];
     for (const id of c.factIds) {
