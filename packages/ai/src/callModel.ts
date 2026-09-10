@@ -146,6 +146,39 @@ export class ModelCaller {
     }
   }
 
+  /** Embeddings through the `embedding` route, or undefined when no route is configured (callers fall back). */
+  async embed(
+    ctx: CallContext,
+    texts: string[],
+  ): Promise<{ vectors: number[][]; model: string } | undefined> {
+    const purpose: Purpose = "embedding";
+    const route = await this.deps.routes.resolve(ctx.companyId, purpose);
+    if (!route) return undefined;
+    const provider = await this.providerFor(ctx.companyId, route.providerId);
+    if (!provider.embed)
+      throw new ProviderError(`Provider '${route.providerId}' cannot embed text`, "unsupported", false);
+    const price = this.deps.prices.get(route.providerId, route.model);
+    const inputTokens = estimateTokens(texts.join(" "));
+    const check = await this.deps.budget.check(ctx, price ? estimateCents(price, inputTokens, 0) : 0);
+    if (!check.allowed) {
+      await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
+      throw new BudgetExceededError(check);
+    }
+    const started = this.now();
+    let usage = emptyUsage();
+    let status: LedgerEntry["status"] = "ok";
+    try {
+      const res = await provider.embed(route.model, texts);
+      usage = res.usage;
+      return { vectors: res.vectors, model: route.model };
+    } catch (e) {
+      status = "error";
+      throw e;
+    } finally {
+      await this.record(purpose, ctx, route, price, usage, status, started);
+    }
+  }
+
   private async prepare(purpose: Purpose, ctx: CallContext, req: CallRequest) {
     const route = await this.deps.routes.resolve(ctx.companyId, purpose);
     if (!route) throw new ProviderError(`No route configured for purpose '${purpose}'`, "unsupported", false);

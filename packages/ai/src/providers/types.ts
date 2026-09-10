@@ -28,6 +28,8 @@ export interface Provider {
     schemaName?: string,
   ): Promise<{ value: T; usage: Usage }>;
   transcribe?(model: string, input: TranscriptionInput): Promise<{ transcript: Transcript; usage: Usage }>;
+  /** Text embeddings, when the provider offers them (OpenAI-compatible `/embeddings`). */
+  embed?(model: string, texts: string[]): Promise<{ vectors: number[][]; usage: Usage }>;
 }
 
 export class ProviderError extends Error {
