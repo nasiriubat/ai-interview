@@ -1,4 +1,12 @@
-import type { InterviewTemplate, SessionState, StateDelta, Widget, WidgetResponse } from "@aidp/shared";
+import type {
+  Fact,
+  Finding,
+  InterviewTemplate,
+  SessionState,
+  StateDelta,
+  Widget,
+  WidgetResponse,
+} from "@aidp/shared";
 import type { Focus } from "./selection.js";
 
 const MINIMAL_MAX_WORDS = 2;
@@ -33,15 +41,28 @@ export function noteUserAnswer(
 let threadCounter = 0;
 const newThreadId = (): string => `t${Date.now().toString(36)}${(threadCounter++).toString(36)}`;
 
+/** Requirements-session rules the delta application needs (spec 05). */
+export interface DeltaPolicy {
+  /** Push back once on a rejected finding the engine is confident about. */
+  pushBackOnce: boolean;
+  /** A mandatory challenge ignores the user's request to end it early. */
+  mvpChallengeMandatory: boolean;
+}
+
+const DEFAULT_POLICY: DeltaPolicy = { pushBackOnce: false, mvpChallengeMandatory: false };
+
 /**
  * Applies a model-produced delta with guards: coverage never moves backwards, unknown
- * areas are ignored, follow-up counts are maintained by the engine, threads get ids.
+ * areas are ignored, follow-up counts are maintained by the engine, threads get ids,
+ * spec fields replace earlier values at the same path, finding outcomes follow the
+ * push-back rule, and the MVP challenge walk is tracked by the engine.
  */
 export function applyDelta(
   state: SessionState,
   delta: StateDelta,
   template: InterviewTemplate,
   focus: Focus,
+  policy: DeltaPolicy = DEFAULT_POLICY,
 ): SessionState {
   const areaKeys = new Set(template.coverageAreas.map((a) => a.key));
   const rank = { untouched: 0, partial: 1, covered: 2, skipped: 2 } as const;
@@ -97,6 +118,9 @@ export function applyDelta(
     ...delta.decisions,
   ];
 
+  const findings = applyFindingOutcomes(state, delta, focus, policy);
+  const mvpChallenge = applyMvpChallenge(state, delta, focus, policy);
+
   return {
     ...state,
     coverage,
@@ -104,10 +128,86 @@ export function applyDelta(
     profile: mergeDefined(state.profile, delta.profile),
     openThreads,
     decisions,
-    facts: delta.facts.length ? [...state.facts, ...delta.facts] : state.facts,
+    facts: delta.facts.length ? mergeFacts(state.facts, delta.facts) : state.facts,
+    findings,
+    mvpChallenge,
     ...(delta.flagForAdmin ? { flaggedForAdmin: delta.flagForAdmin } : {}),
     lastAreaKey: focusArea ?? state.lastAreaKey,
   };
+}
+
+/** Appends facts; a spec_field with the same section and path replaces the earlier one (the spec is state, not a log). */
+export function mergeFacts(existing: Fact[], incoming: Fact[]): Fact[] {
+  const out = [...existing];
+  for (const f of incoming) {
+    if (f.kind === "spec_field") {
+      const idx = out.findIndex(
+        (e) => e.kind === "spec_field" && e.section === f.section && e.path === f.path,
+      );
+      if (idx >= 0) {
+        out[idx] = f;
+        continue;
+      }
+    }
+    out.push(f);
+  }
+  return out;
+}
+
+/**
+ * Finding lifecycle (FR-21b): the focused finding becomes `raised`; outcomes reported for a
+ * raised finding are recorded; a rejection of a confident finding is pushed back on once; a
+ * raised finding the model did not report on is accepted as is so it never blocks the interview.
+ */
+function applyFindingOutcomes(
+  state: SessionState,
+  delta: StateDelta,
+  focus: Focus,
+  policy: DeltaPolicy,
+): Finding[] {
+  const turn = state.turnCount;
+  const reported = new Map(delta.findingOutcomes.map((o) => [o.id, o]));
+  return state.findings.map((f) => {
+    if (focus.mode === "finding" && focus.findingId === f.id)
+      return { ...f, status: "raised" as const, raisedTurn: turn };
+    if (f.status !== "raised") return f;
+    const o = reported.get(f.id);
+    if (o) {
+      if (o.outcome === "rejected") {
+        if (policy.pushBackOnce && f.confidence === "high" && !f.pushedBack)
+          return { ...f, status: "open" as const, pushedBack: true, ...(o.note ? { note: o.note } : {}) };
+        return {
+          ...f,
+          status: "accepted" as const,
+          decidedTurn: turn,
+          note: o.note ?? "Kept as is after push-back",
+        };
+      }
+      return { ...f, status: o.outcome, decidedTurn: turn, ...(o.note ? { note: o.note } : {}) };
+    }
+    // Raised on an earlier turn and not reported on this turn: accepted as is.
+    if (f.raisedTurn !== undefined && f.raisedTurn < turn)
+      return { ...f, status: "accepted" as const, decidedTurn: turn, note: f.note ?? "No explicit outcome" };
+    return f;
+  });
+}
+
+function applyMvpChallenge(
+  state: SessionState,
+  delta: StateDelta,
+  focus: Focus,
+  policy: DeltaPolicy,
+): SessionState["mvpChallenge"] {
+  let mvp = state.mvpChallenge;
+  if (focus.mode === "mvp_challenge") {
+    mvp = {
+      ...mvp,
+      started: true,
+      asked: mvp.asked.includes(focus.itemPath) ? mvp.asked : [...mvp.asked, focus.itemPath],
+    };
+  }
+  if (delta.endMvpChallenge && mvp.started && !policy.mvpChallengeMandatory) mvp = { ...mvp, done: true };
+  return mvp;
 }
 
 /** Enforces the template's widget policy; returns the widget to show or undefined. */

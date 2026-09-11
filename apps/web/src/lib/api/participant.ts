@@ -1,6 +1,8 @@
 import type { Path, WidgetResponse } from "@aidp/shared";
 import { request, requestStream, type Transport } from "./http";
 import {
+  type InviteArrival,
+  InviteArrivalSchema,
   LinkInfoSchema,
   type LinkInfo,
   type ModePreference,
@@ -57,6 +59,15 @@ export function participantApi(transport: Transport): ParticipantApi {
         body: invitationToken ? { invitationToken } : {},
         schema: SessionGrantSchema,
       }),
+    getInvite: (token) =>
+      request(transport, { path: `/p/r/${encodeURIComponent(token)}`, schema: InviteArrivalSchema }),
+    openInvite: (token) =>
+      request(transport, {
+        method: "POST",
+        path: `/p/r/${encodeURIComponent(token)}/open`,
+        body: {},
+        schema: SessionGrantSchema,
+      }),
     getSession: () =>
       request(transport, { path: "/p/session", schema: ParticipantSessionEnvelopeSchema }).then(
         (r) => r.session,
@@ -106,6 +117,10 @@ export interface ParticipantApi {
   requestCode(linkToken: string, email: string): Promise<void>;
   confirmCode(linkToken: string, email: string, code: string): Promise<SessionGrant>;
   open(linkToken: string, invitationToken?: string): Promise<SessionGrant>;
+  /** Contract 18: an external person invited into a requirements session (`/p/r/:token`). */
+  getInvite(token: string): Promise<InviteArrival>;
+  /** Proxied like `open`: the token lands in the participant cookie, then `/p/session/*` applies. */
+  openInvite(token: string): Promise<SessionGrant>;
   getSession(): Promise<ParticipantSession>;
   consent(input: ConsentInput): Promise<void>;
   setPath(path: Path): Promise<void>;

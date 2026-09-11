@@ -133,7 +133,7 @@ export function PromoteDialog({
                 {t.app.close}
               </Button>
               <Button asChild>
-                <Link href={`/admin/sessions/${result.session.id}`}>{s.openSession}</Link>
+                <Link href={`/admin/requirements/${result.session.id}`}>{s.openSession}</Link>
               </Button>
             </>
           ) : (

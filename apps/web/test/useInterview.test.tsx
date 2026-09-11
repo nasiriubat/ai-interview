@@ -31,6 +31,8 @@ function apiWith(sendTurn: ParticipantApi["sendTurn"]): ParticipantApi {
     requestCode: noop,
     confirmCode: () => Promise.reject(new Error("unused")),
     open: () => Promise.reject(new Error("unused")),
+    getInvite: () => Promise.reject(new Error("unused")),
+    openInvite: () => Promise.reject(new Error("unused")),
     getSession: () => Promise.resolve(baseSession),
     consent: noop,
     setPath: noop,
@@ -114,5 +116,43 @@ describe("useInterview", () => {
     expect(result.current.state.error).toEqual({ code: "budget_exceeded", message: "Budget reached" });
     expect(result.current.state.ended).toBe(true);
     expect(result.current.state.summaryAvailable).toBe(true);
+  });
+
+  it("hands the spec event of a requirements turn to onSpec without touching the messages", async () => {
+    const spec = {
+      title: "Booking app",
+      path: "technical",
+      context: { users: "Clinic staff" },
+      sections: [{ key: "overview", title: "Overview", status: "draft", markdown: "# Overview", fields: [] }],
+      findings: [],
+      decisions: [],
+      mvpChallenge: { started: false, done: false, asked: [] },
+      stats: { fields: 1, sectionsWithContent: 1, openFindings: 0 },
+    };
+    const sendTurn = vi.fn((): Promise<Response> =>
+      Promise.resolve(
+        sse([
+          'event: turn\ndata: {"message":{"id":"a2","seq":3,"role":"assistant","content":"Next?","createdAt":""},"ended":false,"progress":{"areas":[]}}\n\n',
+          `event: spec\ndata: ${JSON.stringify({ spec })}\n\n`,
+        ]),
+      ),
+    );
+    const onSpec = vi.fn();
+    const initial: ParticipantSession = {
+      ...baseSession,
+      messages: [{ id: "a1", seq: 1, role: "assistant", modality: "text", content: "Hello", createdAt: "" }],
+    };
+    const { result } = renderHook(() => useInterview(apiWith(sendTurn), initial, { onSpec }));
+    await act(async () => {
+      await result.current.sendText("A booking app for clinics");
+    });
+    expect(onSpec).toHaveBeenCalledTimes(1);
+    expect(onSpec.mock.calls[0]?.[0]).toMatchObject({ title: "Booking app", stats: { fields: 1 } });
+    expect(result.current.state.messages.map((m) => m.content)).toEqual([
+      "Hello",
+      "A booking app for clinics",
+      "Next?",
+    ]);
+    expect(result.current.state.error).toBeNull();
   });
 });

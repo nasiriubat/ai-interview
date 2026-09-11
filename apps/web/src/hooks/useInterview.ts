@@ -4,8 +4,13 @@ import { widgetResponseToText, type Widget, type WidgetResponse } from "@aidp/sh
 import * as React from "react";
 import { isApiError } from "@/lib/api/errors";
 import type { ParticipantApi, TurnInput } from "@/lib/api/participant";
-import type { Message, ParticipantSession, Progress } from "@/lib/api/schemas";
+import type { LiveSpec, Message, ParticipantSession, Progress } from "@/lib/api/schemas";
 import { readTurnStream } from "@/lib/api/sse";
+
+export interface InterviewOptions {
+  /** Called with the live spec after each turn of a requirements session (`event: spec`, contract 18). */
+  onSpec?: (spec: LiveSpec) => void;
+}
 
 export interface InterviewError {
   code: string;
@@ -55,7 +60,13 @@ function localMessage(content: string, input: TurnInput | undefined): Message {
  * progress, ending and errors. Sends the first (empty) turn automatically when the
  * session has no messages yet.
  */
-export function useInterview(api: ParticipantApi, initial: ParticipantSession): InterviewController {
+export function useInterview(
+  api: ParticipantApi,
+  initial: ParticipantSession,
+  options: InterviewOptions = {},
+): InterviewController {
+  const onSpecRef = React.useRef(options.onSpec);
+  onSpecRef.current = options.onSpec;
   const [state, setState] = React.useState<InterviewState>({
     messages: initial.messages,
     streaming: null,
@@ -119,6 +130,9 @@ export function useInterview(api: ParticipantApi, initial: ParticipantSession): 
                 summaryAvailable: ev.summaryAvailable,
                 streaming: null,
               }));
+              break;
+            case "spec":
+              onSpecRef.current?.(ev.spec);
               break;
             case "error":
               setState((s) => ({ ...s, error: { code: ev.code, message: ev.message }, streaming: null }));

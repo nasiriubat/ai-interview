@@ -22,3 +22,8 @@ Checks: `pnpm check` runs build, typecheck, lint, and tests. Integration tests n
 Provider configuration without an Anthropic key: sign in as the operator, add a provider
 (OpenAI, OpenRouter, LiteLLM, or any OpenAI-compatible server), fetch its models, and set
 routes per purpose. Nothing works until `interview_turn` has a route.
+
+Requirements interviews (phase 3) also need routes for `issue_detection` (the separate
+findings pass, every few turns) and `spec_generation` (versions, run by the worker). The
+Anthropic bootstrap sets both. Pushing a version to GitHub asks for a token with `contents:
+write` on the target repository at push time; the token is used for one commit and never stored.

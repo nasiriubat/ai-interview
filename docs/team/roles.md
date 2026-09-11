@@ -28,7 +28,10 @@ artifact is what matters, not who produced it.
 4. **Hand-offs are files in this repo**, never chat history. A coding agent starting cold
    must be able to read `docs/` and know what to do.
 
-## Current sprint: Phase 1 (see docs/spec/15-phase-plan.md)
+## Current sprint: Phase 3 (see docs/spec/15-phase-plan.md)
 
-Phases 1 and 2 are built and accepted against a fake model: participant interviews on a phone-sized browser, and campaign analysis through the API, job queue, worker and pipeline with the results dashboard and report rendered in the browser. Next: a real-model run, then phase 3 (requirements interview).
-Next milestone: an employee completes opportunity_discovery end to end on a phone.
+Phases 1 and 2 are built and accepted against a fake model: participant interviews on a phone-sized browser, and campaign analysis through the API, job queue, worker and pipeline with the results dashboard and report rendered in the browser.
+
+Phase 3 (requirements interview, contract `docs/spec/18-api-contract-phase3.md`) is built against a fake model: path selection and the context block, per-turn specification capture, the separate issue-detection pass with push-back, the MVP challenge, the live spec editor with authoritative owner edits, versioned generation by the worker, spec.md / spec.json / agent-bundle exports, GitHub push, chaining from promoted opportunities, and external invitations. Replay evals cover both seeded templates.
+
+Next: a real-model run of both workflows (needs a provider key and a migrated Postgres), then the phase 3 acceptance test in `15-phase-plan.md` (regenerate this spec from a rough prompt; build a feature from the bundle), then phase 4 (voice and files).

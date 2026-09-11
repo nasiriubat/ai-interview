@@ -82,6 +82,42 @@ describe("toTurnStreamEvent", () => {
     }
   });
 
+  it("maps the spec event of a requirements turn (contract 18) and fills its defaults", () => {
+    const ev = toTurnStreamEvent({
+      event: "spec",
+      data: JSON.stringify({
+        spec: {
+          title: "Booking app",
+          path: null,
+          context: {},
+          sections: [{ key: "overview", title: "Overview", status: "empty", markdown: "", fields: [] }],
+          findings: [
+            {
+              id: "f1",
+              type: "ambiguity",
+              section: "users",
+              description: "Who books?",
+              resolution: "Name the roles",
+              default: "Staff only",
+            },
+          ],
+          decisions: [],
+        },
+      }),
+    });
+    expect(ev?.type).toBe("spec");
+    if (ev?.type === "spec") {
+      expect(ev.spec.sections[0]?.key).toBe("overview");
+      expect(ev.spec.findings[0]).toMatchObject({ status: "open", confidence: "medium", pushedBack: false });
+      expect(ev.spec.mvpChallenge).toEqual({ started: false, done: false, asked: [] });
+      expect(ev.spec.stats).toEqual({ fields: 0, sectionsWithContent: 0, openFindings: 0 });
+    }
+    expect(toTurnStreamEvent({ event: "spec", data: '{"spec":{"sections":"nope"}}' })).toMatchObject({
+      type: "error",
+      code: "malformed_event",
+    });
+  });
+
   it("ignores unknown events and reports malformed payloads as errors", () => {
     expect(toTurnStreamEvent({ event: "ping", data: "{}" })).toBeUndefined();
     expect(toTurnStreamEvent({ event: "text", data: "not json" })).toEqual({

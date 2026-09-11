@@ -1,9 +1,10 @@
-import { toStored } from "@aidp/core";
+import { InviteNotOpenError, RequirementsNotFoundError, toStored } from "@aidp/core";
 import { WidgetResponseSchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { participant, requireParticipant } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
+import { AppError, notFound } from "../../lib/errors.js";
 import { runTurn } from "../sessions/turn-runner.js";
 import { ParticipantService } from "./service.js";
 
@@ -63,6 +64,26 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
       schema: { params: Link, body: z.object({ invitationToken: z.string().optional() }).default({}) },
     },
     async (req) => svc.open(req.params.linkToken, req.body.invitationToken),
+  );
+
+  // External invitations into a requirements session (contract 18). The token is the participant token.
+  const InviteToken = z.object({ token: z.string().min(8) });
+  const inviteErrors = async <T>(fn: () => Promise<T>): Promise<T> => {
+    try {
+      const value = await fn();
+      return value;
+    } catch (e) {
+      if (e instanceof RequirementsNotFoundError) throw notFound("Invitation");
+      if (e instanceof InviteNotOpenError) throw new AppError("forbidden", e.message);
+      throw e;
+    }
+  };
+  app.get("/p/r/:token", { ...publicLimit, schema: { params: InviteToken } }, async (req) => {
+    const view = await inviteErrors(() => ctx.requirements.resolveInvite(req.params.token));
+    return { session: view.session, status: view.status };
+  });
+  app.post("/p/r/:token/open", { ...publicLimit, schema: { params: InviteToken } }, async (req) =>
+    inviteErrors(() => ctx.requirements.openInvite(req.params.token)),
   );
 
   const authed = { preHandler: requireParticipant };

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MessageSchema, ProgressSchema } from "./schemas";
+import { LiveSpecSchema, MessageSchema, ProgressSchema } from "./schemas";
 
 export interface SseEvent {
   event: string;
@@ -87,6 +87,8 @@ const TurnEventSchema = z.object({
 });
 const EndedEventSchema = z.object({ summaryAvailable: z.boolean().default(false) });
 const ErrorEventSchema = z.object({ code: z.string().default("error"), message: z.string().default("") });
+/** Contract 18: the live spec re-rendered after each turn of a requirements session. */
+const SpecEventSchema = z.object({ spec: LiveSpecSchema });
 
 export type TurnStreamEvent =
   | { type: "text"; delta: string }
@@ -97,6 +99,7 @@ export type TurnStreamEvent =
       progress: z.infer<typeof ProgressSchema>;
     }
   | { type: "ended"; summaryAvailable: boolean }
+  | { type: "spec"; spec: z.infer<typeof LiveSpecSchema> }
   | { type: "error"; code: string; message: string };
 
 function parseJson(data: string): unknown {
@@ -126,6 +129,10 @@ export function toTurnStreamEvent(ev: SseEvent): TurnStreamEvent | undefined {
     case "error": {
       const r = ErrorEventSchema.safeParse(json);
       return r.success ? { type: "error", code: r.data.code, message: r.data.message } : malformed(ev);
+    }
+    case "spec": {
+      const r = SpecEventSchema.safeParse(json);
+      return r.success ? { type: "spec", spec: r.data.spec } : malformed(ev);
     }
     default:
       return undefined;

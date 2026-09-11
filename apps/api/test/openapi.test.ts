@@ -33,6 +33,11 @@ suite("OpenAPI and health", () => {
       "/stats",
       "/audit",
       "/operator/tenants",
+      "/requirements",
+      "/requirements/{id}/turns",
+      "/requirements/{id}/versions/{v}/export",
+      "/p/r/{token}",
+      "/templates/{id}/preview",
     ]) {
       expect(paths).toContain(p);
     }

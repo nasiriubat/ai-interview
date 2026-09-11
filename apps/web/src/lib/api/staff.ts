@@ -1,7 +1,34 @@
-import type { BudgetLimit, InterviewTemplateInput, OpportunityOverride, Route } from "@aidp/shared";
+import type {
+  BudgetLimit,
+  FindingOutcome,
+  InterviewTemplateInput,
+  OpportunityOverride,
+  Path,
+  Route,
+} from "@aidp/shared";
 import { type z } from "zod";
-import { request, type Transport } from "./http";
+import { request, requestStream, type Transport } from "./http";
+import type { TurnInput } from "./participant";
 import {
+  type GitHubPushResult,
+  GitHubPushResultSchema,
+  type LiveSpec,
+  LiveSpecEnvelopeSchema,
+  type RequirementsDetail,
+  RequirementsDetailSchema,
+  type RequirementsListItem,
+  RequirementsListSchema,
+  type RequirementsSession,
+  RequirementsSessionEnvelopeSchema,
+  type SessionInvitation,
+  SessionInvitationEnvelopeSchema,
+  type SpecDiff,
+  SpecDiffSchema,
+  type SpecVersionDetail,
+  SpecVersionDetailSchema,
+  SpecVersionEnvelopeSchema,
+  SpecVersionListSchema,
+  type SpecVersionSummary,
   type Analysis,
   type AnalysisDetail,
   AnalysisDetailSchema,
@@ -110,6 +137,33 @@ export interface SpendQuery {
 
 /** Statuses an admin can set by hand; `promoted` only ever comes from `promote`. */
 export type OpportunityStatusInput = "new" | "shortlisted" | "dismissed";
+
+export interface RequirementsCreateInput {
+  title: string;
+  prompt?: string;
+  path: Path;
+  templateId?: string;
+  language?: string;
+}
+
+export interface GitHubPushInput {
+  repository: string;
+  branch?: string;
+  directory?: string;
+  token: string;
+  message?: string;
+}
+
+export type SpecExportFormat = "md" | "json" | "bundle";
+
+/** Version routes accept the version number (`/versions/:v`). */
+export type SpecVersionRef = number | string;
+
+/** Browser-side download URL of a version export, through the `/api/staff` proxy (contract 18). */
+export function specExportUrl(sessionId: string, v: SpecVersionRef, format: SpecExportFormat): string {
+  const id = encodeURIComponent(sessionId);
+  return `/api/staff/requirements/${id}/versions/${encodeURIComponent(String(v))}/export?format=${format}`;
+}
 
 /**
  * Staff endpoints (docs/spec/16). Operator routes live under `/operator` and are exposed
@@ -291,6 +345,80 @@ export function staffApi(transport: Transport): StaffApi {
     stats: () => request(transport, { path: "/stats", schema: StatsSchema }),
     audit: (q) => request(transport, { path: "/audit", query: { ...q }, schema: AuditListSchema }),
 
+    requirements: {
+      list: () => request(transport, { path: "/requirements", schema: RequirementsListSchema }),
+      create: (input) =>
+        request(transport, {
+          method: "POST",
+          path: "/requirements",
+          body: input,
+          schema: envelope(RequirementsSessionEnvelopeSchema),
+        }),
+      get: (id) => request(transport, { path: `/requirements/${id}`, schema: RequirementsDetailSchema }),
+      setPath: (id, path) =>
+        ok(request(transport, { method: "POST", path: `/requirements/${id}/path`, body: { path } })),
+      complete: (id) => ok(request(transport, { method: "POST", path: `/requirements/${id}/complete` })),
+      reopen: (id) => ok(request(transport, { method: "POST", path: `/requirements/${id}/reopen` })),
+      editSection: (id, key, markdown) =>
+        request(transport, {
+          method: "PUT",
+          path: `/requirements/${id}/sections/${encodeURIComponent(key)}`,
+          body: { markdown },
+          schema: LiveSpecEnvelopeSchema,
+        }).then((r) => r.spec),
+      settleFinding: (id, findingId, outcome, note) =>
+        request(transport, {
+          method: "POST",
+          path: `/requirements/${id}/findings/${encodeURIComponent(findingId)}`,
+          body: { outcome, ...(note ? { note } : {}) },
+          schema: LiveSpecEnvelopeSchema,
+        }).then((r) => r.spec),
+      sendTurn: (id, input, signal) =>
+        requestStream(transport, {
+          method: "POST",
+          path: `/requirements/${id}/turns`,
+          ...(input ? { body: input } : {}),
+          signal,
+        }),
+      versions: {
+        create: (id, label) =>
+          request(transport, {
+            method: "POST",
+            path: `/requirements/${id}/versions`,
+            body: label ? { label } : {},
+            schema: envelope(SpecVersionEnvelopeSchema),
+          }),
+        list: (id) =>
+          request(transport, { path: `/requirements/${id}/versions`, schema: SpecVersionListSchema }),
+        get: (id, v) =>
+          request(transport, { path: `/requirements/${id}/versions/${v}`, schema: SpecVersionDetailSchema }),
+        diff: (id, v, other) =>
+          request(transport, {
+            path: `/requirements/${id}/versions/${v}/diff/${other}`,
+            schema: SpecDiffSchema,
+          }),
+        exportUrl: specExportUrl,
+        github: (id, v, input) =>
+          request(transport, {
+            method: "POST",
+            path: `/requirements/${id}/versions/${v}/github`,
+            body: input,
+            schema: GitHubPushResultSchema,
+          }),
+      },
+      invitations: {
+        create: (id, email) =>
+          request(transport, {
+            method: "POST",
+            path: `/requirements/${id}/invitations`,
+            body: { email },
+            schema: envelope(SessionInvitationEnvelopeSchema),
+          }),
+        revoke: (id, invId) =>
+          ok(request(transport, { method: "POST", path: `/requirements/${id}/invitations/${invId}/revoke` })),
+      },
+    },
+
     operator: {
       tenants: {
         list: () => request(transport, { path: "/operator/tenants", schema: TenantListSchema }),
@@ -370,6 +498,32 @@ export interface RoutesApi {
   put(routes: Route[]): Promise<void>;
 }
 
+export interface RequirementsApi {
+  list(): Promise<RequirementsListItem[]>;
+  create(input: RequirementsCreateInput): Promise<RequirementsSession>;
+  get(id: string): Promise<RequirementsDetail>;
+  setPath(id: string, path: Path): Promise<void>;
+  complete(id: string): Promise<void>;
+  reopen(id: string): Promise<void>;
+  /** An empty string clears the owner's edit. Returns the refreshed live spec. */
+  editSection(id: string, key: string, markdown: string): Promise<LiveSpec>;
+  settleFinding(id: string, findingId: string, outcome: FindingOutcome, note?: string): Promise<LiveSpec>;
+  /** Same SSE stream as the participant turn, plus `event: spec` after each turn. */
+  sendTurn(id: string, input: TurnInput | undefined, signal?: AbortSignal): Promise<Response>;
+  versions: {
+    create(id: string, label?: string): Promise<SpecVersionSummary>;
+    list(id: string): Promise<SpecVersionSummary[]>;
+    get(id: string, v: SpecVersionRef): Promise<SpecVersionDetail>;
+    diff(id: string, v: SpecVersionRef, other: SpecVersionRef): Promise<SpecDiff>;
+    exportUrl(id: string, v: SpecVersionRef, format: SpecExportFormat): string;
+    github(id: string, v: SpecVersionRef, input: GitHubPushInput): Promise<GitHubPushResult>;
+  };
+  invitations: {
+    create(id: string, email: string): Promise<SessionInvitation>;
+    revoke(id: string, invId: string): Promise<void>;
+  };
+}
+
 export interface StaffApi {
   me(): Promise<Me>;
   health(): Promise<unknown>;
@@ -431,6 +585,8 @@ export interface StaffApi {
   spend(q: SpendQuery): Promise<Spend>;
   stats(): Promise<Stats>;
   audit(q: { from?: string; to?: string }): Promise<AuditEntry[]>;
+  /** Contract 18: requirements sessions owned by staff, their live spec, versions and invitations. */
+  requirements: RequirementsApi;
   operator: {
     tenants: {
       list(): Promise<Tenant[]>;

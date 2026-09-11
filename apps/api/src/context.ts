@@ -3,10 +3,13 @@ import {
   CallerFactory,
   Crypto,
   EngineFactory,
+  GitHubApi,
   MemoryEmail,
+  RequirementsService,
   SettingsService,
   SmtpEmail,
   type EmailPort,
+  type GitHubPort,
   type JobPublisher,
 } from "@aidp/core";
 import type { PrismaClient } from "@prisma/client";
@@ -26,6 +29,8 @@ export interface AppContext {
   jobs: JobPublisher;
   email: EmailPort;
   analysis: AnalysisService;
+  requirements: RequirementsService;
+  github: GitHubPort;
 }
 
 export function buildContext(input: {
@@ -34,6 +39,7 @@ export function buildContext(input: {
   log: PinoLogger;
   jobs: JobPublisher;
   email?: EmailPort;
+  github?: GitHubPort;
 }): AppContext {
   const { config, db, log } = input;
   const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
@@ -55,5 +61,30 @@ export function buildContext(input: {
           log.info({ to: m.to, subject: m.subject }, "email (console)");
         }));
   const analysis = new AnalysisService({ db, callers, settings, jobs: input.jobs, log: engineLogger(log) });
-  return { config, db, log, crypto, settings, callers, engines, jobs: input.jobs, email, analysis };
+  const github = input.github ?? new GitHubApi();
+  const requirements = new RequirementsService({
+    db,
+    callers,
+    settings,
+    jobs: input.jobs,
+    log: engineLogger(log),
+    email,
+    publicWebUrl: config.PUBLIC_WEB_URL,
+    crypto,
+    github,
+  });
+  return {
+    config,
+    db,
+    log,
+    crypto,
+    settings,
+    callers,
+    engines,
+    jobs: input.jobs,
+    email,
+    analysis,
+    requirements,
+    github,
+  };
 }

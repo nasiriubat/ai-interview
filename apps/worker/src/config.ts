@@ -6,6 +6,7 @@ const Env = z.object({
   PLATFORM_ENCRYPTION_KEY: z.string().min(1),
   EMAIL_SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().default("no-reply@example.com"),
+  PUBLIC_WEB_URL: z.string().default("http://localhost:3000"),
   LOG_LEVEL: z.string().default("info"),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
 });

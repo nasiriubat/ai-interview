@@ -1,4 +1,5 @@
 import type { EngineEvent, UserAnswer } from "@aidp/ai";
+import type { SessionState } from "@aidp/shared";
 import type { FastifyReply } from "fastify";
 import type { AppContext } from "../../context.js";
 import { AppError } from "../../lib/errors.js";
@@ -7,6 +8,11 @@ export interface ProgressArea {
   key: string;
   name: string;
   status: string;
+}
+
+export interface RunTurnOptions {
+  /** Extra SSE events sent right after each `turn` event, computed from the persisted state. */
+  afterTurn?: (state: SessionState) => Promise<{ event: string; data: unknown }[]>;
 }
 
 /**
@@ -18,6 +24,7 @@ export async function runTurn(
   sessionId: string,
   answer: UserAnswer | undefined,
   reply: FastifyReply,
+  options?: RunTurnOptions,
 ): Promise<void> {
   const row = await ctx.db.session.findUniqueOrThrow({ where: { id: sessionId } });
   if (row.status === "deleted" || row.status === "completed")
@@ -81,6 +88,13 @@ export async function runTurn(
       else if (ev.type === "turn") {
         ended = ev.turn.endInterview;
         send("turn", { message: ev.message, ended, progress: { areas: progress(ev.state) } });
+        if (options?.afterTurn) {
+          try {
+            for (const extra of await options.afterTurn(ev.state)) send(extra.event, extra.data);
+          } catch (err) {
+            ctx.log.warn({ err, sessionId }, "after-turn events failed");
+          }
+        }
       } else {
         ended = true;
       }

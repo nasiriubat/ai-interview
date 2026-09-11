@@ -1,12 +1,16 @@
 import {
+  AgentBundleSchema,
   BudgetLimitSchema,
   ClusterStatsSchema,
   CoverageStatusSchema,
+  DecisionSchema,
   FACTOR_KEYS,
   FactSchema,
   type FactorKey,
+  FindingSchema,
   HandoffSchema,
   InterviewTemplateSchema,
+  LiveSectionSchema as SharedLiveSectionSchema,
   ModalitySchema,
   ModelInfoSchema,
   OpportunityOverrideSchema,
@@ -18,6 +22,9 @@ import {
   ProviderKindSchema,
   RouteSchema,
   SolutionClassSchema,
+  SpecDocumentSchema,
+  SpecRequirementSchema,
+  SpecVersionStatsSchema,
   WidgetResponseSchema,
   WidgetSchema,
 } from "@aidp/shared";
@@ -259,6 +266,7 @@ export const StaffSessionSchema = z.looseObject({
   id: z.string(),
   status: z.string().default("created"),
   campaignId: z.string().nullish(),
+  templateKey: z.string().nullish(),
   progress: ProgressSchema.nullish(),
   costCents: z.number().nullish(),
   messages: z.array(MessageSchema).nullish(),
@@ -508,3 +516,184 @@ export const PromoteResultSchema = z.looseObject({
   handoff: HandoffSchema.loose(),
 });
 export type PromoteResult = z.infer<typeof PromoteResultSchema>;
+
+// Phase 3: requirements interview (docs/spec/18)
+
+export const RequirementsListItemSchema = z.looseObject({
+  id: z.string(),
+  title: z.string().default(""),
+  status: z.string().default("created"),
+  path: PathSchema.nullish(),
+  sourceKind: z.string().nullish(),
+  ownerUserId: z.string().nullish(),
+  ownerEmail: z.string().nullish(),
+  versions: z.number().int().default(0),
+  openFindings: z.number().int().default(0),
+  createdAt: iso.nullish(),
+  endedAt: iso.nullish(),
+});
+export type RequirementsListItem = z.infer<typeof RequirementsListItemSchema>;
+export const RequirementsListSchema = listOf(RequirementsListItemSchema, "sessions");
+
+export const RequirementsSessionSchema = z.looseObject({
+  id: z.string(),
+  title: z.string().default(""),
+  status: z.string().default("created"),
+  path: PathSchema.nullish(),
+  sourceKind: z.string().nullish(),
+  ownerUserId: z.string().nullish(),
+  handoff: HandoffSchema.loose().nullish(),
+  templateId: z.string().nullish(),
+  language: z.string().default("en"),
+  progress: ProgressSchema.default({ areas: [] }),
+  phase: z.string().nullish(),
+  createdAt: iso.nullish(),
+  startedAt: iso.nullish(),
+  endedAt: iso.nullish(),
+});
+export type RequirementsSession = z.infer<typeof RequirementsSessionSchema>;
+export const RequirementsSessionEnvelopeSchema = z.preprocess(
+  (raw) => (raw && typeof raw === "object" && "session" in raw ? raw.session : raw),
+  RequirementsSessionSchema,
+);
+
+/** A finding as the API returns it (shared shape, tolerant of extra fields). */
+export const FindingRecordSchema = FindingSchema.loose();
+export type FindingRecord = z.infer<typeof FindingRecordSchema>;
+
+export const LiveSectionSchema = SharedLiveSectionSchema.loose();
+export type LiveSection = z.infer<typeof LiveSectionSchema>;
+
+const MvpChallengeSchema = z.looseObject({
+  started: z.boolean().default(false),
+  done: z.boolean().default(false),
+  asked: z.array(z.string()).default([]),
+});
+const LiveSpecStatsSchema = z.looseObject({
+  fields: z.number().int().default(0),
+  sectionsWithContent: z.number().int().default(0),
+  openFindings: z.number().int().default(0),
+});
+
+/** The live spec rendered after each turn; the shared shape with defaults so a thin answer still renders. */
+export const LiveSpecSchema = z.looseObject({
+  title: z.string().default(""),
+  path: PathSchema.nullish(),
+  context: z.record(z.string(), z.string()).default({}),
+  sections: z.array(LiveSectionSchema).default([]),
+  findings: z.array(FindingRecordSchema).default([]),
+  decisions: z.array(DecisionSchema.loose()).default([]),
+  mvpChallenge: MvpChallengeSchema.prefault({}),
+  stats: LiveSpecStatsSchema.prefault({}),
+});
+export type LiveSpec = z.infer<typeof LiveSpecSchema>;
+export const LiveSpecEnvelopeSchema = z.looseObject({ spec: LiveSpecSchema });
+
+export const SpecVersionStatusSchema = z.enum(["queued", "running", "done", "failed"]);
+export type SpecVersionStatus = z.infer<typeof SpecVersionStatusSchema>;
+
+export const SpecVersionSummarySchema = z.looseObject({
+  id: z.string(),
+  version: z.number().int().default(1),
+  label: z.string().nullish(),
+  status: SpecVersionStatusSchema,
+  error: z.string().nullish(),
+  createdBy: z.string().nullish(),
+  createdAt: iso.default(""),
+  finishedAt: iso.nullish(),
+  stats: SpecVersionStatsSchema.loose().prefault({}),
+});
+export type SpecVersionSummary = z.infer<typeof SpecVersionSummarySchema>;
+export const SpecVersionListSchema = listOf(SpecVersionSummarySchema, "versions");
+export const SpecVersionEnvelopeSchema = z.preprocess(
+  (raw) => (raw && typeof raw === "object" && "version" in raw ? raw.version : raw),
+  SpecVersionSummarySchema,
+);
+
+export const SpecDocumentRecordSchema = SpecDocumentSchema.loose();
+export type SpecDocumentRecord = z.infer<typeof SpecDocumentRecordSchema>;
+export const AgentBundleRecordSchema = AgentBundleSchema.loose();
+export type AgentBundleRecord = z.infer<typeof AgentBundleRecordSchema>;
+
+/** Document and bundle are absent while the version is queued or running. */
+export const SpecVersionDetailSchema = z.looseObject({
+  version: SpecVersionSummarySchema,
+  document: SpecDocumentRecordSchema.nullish(),
+  markdown: z.string().default(""),
+  bundle: AgentBundleRecordSchema.nullish(),
+  issues: z.array(FindingRecordSchema).default([]),
+});
+export type SpecVersionDetail = z.infer<typeof SpecVersionDetailSchema>;
+
+export const DiffLineSchema = z.looseObject({
+  type: z.enum(["same", "add", "del"]),
+  text: z.string().default(""),
+});
+export type DiffLine = z.infer<typeof DiffLineSchema>;
+export const SpecDiffSectionSchema = z.looseObject({
+  key: z.string(),
+  title: z.string().default(""),
+  change: z.enum(["added", "removed", "changed"]),
+  lines: z.array(DiffLineSchema).default([]),
+});
+export type SpecDiffSection = z.infer<typeof SpecDiffSectionSchema>;
+const SpecRequirementRecordSchema = SpecRequirementSchema.loose();
+export type SpecRequirementRecord = z.infer<typeof SpecRequirementRecordSchema>;
+export const SpecDiffSchema = z.looseObject({
+  sections: z.array(SpecDiffSectionSchema).default([]),
+  requirements: z
+    .looseObject({
+      added: z.array(SpecRequirementRecordSchema).default([]),
+      removed: z.array(SpecRequirementRecordSchema).default([]),
+      changed: z
+        .array(z.looseObject({ before: SpecRequirementRecordSchema, after: SpecRequirementRecordSchema }))
+        .default([]),
+    })
+    .prefault({}),
+});
+export type SpecDiff = z.infer<typeof SpecDiffSchema>;
+
+export const SessionInvitationSchema = z.looseObject({
+  id: z.string(),
+  email: z.string().default(""),
+  status: z.string().default("sent"),
+  sentAt: iso.nullish(),
+  openedAt: iso.nullish(),
+  expiresAt: iso.nullish(),
+});
+export type SessionInvitation = z.infer<typeof SessionInvitationSchema>;
+export const SessionInvitationEnvelopeSchema = z.preprocess(
+  (raw) => (raw && typeof raw === "object" && "invitation" in raw ? raw.invitation : raw),
+  SessionInvitationSchema,
+);
+
+export const RequirementsDetailSchema = z.looseObject({
+  session: RequirementsSessionSchema,
+  messages: z.array(MessageSchema).default([]),
+  spec: LiveSpecSchema.prefault({}),
+  versions: z.array(SpecVersionSummarySchema).default([]),
+  invitations: z.array(SessionInvitationSchema).default([]),
+});
+export type RequirementsDetail = z.infer<typeof RequirementsDetailSchema>;
+
+export const GitHubPushResultSchema = z.looseObject({
+  commitUrl: z.string(),
+  files: z.number().int().default(0),
+});
+export type GitHubPushResult = z.infer<typeof GitHubPushResultSchema>;
+
+export const InviteStatusSchema = z.enum(["open", "revoked", "expired", "completed"]);
+export type InviteStatus = z.infer<typeof InviteStatusSchema>;
+export const InviteArrivalSchema = z.looseObject({
+  session: z.looseObject({
+    title: z.string().default(""),
+    productName: z.string().default(""),
+    purpose: z.string().default(""),
+    consentText: z.string().default(""),
+    consentVersion: z.string().default(""),
+    pathSelection: PathSelectionSchema.default("none"),
+    language: z.string().default("en"),
+  }),
+  status: InviteStatusSchema,
+});
+export type InviteArrival = z.infer<typeof InviteArrivalSchema>;

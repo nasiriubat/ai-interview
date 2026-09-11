@@ -1,4 +1,5 @@
 import type { CoverageArea, InterviewTemplate, Path, SessionState } from "@aidp/shared";
+import { nextMvpItem } from "../spec/live.js";
 
 /** What the engine asks the model to do this turn. Chosen by code, not by the model. */
 export type Focus =
@@ -6,6 +7,8 @@ export type Focus =
   | { mode: "continue"; areaKey: string } // stay on the area: clarify or go deeper
   | { mode: "thread"; areaKey: string; threadId: string; topic: string }
   | { mode: "area"; areaKey: string } // open a new area
+  | { mode: "finding"; findingId: string; pushBack: boolean } // raise a detected issue (FR-21b)
+  | { mode: "mvp_challenge"; itemPath: string; title: string } // "if version one shipped without this, what breaks?" (FR-22a)
   | { mode: "closing" }
   | { mode: "summary" }
   | { mode: "done" };
@@ -17,6 +20,8 @@ export interface SelectionInput {
   maxTurns: number;
   /** True when the participant's last answer was minimal (one or two words). */
   lastAnswerMinimal: boolean;
+  /** Requirements sessions: whether the MVP challenge runs before closing. Default off. */
+  mvpChallenge?: "mandatory" | "optional" | "off";
 }
 
 /** Areas that apply to this session: filtered by path, and by essential when shortened. */
@@ -33,6 +38,22 @@ export function applicableAreas(
   });
 }
 
+/** True once every context question is answered. */
+export function contextComplete(template: InterviewTemplate, state: SessionState): boolean {
+  return template.contextBlock.every((q) => q.key in state.contextAnswers);
+}
+
+/** True once no applicable area is still open (untouched, or partial with follow-ups left). */
+export function areasComplete(template: InterviewTemplate, state: SessionState, path?: Path): boolean {
+  return applicableAreas(template, state, path).every((a) => !isOpenArea(a, state));
+}
+
+function isOpenArea(a: CoverageArea, state: SessionState): boolean {
+  const e = state.coverage[a.key];
+  const status = e?.status ?? "untouched";
+  return status === "untouched" || (status === "partial" && (e?.followUpsUsed ?? 0) < a.maxFollowUps);
+}
+
 export function chooseFocus(input: SelectionInput): Focus {
   const { template, state, path } = input;
 
@@ -45,14 +66,16 @@ export function chooseFocus(input: SelectionInput): Focus {
   const unanswered = template.contextBlock.find((q) => !(q.key in state.contextAnswers));
   if (unanswered) return { mode: "context", questionKey: unanswered.key };
 
+  // 0b. A detected finding waits to be raised (or pushed back on) before any other question.
+  const finding = state.findings.find((f) => f.status === "open");
+  if (finding) return { mode: "finding", findingId: finding.id, pushBack: finding.pushedBack };
+
   const areas = applicableAreas(template, state, path);
   const entry = (key: string) => state.coverage[key];
   const status = (key: string) => entry(key)?.status ?? "untouched";
-  const followUpsLeft = (a: CoverageArea) => (entry(a.key)?.followUpsUsed ?? 0) < a.maxFollowUps;
-  // An area is open while untouched, or partial with follow-ups left; an exhausted partial area is left behind.
   const isOpen = (key: string) => {
     const a = areas.find((x) => x.key === key);
-    return status(key) === "untouched" || (status(key) === "partial" && a !== undefined && followUpsLeft(a));
+    return a !== undefined && isOpenArea(a, state);
   };
 
   // 1 and 2. Stay on the current area while it is partial, follow-ups remain, and the participant is engaged.
@@ -74,6 +97,12 @@ export function chooseFocus(input: SelectionInput): Focus {
     return next.key === state.lastAreaKey
       ? { mode: "continue", areaKey: next.key }
       : { mode: "area", areaKey: next.key };
+
+  // 5. MVP challenge: walk the MVP list once before finalizing (FR-22a).
+  if ((input.mvpChallenge ?? "off") !== "off" && !state.mvpChallenge.done) {
+    const item = nextMvpItem(state);
+    if (item) return { mode: "mvp_challenge", itemPath: item.path, title: item.title };
+  }
 
   return { mode: "closing" };
 }

@@ -1,4 +1,4 @@
-import { InterviewTemplateSchema } from "@aidp/shared";
+import { InterviewTemplateSchema, PathSchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
@@ -87,6 +87,29 @@ export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
       },
     );
   }
+
+  /** A throwaway session on the template, opened as a participant by the calling admin (contract 18). */
+  app.post(
+    "/templates/:id/preview",
+    {
+      preHandler: requireStaff("admin"),
+      schema: { params: Id, body: z.object({ path: PathSchema.optional() }).default({}) },
+    },
+    async (req) => {
+      const actor = staff(req).userId;
+      await svc.get(req.companyId, req.params.id);
+      const preview = await ctx.requirements.preview(req.companyId, req.params.id, actor, req.body.path);
+      await audit(ctx.db, {
+        companyId: req.companyId,
+        actorId: actor,
+        action: "template.preview",
+        targetType: "template",
+        targetId: req.params.id,
+        diff: { sessionId: preview.sessionId },
+      });
+      return preview;
+    },
+  );
 
   app.get(
     "/templates/:id/diff-shipped",
