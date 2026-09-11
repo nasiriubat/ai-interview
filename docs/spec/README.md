@@ -22,6 +22,9 @@ system; delivery is divided into phases in `15-phase-plan.md`. Nothing is out of
 | `13-data-model.md`              | Entities and relationships                                                                          |
 | `14-api-surface.md`             | HTTP and WebSocket API by module                                                                    |
 | `15-phase-plan.md`              | Whole-system delivery in phases                                                                     |
+| `16-api-contract-phase1.md`     | Phase 1 API contract: participant flow, staff routes, SSE turns                                     |
+| `17-api-contract-phase2.md`     | Phase 2 API contract: analysis runs, opportunities, report, weights                                 |
+| `18-api-contract-phase3.md`     | Phase 3 API contract: requirements sessions, live spec, findings, versions, exports, invitations    |
 
 Requirement ids: `FR-` functional, `NFR-` non-functional, `ADM-` admin knobs. Ids are
 stable across versions. The decision log is `docs/discovery/decisions.md`.

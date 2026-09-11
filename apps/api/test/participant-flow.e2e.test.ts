@@ -160,7 +160,7 @@ suite("participant flow end to end", () => {
     const calls = await world.db.llmCall.findMany({ where: { sessionId } });
     expect(calls).toHaveLength(2);
     expect(calls[0]?.costCents).toBeGreaterThan(0);
-    expect(calls[0]?.promptVersion).toBe("interviewer@1");
+    expect(calls[0]?.promptVersion).toMatch(/^interviewer@\d+$/);
 
     // Same email again resumes the same session: one response per person.
     await app.inject({

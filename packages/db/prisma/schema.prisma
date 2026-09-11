@@ -57,14 +57,14 @@ model User {
 model Participant {
   id         String   @id @default(cuid())
   companyId  String
-  campaignId String
+  campaignId String? // null for a person invited into a requirements session (contract 18)
   userId     String?
   fields     Json     @default("{}")
   tokenHash  String   @unique
   createdAt  DateTime @default(now())
 
   company  Company   @relation(fields: [companyId], references: [id])
-  campaign Campaign  @relation(fields: [campaignId], references: [id])
+  campaign Campaign? @relation(fields: [campaignId], references: [id])
   user     User?     @relation(fields: [userId], references: [id])
   sessions Session[]
 
@@ -151,6 +151,9 @@ model Session {
   ownerUserId    String?
   sourceKind     String    @default("campaign") // campaign | text | handoff
   handoff        Json?
+  title          String    @default("") // requirements sessions: the product or idea name
+  specEdits      Json      @default("{}") // requirements sessions: owner edits by section key (FR-23)
+  invitations    Json      @default("[]") // requirements sessions: external invitations (contract 18)
   status         String    @default("created") // created | consented | active | paused | completed | deleted
   consentVersion String?
   consentedAt    DateTime?
@@ -322,19 +325,28 @@ model Report {
   @@unique([analysisId, version])
 }
 
+/// A generated specification (spec 05, contract 18). Versions are kept; reopening creates a new one.
 model SpecVersion {
-  id        String   @id @default(cuid())
-  sessionId String
-  version   Int
-  spec      Json
-  specMd    String
-  bundle    Json
-  issues    Json     @default("[]")
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  companyId  String
+  sessionId  String
+  version    Int
+  label      String?
+  status     String    @default("done") // queued | running | done | failed
+  error      String?
+  spec       Json // SpecDocument
+  specMd     String
+  bundle     Json // AgentBundle
+  issues     Json      @default("[]") // Finding[] open at generation time
+  stats      Json      @default("{}")
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+  finishedAt DateTime?
 
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, version])
+  @@index([companyId])
 }
 
 /// Personal one-time links and email-code bindings (FR-10, FR-04). One session per invitation.

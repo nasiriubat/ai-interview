@@ -28,6 +28,7 @@ export function defaultAnthropicRoutes(providerId: string): Route[] {
     r("extraction", "claude-sonnet-5", "medium", 8192, true),
     r("clustering", "claude-opus-5", "medium", 16000, true),
     r("spec_turn", "claude-opus-5", "medium", 2048),
+    r("issue_detection", "claude-sonnet-5", "medium", 4096),
     r("spec_generation", "claude-opus-5", "high", 64000),
     r("file_ingest", "claude-sonnet-5", "low", 4096, true),
     r("vision_ingest", "claude-sonnet-5", "low", 4096, true),

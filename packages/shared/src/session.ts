@@ -3,6 +3,24 @@ import { FactSchema } from "./facts.js";
 import { PathSchema } from "./template.js";
 import { WidgetSchema } from "./widgets.js";
 
+/** A finding raised by issue detection in a requirements session (spec 05, FR-21b). Lives in state. */
+export const FindingSchema = z.object({
+  id: z.string(),
+  type: z.enum(["ambiguity", "contradiction", "missing_decision", "over_complexity"]),
+  section: z.string(),
+  path: z.string().optional(),
+  description: z.string(),
+  resolution: z.string(),
+  default: z.string(),
+  confidence: z.enum(["low", "medium", "high"]).default("medium"),
+  status: z.enum(["open", "raised", "resolved", "accepted", "deferred"]).default("open"),
+  pushedBack: z.boolean().default(false),
+  raisedTurn: z.number().int().nonnegative().optional(),
+  decidedTurn: z.number().int().nonnegative().optional(),
+  note: z.string().optional(),
+});
+export type Finding = z.infer<typeof FindingSchema>;
+
 export const CoverageStatusSchema = z.enum(["untouched", "partial", "covered", "skipped"]);
 export const CoverageEntrySchema = z.object({
   status: CoverageStatusSchema.default("untouched"),
@@ -53,9 +71,29 @@ export const SessionStateSchema = z.object({
   closingAsked: z.boolean().default(false),
   shortened: z.boolean().default(false),
   flaggedForAdmin: z.string().optional(),
-  phase: z.enum(["path", "context", "areas", "closing", "summary", "done"]).default("areas"),
+  phase: z
+    .enum(["path", "context", "areas", "findings", "mvp_challenge", "closing", "summary", "done"])
+    .default("areas"),
+  // Requirements sessions (spec 05): findings raised by issue detection, and the MVP challenge walk.
+  findings: z.array(FindingSchema).default([]),
+  lastIssueScanTurn: z.number().int().nonnegative().default(0),
+  finalIssueScanDone: z.boolean().default(false),
+  mvpChallenge: z
+    .object({
+      started: z.boolean().default(false),
+      done: z.boolean().default(false),
+      asked: z.array(z.string()).default([]),
+    })
+    .prefault({}),
 });
 export type SessionState = z.infer<typeof SessionStateSchema>;
+
+/** What the model may report about a raised finding. `rejected` triggers one push-back when the engine is confident. */
+export const FindingOutcomeDeltaSchema = z.object({
+  id: z.string(),
+  outcome: z.enum(["resolved", "accepted", "deferred", "rejected"]),
+  note: z.string().optional(),
+});
 
 /** What the model returns alongside the message. Applied by the engine, never trusted blindly. */
 export const StateDeltaSchema = z.object({
@@ -76,6 +114,9 @@ export const StateDeltaSchema = z.object({
   decisions: z.array(DecisionSchema).default([]),
   facts: z.array(FactSchema).default([]),
   flagForAdmin: z.string().optional(),
+  findingOutcomes: z.array(FindingOutcomeDeltaSchema).default([]),
+  /** The user asked to stop the MVP challenge early (honored unless the challenge is mandatory). */
+  endMvpChallenge: z.boolean().optional(),
 });
 export type StateDelta = z.infer<typeof StateDeltaSchema>;
 

@@ -3,7 +3,9 @@ import {
   AnalysisService,
   PrismaPromptSource,
   PrismaSessionStore,
+  RequirementsService,
   type CallerFactory,
+  type Crypto,
   type EmailPort,
   type JobName,
   type JobPayload,
@@ -19,6 +21,8 @@ export interface HandlerDeps {
   email: EmailPort;
   jobs: JobPublisher;
   log: Logger;
+  crypto: Crypto;
+  publicWebUrl: string;
 }
 
 /**
@@ -36,6 +40,17 @@ export function handlers(deps: HandlerDeps): Handlers {
     settings: deps.settings,
     jobs: deps.jobs,
     log: deps.log,
+  });
+  // GitHub pushes happen in the API process; the worker only generates versions.
+  const requirements = new RequirementsService({
+    db: deps.db,
+    callers: deps.callers,
+    settings: deps.settings,
+    jobs: deps.jobs,
+    log: deps.log,
+    email: deps.email,
+    publicWebUrl: deps.publicWebUrl,
+    crypto: deps.crypto,
   });
 
   return {
@@ -97,6 +112,11 @@ export function handlers(deps: HandlerDeps): Handlers {
     /** Collective analysis for a campaign (spec 04). Idempotent per analysis id. */
     "analysis.run": async ({ analysisId }: JobPayload<"analysis.run">): Promise<void> => {
       await analysis.run(analysisId);
+    },
+
+    /** One specification version for a requirements session (spec 05, FR-24). Idempotent per version id. */
+    "spec.generate": async ({ versionId }: JobPayload<"spec.generate">): Promise<void> => {
+      await requirements.runGeneration(versionId);
     },
   };
 }

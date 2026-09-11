@@ -62,6 +62,7 @@ export const SCOPED_MODELS: ReadonlySet<string> = new Set([
   "Budget",
   "LlmCall",
   "AuditLog",
+  "SpecVersion",
 ]);
 
 export type ScopedClient = ReturnType<typeof buildScoped>;

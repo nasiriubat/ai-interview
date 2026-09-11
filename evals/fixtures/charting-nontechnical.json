@@ -1,0 +1,32 @@
+{
+  "name": "Ward manager specifying single-entry charting, nontechnical path",
+  "templateKey": "requirements_discovery",
+  "path": "nontechnical",
+  "answers": [
+    "We have no servers of our own, the hospital IT runs a cloud account.",
+    "The patient system and a ward Excel file, plus WhatsApp for questions.",
+    "A coding agent, with one developer from IT reviewing.",
+    "Nobody on the ward codes; IT knows TypeScript.",
+    "Before the winter rota, so about three months.",
+    "Small, under ten thousand euros.",
+    "Twelve nurses on this ward, forty if it works.",
+    "Patient data, so GDPR and the hospital's data policy apply.",
+    "Nurses type the same observations into the patient system and again into the ward spreadsheet, every shift."
+  ],
+  "expect": {
+    "firstFocus": "context:hosting",
+    "contextKeys": [
+      "hosting",
+      "existing_systems",
+      "builder",
+      "team_skills",
+      "timeline",
+      "budget",
+      "users_at_launch",
+      "compliance"
+    ],
+    "coveredByEnd": ["problem", "users", "functional", "technical_recommended", "mvp", "phases"],
+    "neverFocused": ["technical"],
+    "maxTurns": 60
+  }
+}

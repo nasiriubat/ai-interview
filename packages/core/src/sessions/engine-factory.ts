@@ -1,4 +1,10 @@
-import { InterviewEngine, LexicalRecall, type EngineSettings, type Logger } from "@aidp/ai";
+import {
+  InterviewEngine,
+  LexicalRecall,
+  type EngineSettings,
+  type Logger,
+  type RequirementsSettings,
+} from "@aidp/ai";
 import type { PrismaClient } from "@prisma/client";
 import type { CallerFactory } from "../providers/caller-factory.js";
 import type { SettingsService, SettingScopeRef } from "../settings/service.js";
@@ -28,6 +34,9 @@ export class EngineFactory {
         "engine.summarizeEveryTurns",
         "engine.extractEveryTurns",
         "engine.maxTurns",
+        "requirements.aggressivenessTechnical",
+        "requirements.aggressivenessNontechnical",
+        "requirements.mvpChallenge",
       ],
       chain,
     );
@@ -37,6 +46,15 @@ export class EngineFactory {
       summarizeEveryTurns: values["engine.summarizeEveryTurns"] as number,
       extractEveryTurns: values["engine.extractEveryTurns"] as number,
       maxTurns: values["engine.maxTurns"] as number,
+      requirements: {
+        aggressivenessTechnical: values[
+          "requirements.aggressivenessTechnical"
+        ] as RequirementsSettings["aggressivenessTechnical"],
+        aggressivenessNontechnical: values[
+          "requirements.aggressivenessNontechnical"
+        ] as RequirementsSettings["aggressivenessNontechnical"],
+        mvpChallenge: values["requirements.mvpChallenge"] as RequirementsSettings["mvpChallenge"],
+      },
     };
     const store = new PrismaSessionStore(this.db);
     const caller = await this.callers.forCompany(companyId);

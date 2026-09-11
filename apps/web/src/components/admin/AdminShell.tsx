@@ -3,6 +3,7 @@
 import {
   ActivityIcon,
   BuildingIcon,
+  ClipboardListIcon,
   CoinsIcon,
   FileTextIcon,
   LayoutDashboardIcon,
@@ -36,6 +37,7 @@ const MAIN: NavItem[] = [
   { href: "/admin", label: t.admin.nav.dashboard, icon: LayoutDashboardIcon, exact: true },
   { href: "/admin/templates", label: t.admin.nav.templates, icon: FileTextIcon },
   { href: "/admin/campaigns", label: t.admin.nav.campaigns, icon: MegaphoneIcon },
+  { href: "/admin/requirements", label: t.admin.nav.requirements, icon: ClipboardListIcon },
   { href: "/admin/settings", label: t.admin.nav.settings, icon: SettingsIcon },
   { href: "/admin/providers", label: t.admin.nav.providers, icon: ServerIcon },
   { href: "/admin/routes", label: t.admin.nav.routes, icon: RouteIcon },

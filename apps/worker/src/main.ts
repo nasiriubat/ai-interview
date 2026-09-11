@@ -32,6 +32,8 @@ async function main(): Promise<void> {
     settings,
     email,
     jobs,
+    crypto,
+    publicWebUrl: config.PUBLIC_WEB_URL,
     log: {
       info: (m, meta) => {
         log.info(meta ?? {}, m);
@@ -46,6 +48,7 @@ async function main(): Promise<void> {
   await jobs.consume("email.send", h["email.send"], config.WORKER_CONCURRENCY);
   await jobs.consume("privacy.delete-session", h["privacy.delete-session"], 1);
   await jobs.consume("analysis.run", h["analysis.run"], 1);
+  await jobs.consume("spec.generate", h["spec.generate"], 1);
   log.info("worker started");
 
   const shutdown = async (): Promise<void> => {

@@ -19,6 +19,7 @@ export const JOBS = {
     retryLimit: 5,
   },
   "analysis.run": { schema: z.object({ analysisId: z.string(), companyId: z.string() }), retryLimit: 2 },
+  "spec.generate": { schema: z.object({ versionId: z.string(), companyId: z.string() }), retryLimit: 2 },
 } as const;
 
 export type JobName = keyof typeof JOBS;

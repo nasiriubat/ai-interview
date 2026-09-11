@@ -232,10 +232,42 @@ Phase 2 (`17-api-contract-phase2.md`):
     (`balanced`, weights of 1, all report sections). Weights are saved together with the
     preset every time, even when the preset is a shipped one.
 25. **Promote.** After `POST /opportunities/:id/promote` the web marks the opportunity
-    `promoted` locally and links to `/admin/sessions/<session.id>`; the requirements
-    workspace itself is a later phase. `handoff` is validated with the shared
-    `HandoffSchema` (all fields required).
+    `promoted` locally and links to `/admin/requirements/<session.id>` (the phase 3
+    workspace). `handoff` is validated with the shared `HandoffSchema` (all fields required).
 26. **Diff.** `changed` pairs are keyed by `after.id` in the UI; ranks in the diff are the
     API's (stored weights), not re-ranked client-side.
 27. **Language.** The UI language is the `lang` cookie / `Accept-Language`; it is not sent
     to the API. `analysis.language` (the report's language) stays a separate setting.
+
+Phase 3 (`18-api-contract-phase3.md`):
+
+28. **Owner sessions reuse the participant hook.** `src/lib/api/requirements-session.ts`
+    adapts the staff routes (`GET /requirements/:id`, `path`, `turns`, `complete`) to the
+    `ParticipantApi` shape, so `useInterview` drives the workspace unchanged. `pause`,
+    `consent` and `setMode` are no-ops; `deleteData` and the summary routes reject with
+    "not available". "I'm done" posts `complete` and then the `"I'm done"` text turn, as
+    in the participant flow (gap 2). Reopen posts `reopen`, reloads the session and
+    remounts the conversation.
+29. **`event: spec`.** Parsed by `readTurnStream` as `{ type: "spec", spec }` and handed to
+    the optional `onSpec` callback of `useInterview`. The live spec is tolerant: missing
+    `mvpChallenge` / `stats` default to empty; findings get the shared defaults.
+30. **Version routes take the version number** (`/versions/:v`), not the id; the version
+    page is `/admin/requirements/[id]/versions/[v]`. Exports are plain links through the
+    proxy (`/api/staff/requirements/:id/versions/:v/export?format=md|json|bundle`), so the
+    API's `Content-Disposition` decides the file name. `document` and `bundle` are
+    tolerated absent while a version is queued or running; the list and the version page
+    poll every 3 s until `done` or `failed`. A `done` version with `error` set is shown
+    with a fallback note (contract 18).
+31. **GitHub push** sends `{ repository, token, branch?, directory?, message? }` with empty
+    optional fields omitted; the token is cleared from the form after the call.
+32. **Invitations.** `POST /requirements/:id/invitations` is expected to return the new
+    `SessionInvitation` (bare or under `invitation`); revoke marks the row `revoked`
+    locally. The public arrival `/p/r/[token]` calls `GET /p/r/:token` server-side and
+    `POST /p/r/:token/open` through the participant proxy (its last segment is `open`, so
+    the existing cookie rule applies), then `consent` with the `consentVersion` from the
+    invite payload and, when `pathSelection` is `technical_or_not`, `setPath`.
+33. **MVP challenge** is shown as not started / in progress / done with the number of
+    items asked; the contract carries no total to show "n of m".
+34. **`sourceKind`** labels are known for `text`, `handoff`, `invitation` and
+    `attachment`; other kinds are shown without a label. `StaffSession.templateKey`
+    (optional) enables the "Open requirements workspace" link on `/admin/sessions/[id]`.

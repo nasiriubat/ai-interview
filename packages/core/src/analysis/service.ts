@@ -1,4 +1,4 @@
-import { runAnalysis, type AnalysisFact, type Logger } from "@aidp/ai";
+import { runAnalysis, seedStateFromHandoff, type AnalysisFact, type Logger } from "@aidp/ai";
 import {
   FactSchema,
   HandoffSchema,
@@ -14,6 +14,7 @@ import {
 import { Prisma, type PrismaClient } from "@prisma/client";
 import type { JobPublisher } from "../jobs/definitions.js";
 import type { CallerFactory } from "../providers/caller-factory.js";
+import { templateFromRow } from "../sessions/prisma-store.js";
 import { PrismaPromptSource } from "../sessions/prompt-source.js";
 import type { SettingsService, SettingScopeRef } from "../settings/service.js";
 
@@ -318,7 +319,7 @@ export class AnalysisService {
     const o = await this.load(companyId, opportunityId);
     const template = await db.interviewTemplate.findFirst({
       where: { key: "requirements_discovery", status: "published", OR: [{ companyId }, { companyId: null }] },
-      orderBy: [{ companyId: "desc" }, { version: "desc" }],
+      orderBy: [{ companyId: { sort: "desc", nulls: "last" } }, { version: "desc" }],
     });
     if (!template) throw new Error("No published requirements_discovery template");
     const stats = o.stats as { roles?: string[]; tools?: string[]; quotes?: string[] };
@@ -338,6 +339,12 @@ export class AnalysisService {
       expectedBenefit: factors.expected_impact?.rationale ?? "",
       evidenceQuotes: stats.quotes ?? [],
     });
+    const override = OpportunityOverrideSchema.safeParse(o.adminOverride);
+    const title = (override.success && override.data.title ? override.data.title : o.title || o.summary)
+      .trim()
+      .slice(0, 120);
+    const state = seedStateFromHandoff(undefined, handoff, templateFromRow(template));
+    // The owner is staff: no consent screen, the session is ready for its first turn.
     const session = await db.session.create({
       data: {
         companyId,
@@ -345,7 +352,10 @@ export class AnalysisService {
         ownerUserId,
         sourceKind: "handoff",
         handoff: handoff,
-        status: "created",
+        title,
+        status: "consented",
+        consentedAt: new Date(),
+        state: state as Prisma.InputJsonValue,
         templateVersion: template.version,
       },
     });

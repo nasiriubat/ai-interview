@@ -1,6 +1,9 @@
 import type { Modality, SessionState, TurnObject, WidgetResponse } from "@aidp/shared";
 import { SessionStateSchema, StateDeltaSchema, TurnObjectSchema } from "@aidp/shared";
 import type { ModelCaller } from "../callModel.js";
+import { detectIssues, shouldScanIssues } from "../spec/issues.js";
+import { nextMvpItem } from "../spec/live.js";
+import { resolvePolicy } from "../spec/policy.js";
 import { assembleContext } from "./context.js";
 import type {
   EngineSettings,
@@ -11,7 +14,7 @@ import type {
   StoredMessage,
 } from "./ports.js";
 import { promptVersionTag, type PromptSource } from "./prompts/index.js";
-import { chooseFocus, type Focus } from "./selection.js";
+import { areasComplete, chooseFocus, contextComplete, type Focus } from "./selection.js";
 import { admitWidget, applyDelta, isMinimalAnswer, noteUserAnswer } from "./state.js";
 import { TurnParser } from "./turn-parser.js";
 
@@ -43,8 +46,9 @@ export interface EngineDeps {
 
 /**
  * The template-driven interview loop. One method does one turn: persist the answer,
- * choose the focus, assemble context, stream the model's message, apply the state delta
- * with guards, persist everything. Modality-agnostic; persistence-agnostic.
+ * run the issue-detection pass when due, choose the focus, assemble context, stream the
+ * model's message, apply the state delta with guards, persist everything.
+ * Modality-agnostic; persistence-agnostic.
  */
 export class InterviewEngine {
   constructor(private readonly deps: EngineDeps) {}
@@ -63,6 +67,7 @@ export class InterviewEngine {
     if (session.template.pathSelection !== "none" && !session.path) {
       throw new Error("Path must be selected before the first turn");
     }
+    const policy = resolvePolicy(session.template, session.path, settings.requirements);
 
     let lastAnswerMinimal = false;
     if (answer) {
@@ -78,12 +83,48 @@ export class InterviewEngine {
       state = noteUserAnswer(state, session.template, lastAnswerMinimal);
     }
 
+    // Issue detection (FR-21b): a separate pass over the spec state, every N turns and once at completion.
+    const scan = shouldScanIssues(session.template, state, policy, session.path);
+    if (scan) {
+      const found = await detectIssues(this.deps, {
+        companyId: session.companyId,
+        sessionId: session.id,
+        template: session.template,
+        state,
+        ...(session.path ? { path: session.path } : {}),
+        policy,
+        reason: scan,
+      });
+      state = {
+        ...state,
+        findings: [...state.findings, ...found],
+        lastIssueScanTurn: state.turnCount,
+        ...(scan === "final" ? { finalIssueScanDone: true } : {}),
+      };
+      if (found.length) {
+        await store.appendEvent(session.id, "finding", { kind: "detected", reason: scan, findings: found });
+      }
+    }
+
+    // MVP challenge bookkeeping: once every area is covered and no item is left, the walk is done.
+    if (
+      policy.mvpChallenge !== "off" &&
+      !state.mvpChallenge.done &&
+      contextComplete(session.template, state) &&
+      areasComplete(session.template, state, session.path) &&
+      !state.findings.some((f) => f.status === "open") &&
+      nextMvpItem(state) === undefined
+    ) {
+      state = { ...state, mvpChallenge: { ...state.mvpChallenge, done: true } };
+    }
+
     const focus = chooseFocus({
       template: session.template,
       state,
       ...(session.path ? { path: session.path } : {}),
       maxTurns: settings.maxTurns,
       lastAnswerMinimal,
+      mvpChallenge: policy.mvpChallenge,
     });
     if (focus.mode === "done") {
       state = { ...state, phase: "done" };
@@ -133,7 +174,10 @@ export class InterviewEngine {
 
     const delta = StateDeltaSchema.parse(meta.stateDelta ?? {});
     const nextTurnCount = state.turnCount + 1;
-    state = applyDelta({ ...state, turnCount: nextTurnCount }, delta, session.template, focus);
+    state = applyDelta({ ...state, turnCount: nextTurnCount }, delta, session.template, focus, {
+      pushBackOnce: policy.pushBackOnce,
+      mvpChallengeMandatory: policy.mvpChallenge === "mandatory",
+    });
     const widget = admitWidget(meta.widget ?? undefined, state, session.template);
     if (widget) state = { ...state, lastWidgetTurn: nextTurnCount };
 
@@ -141,6 +185,8 @@ export class InterviewEngine {
     const ended = focus.mode === "summary" || meta.endInterview === true;
     if (ended) state = { ...state, phase: "done" };
     else if (focus.mode === "context") state = { ...state, phase: "context" };
+    else if (focus.mode === "finding") state = { ...state, phase: "findings" };
+    else if (focus.mode === "mvp_challenge") state = { ...state, phase: "mvp_challenge" };
     else if (focus.mode !== "closing") state = { ...state, phase: "areas" };
 
     const turn = TurnObjectSchema.parse({
@@ -169,6 +215,21 @@ export class InterviewEngine {
       recentTurnsIncluded: ctx.recentTurnsIncluded,
     });
     if (delta.flagForAdmin) await store.appendEvent(session.id, "flag", { reason: delta.flagForAdmin });
+    if (focus.mode === "finding")
+      await store.appendEvent(session.id, "finding", {
+        kind: focus.pushBack ? "pushed_back" : "raised",
+        findingId: focus.findingId,
+      });
+    for (const o of delta.findingOutcomes) {
+      const f = state.findings.find((x) => x.id === o.id);
+      if (f)
+        await store.appendEvent(session.id, "finding", {
+          kind: "outcome",
+          findingId: o.id,
+          outcome: o.outcome,
+          status: f.status,
+        });
+    }
 
     yield { type: "turn", turn, message: stored, focus, state };
     if (ended) yield { type: "ended", state };

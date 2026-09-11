@@ -22,6 +22,14 @@ const TONES: Record<string, BadgeProps["variant"]> = {
   deleted: "destructive",
   suspended: "destructive",
   error: "destructive",
+  // Spec versions and findings (contract 18)
+  done: "success",
+  queued: "secondary",
+  running: "warning",
+  failed: "destructive",
+  raised: "warning",
+  resolved: "success",
+  deferred: "outline",
 };
 
 export function StatusBadge({ status }: { status: string | null | undefined }): React.JSX.Element {

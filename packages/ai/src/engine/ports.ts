@@ -1,4 +1,12 @@
-import type { InterviewTemplate, Modality, Path, SessionState, Widget, WidgetResponse } from "@aidp/shared";
+import type {
+  Handoff,
+  InterviewTemplate,
+  Modality,
+  Path,
+  SessionState,
+  Widget,
+  WidgetResponse,
+} from "@aidp/shared";
 
 export interface StoredMessage {
   id: string;
@@ -23,6 +31,8 @@ export interface SessionSnapshot {
   state: SessionState;
   summary: string;
   path?: Path;
+  /** Requirements sessions started from a promoted opportunity (FR-66). Rendered into layer 2. */
+  handoff?: Handoff;
 }
 
 /** Persistence port. The API implements it with Prisma; tests use memory. */
@@ -40,12 +50,20 @@ export interface RecallSource {
   recall(sessionId: string, query: string, limit: number): Promise<{ seq: number; text: string }[]>;
 }
 
+/** ADM-REQ knobs resolved from the settings catalog. `template` defers to the template's issueDetection. */
+export interface RequirementsSettings {
+  aggressivenessTechnical: "template" | "gentle" | "standard" | "strict";
+  aggressivenessNontechnical: "template" | "gentle" | "standard" | "strict";
+  mvpChallenge: "template" | "mandatory" | "optional" | "off";
+}
+
 export interface EngineSettings {
   recentWindowTurns: number;
   inputTokenBudget: number;
   summarizeEveryTurns: number;
   extractEveryTurns: number;
   maxTurns: number;
+  requirements?: RequirementsSettings;
 }
 
 export interface Logger {

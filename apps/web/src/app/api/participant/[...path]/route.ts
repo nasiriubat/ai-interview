@@ -17,8 +17,9 @@ function cookieAttributes(maxAge: number): string {
 
 /**
  * Participant proxy. `/api/participant/p/...` maps to `/api/v1/p/...` on the API.
- * - `verify/confirm` and `open` move the participant token into the `aidp_participant`
- *   httpOnly cookie and return only `{ sessionId, resume }`.
+ * - `verify/confirm` and `open` (campaign links `/p/:linkToken/open` and requirements
+ *   invitations `/p/r/:token/open`, contract 18) move the participant token into the
+ *   `aidp_participant` httpOnly cookie and return only `{ sessionId, resume }`.
  * - `/p/session/*` calls get `Authorization: Bearer pt.<token>` from that cookie.
  * - `DELETE /p/session` clears the cookie.
  */

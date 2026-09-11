@@ -6,7 +6,14 @@ export type Role = "platform_operator" | "admin" | "member";
 
 export type Principal =
   | { kind: "staff"; userId: string; companyId: string; role: Role; email: string }
-  | { kind: "participant"; sessionId: string; companyId: string; participantId: string; campaignId: string }
+  | {
+      kind: "participant";
+      sessionId: string;
+      companyId: string;
+      participantId: string;
+      /** null for a person invited into a requirements session or previewing a template. */
+      campaignId: string | null;
+    }
   | { kind: "anonymous" };
 
 const AUTHJS_SALTS = ["authjs.session-token", "__Secure-authjs.session-token"];

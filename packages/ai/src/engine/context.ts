@@ -1,9 +1,11 @@
 import type { ChatMessage, InterviewTemplate, SessionState } from "@aidp/shared";
 import { widgetResponseToText } from "@aidp/shared";
 import { estimateTokens } from "../cost/pricing.js";
+import { mvpItems, specFacts } from "../spec/live.js";
 import { languageName } from "../util/language.js";
 import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js";
 import type { PromptDefinition } from "./prompts/index.js";
+import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v2.js";
 import type { Focus } from "./selection.js";
 
 export interface AssembledContext {
@@ -27,11 +29,20 @@ export function renderSystemPrompt(prompt: PromptDefinition, template: Interview
     .replace("{{aiInstructions}}", template.aiInstructions || "(none)")
     .replace("{{areas}}", areas)
     .replace("{{widgetTypes}}", template.widgetPolicy.allowedTypes.join(", ") || "none")
-    .replace("{{maxChars}}", String(template.maxAssistantChars));
+    .replace("{{maxChars}}", String(template.maxAssistantChars))
+    .replace(
+      "{{outputInstructions}}",
+      template.outputs.includes("spec_field") ? SPEC_CAPTURE_INSTRUCTIONS : NO_CAPTURE_INSTRUCTIONS,
+    );
 }
 
 /** Layer 2: structured state rendered compactly. */
-export function renderState(state: SessionState, template: InterviewTemplate, path?: string): string {
+export function renderState(
+  state: SessionState,
+  template: InterviewTemplate,
+  path?: string,
+  handoff?: SessionSnapshot["handoff"],
+): string {
   const lines: string[] = [];
   if (path) lines.push(`Path: ${path}`);
   const p = state.profile;
@@ -45,6 +56,16 @@ export function renderState(state: SessionState, template: InterviewTemplate, pa
     .filter(Boolean)
     .join("; ");
   if (profile) lines.push(`Participant: ${profile}`);
+  if (handoff) {
+    lines.push("Hand-off from discovery (already known; confirm, do not re-ask):");
+    lines.push(`- problem: ${handoff.problem}`);
+    if (handoff.affectedUsers.length) lines.push(`- affected users: ${handoff.affectedUsers.join(", ")}`);
+    if (handoff.existingProcess.length)
+      lines.push(`- existing process: ${handoff.existingProcess.join(" → ")}`);
+    if (handoff.tools.length) lines.push(`- tools: ${handoff.tools.join(", ")}`);
+    if (handoff.constraints) lines.push(`- constraints: ${handoff.constraints}`);
+    if (handoff.expectedBenefit) lines.push(`- expected benefit: ${handoff.expectedBenefit}`);
+  }
   if (Object.keys(state.contextAnswers).length) {
     lines.push("Context answers:");
     for (const [k, v] of Object.entries(state.contextAnswers)) lines.push(`- ${k}: ${v}`);
@@ -66,17 +87,53 @@ export function renderState(state: SessionState, template: InterviewTemplate, pa
     lines.push("Decisions:");
     for (const d of state.decisions.slice(-20)) lines.push(`- ${d.key}: ${d.choice} (${d.source})`);
   }
-  if (state.facts.length) {
+  const spec = specFacts(state);
+  if (spec.length) {
+    lines.push("Specification so far (section: paths):");
+    const bySection = new Map<string, string[]>();
+    for (const f of spec) bySection.set(f.sectionKey, [...(bySection.get(f.sectionKey) ?? []), f.path]);
+    for (const [k, paths] of bySection) lines.push(`- ${k}: ${paths.slice(-12).join(", ")}`);
+    const mvp = mvpItems(state);
+    if (mvp.length) lines.push(`MVP items: ${mvp.map((i) => `${i.path} ${i.title}`).join("; ")}`);
+  }
+  const others = state.facts.filter((f) => f.kind !== "spec_field");
+  if (others.length) {
     const byKind = new Map<string, number>();
-    for (const f of state.facts) byKind.set(f.kind, (byKind.get(f.kind) ?? 0) + 1);
+    for (const f of others) byKind.set(f.kind, (byKind.get(f.kind) ?? 0) + 1);
     lines.push(`Facts so far: ${[...byKind].map(([k, n]) => `${k}=${n}`).join(", ")}`);
+  }
+  const findings = state.findings.filter((f) => f.status === "open" || f.status === "raised");
+  if (findings.length) {
+    lines.push("Findings in play:");
+    for (const f of findings)
+      lines.push(
+        `- [${f.id}] ${f.type} at ${f.section}${f.path ? `/${f.path}` : ""} (${f.status}): ${f.description}`,
+      );
   }
   if (state.shortened)
     lines.push("Note: the participant gives minimal answers; the interview is shortened to essential areas.");
   return lines.join("\n");
 }
 
-export function renderFocus(focus: Focus, template: InterviewTemplate, path?: string): string {
+export function renderFocus(
+  focus: Focus,
+  template: InterviewTemplate,
+  path?: string,
+  state?: SessionState,
+): string {
+  const pending = state?.findings.find((f) => f.status === "raised" && f.raisedTurn === state.turnCount);
+  const prefix = pending
+    ? `The participant has just answered finding [${pending.id}] (${pending.description}). Record the outcome in stateDelta.findingOutcomes first. `
+    : "";
+  return prefix + renderFocusBody(focus, template, path, state);
+}
+
+function renderFocusBody(
+  focus: Focus,
+  template: InterviewTemplate,
+  path?: string,
+  state?: SessionState,
+): string {
   switch (focus.mode) {
     case "context": {
       const q = template.contextBlock.find((c) => c.key === focus.questionKey);
@@ -94,6 +151,16 @@ export function renderFocus(focus: Focus, template: InterviewTemplate, path?: st
       return `Engine focus: pick up the open thread [${focus.threadId}] "${focus.topic}" in area "${focus.areaKey}". Resolve it in stateDelta.resolvedThreadIds. Set areaKey to "${focus.areaKey}".`;
     case "area":
       return `Engine focus: open area "${focus.areaKey}" with one natural, easy first question. Set areaKey to "${focus.areaKey}".`;
+    case "finding": {
+      const f = state?.findings.find((x) => x.id === focus.findingId);
+      if (!f) return `Engine focus: raise finding [${focus.findingId}]. Set areaKey to "finding".`;
+      const where = `${f.section}${f.path ? `/${f.path}` : ""}`;
+      if (focus.pushBack)
+        return `Engine focus: the participant rejected finding [${f.id}] (${f.type} at ${where}: ${f.description}). Push back once: state the concrete consequence of leaving it as is, in one or two sentences, then ask whether they want to keep it that way. Whatever they answer next is final. Set areaKey to "finding".`;
+      return `Engine focus: raise finding [${f.id}], a ${f.type.replace("_", " ")} at ${where}: ${f.description} Propose: ${f.resolution} Default: ${f.default}. Phrase it for the ${path ?? "participant's"} path, one question, and offer the default. Set areaKey to "finding".`;
+    }
+    case "mvp_challenge":
+      return `Engine focus: MVP challenge for ${focus.itemPath} "${focus.title}". Ask, in your own words: if version one shipped without this, what breaks? Explain in one sentence that this keeps version one small. Set areaKey to "mvp_challenge".`;
     case "closing":
       return `Engine focus: ask the closing question: "${template.closingQuestion}". Set areaKey to "closing".`;
     case "summary":
@@ -128,7 +195,10 @@ export function assembleContext(input: {
   const budget = settings.inputTokenBudget;
   let used = estimateTokens(system);
 
-  const contextParts = ["Session context", renderState(session.state, session.template, session.path)];
+  const contextParts = [
+    "Session context",
+    renderState(session.state, session.template, session.path, session.handoff),
+  ];
   if (session.summary) contextParts.push("", "Summary of the conversation so far", session.summary);
   let recalled = input.recalled;
   const contextText = () =>
@@ -144,7 +214,7 @@ export function assembleContext(input: {
     used = estimateTokens(system) + estimateTokens(contextText());
   }
 
-  const focusText = renderFocus(focus, session.template, session.path);
+  const focusText = renderFocus(focus, session.template, session.path, session.state);
   used += estimateTokens(focusText);
 
   // Recent window: newest first until the budget is spent, then restore order.

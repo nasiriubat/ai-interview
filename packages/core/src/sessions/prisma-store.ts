@@ -1,14 +1,44 @@
 import type { NewMessage, SessionSnapshot, SessionStore, StoredMessage } from "@aidp/ai";
 import {
+  HandoffSchema,
   InterviewTemplateSchema,
   SessionStateSchema,
   WidgetResponseSchema,
   WidgetSchema,
+  type InterviewTemplate,
   type Modality,
   type Path,
   type SessionState,
 } from "@aidp/shared";
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type { InterviewTemplate as TemplateRow, Prisma, PrismaClient } from "@prisma/client";
+
+/** The template contract parsed from its database row. */
+export function templateFromRow(t: TemplateRow): InterviewTemplate {
+  return InterviewTemplateSchema.parse({
+    key: t.key,
+    version: t.version,
+    name: t.name,
+    language: t.language,
+    objective: t.objective,
+    privacyMode: t.privacyMode,
+    participantFields: t.participantFields,
+    pathSelection: t.pathSelection,
+    contextBlock: t.contextBlock,
+    coverageAreas: t.coverageAreas,
+    aiInstructions: t.aiInstructions,
+    adaptivity: t.adaptivity,
+    widgetPolicy: t.widgetPolicy,
+    issueDetection: t.issueDetection,
+    outputs: t.outputs,
+    analysisEnabled: t.analysisEnabled,
+    chainToKey: t.chainToKey,
+    chainMapping: t.chainMapping,
+    closingQuestion: t.closingQuestion,
+    endSummary: t.endSummary,
+    maxTurns: t.maxTurns,
+    maxAssistantChars: t.maxAssistantChars,
+  });
+}
 
 /** SessionStore on Prisma. Message sequence numbers are assigned in a transaction. */
 export class PrismaSessionStore implements SessionStore {
@@ -86,31 +116,8 @@ export class PrismaSessionStore implements SessionStore {
       where: { id: sessionId },
       include: { template: true },
     });
-    const t = row.template;
-    const template = InterviewTemplateSchema.parse({
-      key: t.key,
-      version: t.version,
-      name: t.name,
-      language: t.language,
-      objective: t.objective,
-      privacyMode: t.privacyMode,
-      participantFields: t.participantFields,
-      pathSelection: t.pathSelection,
-      contextBlock: t.contextBlock,
-      coverageAreas: t.coverageAreas,
-      aiInstructions: t.aiInstructions,
-      adaptivity: t.adaptivity,
-      widgetPolicy: t.widgetPolicy,
-      issueDetection: t.issueDetection,
-      outputs: t.outputs,
-      analysisEnabled: t.analysisEnabled,
-      chainToKey: t.chainToKey,
-      chainMapping: t.chainMapping,
-      closingQuestion: t.closingQuestion,
-      endSummary: t.endSummary,
-      maxTurns: t.maxTurns,
-      maxAssistantChars: t.maxAssistantChars,
-    });
+    const template = templateFromRow(row.template);
+    const handoff = row.handoff ? HandoffSchema.safeParse(row.handoff) : undefined;
     return {
       id: row.id,
       companyId: row.companyId,
@@ -119,6 +126,7 @@ export class PrismaSessionStore implements SessionStore {
       state: SessionStateSchema.parse(row.state),
       summary: row.summary,
       ...(row.path ? { path: row.path as Path } : {}),
+      ...(handoff?.success ? { handoff: handoff.data } : {}),
       status: row.status,
       modePreference: row.modePreference,
       participantId: row.participantId,

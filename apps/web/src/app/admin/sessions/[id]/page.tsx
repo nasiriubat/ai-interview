@@ -52,6 +52,11 @@ export default async function SessionPage({ params }: Props): Promise<React.JSX.
                 <Link href={`/admin/campaigns/${session.campaignId}`}>{s.backToCampaign}</Link>
               </Button>
             ) : null}
+            {session.templateKey === "requirements_discovery" ? (
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/admin/requirements/${session.id}`}>{s.openRequirements}</Link>
+              </Button>
+            ) : null}
           </div>
         }
       />

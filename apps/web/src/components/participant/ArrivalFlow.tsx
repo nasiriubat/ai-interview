@@ -1,9 +1,9 @@
 "use client";
 
 import type { Path } from "@aidp/shared";
-import { CodeIcon, MessageCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { PathChoice } from "./PathChoice";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -400,35 +400,7 @@ export function ArrivalFlow({
       return (
         <Shell>
           <Heading title={t.participant.path.title} />
-          <div className="grid gap-3">
-            {(
-              [
-                ["technical", t.participant.path.technical, t.participant.path.technicalHint, CodeIcon],
-                [
-                  "nontechnical",
-                  t.participant.path.nontechnical,
-                  t.participant.path.nontechnicalHint,
-                  MessageCircleIcon,
-                ],
-              ] as const
-            ).map(([value, label, hint, Icon]) => (
-              <button
-                key={value}
-                type="button"
-                disabled={busy}
-                className="hover:bg-accent focus-visible:ring-ring/50 flex items-start gap-4 rounded-xl border p-4 text-left transition-colors focus-visible:ring-[3px] disabled:opacity-50"
-                onClick={() => {
-                  choosePath(value);
-                }}
-              >
-                <Icon className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
-                <span className="grid gap-1">
-                  <span className="text-lg font-semibold">{label}</span>
-                  <span className="text-muted-foreground text-sm">{hint}</span>
-                </span>
-              </button>
-            ))}
-          </div>
+          <PathChoice disabled={busy} onChoose={choosePath} />
           {errorBox}
         </Shell>
       );
