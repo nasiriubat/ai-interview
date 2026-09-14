@@ -10,6 +10,7 @@ export * from "./jobs/pg-boss.js";
 export * from "./email/port.js";
 export * from "./email/smtp.js";
 export * from "./email/settings-email.js";
+export * from "./privacy/retention.js";
 export * from "./analysis/service.js";
 export * from "./requirements/service.js";
 export * from "./requirements/github.js";

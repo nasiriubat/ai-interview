@@ -1,3 +1,4 @@
+import { tenantBatch } from "@aidp/db";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
@@ -190,7 +191,7 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
     async (req) => {
       await svc.get(req.companyId, req.params.id);
       const where = { campaignId: req.params.id, companyId: req.companyId };
-      const [sessions, total] = await ctx.db.$transaction([
+      const [sessions, total] = await tenantBatch(ctx.db, [
         ctx.db.session.findMany({
           where,
           orderBy: { createdAt: "desc" },

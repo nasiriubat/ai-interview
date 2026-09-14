@@ -1,3 +1,4 @@
+import { tenantBatch } from "@aidp/db";
 import { PurposeSchema } from "@aidp/shared";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -78,7 +79,7 @@ export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
     { preHandler: requireStaff("admin"), schema: { querystring: PageQuery } },
     async (req) => {
       const where = { companyId: req.companyId };
-      const [budgets, total] = await ctx.db.$transaction([
+      const [budgets, total] = await tenantBatch(ctx.db, [
         ctx.db.budget.findMany({
           where,
           orderBy: { id: "asc" },

@@ -123,6 +123,7 @@ export const SETTINGS = {
     description: "Consent text shown before the first turn",
   }),
   // Privacy
+  // Enforced by the daily `privacy.retention-sweep` job (packages/core/src/privacy/retention.ts).
   "privacy.retentionMonths": def({
     schema: z.number().int().min(1).max(120),
     default: 24,
@@ -144,12 +145,14 @@ export const SETTINGS = {
     category: "privacy",
     description: "Who may open raw transcripts",
   }),
+  // Not enforced yet: there is no recorded audio before phase 4 (spec 09). The retention sweep
+  // deliberately ignores this key, and starts honouring it when voice recordings land.
   "privacy.audioRetentionDays": def({
     schema: z.number().int().min(0).max(3650),
     default: 365,
     scopes: ["platform", "tenant"],
     category: "privacy",
-    description: "Days audio is kept; 0 deletes after transcription",
+    description: "Days audio is kept; 0 deletes after transcription (takes effect with voice, phase 4)",
   }),
   // Cost
   "cost.warnFraction": def({

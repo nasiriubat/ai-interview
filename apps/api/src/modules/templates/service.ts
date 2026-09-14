@@ -1,4 +1,4 @@
-import { shippedTemplate } from "@aidp/db";
+import { shippedTemplate, tenantTransaction } from "@aidp/db";
 import { InterviewTemplateSchema, type InterviewTemplate, type InterviewTemplateInput } from "@aidp/shared";
 import { Prisma, type InterviewTemplate as Template, type PrismaClient } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
@@ -59,7 +59,7 @@ export class TemplateService {
     if (current.companyId !== companyId)
       throw new AppError("forbidden", "Copy a platform template before editing it");
     const t = InterviewTemplateSchema.parse({ ...input, key: current.key, version: current.version + 1 });
-    return this.db.$transaction(async (tx) => {
+    return tenantTransaction(this.db, async (tx) => {
       await tx.interviewTemplate.update({ where: { id: current.id }, data: { status: "archived" } });
       return tx.interviewTemplate.create({
         data: {

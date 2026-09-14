@@ -1,3 +1,4 @@
+import { enterSystemTenant, enterTenant } from "@aidp/db";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { forbidden, unauthenticated } from "../lib/errors.js";
@@ -15,6 +16,9 @@ export const authPlugin = fp(async (app: FastifyInstance, opts: { resolver: Prin
   app.decorateRequest<Principal | null>("principal", null);
   app.decorateRequest("companyId", "");
   app.addHook("onRequest", async (request) => {
+    // Resolving a bearer token has to look across tenants: which tenant it belongs to is the
+    // answer, not the question. Everything after this point is pinned to one company.
+    enterSystemTenant();
     request.principal = await opts.resolver.fromBearer(
       bearerFrom(request.headers.authorization, request.cookies),
     );
@@ -26,6 +30,11 @@ export const authPlugin = fp(async (app: FastifyInstance, opts: { resolver: Prin
         : p.kind === "staff" && p.role === "platform_operator" && typeof override === "string"
           ? override
           : p.companyId;
+    // A platform operator without a chosen tenant works across all of them by design; everyone
+    // else is fenced in by Postgres itself from here on (packages/db/src/tenancy.ts).
+    const operatorAcrossTenants =
+      p.kind === "staff" && p.role === "platform_operator" && typeof override !== "string";
+    if (!operatorAcrossTenants && request.companyId) enterTenant(request.companyId);
   });
 });
 

@@ -1,4 +1,5 @@
 import type { NewMessage, SessionSnapshot, SessionStore, StoredMessage } from "@aidp/ai";
+import { tenantTransaction } from "@aidp/db";
 import {
   HandoffSchema,
   InterviewTemplateSchema,
@@ -45,7 +46,7 @@ export class PrismaSessionStore implements SessionStore {
   constructor(private readonly db: PrismaClient) {}
 
   async appendMessage(sessionId: string, m: NewMessage): Promise<StoredMessage> {
-    return this.db.$transaction(async (tx) => {
+    return tenantTransaction(this.db, async (tx) => {
       const last = await tx.message.findFirst({
         where: { sessionId },
         orderBy: { seq: "desc" },
@@ -96,7 +97,7 @@ export class PrismaSessionStore implements SessionStore {
   }
 
   async appendEvent(sessionId: string, type: string, payload: unknown): Promise<void> {
-    await this.db.$transaction(async (tx) => {
+    await tenantTransaction(this.db, async (tx) => {
       const last = await tx.sessionEvent.findFirst({
         where: { sessionId },
         orderBy: { seq: "desc" },

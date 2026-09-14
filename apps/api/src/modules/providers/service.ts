@@ -1,5 +1,6 @@
 import { createProvider, costCents, estimateTokens, PriceTable, type ModelPrice } from "@aidp/ai";
 import { loadPrices, type CallerFactory, type Crypto } from "@aidp/core";
+import { tenantBatch } from "@aidp/db";
 import { PURPOSES, ProviderConfigSchema, type ModelInfo, type Purpose } from "@aidp/shared";
 import type { PrismaClient, Provider } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
@@ -291,7 +292,7 @@ export class ProviderService {
     providerId: string,
     page: { limit: number; offset: number },
   ): Promise<{ prices: ModelPrice[]; total: number }> {
-    const [rows, total] = await this.db.$transaction([
+    const [rows, total] = await tenantBatch(this.db, [
       this.db.modelPrice.findMany({
         where: { providerId },
         orderBy: { model: "asc" },

@@ -6,6 +6,7 @@ import {
   type EmailPort,
   type SettingsService,
 } from "@aidp/core";
+import { tenantBatch } from "@aidp/db";
 import type { Campaign, Invitation, PrismaClient } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
@@ -45,7 +46,7 @@ export class CampaignService {
     page: { limit: number; offset: number },
   ): Promise<{ campaigns: Campaign[]; total: number }> {
     const where = { companyId };
-    const [campaigns, total] = await this.db.$transaction([
+    const [campaigns, total] = await tenantBatch(this.db, [
       this.db.campaign.findMany({
         where,
         orderBy: { createdAt: "desc" },

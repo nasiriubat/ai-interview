@@ -1,4 +1,5 @@
 import { AnalysisInProgressError, OpportunityNotFoundError } from "@aidp/core";
+import { tenantBatch } from "@aidp/db";
 import { OpportunityOverrideSchema, rankScore } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
@@ -72,7 +73,7 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
     async (req) => {
       await campaignOf(req.companyId, req.params.id);
       const where = { campaignId: req.params.id };
-      const [analyses, total] = await ctx.db.$transaction([
+      const [analyses, total] = await tenantBatch(ctx.db, [
         ctx.db.analysis.findMany({
           where,
           orderBy: { version: "desc" },

@@ -26,6 +26,7 @@ import { campaignRoutes } from "./modules/campaigns/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
 import { operatorRoutes } from "./modules/operator/routes.js";
 import { participantRoutes } from "./modules/participant/routes.js";
+import { privacyRoutes } from "./modules/privacy/routes.js";
 import { providerRoutes } from "./modules/providers/routes.js";
 import { requirementsRoutes } from "./modules/requirements/routes.js";
 import { sessionRoutes } from "./modules/sessions/routes.js";
@@ -105,6 +106,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await providerRoutes(a, ctx);
       await statsRoutes(a, ctx);
       await auditRoutes(a, ctx);
+      await privacyRoutes(a, ctx);
       await analysisRoutes(a, ctx);
       await requirementsRoutes(a, ctx);
       await operatorRoutes(a, ctx);

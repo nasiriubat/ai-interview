@@ -1,3 +1,4 @@
+import { tenantTransaction } from "@aidp/db";
 import {
   SECRET_SENTINEL,
   SETTINGS,
@@ -124,7 +125,7 @@ export class SettingsService {
     values: Record<string, unknown>,
     changedBy: string | null,
   ): Promise<SettingKey[]> {
-    return this.db.$transaction(async (tx) => {
+    return tenantTransaction(this.db, async (tx) => {
       const written: SettingKey[] = [];
       for (const [k, v] of Object.entries(values)) {
         if (!(k in SETTINGS)) throw new SettingsError(`Unknown setting '${k}'`);

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { diffSpecs, generateSpec, mergeFacts, renderLiveSpec, type Logger } from "@aidp/ai";
+import { currentTenant, tenantBatch, tenantTransaction } from "@aidp/db";
 import {
   AgentBundleSchema,
   FindingSchema,
@@ -220,7 +221,7 @@ export class RequirementsService {
       // Template previews are owned sessions too; their participant is the previewing admin.
       OR: [{ participantId: null }, { participant: { userId: null } }],
     };
-    const [rows, total] = await this.deps.db.$transaction([
+    const [rows, total] = await tenantBatch(this.deps.db, [
       this.deps.db.session.findMany({
         where,
         include: { owner: { select: { email: true } }, _count: { select: { specs: true } } },
@@ -430,6 +431,10 @@ export class RequirementsService {
 
   /** The job body: one model call over the spec state, then the stored document, markdown and bundle. */
   async runGeneration(versionId: string): Promise<void> {
+    if (currentTenant() === null)
+      throw new Error(
+        "RequirementsService.runGeneration must be called inside a tenant context (withTenant)",
+      );
     const { db, log } = this.deps;
     const version = await db.specVersion.findUniqueOrThrow({
       where: { id: versionId },
@@ -883,7 +888,7 @@ export class RequirementsService {
   }
 
   private async appendEvent(sessionId: string, type: string, payload: unknown): Promise<void> {
-    await this.deps.db.$transaction(async (tx) => {
+    await tenantTransaction(this.deps.db, async (tx) => {
       const last = await tx.sessionEvent.findFirst({
         where: { sessionId },
         orderBy: { seq: "desc" },

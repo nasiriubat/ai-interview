@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { type Crypto, MemoryEmail, MemoryJobPublisher } from "@aidp/core";
-import { shippedTemplates } from "@aidp/db";
+import { shippedTemplates, withTenantScope } from "@aidp/db";
 import { encode } from "@auth/core/jwt";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
@@ -93,6 +93,25 @@ export interface TestWorld {
   close: () => Promise<void>;
 }
 
+const APP_ROLE_PASSWORD = "test-app-role";
+
+/** A client connected as the unprivileged `app_api` role, with the tenant scope applied. */
+async function appRoleClient(owner: PrismaClient): Promise<PrismaClient> {
+  const url = process.env.DATABASE_URL;
+  if (!url) return owner;
+  try {
+    await owner.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD '${APP_ROLE_PASSWORD}'`);
+    const asApp = new URL(url);
+    asApp.username = "app_api";
+    asApp.password = APP_ROLE_PASSWORD;
+    const client = new PrismaClient({ datasources: { db: { url: asApp.toString() } } });
+    await client.$queryRawUnsafe("SELECT 1");
+    return withTenantScope(client) as unknown as PrismaClient;
+  } catch {
+    return owner;
+  }
+}
+
 export async function testWorld(modelUrl: string): Promise<TestWorld> {
   const key = randomBytes(32).toString("base64");
   const config = loadConfig({
@@ -104,9 +123,14 @@ export async function testWorld(modelUrl: string): Promise<TestWorld> {
     LOG_LEVEL: "silent",
   });
   const db = new PrismaClient();
+  // The application under test connects the way production does: as `app_api`, which owns nothing
+  // and has no BYPASSRLS, so every one of these tests is also a row-level-security conformance
+  // test. Setup and assertions keep the owner client. A database where the role cannot be given a
+  // login falls back to the owner, so the suite still runs (it just stops proving the fence).
+  const appDb = await appRoleClient(db);
   const email = new MemoryEmail();
   const jobs = new MemoryJobPublisher();
-  const ctx = buildContext({ config, db, log: pino({ level: "silent" }), jobs, email });
+  const ctx = buildContext({ config, db: appDb, log: pino({ level: "silent" }), jobs, email });
   const app = await buildApp(ctx);
   await app.ready();
 
