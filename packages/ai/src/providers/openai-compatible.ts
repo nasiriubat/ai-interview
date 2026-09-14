@@ -112,54 +112,86 @@ export class OpenAICompatibleProvider implements Provider {
     schemaName = "result",
   ): Promise<{ value: T; usage: Usage }> {
     const jsonSchema = z.toJSONSchema(schema, { target: "openapi-3.0", unrepresentable: "any" });
+    // The schema always travels in the prompt too: some routers accept `json_schema` and then
+    // hand the request to a provider that ignores it (seen with OpenRouter), so the model must
+    // know the shape either way. The result is validated locally regardless.
+    const instruction = `Respond with a single JSON value only, no prose and no code fences, matching this JSON schema exactly:\n${JSON.stringify(jsonSchema)}`;
+    const messages = [{ role: "system", content: instruction }, ...toOpenAIMessages(req)];
     const base = {
       model,
-      messages: toOpenAIMessages(req),
+      messages,
       max_tokens: req.maxOutputTokens,
       ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
+      // OpenRouter: only route to providers that honor every parameter we send (response_format).
+      ...(this.kind === "openrouter" ? { provider: { require_parameters: true } } : {}),
     };
-    // First attempt: strict json_schema. Many OpenAI-compatible servers accept it.
-    let res = await this.request("/chat/completions", {
-      method: "POST",
-      body: JSON.stringify({
-        ...base,
-        response_format: {
-          type: "json_schema",
-          json_schema: { name: schemaName, schema: jsonSchema, strict: true },
-        },
-      }),
-      allowStatuses: [400, 422],
-    });
-    if (res.status === 400 || res.status === 422) {
-      // Fallback: JSON mode plus the schema in the prompt; validate locally.
-      const msgs = toOpenAIMessages(req);
-      const instruction = `Respond with a single JSON object only, matching this JSON schema exactly:\n${JSON.stringify(jsonSchema)}`;
-      const withSchema = [{ role: "system", content: instruction }, ...msgs];
-      res = await this.request("/chat/completions", {
+    const attempt = async (
+      responseFormat: Record<string, unknown>,
+      allowStatuses: number[],
+    ): Promise<{ status: number; body?: OpenAICompletion }> => {
+      const res = await this.request("/chat/completions", {
         method: "POST",
-        body: JSON.stringify({ ...base, messages: withSchema, response_format: { type: "json_object" } }),
+        body: JSON.stringify({ ...base, response_format: responseFormat }),
+        allowStatuses,
       });
+      if (allowStatuses.includes(res.status)) return { status: res.status };
+      return { status: res.status, body: (await res.json()) as OpenAICompletion };
+    };
+    const parse = (body: OpenAICompletion): { ok: true; value: T } | { ok: false; error: ProviderError } => {
+      const choice = body.choices?.[0];
+      const finish = choice?.finish_reason;
+      if (finish === "content_filter")
+        return { ok: false, error: new ProviderError("Model refused the request", "refusal", false) };
+      const raw = choice?.message?.content ?? "";
+      const json = extractJsonValue(raw);
+      if (json === undefined) {
+        const why = finish === "length" ? "output was cut off by max_tokens" : "no JSON value in the output";
+        return {
+          ok: false,
+          error: new ProviderError(`Structured output was not valid JSON: ${why}`, "parse", true),
+        };
+      }
+      let parsedJson: unknown;
+      try {
+        parsedJson = JSON.parse(json);
+      } catch (e) {
+        return {
+          ok: false,
+          error: new ProviderError("Structured output was not valid JSON", "parse", true, e),
+        };
+      }
+      const parsed = schema.safeParse(parsedJson);
+      if (!parsed.success)
+        return {
+          ok: false,
+          error: new ProviderError(
+            `Structured output failed validation: ${parsed.error.message}`,
+            "parse",
+            true,
+            parsed.error,
+          ),
+        };
+      return { ok: true, value: parsed.data };
+    };
+
+    // First attempt: strict json_schema. Many OpenAI-compatible servers accept it.
+    const first = await attempt(
+      { type: "json_schema", json_schema: { name: schemaName, schema: jsonSchema, strict: true } },
+      [400, 422],
+    );
+    let firstError: ProviderError | undefined;
+    if (first.body) {
+      const r = parse(first.body);
+      if (r.ok) return { value: r.value, usage: first.body.usage ? toUsage(first.body.usage) : emptyUsage() };
+      if (r.error.code === "refusal") throw r.error;
+      firstError = r.error;
     }
-    const body = (await res.json()) as OpenAICompletion;
-    const choice = body.choices?.[0];
-    const finish = choice?.finish_reason;
-    if (finish === "content_filter") throw new ProviderError("Model refused the request", "refusal", false);
-    const raw = choice?.message?.content ?? "";
-    let parsedJson: unknown;
-    try {
-      parsedJson = JSON.parse(stripFences(raw));
-    } catch (e) {
-      throw new ProviderError("Structured output was not valid JSON", "parse", true, e);
-    }
-    const parsed = schema.safeParse(parsedJson);
-    if (!parsed.success)
-      throw new ProviderError(
-        `Structured output failed validation: ${parsed.error.message}`,
-        "parse",
-        true,
-        parsed.error,
-      );
-    return { value: parsed.data, usage: body.usage ? toUsage(body.usage) : emptyUsage() };
+    // Fallback: JSON mode with the schema in the prompt (also when the strict answer did not validate).
+    const second = await attempt({ type: "json_object" }, []);
+    if (!second.body) throw firstError ?? new ProviderError("Structured output failed", "parse", true);
+    const r = parse(second.body);
+    if (!r.ok) throw r.error;
+    return { value: r.value, usage: second.body.usage ? toUsage(second.body.usage) : emptyUsage() };
   }
 
   async transcribe(
@@ -295,10 +327,29 @@ function toStopReason(r: string): StopReason {
   return "other";
 }
 
-function stripFences(s: string): string {
-  const t = s.trim();
-  const m = /^```(?:json)?\s*([\s\S]*?)\s*```$/.exec(t);
-  return m?.[1] ?? t;
+/** The first balanced JSON object or array in a string, tolerating code fences and surrounding prose. */
+export function extractJsonValue(s: string): string | undefined {
+  const start = s.search(/[[{]/);
+  if (start < 0) return undefined;
+  const stack: string[] = [];
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') inString = true;
+    else if (c === "{" || c === "[") stack.push(c === "{" ? "}" : "]");
+    else if (c === "}" || c === "]") {
+      if (stack.pop() !== c) return undefined;
+      if (stack.length === 0) return s.slice(start, i + 1);
+    }
+  }
+  return undefined;
 }
 
 /** OpenRouter publishes pricing as USD per token (strings). Convert to per million. */

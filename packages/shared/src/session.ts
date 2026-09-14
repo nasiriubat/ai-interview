@@ -59,6 +59,8 @@ export const DecisionSchema = z.object({
 export const SessionStateSchema = z.object({
   coverage: z.record(z.string(), CoverageEntrySchema).default({}),
   contextAnswers: z.record(z.string(), z.string()).default({}),
+  /** How many times each context question has been asked; guards against a model that never records the answer. */
+  contextAsks: z.record(z.string(), z.number().int().nonnegative()).default({}),
   profile: ProfileSchema.prefault({}),
   openThreads: z.array(OpenThreadSchema).default([]),
   decisions: z.array(DecisionSchema).default([]),

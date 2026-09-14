@@ -329,3 +329,81 @@ describe("requirements interview (spec 05)", () => {
     expect(merged[0]).toMatchObject({ kind: "spec_field", value: { title: "A2", scope: "future" } });
   });
 });
+
+describe("context block never loops", () => {
+  it("counts asks, nudges the model on a repeat, and records the participant's words after two asks", async () => {
+    const store = new MemoryStore();
+    const t = template({
+      contextBlock: [
+        { key: "timeline", question: "When?" },
+        { key: "budget", question: "How much?" },
+      ],
+    });
+    const caller = new ScriptedCaller([
+      turn("When does this need to be live?", { areaKey: "context" }),
+      turn("Sorry, when exactly?", { areaKey: "context" }),
+      turn("And the budget?", { areaKey: "context", stateDelta: { contextAnswers: { budget: "small" } } }),
+    ]);
+    const engine = new InterviewEngine({
+      caller: caller.asCaller(),
+      store,
+      prompts: new ShippedPromptSource(),
+      recall: new LexicalRecall(store, 10),
+      logger,
+    });
+    let s = snapshot(t);
+    let r = await run(engine, s, undefined, settings);
+    expect(r.result.state.contextAsks).toEqual({ timeline: 1 });
+    s = { ...s, state: r.result.state };
+    r = await run(
+      engine,
+      s,
+      { content: "Before the winter rota, about three months", modality: "text" },
+      settings,
+    );
+    expect(String(caller.requests[1]?.req.messages.at(-1)?.content)).toContain("already asked once");
+    expect(r.result.state.contextAsks).toEqual({ timeline: 2 });
+    expect(r.result.state.contextAnswers).toEqual({});
+    s = { ...s, state: r.result.state };
+    r = await run(
+      engine,
+      s,
+      { content: "Three months, before the winter rota starts.", modality: "text" },
+      settings,
+    );
+    expect(r.result.state.contextAnswers.timeline).toBe("Three months, before the winter rota starts.");
+    expect(r.focus).toEqual({ mode: "context", questionKey: "budget" });
+    expect(r.result.state.contextAnswers.budget).toBe("small");
+  });
+});
+
+describe("follow-up scheduling", () => {
+  it("asks for a summary only when enough turns have accumulated beyond the recent window", async () => {
+    const store = new MemoryStore();
+    const replies = Array.from({ length: 20 }, (_, i) => turn(`Question ${i + 1}?`, { areaKey: "problem" }));
+    const caller = new ScriptedCaller(replies);
+    const engine = new InterviewEngine({
+      caller: caller.asCaller(),
+      store,
+      prompts: new ShippedPromptSource(),
+      recall: new LexicalRecall(store, 10),
+      logger,
+    });
+    const t = template({
+      coverageAreas: [{ key: "problem", name: "P", description: "P", doneWhen: "never", maxFollowUps: 10 }],
+    });
+    const small = { ...settings, recentWindowTurns: 3, summarizeEveryTurns: 2 };
+    let s = snapshot(t);
+    const wanted: number[] = [];
+    let r = await run(engine, s, undefined, small);
+    for (let i = 0; i < 9; i++) {
+      s = { ...s, state: r.result.state };
+      r = await run(engine, s, { content: `Answer ${i + 1} with some detail`, modality: "text" }, small);
+      if (r.result.followUps.summarize) wanted.push(store.messages.length);
+    }
+    // 3 turns kept verbatim (6 messages) + 2 turns to fold (4 messages): first summary at 10 messages, not before.
+    expect(wanted[0]).toBe(11);
+    // With summaryUpToSeq never updated (no worker in this test) the request repeats; a worker that folds resets it.
+    expect(wanted.length).toBeGreaterThan(0);
+  });
+});

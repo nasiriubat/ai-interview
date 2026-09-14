@@ -5,7 +5,7 @@ import { mvpItems, specFacts } from "../spec/live.js";
 import { languageName } from "../util/language.js";
 import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js";
 import type { PromptDefinition } from "./prompts/index.js";
-import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v2.js";
+import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v3.js";
 import type { Focus } from "./selection.js";
 
 export interface AssembledContext {
@@ -143,7 +143,12 @@ function renderFocusBody(
         ? ` Offer a single_choice widget with options: ${q.options.map((o) => `${o.key}=${o.label}`).join(", ")}.`
         : "";
       const dflt = q.default ? ` Default if unsure: ${q.default}.` : "";
-      return `Engine focus: context question "${q.key}". Ask: ${text}${q.why ? ` Say briefly why it matters: ${q.why}` : ""}${dflt}${opts} Record the answer in stateDelta.contextAnswers["${q.key}"]. Set areaKey to "context".`;
+      const asked = state?.contextAsks[q.key] ?? 0;
+      const again =
+        asked > 0
+          ? ` This question was already asked ${asked === 1 ? "once" : `${asked} times`}: if the participant has answered it in any form, do not ask again; write the answer (or the default) into stateDelta.contextAnswers["${q.key}"] now and move on.`
+          : "";
+      return `Engine focus: context question "${q.key}". Ask: ${text}${q.why ? ` Say briefly why it matters: ${q.why}` : ""}${dflt}${opts} Record the answer in stateDelta.contextAnswers["${q.key}"]. Set areaKey to "context".${again}`;
     }
     case "continue":
       return `Engine focus: stay on area "${focus.areaKey}". If the last answer was ambiguous, clarify; otherwise go one level deeper with a concrete example. Set areaKey to "${focus.areaKey}".`;

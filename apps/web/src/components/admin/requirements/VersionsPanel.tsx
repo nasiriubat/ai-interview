@@ -7,6 +7,7 @@ import { InvitationsSection } from "./InvitationsSection";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DateText } from "@/components/common/DateText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +17,6 @@ import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import { isApiError } from "@/lib/api/errors";
 import type { SessionInvitation, SpecVersionSummary } from "@/lib/api/schemas";
-import { formatDate } from "@/lib/utils";
 
 /** The Versions tab: generate a version, the version table (polled while pending), invitations. */
 export function VersionsPanel({
@@ -117,7 +117,9 @@ export function VersionsPanel({
                     <TableCell>
                       <StatusBadge status={v.status} />
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{formatDate(v.createdAt)}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      <DateText iso={v.createdAt} />
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{v.stats.requirements}</TableCell>
                     <TableCell className="text-right tabular-nums">{v.stats.mvp}</TableCell>
                     <TableCell className="text-right tabular-nums">{v.stats.future}</TableCell>

@@ -23,7 +23,12 @@ Provider configuration without an Anthropic key: sign in as the operator, add a 
 (OpenAI, OpenRouter, LiteLLM, or any OpenAI-compatible server), fetch its models, and set
 routes per purpose. Nothing works until `interview_turn` has a route.
 
+Bootstrap providers: `ANTHROPIC_API_KEY` creates a platform Anthropic provider with default
+routes; `OPENROUTER_API_KEY` creates a platform OpenRouter provider (Claude models through
+`vendor/model` slugs, prices imported from OpenRouter's model list). When both are set the
+Anthropic routes win; the OpenRouter routes fill only purposes without a route.
+
 Requirements interviews (phase 3) also need routes for `issue_detection` (the separate
-findings pass, every few turns) and `spec_generation` (versions, run by the worker). The
-Anthropic bootstrap sets both. Pushing a version to GitHub asks for a token with `contents:
+findings pass, every few turns) and `spec_generation` (versions, run by the worker). Both
+bootstraps set them. Pushing a version to GitHub asks for a token with `contents:
 write` on the target repository at push time; the token is used for one commit and never stored.

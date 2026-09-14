@@ -4,6 +4,7 @@ import { SendIcon } from "lucide-react";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DateText } from "@/components/common/DateText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { SessionInvitation } from "@/lib/api/schemas";
-import { formatDate } from "@/lib/utils";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -103,8 +103,12 @@ export function InvitationsSection({
                   <TableCell>
                     <StatusBadge status={inv.status} />
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{formatDate(inv.sentAt)}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{formatDate(inv.expiresAt)}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    <DateText iso={inv.sentAt} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    <DateText iso={inv.expiresAt} />
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       size="sm"

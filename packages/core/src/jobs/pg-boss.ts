@@ -5,8 +5,17 @@ import { JOBS, type JobName, type JobPayload, type JobPublisher } from "./defini
 export class BossJobs implements JobPublisher {
   readonly boss: PgBoss;
 
-  constructor(connectionString: string) {
+  constructor(connectionString: string, options: { onError?: (error: unknown) => void } = {}) {
     this.boss = new PgBoss({ connectionString, schema: "pgboss" });
+    // pg-boss reports fetch and maintenance failures (a dropped connection, a timeout) as
+    // `error` events; without a listener Node treats them as fatal and the process dies.
+    this.boss.on(
+      "error",
+      options.onError ??
+        ((err) => {
+          console.error("pg-boss error", err);
+        }),
+    );
   }
 
   async start(): Promise<void> {
@@ -40,11 +49,18 @@ export class BossJobs implements JobPublisher {
     name: N,
     handler: (payload: JobPayload<N>, jobId: string) => Promise<void>,
     concurrency = 2,
+    onError?: (jobId: string, error: unknown) => void,
   ): Promise<void> {
     await this.boss.work<unknown>(name, { batchSize: concurrency }, async (jobs: Job<unknown>[]) => {
       for (const job of jobs) {
-        const payload = JOBS[name].schema.parse(job.data) as JobPayload<N>;
-        await handler(payload, job.id);
+        try {
+          const payload = JOBS[name].schema.parse(job.data) as JobPayload<N>;
+          await handler(payload, job.id);
+        } catch (err) {
+          // Surface the failure (pg-boss keeps it only in the job row), then let it retry.
+          onError?.(job.id, err);
+          throw err;
+        }
       }
     });
   }

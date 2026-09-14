@@ -6,6 +6,7 @@ import { GitHubPushDialog } from "./GitHubPushDialog";
 import { VersionDiff } from "./VersionDiff";
 import { StatTile } from "@/components/admin/StatTile";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DateText } from "@/components/common/DateText";
 import { ReportMarkdown } from "@/components/report/ReportMarkdown";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import { useSpecVersionDetail } from "@/hooks/useSpecVersions";
 import { t } from "@/i18n";
 import type { SpecVersionDetail, SpecVersionSummary } from "@/lib/api/schemas";
 import { specExportUrl } from "@/lib/api/staff";
-import { formatDate } from "@/lib/utils";
 
 const BUNDLE_FORMATS = ["claude_code", "codex", "generic"] as const;
 type KnownBundleFormat = (typeof BUNDLE_FORMATS)[number];
@@ -44,11 +44,11 @@ export function VersionView({
         <StatusBadge status={v.status} />
         {v.label ? <span className="text-sm font-medium">{v.label}</span> : null}
         <span className="text-muted-foreground text-xs">
-          {s.created}: {formatDate(v.createdAt)}
+          {s.created}: <DateText iso={v.createdAt} />
         </span>
         {v.finishedAt ? (
           <span className="text-muted-foreground text-xs">
-            {s.finished}: {formatDate(v.finishedAt)}
+            {s.finished}: <DateText iso={v.finishedAt} />
           </span>
         ) : null}
       </div>

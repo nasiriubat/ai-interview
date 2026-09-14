@@ -4,12 +4,12 @@ import { Loader2Icon, PlayIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { StatTile } from "@/components/admin/StatTile";
+import { DateText } from "@/components/common/DateText";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { t } from "@/i18n";
 import type { Analysis, AnalysisStatus } from "@/lib/api/schemas";
-import { formatDate } from "@/lib/utils";
 
 const STATUS_TONE: Record<AnalysisStatus, "secondary" | "warning" | "success" | "destructive"> = {
   queued: "secondary",
@@ -77,7 +77,8 @@ export function AnalysisHeader({
                   <option key={a.id} value={a.id}>
                     {s.versionOption(a.version, s.status[a.status])}
                     {i === 0 ? ` (${s.latest})` : ""}
-                    {a.preliminary ? ` · ${s.preliminary}` : ""} · {formatDate(a.finishedAt ?? a.createdAt)}
+                    {a.preliminary ? ` · ${s.preliminary}` : ""} ·{" "}
+                    <DateText iso={a.finishedAt ?? a.createdAt} />
                   </option>
                 ))}
               </select>

@@ -1,7 +1,14 @@
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { defaultAnthropicRoutes, SEED_PRICES } from "@aidp/ai";
+import {
+  defaultAnthropicRoutes,
+  defaultOpenRouterRoutes,
+  OpenAICompatibleProvider,
+  PriceTable,
+  SEED_PRICES,
+} from "@aidp/ai";
 import { Crypto } from "@aidp/core";
+import type { Route } from "@aidp/shared";
 import { PrismaClient } from "@prisma/client";
 import { seed } from "./seed.js";
 
@@ -10,6 +17,8 @@ import { seed } from "./seed.js";
  * - the platform operator company and user (BOOTSTRAP_OPERATOR_EMAIL)
  * - a first tenant with an admin (BOOTSTRAP_TENANT_NAME, BOOTSTRAP_ADMIN_EMAIL)
  * - a platform Anthropic provider from ANTHROPIC_API_KEY with seed prices and default routes
+ * - a platform OpenRouter provider from OPENROUTER_API_KEY with published prices and default routes
+ *   (used only for purposes that have no route yet, so Anthropic wins when both keys are set)
  * - the shipped templates
  */
 export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promise<void> {
@@ -51,6 +60,7 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
     update: {},
   });
 
+  const providers: string[] = [];
   if (env.ANTHROPIC_API_KEY) {
     const provider =
       (await db.provider.findFirst({ where: { companyId: null, kind: "anthropic" } })) ??
@@ -70,28 +80,73 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
         update: {},
       });
     }
-    for (const r of defaultAnthropicRoutes(provider.id)) {
-      const existing = await db.route.findFirst({ where: { companyId: null, purpose: r.purpose } });
-      if (!existing)
-        await db.route.create({
-          data: {
-            companyId: null,
-            purpose: r.purpose,
-            providerId: r.providerId,
-            model: r.model,
-            effort: r.effort ?? null,
-            maxOutputTokens: r.maxOutputTokens,
-            batchAllowed: r.batchAllowed,
-          },
+    await createMissingRoutes(db, defaultAnthropicRoutes(provider.id));
+    providers.push("Anthropic");
+  }
+
+  if (env.OPENROUTER_API_KEY) {
+    const provider =
+      (await db.provider.findFirst({ where: { companyId: null, kind: "openrouter" } })) ??
+      (await db.provider.create({
+        data: {
+          companyId: null,
+          kind: "openrouter",
+          name: "OpenRouter (platform)",
+          apiKeyEnc: crypto.encrypt(env.OPENROUTER_API_KEY),
+          headers: {},
+        },
+      }));
+    // Prices come from OpenRouter's model list; a network failure here only skips the import.
+    try {
+      const adapter = new OpenAICompatibleProvider({
+        id: provider.id,
+        kind: "openrouter",
+        apiKey: env.OPENROUTER_API_KEY,
+      });
+      const table = new PriceTable();
+      table.importFromModels(provider.id, await adapter.listModels());
+      for (const r of defaultOpenRouterRoutes(provider.id)) {
+        const price = table.get(provider.id, r.model);
+        if (!price) continue;
+        await db.modelPrice.upsert({
+          where: { providerId_model: { providerId: provider.id, model: r.model } },
+          create: price,
+          update: {},
         });
+      }
+    } catch (err) {
+      console.warn(
+        `bootstrap: could not import OpenRouter prices: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
+    await createMissingRoutes(db, defaultOpenRouterRoutes(provider.id));
+    providers.push("OpenRouter");
   }
 
   const seeded = await seed(db);
   console.log(
-    `bootstrap: operator ${operatorEmail}, tenant "${tenantName}" admin ${adminEmail}, templates ${seeded.templates}${env.ANTHROPIC_API_KEY ? ", Anthropic provider and default routes" : ", no provider (set ANTHROPIC_API_KEY or add one in the admin UI)"}`,
+    `bootstrap: operator ${operatorEmail}, tenant "${tenantName}" admin ${adminEmail}, templates ${seeded.templates}${providers.length ? `, ${providers.join(" and ")} provider with default routes` : ", no provider (set ANTHROPIC_API_KEY or OPENROUTER_API_KEY, or add one in the admin UI)"}`,
   );
   if (!env.PLATFORM_ENCRYPTION_KEY) console.log(`generated key: ${randomBytes(32).toString("base64")}`);
+}
+
+/** Platform routes are created only for purposes that have none, so an earlier provider keeps its rows. */
+async function createMissingRoutes(db: PrismaClient, routes: Route[]): Promise<void> {
+  for (const r of routes) {
+    const existing = await db.route.findFirst({ where: { companyId: null, purpose: r.purpose } });
+    if (existing) continue;
+    await db.route.create({
+      data: {
+        companyId: null,
+        purpose: r.purpose,
+        providerId: r.providerId,
+        model: r.model,
+        effort: r.effort ?? null,
+        maxOutputTokens: r.maxOutputTokens,
+        batchAllowed: r.batchAllowed,
+      },
+    });
+  }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

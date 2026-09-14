@@ -4,7 +4,7 @@ import { reportPromptV1 } from "../../analysis/prompts/report.v1.js";
 import { issuesPromptV1 } from "../../spec/prompts/issues.v1.js";
 import { specPromptV1 } from "../../spec/prompts/spec.v1.js";
 import { extractionPromptV1 } from "./extraction.v1.js";
-import { interviewerPromptV2 } from "./interviewer.v2.js";
+import { interviewerPromptV3 } from "./interviewer.v3.js";
 import { summaryPromptV1 } from "./summary.v1.js";
 
 export interface PromptDefinition {
@@ -15,7 +15,7 @@ export interface PromptDefinition {
 
 /** Prompts shipped with the code (FR-50). Tenant overrides come through a PromptSource. */
 export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
-  interviewer: interviewerPromptV2,
+  interviewer: interviewerPromptV3,
   summary: summaryPromptV1,
   extraction: extractionPromptV1,
   clustering: clusteringPromptV1,

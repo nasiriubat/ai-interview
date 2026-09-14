@@ -6,7 +6,7 @@ export * from "./cost/pricing.js";
 export * from "./cost/ledger.js";
 export * from "./cost/budget.js";
 export * from "./callModel.js";
-export { defaultAnthropicRoutes } from "./routes/defaults.js";
+export { defaultAnthropicRoutes, defaultOpenRouterRoutes } from "./routes/defaults.js";
 export * from "./engine/index.js";
 export * from "./analysis/index.js";
 export * from "./spec/index.js";
