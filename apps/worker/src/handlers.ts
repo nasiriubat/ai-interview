@@ -91,6 +91,7 @@ export function handlers(deps: HandlerDeps): Handlers {
         subject: m.subject,
         text: m.text,
         ...(m.html ? { html: m.html } : {}),
+        ...(m.companyId ? { companyId: m.companyId } : {}),
       });
     },
 

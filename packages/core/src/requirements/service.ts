@@ -206,20 +206,31 @@ export class RequirementsService {
     return this.sessionView(row);
   }
 
-  async list(companyId: string, viewer: Viewer): Promise<RequirementsListItem[]> {
-    const rows = await this.deps.db.session.findMany({
-      where: {
-        companyId,
-        ownerUserId: viewer.role === "member" ? viewer.userId : { not: null },
-        template: { key: REQUIREMENTS_TEMPLATE_KEY },
-        status: { not: "deleted" },
-        // Template previews are owned sessions too; their participant is the previewing admin.
-        OR: [{ participantId: null }, { participant: { userId: null } }],
-      },
-      include: { owner: { select: { email: true } }, _count: { select: { specs: true } } },
-      orderBy: { createdAt: "desc" },
-    });
-    return rows.map((r) => {
+  /** One page of requirements sessions, newest first, with the row count beside it (contract 19). */
+  async list(
+    companyId: string,
+    viewer: Viewer,
+    page: { limit: number; offset: number } = { limit: 50, offset: 0 },
+  ): Promise<{ sessions: RequirementsListItem[]; total: number }> {
+    const where = {
+      companyId,
+      ownerUserId: viewer.role === "member" ? viewer.userId : { not: null },
+      template: { key: REQUIREMENTS_TEMPLATE_KEY },
+      status: { not: "deleted" },
+      // Template previews are owned sessions too; their participant is the previewing admin.
+      OR: [{ participantId: null }, { participant: { userId: null } }],
+    };
+    const [rows, total] = await this.deps.db.$transaction([
+      this.deps.db.session.findMany({
+        where,
+        include: { owner: { select: { email: true } }, _count: { select: { specs: true } } },
+        orderBy: { createdAt: "desc" },
+        take: page.limit,
+        skip: page.offset,
+      }),
+      this.deps.db.session.count({ where }),
+    ]);
+    const sessions = rows.map((r) => {
       const state = SessionStateSchema.safeParse(r.state);
       const findings = state.success ? state.data.findings : [];
       return {
@@ -236,6 +247,7 @@ export class RequirementsService {
         ...(r.endedAt ? { endedAt: r.endedAt } : {}),
       };
     });
+    return { sessions, total };
   }
 
   async get(
@@ -633,6 +645,7 @@ export class RequirementsService {
     const link = `${this.deps.publicWebUrl.replace(/\/$/, "")}/p/r/${token}`;
     await this.deps.email.send({
       to,
+      companyId,
       subject: `You are invited to describe "${row.title || "a product idea"}"`,
       text: [
         `You have been invited to answer a few questions about "${row.title || "a product idea"}" in ${productName}.`,

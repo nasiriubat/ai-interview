@@ -25,6 +25,15 @@ export interface RouteRowOut {
   inherited: boolean;
 }
 
+export interface ModelsResult {
+  models: ModelInfo[];
+  importedPrices: number;
+  /** When the catalogue was read; the newest stored price when the answer is stale, null when nothing is stored. */
+  fetchedAt: Date | null;
+  stale: boolean;
+  error?: string;
+}
+
 export interface ProviderPatch {
   kind?: string | undefined;
   name?: string | undefined;
@@ -123,13 +132,19 @@ export class ProviderService {
     );
   }
 
-  /** Live model list; imports published prices without overwriting admin prices (FR-41). */
-  async models(
-    companyId: string | null,
-    id: string,
-  ): Promise<{ models: ModelInfo[]; importedPrices: number }> {
+  /**
+   * Live model list; imports published prices without overwriting admin prices (FR-41). When the
+   * provider cannot be reached the answer is the last imported prices with `stale: true`, so the
+   * screen degrades instead of failing (contract 19).
+   */
+  async models(companyId: string | null, id: string): Promise<ModelsResult> {
     const p = await this.get(companyId, id);
-    const models = await this.adapter(p).listModels();
+    let models: ModelInfo[];
+    try {
+      models = await this.adapter(p).listModels();
+    } catch (err) {
+      return this.storedModels(p.id, err instanceof Error ? err.message : String(err));
+    }
     const table = new PriceTable();
     table.importFromModels(p.id, models);
     let importedPrices = 0;
@@ -159,19 +174,77 @@ export class ProviderService {
       });
       importedPrices++;
     }
-    return { models, importedPrices };
+    return { models, importedPrices, fetchedAt: new Date(), stale: false };
   }
 
-  /** Sends one tiny request through the adapter and prices it (FR-43). */
+  /** The catalogue rebuilt from stored prices, for when the provider is unreachable. */
+  private async storedModels(providerId: string, error: string): Promise<ModelsResult> {
+    const rows = await this.db.modelPrice.findMany({
+      where: { providerId },
+      orderBy: { model: "asc" },
+    });
+    const newest = rows.reduce<Date | null>(
+      (acc, r) => (acc === null || r.updatedAt > acc ? r.updatedAt : acc),
+      null,
+    );
+    return {
+      models: rows.map((r) => ({
+        id: r.model,
+        name: r.model,
+        inputPerMtok: r.inputPerMtok,
+        cachedInputPerMtok: r.cachedInputPerMtok,
+        outputPerMtok: r.outputPerMtok,
+      })),
+      importedPrices: 0,
+      fetchedAt: newest,
+      stale: true,
+      error,
+    };
+  }
+
+  /**
+   * The model a test uses when the caller names none: the newest route pointing at this provider
+   * (ids are time-ordered cuids, and Route carries no timestamp), else the provider's first model.
+   */
+  private async defaultModel(companyId: string | null, p: Provider): Promise<string> {
+    const route = await this.db.route.findFirst({
+      where: { providerId: p.id, ...(companyId ? { OR: [{ companyId }, { companyId: null }] } : {}) },
+      orderBy: { id: "desc" },
+    });
+    if (route) return route.model;
+    try {
+      const first = (await this.adapter(p).listModels())[0];
+      if (first) return first.id;
+    } catch {
+      // The provider is unreachable; the caller has to name a model.
+    }
+    throw new AppError(
+      "validation",
+      "No model could be determined for this provider; choose one and send it as `model`",
+    );
+  }
+
+  /**
+   * Sends one tiny request through the adapter and prices it (FR-43). Without an explicit model
+   * it uses the newest route that points at this provider, else the first model the provider lists.
+   */
   async test(
     companyId: string | null,
     id: string,
-    model: string,
-  ): Promise<{ ok: boolean; latencyMs: number; tokens: number; costCents: number; error?: string }> {
+    model?: string,
+  ): Promise<{
+    ok: boolean;
+    model: string;
+    latencyMs: number;
+    tokens: number;
+    costCents: number;
+    error?: string;
+  }> {
     const p = await this.get(companyId, id);
+    const chosen = model ?? (await this.defaultModel(companyId, p));
     const started = Date.now();
     try {
-      const events = this.adapter(p).chat(model, {
+      const events = this.adapter(p).chat(chosen, {
         messages: [{ role: "user", content: "Reply with the single word: ready" }],
         maxOutputTokens: 16,
         cachePrefix: false,
@@ -180,9 +253,10 @@ export class ProviderService {
       for await (const ev of events) if (ev.type === "done") usage = ev.usage;
       const table = new PriceTable();
       await loadPrices(this.db, companyId ?? "", table);
-      const price = table.get(p.id, model);
+      const price = table.get(p.id, chosen);
       return {
         ok: true,
+        model: chosen,
         latencyMs: Date.now() - started,
         tokens: usage.inputTokens + usage.outputTokens,
         costCents: price ? costCents(price, usage) : 0,
@@ -190,6 +264,7 @@ export class ProviderService {
     } catch (err) {
       return {
         ok: false,
+        model: chosen,
         latencyMs: Date.now() - started,
         tokens: 0,
         costCents: 0,
@@ -211,17 +286,60 @@ export class ProviderService {
     );
   }
 
+  /** One page of prices with the row count beside it (contract 19). */
+  async pricesPage(
+    providerId: string,
+    page: { limit: number; offset: number },
+  ): Promise<{ prices: ModelPrice[]; total: number }> {
+    const [rows, total] = await this.db.$transaction([
+      this.db.modelPrice.findMany({
+        where: { providerId },
+        orderBy: { model: "asc" },
+        take: page.limit,
+        skip: page.offset,
+      }),
+      this.db.modelPrice.count({ where: { providerId } }),
+    ]);
+    return {
+      prices: rows.map((r) => ({
+        providerId: r.providerId,
+        model: r.model,
+        inputPerMtok: r.inputPerMtok,
+        cachedInputPerMtok: r.cachedInputPerMtok,
+        outputPerMtok: r.outputPerMtok,
+        source: r.source as ModelPrice["source"],
+      })),
+      total,
+    };
+  }
+
   async setPrice(
     companyId: string | null,
     providerId: string,
     price: Omit<ModelPrice, "providerId" | "source">,
   ): Promise<void> {
+    await this.setPrices(companyId, providerId, [price]);
+  }
+
+  /**
+   * Admin prices for a provider, written as one transaction so a half-applied table is impossible.
+   * `source: "admin"` is what protects these rows from being overwritten by the next import.
+   */
+  async setPrices(
+    companyId: string | null,
+    providerId: string,
+    prices: Omit<ModelPrice, "providerId" | "source">[],
+  ): Promise<void> {
     await this.get(companyId, providerId);
-    await this.db.modelPrice.upsert({
-      where: { providerId_model: { providerId, model: price.model } },
-      create: { providerId, ...price, source: "admin" },
-      update: { ...price, source: "admin" },
-    });
+    await this.db.$transaction(
+      prices.map((price) =>
+        this.db.modelPrice.upsert({
+          where: { providerId_model: { providerId, model: price.model } },
+          create: { providerId, ...price, source: "admin" },
+          update: { ...price, source: "admin" },
+        }),
+      ),
+    );
   }
 
   /** Flat `Route` rows in contract shape for every purpose that has a route; unrouted purposes are absent. */

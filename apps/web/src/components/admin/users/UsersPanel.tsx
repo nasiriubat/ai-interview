@@ -55,6 +55,7 @@ export function UsersPanel({ users, canEdit }: { users: User[]; canEdit: boolean
             id="user-role"
             label={s.role}
             value={role}
+            required
             options={ROLES.map((r) => ({ value: r, label: t.admin.nav.role[r] }))}
             onChange={setRole}
           />

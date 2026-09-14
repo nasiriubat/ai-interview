@@ -17,6 +17,7 @@ import { requireStaff, staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
+import { PageQuery } from "../../lib/pagination.js";
 import { runTurn } from "../sessions/turn-runner.js";
 
 const Id = z.object({ id: z.string() });
@@ -58,9 +59,14 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
 
   // ---------- Sessions ----------
 
-  app.get("/requirements", { preHandler: requireStaff() }, async (req) => ({
-    sessions: await svc.list(req.companyId, viewerOf(req)),
-  }));
+  app.get(
+    "/requirements",
+    { preHandler: requireStaff(), schema: { querystring: PageQuery } },
+    async (req) => {
+      const { sessions, total } = await svc.list(req.companyId, viewerOf(req), req.query);
+      return { sessions, total, limit: req.query.limit, offset: req.query.offset };
+    },
+  );
 
   app.post(
     "/requirements",

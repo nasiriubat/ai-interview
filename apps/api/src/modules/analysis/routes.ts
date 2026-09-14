@@ -6,6 +6,7 @@ import { requireStaff, staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, notFound } from "../../lib/errors.js";
+import { PageQuery } from "../../lib/pagination.js";
 
 const Id = z.object({ id: z.string() });
 
@@ -65,14 +66,29 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
     },
   );
 
-  app.get("/campaigns/:id/analyses", { preHandler: requireStaff(), schema: { params: Id } }, async (req) => {
-    await campaignOf(req.companyId, req.params.id);
-    const analyses = await ctx.db.analysis.findMany({
-      where: { campaignId: req.params.id },
-      orderBy: { version: "desc" },
-    });
-    return { analyses: analyses.map(analysisView) };
-  });
+  app.get(
+    "/campaigns/:id/analyses",
+    { preHandler: requireStaff(), schema: { params: Id, querystring: PageQuery } },
+    async (req) => {
+      await campaignOf(req.companyId, req.params.id);
+      const where = { campaignId: req.params.id };
+      const [analyses, total] = await ctx.db.$transaction([
+        ctx.db.analysis.findMany({
+          where,
+          orderBy: { version: "desc" },
+          take: req.query.limit,
+          skip: req.query.offset,
+        }),
+        ctx.db.analysis.count({ where }),
+      ]);
+      return {
+        analyses: analyses.map(analysisView),
+        total,
+        limit: req.query.limit,
+        offset: req.query.offset,
+      };
+    },
+  );
 
   const loadAnalysis = async (companyId: string, id: string) => {
     const a = await ctx.db.analysis.findFirst({

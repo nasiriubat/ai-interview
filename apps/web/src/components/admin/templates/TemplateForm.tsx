@@ -178,6 +178,7 @@ export function TemplateForm({
             value={d.key}
             hint={f.keyHint}
             error={err("key")}
+            required
             onChange={(v) => {
               patch({ key: v });
             }}
@@ -187,6 +188,7 @@ export function TemplateForm({
             label={f.name}
             value={d.name}
             error={err("name")}
+            required
             onChange={(v) => {
               patch({ name: v });
             }}
@@ -196,6 +198,7 @@ export function TemplateForm({
             label={f.language}
             value={d.language}
             error={err("language")}
+            required
             onChange={(v) => {
               patch({ language: v });
             }}
@@ -220,6 +223,7 @@ export function TemplateForm({
           value={d.objective}
           hint={f.objectiveHint}
           error={err("objective")}
+          required
           rows={3}
           onChange={(v) => {
             patch({ objective: v });
@@ -261,6 +265,7 @@ export function TemplateForm({
                   label={f.fieldKey}
                   value={it.key}
                   error={err(`participantFields.${i}.key`)}
+                  required
                   onChange={(v) => {
                     update({ key: v });
                   }}
@@ -270,6 +275,7 @@ export function TemplateForm({
                   label={f.fieldLabel}
                   value={it.label}
                   error={err(`participantFields.${i}.label`)}
+                  required
                   onChange={(v) => {
                     update({ label: v });
                   }}
@@ -308,6 +314,7 @@ export function TemplateForm({
                   label={f.contextKey}
                   value={it.key}
                   error={err(`contextBlock.${i}.key`)}
+                  required
                   onChange={(v) => {
                     update({ key: v });
                   }}
@@ -326,6 +333,7 @@ export function TemplateForm({
                 label={f.contextQuestion}
                 value={it.question}
                 error={err(`contextBlock.${i}.question`)}
+                required
                 onChange={(v) => {
                   update({ question: v });
                 }}
@@ -390,6 +398,7 @@ export function TemplateForm({
                   label={f.areaKey}
                   value={it.key}
                   error={err(`coverageAreas.${i}.key`)}
+                  required
                   onChange={(v) => {
                     update({ key: v });
                   }}
@@ -399,6 +408,7 @@ export function TemplateForm({
                   label={f.areaName}
                   value={it.name}
                   error={err(`coverageAreas.${i}.name`)}
+                  required
                   onChange={(v) => {
                     update({ name: v });
                   }}

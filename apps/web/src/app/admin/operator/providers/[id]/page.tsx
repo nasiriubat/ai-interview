@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import * as React from "react";
+import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { ModelsPanel } from "@/components/admin/providers/ModelsPanel";
 import { t } from "@/i18n";
 import { getStrings } from "@/i18n/server";
+import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,18 +18,30 @@ interface Props {
 }
 
 export default async function PlatformProviderModelsPage({ params }: Props): Promise<React.JSX.Element> {
+  await requireMe();
   const { id } = await params;
   const api = await staffServer();
-  const [providers, prices] = await Promise.all([
+  const [providersR, pricesR, catalogueR] = await Promise.allSettled([
     api.operator.providers.list(),
-    api.operator.providers.prices(id).catch(() => []),
+    api.operator.providers.prices(id, { limit: 200 }),
+    api.operator.providers.models(id),
   ]);
-  const provider = providers.find((p) => p.id === id);
+  const providers = settled(providersR);
+  if (!providers.data) return <LoadError error={providers.error} />;
+  const provider = providers.data.find((p) => p.id === id);
   if (!provider) notFound();
+  const prices = settled(pricesR);
+  const catalogue = settled(catalogueR);
   return (
     <>
       <PageHeader title={provider.name} subtitle={`${provider.kind} · ${t.admin.providers.models}`} />
-      <ModelsPanel providerId={id} prices={prices} scope="platform" />
+      <ModelsPanel
+        providerId={id}
+        prices={prices.data?.items ?? []}
+        catalogue={catalogue.data}
+        catalogueError={catalogue.error}
+        scope="platform"
+      />
     </>
   );
 }

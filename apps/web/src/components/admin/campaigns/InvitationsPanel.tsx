@@ -1,10 +1,11 @@
 "use client";
 
-import { SendIcon, UploadIcon } from "lucide-react";
+import { BellIcon, BanIcon, SendIcon, UploadIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
+import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { DateText } from "@/components/common/DateText";
 import { Button } from "@/components/ui/button";
@@ -108,65 +109,63 @@ export function InvitationsPanel({
       {invitations.length === 0 ? (
         <EmptyState text={s.noInvitations} />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{s.invitationEmail}</TableHead>
-              <TableHead>{s.invitationStatus}</TableHead>
-              <TableHead>{s.invitationSent}</TableHead>
-              <TableHead>{s.invitationOpened}</TableHead>
-              <TableHead className="text-right">{t.admin.common.actions}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invitations.map((inv) => (
-              <TableRow key={inv.id}>
-                <TableCell>
-                  {inv.email ?? <span className="text-muted-foreground">{s.anonymousEmail}</span>}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={inv.status} />
-                </TableCell>
-                <TableCell className="text-muted-foreground text-xs">
-                  <DateText iso={inv.sentAt} />
-                </TableCell>
-                <TableCell className="text-muted-foreground text-xs">
-                  <DateText iso={inv.openedAt} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={rowAction.busy || inv.status === "revoked" || inv.status === "completed"}
-                      onClick={() => {
-                        void rowAction.run(async () => {
-                          await staffClient.campaigns.remind(campaignId, inv.id);
-                        }, s.reminded);
-                      }}
-                    >
-                      {s.remind}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      disabled={rowAction.busy || inv.status === "revoked"}
-                      onClick={() => {
-                        void rowAction.run(async () => {
-                          await staffClient.campaigns.revoke(campaignId, inv.id);
-                          router.refresh();
-                        }, s.revoked);
-                      }}
-                    >
-                      {s.revoke}
-                    </Button>
-                  </div>
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{s.invitationEmail}</TableHead>
+                <TableHead>{s.invitationStatus}</TableHead>
+                <TableHead>{s.invitationSent}</TableHead>
+                <TableHead>{s.invitationOpened}</TableHead>
+                <TableHead className="text-right">{t.admin.common.actions}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {invitations.map((inv) => (
+                <TableRow key={inv.id}>
+                  <TableCell>
+                    {inv.email ?? <span className="text-muted-foreground">{s.anonymousEmail}</span>}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={inv.status} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    <DateText iso={inv.sentAt} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    <DateText iso={inv.openedAt} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <RowActions>
+                      <IconButton
+                        label={`${s.remind}: ${inv.email ?? inv.id}`}
+                        icon={BellIcon}
+                        disabled={rowAction.busy || inv.status === "revoked" || inv.status === "completed"}
+                        onClick={() => {
+                          void rowAction.run(async () => {
+                            await staffClient.campaigns.remind(campaignId, inv.id);
+                          }, s.reminded);
+                        }}
+                      />
+                      <IconButton
+                        label={`${s.revoke}: ${inv.email ?? inv.id}`}
+                        icon={BanIcon}
+                        className="text-destructive hover:text-destructive"
+                        disabled={rowAction.busy || inv.status === "revoked"}
+                        onClick={() => {
+                          void rowAction.run(async () => {
+                            await staffClient.campaigns.revoke(campaignId, inv.id);
+                            router.refresh();
+                          }, s.revoked);
+                        }}
+                      />
+                    </RowActions>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   );

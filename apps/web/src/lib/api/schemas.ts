@@ -54,6 +54,51 @@ export function listOf<T extends z.ZodType>(item: T, key?: string): z.ZodType<z.
   }, z.array(item));
 }
 
+/**
+ * A page of a list (contract 19): the list keeps its old key, `total`, `limit` and `offset`
+ * sit beside it. A bare array (an API that has not been upgraded yet) parses as one page
+ * with unknown totals, so a screen keeps working either way.
+ */
+export interface Paged<T> {
+  items: T[];
+  total: number | null;
+  limit: number | null;
+  offset: number | null;
+}
+
+function pageEnvelope(raw: unknown, key?: string): unknown {
+  const empty = { total: null, limit: null, offset: null };
+  if (Array.isArray(raw)) return { items: raw, ...empty };
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    for (const k of [key, "items", "rows", "entries", "data"]) {
+      const candidate = k ? obj[k] : undefined;
+      if (Array.isArray(candidate)) {
+        return {
+          items: candidate,
+          total: typeof obj.total === "number" ? obj.total : null,
+          limit: typeof obj.limit === "number" ? obj.limit : null,
+          offset: typeof obj.offset === "number" ? obj.offset : null,
+        };
+      }
+    }
+  }
+  return { items: raw, ...empty };
+}
+
+/** Same tolerance as `listOf`, but keeps the pagination counters when the API sends them. */
+export function pagedOf<T extends z.ZodType>(item: T, key?: string): z.ZodType<Paged<z.output<T>>> {
+  return z.preprocess(
+    (raw) => pageEnvelope(raw, key),
+    z.object({
+      items: z.array(item),
+      total: z.number().nullable().default(null),
+      limit: z.number().nullable().default(null),
+      offset: z.number().nullable().default(null),
+    }),
+  );
+}
+
 export const OkSchema = z.looseObject({ ok: z.literal(true) });
 
 // Participant flow
@@ -166,7 +211,7 @@ export const UserSchema = z.looseObject({
   createdAt: iso.nullish(),
 });
 export type User = z.infer<typeof UserSchema>;
-export const UserListSchema = listOf(UserSchema, "users");
+export const UserPageSchema = pagedOf(UserSchema, "users");
 
 export const TemplateStatusSchema = z.enum(["draft", "published", "archived"]);
 export const TemplateRecordSchema = InterviewTemplateSchema.extend({
@@ -227,7 +272,7 @@ export const CampaignSchema = z.looseObject({
   stats: CampaignStatsSchema.nullish(),
 });
 export type Campaign = z.infer<typeof CampaignSchema>;
-export const CampaignListSchema = listOf(CampaignSchema, "campaigns");
+export const CampaignPageSchema = pagedOf(CampaignSchema, "campaigns");
 export const CampaignEnvelopeSchema = z.preprocess(
   (raw) => (raw && typeof raw === "object" && "campaign" in raw ? raw.campaign : raw),
   CampaignSchema,
@@ -260,7 +305,7 @@ export const SessionListItemSchema = z.looseObject({
   updatedAt: iso.nullish(),
 });
 export type SessionListItem = z.infer<typeof SessionListItemSchema>;
-export const SessionListSchema = listOf(SessionListItemSchema, "sessions");
+export const SessionPageSchema = pagedOf(SessionListItemSchema, "sessions");
 
 export const StaffSessionSchema = z.looseObject({
   id: z.string(),
@@ -297,13 +342,39 @@ export const SettingsCatalogEntrySchema = z.looseObject({
   description: z.string().default(""),
   default: z.unknown(),
   scopes: z.array(z.string()).default([]),
+  /** Contract 19: a secret never leaves the API in plain text. */
+  secret: z.boolean().nullish(),
 });
 export type SettingsCatalogEntry = z.infer<typeof SettingsCatalogEntrySchema>;
 export const SettingsResponseSchema = z.looseObject({
   values: z.record(z.string(), z.unknown()).default({}),
   catalog: z.array(SettingsCatalogEntrySchema).default([]),
+  /** The value in force at this scope, inherited values included. Falls back to `values`. */
+  effective: z.record(z.string(), z.unknown()).nullish(),
+  /** `{ [key]: true }` for every secret that holds a value at the resolved scope. */
+  secrets: z.record(z.string(), z.boolean()).nullish(),
+  /** Optional: which scope each effective value came from. Absent means "guess from `values`". */
+  sources: z.record(z.string(), z.string()).nullish(),
 });
 export type SettingsResponse = z.infer<typeof SettingsResponseSchema>;
+
+/** The sentinel `PUT /settings` reads as "leave this secret as it is" (contract 19). */
+export const SECRET_UNCHANGED = "__unchanged__";
+
+export const ScopeTargetSchema = z.looseObject({
+  id: z.string(),
+  name: z.string().default(""),
+  detail: z.string().nullish(),
+});
+export type ScopeTarget = z.infer<typeof ScopeTargetSchema>;
+export const ScopeTargetListSchema = listOf(ScopeTargetSchema, "targets");
+
+export const EmailTestSchema = z.looseObject({
+  ok: z.boolean().default(false),
+  usedScope: z.string().nullish(),
+  error: z.string().nullish(),
+});
+export type EmailTest = z.infer<typeof EmailTestSchema>;
 
 export const ProviderSchema = z.looseObject({
   id: z.string(),
@@ -324,6 +395,8 @@ export const ProviderEnvelopeSchema = z.preprocess(
 
 export const ProviderTestSchema = z.looseObject({
   ok: z.boolean(),
+  /** The model the API picked when the request carried none (contract 19). */
+  model: z.string().nullish(),
   latencyMs: z.number().nullish(),
   tokens: z.number().nullish(),
   costCents: z.number().nullish(),
@@ -331,10 +404,59 @@ export const ProviderTestSchema = z.looseObject({
 });
 export type ProviderTest = z.infer<typeof ProviderTestSchema>;
 
-export const ModelPriceSchema = ModelInfoSchema.loose();
+/** Where a stored price came from: the shipped seed, a provider import, or an admin override. */
+export const PriceSourceSchema = z.enum(["seed", "provider", "admin"]);
+export type PriceSource = z.infer<typeof PriceSourceSchema>;
+
+/**
+ * `ModelInfo` from the shared catalog, widened for contract 19: the provider catalogue may
+ * carry `contextLength` instead of `contextWindow`, a `maxOutputTokens`, and a `source`
+ * saying whether the price came from the provider or from an admin override.
+ */
+export const ModelPriceSchema = ModelInfoSchema.loose().extend({
+  contextLength: z.number().nullish(),
+  maxOutputTokens: z.number().nullish(),
+  source: PriceSourceSchema.nullish(),
+});
 export type ModelPrice = z.infer<typeof ModelPriceSchema>;
 export const ModelListSchema = listOf(ModelPriceSchema, "models");
-export const PriceListSchema = listOf(ModelPriceSchema, "prices");
+
+/**
+ * A stored price row of `GET /providers/:id/prices`. It is keyed by `model`, not by the
+ * catalogue's `id`, and carries no display name; `source` says whether the number was
+ * imported from the provider or typed by an admin (an admin override always wins).
+ */
+export const ModelPriceRowSchema = z.looseObject({
+  providerId: z.string().nullish(),
+  model: z.string(),
+  inputPerMtok: z.number().nullish(),
+  cachedInputPerMtok: z.number().nullish(),
+  outputPerMtok: z.number().nullish(),
+  source: PriceSourceSchema.nullish(),
+});
+export type ModelPriceRow = z.infer<typeof ModelPriceRowSchema>;
+export const PricePageSchema = pagedOf(ModelPriceRowSchema, "prices");
+
+/** The body of `PUT /providers/:id/prices`: one entry per model that carries an override. */
+export interface ModelPriceInput {
+  model: string;
+  inputPerMtok?: number;
+  cachedInputPerMtok?: number;
+  outputPerMtok?: number;
+}
+
+/** `GET /providers/:id/models`: the live catalogue, degrading to the last import when stale. */
+export const ModelCatalogueSchema = z.preprocess(
+  (raw) => (Array.isArray(raw) ? { models: raw } : raw),
+  z.looseObject({
+    models: z.array(ModelPriceSchema).default([]),
+    importedPrices: z.number().nullish(),
+    fetchedAt: iso.nullish(),
+    stale: z.boolean().default(false),
+    error: z.string().nullish(),
+  }),
+);
+export type ModelCatalogue = z.infer<typeof ModelCatalogueSchema>;
 
 export const RouteRecordSchema = RouteSchema.loose().extend({ id: z.string().nullish() });
 export type RouteRecord = z.infer<typeof RouteRecordSchema>;
@@ -345,7 +467,7 @@ export const BudgetRecordSchema = BudgetLimitSchema.loose().extend({
   spentCents: z.number().nullish(),
 });
 export type BudgetRecord = z.infer<typeof BudgetRecordSchema>;
-export const BudgetListSchema = listOf(BudgetRecordSchema, "budgets");
+export const BudgetPageSchema = pagedOf(BudgetRecordSchema, "budgets");
 
 export const SpendSchema = z.looseObject({
   rows: z
@@ -382,7 +504,7 @@ export const AuditEntrySchema = z.looseObject({
   details: z.unknown().nullish(),
 });
 export type AuditEntry = z.infer<typeof AuditEntrySchema>;
-export const AuditListSchema = listOf(AuditEntrySchema, "audit");
+export const AuditPageSchema = pagedOf(AuditEntrySchema, "audit");
 
 export const TenantSchema = z.looseObject({
   id: z.string(),
@@ -393,7 +515,7 @@ export const TenantSchema = z.looseObject({
   createdAt: iso.nullish(),
 });
 export type Tenant = z.infer<typeof TenantSchema>;
-export const TenantListSchema = listOf(TenantSchema, "tenants");
+export const TenantPageSchema = pagedOf(TenantSchema, "tenants");
 export const TenantEnvelopeSchema = z.preprocess(
   (raw) => (raw && typeof raw === "object" && "tenant" in raw ? raw.tenant : raw),
   TenantSchema,
@@ -437,7 +559,7 @@ export const AnalysisSchema = z.looseObject({
   createdAt: iso.default(""),
 });
 export type Analysis = z.infer<typeof AnalysisSchema>;
-export const AnalysisListSchema = listOf(AnalysisSchema, "analyses");
+export const AnalysisPageSchema = pagedOf(AnalysisSchema, "analyses");
 export const AnalysisEnvelopeSchema = z.preprocess(
   (raw) => (raw && typeof raw === "object" && "analysis" in raw ? raw.analysis : raw),
   AnalysisSchema,
@@ -533,7 +655,7 @@ export const RequirementsListItemSchema = z.looseObject({
   endedAt: iso.nullish(),
 });
 export type RequirementsListItem = z.infer<typeof RequirementsListItemSchema>;
-export const RequirementsListSchema = listOf(RequirementsListItemSchema, "sessions");
+export const RequirementsPageSchema = pagedOf(RequirementsListItemSchema, "sessions");
 
 export const RequirementsSessionSchema = z.looseObject({
   id: z.string(),

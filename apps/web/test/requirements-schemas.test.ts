@@ -4,7 +4,7 @@ import {
   InviteArrivalSchema,
   LiveSpecSchema,
   RequirementsDetailSchema,
-  RequirementsListSchema,
+  RequirementsPageSchema,
   RequirementsSessionEnvelopeSchema,
   SessionInvitationEnvelopeSchema,
   SpecDiffSchema,
@@ -55,7 +55,7 @@ const liveSpec = {
 
 describe("contract 18 schemas", () => {
   it("parses the requirements list and the session envelope", () => {
-    const list = RequirementsListSchema.parse({
+    const page = RequirementsPageSchema.parse({
       sessions: [
         {
           id: "s1",
@@ -71,7 +71,7 @@ describe("contract 18 schemas", () => {
         },
       ],
     });
-    expect(list[0]).toMatchObject({ id: "s1", versions: 2, openFindings: 1, path: "technical" });
+    expect(page.items[0]).toMatchObject({ id: "s1", versions: 2, openFindings: 1, path: "technical" });
 
     const session = RequirementsSessionEnvelopeSchema.parse({
       session: {

@@ -1,8 +1,9 @@
 "use client";
 
-import { SendIcon } from "lucide-react";
+import { BanIcon, SendIcon } from "lucide-react";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
+import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { DateText } from "@/components/common/DateText";
 import { Button } from "@/components/ui/button";
@@ -110,17 +111,17 @@ export function InvitationsSection({
                     <DateText iso={inv.expiresAt} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      disabled={rowAction.busy || inv.status === "revoked"}
-                      onClick={() => {
-                        revoke(inv);
-                      }}
-                    >
-                      {s.revoke}
-                    </Button>
+                    <RowActions>
+                      <IconButton
+                        label={`${s.revoke}: ${inv.email}`}
+                        icon={BanIcon}
+                        className="text-destructive hover:text-destructive"
+                        disabled={rowAction.busy || inv.status === "revoked"}
+                        onClick={() => {
+                          revoke(inv);
+                        }}
+                      />
+                    </RowActions>
                   </TableCell>
                 </TableRow>
               ))}

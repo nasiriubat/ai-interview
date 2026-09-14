@@ -17,7 +17,7 @@ import {
   type RequirementsDetail,
   RequirementsDetailSchema,
   type RequirementsListItem,
-  RequirementsListSchema,
+  RequirementsPageSchema,
   type RequirementsSession,
   RequirementsSessionEnvelopeSchema,
   type SessionInvitation,
@@ -35,27 +35,32 @@ import {
   type AnalysisDiff,
   AnalysisDiffSchema,
   AnalysisEnvelopeSchema,
-  AnalysisListSchema,
-  AuditListSchema,
+  AnalysisPageSchema,
+  AuditPageSchema,
   type AuditEntry,
-  BudgetListSchema,
+  BudgetPageSchema,
   type BudgetRecord,
   CampaignEnvelopeSchema,
-  CampaignListSchema,
+  CampaignPageSchema,
   type Campaign,
+  type EmailTest,
+  EmailTestSchema,
   HealthSchema,
   InvitationListSchema,
   InvitationResultSchema,
   type Invitation,
   MeSchema,
   type Me,
-  ModelListSchema,
-  type ModelPrice,
+  type ModelCatalogue,
+  ModelCatalogueSchema,
+  type ModelPriceInput,
+  type ModelPriceRow,
   OkSchema,
   type Opportunity,
   OpportunityEnvelopeSchema,
+  type Paged,
   PreviewSessionSchema,
-  PriceListSchema,
+  PricePageSchema,
   type PromoteResult,
   PromoteResultSchema,
   ProviderEnvelopeSchema,
@@ -65,9 +70,11 @@ import {
   type ProviderTest,
   type RouteRecord,
   RoutesResponseSchema,
+  type ScopeTarget,
+  ScopeTargetListSchema,
   SessionEventListSchema,
   type SessionEvent,
-  SessionListSchema,
+  SessionPageSchema,
   type SessionListItem,
   SettingsResponseSchema,
   type SettingsResponse,
@@ -85,9 +92,9 @@ import {
   type TemplateListItem,
   type TemplateRecord,
   TenantEnvelopeSchema,
-  TenantListSchema,
+  TenantPageSchema,
   type Tenant,
-  UserListSchema,
+  UserPageSchema,
   type User,
 } from "./schemas";
 
@@ -115,6 +122,15 @@ export interface SettingsQuery {
   scope?: string;
   scopeId?: string;
 }
+
+/** Contract 19: every staff list that can grow takes `limit` (1..200) and `offset`. */
+export interface PageQuery {
+  limit?: number;
+  offset?: number;
+}
+
+/** The scopes that answer `GET /settings/scopes` with named targets. */
+export type ScopeKind = "template" | "campaign" | "tenant";
 
 export interface UserInput {
   email: string;
@@ -177,7 +193,7 @@ export function staffApi(transport: Transport): StaffApi {
     health: () => request(transport, { path: "/health/ready", schema: HealthSchema }),
 
     users: {
-      list: () => request(transport, { path: "/users", schema: UserListSchema }),
+      list: (q) => request(transport, { path: "/users", query: { ...q }, schema: UserPageSchema }),
       create: (input) => request(transport, { method: "POST", path: "/users", body: input }),
       update: (id, input) => request(transport, { method: "PATCH", path: `/users/${id}`, body: input }),
     },
@@ -212,7 +228,7 @@ export function staffApi(transport: Transport): StaffApi {
     },
 
     campaigns: {
-      list: () => request(transport, { path: "/campaigns", schema: CampaignListSchema }),
+      list: (q) => request(transport, { path: "/campaigns", query: { ...q }, schema: CampaignPageSchema }),
       get: (id) => request(transport, { path: `/campaigns/${id}`, schema: envelope(CampaignEnvelopeSchema) }),
       create: (input) =>
         request(transport, {
@@ -243,7 +259,8 @@ export function staffApi(transport: Transport): StaffApi {
         ok(request(transport, { method: "POST", path: `/campaigns/${id}/invitations/${invId}/remind` })),
       revoke: (id, invId) =>
         ok(request(transport, { method: "POST", path: `/campaigns/${id}/invitations/${invId}/revoke` })),
-      sessions: (id) => request(transport, { path: `/campaigns/${id}/sessions`, schema: SessionListSchema }),
+      sessions: (id, q) =>
+        request(transport, { path: `/campaigns/${id}/sessions`, query: { ...q }, schema: SessionPageSchema }),
     },
 
     sessions: {
@@ -260,8 +277,12 @@ export function staffApi(transport: Transport): StaffApi {
           body: {},
           schema: envelope(AnalysisEnvelopeSchema),
         }),
-      list: (campaignId) =>
-        request(transport, { path: `/campaigns/${campaignId}/analyses`, schema: AnalysisListSchema }),
+      list: (campaignId, q) =>
+        request(transport, {
+          path: `/campaigns/${campaignId}/analyses`,
+          query: { ...q },
+          schema: AnalysisPageSchema,
+        }),
       get: (id) => request(transport, { path: `/analyses/${id}`, schema: AnalysisDetailSchema }),
       diff: (id, otherId) =>
         request(transport, { path: `/analyses/${id}/diff/${otherId}`, schema: AnalysisDiffSchema }),
@@ -293,6 +314,16 @@ export function staffApi(transport: Transport): StaffApi {
 
     settings: {
       get: (q) => request(transport, { path: "/settings", query: { ...q }, schema: SettingsResponseSchema }),
+      scopes: (scope) =>
+        request(transport, { path: "/settings/scopes", query: { scope }, schema: ScopeTargetListSchema }),
+      emailTest: (q) =>
+        request(transport, {
+          method: "POST",
+          path: "/settings/email/test",
+          query: { ...q },
+          body: {},
+          schema: EmailTestSchema,
+        }),
       put: (q, values) =>
         ok(
           request(transport, {
@@ -324,8 +355,9 @@ export function staffApi(transport: Transport): StaffApi {
       remove: (id) => ok(request(transport, { method: "DELETE", path: `/providers/${id}` })),
       test: (id) =>
         request(transport, { method: "POST", path: `/providers/${id}/test`, schema: ProviderTestSchema }),
-      models: (id) => request(transport, { path: `/providers/${id}/models`, schema: ModelListSchema }),
-      prices: (id) => request(transport, { path: `/providers/${id}/prices`, schema: PriceListSchema }),
+      models: (id) => request(transport, { path: `/providers/${id}/models`, schema: ModelCatalogueSchema }),
+      prices: (id, q) =>
+        request(transport, { path: `/providers/${id}/prices`, query: { ...q }, schema: PricePageSchema }),
       putPrices: (id, prices) =>
         ok(request(transport, { method: "PUT", path: `/providers/${id}/prices`, body: { prices } })),
     },
@@ -336,17 +368,18 @@ export function staffApi(transport: Transport): StaffApi {
     },
 
     budgets: {
-      list: () => request(transport, { path: "/budgets", schema: BudgetListSchema }),
+      list: (q) => request(transport, { path: "/budgets", query: { ...q }, schema: BudgetPageSchema }),
       create: (input) => request(transport, { method: "POST", path: "/budgets", body: input }),
       remove: (id) => ok(request(transport, { method: "DELETE", path: `/budgets/${id}` })),
     },
 
     spend: (q) => request(transport, { path: "/spend", query: { ...q }, schema: SpendSchema }),
     stats: () => request(transport, { path: "/stats", schema: StatsSchema }),
-    audit: (q) => request(transport, { path: "/audit", query: { ...q }, schema: AuditListSchema }),
+    audit: (q) => request(transport, { path: "/audit", query: { ...q }, schema: AuditPageSchema }),
 
     requirements: {
-      list: () => request(transport, { path: "/requirements", schema: RequirementsListSchema }),
+      list: (q) =>
+        request(transport, { path: "/requirements", query: { ...q }, schema: RequirementsPageSchema }),
       create: (input) =>
         request(transport, {
           method: "POST",
@@ -421,7 +454,8 @@ export function staffApi(transport: Transport): StaffApi {
 
     operator: {
       tenants: {
-        list: () => request(transport, { path: "/operator/tenants", schema: TenantListSchema }),
+        list: (q) =>
+          request(transport, { path: "/operator/tenants", query: { ...q }, schema: TenantPageSchema }),
         create: (input) =>
           request(transport, {
             method: "POST",
@@ -461,9 +495,13 @@ export function staffApi(transport: Transport): StaffApi {
             schema: ProviderTestSchema,
           }),
         models: (id) =>
-          request(transport, { path: `/operator/providers/${id}/models`, schema: ModelListSchema }),
-        prices: (id) =>
-          request(transport, { path: `/operator/providers/${id}/prices`, schema: PriceListSchema }),
+          request(transport, { path: `/operator/providers/${id}/models`, schema: ModelCatalogueSchema }),
+        prices: (id, q) =>
+          request(transport, {
+            path: `/operator/providers/${id}/prices`,
+            query: { ...q },
+            schema: PricePageSchema,
+          }),
         putPrices: (id, prices) =>
           ok(
             request(transport, { method: "PUT", path: `/operator/providers/${id}/prices`, body: { prices } }),
@@ -488,9 +526,10 @@ export interface ProvidersApi {
   update(id: string, input: Partial<ProviderInput>): Promise<Provider>;
   remove(id: string): Promise<void>;
   test(id: string): Promise<ProviderTest>;
-  models(id: string): Promise<ModelPrice[]>;
-  prices(id: string): Promise<ModelPrice[]>;
-  putPrices(id: string, prices: ModelPrice[]): Promise<void>;
+  /** The provider's own catalogue with the prices it publishes (contract 19). */
+  models(id: string): Promise<ModelCatalogue>;
+  prices(id: string, q?: PageQuery): Promise<Paged<ModelPriceRow>>;
+  putPrices(id: string, prices: ModelPriceInput[]): Promise<void>;
 }
 
 export interface RoutesApi {
@@ -499,7 +538,7 @@ export interface RoutesApi {
 }
 
 export interface RequirementsApi {
-  list(): Promise<RequirementsListItem[]>;
+  list(q?: PageQuery): Promise<Paged<RequirementsListItem>>;
   create(input: RequirementsCreateInput): Promise<RequirementsSession>;
   get(id: string): Promise<RequirementsDetail>;
   setPath(id: string, path: Path): Promise<void>;
@@ -528,7 +567,7 @@ export interface StaffApi {
   me(): Promise<Me>;
   health(): Promise<unknown>;
   users: {
-    list(): Promise<User[]>;
+    list(q?: PageQuery): Promise<Paged<User>>;
     create(input: UserInput): Promise<unknown>;
     update(id: string, input: Partial<UserInput>): Promise<unknown>;
   };
@@ -543,7 +582,7 @@ export interface StaffApi {
     preview(id: string): Promise<{ participantToken: string; sessionId: string }>;
   };
   campaigns: {
-    list(): Promise<Campaign[]>;
+    list(q?: PageQuery): Promise<Paged<Campaign>>;
     get(id: string): Promise<Campaign>;
     create(input: CampaignCreateInput): Promise<Campaign>;
     update(id: string, input: Partial<CampaignCreateInput> & { status?: string }): Promise<Campaign>;
@@ -553,7 +592,7 @@ export interface StaffApi {
     invitations(id: string): Promise<Invitation[]>;
     remind(id: string, invId: string): Promise<void>;
     revoke(id: string, invId: string): Promise<void>;
-    sessions(id: string): Promise<SessionListItem[]>;
+    sessions(id: string, q?: PageQuery): Promise<Paged<SessionListItem>>;
   };
   sessions: {
     get(id: string): Promise<StaffSession>;
@@ -562,7 +601,7 @@ export interface StaffApi {
   /** Contract 17: analysis runs are versioned per campaign. */
   analyses: {
     start(campaignId: string): Promise<Analysis>;
-    list(campaignId: string): Promise<Analysis[]>;
+    list(campaignId: string, q?: PageQuery): Promise<Paged<Analysis>>;
     get(id: string): Promise<AnalysisDetail>;
     diff(id: string, otherId: string): Promise<AnalysisDiff>;
   };
@@ -574,22 +613,26 @@ export interface StaffApi {
   settings: {
     get(q: SettingsQuery): Promise<SettingsResponse>;
     put(q: SettingsQuery, values: Record<string, unknown>): Promise<void>;
+    /** Named targets for a scope picker, newest first (contract 19). */
+    scopes(scope: ScopeKind): Promise<ScopeTarget[]>;
+    /** Sends a test message with the configuration in effect for the scope. */
+    emailTest(q: SettingsQuery): Promise<EmailTest>;
   };
   providers: ProvidersApi;
   routes: RoutesApi;
   budgets: {
-    list(): Promise<BudgetRecord[]>;
+    list(q?: PageQuery): Promise<Paged<BudgetRecord>>;
     create(input: BudgetLimit): Promise<unknown>;
     remove(id: string): Promise<void>;
   };
   spend(q: SpendQuery): Promise<Spend>;
   stats(): Promise<Stats>;
-  audit(q: { from?: string; to?: string }): Promise<AuditEntry[]>;
+  audit(q: { from?: string; to?: string } & PageQuery): Promise<Paged<AuditEntry>>;
   /** Contract 18: requirements sessions owned by staff, their live spec, versions and invitations. */
   requirements: RequirementsApi;
   operator: {
     tenants: {
-      list(): Promise<Tenant[]>;
+      list(q?: PageQuery): Promise<Paged<Tenant>>;
       create(input: TenantInput): Promise<Tenant>;
       update(id: string, input: Partial<TenantInput>): Promise<Tenant>;
     };

@@ -25,6 +25,7 @@ system; delivery is divided into phases in `15-phase-plan.md`. Nothing is out of
 | `16-api-contract-phase1.md`     | Phase 1 API contract: participant flow, staff routes, SSE turns                                     |
 | `17-api-contract-phase2.md`     | Phase 2 API contract: analysis runs, opportunities, report, weights                                 |
 | `18-api-contract-phase3.md`     | Phase 3 API contract: requirements sessions, live spec, findings, versions, exports, invitations    |
+| `19-admin-configuration.md`     | Admin configuration surface: secret settings, email settings, operator routes, pagination, UI rules |
 
 Requirement ids: `FR-` functional, `NFR-` non-functional, `ADM-` admin knobs. Ids are
 stable across versions. The decision log is `docs/discovery/decisions.md`.

@@ -65,6 +65,8 @@ src/lib/analysis/override.ts     reducer for the override sheet and the minimal 
 src/lib/report/mermaid.ts        splits report Markdown into Markdown and ```mermaid segments
 src/lib/report/sections.ts       maps report sections to Markdown chunks for the section toggles
 src/lib/admin/discoveryStats.ts  recognizes discovery tiles in `/stats` (by class, top by rank)
+src/lib/admin/pagination.ts      `?page=` -> limit/offset, the "x to y of n" range, next-page test
+src/lib/admin/settingInput.ts    which control renders a settings key (secret, weights, enum, …)
 src/app/api/participant/[...path]   proxy: moves participant tokens into the `aidp_participant` cookie
 src/app/api/staff/[...path]         proxy: attaches the Auth.js JWT as `Authorization: Bearer`
 src/app/api/preview/[templateId]    admin template preview: cookie + redirect to /p/session
@@ -79,7 +81,7 @@ src/app/admin/campaigns/[id]/report    the organization report (Markdown + Merma
 src/hooks/useInterview.ts        optimistic messages, SSE streaming, progress, ending, errors
 src/hooks/useAnalysisPolling.ts  polls the latest analysis every 5 s while queued or running
 src/hooks/useDebouncedSave.ts    persists a knob a moment after it stops changing
-src/components/ui/*              shadcn-style primitives (phase 2 adds `sheet`)
+src/components/ui/*              shadcn-style primitives (phase 2 adds `sheet`, contract 19 `combobox`)
 src/components/common/*          language switch
 src/components/widgets/*         single_choice, multi_choice, scale, ranking, yes_no + renderer
 src/components/participant/*     arrival flow, message list, composer, mode switch, progress, menu, summary
@@ -89,7 +91,9 @@ src/components/admin/results/*   analysis header, weights panel, filters, opport
                                  override sheet, promote dialog, compare versions
 src/components/report/*          ReportView, ReportMarkdown (react-markdown), MermaidDiagram
 test/                            Vitest: widgets, SSE reader, API error wrapper, interview hook,
-                                 locale resolution + `t` proxy, rank/override, Mermaid + sections
+                                 locale resolution + `t` proxy, rank/override, Mermaid + sections,
+                                 combobox, pagination, icon buttons, settings category form,
+                                 paginated list schemas
 ````
 
 Server components load data directly from the API with the cookie token; client
@@ -238,6 +242,33 @@ Phase 2 (`17-api-contract-phase2.md`):
     API's (stored weights), not re-ranked client-side.
 27. **Language.** The UI language is the `lang` cookie / `Accept-Language`; it is not sent
     to the API. `analysis.language` (the report's language) stays a separate setting.
+
+Contract 19 (`19-admin-configuration.md`):
+
+35. **Clearing a settings override.** Each settings category submits on its own and sends only
+    its own keys, so "reset to the inherited value" cannot be expressed by leaving a key out.
+    The web sends `null` for that key, the same sentinel the contract defines for clearing a
+    secret. Keys already set at this scope are re-sent unchanged; a key that is only inherited
+    is not sent at all.
+36. **`sources`.** The contract says a category must show which scope each value came from but
+    names no field for it. The web reads an optional `sources: { [key]: scope }` beside
+    `values` / `effective` and, when it is absent, falls back to "set here" when the key is in
+    `values` and "inherited" otherwise.
+37. **Pagination in the UI.** `/providers/:id/prices` is fetched at the maximum page size (200)
+    and merged with the provider catalogue into one table, so that screen has no page control;
+    `/campaigns/:id/analyses` feeds the version picker on the results page rather than a table,
+    so it has none either. Every other paginated list (`/audit`, `/campaigns`,
+    `/campaigns/:id/sessions`, `/requirements`, `/users`, `/budgets`, `/operator/tenants`) keeps
+    its page in `?page=` and renders "x to y of n". Without `total` the count is hidden and
+    "next" is offered only while a full page came back.
+38. **Price rows vs. catalogue models.** `GET /providers/:id/prices` is keyed by `model` and
+    carries `source: seed | provider | admin`; `GET /providers/:id/models` is keyed by `id` and
+    carries `contextWindow`. The models screen merges the two by model id; `contextLength` and
+    `maxOutputTokens` from the contract text are tolerated but not required. A row is only sent
+    to `PUT /prices` once an admin has edited it, since every written row becomes `source:
+admin`.
+39. **Budget targets.** `GET /settings/scopes` answers for `template | campaign | tenant`; a
+    `session` budget therefore still takes a typed id.
 
 Phase 3 (`18-api-contract-phase3.md`):
 

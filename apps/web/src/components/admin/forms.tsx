@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Combobox, type ComboboxLabels, type ComboboxOption } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,12 +11,17 @@ import { cn } from "@/lib/utils";
 
 export type FieldErrors = Record<string, string>;
 
-/** A labeled field with an optional hint and error, wired with aria-describedby. */
+/**
+ * A labeled field with an optional hint and error, wired with aria-describedby. `required`
+ * paints the red asterisk of contract 19; it is `aria-hidden` because the real semantics
+ * live on the native `required` of the control itself.
+ */
 export function Field({
   id,
   label,
   hint,
   error,
+  required,
   children,
   className,
 }: {
@@ -23,12 +29,20 @@ export function Field({
   label: string;
   hint?: string | undefined;
   error?: string | undefined;
+  required?: boolean | undefined;
   children: React.ReactNode;
-  className?: string;
+  className?: string | undefined;
 }): React.JSX.Element {
   return (
     <div className={cn("grid gap-1.5", className)}>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>
+        {label}
+        {required ? (
+          <span aria-hidden="true" className="text-destructive">
+            *
+          </span>
+        ) : null}
+      </Label>
       {children}
       {hint ? (
         <p id={`${id}-hint`} className="text-muted-foreground text-xs">
@@ -73,7 +87,7 @@ export function TextField({
   disabled?: boolean;
 }): React.JSX.Element {
   return (
-    <Field id={id} label={label} hint={hint} error={error}>
+    <Field id={id} label={label} hint={hint} error={error} required={required}>
       <Input
         id={id}
         type={type}
@@ -101,6 +115,7 @@ export function NumberField({
   min,
   max,
   step,
+  required,
 }: {
   id: string;
   label: string;
@@ -111,9 +126,10 @@ export function NumberField({
   min?: number;
   max?: number;
   step?: number;
+  required?: boolean | undefined;
 }): React.JSX.Element {
   return (
-    <Field id={id} label={label} hint={hint} error={error}>
+    <Field id={id} label={label} hint={hint} error={error} required={required}>
       <Input
         id={id}
         type="number"
@@ -122,6 +138,7 @@ export function NumberField({
         min={min}
         max={max}
         step={step}
+        required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
         onChange={(e) => {
@@ -140,6 +157,7 @@ export function TextAreaField({
   hint,
   error,
   rows = 3,
+  required,
 }: {
   id: string;
   label: string;
@@ -148,13 +166,15 @@ export function TextAreaField({
   hint?: string | undefined;
   error?: string | undefined;
   rows?: number;
+  required?: boolean | undefined;
 }): React.JSX.Element {
   return (
-    <Field id={id} label={label} hint={hint} error={error}>
+    <Field id={id} label={label} hint={hint} error={error} required={required}>
       <Textarea
         id={id}
         value={value}
         rows={rows}
+        required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
         onChange={(e) => {
@@ -174,6 +194,7 @@ export function SelectField<T extends string>({
   hint,
   error,
   placeholder,
+  required,
 }: {
   id: string;
   label: string;
@@ -183,11 +204,13 @@ export function SelectField<T extends string>({
   hint?: string | undefined;
   error?: string | undefined;
   placeholder?: string;
+  required?: boolean | undefined;
 }): React.JSX.Element {
   return (
-    <Field id={id} label={label} hint={hint} error={error}>
+    <Field id={id} label={label} hint={hint} error={error} required={required}>
       <Select
         value={value}
+        {...(required === undefined ? {} : { required })}
         onValueChange={(v) => {
           onChange(v as T);
         }}
@@ -238,6 +261,53 @@ export function SwitchField({
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** A labeled searchable dropdown: the select2 of this codebase, wired like the other fields. */
+export function ComboboxField({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+  labels,
+  hint,
+  error,
+  required,
+  allowCustom,
+  loading,
+  disabled,
+  className,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: readonly ComboboxOption[];
+  labels: ComboboxLabels;
+  hint?: string | undefined;
+  error?: string | undefined;
+  required?: boolean | undefined;
+  allowCustom?: boolean | undefined;
+  loading?: boolean | undefined;
+  disabled?: boolean | undefined;
+  className?: string | undefined;
+}): React.JSX.Element {
+  return (
+    <Field id={id} label={label} hint={hint} error={error} required={required} className={className}>
+      <Combobox
+        id={id}
+        value={value}
+        onChange={onChange}
+        options={options}
+        labels={labels}
+        allowCustom={allowCustom}
+        loading={loading}
+        disabled={disabled}
+        aria-describedby={describedBy(id, hint, error)}
+      />
+    </Field>
   );
 }
 

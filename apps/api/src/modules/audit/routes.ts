@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
+import { PageQuery } from "../../lib/pagination.js";
 
 export async function auditRoutes(app: App, ctx: AppContext): Promise<void> {
   app.get(
@@ -9,25 +10,29 @@ export async function auditRoutes(app: App, ctx: AppContext): Promise<void> {
     {
       preHandler: requireStaff("admin"),
       schema: {
-        querystring: z.object({
+        querystring: PageQuery.extend({
           from: z.coerce.date().optional(),
           to: z.coerce.date().optional(),
-          limit: z.coerce.number().int().min(1).max(500).default(100),
         }),
       },
     },
     async (req) => {
-      const entries = await ctx.db.auditLog.findMany({
-        where: {
-          companyId: req.companyId,
-          createdAt: {
-            ...(req.query.from ? { gte: req.query.from } : {}),
-            ...(req.query.to ? { lte: req.query.to } : {}),
-          },
+      const where = {
+        companyId: req.companyId,
+        createdAt: {
+          ...(req.query.from ? { gte: req.query.from } : {}),
+          ...(req.query.to ? { lte: req.query.to } : {}),
         },
-        orderBy: { createdAt: "desc" },
-        take: req.query.limit,
-      });
+      };
+      const [entries, total] = await ctx.db.$transaction([
+        ctx.db.auditLog.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          take: req.query.limit,
+          skip: req.query.offset,
+        }),
+        ctx.db.auditLog.count({ where }),
+      ]);
       // AuditLog holds only the actor's id; the log is unreadable without the address behind it.
       const actorIds = [...new Set(entries.map((e) => e.actorId).filter((id): id is string => id !== null))];
       const actors = actorIds.length
@@ -42,6 +47,9 @@ export async function auditRoutes(app: App, ctx: AppContext): Promise<void> {
           ...e,
           actorEmail: e.actorId === null ? null : (emailOf.get(e.actorId) ?? null),
         })),
+        total,
+        limit: req.query.limit,
+        offset: req.query.offset,
       };
     },
   );

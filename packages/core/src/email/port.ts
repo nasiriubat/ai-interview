@@ -4,6 +4,9 @@ export interface EmailMessage {
   text: string;
   html?: string;
   from?: string;
+  replyTo?: string;
+  /** Tenant the message belongs to, so a settings-backed port can resolve that tenant's SMTP. */
+  companyId?: string;
 }
 
 export interface EmailPort {

@@ -6,8 +6,8 @@ import {
   GitHubApi,
   MemoryEmail,
   RequirementsService,
+  SettingsEmail,
   SettingsService,
-  SmtpEmail,
   type EmailPort,
   type GitHubPort,
   type JobPublisher,
@@ -43,7 +43,11 @@ export function buildContext(input: {
 }): AppContext {
   const { config, db, log } = input;
   const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
-  const settings = new SettingsService(db);
+  const settings = new SettingsService(db, crypto, {
+    warn: (message, meta) => {
+      log.warn(meta ?? {}, message);
+    },
+  });
   const callers = new CallerFactory({
     db,
     crypto,
@@ -53,13 +57,16 @@ export function buildContext(input: {
     },
   });
   const engines = new EngineFactory(db, callers, settings, engineLogger(log));
+  // Every send resolves its SMTP settings from the tenant, then the platform, then the environment.
   const email =
     input.email ??
-    (config.EMAIL_SMTP_URL
-      ? new SmtpEmail(config.EMAIL_SMTP_URL, config.EMAIL_FROM)
-      : new MemoryEmail((m) => {
-          log.info({ to: m.to, subject: m.subject }, "email (console)");
-        }));
+    new SettingsEmail({
+      settings,
+      env: { smtpUrl: config.EMAIL_SMTP_URL, from: config.EMAIL_FROM },
+      fallback: new MemoryEmail((m) => {
+        log.info({ to: m.to, subject: m.subject }, "email (console)");
+      }),
+    });
   const analysis = new AnalysisService({ db, callers, settings, jobs: input.jobs, log: engineLogger(log) });
   const github = input.github ?? new GitHubApi();
   const requirements = new RequirementsService({
