@@ -36,9 +36,11 @@ function writeTokens(tokens: Record<string, StoredToken>): void {
   const live = Object.fromEntries(
     Object.entries(tokens).filter(([, t]) => new Date(t.expires).getTime() > now),
   );
-  mkdirSync(dirname(TOKEN_STORE), { recursive: true });
+  // The file holds pending sign-in tokens: readable only by this user, in a directory only this
+  // user can enter, so a co-tenant process cannot enumerate who is signing in.
+  mkdirSync(dirname(TOKEN_STORE), { recursive: true, mode: 0o700 });
   const tmp = `${TOKEN_STORE}.${process.pid}.${Math.random().toString(36).slice(2)}`;
-  writeFileSync(tmp, JSON.stringify(live));
+  writeFileSync(tmp, JSON.stringify(live), { mode: 0o600 });
   renameSync(tmp, TOKEN_STORE);
 }
 

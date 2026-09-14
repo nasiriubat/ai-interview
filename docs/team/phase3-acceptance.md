@@ -62,8 +62,28 @@ define; a numeric promise a requirement depends on that no decision records; and
 thing recorded differently in two sections. The prompt also carries the acceptance criterion
 itself as its test: could a developer implement this without asking the author?
 
-Re-running the same interview against the v2 prompt, and confirming those three findings are
-raised, is the next step before this criterion is called met.
+### Confirmed against v2
+
+Re-run on 2026-09-14 with an interview that reproduces the three defects on purpose: the
+integration described by the data that flows and nothing else, a failure rule that retries
+"until it succeeds", and a lifecycle with a flagged state the data model does not define.
+46 turns, 8 findings. The three classes were all raised, each at high confidence:
+
+- _missing_decision, integrations_: "no defined authentication method, endpoint, payload shape,
+  or error/failure response format, so a developer cannot implement the call."
+- _missing_decision, rules_: "auto-retries until success but does not distinguish transient
+  errors from permanent ones."
+- _contradiction, rules_: "the state model and the stuck-entries screen give no visible location
+  for entries that are permanently rejected."
+
+It also raised five the first version missed, including a contradiction between the ward manager
+provisioning accounts and Azure AD owning them, a missing GDPR retention period, and whether a
+corrected observation is re-pushed to the patient system.
+
+What remains before this criterion is called met: the bundle test has not been re-run end to end
+against a specification produced with v2, so the count of blocked decisions has not been
+re-measured. The three classes are caught at detection time; whether that carries through
+generation into a bundle an agent can build from without a question is the next measurement.
 
 ## The other half: regenerating this specification
 

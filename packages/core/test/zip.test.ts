@@ -74,3 +74,14 @@ describe("zipFiles", () => {
     execFileSync("unzip", ["-t", file], { stdio: "ignore" });
   });
 });
+
+describe("zip paths", () => {
+  it("drops root and parent segments so an entry cannot escape the extraction folder", async () => {
+    const { safeZipPath } = await import("../src/requirements/zip.js");
+    expect(safeZipPath("../../etc/passwd")).toBe("etc/passwd");
+    expect(safeZipPath("/absolute/file.md")).toBe("absolute/file.md");
+    expect(safeZipPath("tasks\\phase-1.md")).toBe("tasks/phase-1.md");
+    expect(safeZipPath("a/./b/../c.md")).toBe("a/b/c.md");
+    expect(safeZipPath("AGENTS.md")).toBe("AGENTS.md");
+  });
+});

@@ -35,7 +35,17 @@ export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
       if (!operator) throw forbidden("Platform settings require the platform operator");
       return { scope: q.scope, scopeId: "" };
     }
-    if (q.scope === "tenant") return { scope: q.scope, scopeId: req.companyId };
+    if (q.scope === "tenant") {
+      // An operator may aim at another tenant, but only explicitly: silently rewriting the id to
+      // their own company would show one tenant's values and save them onto another.
+      if (q.scopeId && q.scopeId !== req.companyId) {
+        if (!operator) throw forbidden("Another tenant's settings require the platform operator");
+        const target = await ctx.db.company.findUnique({ where: { id: q.scopeId }, select: { id: true } });
+        if (!target) throw notFound("Company");
+        return { scope: q.scope, scopeId: q.scopeId };
+      }
+      return { scope: q.scope, scopeId: req.companyId };
+    }
     if (!q.scopeId) throw new AppError("validation", `A ${q.scope} id is required for this scope`);
     if (q.scope === "template") {
       const t = await ctx.db.interviewTemplate.findFirst({
@@ -134,6 +144,8 @@ export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
     // The body is optional, so it is parsed here rather than by the route schema.
     const body = EmailTestBody.parse(req.body ?? {});
     const p = staff(req);
+    if (body.scope === "platform" && p.role !== "platform_operator")
+      throw forbidden("Only a platform operator may test the platform email configuration");
     const tenant = body.scope === "tenant";
     const chain = tenant ? [{ scope: "tenant" as const, scopeId: req.companyId }] : [];
     const resolved = await ctx.settings.resolveDetailed(["email.smtpUrl"], chain);
@@ -152,7 +164,12 @@ export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
       });
     } catch (e) {
       ok = false;
-      error = scrubSmtp(e instanceof Error ? e.message : String(e));
+      // Deliberately coarse: the raw errno distinguishes refused from filtered from wrong-protocol,
+      // which turns this endpoint into an internal port scanner. The detail goes to the log only.
+      ctx.log.warn({ err: e, companyId: req.companyId, scope: body.scope }, "email test failed");
+      error = scrubSmtp(
+        e instanceof Error && e.name === "AppError" ? e.message : "Could not send through this configuration",
+      );
     }
     await audit(ctx.db, {
       companyId: req.companyId,

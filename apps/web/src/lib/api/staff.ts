@@ -320,8 +320,9 @@ export function staffApi(transport: Transport): StaffApi {
         request(transport, {
           method: "POST",
           path: "/settings/email/test",
-          query: { ...q },
-          body: {},
+          // The route reads the scope from the body; sending it as a query string tested the
+          // tenant chain whichever scope was selected.
+          body: { scope: q.scope === "platform" ? "platform" : "tenant" },
           schema: EmailTestSchema,
         }),
       put: (q, values) =>

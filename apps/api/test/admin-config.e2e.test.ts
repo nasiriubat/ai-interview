@@ -314,6 +314,97 @@ suite("admin configuration surface (contract 19)", () => {
     expect(written).toMatchObject({ inputPerMtok: 9, cachedInputPerMtok: 9, source: "admin" });
   });
 
+  it("refuses a tenant admin the prices, the SMTP dial and the email relay that belong to the platform", async () => {
+    // A platform provider resolves for every tenant, so its prices must not be tenant-writable:
+    // they feed the cost ledger of every other tenant on that provider.
+    const created = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/operator/providers",
+      headers: operator,
+      payload: { kind: "openai_compatible", name: "Shared platform", baseUrl: model.url, apiKey: "k" },
+    });
+    const providerId = created.json<{ provider: { id: string } }>().provider.id;
+
+    const forged = await world.app.inject({
+      method: "PUT",
+      url: `/api/v1/providers/${providerId}/prices`,
+      headers: admin,
+      payload: { prices: [{ model: "fake-model", inputPerMtok: 0, outputPerMtok: 0 }] },
+    });
+    expect(forged.statusCode).toBe(403);
+    expect(await world.db.modelPrice.findFirst({ where: { providerId, model: "fake-model" } })).toBeNull();
+
+    // The operator may set them.
+    const allowed = await world.app.inject({
+      method: "PUT",
+      url: `/api/v1/operator/providers/${providerId}/prices`,
+      headers: operator,
+      payload: { prices: [{ model: "fake-model", inputPerMtok: 1, outputPerMtok: 2 }] },
+    });
+    expect(allowed.statusCode).toBe(200);
+
+    // An SMTP URL is a connection this server will dial, so it is validated rather than free text.
+    for (const bad of ["http://evil.test", "10.0.0.7:6379", "smtp://", "not a url"]) {
+      const rejected = await world.app.inject({
+        method: "PUT",
+        url: "/api/v1/settings?scope=tenant",
+        headers: admin,
+        payload: { values: { "email.smtpUrl": bad } },
+      });
+      expect(rejected.statusCode, bad).toBe(400);
+    }
+
+    // Only the operator may exercise the platform relay.
+    const platformTest = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/settings/email/test",
+      headers: admin,
+      payload: { scope: "platform" },
+    });
+    expect(platformTest.statusCode).toBe(403);
+
+    // Platform rows are visible to every tenant, and each test world has its own encryption key,
+    // so a provider left behind here would be undecryptable for the next suite.
+    await world.db.modelPrice.deleteMany({ where: { providerId } });
+    await world.db.provider.delete({ where: { id: providerId } });
+  });
+
+  it("makes an operator name the tenant they are editing instead of silently using their own", async () => {
+    const other = await world.db.company.create({ data: { name: `Other ${Date.now()}` } });
+    // An admin cannot reach across, even naming the id explicitly.
+    const blocked = await world.app.inject({
+      method: "GET",
+      url: `/api/v1/settings?scope=tenant&scopeId=${other.id}`,
+      headers: admin,
+    });
+    expect(blocked.statusCode).toBe(403);
+
+    // The operator writes where they aimed, not at their own company.
+    const written = await world.app.inject({
+      method: "PUT",
+      url: `/api/v1/settings?scope=tenant&scopeId=${other.id}`,
+      headers: operator,
+      payload: { values: { "privacy.kAnonymity": 7 } },
+    });
+    expect(written.statusCode).toBe(200);
+    const row = await world.db.setting.findFirst({
+      where: { scope: "tenant", scopeId: other.id, key: "privacy.kAnonymity" },
+    });
+    expect(row?.value).toBe(7);
+    expect(
+      await world.db.setting.findFirst({
+        where: { scope: "tenant", scopeId: world.companyId, key: "privacy.kAnonymity" },
+      }),
+    ).toBeNull();
+
+    const missing = await world.app.inject({
+      method: "GET",
+      url: "/api/v1/settings?scope=tenant&scopeId=does-not-exist",
+      headers: operator,
+    });
+    expect(missing.statusCode).toBe(404);
+  });
+
   it("windows a staff list and reports the total beside it", async () => {
     const suffix = Date.now().toString(36);
     for (let i = 0; i < 3; i++) {
