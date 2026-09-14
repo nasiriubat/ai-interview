@@ -76,5 +76,16 @@ export const FACT_KINDS = [
 export const FactKindSchema = z.enum(FACT_KINDS);
 export type FactKind = z.infer<typeof FactKindSchema>;
 
-export const ExtractionResultSchema = z.object({ facts: z.array(FactSchema) });
+/**
+ * Lenient on purpose: live models sometimes return the bare array instead of `{ facts }`,
+ * and one malformed fact must not discard the rest of an extraction pass.
+ */
+export const ExtractionResultSchema = z.preprocess(
+  (raw) => {
+    const list = Array.isArray(raw) ? raw : (raw as { facts?: unknown } | null)?.facts;
+    if (!Array.isArray(list)) return raw;
+    return { facts: list.filter((f) => FactSchema.safeParse(f).success) };
+  },
+  z.object({ facts: z.array(FactSchema) }),
+);
 export type ExtractionResult = z.infer<typeof ExtractionResultSchema>;

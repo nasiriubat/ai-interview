@@ -23,7 +23,11 @@ async function main(): Promise<void> {
     : new MemoryEmail((m) => {
         log.info({ to: m.to, subject: m.subject }, "email (console)");
       });
-  const jobs = new BossJobs(config.DATABASE_URL);
+  const jobs = new BossJobs(config.DATABASE_URL, {
+    onError: (err) => {
+      log.error({ err }, "job queue error");
+    },
+  });
   await jobs.start();
 
   const h = handlers({
@@ -43,12 +47,30 @@ async function main(): Promise<void> {
       },
     },
   });
-  await jobs.consume("session.summarize", h["session.summarize"], config.WORKER_CONCURRENCY);
-  await jobs.consume("session.extract", h["session.extract"], config.WORKER_CONCURRENCY);
-  await jobs.consume("email.send", h["email.send"], config.WORKER_CONCURRENCY);
-  await jobs.consume("privacy.delete-session", h["privacy.delete-session"], 1);
-  await jobs.consume("analysis.run", h["analysis.run"], 1);
-  await jobs.consume("spec.generate", h["spec.generate"], 1);
+  const failed = (name: string) => (jobId: string, err: unknown) => {
+    log.error({ err, job: name, jobId }, "job failed");
+  };
+  await jobs.consume(
+    "session.summarize",
+    h["session.summarize"],
+    config.WORKER_CONCURRENCY,
+    failed("session.summarize"),
+  );
+  await jobs.consume(
+    "session.extract",
+    h["session.extract"],
+    config.WORKER_CONCURRENCY,
+    failed("session.extract"),
+  );
+  await jobs.consume("email.send", h["email.send"], config.WORKER_CONCURRENCY, failed("email.send"));
+  await jobs.consume(
+    "privacy.delete-session",
+    h["privacy.delete-session"],
+    1,
+    failed("privacy.delete-session"),
+  );
+  await jobs.consume("analysis.run", h["analysis.run"], 1, failed("analysis.run"));
+  await jobs.consume("spec.generate", h["spec.generate"], 1, failed("spec.generate"));
   log.info("worker started");
 
   const shutdown = async (): Promise<void> => {

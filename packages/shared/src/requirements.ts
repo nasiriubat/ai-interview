@@ -30,7 +30,15 @@ export const DetectedFindingSchema = FindingSchema.pick({
   confidence: true,
 });
 export type DetectedFinding = z.infer<typeof DetectedFindingSchema>;
-export const IssueDetectionResultSchema = z.object({ findings: z.array(DetectedFindingSchema) });
+/** Lenient like ExtractionResultSchema: a bare array is accepted and malformed findings are dropped. */
+export const IssueDetectionResultSchema = z.preprocess(
+  (raw) => {
+    const list = Array.isArray(raw) ? raw : (raw as { findings?: unknown } | null)?.findings;
+    if (!Array.isArray(list)) return raw;
+    return { findings: list.filter((f) => DetectedFindingSchema.safeParse(f).success) };
+  },
+  z.object({ findings: z.array(DetectedFindingSchema) }),
+);
 
 export const AGGRESSIVENESS = ["gentle", "standard", "strict"] as const;
 export const AggressivenessSchema = z.enum(AGGRESSIVENESS);

@@ -2,11 +2,12 @@ import Link from "next/link";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DateText } from "@/components/common/DateText";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import type { SessionListItem } from "@/lib/api/schemas";
-import { formatCents, formatDate } from "@/lib/utils";
+import { formatCents } from "@/lib/utils";
 
 const s = t.admin.campaigns;
 
@@ -60,7 +61,7 @@ export function SessionsTable({ sessions }: { sessions: SessionListItem[] }): Re
               </TableCell>
               <TableCell className="text-right tabular-nums">{formatCents(sess.costCents)}</TableCell>
               <TableCell className="text-muted-foreground text-xs">
-                {formatDate(sess.updatedAt ?? sess.createdAt)}
+                <DateText iso={sess.updatedAt ?? sess.createdAt} />
               </TableCell>
               <TableCell className="text-right">
                 <Button asChild size="sm" variant="ghost">

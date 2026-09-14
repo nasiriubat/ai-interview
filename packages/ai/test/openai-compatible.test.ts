@@ -151,3 +151,65 @@ describe("OpenAICompatibleProvider", () => {
     );
   });
 });
+
+describe("structured output against providers that ignore json_schema (seen with OpenRouter)", () => {
+  const Facts = z.object({ facts: z.array(z.object({ name: z.string() })) });
+
+  it("states the schema in the prompt, retries in JSON mode when the strict answer has the wrong shape, and reads JSON out of fences and prose", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock: typeof fetch = async (_url, init) => {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      bodies.push(body);
+      const rf = body.response_format as { type: string };
+      if (rf.type === "json_schema")
+        return Response.json({
+          choices: [{ message: { content: '```json\n{"activity":"invoices"}\n```' }, finish_reason: "stop" }],
+          usage: { prompt_tokens: 10, completion_tokens: 8 },
+        });
+      return Response.json({
+        choices: [
+          {
+            message: { content: 'Here you go:\n```json\n{"facts":[{"name":"Invoices"}]}\n```\nDone.' },
+            finish_reason: "stop",
+          },
+        ],
+        usage: { prompt_tokens: 12, completion_tokens: 9 },
+      });
+    };
+    const p = new OpenAICompatibleProvider({ id: "or", kind: "openrouter", apiKey: "k", fetch: fetchMock });
+    const res = await p.complete(
+      "m",
+      { messages: [{ role: "user", content: "x" }], maxOutputTokens: 100, cachePrefix: false },
+      Facts,
+      "facts",
+    );
+    expect(res.value).toEqual({ facts: [{ name: "Invoices" }] });
+    expect(res.usage.outputTokens).toBe(9);
+    expect(bodies).toHaveLength(2);
+    const first = bodies[0] as { messages: { role: string; content: string }[]; provider?: unknown };
+    expect(first.messages[0]?.role).toBe("system");
+    expect(first.messages[0]?.content).toContain('"facts"');
+    expect(first.provider).toEqual({ require_parameters: true });
+  });
+
+  it("reports truncation instead of a bare JSON error", async () => {
+    const fetchMock: typeof fetch = async () =>
+      Response.json({ choices: [{ message: { content: '{"facts":[{"name":"a' }, finish_reason: "length" }] });
+    const p = new OpenAICompatibleProvider({ id: "or", kind: "openrouter", apiKey: "k", fetch: fetchMock });
+    await expect(
+      p.complete(
+        "m",
+        { messages: [{ role: "user", content: "x" }], maxOutputTokens: 5, cachePrefix: false },
+        Facts,
+      ),
+    ).rejects.toThrow(/cut off by max_tokens/);
+  });
+
+  it("extractJsonValue finds the first balanced object or array", async () => {
+    const { extractJsonValue } = await import("../src/providers/openai-compatible.js");
+    expect(extractJsonValue('text ```json\n[{"a":"}"}]\n``` more')).toBe('[{"a":"}"}]');
+    expect(extractJsonValue('{"a":{"b":[1,2]}} trailing')).toBe('{"a":{"b":[1,2]}}');
+    expect(extractJsonValue("no json here")).toBeUndefined();
+    expect(extractJsonValue('{"unbalanced": [1, 2')).toBeUndefined();
+  });
+});

@@ -6,6 +6,7 @@ import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DateText } from "@/components/common/DateText";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { Invitation } from "@/lib/api/schemas";
-import { formatDate } from "@/lib/utils";
 
 const s = t.admin.campaigns;
 
@@ -127,8 +127,12 @@ export function InvitationsPanel({
                 <TableCell>
                   <StatusBadge status={inv.status} />
                 </TableCell>
-                <TableCell className="text-muted-foreground text-xs">{formatDate(inv.sentAt)}</TableCell>
-                <TableCell className="text-muted-foreground text-xs">{formatDate(inv.openedAt)}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">
+                  <DateText iso={inv.sentAt} />
+                </TableCell>
+                <TableCell className="text-muted-foreground text-xs">
+                  <DateText iso={inv.openedAt} />
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button

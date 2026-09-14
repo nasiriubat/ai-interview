@@ -1,5 +1,5 @@
 import type { Modality, SessionState, TurnObject, WidgetResponse } from "@aidp/shared";
-import { SessionStateSchema, StateDeltaSchema, TurnObjectSchema } from "@aidp/shared";
+import { SessionStateSchema, TurnObjectSchema } from "@aidp/shared";
 import type { ModelCaller } from "../callModel.js";
 import { detectIssues, shouldScanIssues } from "../spec/issues.js";
 import { nextMvpItem } from "../spec/live.js";
@@ -16,7 +16,29 @@ import type {
 import { promptVersionTag, type PromptSource } from "./prompts/index.js";
 import { areasComplete, chooseFocus, contextComplete, type Focus } from "./selection.js";
 import { admitWidget, applyDelta, isMinimalAnswer, noteUserAnswer } from "./state.js";
-import { TurnParser } from "./turn-parser.js";
+import { parseStateDelta, TurnParser } from "./turn-parser.js";
+
+/**
+ * A context question asked twice without the model recording the answer is answered with
+ * the participant's own words, so the context block can never loop (spec 02 step 0).
+ */
+function recordStuckContextAnswer(
+  state: SessionState,
+  session: SessionSnapshot,
+  content: string,
+  logger: Logger,
+): SessionState {
+  const current = session.template.contextBlock.find((q) => !(q.key in state.contextAnswers));
+  if (!current || (state.contextAsks[current.key] ?? 0) < 2 || !content.trim()) return state;
+  logger.warn("context answer recorded from the participant's words after two asks", {
+    sessionId: session.id,
+    key: current.key,
+  });
+  return {
+    ...state,
+    contextAnswers: { ...state.contextAnswers, [current.key]: content.trim().slice(0, 300) },
+  };
+}
 
 export interface UserAnswer {
   content: string;
@@ -81,6 +103,7 @@ export class InterviewEngine {
       });
       lastAnswerMinimal = isMinimalAnswer(answer.content, answer.widgetResponse);
       state = noteUserAnswer(state, session.template, lastAnswerMinimal);
+      state = recordStuckContextAnswer(state, session, answer.content, logger);
     }
 
     // Issue detection (FR-21b): a separate pass over the spec state, every N turns and once at completion.
@@ -172,7 +195,8 @@ export class InterviewEngine {
     if (error)
       logger.warn("turn metadata not parsed; continuing with message only", { sessionId: session.id, error });
 
-    const delta = StateDeltaSchema.parse(meta.stateDelta ?? {});
+    const { delta, dropped } = parseStateDelta(meta.stateDelta);
+    if (dropped.length) logger.warn("state delta fields dropped", { sessionId: session.id, dropped });
     const nextTurnCount = state.turnCount + 1;
     state = applyDelta({ ...state, turnCount: nextTurnCount }, delta, session.template, focus, {
       pushBackOnce: policy.pushBackOnce,
@@ -234,7 +258,9 @@ export class InterviewEngine {
     yield { type: "turn", turn, message: stored, focus, state };
     if (ended) yield { type: "ended", state };
 
-    const sinceSummary = stored.seq - state.summaryUpToSeq;
+    // The summary folds only turns older than the recent window, so it is due when at least
+    // summarizeEveryTurns turns have accumulated beyond that window (not beyond the last fold).
+    const sinceSummary = stored.seq - state.summaryUpToSeq - settings.recentWindowTurns * 2;
     const sinceExtract = stored.seq - state.lastExtractedSeq;
     return {
       ended,

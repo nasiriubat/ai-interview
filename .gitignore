@@ -7,3 +7,6 @@ dist/
 coverage/
 .next/
 .claude/
+
+# Browser-tool snapshots
+.playwright-mcp/

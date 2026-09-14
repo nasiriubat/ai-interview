@@ -121,10 +121,16 @@ export function applyDelta(
   const findings = applyFindingOutcomes(state, delta, focus, policy);
   const mvpChallenge = applyMvpChallenge(state, delta, focus, policy);
 
+  const contextAsks =
+    focus.mode === "context"
+      ? { ...state.contextAsks, [focus.questionKey]: (state.contextAsks[focus.questionKey] ?? 0) + 1 }
+      : state.contextAsks;
+
   return {
     ...state,
     coverage,
     contextAnswers: { ...state.contextAnswers, ...delta.contextAnswers },
+    contextAsks,
     profile: mergeDefined(state.profile, delta.profile),
     openThreads,
     decisions,

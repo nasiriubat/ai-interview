@@ -11,7 +11,11 @@ async function main(): Promise<void> {
   const telemetry = startTelemetry("aidp-api", config.OTEL_EXPORTER_OTLP_ENDPOINT);
   const log = createLogger(config.LOG_LEVEL, config.NODE_ENV === "development");
   const db = new PrismaClient();
-  const jobs = new BossJobs(config.DATABASE_URL);
+  const jobs = new BossJobs(config.DATABASE_URL, {
+    onError: (err) => {
+      log.error({ err }, "job queue error");
+    },
+  });
   await jobs.start();
   const app = await buildApp(buildContext({ config, db, log, jobs }));
 

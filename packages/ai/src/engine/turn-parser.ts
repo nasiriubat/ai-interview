@@ -1,4 +1,4 @@
-import { StateDeltaSchema, WidgetSchema } from "@aidp/shared";
+import { FactSchema, StateDeltaSchema, WidgetSchema, type StateDelta } from "@aidp/shared";
 import { z } from "zod";
 
 export const TURN_MARKER = "<<<TURN_META>>>";
@@ -10,9 +10,70 @@ export const TurnMetaSchema = z.object({
   voiceShortForm: z.string().nullable().optional(),
   reason: z.string().nullable().optional(),
   endInterview: z.boolean().nullable().optional(),
-  stateDelta: StateDeltaSchema.optional(),
+  // Parsed separately and leniently by parseStateDelta: a bad field must not cost the whole delta.
+  stateDelta: z.unknown().optional(),
 });
 export type TurnMeta = z.infer<typeof TurnMetaSchema>;
+
+/** Removes null values recursively so a model's `null` reads as "absent" for optional fields. */
+export function stripNulls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.filter((v) => v !== null).map(stripNulls);
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v === null || v === undefined) continue;
+      out[k] = stripNulls(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+const SPEC_SOURCES = new Set(["user", "default_accepted", "recommended", "handoff"]);
+
+/**
+ * Parses a model-produced state delta without letting one bad field discard the rest:
+ * nulls are dropped, invalid facts are dropped one by one (a spec_field with an unknown
+ * source is kept as "user"), and any field that still fails validation is removed.
+ * Returns the delta plus what was dropped, for the log.
+ */
+export function parseStateDelta(raw: unknown): { delta: StateDelta; dropped: string[] } {
+  const dropped: string[] = [];
+  const cleaned = stripNulls(raw);
+  if (!cleaned || typeof cleaned !== "object" || Array.isArray(cleaned))
+    return { delta: StateDeltaSchema.parse({}), dropped: raw === undefined ? [] : ["stateDelta"] };
+  const obj = { ...(cleaned as Record<string, unknown>) };
+
+  if (Array.isArray(obj.facts)) {
+    obj.facts = (obj.facts as unknown[]).flatMap((f, i) => {
+      let candidate: unknown = f;
+      if (
+        candidate &&
+        typeof candidate === "object" &&
+        (candidate as { kind?: unknown }).kind === "spec_field" &&
+        !SPEC_SOURCES.has(String((candidate as { source?: unknown }).source))
+      ) {
+        candidate = { ...(candidate as Record<string, unknown>), source: "user" };
+      }
+      const r = FactSchema.safeParse(candidate);
+      if (r.success) return [r.data];
+      dropped.push(`facts[${i}]`);
+      return [];
+    });
+  }
+
+  const first = StateDeltaSchema.safeParse(obj);
+  if (first.success) return { delta: first.data, dropped };
+  // Remove every top-level field that failed, then parse what is left.
+  const bad = new Set(first.error.issues.map((i) => String(i.path[0] ?? "")));
+  for (const key of bad) if (key in obj) dropped.push(key);
+  const second = StateDeltaSchema.safeParse(
+    Object.fromEntries(Object.entries(obj).filter(([k]) => !bad.has(k))),
+  );
+  return second.success
+    ? { delta: second.data, dropped }
+    : { delta: StateDeltaSchema.parse({}), dropped: [...dropped, "stateDelta"] };
+}
 
 /**
  * Splits a streamed model response into the participant-facing message (emitted as it
@@ -60,7 +121,7 @@ export class TurnParser {
     const json = extractJsonObject(this.meta);
     if (!json) return { message: this.message.trimEnd(), meta: {}, rest: "", error: "no JSON after marker" };
     try {
-      const parsed = TurnMetaSchema.parse(JSON.parse(json));
+      const parsed = TurnMetaSchema.parse(stripNullsShallow(JSON.parse(json)));
       return { message: this.message.trimEnd(), meta: parsed, rest: "" };
     } catch (e) {
       return {
@@ -71,6 +132,12 @@ export class TurnParser {
       };
     }
   }
+}
+
+/** Top-level nulls only: the state delta is cleaned by parseStateDelta, the widget must stay as sent. */
+function stripNullsShallow(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([, v]) => v !== null));
 }
 
 function longestMarkerPrefixSuffix(s: string): number {

@@ -78,3 +78,60 @@ describe("lexical recall", () => {
     expect(await new LexicalRecall(store, 10).recall("s1", "invoices", 3)).toEqual([]);
   });
 });
+
+describe("live-model tolerance", () => {
+  it("accepts a bare array from the extraction pass and drops malformed facts", async () => {
+    const store = new MemoryStore();
+    await fill(store, 2);
+    const caller = new ScriptedCaller([
+      JSON.stringify([
+        {
+          kind: "task",
+          name: "Reconcile invoices",
+          frequency: "weekly",
+          minutesPerOccurrence: 60,
+          tools: ["Excel"],
+          painScore: 5,
+        },
+        { kind: "task", name: "broken" },
+      ]),
+    ]);
+    const r = await extractFacts(
+      { caller: caller.asCaller(), store, prompts: new ShippedPromptSource() },
+      snapshot(template()),
+    );
+    expect(r.facts).toHaveLength(1);
+    expect(r.facts[0]).toMatchObject({ kind: "task", name: "Reconcile invoices" });
+  });
+});
+
+describe("extraction batches", () => {
+  it("works off a backlog in batches, persisting state after each so a later failure loses nothing", async () => {
+    const store = new MemoryStore();
+    await fill(store, 30); // 60 messages: three batches of 24, 24, 12
+    const fact = (name: string) =>
+      JSON.stringify({
+        facts: [{ kind: "task", name, frequency: "daily", minutesPerOccurrence: 5, tools: [], painScore: 1 }],
+      });
+    const caller = new ScriptedCaller([fact("a"), fact("b"), "{ not json"]);
+    await expect(
+      extractFacts(
+        { caller: caller.asCaller(), store, prompts: new ShippedPromptSource() },
+        snapshot(template()),
+      ),
+    ).rejects.toThrow();
+    expect(caller.requests).toHaveLength(3);
+    expect(store.state.lastExtractedSeq).toBe(48);
+    expect(store.state.facts.map((f) => (f.kind === "task" ? f.name : ""))).toEqual(["a", "b"]);
+    expect(store.events.filter((e) => e.type === "facts_extracted")).toHaveLength(2);
+    // The next run picks up only the remaining messages.
+    const again = new ScriptedCaller([fact("c")]);
+    const r = await extractFacts(
+      { caller: again.asCaller(), store, prompts: new ShippedPromptSource() },
+      { ...snapshot(template()), state: store.state },
+    );
+    expect(r).toMatchObject({ upToSeq: 60 });
+    expect(String(again.requests[0]?.req.messages[0]?.content)).toContain("Question 25?");
+    expect(String(again.requests[0]?.req.messages[0]?.content)).not.toContain("Question 24?");
+  });
+});
