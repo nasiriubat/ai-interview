@@ -108,7 +108,12 @@ suite("participant flow end to end", () => {
       ).statusCode,
     ).toBe(200);
 
-    const first = await app.inject({ method: "POST", url: "/api/v1/p/session/turns", headers: pt });
+    // The first turn carries no body; a client that still declares JSON must not be rejected.
+    const first = await app.inject({
+      method: "POST",
+      url: "/api/v1/p/session/turns",
+      headers: { ...pt, "content-type": "application/json" },
+    });
     expect(first.statusCode).toBe(200);
     expect(first.headers["content-type"]).toContain("text/event-stream");
     const events = parseSse(first.body);
@@ -339,8 +344,9 @@ suite("participant flow end to end", () => {
     ).toMatchObject({ model: "fake-model", inherited: false });
 
     const auditLog = await app.inject({ method: "GET", url: "/api/v1/audit", headers: h });
-    expect(auditLog.json<{ entries: { action: string }[] }>().entries.map((e) => e.action)).toContain(
-      "settings.update",
-    );
+    const entries = auditLog.json<{ entries: { action: string; actorEmail: string | null }[] }>().entries;
+    expect(entries.map((e) => e.action)).toContain("settings.update");
+    // The log names who acted, not just an opaque actor id.
+    expect(entries.find((e) => e.action === "settings.update")?.actorEmail).toBe(world.adminEmail);
   });
 });
