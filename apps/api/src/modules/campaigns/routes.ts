@@ -3,6 +3,7 @@ import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
+import { PageQuery } from "../../lib/pagination.js";
 import { CampaignService } from "./service.js";
 
 const Id = z.object({ id: z.string() });
@@ -15,9 +16,15 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
     linkTokenHash: _hash,
     ...c
   }: T): Omit<T, "linkTokenHash"> => c;
-  app.get("/campaigns", { preHandler: requireStaff() }, async (req) => ({
-    campaigns: (await svc.list(req.companyId)).map(publicCampaign),
-  }));
+  app.get("/campaigns", { preHandler: requireStaff(), schema: { querystring: PageQuery } }, async (req) => {
+    const { campaigns, total } = await svc.list(req.companyId, req.query);
+    return {
+      campaigns: campaigns.map(publicCampaign),
+      total,
+      limit: req.query.limit,
+      offset: req.query.offset,
+    };
+  });
 
   app.post(
     "/campaigns",
@@ -177,45 +184,58 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
     },
   );
 
-  app.get("/campaigns/:id/sessions", { preHandler: requireStaff(), schema: { params: Id } }, async (req) => {
-    await svc.get(req.companyId, req.params.id);
-    const sessions = await ctx.db.session.findMany({
-      where: { campaignId: req.params.id, companyId: req.companyId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        status: true,
-        state: true,
-        startedAt: true,
-        endedAt: true,
-        createdAt: true,
-        modePreference: true,
-      },
-    });
-    const costs = await ctx.db.llmCall.groupBy({
-      by: ["sessionId"],
-      where: { campaignId: req.params.id },
-      _sum: { costCents: true },
-    });
-    const costOf = new Map(costs.map((c) => [c.sessionId, c._sum.costCents ?? 0]));
-    return {
-      sessions: sessions.map((s) => {
-        const st = s.state as { turnCount?: number; coverage?: Record<string, { status: string }> };
-        const covered = Object.values(st.coverage ?? {}).filter(
-          (c) => c.status === "covered" || c.status === "skipped",
-        ).length;
-        return {
-          id: s.id,
-          status: s.status,
-          turns: st.turnCount ?? 0,
-          areasCovered: covered,
-          mode: s.modePreference,
-          costCents: costOf.get(s.id) ?? 0,
-          startedAt: s.startedAt,
-          endedAt: s.endedAt,
-          createdAt: s.createdAt,
-        };
-      }),
-    };
-  });
+  app.get(
+    "/campaigns/:id/sessions",
+    { preHandler: requireStaff(), schema: { params: Id, querystring: PageQuery } },
+    async (req) => {
+      await svc.get(req.companyId, req.params.id);
+      const where = { campaignId: req.params.id, companyId: req.companyId };
+      const [sessions, total] = await ctx.db.$transaction([
+        ctx.db.session.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          take: req.query.limit,
+          skip: req.query.offset,
+          select: {
+            id: true,
+            status: true,
+            state: true,
+            startedAt: true,
+            endedAt: true,
+            createdAt: true,
+            modePreference: true,
+          },
+        }),
+        ctx.db.session.count({ where }),
+      ]);
+      const costs = await ctx.db.llmCall.groupBy({
+        by: ["sessionId"],
+        where: { campaignId: req.params.id },
+        _sum: { costCents: true },
+      });
+      const costOf = new Map(costs.map((c) => [c.sessionId, c._sum.costCents ?? 0]));
+      return {
+        sessions: sessions.map((s) => {
+          const st = s.state as { turnCount?: number; coverage?: Record<string, { status: string }> };
+          const covered = Object.values(st.coverage ?? {}).filter(
+            (c) => c.status === "covered" || c.status === "skipped",
+          ).length;
+          return {
+            id: s.id,
+            status: s.status,
+            turns: st.turnCount ?? 0,
+            areasCovered: covered,
+            mode: s.modePreference,
+            costCents: costOf.get(s.id) ?? 0,
+            startedAt: s.startedAt,
+            endedAt: s.endedAt,
+            createdAt: s.createdAt,
+          };
+        }),
+        total,
+        limit: req.query.limit,
+        offset: req.query.offset,
+      };
+    },
+  );
 }

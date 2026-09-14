@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
-import { NumberField, SelectField, TextField } from "@/components/admin/forms";
+import { ComboboxField, NumberField, SelectField, TextField } from "@/components/admin/forms";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
@@ -67,12 +67,22 @@ export function CampaignForm({ templates }: { templates: TemplateListItem[] }): 
       }}
     >
       <Flash flash={action.flash} />
-      <SelectField
+      <ComboboxField
         id="templateId"
         label={s.template}
         value={templateId}
         error={errors.templateId}
-        options={templates.map((tpl) => ({ value: tpl.id, label: `${tpl.name} (v${tpl.version})` }))}
+        required
+        options={templates.map((tpl) => ({
+          value: tpl.id,
+          label: `${tpl.name} (v${tpl.version})`,
+          detail: tpl.key,
+        }))}
+        labels={{
+          placeholder: t.admin.combobox.select,
+          search: t.admin.combobox.search,
+          empty: t.admin.combobox.empty,
+        }}
         onChange={setTemplateId}
       />
       <TextField id="name" label={s.name} value={name} error={errors.name} required onChange={setName} />

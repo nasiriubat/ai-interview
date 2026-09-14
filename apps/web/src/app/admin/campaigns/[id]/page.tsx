@@ -8,6 +8,7 @@ import { InvitationsPanel } from "@/components/admin/campaigns/InvitationsPanel"
 import { SessionsTable } from "@/components/admin/campaigns/SessionsTable";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { Pagination } from "@/components/admin/Pagination";
 import { StatTile } from "@/components/admin/StatTile";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { t } from "@/i18n";
 import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
+import { pageParams } from "@/lib/admin/pagination";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
 import { humanize } from "@/lib/utils";
@@ -26,16 +28,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function CampaignPage({ params }: Props): Promise<React.JSX.Element> {
+export default async function CampaignPage({ params, searchParams }: Props): Promise<React.JSX.Element> {
   await requireMe();
   const { id } = await params;
+  const { page, limit, offset } = pageParams(await searchParams);
   const api = await staffServer();
   const [campaignR, invitationsR, sessionsR] = await Promise.allSettled([
     api.campaigns.get(id),
     api.campaigns.invitations(id),
-    api.campaigns.sessions(id),
+    api.campaigns.sessions(id, { limit, offset }),
   ]);
   if (campaignR.status === "rejected") {
     if (isApiError(campaignR.reason) && campaignR.reason.isNotFound) notFound();
@@ -129,7 +133,15 @@ export default async function CampaignPage({ params }: Props): Promise<React.JSX
           </CardHeader>
           <CardContent>
             {sessions.data ? (
-              <SessionsTable sessions={sessions.data} />
+              <>
+                <SessionsTable sessions={sessions.data.items} />
+                <Pagination
+                  page={page}
+                  limit={limit}
+                  count={sessions.data.items.length}
+                  total={sessions.data.total}
+                />
+              </>
             ) : (
               <LoadError error={sessions.error} />
             )}

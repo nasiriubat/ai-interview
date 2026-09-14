@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { Pagination } from "@/components/admin/Pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { t } from "@/i18n";
 import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
+import { pageParams } from "@/lib/admin/pagination";
 import type { AuditEntry } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
@@ -47,11 +49,15 @@ export default async function AuditPage({ searchParams }: Props): Promise<React.
     typeof sp.from === "string" && sp.from
       ? sp.from
       : new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const { page, limit, offset } = pageParams(sp);
   const api = await staffServer();
-  const entries = await api.audit({
+  const result = await api.audit({
     from: new Date(from).toISOString(),
     to: new Date(`${to}T23:59:59Z`).toISOString(),
+    limit,
+    offset,
   });
+  const entries = result.items;
   const s = t.admin.audit;
   return (
     <>
@@ -72,41 +78,44 @@ export default async function AuditPage({ searchParams }: Props): Promise<React.
       {entries.length === 0 ? (
         <EmptyState text={s.empty} />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{s.at}</TableHead>
-              <TableHead>{s.actor}</TableHead>
-              <TableHead>{s.action}</TableHead>
-              <TableHead>{s.target}</TableHead>
-              <TableHead>{s.details}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((e, i) => (
-              <TableRow key={e.id ?? i}>
-                <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                  {formatDate(e.createdAt ?? e.at)}
-                </TableCell>
-                <TableCell>{actorOf(e)}</TableCell>
-                <TableCell className="font-mono text-xs">{e.action}</TableCell>
-                <TableCell className="font-mono text-xs">{targetOf(e)}</TableCell>
-                <TableCell className="max-w-md">
-                  {e.diff !== undefined && e.diff !== null ? (
-                    <pre className="max-h-32 overflow-auto text-xs whitespace-pre-wrap">
-                      {JSON.stringify(e.diff, null, 1)}
-                    </pre>
-                  ) : e.details !== undefined && e.details !== null ? (
-                    <pre className="max-h-32 overflow-auto text-xs whitespace-pre-wrap">
-                      {JSON.stringify(e.details, null, 1)}
-                    </pre>
-                  ) : null}
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{s.at}</TableHead>
+                <TableHead>{s.actor}</TableHead>
+                <TableHead>{s.action}</TableHead>
+                <TableHead>{s.target}</TableHead>
+                <TableHead>{s.details}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {entries.map((e, i) => (
+                <TableRow key={e.id ?? i}>
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                    {formatDate(e.createdAt ?? e.at)}
+                  </TableCell>
+                  <TableCell>{actorOf(e)}</TableCell>
+                  <TableCell className="font-mono text-xs">{e.action}</TableCell>
+                  <TableCell className="font-mono text-xs">{targetOf(e)}</TableCell>
+                  <TableCell className="max-w-md">
+                    {e.diff !== undefined && e.diff !== null ? (
+                      <pre className="max-h-32 overflow-auto text-xs whitespace-pre-wrap">
+                        {JSON.stringify(e.diff, null, 1)}
+                      </pre>
+                    ) : e.details !== undefined && e.details !== null ? (
+                      <pre className="max-h-32 overflow-auto text-xs whitespace-pre-wrap">
+                        {JSON.stringify(e.details, null, 1)}
+                      </pre>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
+      <Pagination page={page} limit={limit} count={entries.length} total={result.total} />
     </>
   );
 }

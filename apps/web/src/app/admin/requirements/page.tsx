@@ -1,15 +1,18 @@
-import { PlusIcon } from "lucide-react";
+import { EyeIcon, PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
+import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { Pagination } from "@/components/admin/Pagination";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
+import { pageParams } from "@/lib/admin/pagination";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
@@ -19,10 +22,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).admin.requirements.title };
 }
 
-export default async function RequirementsPage(): Promise<React.JSX.Element> {
+interface Props {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function RequirementsPage({ searchParams }: Props): Promise<React.JSX.Element> {
   await requireMe();
+  const { page, limit, offset } = pageParams(await searchParams);
   const api = await staffServer();
-  const sessions = await api.requirements.list();
+  const result = await api.requirements.list({ limit, offset });
+  const sessions = result.items;
   const s = t.admin.requirements;
   return (
     <>
@@ -55,6 +64,7 @@ export default async function RequirementsPage(): Promise<React.JSX.Element> {
                 <TableHead className="text-right">{s.columns.versions}</TableHead>
                 <TableHead className="text-right">{s.columns.openFindings}</TableHead>
                 <TableHead>{s.columns.created}</TableHead>
+                <TableHead className="text-right">{t.admin.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -75,12 +85,22 @@ export default async function RequirementsPage(): Promise<React.JSX.Element> {
                   <TableCell className="text-right tabular-nums">{r.versions}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.openFindings}</TableCell>
                   <TableCell className="text-muted-foreground text-xs">{formatDate(r.createdAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <RowActions>
+                      <IconButton
+                        label={t.admin.actions.view}
+                        icon={EyeIcon}
+                        href={`/admin/requirements/${r.id}`}
+                      />
+                    </RowActions>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       )}
+      <Pagination page={page} limit={limit} count={sessions.length} total={result.total} />
     </>
   );
 }

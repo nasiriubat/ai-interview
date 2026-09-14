@@ -17,6 +17,11 @@ export class SmtpEmail implements EmailPort {
       subject: m.subject,
       text: m.text,
       ...(m.html ? { html: m.html } : {}),
+      ...(m.replyTo ? { replyTo: m.replyTo } : {}),
     });
+  }
+  /** Releases the pooled connections a transport may hold. */
+  close(): void {
+    this.transport.close();
   }
 }

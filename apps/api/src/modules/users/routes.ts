@@ -5,6 +5,7 @@ import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
+import { PageQuery } from "../../lib/pagination.js";
 
 const UserOut = z.object({
   id: z.string(),
@@ -29,14 +30,31 @@ export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
     "/users",
     {
       preHandler: requireStaff("admin"),
-      schema: { response: { 200: z.object({ users: z.array(UserOut) }) } },
+      schema: {
+        querystring: PageQuery,
+        response: {
+          200: z.object({
+            users: z.array(UserOut),
+            total: z.number(),
+            limit: z.number(),
+            offset: z.number(),
+          }),
+        },
+      },
     },
-    async (req) => ({
-      users: await ctx.db.user.findMany({
-        where: { companyId: req.companyId },
-        orderBy: { createdAt: "asc" },
-      }),
-    }),
+    async (req) => {
+      const where = { companyId: req.companyId };
+      const [users, total] = await ctx.db.$transaction([
+        ctx.db.user.findMany({
+          where,
+          orderBy: { createdAt: "asc" },
+          take: req.query.limit,
+          skip: req.query.offset,
+        }),
+        ctx.db.user.count({ where }),
+      ]);
+      return { users, total, limit: req.query.limit, offset: req.query.offset };
+    },
   );
 
   app.post(

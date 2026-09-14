@@ -41,7 +41,7 @@ export default async function ReportPage({ params, searchParams }: Props): Promi
   }
   const campaign = campaignR.value;
   const analyses = settled(analysesR);
-  const list = analyses.data ?? [];
+  const list = analyses.data?.items ?? [];
   const selected = list.find((a) => a.id === requested) ?? list.find((a) => a.status === "done");
 
   let report: Report | null = null;

@@ -4,7 +4,7 @@ import type { Path } from "@aidp/shared";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
-import { SelectField, TextAreaField, TextField } from "@/components/admin/forms";
+import { ComboboxField, SelectField, TextAreaField, TextField } from "@/components/admin/forms";
 import { PathChoice } from "@/components/participant/PathChoice";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
@@ -75,7 +75,12 @@ export function RequirementsForm({ templates }: { templates: TemplateListItem[] 
         onChange={setPrompt}
       />
       <fieldset className="grid gap-2">
-        <legend className="mb-1 text-sm font-medium">{s.pathField}</legend>
+        <legend className="mb-1 text-sm font-medium">
+          {s.pathField}
+          <span aria-hidden="true" className="text-destructive">
+            *
+          </span>
+        </legend>
         <PathChoice value={path} onChoose={setPath} compact />
         {errors.path ? (
           <p className="text-destructive text-xs" role="alert">
@@ -85,12 +90,21 @@ export function RequirementsForm({ templates }: { templates: TemplateListItem[] 
       </fieldset>
       <div className="grid gap-4 md:grid-cols-2">
         {templates.length > 0 ? (
-          <SelectField
+          <ComboboxField
             id="templateId"
             label={s.templateField}
             hint={s.templateHint}
             value={templateId}
-            options={templates.map((tpl) => ({ value: tpl.id, label: `${tpl.name} (v${tpl.version})` }))}
+            options={templates.map((tpl) => ({
+              value: tpl.id,
+              label: `${tpl.name} (v${tpl.version})`,
+              detail: tpl.key,
+            }))}
+            labels={{
+              placeholder: t.admin.combobox.select,
+              search: t.admin.combobox.search,
+              empty: t.admin.combobox.empty,
+            }}
             onChange={setTemplateId}
           />
         ) : (
@@ -100,6 +114,7 @@ export function RequirementsForm({ templates }: { templates: TemplateListItem[] 
           id="language"
           label={s.languageField}
           value={language}
+          required
           options={LANGUAGES.map((l) => ({ value: l, label: t.app.languageNames[l] }))}
           onChange={setLanguage}
         />

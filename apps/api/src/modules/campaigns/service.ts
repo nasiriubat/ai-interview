@@ -39,8 +39,22 @@ export class CampaignService {
     private readonly publicWebUrl: string,
   ) {}
 
-  list(companyId: string): Promise<Campaign[]> {
-    return this.db.campaign.findMany({ where: { companyId }, orderBy: { createdAt: "desc" } });
+  /** One page of campaigns, newest first, with the row count beside it (contract 19). */
+  async list(
+    companyId: string,
+    page: { limit: number; offset: number },
+  ): Promise<{ campaigns: Campaign[]; total: number }> {
+    const where = { companyId };
+    const [campaigns, total] = await this.db.$transaction([
+      this.db.campaign.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: page.limit,
+        skip: page.offset,
+      }),
+      this.db.campaign.count({ where }),
+    ]);
+    return { campaigns, total };
   }
 
   async get(companyId: string, id: string): Promise<Campaign & { linkToken?: undefined }> {
@@ -235,6 +249,7 @@ export class CampaignService {
     const link = `${this.linkFor("i")}?invitation=${token}`;
     await this.email.send({
       to: email,
+      companyId: campaign.companyId,
       subject: `${reminder ? "Reminder: " : ""}${campaign.name}`,
       text: `${from ? `${from} invited you` : "You are invited"} to a short interview about how your work is done.\n\nOpen your personal link: ${link}\n\nIt takes about 20 minutes, can be paused, and you can delete your answers at any time.\n\n${productName}`,
     });

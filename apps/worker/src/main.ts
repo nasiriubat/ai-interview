@@ -1,4 +1,4 @@
-import { BossJobs, CallerFactory, Crypto, MemoryEmail, SettingsService, SmtpEmail } from "@aidp/core";
+import { BossJobs, CallerFactory, Crypto, MemoryEmail, SettingsEmail, SettingsService } from "@aidp/core";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
 import { loadConfig } from "./config.js";
@@ -9,7 +9,11 @@ async function main(): Promise<void> {
   const log = pino({ level: config.LOG_LEVEL });
   const db = new PrismaClient();
   const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
-  const settings = new SettingsService(db);
+  const settings = new SettingsService(db, crypto, {
+    warn: (message, meta) => {
+      log.warn(meta ?? {}, message);
+    },
+  });
   const callers = new CallerFactory({
     db,
     crypto,
@@ -18,11 +22,14 @@ async function main(): Promise<void> {
       log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
     },
   });
-  const email = config.EMAIL_SMTP_URL
-    ? new SmtpEmail(config.EMAIL_SMTP_URL, config.EMAIL_FROM)
-    : new MemoryEmail((m) => {
-        log.info({ to: m.to, subject: m.subject }, "email (console)");
-      });
+  // Identical resolution to the API, so a message sent from a job looks like one sent from a request.
+  const email = new SettingsEmail({
+    settings,
+    env: { smtpUrl: config.EMAIL_SMTP_URL, from: config.EMAIL_FROM },
+    fallback: new MemoryEmail((m) => {
+      log.info({ to: m.to, subject: m.subject }, "email (console)");
+    }),
+  });
   const jobs = new BossJobs(config.DATABASE_URL, {
     onError: (err) => {
       log.error({ err }, "job queue error");

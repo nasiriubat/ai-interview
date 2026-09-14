@@ -1,10 +1,12 @@
 import { PurposeSchema } from "@aidp/shared";
+import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
-import { notFound } from "../../lib/errors.js";
+import { AppError, notFound } from "../../lib/errors.js";
+import { PageQuery } from "../../lib/pagination.js";
 import { ProviderService } from "./service.js";
 
 const Id = z.object({ id: z.string() });
@@ -25,6 +27,18 @@ const ProviderBody = z.object({
   headers: z.record(z.string(), z.string()).optional(),
   enabled: z.boolean().optional(),
 });
+/** `cachedInputPerMtok` is optional: a provider that does not price cached input charges full price. */
+const PricesBody = z.object({
+  prices: z.array(
+    z.object({
+      model: z.string().min(1),
+      inputPerMtok: z.number().nonnegative(),
+      outputPerMtok: z.number().nonnegative(),
+      cachedInputPerMtok: z.number().nonnegative().optional(),
+    }),
+  ),
+});
+const TestBody = z.object({ model: z.string().min(1).optional() });
 /** One row per purpose (contract 16). A row without provider or model clears the tenant override. */
 const RouteRow = z.object({
   purpose: PurposeSchema,
@@ -35,168 +49,47 @@ const RouteRow = z.object({
   batchAllowed: z.boolean().nullable().optional(),
 });
 
+type ScopeOf = (req: FastifyRequest) => string | null;
+
 /** Providers, routing, prices, budgets. Platform operators without X-Company-Id manage platform-level rows. */
 export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
   const svc = new ProviderService(ctx.db, ctx.crypto, ctx.callers);
-  const scope = (req: {
-    companyId: string;
-    principal: { kind: string; role?: string };
-    headers: Record<string, unknown>;
-  }): string | null =>
+  const tenantScope: ScopeOf = (req) =>
     req.principal.kind === "staff" &&
     req.principal.role === "platform_operator" &&
     !req.headers["x-company-id"]
       ? null
       : req.companyId;
-  const view = (p: Awaited<ReturnType<ProviderService["get"]>>) => ({
-    id: p.id,
-    companyId: p.companyId,
-    kind: p.kind,
-    name: p.name,
-    baseUrl: p.baseUrl,
-    headers: p.headers,
-    enabled: p.enabled,
-    hasKey: p.apiKeyEnc.length > 0,
-    createdAt: p.createdAt,
+
+  mountProviderRoutes(app, ctx, svc, {
+    prefix: "",
+    preHandler: requireStaff("admin"),
+    scope: tenantScope,
+  });
+  // The platform twins of the same routes (contract 19): operator only, always on companyId null.
+  mountProviderRoutes(app, ctx, svc, {
+    prefix: "/operator",
+    preHandler: requireStaff("platform_operator"),
+    scope: () => null,
   });
 
-  app.get("/providers", { preHandler: requireStaff("admin") }, async (req) => ({
-    providers: (await svc.list(scope(req))).map(view),
-  }));
-  app.post(
-    "/providers",
-    { preHandler: requireStaff("admin"), schema: { body: ProviderBody } },
-    async (req, reply) => {
-      const p = await svc.create(scope(req), req.body);
-      await audit(ctx.db, {
-        companyId: req.companyId || "platform",
-        actorId: staff(req).userId,
-        action: "provider.create",
-        targetType: "provider",
-        targetId: p.id,
-        diff: { kind: p.kind, name: p.name },
-      });
-      return reply.status(201).send({ provider: view(p) });
-    },
-  );
-  app.patch(
-    "/providers/:id",
-    { preHandler: requireStaff("admin"), schema: { params: Id, body: ProviderBody.partial() } },
-    async (req) => {
-      const p = await svc.update(scope(req), req.params.id, req.body);
-      await audit(ctx.db, {
-        companyId: req.companyId || "platform",
-        actorId: staff(req).userId,
-        action: "provider.update",
-        targetType: "provider",
-        targetId: p.id,
-        diff: { ...req.body, apiKey: req.body.apiKey ? "(rotated)" : undefined },
-      });
-      return { provider: view(p) };
-    },
-  );
-  app.delete("/providers/:id", { preHandler: requireStaff("admin"), schema: { params: Id } }, async (req) => {
-    await svc.remove(scope(req), req.params.id);
-    await audit(ctx.db, {
-      companyId: req.companyId || "platform",
-      actorId: staff(req).userId,
-      action: "provider.delete",
-      targetType: "provider",
-      targetId: req.params.id,
-    });
-    return { ok: true as const };
-  });
-  app.post(
-    "/providers/:id/test",
-    {
-      preHandler: requireStaff("admin"),
-      schema: { params: Id, body: z.object({ model: z.string().min(1) }) },
-    },
-    async (req) => svc.test(scope(req), req.params.id, req.body.model),
-  );
   app.get(
-    "/providers/:id/models",
-    { preHandler: requireStaff("admin"), schema: { params: Id } },
-    async (req) => svc.models(scope(req), req.params.id),
-  );
-  app.get(
-    "/providers/:id/prices",
-    { preHandler: requireStaff("admin"), schema: { params: Id } },
+    "/budgets",
+    { preHandler: requireStaff("admin"), schema: { querystring: PageQuery } },
     async (req) => {
-      await svc.get(scope(req), req.params.id);
-      return { prices: await svc.prices(req.params.id) };
-    },
-  );
-  app.put(
-    "/providers/:id/prices",
-    {
-      preHandler: requireStaff("admin"),
-      schema: {
-        params: Id,
-        body: z.object({
-          prices: z.array(
-            z.object({
-              model: z.string(),
-              inputPerMtok: z.number().nonnegative(),
-              cachedInputPerMtok: z.number().nonnegative(),
-              outputPerMtok: z.number().nonnegative(),
-            }),
-          ),
+      const where = { companyId: req.companyId };
+      const [budgets, total] = await ctx.db.$transaction([
+        ctx.db.budget.findMany({
+          where,
+          orderBy: { id: "asc" },
+          take: req.query.limit,
+          skip: req.query.offset,
         }),
-      },
-    },
-    async (req) => {
-      for (const p of req.body.prices) await svc.setPrice(scope(req), req.params.id, p);
-      await audit(ctx.db, {
-        companyId: req.companyId || "platform",
-        actorId: staff(req).userId,
-        action: "prices.update",
-        targetType: "provider",
-        targetId: req.params.id,
-        diff: req.body,
-      });
-      return { prices: await svc.prices(req.params.id) };
+        ctx.db.budget.count({ where }),
+      ]);
+      return { budgets, total, limit: req.query.limit, offset: req.query.offset };
     },
   );
-
-  app.get("/routes", { preHandler: requireStaff("admin") }, async (req) => ({
-    routes: await svc.routes(scope(req)),
-  }));
-  app.put(
-    "/routes",
-    {
-      preHandler: requireStaff("admin"),
-      schema: { body: z.object({ routes: z.array(RouteRow) }) },
-    },
-    async (req) => {
-      for (const row of req.body.routes) {
-        const route =
-          row.providerId && row.model
-            ? {
-                providerId: row.providerId,
-                model: row.model,
-                effort: row.effort ?? undefined,
-                maxOutputTokens: row.maxOutputTokens ?? 4096,
-                batchAllowed: row.batchAllowed ?? false,
-              }
-            : null;
-        await svc.setRoute(scope(req), row.purpose, route);
-      }
-      await audit(ctx.db, {
-        companyId: req.companyId || "platform",
-        actorId: staff(req).userId,
-        action: "routes.update",
-        targetType: "routes",
-        targetId: req.companyId || "platform",
-        diff: req.body,
-      });
-      return { routes: await svc.routes(scope(req)) };
-    },
-  );
-
-  app.get("/budgets", { preHandler: requireStaff("admin") }, async (req) => ({
-    budgets: await ctx.db.budget.findMany({ where: { companyId: req.companyId } }),
-  }));
   app.post(
     "/budgets",
     {
@@ -212,11 +105,29 @@ export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
     },
     async (req) => {
       const scopeId = req.body.scope === "tenant" ? req.companyId : (req.body.scopeId ?? "");
-      if (!scopeId) throw notFound("Scope");
+      if (!scopeId) throw new AppError("validation", "A scopeId is required for this scope");
       if (req.body.scope === "tenant") {
         const company = await ctx.db.company.findUniqueOrThrow({ where: { id: req.companyId } });
         if (staff(req).role !== "platform_operator" && req.body.limitCents > company.monthlyBudgetCents)
-          throw notFound("A tenant may lower its budget but not raise it above the platform default");
+          throw new AppError(
+            "validation",
+            "A tenant may lower its budget but not raise it above the platform default",
+          );
+      }
+      // A campaign or session id is never taken on trust: it has to belong to this tenant.
+      if (req.body.scope === "campaign") {
+        const c = await ctx.db.campaign.findFirst({
+          where: { id: scopeId, companyId: req.companyId },
+          select: { id: true },
+        });
+        if (!c) throw notFound("Campaign");
+      }
+      if (req.body.scope === "session") {
+        const s = await ctx.db.session.findFirst({
+          where: { id: scopeId, companyId: req.companyId },
+          select: { id: true },
+        });
+        if (!s) throw notFound("Session");
       }
       const budget = await ctx.db.budget.upsert({
         where: { scope_scopeId: { scope: req.body.scope, scopeId } },
@@ -248,4 +159,151 @@ export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
     await ctx.db.budget.delete({ where: { id: b.id } });
     return { ok: true as const };
   });
+}
+
+/**
+ * Providers, models, prices and routes under one prefix. Mounted twice: once for tenant admins
+ * and once for the platform operator, sharing the handlers so the two never drift apart.
+ */
+function mountProviderRoutes(
+  app: App,
+  ctx: AppContext,
+  svc: ProviderService,
+  opts: {
+    prefix: "" | "/operator";
+    preHandler: (req: FastifyRequest) => Promise<void>;
+    scope: ScopeOf;
+  },
+): void {
+  const { prefix, preHandler, scope } = opts;
+  const view = (p: Awaited<ReturnType<ProviderService["get"]>>) => ({
+    id: p.id,
+    companyId: p.companyId,
+    kind: p.kind,
+    name: p.name,
+    baseUrl: p.baseUrl,
+    headers: p.headers,
+    enabled: p.enabled,
+    hasKey: p.apiKeyEnc.length > 0,
+    createdAt: p.createdAt,
+  });
+  const auditCompany = (req: FastifyRequest): string => req.companyId || "platform";
+
+  app.get(`${prefix}/providers`, { preHandler }, async (req) => ({
+    providers: (await svc.list(scope(req))).map(view),
+  }));
+
+  app.post(`${prefix}/providers`, { preHandler, schema: { body: ProviderBody } }, async (req, reply) => {
+    const p = await svc.create(scope(req), req.body);
+    await audit(ctx.db, {
+      companyId: auditCompany(req),
+      actorId: staff(req).userId,
+      action: "provider.create",
+      targetType: "provider",
+      targetId: p.id,
+      diff: { kind: p.kind, name: p.name },
+    });
+    return reply.status(201).send({ provider: view(p) });
+  });
+
+  app.patch(
+    `${prefix}/providers/:id`,
+    { preHandler, schema: { params: Id, body: ProviderBody.partial() } },
+    async (req) => {
+      const p = await svc.update(scope(req), req.params.id, req.body);
+      await audit(ctx.db, {
+        companyId: auditCompany(req),
+        actorId: staff(req).userId,
+        action: "provider.update",
+        targetType: "provider",
+        targetId: p.id,
+        diff: { ...req.body, apiKey: req.body.apiKey ? "(rotated)" : undefined },
+      });
+      return { provider: view(p) };
+    },
+  );
+
+  app.delete(`${prefix}/providers/:id`, { preHandler, schema: { params: Id } }, async (req) => {
+    await svc.remove(scope(req), req.params.id);
+    await audit(ctx.db, {
+      companyId: auditCompany(req),
+      actorId: staff(req).userId,
+      action: "provider.delete",
+      targetType: "provider",
+      targetId: req.params.id,
+    });
+    return { ok: true as const };
+  });
+
+  // The body is optional: without a model the service picks the routed one, then the first listed.
+  app.post(`${prefix}/providers/:id/test`, { preHandler, schema: { params: Id } }, async (req) => {
+    const body = TestBody.parse(req.body ?? {});
+    return svc.test(scope(req), req.params.id, body.model);
+  });
+
+  app.get(`${prefix}/providers/:id/models`, { preHandler, schema: { params: Id } }, async (req) =>
+    svc.models(scope(req), req.params.id),
+  );
+
+  app.get(
+    `${prefix}/providers/:id/prices`,
+    { preHandler, schema: { params: Id, querystring: PageQuery } },
+    async (req) => {
+      await svc.get(scope(req), req.params.id);
+      const { prices, total } = await svc.pricesPage(req.params.id, req.query);
+      return { prices, total, limit: req.query.limit, offset: req.query.offset };
+    },
+  );
+
+  app.put(
+    `${prefix}/providers/:id/prices`,
+    { preHandler, schema: { params: Id, body: PricesBody } },
+    async (req) => {
+      await svc.setPrices(
+        scope(req),
+        req.params.id,
+        req.body.prices.map((p) => ({ ...p, cachedInputPerMtok: p.cachedInputPerMtok ?? p.inputPerMtok })),
+      );
+      await audit(ctx.db, {
+        companyId: auditCompany(req),
+        actorId: staff(req).userId,
+        action: "prices.update",
+        targetType: "provider",
+        targetId: req.params.id,
+        diff: req.body,
+      });
+      return { prices: await svc.prices(req.params.id) };
+    },
+  );
+
+  app.get(`${prefix}/routes`, { preHandler }, async (req) => ({ routes: await svc.routes(scope(req)) }));
+
+  app.put(
+    `${prefix}/routes`,
+    { preHandler, schema: { body: z.object({ routes: z.array(RouteRow) }) } },
+    async (req) => {
+      for (const row of req.body.routes) {
+        const route =
+          row.providerId && row.model
+            ? {
+                providerId: row.providerId,
+                model: row.model,
+                effort: row.effort ?? undefined,
+                maxOutputTokens: row.maxOutputTokens ?? 4096,
+                batchAllowed: row.batchAllowed ?? false,
+              }
+            : null;
+        await svc.setRoute(scope(req), row.purpose, route);
+      }
+      await audit(ctx.db, {
+        companyId: auditCompany(req),
+        actorId: staff(req).userId,
+        action: "routes.update",
+        targetType: "routes",
+        targetId: req.companyId || "platform",
+        diff: req.body,
+      });
+      return { routes: await svc.routes(scope(req)) };
+    },
+  );
 }

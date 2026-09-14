@@ -15,7 +15,15 @@ export interface SettingDef<T extends z.ZodType = z.ZodType> {
   scopes: readonly SettingScope[];
   category: string;
   description: string;
+  /** Encrypted at rest and never returned in plain text; the API answers with SECRET_SENTINEL. */
+  secret?: boolean;
 }
+
+/**
+ * Placeholder the API returns instead of a secret value, and accepts back on a write to mean
+ * "leave this one as it is". A literal value equal to the sentinel can therefore not be stored.
+ */
+export const SECRET_SENTINEL = "__unchanged__";
 
 const def = <T extends z.ZodType>(d: SettingDef<T>): SettingDef<T> => d;
 
@@ -249,10 +257,34 @@ export const SETTINGS = {
   }),
   "branding.emailSender": def({
     schema: z.string(),
-    default: "no-reply@example.com",
+    default: "",
     scopes: ["platform", "tenant"],
     category: "branding",
-    description: "From address for invitations",
+    description: "Deprecated: superseded by email.from, which falls back to this when it is unset",
+  }),
+  // Email. The port resolves these per send, tenant first and platform second, and falls back
+  // to EMAIL_SMTP_URL and EMAIL_FROM from the environment when neither scope sets them.
+  "email.smtpUrl": def({
+    schema: z.string(),
+    default: "",
+    scopes: ["platform", "tenant"],
+    category: "email",
+    description: "smtp://user:pass@host:587; empty falls back to the environment, then the console",
+    secret: true,
+  }),
+  "email.from": def({
+    schema: z.string(),
+    default: "no-reply@example.com",
+    scopes: ["platform", "tenant"],
+    category: "email",
+    description: "Envelope sender for outgoing mail",
+  }),
+  "email.replyTo": def({
+    schema: z.string(),
+    default: "",
+    scopes: ["platform", "tenant"],
+    category: "email",
+    description: "Optional reply-to address",
   }),
   // Analysis
   "analysis.weightsPreset": def({
@@ -426,4 +458,25 @@ export function parseSetting<K extends SettingKey>(key: K, value: unknown): Sett
 
 export function settingKeysForScope(scope: SettingScope): SettingKey[] {
   return (Object.keys(SETTINGS) as SettingKey[]).filter((k) => SETTINGS[k].scopes.includes(scope));
+}
+
+export function isSecretSetting(key: SettingKey): boolean {
+  return SETTINGS[key].secret === true;
+}
+
+export function secretSettingKeys(): SettingKey[] {
+  return (Object.keys(SETTINGS) as SettingKey[]).filter(isSecretSetting);
+}
+
+/** Replaces any secret that holds a value with the sentinel, so a map may safely leave the API. */
+export function maskSecretSettings(
+  values: Partial<Record<SettingKey, unknown>>,
+): Partial<Record<SettingKey, unknown>> {
+  const out: Partial<Record<SettingKey, unknown>> = { ...values };
+  for (const key of secretSettingKeys()) {
+    if (!(key in out)) continue;
+    const v = out[key];
+    out[key] = typeof v === "string" && v.length > 0 ? SECRET_SENTINEL : v;
+  }
+  return out;
 }

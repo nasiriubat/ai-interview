@@ -92,6 +92,7 @@ export class ParticipantService {
     });
     await this.email.send({
       to: normalizeEmail(email),
+      companyId: campaign.companyId,
       subject: `Your code: ${code}`,
       text: `Your verification code for "${campaign.name}" is ${code}. It expires in 10 minutes.`,
     });

@@ -5,17 +5,24 @@ import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
+import { PageQuery } from "../../lib/pagination.js";
 
 /** Platform operator: tenants and global numbers. Platform providers and routes use the provider routes with X-Company-Id unset and companyId null. */
 export async function operatorRoutes(app: App, ctx: AppContext): Promise<void> {
   const op = requireStaff("platform_operator");
 
-  app.get("/operator/tenants", { preHandler: op }, async () => ({
-    tenants: await ctx.db.company.findMany({
-      orderBy: { createdAt: "asc" },
-      include: { _count: { select: { users: true, campaigns: true, sessions: true } } },
-    }),
-  }));
+  app.get("/operator/tenants", { preHandler: op, schema: { querystring: PageQuery } }, async (req) => {
+    const [tenants, total] = await ctx.db.$transaction([
+      ctx.db.company.findMany({
+        orderBy: { createdAt: "asc" },
+        include: { _count: { select: { users: true, campaigns: true, sessions: true } } },
+        take: req.query.limit,
+        skip: req.query.offset,
+      }),
+      ctx.db.company.count(),
+    ]);
+    return { tenants, total, limit: req.query.limit, offset: req.query.offset };
+  });
 
   app.post(
     "/operator/tenants",

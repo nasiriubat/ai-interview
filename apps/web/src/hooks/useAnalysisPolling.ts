@@ -25,8 +25,8 @@ export function useAnalysisPolling(campaignId: string, latest: Analysis | undefi
     let cancelled = false;
     const tick = async (): Promise<void> => {
       try {
-        const list = await staffClient.analyses.list(campaignId);
-        const head = list[0];
+        const page = await staffClient.analyses.list(campaignId, { limit: 1 });
+        const head = page.items[0];
         if (cancelled || !head) return;
         setLive(head);
         if (head.status === "done" || head.status === "failed") router.refresh();
