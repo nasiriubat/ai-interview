@@ -1,4 +1,5 @@
 import { runAnalysis, seedStateFromHandoff, type AnalysisFact, type Logger } from "@aidp/ai";
+import { currentTenant, tenantTransaction } from "@aidp/db";
 import {
   FactSchema,
   HandoffSchema,
@@ -115,6 +116,10 @@ export class AnalysisService {
   /** The job body: collects facts, runs the pipeline, stores results. Idempotent per analysis id. */
   async run(analysisId: string): Promise<void> {
     const { db, log } = this.deps;
+    // Background work is fenced like a request: without a tenant the policies hide the campaign
+    // and the failure surfaces as an unrelated Prisma error, so say what is actually wrong.
+    if (currentTenant() === null)
+      throw new Error("AnalysisService.run must be called inside a tenant context (withTenant)");
     const analysis = await db.analysis.findUniqueOrThrow({
       where: { id: analysisId },
       include: { campaign: true },
@@ -188,7 +193,7 @@ export class AnalysisService {
         },
       );
 
-      await db.$transaction(async (tx) => {
+      await tenantTransaction(db, async (tx) => {
         for (const o of result.opportunities) {
           const row = await tx.opportunity.create({
             data: {

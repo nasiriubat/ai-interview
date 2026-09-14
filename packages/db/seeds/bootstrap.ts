@@ -31,6 +31,14 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
   if (!key) throw new Error("PLATFORM_ENCRYPTION_KEY is required (openssl rand -base64 32)");
   const crypto = new Crypto(key);
 
+  // Give the unprivileged runtime role a login, so the API and worker can connect as `app_api`
+  // and the row-level security policies actually apply (migration 0008). Without a password the
+  // role stays NOLOGIN and a deployment silently keeps running as the owner, fence down.
+  if (env.APP_DB_PASSWORD) {
+    await db.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD ${quoteLiteral(env.APP_DB_PASSWORD)}`);
+    console.log("bootstrap: app_api may now log in; point DATABASE_URL at it for the API and worker");
+  }
+
   const platform =
     (await db.company.findFirst({ where: { name: "Platform" } })) ??
     (await db.company.create({ data: { name: "Platform" } }));
@@ -128,6 +136,11 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
     `bootstrap: operator ${operatorEmail}, tenant "${tenantName}" admin ${adminEmail}, templates ${seeded.templates}${providers.length ? `, ${providers.join(" and ")} provider with default routes` : ", no provider (set ANTHROPIC_API_KEY or OPENROUTER_API_KEY, or add one in the admin UI)"}`,
   );
   if (!env.PLATFORM_ENCRYPTION_KEY) console.log(`generated key: ${randomBytes(32).toString("base64")}`);
+}
+
+/** Postgres string literal: a password is not a bind parameter in ALTER ROLE. */
+function quoteLiteral(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
 }
 
 /** Platform routes are created only for purposes that have none, so an earlier provider keeps its rows. */

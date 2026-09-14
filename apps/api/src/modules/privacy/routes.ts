@@ -1,0 +1,26 @@
+import { retentionStatus } from "@aidp/core";
+import { z } from "zod";
+import type { App } from "../../app.js";
+import { requireStaff } from "../../auth/plugin.js";
+import type { AppContext } from "../../context.js";
+
+const RetentionStatus = z.object({
+  retentionMonths: z.number().int(),
+  oldestSessionAt: z.string().nullable(),
+  expiredSessions: z.number().int(),
+  lastSweepAt: z.string().nullable(),
+});
+
+/**
+ * Privacy posture an admin can check without reading the code (spec 11). The consent text promises
+ * the data does not live forever; this says what the window is, how far back the tenant's data goes,
+ * how much of it is currently past the window (zero between nightly sweeps) and when the last sweep
+ * that removed anything ran.
+ */
+export async function privacyRoutes(app: App, ctx: AppContext): Promise<void> {
+  app.get(
+    "/privacy/retention",
+    { preHandler: requireStaff("admin"), schema: { response: { 200: RetentionStatus } } },
+    async (req) => retentionStatus({ db: ctx.db, settings: ctx.settings }, req.companyId),
+  );
+}

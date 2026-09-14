@@ -67,4 +67,5 @@ export const SCOPED_MODELS: ReadonlySet<string> = new Set([
 
 export type ScopedClient = ReturnType<typeof buildScoped>;
 
+export * from "./tenancy.js";
 export { shippedTemplate, shippedTemplates } from "./seed-templates/index.js";

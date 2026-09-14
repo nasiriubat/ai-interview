@@ -32,6 +32,7 @@ suite("OpenAPI and health", () => {
       "/spend",
       "/stats",
       "/audit",
+      "/privacy/retention",
       "/operator/tenants",
       "/operator/providers",
       "/operator/providers/{id}",

@@ -1,3 +1,4 @@
+import { tenantBatch } from "@aidp/db";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff } from "../../auth/plugin.js";
@@ -24,7 +25,7 @@ export async function auditRoutes(app: App, ctx: AppContext): Promise<void> {
           ...(req.query.to ? { lte: req.query.to } : {}),
         },
       };
-      const [entries, total] = await ctx.db.$transaction([
+      const [entries, total] = await tenantBatch(ctx.db, [
         ctx.db.auditLog.findMany({
           where,
           orderBy: { createdAt: "desc" },

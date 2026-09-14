@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  deleteSessionData,
   emailDomain,
   newNumericCode,
   newToken,
@@ -268,17 +269,9 @@ export class ParticipantService {
     await this.db.session.update({ where: { id: sessionId }, data: { state } });
   }
 
+  /** "Delete my data" (FR-13): one definition of deletion, shared with the retention sweep. */
   async deleteData(sessionId: string): Promise<void> {
-    await this.db.$transaction([
-      this.db.message.deleteMany({ where: { sessionId } }),
-      this.db.sessionEvent.deleteMany({ where: { sessionId } }),
-      this.db.fact.deleteMany({ where: { sessionId } }),
-      this.db.attachment.deleteMany({ where: { sessionId } }),
-      this.db.session.update({
-        where: { id: sessionId },
-        data: { status: "deleted", state: {}, summary: "", endedAt: new Date() },
-      }),
-    ]);
+    await deleteSessionData(this.db, sessionId, { markEnded: true });
   }
 
   async summary(sessionId: string): Promise<{ summary: string; facts: unknown[] }> {

@@ -1,5 +1,11 @@
 import { PgBoss, type Job } from "pg-boss";
-import { JOBS, type JobName, type JobPayload, type JobPublisher } from "./definitions.js";
+import {
+  JOBS,
+  type JobName,
+  type JobPayload,
+  type JobPublisher,
+  type ScheduleOptions,
+} from "./definitions.js";
 
 /** pg-boss publisher and consumer helpers. One queue per job name, created on start. */
 export class BossJobs implements JobPublisher {
@@ -42,6 +48,30 @@ export class BossJobs implements JobPublisher {
   ): Promise<void> {
     JOBS[name].schema.parse(payload);
     await this.boss.send(name, payload, options?.singletonKey ? { singletonKey: options.singletonKey } : {});
+  }
+
+  /**
+   * Puts a job on a cron timer. pg-boss stores the schedule in the database and one clock across
+   * the cluster turns it into a job, so every worker replica may register the same schedule on
+   * start without the job running twice. The call is an upsert on (name, key): re-registering an
+   * existing schedule with a new expression moves it rather than adding a second one.
+   */
+  async schedule<N extends JobName>(
+    name: N,
+    cron: string,
+    payload: JobPayload<N>,
+    options?: ScheduleOptions,
+  ): Promise<void> {
+    JOBS[name].schema.parse(payload);
+    await this.boss.schedule(name, cron, payload, {
+      tz: options?.tz ?? "UTC",
+      ...(options?.key ? { key: options.key } : {}),
+    });
+  }
+
+  /** Removes a schedule registered by {@link schedule}. */
+  async unschedule(name: JobName, key?: string): Promise<void> {
+    await this.boss.unschedule(name, key);
   }
 
   /** Registers a typed handler; payloads are validated before the handler runs. */

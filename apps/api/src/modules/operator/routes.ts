@@ -1,3 +1,4 @@
+import { tenantBatch, tenantTransaction } from "@aidp/db";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
@@ -12,7 +13,7 @@ export async function operatorRoutes(app: App, ctx: AppContext): Promise<void> {
   const op = requireStaff("platform_operator");
 
   app.get("/operator/tenants", { preHandler: op, schema: { querystring: PageQuery } }, async (req) => {
-    const [tenants, total] = await ctx.db.$transaction([
+    const [tenants, total] = await tenantBatch(ctx.db, [
       ctx.db.company.findMany({
         orderBy: { createdAt: "asc" },
         include: { _count: { select: { users: true, campaigns: true, sessions: true } } },
@@ -40,7 +41,7 @@ export async function operatorRoutes(app: App, ctx: AppContext): Promise<void> {
     async (req, reply) => {
       const budgetDefault = await ctx.settings.get("cost.defaultMonthlyBudgetCents", []);
       const limit = req.body.monthlyBudgetCents ?? budgetDefault;
-      const company = await ctx.db.$transaction(async (tx) => {
+      const company = await tenantTransaction(ctx.db, async (tx) => {
         const c = await tx.company.create({
           data: { name: req.body.name, region: req.body.region, monthlyBudgetCents: limit },
         });

@@ -1,4 +1,5 @@
 import type { Server } from "node:http";
+import { withTenant } from "@aidp/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fakeModelServer, testWorld, type TestWorld } from "./helpers.js";
 
@@ -127,7 +128,7 @@ suite("analysis end to end", () => {
     ).toBe(409);
 
     // The worker's job body.
-    await world.ctx.analysis.run(analysis.id);
+    await withTenant(world.companyId, () => world.ctx.analysis.run(analysis.id));
 
     const result = await app.inject({ method: "GET", url: `/api/v1/analyses/${analysis.id}`, headers: h });
     expect(result.statusCode).toBe(200);
@@ -227,7 +228,7 @@ suite("analysis end to end", () => {
       headers: h,
     });
     const second = again.json<{ analysis: { id: string } }>().analysis;
-    await world.ctx.analysis.run(second.id);
+    await withTenant(world.companyId, () => world.ctx.analysis.run(second.id));
     const v2 = await app.inject({ method: "GET", url: `/api/v1/analyses/${second.id}`, headers: h });
     expect(v2.json<{ opportunities: { title: string }[] }>().opportunities[0]?.title).toBe(
       "One place for notes",

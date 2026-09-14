@@ -1,3 +1,4 @@
+import { tenantBatch } from "@aidp/db";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
@@ -44,7 +45,7 @@ export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
     },
     async (req) => {
       const where = { companyId: req.companyId };
-      const [users, total] = await ctx.db.$transaction([
+      const [users, total] = await tenantBatch(ctx.db, [
         ctx.db.user.findMany({
           where,
           orderBy: { createdAt: "asc" },
