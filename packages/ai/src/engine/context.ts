@@ -5,7 +5,7 @@ import { mvpItems, specFacts } from "../spec/live.js";
 import { languageName } from "../util/language.js";
 import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js";
 import type { PromptDefinition } from "./prompts/index.js";
-import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v3.js";
+import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v4.js";
 import type { Focus } from "./selection.js";
 
 export interface AssembledContext {
