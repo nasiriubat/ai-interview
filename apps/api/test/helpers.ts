@@ -87,6 +87,7 @@ export interface TestWorld {
   crypto: Crypto;
   companyId: string;
   adminToken: string;
+  adminEmail: string;
   operatorToken: string;
   templateId: string;
   close: () => Promise<void>;
@@ -189,6 +190,7 @@ export async function testWorld(modelUrl: string): Promise<TestWorld> {
     crypto: ctx.crypto,
     companyId: company.id,
     adminToken: await token(`admin-${suffix}@test.io`),
+    adminEmail: `admin-${suffix}@test.io`,
     operatorToken: await token(`op-${suffix}@test.io`),
     templateId: template.id,
     close: async () => {

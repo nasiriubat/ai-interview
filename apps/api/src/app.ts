@@ -54,6 +54,20 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   app.setErrorHandler(errorHandler);
+  // The first turn of an interview carries no body (contracts 16 and 18). A client that still
+  // sends `content-type: application/json` must not be rejected, so an empty body parses as {}.
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (_req, body, done) => {
+    const raw = typeof body === "string" ? body.trim() : "";
+    if (raw === "") {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(raw));
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
   app.setNotFoundHandler(
     (_req, reply) =>
       void reply.status(404).send({ error: { code: "not_found", message: "Route not found" } }),

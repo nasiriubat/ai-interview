@@ -1,7 +1,7 @@
 import { clusteringPromptV1 } from "../../analysis/prompts/clustering.v1.js";
 import { opportunityPromptV1 } from "../../analysis/prompts/opportunity.v1.js";
 import { reportPromptV1 } from "../../analysis/prompts/report.v1.js";
-import { issuesPromptV1 } from "../../spec/prompts/issues.v1.js";
+import { issuesPromptV2 } from "../../spec/prompts/issues.v2.js";
 import { specPromptV1 } from "../../spec/prompts/spec.v1.js";
 import { extractionPromptV1 } from "./extraction.v1.js";
 import { interviewerPromptV3 } from "./interviewer.v3.js";
@@ -21,7 +21,7 @@ export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
   clustering: clusteringPromptV1,
   opportunity: opportunityPromptV1,
   report: reportPromptV1,
-  issues: issuesPromptV1,
+  issues: issuesPromptV2,
   spec: specPromptV1,
 };
 
