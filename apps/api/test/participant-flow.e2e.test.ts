@@ -320,8 +320,10 @@ suite("participant flow end to end", () => {
     expect(invalid.statusCode).toBe(400);
 
     const providers = await app.inject({ method: "GET", url: "/api/v1/providers", headers: h });
-    const p = providers.json<{ providers: { id: string; hasKey: boolean; apiKeyEnc?: string }[] }>()
-      .providers[0]!;
+    // The list also carries platform rows; this suite owns only its tenant's provider.
+    const p = providers
+      .json<{ providers: { id: string; companyId: string | null; hasKey: boolean; apiKeyEnc?: string }[] }>()
+      .providers.find((row) => row.companyId === world.companyId)!;
     expect(p.hasKey).toBe(true);
     expect(p.apiKeyEnc).toBeUndefined();
     const models = await app.inject({ method: "GET", url: `/api/v1/providers/${p.id}/models`, headers: h });

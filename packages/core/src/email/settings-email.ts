@@ -27,8 +27,11 @@ export interface SettingsEmailDeps {
  * tenant first, then the platform — and falls back to the environment. Transports are cached
  * per resolved URL, so a tenant with its own SMTP does not rebuild one per message.
  */
+/** Distinct SMTP servers kept open at once; beyond this the least recently added is closed. */
+const MAX_TRANSPORTS = 8;
+
 export class SettingsEmail implements EmailPort {
-  private cached: { url: string; port: EmailPort } | null = null;
+  private readonly transports = new Map<string, EmailPort>();
 
   constructor(private readonly deps: SettingsEmailDeps) {}
 
@@ -64,14 +67,25 @@ export class SettingsEmail implements EmailPort {
     await this.portFor(config).send(out);
   }
 
+  /**
+   * One transport per connection string, kept until the process ends. A single slot closed the
+   * previous transport as soon as another tenant sent, which could cut a send already in flight.
+   */
   private portFor(config: EmailConfig): EmailPort {
     if (!config.smtpUrl) return this.deps.fallback;
-    if (this.cached?.url === config.smtpUrl) return this.cached.port;
+    const hit = this.transports.get(config.smtpUrl);
+    if (hit) return hit;
     const build = this.deps.transportFor ?? ((url: string, from: string) => new SmtpEmail(url, from));
     const port = build(config.smtpUrl, config.from);
-    const previous = this.cached?.port;
-    if (previous instanceof SmtpEmail) previous.close();
-    this.cached = { url: config.smtpUrl, port };
+    if (this.transports.size >= MAX_TRANSPORTS) {
+      const oldestUrl = this.transports.keys().next().value;
+      if (oldestUrl !== undefined) {
+        const oldest = this.transports.get(oldestUrl);
+        this.transports.delete(oldestUrl);
+        if (oldest instanceof SmtpEmail) oldest.close();
+      }
+    }
+    this.transports.set(config.smtpUrl, port);
     return port;
   }
 }

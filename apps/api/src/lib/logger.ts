@@ -4,7 +4,14 @@ import { pino, type Logger as PinoLogger } from "pino";
 export function createLogger(level: string, pretty: boolean): PinoLogger {
   return pino({
     level,
-    redact: ["req.headers.authorization", "req.headers.cookie", "*.apiKey", "*.password"],
+    redact: [
+      "req.headers.authorization",
+      "req.headers.cookie",
+      "*.apiKey",
+      "*.password",
+      "*.smtpUrl",
+      "*.apiKeyEnc",
+    ],
     ...(pretty ? { transport: { target: "pino-pretty", options: { colorize: true } } } : {}),
   });
 }

@@ -6,7 +6,11 @@ import { handlers } from "./handlers.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const log = pino({ level: config.LOG_LEVEL });
+  // Same redaction as the API: a connection string or key must not reach the log aggregator.
+  const log = pino({
+    level: config.LOG_LEVEL,
+    redact: ["*.apiKey", "*.password", "*.smtpUrl", "*.apiKeyEnc"],
+  });
   const db = new PrismaClient();
   const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
   const settings = new SettingsService(db, crypto, {

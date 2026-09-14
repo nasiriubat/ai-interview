@@ -330,7 +330,11 @@ export class ProviderService {
     providerId: string,
     prices: Omit<ModelPrice, "providerId" | "source">[],
   ): Promise<void> {
-    await this.get(companyId, providerId);
+    const p = await this.get(companyId, providerId);
+    // A platform provider resolves for every tenant, so prices on it are the operator's to set:
+    // a tenant override here would feed the cost ledger of every other tenant using that provider.
+    if (p.companyId !== companyId)
+      throw new AppError("forbidden", "Platform provider prices are managed by the platform operator");
     await this.db.$transaction(
       prices.map((price) =>
         this.db.modelPrice.upsert({

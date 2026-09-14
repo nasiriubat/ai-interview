@@ -37,7 +37,9 @@ export async function auditRoutes(app: App, ctx: AppContext): Promise<void> {
       const actorIds = [...new Set(entries.map((e) => e.actorId).filter((id): id is string => id !== null))];
       const actors = actorIds.length
         ? await ctx.db.user.findMany({
-            where: { id: { in: actorIds } },
+            // Scoped like every other tenant-owned read: an operator acting on this tenant stays
+            // an opaque id here rather than exposing an address from another company.
+            where: { id: { in: actorIds }, companyId: req.companyId },
             select: { id: true, email: true },
           })
         : [];

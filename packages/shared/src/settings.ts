@@ -27,6 +27,20 @@ export const SECRET_SENTINEL = "__unchanged__";
 
 const def = <T extends z.ZodType>(d: SettingDef<T>): SettingDef<T> => d;
 
+/** An SMTP connection string the server is willing to dial: a real host, an SMTP scheme, a sane port. */
+export function isSmtpUrl(value: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "smtp:" && url.protocol !== "smtps:") return false;
+  if (!url.hostname) return false;
+  if (url.port !== "" && !/^\d{1,5}$/.test(url.port)) return false;
+  return url.port === "" || Number(url.port) > 0;
+}
+
 export const SETTINGS = {
   // Engine
   "engine.recentWindowTurns": def({
@@ -265,7 +279,11 @@ export const SETTINGS = {
   // Email. The port resolves these per send, tenant first and platform second, and falls back
   // to EMAIL_SMTP_URL and EMAIL_FROM from the environment when neither scope sets them.
   "email.smtpUrl": def({
-    schema: z.string(),
+    // Validated rather than free text: this string becomes an outbound connection from inside the
+    // platform network, so an unchecked value is a port scanner with an authenticated trigger.
+    schema: z.string().refine((v) => v === "" || isSmtpUrl(v), {
+      message: "Must be smtp://host:port or smtps://host:port",
+    }),
     default: "",
     scopes: ["platform", "tenant"],
     category: "email",

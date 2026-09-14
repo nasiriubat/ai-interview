@@ -47,7 +47,7 @@ export function zipFiles(files: ZipEntry[], modified: Date = new Date()): Buffer
   let offset = 0;
 
   for (const f of files) {
-    const name = Buffer.from(f.path.replace(/\\/g, "/").replace(/^\/+/, ""), "utf8");
+    const name = Buffer.from(safeZipPath(f.path), "utf8");
     const raw = typeof f.content === "string" ? Buffer.from(f.content, "utf8") : f.content;
     const deflated = raw.length ? deflateRawSync(raw) : Buffer.alloc(0);
     const useDeflate = deflated.length < raw.length;
@@ -106,4 +106,17 @@ export function zipFiles(files: ZipEntry[], modified: Date = new Date()): Buffer
   end.writeUInt16LE(0, 20);
 
   return Buffer.concat([...locals, ...centrals, end]);
+}
+
+/**
+ * A path an extractor can be trusted with: forward slashes, no root, and no parent segments.
+ * Bundle paths are constants today, but the bundle schema types them as a bare string, so a
+ * generated path must never be able to write outside the folder the admin unzips into.
+ */
+export function safeZipPath(path: string): string {
+  const parts = path
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter((p) => p !== "" && p !== "." && p !== "..");
+  return parts.join("/");
 }
