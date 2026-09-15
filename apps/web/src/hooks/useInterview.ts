@@ -36,10 +36,21 @@ export interface InterviewController {
   send: (input: TurnInput | undefined) => Promise<void>;
   sendText: (text: string) => Promise<void>;
   sendWidget: (widget: Widget, response: WidgetResponse) => Promise<void>;
+  /**
+   * Recorded voice (FR-30): uploads the recording as the turn. The transcript arrives first and
+   * becomes the participant's own message, before the interviewer answers it.
+   */
+  sendVoice: (audio: Blob, durationMs?: number) => Promise<void>;
   /** Re-sends the last failed input, or the first turn when nothing was sent yet. */
   retry: () => Promise<void>;
   clearError: () => void;
 }
+
+/** What `retry` would send again. A recording is kept in memory so a failed upload can be redone. */
+type Attempt =
+  | { kind: "first" }
+  | { kind: "turn"; input: TurnInput }
+  | { kind: "voice"; audio: Blob; durationMs?: number | undefined };
 
 const isCompleted = (status: string): boolean => status === "completed" || status === "deleted";
 
@@ -51,6 +62,17 @@ function localMessage(content: string, input: TurnInput | undefined): Message {
     modality: input?.modality ?? "text",
     content,
     ...(input?.widgetResponse ? { widgetResponse: input.widgetResponse } : {}),
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function heardMessage(text: string): Message {
+  return {
+    id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    seq: 0,
+    role: "user",
+    modality: "voice",
+    content: text,
     createdAt: new Date().toISOString(),
   };
 }
@@ -77,17 +99,24 @@ export function useInterview(
     error: null,
   });
   const abortRef = React.useRef<AbortController | null>(null);
-  const lastInputRef = React.useRef<TurnInput | undefined | "none">("none");
+  const lastAttemptRef = React.useRef<Attempt>({ kind: "first" });
   const startedRef = React.useRef(false);
 
-  const send = React.useCallback(
-    async (input: TurnInput | undefined): Promise<void> => {
+  /**
+   * One turn, whatever opened it: typed, widget or recorded. Typed answers show their message
+   * immediately; a recording has none until the `transcript` event says what was heard, so the
+   * message the server's echo replaces is tracked as the stream runs rather than fixed up front.
+   */
+  const run = React.useCallback(
+    async (
+      open: (signal: AbortSignal) => Promise<Response>,
+      optimistic: Message | undefined,
+    ): Promise<void> => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
-      lastInputRef.current = input;
 
-      const optimistic = input ? localMessage(input.content, input) : undefined;
+      let localId = optimistic?.id;
       setState((s) => ({
         ...s,
         error: null,
@@ -97,20 +126,27 @@ export function useInterview(
       }));
 
       try {
-        const res = await api.sendTurn(input, controller.signal);
+        const res = await open(controller.signal);
         for await (const ev of readTurnStream(res)) {
           if (controller.signal.aborted) return;
           switch (ev.type) {
             case "text":
               setState((s) => ({ ...s, streaming: (s.streaming ?? "") + ev.delta }));
               break;
+            case "transcript": {
+              // The participant never typed this, so it is shown as their turn before the reply.
+              const heard = heardMessage(ev.text);
+              localId = heard.id;
+              setState((s) => ({ ...s, messages: [...s.messages, heard] }));
+              break;
+            }
             case "turn":
               setState((s) => {
                 const msg = ev.message;
                 let messages = s.messages;
                 if (msg.role === "user") {
                   // The server echoes the persisted user message: replace the optimistic one.
-                  const idx = optimistic ? messages.findIndex((m) => m.id === optimistic.id) : -1;
+                  const idx = localId === undefined ? -1 : messages.findIndex((m) => m.id === localId);
                   messages = idx >= 0 ? messages.map((m, i) => (i === idx ? msg : m)) : [...messages, msg];
                   return { ...s, messages };
                 }
@@ -167,7 +203,30 @@ export function useInterview(
         }));
       }
     },
-    [api],
+    [],
+  );
+
+  const send = React.useCallback(
+    (input: TurnInput | undefined): Promise<void> => {
+      lastAttemptRef.current = input ? { kind: "turn", input } : { kind: "first" };
+      return run(
+        (signal) => api.sendTurn(input, signal),
+        input ? localMessage(input.content, input) : undefined,
+      );
+    },
+    [api, run],
+  );
+
+  const sendVoice = React.useCallback(
+    (audio: Blob, durationMs?: number): Promise<void> => {
+      lastAttemptRef.current = {
+        kind: "voice",
+        audio,
+        ...(durationMs === undefined ? {} : { durationMs }),
+      };
+      return run((signal) => api.sendVoice(audio, durationMs, signal), undefined);
+    },
+    [api, run],
   );
 
   // Abort an in-flight stream only when the component unmounts. The first-turn guard is
@@ -205,15 +264,16 @@ export function useInterview(
     [send],
   );
   const retry = React.useCallback(async () => {
-    const last = lastInputRef.current;
-    if (last === "none") return send(undefined);
+    const last = lastAttemptRef.current;
+    if (last.kind === "first") return send(undefined);
     // Drop the optimistic copy before re-sending so it is not shown twice.
     setState((s) => ({ ...s, messages: s.messages.filter((m) => !m.id.startsWith("local-")) }));
-    return send(last);
-  }, [send]);
+    if (last.kind === "voice") return sendVoice(last.audio, last.durationMs);
+    return send(last.input);
+  }, [send, sendVoice]);
   const clearError = React.useCallback(() => {
     setState((s) => ({ ...s, error: null }));
   }, []);
 
-  return { state, activeWidget, send, sendText, sendWidget, retry, clearError };
+  return { state, activeWidget, send, sendText, sendWidget, sendVoice, retry, clearError };
 }

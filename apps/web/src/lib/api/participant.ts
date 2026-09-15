@@ -1,6 +1,9 @@
 import type { Path, WidgetResponse } from "@aidp/shared";
-import { request, requestStream, type Transport } from "./http";
+import { request, requestBlob, requestStream, type Transport } from "./http";
 import {
+  type Attachment,
+  AttachmentEnvelopeSchema,
+  AttachmentListSchema,
   type InviteArrival,
   InviteArrivalSchema,
   LinkInfoSchema,
@@ -21,6 +24,30 @@ export interface TurnInput {
   content: string;
   modality: "text" | "widget";
   widgetResponse?: WidgetResponse;
+}
+
+/** The extension the API's audio allowlist expects for each recording container. */
+const AUDIO_EXTENSIONS: Record<string, string> = {
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+  "audio/mp4": "m4a",
+  "audio/mpeg": "mp3",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/flac": "flac",
+};
+
+/** Browsers append codec parameters (`audio/webm;codecs=opus`); the extension follows the container. */
+function recordingName(mime: string): string {
+  const base = mime.split(";")[0]?.trim().toLowerCase() ?? "";
+  return `recording.${AUDIO_EXTENSIONS[base] ?? "webm"}`;
+}
+
+function uploadForm(file: Blob, filename: string, durationMs?: number): FormData {
+  const form = new FormData();
+  form.append("file", file, filename);
+  if (durationMs !== undefined) form.append("durationMs", String(Math.round(durationMs)));
+  return form;
 }
 
 export interface ConsentInput {
@@ -91,6 +118,30 @@ export function participantApi(transport: Transport): ParticipantApi {
         ...(input ? { body: input } : {}),
         signal,
       }),
+    sendVoice: (audio, durationMs, signal) =>
+      requestStream(transport, {
+        method: "POST",
+        path: "/p/session/voice-turns",
+        body: uploadForm(audio, recordingName(audio.type), durationMs),
+        signal,
+      }),
+    uploadAttachment: (file, durationMs) =>
+      request(transport, {
+        method: "POST",
+        path: "/p/session/attachments",
+        body: uploadForm(file, file.name, durationMs),
+        schema: AttachmentEnvelopeSchema,
+      }).then((r) => r.attachment),
+    listAttachments: () =>
+      request(transport, { path: "/p/session/attachments", schema: AttachmentListSchema }),
+    attachmentBytes: (attachmentId) =>
+      requestBlob(transport, { path: `/p/session/attachments/${encodeURIComponent(attachmentId)}` }),
+    deleteAttachment: (attachmentId) =>
+      request(transport, {
+        method: "DELETE",
+        path: `/p/session/attachments/${encodeURIComponent(attachmentId)}`,
+        schema: OkSchema,
+      }).then(() => undefined),
     pause: () =>
       request(transport, { method: "POST", path: "/p/session/pause", schema: OkSchema }).then(
         () => undefined,
@@ -127,6 +178,17 @@ export interface ParticipantApi {
   setMode(mode: ModePreference): Promise<void>;
   /** First turn: pass `undefined` to send an empty body. Returns the SSE response. */
   sendTurn(input: TurnInput | undefined, signal?: AbortSignal): Promise<Response>;
+  /**
+   * Recorded voice (FR-30): uploads the recording and takes the turn in one request. The SSE
+   * response is a turn stream that opens with a `transcript` event.
+   */
+  sendVoice(audio: Blob, durationMs?: number, signal?: AbortSignal): Promise<Response>;
+  /** Uploads one file (FR-31). The attachment comes back before it has been read; watch `status`. */
+  uploadAttachment(file: File, durationMs?: number): Promise<Attachment>;
+  listAttachments(): Promise<Attachment[]>;
+  /** The stored bytes, for playing a recording back. */
+  attachmentBytes(attachmentId: string): Promise<Blob>;
+  deleteAttachment(attachmentId: string): Promise<void>;
   pause(): Promise<void>;
   complete(): Promise<void>;
   deleteData(): Promise<void>;

@@ -1,6 +1,7 @@
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import Fastify, {
@@ -28,7 +29,9 @@ import { campaignRoutes } from "./modules/campaigns/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
 import { internalAuthRoutes } from "./modules/internal-auth/routes.js";
 import { operatorRoutes } from "./modules/operator/routes.js";
+import { participantAttachmentRoutes } from "./modules/participant/attachments.js";
 import { participantRoutes } from "./modules/participant/routes.js";
+import { participantVoiceRoutes } from "./modules/participant/voice.js";
 import { privacyRoutes } from "./modules/privacy/routes.js";
 import { providerRoutes } from "./modules/providers/routes.js";
 import { requirementsRoutes } from "./modules/requirements/routes.js";
@@ -79,6 +82,11 @@ export async function buildApp(ctx: AppContext): Promise<App> {
     exposedHeaders: ["x-request-id"],
   });
   await app.register(cookie);
+  // Uploads (FR-30, FR-31). The per-route limit is the real one; this ceiling only stops a body
+  // large enough to be a denial of service from ever reaching a handler.
+  await app.register(multipart, {
+    limits: { fileSize: 200 * 1024 * 1024, files: 1, fields: 8, parts: 12 },
+  });
   // The auth plugin first, so the limiter below can key on the principal it resolves. Its hook is
   // instance-level and the limiter's is route-level, which settles the order regardless, but the
   // dependency is real and reads better stated.
@@ -126,6 +134,8 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await settingsRoutes(a, ctx);
       await campaignRoutes(a, ctx);
       await participantRoutes(a, ctx);
+      await participantAttachmentRoutes(a, ctx);
+      await participantVoiceRoutes(a, ctx);
       await sessionRoutes(a, ctx);
       await providerRoutes(a, ctx);
       await statsRoutes(a, ctx);

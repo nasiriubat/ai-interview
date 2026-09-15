@@ -9,6 +9,8 @@ const Env = z.object({
   AUTH_SECRET: z.string().min(16),
   WEB_ORIGIN: z.string().default("http://localhost:3000"),
   PUBLIC_WEB_URL: z.string().default("http://localhost:3000"),
+  /** Where uploaded audio and documents live. Unset keeps them in memory, which loses them. */
+  UPLOAD_DIR: z.string().optional(),
   EMAIL_SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),

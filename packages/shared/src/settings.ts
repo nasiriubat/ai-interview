@@ -145,14 +145,15 @@ export const SETTINGS = {
     category: "privacy",
     description: "Who may open raw transcripts",
   }),
-  // Not enforced yet: there is no recorded audio before phase 4 (spec 09). The retention sweep
-  // deliberately ignores this key, and starts honouring it when voice recordings land.
+  // Enforced by the nightly sweep since phase 4. The transcript is the durable record and stays
+  // with the session; this is only about how long the recording of someone's voice is kept, which
+  // is the more identifying of the two.
   "privacy.audioRetentionDays": def({
     schema: z.number().int().min(0).max(3650),
     default: 365,
     scopes: ["platform", "tenant"],
     category: "privacy",
-    description: "Days audio is kept; 0 deletes after transcription (takes effect with voice, phase 4)",
+    description: "Days a voice recording is kept; 0 deletes it as soon as it is transcribed",
   }),
   // Cost
   "cost.warnFraction": def({

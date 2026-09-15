@@ -9,6 +9,7 @@ import {
   type TenantSweep,
 } from "../src/privacy/retention.js";
 import { SettingsService } from "../src/settings/service.js";
+import { attachmentKey, MemoryStorage } from "../src/storage/index.js";
 
 const suite = process.env.DATABASE_URL ? describe : describe.skip;
 
@@ -263,5 +264,108 @@ suite("retention sweep (spec 11)", () => {
     await runRetentionSweep({ db, settings, log });
     const swept = await retentionStatus({ db, settings }, companyId);
     expect(swept.expiredSessions).toBe(0);
+  });
+
+  /**
+   * Bytes live outside Postgres from phase 4, so "deleted" has to mean both. A sweep that removed
+   * the rows and left the recordings on disk would be the worst possible outcome: the data is
+   * still there, and nothing knows where.
+   */
+  describe("stored files", () => {
+    it("takes a session's uploaded bytes with its rows", async () => {
+      const storage = new MemoryStorage();
+      const sessionId = await makeSession(companyId, templateId, {
+        createdAt: monthsAgo(40),
+        endedAt: monthsAgo(39),
+      });
+      const key = attachmentKey(companyId, sessionId, "att1");
+      await db.attachment.update({
+        where: { id: (await db.attachment.findFirstOrThrow({ where: { sessionId } })).id },
+        data: { storageKey: key },
+      });
+      await storage.put(key, Buffer.from("the participant's document"), { contentType: "text/plain" });
+
+      await runRetentionSweep({ db, settings, log, storage });
+
+      expect(await storage.head(key)).toBeNull();
+    });
+
+    it("sweeps a voice recording on its own, shorter clock", async () => {
+      const storage = new MemoryStorage();
+      // A live session, well inside the session retention window: only the audio clock applies.
+      const session = await db.session.create({
+        data: { companyId, templateId, status: "completed", state: {}, summary: "" },
+      });
+      const oldKey = attachmentKey(companyId, session.id, "oldaudio");
+      const freshKey = attachmentKey(companyId, session.id, "newaudio");
+      await storage.put(oldKey, Buffer.from("old voice"), { contentType: "audio/webm" });
+      await storage.put(freshKey, Buffer.from("new voice"), { contentType: "audio/webm" });
+      const old = await db.attachment.create({
+        data: {
+          companyId,
+          sessionId: session.id,
+          kind: "audio",
+          filename: "old.webm",
+          mime: "audio/webm",
+          sizeBytes: 9,
+          storageKey: oldKey,
+          status: "ready",
+          ingestedAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000),
+        },
+      });
+      const fresh = await db.attachment.create({
+        data: {
+          companyId,
+          sessionId: session.id,
+          kind: "audio",
+          filename: "new.webm",
+          mime: "audio/webm",
+          sizeBytes: 9,
+          storageKey: freshKey,
+          status: "ready",
+          ingestedAt: new Date(),
+        },
+      });
+
+      const sweeps = await runRetentionSweep({ db, settings, log, storage });
+
+      // Default is 365 days: the old recording goes, the recent one stays.
+      expect(await db.attachment.findUnique({ where: { id: old.id } })).toBeNull();
+      expect(await db.attachment.findUnique({ where: { id: fresh.id } })).not.toBeNull();
+      expect(await storage.head(oldKey)).toBeNull();
+      expect(await storage.head(freshKey)).not.toBeNull();
+      expect(sweepFor(sweeps, companyId).audioDeleted).toBeGreaterThanOrEqual(1);
+
+      // The transcript is the durable record and is untouched by the audio clock.
+      expect(await db.session.findUnique({ where: { id: session.id } })).not.toBeNull();
+    });
+
+    it("leaves a recording that was never transcribed, because it is not yet redundant", async () => {
+      const storage = new MemoryStorage();
+      const session = await db.session.create({
+        data: { companyId, templateId, status: "active", state: {}, summary: "" },
+      });
+      const key = attachmentKey(companyId, session.id, "stuck");
+      await storage.put(key, Buffer.from("never transcribed"), { contentType: "audio/webm" });
+      const stuck = await db.attachment.create({
+        data: {
+          companyId,
+          sessionId: session.id,
+          kind: "audio",
+          filename: "stuck.webm",
+          mime: "audio/webm",
+          sizeBytes: 9,
+          storageKey: key,
+          status: "failed",
+          // Old enough to be swept, but transcription never finished, so the clock never started.
+          createdAt: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000),
+          ingestedAt: null,
+        },
+      });
+
+      await runRetentionSweep({ db, settings, log, storage });
+
+      expect(await db.attachment.findUnique({ where: { id: stuck.id } })).not.toBeNull();
+    });
   });
 });

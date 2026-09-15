@@ -28,8 +28,9 @@ can be read top to bottom and believed.
     └──────┬──────┘        └───┬────┘
            │  as app_api       │  as app_api
     ┌──────▼───────────────────▼────┐   ┌────────┐
-    │           postgres            │◀──│ backup │ nightly pg_dump
+    │           postgres            │◀──│ backup │ nightly pg_dump + uploads
     └───────────────────────────────┘   └────────┘
+                  uploads volume ───────────┘  (audio and attached documents)
 ```
 
 **The API is not on the internet.** The browser never calls it: every request goes to a Next.js
@@ -123,14 +124,20 @@ serve them (OpenAI or Voyage) and route `embedding` to it. Everything else can s
 
 ## Where the data lives
 
-Four named Docker volumes, all on this host's disk, under `/var/lib/docker/volumes/`:
+Five named Docker volumes, all on this host's disk, under `/var/lib/docker/volumes/`:
 
-| Volume                | Holds                                   |
-| --------------------- | --------------------------------------- |
-| `deploy_pgdata`       | The database. Everything that matters.  |
-| `deploy_backups`      | Nightly `pg_dump` files.                |
-| `deploy_caddy_data`   | TLS certificates and ACME account keys. |
-| `deploy_caddy_config` | Caddy's autosaved config.               |
+| Volume                | Holds                                                  |
+| --------------------- | ------------------------------------------------------ |
+| `deploy_pgdata`       | The database. Everything that matters.                 |
+| `deploy_uploads`      | Recorded audio and attached documents (FR-30, FR-31).  |
+| `deploy_backups`      | Nightly `pg_dump` files and the matching file archive. |
+| `deploy_caddy_data`   | TLS certificates and ACME account keys.                |
+| `deploy_caddy_config` | Caddy's autosaved config.                              |
+
+`deploy_uploads` is the one people forget. Participants' recordings and the documents they attach
+live there, not in Postgres, so a database-only backup would restore a system whose `Attachment`
+rows all point at bytes that are gone — and nothing would say so until somebody pressed play. The
+nightly job takes both, stamped identically, and `restore.sh` puts both back.
 
 The prefix is the compose project name, which defaults to the directory holding the compose file
 (`deploy`). `docker volume ls` shows the real names.
@@ -139,7 +146,7 @@ Every container that faces the network runs unprivileged: the API, the worker an
 run as uid 1000 (`node` in the API image, `app` in the web image) over a root-owned, read-only
 application tree. Confirm with `dc exec api id`.
 
-`deploy/.env` is the fifth thing that matters and it is not in a volume. It is mode 600 in the
+`deploy/.env` is the sixth thing that matters and it is not in a volume. It is mode 600 in the
 checkout, `.gitignore`d, and **not** baked into any image — the root `.dockerignore` excludes every
 `.env` from the build context, and the images take their configuration from compose `environment:`
 entries at run time. Back `deploy/.env` up somewhere other than this VPS: a database dump without
@@ -198,10 +205,20 @@ healthy system.
 
 ## Backups
 
-`backup` takes a `pg_dump --format=custom --compress=6` every night at `BACKUP_AT` (default 03:20,
-container clock, UTC) into the `backups` volume, deletes dumps older than `BACKUP_RETENTION_DAYS`
-(default 14), and logs one line per run. Because it shares the server's image, `pg_dump` can never
-drift from the server version.
+`backup` runs every night at `BACKUP_AT` (default 03:20, container clock, UTC) into the `backups`
+volume, deletes files older than `BACKUP_RETENTION_DAYS` (default 14), and logs one line per run.
+Because it shares the server's image, `pg_dump` can never drift from the server version.
+
+Each run writes two files with the same timestamp:
+
+| File                        | What                                                 |
+| --------------------------- | ---------------------------------------------------- |
+| `ai_discovery-<stamp>.dump` | `pg_dump --format=custom --compress=6`               |
+| `uploads-<stamp>.tar.gz`    | Everything in the uploads volume at that same moment |
+
+The pair matters. Restoring a dump next to a file archive from a different night gives you rows
+and bytes that disagree, so `restore.sh` looks for the archive whose stamp matches the dump and
+tells you plainly when there is not one.
 
 ```bash
 dc logs backup --tail 20                                  # what it has been doing

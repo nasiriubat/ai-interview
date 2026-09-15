@@ -1,6 +1,7 @@
 import { extractFacts, updateRollingSummary, type Logger } from "@aidp/ai";
 import {
   AnalysisService,
+  AttachmentService,
   PrismaPromptSource,
   PrismaSessionStore,
   RequirementsService,
@@ -13,6 +14,7 @@ import {
   type JobPayload,
   type JobPublisher,
   type SettingsService,
+  type StoragePort,
 } from "@aidp/core";
 import { withSystemTenant, withTenant } from "@aidp/db";
 import type { Prisma, PrismaClient } from "@prisma/client";
@@ -26,6 +28,8 @@ export interface HandlerDeps {
   log: Logger;
   crypto: Crypto;
   publicWebUrl: string;
+  /** Where uploaded audio and documents live; the worker reads what the API wrote. */
+  storage: StoragePort;
 }
 
 /**
@@ -117,10 +121,32 @@ export function handlers(deps: HandlerDeps): Handlers {
       });
     }),
 
+    /**
+     * Reads an uploaded file once, so every later turn is cheap (FR-31). The caller is built per
+     * tenant, because routing, prices and budgets are the tenant's.
+     */
+    "attachment.ingest": scoped(
+      async ({ attachmentId, companyId }: JobPayload<"attachment.ingest">): Promise<void> => {
+        const caller = await deps.callers.forCompany(companyId);
+        await new AttachmentService({
+          db: deps.db,
+          storage: deps.storage,
+          settings: deps.settings,
+          log: deps.log,
+          prompts,
+          caller,
+        }).ingest(companyId, attachmentId);
+      },
+    ),
+
     /** Second pass of "delete my data": removes anything the request path could not (facts written later, ledger references). */
     "privacy.delete-session": scoped(
-      async ({ sessionId }: JobPayload<"privacy.delete-session">): Promise<void> => {
-        await deleteSessionData(deps.db, sessionId);
+      async ({ sessionId, companyId }: JobPayload<"privacy.delete-session">): Promise<void> => {
+        await deleteSessionData(deps.db, sessionId, {
+          storage: deps.storage,
+          companyId,
+          log: deps.log,
+        });
         deps.log.info("session data deleted", { sessionId });
       },
     ),
@@ -130,7 +156,15 @@ export function handlers(deps: HandlerDeps): Handlers {
      * since a sweep that finds nothing expired does nothing.
      */
     "privacy.retention-sweep": scoped(async (): Promise<void> => {
-      const sweeps = await runRetentionSweep({ db: deps.db, settings: deps.settings, log: deps.log });
+      const sweeps = await runRetentionSweep({
+        db: deps.db,
+        settings: deps.settings,
+        log: deps.log,
+        // Without this the sweep deletes the rows and leaves the recorded audio on disk forever,
+        // unreferenced and undiscoverable, which is the one outcome the retention promise cannot
+        // survive.
+        storage: deps.storage,
+      });
       const deleted = sweeps.reduce((n, s) => n + s.deleted, 0);
       deps.log.info("retention sweep finished", { tenants: sweeps.length, deleted });
     }),

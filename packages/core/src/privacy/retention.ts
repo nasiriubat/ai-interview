@@ -2,6 +2,7 @@ import type { Logger } from "@aidp/ai";
 import { tenantBatch, withTenant } from "@aidp/db";
 import { type Prisma, type PrismaClient } from "@prisma/client";
 import type { SettingsService } from "../settings/service.js";
+import { sessionPrefix, type StoragePort } from "../storage/index.js";
 
 /**
  * Retention enforcement (spec 11: "retention period per tenant (default 24 months) with automatic
@@ -13,8 +14,12 @@ import type { SettingsService } from "../settings/service.js";
  * counts, analyses and the `LlmCall` cost ledger reference sessions, and those aggregates must
  * survive a deletion (spec 11: "aggregated cluster counts remain").
  *
- * Note on audio: `privacy.audioRetentionDays` is in the catalog but recorded audio only arrives in
- * phase 4, so this sweep does not touch audio and does not pretend to. See the comment at the key.
+ * Note on stored bytes: from phase 4 a session can own recorded audio and uploaded documents, which
+ * live in object storage rather than in Postgres. Deleting the `Attachment` rows alone would leave
+ * the bytes on disk forever, unreferenced and undiscoverable — the worst possible outcome, since
+ * the data is still there but nothing knows it is. Callers pass a `StoragePort` and the session's
+ * whole key prefix goes with the rows. Deleting by prefix rather than by row is deliberate: a row
+ * lost to an earlier partial failure would otherwise strand its bytes permanently.
  *
  * Note on tenancy: the sweep spans every company, but no statement it runs does. It enters each
  * tenant's scope in turn (`withTenant`) and writes through `tenantBatch`, so row-level security
@@ -37,6 +42,8 @@ type SessionDeleteClient = Pick<PrismaClient, "message" | "sessionEvent" | "fact
 
 export interface TenantSweep {
   companyId: string;
+  /** Voice recordings deleted this run because they passed `privacy.audioRetentionDays`. */
+  audioDeleted: number;
   /** Expired sessions loaded this run. */
   examined: number;
   /** Sessions anonymized this run. */
@@ -51,6 +58,8 @@ export interface RetentionSweepDeps {
   db: PrismaClient;
   settings: SettingsService;
   log: Logger;
+  /** Optional so a caller with no uploads configured still sweeps rows; see deleteSessionBytes. */
+  storage?: StoragePort;
   now?: () => Date;
   batchSize?: number;
   maxBatches?: number;
@@ -64,9 +73,38 @@ export interface RetentionSweepDeps {
 export async function deleteSessionData(
   db: PrismaClient,
   sessionId: string,
-  options: { markEnded?: boolean } = {},
+  options: { markEnded?: boolean; storage?: StoragePort; companyId?: string; log?: Logger } = {},
 ): Promise<void> {
   await tenantBatch(db, deleteSessionOps(db, [sessionId], options));
+  await deleteSessionBytes([sessionId], options);
+}
+
+/**
+ * Removes the stored bytes for sessions whose rows have just gone.
+ *
+ * Rows first, bytes second, and a failure here is logged rather than thrown. The alternative is
+ * worse in both directions: bytes first would delete a participant's audio and then possibly fail
+ * to delete the rows that reference it, and re-throwing would turn "the object store hiccupped"
+ * into "the retention sweep stopped", leaving every later tenant unswept. What is left behind is
+ * an orphaned object with no row pointing at it, which the next sweep of the same prefix removes.
+ */
+async function deleteSessionBytes(
+  sessionIds: string[],
+  options: { storage?: StoragePort; companyId?: string; log?: Logger },
+): Promise<void> {
+  const { storage, companyId, log } = options;
+  if (!storage || !companyId) return;
+  for (const sessionId of sessionIds) {
+    try {
+      await storage.deletePrefix(sessionPrefix(companyId, sessionId));
+    } catch (err) {
+      log?.warn("deleted a session's rows but not its stored files", {
+        companyId,
+        sessionId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 }
 
 /** The five statements that make a session's content go away, for one id or a whole batch. */
@@ -124,7 +162,7 @@ export async function retentionMonthsFor(settings: SettingsService, companyId: s
  * a row deletes nothing the second time.
  */
 export async function runRetentionSweep(deps: RetentionSweepDeps): Promise<TenantSweep[]> {
-  const { db, settings, log } = deps;
+  const { db, settings, log, storage } = deps;
   const now = (deps.now ?? (() => new Date()))();
   const batchSize = deps.batchSize ?? RETENTION_BATCH_SIZE;
   const maxBatches = deps.maxBatches ?? RETENTION_MAX_BATCHES;
@@ -136,7 +174,13 @@ export async function runRetentionSweep(deps: RetentionSweepDeps): Promise<Tenan
     // never do, so row-level security stays engaged for every delete it makes.
     sweeps.push(
       await withTenant(company.id, () =>
-        sweepTenant({ db, settings, log }, company.id, now, batchSize, maxBatches),
+        sweepTenant(
+          { db, settings, log, ...(storage ? { storage } : {}) },
+          company.id,
+          now,
+          batchSize,
+          maxBatches,
+        ),
       ),
     );
   }
@@ -144,13 +188,18 @@ export async function runRetentionSweep(deps: RetentionSweepDeps): Promise<Tenan
 }
 
 async function sweepTenant(
-  deps: { db: PrismaClient; settings: SettingsService; log: Logger },
+  deps: { db: PrismaClient; settings: SettingsService; log: Logger; storage?: StoragePort },
   companyId: string,
   now: Date,
   batchSize: number,
   maxBatches: number,
 ): Promise<TenantSweep> {
-  const { db, settings, log } = deps;
+  const { db, settings, log, storage } = deps;
+  const audioDeleted = await sweepAudio(
+    { db, settings, log, ...(storage ? { storage } : {}) },
+    companyId,
+    now,
+  );
   const retentionMonths = await retentionMonthsFor(settings, companyId);
   const cutoff = retentionCutoff(now, retentionMonths);
   const where = expiredWhere(companyId, cutoff);
@@ -169,13 +218,9 @@ async function sweepTenant(
     examined += expired.length;
     // One transaction per batch, never one per sweep: a long transaction on a big table blocks
     // vacuum and holds locks for the whole run.
-    await tenantBatch(
-      db,
-      deleteSessionOps(
-        db,
-        expired.map((s) => s.id),
-      ),
-    );
+    const ids = expired.map((s) => s.id);
+    await tenantBatch(db, deleteSessionOps(db, ids));
+    await deleteSessionBytes(ids, { ...(storage ? { storage } : {}), companyId, log });
     deleted += expired.length;
     if (expired.length < batchSize) break;
     if (batch === maxBatches - 1) truncated = true;
@@ -185,6 +230,7 @@ async function sweepTenant(
     companyId,
     examined,
     deleted,
+    audioDeleted,
     retentionMonths,
     olderThan: cutoff.toISOString(),
     truncated,
@@ -204,6 +250,58 @@ async function sweepTenant(
     });
   }
   return result;
+}
+
+/** Recordings deleted per statement; a bounded sweep must not sit on the table. */
+const AUDIO_BATCH_SIZE = 500;
+
+/**
+ * Deletes voice recordings past `privacy.audioRetentionDays`, leaving everything else alone.
+ *
+ * A separate, shorter clock from session retention, and deliberately so. The transcript is the
+ * durable record of what someone said about their work and lives as long as the session does; the
+ * recording is their actual voice, which is far more identifying and worth much less once it has
+ * been transcribed. A tenant that sets zero gets recordings removed on the first sweep after
+ * transcription, which is the strongest setting the interface offers and costs them nothing but
+ * playback.
+ *
+ * Only the bytes and the row go. The message the transcript became stays exactly where it is, so
+ * the interview reads the same afterwards.
+ */
+async function sweepAudio(
+  deps: { db: PrismaClient; settings: SettingsService; log: Logger; storage?: StoragePort },
+  companyId: string,
+  now: Date,
+): Promise<number> {
+  const { db, settings, log, storage } = deps;
+  const days = await settings.get("privacy.audioRetentionDays", [{ scope: "tenant", scopeId: companyId }]);
+  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+  const expired = await db.attachment.findMany({
+    // `ingestedAt` rather than `createdAt`: the clock starts when the recording has been
+    // transcribed and is therefore redundant, not when it was uploaded. A recording still waiting
+    // on a failed transcription is not yet safe to drop.
+    where: { companyId, kind: "audio", ingestedAt: { not: null, lt: cutoff } },
+    select: { id: true, storageKey: true },
+    take: AUDIO_BATCH_SIZE,
+  });
+  if (expired.length === 0) return 0;
+
+  await db.attachment.deleteMany({ where: { id: { in: expired.map((a) => a.id) } } });
+  if (storage) {
+    for (const row of expired) {
+      if (row.storageKey.length === 0) continue;
+      await storage.delete(row.storageKey).catch((err: unknown) => {
+        log.warn("deleted an expired recording's row but not its bytes", {
+          companyId,
+          attachmentId: row.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
+  }
+  log.info("audio retention sweep", { companyId, deleted: expired.length, days });
+  return expired.length;
 }
 
 export interface RetentionStatus {

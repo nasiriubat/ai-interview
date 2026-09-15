@@ -1,5 +1,6 @@
 import {
   AnalysisService,
+  AttachmentService,
   CallerFactory,
   Crypto,
   EngineFactory,
@@ -8,9 +9,11 @@ import {
   RequirementsService,
   SettingsEmail,
   SettingsService,
+  createStorage,
   type EmailPort,
   type GitHubPort,
   type JobPublisher,
+  type StoragePort,
 } from "@aidp/core";
 import type { PrismaClient } from "@prisma/client";
 import type { Logger as PinoLogger } from "pino";
@@ -31,6 +34,8 @@ export interface AppContext {
   analysis: AnalysisService;
   requirements: RequirementsService;
   github: GitHubPort;
+  storage: StoragePort;
+  attachments: AttachmentService;
 }
 
 export function buildContext(input: {
@@ -40,6 +45,8 @@ export function buildContext(input: {
   jobs: JobPublisher;
   email?: EmailPort;
   github?: GitHubPort;
+  /** Tests pass a MemoryStorage; production passes nothing and gets one from UPLOAD_DIR. */
+  storage?: StoragePort;
 }): AppContext {
   const { config, db, log } = input;
   const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
@@ -69,6 +76,10 @@ export function buildContext(input: {
     });
   const analysis = new AnalysisService({ db, callers, settings, jobs: input.jobs, log: engineLogger(log) });
   const github = input.github ?? new GitHubApi();
+  // The API stores uploads and hands them to the worker to read; it never ingests them itself,
+  // so it needs no model caller here.
+  const storage = input.storage ?? createStorage(config.UPLOAD_DIR);
+  const attachments = new AttachmentService({ db, storage, settings, log: engineLogger(log) });
   const requirements = new RequirementsService({
     db,
     callers,
@@ -93,5 +104,7 @@ export function buildContext(input: {
     analysis,
     requirements,
     github,
+    storage,
+    attachments,
   };
 }

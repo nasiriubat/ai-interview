@@ -21,12 +21,19 @@ const baseSession: ParticipantSession = {
   consented: true,
   progress: { areas: [{ key: "role", name: "Role", status: "untouched" }] },
   messages: [],
+  capabilities: { recordedVoice: true, fileUpload: true, maxSizeMb: 20, allowedTypes: ["application/pdf"] },
+  attachments: [],
 };
 
-function apiWith(sendTurn: ParticipantApi["sendTurn"]): ParticipantApi {
+function apiWith(sendTurn: ParticipantApi["sendTurn"], extra: Partial<ParticipantApi> = {}): ParticipantApi {
   const noop = (): Promise<void> => Promise.resolve();
   return {
     sendTurn,
+    sendVoice: () => Promise.reject(new Error("unused")),
+    uploadAttachment: () => Promise.reject(new Error("unused")),
+    listAttachments: () => Promise.resolve([]),
+    attachmentBytes: () => Promise.reject(new Error("unused")),
+    deleteAttachment: noop,
     getLink: () => Promise.reject(new Error("unused")),
     requestCode: noop,
     confirmCode: () => Promise.reject(new Error("unused")),
@@ -42,6 +49,7 @@ function apiWith(sendTurn: ParticipantApi["sendTurn"]): ParticipantApi {
     deleteData: noop,
     getSummary: () => Promise.resolve({ summary: "", facts: [] }),
     putSummary: noop,
+    ...extra,
   };
 }
 
@@ -93,6 +101,37 @@ describe("useInterview", () => {
     const contents = result.current.state.messages.map((m) => m.content);
     expect(contents).toEqual(["Hello", "I am a nurse", "Pick one"]);
     expect(result.current.activeWidget).toEqual({ type: "yes_no" });
+  });
+
+  it("shows the transcript of a recording as the participant's own turn before the reply", async () => {
+    const sendVoice = vi.fn((): Promise<Response> =>
+      Promise.resolve(
+        sse([
+          'event: transcript\ndata: {"text":"We chase invoices by hand","attachmentId":"att1","confidence":0.9}\n\n',
+          'event: turn\ndata: {"message":{"id":"u1","seq":2,"role":"user","modality":"voice","content":"We chase invoices by hand","createdAt":""},"ended":false,"progress":{"areas":[]}}\n\n',
+          'event: turn\ndata: {"message":{"id":"a2","seq":3,"role":"assistant","content":"How often?","createdAt":""},"ended":false,"progress":{"areas":[]}}\n\n',
+        ]),
+      ),
+    );
+    const initial: ParticipantSession = {
+      ...baseSession,
+      messages: [{ id: "a1", seq: 1, role: "assistant", modality: "text", content: "Hello", createdAt: "" }],
+    };
+    const api = apiWith(() => Promise.reject(new Error("unused")), { sendVoice });
+    const { result } = renderHook(() => useInterview(api, initial));
+    const audio = new Blob(["audio"], { type: "audio/webm" });
+    await act(async () => {
+      await result.current.sendVoice(audio, 4200);
+    });
+    expect(sendVoice).toHaveBeenCalledWith(audio, 4200, expect.any(AbortSignal));
+    expect(result.current.state.messages.map((m) => m.content)).toEqual([
+      "Hello",
+      "We chase invoices by hand",
+      "How often?",
+    ]);
+    // The server's own copy replaced the transcript rather than appearing beside it.
+    const spoken = result.current.state.messages[1];
+    expect(spoken).toMatchObject({ id: "u1", role: "user", modality: "voice" });
   });
 
   it("surfaces stream errors and ends the interview on the ended event", async () => {

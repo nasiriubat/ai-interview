@@ -1,4 +1,14 @@
-import { BossJobs, CallerFactory, Crypto, MemoryEmail, SettingsEmail, SettingsService } from "@aidp/core";
+import {
+  BossJobs,
+  CallerFactory,
+  createStorage,
+  Crypto,
+  MemoryEmail,
+  SettingsEmail,
+  SettingsService,
+  storageKind,
+  type JobName,
+} from "@aidp/core";
 import { withTenantScope } from "@aidp/db";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
@@ -46,6 +56,9 @@ async function main(): Promise<void> {
   });
   await jobs.start();
 
+  const storage = createStorage(config.UPLOAD_DIR);
+  log.info({ storage: storageKind(storage) }, "upload store");
+
   const h = handlers({
     db,
     callers,
@@ -53,6 +66,7 @@ async function main(): Promise<void> {
     email,
     jobs,
     crypto,
+    storage,
     publicWebUrl: config.PUBLIC_WEB_URL,
     log: {
       info: (m, meta) => {
@@ -66,43 +80,45 @@ async function main(): Promise<void> {
   const failed = (name: string) => (jobId: string, err: unknown) => {
     log.error({ err, job: name, jobId }, "job failed");
   };
+
   /**
+   * How many of each job may run at once.
+   *
+   * The default is the configured concurrency. The ones listed here are capped at one because they
+   * are long, expensive, or sweep every tenant, and two of them racing is worse than one of them
+   * waiting.
+   */
+  const CONCURRENCY: Partial<Record<JobName, number>> = {
+    "privacy.delete-session": 1,
+    "privacy.retention-sweep": 1,
+    "auth.prune-verification-tokens": 1,
+    "analysis.run": 1,
+    "spec.generate": 1,
+    "attachment.ingest": 1,
+  };
+
+  /**
+   * Every handler gets a consumer, derived from the handler map rather than listed here.
+   *
+   * It used to be one `consume` call per job, written out by hand, and phase 4 walked straight
+   * into what that costs: `attachment.ingest` was defined, published and queued, its handler was
+   * implemented, TypeScript was satisfied — and nothing consumed it, so uploads sat at `pending`
+   * forever with no error anywhere. The `Handlers` type makes a missing handler a compile error;
+   * nothing made a missing consumer anything at all. Now the loop cannot miss one.
+   *
    * A job carries its tenant in the payload, so it runs fenced in exactly like a request does.
    * A job without one sweeps every tenant and runs as system (packages/db/src/tenancy.ts).
    */
-  await jobs.consume(
-    "session.summarize",
-    h["session.summarize"],
-    config.WORKER_CONCURRENCY,
-    failed("session.summarize"),
-  );
-  await jobs.consume(
-    "session.extract",
-    h["session.extract"],
-    config.WORKER_CONCURRENCY,
-    failed("session.extract"),
-  );
-  await jobs.consume("email.send", h["email.send"], config.WORKER_CONCURRENCY, failed("email.send"));
-  await jobs.consume(
-    "privacy.delete-session",
-    h["privacy.delete-session"],
-    1,
-    failed("privacy.delete-session"),
-  );
-  await jobs.consume(
-    "privacy.retention-sweep",
-    h["privacy.retention-sweep"],
-    1,
-    failed("privacy.retention-sweep"),
-  );
-  await jobs.consume(
-    "auth.prune-verification-tokens",
-    h["auth.prune-verification-tokens"],
-    1,
-    failed("auth.prune-verification-tokens"),
-  );
-  await jobs.consume("analysis.run", h["analysis.run"], 1, failed("analysis.run"));
-  await jobs.consume("spec.generate", h["spec.generate"], 1, failed("spec.generate"));
+  for (const name of Object.keys(h) as JobName[]) {
+    await jobs.consume(
+      name,
+      h[name] as (payload: unknown) => Promise<void>,
+      CONCURRENCY[name] ?? config.WORKER_CONCURRENCY,
+      failed(name),
+    );
+  }
+  log.info({ jobs: Object.keys(h).length }, "job consumers registered");
+
   // Timers last: the queues they feed are already consuming.
   await registerSchedules(jobs, {
     info: (m, meta) => {

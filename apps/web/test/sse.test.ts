@@ -118,6 +118,30 @@ describe("toTurnStreamEvent", () => {
     });
   });
 
+  it("maps the transcript event of a recorded turn (FR-30) and keeps its optional fields optional", () => {
+    expect(
+      toTurnStreamEvent({
+        event: "transcript",
+        data: '{"text":"We chase invoices by hand","attachmentId":"att1","confidence":0.82,"durationMs":4200}',
+      }),
+    ).toEqual({
+      type: "transcript",
+      text: "We chase invoices by hand",
+      attachmentId: "att1",
+      confidence: 0.82,
+      durationMs: 4200,
+    });
+    expect(toTurnStreamEvent({ event: "transcript", data: '{"text":"Hi","attachmentId":"a"}' })).toEqual({
+      type: "transcript",
+      text: "Hi",
+      attachmentId: "a",
+    });
+    expect(toTurnStreamEvent({ event: "transcript", data: '{"text":"Hi"}' })).toMatchObject({
+      type: "error",
+      code: "malformed_event",
+    });
+  });
+
   it("ignores unknown events and reports malformed payloads as errors", () => {
     expect(toTurnStreamEvent({ event: "ping", data: "{}" })).toBeUndefined();
     expect(toTurnStreamEvent({ event: "text", data: "not json" })).toEqual({

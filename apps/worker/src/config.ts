@@ -7,6 +7,8 @@ const Env = z.object({
   EMAIL_SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   PUBLIC_WEB_URL: z.string().default("http://localhost:3000"),
+  /** Where uploaded audio and documents live. Unset keeps them in memory, which loses them. */
+  UPLOAD_DIR: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
 });

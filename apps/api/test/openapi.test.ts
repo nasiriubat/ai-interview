@@ -51,6 +51,9 @@ suite("OpenAPI and health", () => {
       expect(paths).toContain(p);
     }
     const ready = await world.app.inject({ method: "GET", url: "/api/v1/health/ready" });
-    expect(ready.json()).toEqual({ ok: true, database: true });
+    // `storage` is on this response so a deployment can assert it: with no UPLOAD_DIR the store
+    // is memory, every upload works in testing, and every recording vanishes on the next deploy
+    // with nothing in the logs to say so. The test world deliberately runs on memory.
+    expect(ready.json()).toEqual({ ok: true, database: true, storage: "memory" });
   });
 });

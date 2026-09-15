@@ -9,6 +9,7 @@ export type ErrorCode =
   | "forbidden"
   | "not_found"
   | "conflict"
+  | "too_large"
   | "rate_limited"
   | "budget_exceeded"
   | "provider_error"
@@ -20,6 +21,8 @@ const STATUS: Record<ErrorCode, number> = {
   forbidden: 403,
   not_found: 404,
   conflict: 409,
+  // An upload over the tenant's files.maxSizeMb, or over the hard ceiling above it.
+  too_large: 413,
   rate_limited: 429,
   budget_exceeded: 402,
   provider_error: 502,

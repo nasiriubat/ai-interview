@@ -8,6 +8,7 @@ export * from "./sessions/engine-factory.js";
 export * from "./jobs/definitions.js";
 export * from "./jobs/pg-boss.js";
 export * from "./storage/index.js";
+export * from "./attachments/index.js";
 export * from "./email/port.js";
 export * from "./email/smtp.js";
 export * from "./email/settings-email.js";

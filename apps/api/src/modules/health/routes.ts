@@ -1,3 +1,4 @@
+import { storageKind } from "@aidp/core";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { AppContext } from "../../context.js";
@@ -10,7 +11,16 @@ export async function healthRoutes(app: FastifyInstance, ctx: AppContext): Promi
     { ...noLimit, schema: { response: { 200: z.object({ ok: z.literal(true) }) } } },
     async () => ({ ok: true as const }),
   );
-  const Ready = z.object({ ok: z.boolean(), database: z.boolean() });
+  /**
+   * `storage` is reported because getting it wrong is silent and expensive. With no UPLOAD_DIR the
+   * store falls back to memory, every upload works in testing, and every recording disappears on
+   * the next deploy with nothing in the logs. A deployment can assert on this line.
+   */
+  const Ready = z.object({
+    ok: z.boolean(),
+    database: z.boolean(),
+    storage: z.enum(["filesystem", "memory", "other"]),
+  });
   app.get(
     "/health/ready",
     { ...noLimit, schema: { response: { 200: Ready, 503: Ready } } },
@@ -22,7 +32,9 @@ export async function healthRoutes(app: FastifyInstance, ctx: AppContext): Promi
       } catch (err) {
         ctx.log.error({ err }, "readiness: database unreachable");
       }
-      return reply.status(database ? 200 : 503).send({ ok: database, database });
+      return reply
+        .status(database ? 200 : 503)
+        .send({ ok: database, database, storage: storageKind(ctx.storage) });
     },
   );
 }
