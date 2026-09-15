@@ -104,11 +104,35 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
       name: a.name,
       status: state.coverage?.[a.key]?.status ?? "untouched",
     }));
+    // What the browser is allowed to do, resolved from the tenant's settings.
+    //
+    // Without this the client has to guess: it would offer a microphone to a tenant that turned
+    // voice off and only find out from a 403 after someone had spoken, and it would pre-check
+    // uploads against the shipped defaults rather than the limits actually in force, refusing a
+    // file the server would have accepted. Both are worse errors than the ones they replace.
+    const chain = [
+      { scope: "template" as const, scopeId: session.templateId },
+      { scope: "tenant" as const, scopeId: p.companyId },
+    ];
+    const values = await ctx.settings.resolveMany(
+      ["features.recordedVoice", "features.fileUpload", "files.maxSizeMb", "files.allowedTypes"],
+      chain,
+    );
+    const attachments =
+      session.status === "deleted" ? [] : await ctx.attachments.list(p.companyId, session.id);
+
     return {
       session: {
         ...svc.sessionView(session, session.participant),
         progress: { areas },
         messages: messages.map(toStored),
+        attachments,
+        capabilities: {
+          recordedVoice: values["features.recordedVoice"] as boolean,
+          fileUpload: values["features.fileUpload"] as boolean,
+          maxSizeMb: values["files.maxSizeMb"] as number,
+          allowedTypes: values["files.allowedTypes"] as string[],
+        },
       },
     };
   });

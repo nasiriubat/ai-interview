@@ -28,10 +28,10 @@ artifact is what matters, not who produced it.
 4. **Hand-offs are files in this repo**, never chat history. A coding agent starting cold
    must be able to read `docs/` and know what to do.
 
-## Current state: phases 1-3 built, validated against a real model, deployable
+## Current state: phases 1-4 built, deployable
 
-Phases 1, 2 and 3 are built and accepted, and all three have now been run end to end against a
-real model through OpenRouter rather than against the fake one:
+Phases 1, 2 and 3 are built, accepted, and each run end to end against a real model through
+OpenRouter rather than against the fake one. Phase 4 is built except for its real-time half.
 
 - **Phase 1, participant interviews.** Adaptive interviews on a phone-sized browser, streaming over
   SSE, with consent, participant tokens and per-turn fact extraction.
@@ -44,6 +44,11 @@ real model through OpenRouter rather than against the fake one:
   versioned generation by the worker, spec.md / spec.json / agent-bundle exports, GitHub push,
   chaining from promoted opportunities, and external invitations. Replay evals cover both seeded
   templates.
+- **Phase 4, files and recorded voice.** A participant can attach a document or an image and it is
+  read once — extracted or described, summarized, chunked — with the summary in the interviewer's
+  context every turn and the wording recalled on demand. They can answer by speaking: the recording
+  is stored, transcribed and answered in one request, and kept playable under its own retention
+  clock. The real-time voice cascade (FR-30a) is not built.
 
 Deployment is owned and documented: `deploy/compose.prod.yml` with Caddy, nightly backups, a
 tested restore drill and a preflight gate that refuses to start the stack unless row-level security
@@ -54,6 +59,6 @@ embedding route is configured; OpenRouter serves no embedding models. Configure 
 purpose against a provider that has them (a direct OpenAI or Voyage key) to get semantic
 clustering. The fallback is deliberate and the pipeline reports which path it took.
 
-Next: phase 4 (voice and files), then the phase 3 acceptance test in `15-phase-plan.md`
+Next: the real-time voice cascade, then the phase 3 acceptance test in `15-phase-plan.md`
 (regenerate this spec from a rough prompt; build a feature from the bundle). Phases 6 (integrations),
 7 (collaboration) and 8 (billing) are specified and not built.

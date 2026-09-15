@@ -54,7 +54,8 @@ src/lib/api/
   errors.ts                      ApiError + `{ error: { code, message } }` unwrapping
   http.ts                        Transport abstraction, request() with zod validation, requestStream()
   schemas.ts                     zod response schemas (exact where the contract is, tolerant elsewhere)
-  sse.ts                         SSE parser and the typed turn stream (text | turn | ended | error)
+  sse.ts                         SSE parser and the typed turn stream
+                                 (text | turn | ended | spec | transcript | error)
   participant.ts, staff.ts       every endpoint of contracts 16 and 17, transport-agnostic
   server.ts                      server-side transports: Bearer token read from httpOnly cookies
   browser.ts                     browser clients that go through the /api/* proxies
@@ -79,12 +80,15 @@ src/app/admin/*                  dashboard, templates, campaigns, sessions, sett
 src/app/admin/campaigns/[id]/results   analysis header, weights, filters, opportunity cards, compare
 src/app/admin/campaigns/[id]/report    the organization report (Markdown + Mermaid, sections, print)
 src/hooks/useInterview.ts        optimistic messages, SSE streaming, progress, ending, errors
+src/hooks/useRecorder.ts         MediaRecorder: permission on demand, 5 min cap, tracks always released
+src/hooks/useAttachments.ts      upload, remove, play back, poll a pending attachment until it is read
 src/hooks/useAnalysisPolling.ts  polls the latest analysis every 5 s while queued or running
 src/hooks/useDebouncedSave.ts    persists a knob a moment after it stops changing
 src/components/ui/*              shadcn-style primitives (phase 2 adds `sheet`, contract 19 `combobox`)
 src/components/common/*          language switch
 src/components/widgets/*         single_choice, multi_choice, scale, ranking, yes_no + renderer
-src/components/participant/*     arrival flow, message list, composer, mode switch, progress, menu, summary
+src/components/participant/*     arrival flow, message list, composer (typing, microphone, paperclip),
+                                 attachment list, mode switch, progress, menu, summary
 src/components/admin/*           shell, forms, template editor, campaign panels, settings, providers,
                                  dashboard discovery tiles
 src/components/admin/results/*   analysis header, weights panel, filters, opportunity card, factor bars,
@@ -93,7 +97,7 @@ src/components/report/*          ReportView, ReportMarkdown (react-markdown), Me
 test/                            Vitest: widgets, SSE reader, API error wrapper, interview hook,
                                  locale resolution + `t` proxy, rank/override, Mermaid + sections,
                                  combobox, pagination, icon buttons, settings category form,
-                                 paginated list schemas
+                                 paginated list schemas, recording and attachments
 ````
 
 Server components load data directly from the API with the cookie token; client
@@ -134,6 +138,29 @@ render errors fall back to the source). Section checkboxes hide chunks immediate
 persist to `analysis.reportSections` at campaign scope. "Download Markdown" writes the
 visible Markdown to a Blob; "Print" uses the browser's print with a print stylesheet
 (navigation, toolbars and controls carry `print:hidden`).
+
+### Voice and files (phase 4)
+
+The composer can record and can attach a file; both are optional props, so the owner-side
+requirements workspace keeps the plain text composer. A recording is one request:
+`POST /p/session/voice-turns` uploads the audio and streams the turn back, opening with
+`event: transcript`, which `useInterview` shows as the participant's own message before the
+interviewer's reply. The microphone is requested when the button is first pressed and never
+on load; the tracks are stopped on stop, discard, the five-minute cap and unmount. A denied
+permission, a browser without `MediaRecorder` and a missing microphone each get their own
+sentence, and typing stays available under all three.
+
+Files go to `POST /p/session/attachments` as multipart (`http.ts` passes a `FormData` body
+through so the browser sets the boundary). The list above the composer is seeded from
+`session.attachments`, shows each file as pending, ready or failed with the reason, and polls
+every 3 s while anything is pending, because ingestion is a job. A recording is played by
+fetching its bytes through the proxy into a blob URL, which is revoked when the player
+unmounts.
+
+What is offered comes from `session.capabilities`: the microphone and the voice mode appear
+only when `recordedVoice` is true, the paperclip only when `fileUpload` is true, and the
+picker's `accept`, the type check and the size check follow `allowedTypes` and `maxSizeMb`.
+Nobody learns from a 403 that they should not have spoken.
 
 ### Tokens never reach client JavaScript
 
@@ -205,8 +232,8 @@ createdAt?`; PATCH with `{ status: "suspended" | "active" }` to suspend/activate
     access" banner).
 18. **Session `status` values** assumed from the state diagram in `10-architecture.md`:
     `created, consented, active, paused, completed, deleted`.
-19. **Voice mode** is a disabled placeholder ("coming in phase 4"); `POST /p/session/mode`
-    is only ever called with `chat` or `options`.
+19. **Voice mode** is live in phase 4: `POST /p/session/mode` now also takes `voice`, which
+    makes the microphone the primary control and keeps typing beside it.
 
 Phase 2 (`17-api-contract-phase2.md`):
 
@@ -302,3 +329,21 @@ Phase 3 (`18-api-contract-phase3.md`):
 34. **`sourceKind`** labels are known for `text`, `handoff`, `invitation` and
     `attachment`; other kinds are shown without a label. `StaffSession.templateKey`
     (optional) enables the "Open requirements workspace" link on `/admin/sessions/[id]`.
+
+Phase 4 (voice and files, `09-voice-and-files.md`):
+
+35. **`session.capabilities`** carries `recordedVoice`, `fileUpload`, `maxSizeMb` and
+    `allowedTypes` as they are in force. Every field is tolerated absent and defaults to what
+    the app did before the API sent them (both features on, 20 MB, the eight shipped types),
+    so an older API is never read as "everything off". The microphone, the voice mode and the
+    paperclip are hidden when the flags say so, the picker's `accept` and the client-side
+    refusals follow `allowedTypes`, and size is checked against `maxSizeMb` before uploading —
+    a 413 is still handled, since the setting can change while the page is open.
+36. **`session.attachments`** seeds the list on first render; the separate `GET
+/p/session/attachments` is only used by the poll for pending files and by the re-read after
+    a recorded turn, whose audio the server attaches on its own.
+37. **Voice is participant-only.** `requirements-session.ts` rejects `sendVoice` and the
+    attachment methods with "not available" and reports both capabilities as off: the staff
+    requirements routes have no equivalent, and the owner workspace renders no controls.
+38. **Transcript confidence** is parsed from `event: transcript` but not shown; the spec traces
+    it in stats rather than in the interview.

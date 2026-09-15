@@ -59,6 +59,22 @@ describe("request", () => {
     expect((seen?.init?.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
   });
 
+  it("passes a FormData body through so the runtime sets the multipart boundary", async () => {
+    let seen: RequestInit | undefined;
+    const transport = fakeTransport((_path, init) => {
+      seen = init;
+      return new Response(JSON.stringify({ attachment: { id: "a1" } }));
+    });
+    const form = new FormData();
+    form.append("file", new Blob(["bytes"], { type: "audio/webm" }), "recording.webm");
+    form.append("durationMs", "4200");
+    await request(transport, { method: "POST", path: "/p/session/attachments", body: form });
+    expect(seen?.body).toBe(form);
+    const headers = seen?.headers as Record<string, string>;
+    expect(headers["Content-Type"]).toBeUndefined();
+    expect(headers.Accept).toBe("application/json");
+  });
+
   it("throws an ApiError on 4xx with the envelope's code", async () => {
     const transport = fakeTransport(
       () =>

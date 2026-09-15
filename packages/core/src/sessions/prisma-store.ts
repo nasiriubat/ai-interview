@@ -115,7 +115,17 @@ export class PrismaSessionStore implements SessionStore {
   ): Promise<SessionSnapshot & { status: string; modePreference: string; participantId: string | null }> {
     const row = await this.db.session.findUniqueOrThrow({
       where: { id: sessionId },
-      include: { template: true },
+      include: {
+        template: true,
+        // Documents and images only: a voice recording's transcript is already the participant's
+        // own turn in the transcript, so listing it again would say everything twice.
+        attachments: {
+          where: { kind: { in: ["document", "image"] } },
+          select: { filename: true, kind: true, summary: true, status: true },
+          orderBy: { createdAt: "asc" },
+          take: 20,
+        },
+      },
     });
     const template = templateFromRow(row.template);
     const handoff = row.handoff ? HandoffSchema.safeParse(row.handoff) : undefined;
@@ -128,6 +138,16 @@ export class PrismaSessionStore implements SessionStore {
       summary: row.summary,
       ...(row.path ? { path: row.path as Path } : {}),
       ...(handoff?.success ? { handoff: handoff.data } : {}),
+      ...(row.attachments.length > 0
+        ? {
+            attachments: row.attachments.map((a) => ({
+              filename: a.filename,
+              kind: a.kind,
+              summary: a.summary ?? "",
+              status: a.status,
+            })),
+          }
+        : {}),
       status: row.status,
       modePreference: row.modePreference,
       participantId: row.participantId,

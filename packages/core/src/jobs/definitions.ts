@@ -21,6 +21,16 @@ export const JOBS = {
   /** Sweeps every tenant; the payload is empty so a cron tick needs no arguments (spec 11, retention). */
   "privacy.retention-sweep": { schema: z.object({}), retryLimit: 2 },
   "auth.prune-verification-tokens": { schema: z.object({}), retryLimit: 2 },
+  /**
+   * Reads an uploaded file: extraction or a vision call, then a summary, chunks and embeddings
+   * (FR-31). Retried twice because the expensive half is two model calls, and a provider that is
+   * down for a third attempt will still be down; the attachment is marked failed instead, which
+   * the participant can see and act on.
+   */
+  "attachment.ingest": {
+    schema: z.object({ attachmentId: z.string(), companyId: z.string() }),
+    retryLimit: 2,
+  },
   "analysis.run": { schema: z.object({ analysisId: z.string(), companyId: z.string() }), retryLimit: 2 },
   "spec.generate": { schema: z.object({ versionId: z.string(), companyId: z.string() }), retryLimit: 2 },
 } as const;

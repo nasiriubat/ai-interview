@@ -59,6 +59,18 @@ password so they can connect as it, which disconnects a running stack that uses 
 failed run can leave test companies behind, which is noise you do not want in the data you are
 demonstrating from.
 
+## Uploads
+
+Recorded audio and attached documents are bytes, not rows, so they need somewhere to live.
+`docker compose up` mounts a named volume at `/uploads` for the API and the worker and sets
+`UPLOAD_DIR` to it. Running the API on the host with `pnpm dev` and no `UPLOAD_DIR` keeps them in
+memory instead, which is fine for a quick test and loses every upload when the process restarts.
+The readiness endpoint reports which store is in force.
+
+Reading a file needs model routes for `file_ingest` and, for images, `vision_ingest`. Recorded
+voice needs one for `transcription`. Without them an upload is accepted and then marked failed,
+which is visible to the participant.
+
 Provider configuration without an Anthropic key: sign in as the operator, add a provider
 (OpenAI, OpenRouter, LiteLLM, or any OpenAI-compatible server), fetch its models, and set
 routes per purpose. Nothing works until `interview_turn` has a route.

@@ -29,6 +29,7 @@ import {
   WidgetSchema,
 } from "@aidp/shared";
 import { z } from "zod";
+import { DEFAULT_ALLOWED_TYPES, DEFAULT_MAX_SIZE_MB } from "../attachments";
 
 /*
  * Response schemas for the Phase 1 contract (docs/spec/16). Where the contract spells a
@@ -166,6 +167,40 @@ export const SESSION_STATUSES = ["created", "consented", "active", "paused", "co
 export const ModePreferenceSchema = z.enum(["chat", "options", "voice"]);
 export type ModePreference = z.infer<typeof ModePreferenceSchema>;
 
+/** An uploaded file or a recording (FR-30, FR-31, FR-32). `status` is the ingestion state. */
+export const AttachmentKindSchema = z.enum(["audio", "document", "image"]);
+export type AttachmentKind = z.infer<typeof AttachmentKindSchema>;
+export const AttachmentStatusSchema = z.enum(["pending", "ready", "failed"]);
+export type AttachmentStatus = z.infer<typeof AttachmentStatusSchema>;
+export const AttachmentSchema = z.looseObject({
+  id: z.string(),
+  kind: AttachmentKindSchema.catch("document"),
+  filename: z.string().default(""),
+  mime: z.string().default(""),
+  sizeBytes: z.number().default(0),
+  status: AttachmentStatusSchema.catch("pending"),
+  summary: z.string().nullish(),
+  error: z.string().nullish(),
+  durationMs: z.number().nullish(),
+  createdAt: iso.default(""),
+});
+export type Attachment = z.infer<typeof AttachmentSchema>;
+export const AttachmentEnvelopeSchema = z.looseObject({ attachment: AttachmentSchema });
+export const AttachmentListSchema = listOf(AttachmentSchema, "attachments");
+
+/**
+ * What this session may do with voice and files, resolved from the tenant's and template's
+ * settings. Every field defaults to what the app did before the API offered them — voice and
+ * files on, the shipped size and type limits — so an older API is not read as "everything off".
+ */
+export const SessionCapabilitiesSchema = z.looseObject({
+  recordedVoice: z.boolean().default(true),
+  fileUpload: z.boolean().default(true),
+  maxSizeMb: z.number().positive().default(DEFAULT_MAX_SIZE_MB),
+  allowedTypes: z.array(z.string()).default([...DEFAULT_ALLOWED_TYPES]),
+});
+export type SessionCapabilities = z.infer<typeof SessionCapabilitiesSchema>;
+
 export const ParticipantSessionSchema = z.looseObject({
   id: z.string(),
   status: z.string(),
@@ -174,6 +209,9 @@ export const ParticipantSessionSchema = z.looseObject({
   consented: z.boolean().default(false),
   progress: ProgressSchema.default({ areas: [] }),
   messages: z.array(MessageSchema).default([]),
+  capabilities: SessionCapabilitiesSchema.prefault({}),
+  /** The session's attachments, so the first render needs no second request. */
+  attachments: z.array(AttachmentSchema).default([]),
   summary: z.string().nullish(),
 });
 export type ParticipantSession = z.infer<typeof ParticipantSessionSchema>;

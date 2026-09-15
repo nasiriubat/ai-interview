@@ -42,6 +42,7 @@ export function renderState(
   template: InterviewTemplate,
   path?: string,
   handoff?: SessionSnapshot["handoff"],
+  attachments?: SessionSnapshot["attachments"],
 ): string {
   const lines: string[] = [];
   if (path) lines.push(`Path: ${path}`);
@@ -56,6 +57,21 @@ export function renderState(
     .filter(Boolean)
     .join("; ");
   if (profile) lines.push(`Participant: ${profile}`);
+  // Every turn, so the interviewer can refer to a file the participant shared and ask about what
+  // is in it. Only the summary rides along; the wording is retrieved on demand, because a long
+  // document in the prompt on every turn is the most expensive mistake available here.
+  if (attachments && attachments.length > 0) {
+    lines.push("Files the participant attached:");
+    for (const a of attachments) {
+      if (a.status === "pending") lines.push(`- ${a.filename} (still being read)`);
+      else if (a.status === "failed")
+        lines.push(`- ${a.filename} (could not be read; ask them what is in it)`);
+      else lines.push(`- ${a.filename}: ${a.summary}`);
+    }
+    lines.push(
+      "Refer to these when relevant. Ask about what they show rather than asking for facts they already contain.",
+    );
+  }
   if (handoff) {
     lines.push("Hand-off from discovery (already known; confirm, do not re-ask):");
     lines.push(`- problem: ${handoff.problem}`);
@@ -202,7 +218,7 @@ export function assembleContext(input: {
 
   const contextParts = [
     "Session context",
-    renderState(session.state, session.template, session.path, session.handoff),
+    renderState(session.state, session.template, session.path, session.handoff, session.attachments),
   ];
   if (session.summary) contextParts.push("", "Summary of the conversation so far", session.summary);
   let recalled = input.recalled;

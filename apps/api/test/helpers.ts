@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { createServer, type Server } from "node:http";
-import { type Crypto, MemoryEmail, MemoryJobPublisher } from "@aidp/core";
+import { type Crypto, MemoryEmail, MemoryJobPublisher, MemoryStorage } from "@aidp/core";
 import { shippedTemplates, withTenantScope } from "@aidp/db";
 import { encode } from "@auth/core/jwt";
 import { PrismaClient } from "@prisma/client";
@@ -18,6 +18,8 @@ export type Completions = (schemaName: string, userContent: string) => unknown;
 export function fakeModelServer(
   replies: () => string,
   completions?: Completions,
+  /** What `/audio/transcriptions` returns, for recorded-voice tests (FR-30). */
+  transcription?: () => { text: string; duration?: number } | Error,
 ): Promise<{ server: Server; url: string; requests: unknown[] }> {
   const requests: unknown[] = [];
   return new Promise((resolve) => {
@@ -25,6 +27,19 @@ export function fakeModelServer(
       let body = "";
       req.on("data", (c: Buffer) => (body += c.toString()));
       req.on("end", () => {
+        // Multipart, so the body is not JSON and must be answered before the parse below.
+        if (req.url?.endsWith("/audio/transcriptions")) {
+          requests.push({ transcription: true });
+          const out = transcription?.() ?? { text: "This is what I said out loud." };
+          if (out instanceof Error) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: { message: out.message } }));
+            return;
+          }
+          res.setHeader("content-type", "application/json");
+          res.end(JSON.stringify(out));
+          return;
+        }
         if (req.url?.endsWith("/models")) {
           res.setHeader("content-type", "application/json");
           res.end(
@@ -84,6 +99,7 @@ export interface TestWorld {
   db: PrismaClient;
   email: MemoryEmail;
   jobs: MemoryJobPublisher;
+  storage: MemoryStorage;
   crypto: Crypto;
   companyId: string;
   adminToken: string;
@@ -134,7 +150,10 @@ export async function testWorld(modelUrl: string, env: Record<string, string> = 
   const appDb = await appRoleClient(db);
   const email = new MemoryEmail();
   const jobs = new MemoryJobPublisher();
-  const ctx = buildContext({ config, db: appDb, log: pino({ level: "silent" }), jobs, email });
+  // Uploads stay in memory: a test that writes to a real directory has to clean it up, and the
+  // two adapters are held to one contract by packages/core/test/storage.test.ts.
+  const storage = new MemoryStorage();
+  const ctx = buildContext({ config, db: appDb, log: pino({ level: "silent" }), jobs, email, storage });
   const app = await buildApp(ctx);
   await app.ready();
 
@@ -195,7 +214,16 @@ export async function testWorld(modelUrl: string, env: Record<string, string> = 
       source: "admin",
     },
   });
-  for (const purpose of ["interview_turn", "resume_summary", "extraction", "clustering", "analysis_report"]) {
+  for (const purpose of [
+    "interview_turn",
+    "resume_summary",
+    "extraction",
+    "clustering",
+    "analysis_report",
+    "file_ingest",
+    "vision_ingest",
+    "transcription",
+  ]) {
     await db.route.create({
       data: {
         companyId: company.id,
@@ -215,6 +243,7 @@ export async function testWorld(modelUrl: string, env: Record<string, string> = 
     db,
     email,
     jobs,
+    storage,
     crypto: ctx.crypto,
     companyId: company.id,
     adminToken: await token(`admin-${suffix}@test.io`),

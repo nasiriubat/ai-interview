@@ -89,6 +89,13 @@ const EndedEventSchema = z.object({ summaryAvailable: z.boolean().default(false)
 const ErrorEventSchema = z.object({ code: z.string().default("error"), message: z.string().default("") });
 /** Contract 18: the live spec re-rendered after each turn of a requirements session. */
 const SpecEventSchema = z.object({ spec: LiveSpecSchema });
+/** FR-30: what a recording was heard as, sent before the interviewer answers it. */
+const TranscriptEventSchema = z.object({
+  text: z.string(),
+  attachmentId: z.string(),
+  confidence: z.number().optional(),
+  durationMs: z.number().optional(),
+});
 
 export type TurnStreamEvent =
   | { type: "text"; delta: string }
@@ -100,6 +107,13 @@ export type TurnStreamEvent =
     }
   | { type: "ended"; summaryAvailable: boolean }
   | { type: "spec"; spec: z.infer<typeof LiveSpecSchema> }
+  | {
+      type: "transcript";
+      text: string;
+      attachmentId: string;
+      confidence?: number | undefined;
+      durationMs?: number | undefined;
+    }
   | { type: "error"; code: string; message: string };
 
 function parseJson(data: string): unknown {
@@ -133,6 +147,10 @@ export function toTurnStreamEvent(ev: SseEvent): TurnStreamEvent | undefined {
     case "spec": {
       const r = SpecEventSchema.safeParse(json);
       return r.success ? { type: "spec", spec: r.data.spec } : malformed(ev);
+    }
+    case "transcript": {
+      const r = TranscriptEventSchema.safeParse(json);
+      return r.success ? { type: "transcript", ...r.data } : malformed(ev);
     }
     default:
       return undefined;

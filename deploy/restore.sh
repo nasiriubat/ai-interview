@@ -123,10 +123,39 @@ psql_owner -d postgres -c \
 psql_owner -d postgres -c "drop database if exists \"$into\"" >/dev/null
 psql_owner -d postgres -c "create database \"$into\" owner app" >/dev/null
 
+# The uploaded files, from the archive stamped to match this dump.
+#
+# Restoring the database alone would bring back Attachment rows pointing at bytes that are not
+# there: every recording silently fails to play and every attached document is unreadable, with
+# nothing in the logs to say why. Only done for a live restore — a verification restore into a
+# scratch database must not overwrite the real uploads volume.
+restore_uploads() {
+	[ "$into" = "$live_db" ] || { echo "restore: into a scratch database, leaving uploads alone"; return 0; }
+	stamp=$(basename "$dump_path" | sed -n 's/^ai_discovery-\(.*\)\.dump$/\1/p')
+	archive="/backups/uploads-$stamp.tar.gz"
+	if ! dc exec -T backup test -f "$archive" 2>/dev/null; then
+		echo "restore: no $archive beside this dump; uploaded files NOT restored" >&2
+		echo "         Attachment rows will point at bytes that are missing." >&2
+		return 0
+	fi
+	echo "restore: restoring uploaded files from $(basename "$archive")"
+	# A one-off container rather than `exec`: a live restore stopped api and worker further up, so
+	# there is nothing to exec into. `--no-deps` keeps it from starting them again, and the api
+	# image is used only because it is the one that mounts the uploads volume writable.
+	#
+	# Replace rather than merge: a half-old, half-new uploads directory is harder to reason about
+	# than either alone, and the archive is a complete picture of one moment.
+	dc exec -T backup cat "$archive" |
+		dc run --rm --no-deps -T --entrypoint sh api -c 'rm -rf /uploads/* 2>/dev/null; tar -xzf - -C /uploads'
+	echo "restore: uploaded files restored"
+}
+
 echo "restore: pg_restore running"
 # The dump lives in the backups volume, which only the backup container mounts; stream it across.
 dc exec -T backup cat "$dump_path" |
 	dc exec -T postgres pg_restore --no-owner --role=app --dbname="postgresql://app:$(envval POSTGRES_PASSWORD)@127.0.0.1:5432/$into"
+
+restore_uploads
 
 # Give app_api its login back: a restore into a fresh cluster created the role NOLOGIN above.
 app_pw=$(envval APP_DB_PASSWORD)

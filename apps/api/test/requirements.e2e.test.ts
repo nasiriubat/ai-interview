@@ -252,6 +252,7 @@ suite("requirements interview end to end", () => {
       email: world.email,
       jobs: world.jobs,
       crypto: world.crypto,
+      storage: world.storage,
       publicWebUrl: "http://web.test",
       log: {
         info: (m, meta) => {

@@ -2,6 +2,7 @@
 
 import { AlertTriangleIcon, CheckIcon, PauseIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
+import { AttachmentList } from "./AttachmentList";
 import { Composer } from "./Composer";
 import { MessageList } from "./MessageList";
 import { ModeSwitch } from "./ModeSwitch";
@@ -13,6 +14,7 @@ import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { WidgetRenderer } from "@/components/widgets";
+import { useAttachments } from "@/hooks/useAttachments";
 import { useInterview } from "@/hooks/useInterview";
 import { t } from "@/i18n";
 import { participantClient } from "@/lib/api/browser";
@@ -31,11 +33,21 @@ export function InterviewScreen({
   api?: ParticipantApi;
   title?: string;
 }): React.JSX.Element {
-  const { state, activeWidget, sendText, sendWidget, retry, clearError } = useInterview(api, initial);
+  const { state, activeWidget, sendText, sendVoice, sendWidget, retry, clearError } = useInterview(
+    api,
+    initial,
+  );
+  const can = initial.capabilities;
+  // A stored `voice` preference outlives the setting that allowed it, so it is coerced back.
   const [mode, setMode] = React.useState<ModePreference>(
-    initial.modePreference && initial.modePreference !== "voice" ? initial.modePreference : "chat",
+    initial.modePreference === "voice" && !can.recordedVoice ? "chat" : (initial.modePreference ?? "chat"),
   );
   const [screen, setScreen] = React.useState<Screen>(initial.status === "paused" ? "paused" : "interview");
+  const attachments = useAttachments(api, {
+    initial: initial.attachments,
+    capabilities: can,
+    enabled: screen === "interview" && !state.ended,
+  });
   const [typeInstead, setTypeInstead] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -113,7 +125,8 @@ export function InterviewScreen({
 
   const inputDisabled = state.pending || busy || state.ended;
   const showWidget = activeWidget !== undefined && !state.ended;
-  const showComposer = !state.ended && (mode === "chat" || !showWidget || typeInstead);
+  // Only the options mode hides the composer behind a widget; chat and voice always keep it.
+  const showComposer = !state.ended && (mode !== "options" || !showWidget || typeInstead);
   const isBudget = state.error?.code === "budget_exceeded";
   const isProvider = state.error?.code === "provider_error";
   const isExpired = state.error?.code === "unauthenticated" || state.error?.code === "not_found";
@@ -124,7 +137,9 @@ export function InterviewScreen({
         <div className="flex items-center justify-between gap-2 px-4 py-2">
           <h1 className="truncate text-base font-semibold">{title ?? t.participant.session.title}</h1>
           <div className="flex items-center gap-2">
-            {!state.ended ? <ModeSwitch mode={mode} onChange={changeMode} /> : null}
+            {!state.ended ? (
+              <ModeSwitch mode={mode} onChange={changeMode} voiceEnabled={can.recordedVoice} />
+            ) : null}
             <LanguageSwitch />
             <SessionMenu onPause={pause} onDone={done} onDelete={remove} disabled={busy || state.ended} />
           </div>
@@ -225,13 +240,39 @@ export function InterviewScreen({
 
       {showComposer ? (
         <footer className="bg-background sticky bottom-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <AttachmentList
+            items={attachments.items}
+            uploading={attachments.uploading}
+            error={attachments.error}
+            onRemove={attachments.remove}
+            fetchBytes={attachments.bytes}
+          />
           <Composer
             disabled={inputDisabled}
             autoFocus={!showWidget}
+            voiceFirst={mode === "voice"}
             onSend={(text) => {
               setTypeInstead(false);
               void sendText(text);
             }}
+            onVoice={
+              can.recordedVoice
+                ? (audio, durationMs) => {
+                    setTypeInstead(false);
+                    // The turn stores the audio server-side, so the list is re-read afterwards
+                    // and the participant can play back what they said.
+                    void sendVoice(audio, durationMs).then(attachments.refresh);
+                  }
+                : undefined
+            }
+            onFile={
+              can.fileUpload
+                ? (file) => {
+                    attachments.upload(file);
+                  }
+                : undefined
+            }
+            accept={attachments.accept}
           />
         </footer>
       ) : state.ended ? (

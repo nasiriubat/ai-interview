@@ -33,6 +33,20 @@ export interface SessionSnapshot {
   path?: Path;
   /** Requirements sessions started from a promoted opportunity (FR-66). Rendered into layer 2. */
   handoff?: Handoff;
+  /**
+   * What the participant has attached (FR-31), summarized. Rendered into layer 2 so the
+   * interviewer knows every turn that a document exists and roughly what is in it; the wording
+   * itself is retrieved on demand through the recall source.
+   */
+  attachments?: AttachedFile[];
+}
+
+export interface AttachedFile {
+  filename: string;
+  kind: string;
+  /** Empty until ingestion finishes, or when it failed. */
+  summary: string;
+  status: string;
 }
 
 /** Persistence port. The API implements it with Prisma; tests use memory. */

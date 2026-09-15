@@ -16,11 +16,24 @@ export type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 export interface RequestOptions<T> {
   method?: Method;
   path: string;
+  /** Anything but `FormData` is sent as JSON; a `FormData` body is sent as multipart. */
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined>;
   schema?: z.ZodType<T>;
   headers?: Record<string, string>;
   signal?: AbortSignal | undefined;
+}
+
+/**
+ * Encodes the body and sets the matching content type, except for `FormData`: multipart needs a
+ * boundary in the header, and only the runtime that serializes the body knows what it is. Setting
+ * `Content-Type` ourselves there would produce a body no server can parse.
+ */
+function encodeBody(body: unknown, headers: Record<string, string>): BodyInit | undefined {
+  if (body === undefined) return undefined;
+  if (body instanceof FormData) return body;
+  headers["Content-Type"] = "application/json";
+  return JSON.stringify(body);
 }
 
 export function withQuery(path: string, query?: RequestOptions<unknown>["query"]): string {
@@ -36,11 +49,7 @@ export function withQuery(path: string, query?: RequestOptions<unknown>["query"]
 /** Performs a JSON request, unwraps the API error envelope, and validates the body when a schema is given. */
 export async function request<T = unknown>(transport: Transport, opts: RequestOptions<T>): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json", ...opts.headers };
-  let body: BodyInit | undefined;
-  if (opts.body !== undefined) {
-    headers["Content-Type"] = "application/json";
-    body = JSON.stringify(opts.body);
-  }
+  const body = encodeBody(opts.body, headers);
   let res: Response;
   try {
     res = await transport.fetch(withQuery(opts.path, opts.query), {
@@ -75,11 +84,7 @@ export async function requestStream(
   opts: Omit<RequestOptions<never>, "schema">,
 ): Promise<Response> {
   const headers: Record<string, string> = { Accept: "text/event-stream", ...opts.headers };
-  let body: BodyInit | undefined;
-  if (opts.body !== undefined) {
-    headers["Content-Type"] = "application/json";
-    body = JSON.stringify(opts.body);
-  }
+  const body = encodeBody(opts.body, headers);
   let res: Response;
   try {
     res = await transport.fetch(withQuery(opts.path, opts.query), {
@@ -93,6 +98,25 @@ export async function requestStream(
   }
   if (!res.ok) throw await apiErrorFromResponse(res);
   return res;
+}
+
+/** Performs a request and returns the body as a blob: uploaded bytes, not JSON. */
+export async function requestBlob(
+  transport: Transport,
+  opts: Omit<RequestOptions<never>, "schema" | "body">,
+): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await transport.fetch(withQuery(opts.path, opts.query), {
+      method: opts.method ?? "GET",
+      headers: { Accept: "*/*", ...opts.headers },
+      ...(opts.signal ? { signal: opts.signal } : {}),
+    });
+  } catch (e) {
+    throw new ApiError(0, "network_error", e instanceof Error ? e.message : "Network error");
+  }
+  if (!res.ok) throw await apiErrorFromResponse(res);
+  return await res.blob();
 }
 
 /** A transport that prefixes a base URL and attaches static headers. */

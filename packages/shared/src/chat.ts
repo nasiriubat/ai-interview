@@ -57,4 +57,10 @@ export interface TranscriptionInput {
 export interface Transcript {
   text: string;
   durationSeconds?: number;
+  /**
+   * 0..1, where the provider reports one. The spec asks for transcription confidence to be traced
+   * per turn and shown in stats, because a low-confidence transcript is the most likely cause of
+   * an interviewer asking a question that makes no sense to the person who just spoke.
+   */
+  confidence?: number;
 }

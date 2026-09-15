@@ -13,6 +13,15 @@ export interface ProgressArea {
 export interface RunTurnOptions {
   /** Extra SSE events sent right after each `turn` event, computed from the persisted state. */
   afterTurn?: (state: SessionState) => Promise<{ event: string; data: unknown }[]>;
+  /**
+   * Events sent before the turn begins.
+   *
+   * This exists for recorded voice (FR-30). A typed answer is already on the participant's screen
+   * before the request is made, so the stream never echoes it back. A spoken answer is not: the
+   * text is produced by transcription on this side, and without an echo the participant watches
+   * the interviewer reply to something they cannot see themselves having said, until a reload.
+   */
+  prelude?: { event: string; data: unknown }[];
 }
 
 /**
@@ -47,7 +56,7 @@ export async function runTurn(
     { scope: "template" as const, scopeId: row.templateId },
     { scope: "tenant" as const, scopeId: row.companyId },
   ];
-  const bundle = await ctx.engines.forSession(row.companyId, chain);
+  const bundle = await ctx.engines.forSession(row.companyId, chain, sessionId);
   const snapshot = await bundle.store.snapshot(sessionId);
   if (row.campaignId) {
     const campaign = await ctx.db.campaign.findUniqueOrThrow({
@@ -71,6 +80,7 @@ export async function runTurn(
   const send = (event: string, data: unknown): void => {
     reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
+  for (const item of options?.prelude ?? []) send(item.event, item.data);
   const progress = (state: { coverage: Record<string, { status: string }> }): ProgressArea[] =>
     snapshot.template.coverageAreas.map((a) => ({
       key: a.key,
