@@ -1,6 +1,10 @@
-/** Base URL of the API, without the `/api/v1` prefix. */
+/**
+ * Base URL of the API, without the `/api/v1` prefix. Every API call is made from the
+ * web server (server components and route handlers), so `API_URL` is read at runtime
+ * and wins; `NEXT_PUBLIC_API_URL` remains for local development.
+ */
 export function apiOrigin(): string {
-  const raw = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+  const raw = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
   return raw.replace(/\/+$/, "");
 }
 

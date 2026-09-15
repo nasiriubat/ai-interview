@@ -1,6 +1,8 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import {
+  INTERNAL_AUTH_HEADER,
+  VerificationTokenResponseSchema,
+  type VerificationTokenDto,
+} from "@aidp/shared";
 import type {
   Adapter,
   AdapterAccount,
@@ -8,49 +10,45 @@ import type {
   AdapterUser,
   VerificationToken,
 } from "next-auth/adapters";
+import { ApiError } from "../api/errors";
+import { createTransport, request, type Transport } from "../api/http";
+import { apiBaseUrl } from "@/lib/env";
 
 /**
- * Verification tokens live in a small JSON file, not in module memory: the sign-in form
- * creates the token inside a server action and the magic-link callback consumes it in a
- * route handler, which Next bundles as separate module instances, so an in-memory map
- * never sees its own token. One file per instance is enough for a single web container;
- * a shared store (the API) is needed for more than one.
+ * Verification tokens live in the API's database, reached through
+ * `/internal/auth/verification-tokens` (D-56).
+ *
+ * They used to sit in a JSON file in this container's temp directory, which broke sign-in in two
+ * ways: a restart between "email me a link" and clicking it lost the token, and a second web
+ * instance never saw the token the first one wrote. A module-level map is not an option either —
+ * the sign-in form creates the token in a server action and the callback consumes it in a route
+ * handler, which Next bundles as separate module instances.
+ *
+ * The web app is not allowed to reach the database itself (spec 16, "Web app contract notes"), so
+ * the store is an API route authenticated with the `AUTH_SECRET` both processes already share.
+ * The token sent over it is already a hash: Auth.js hashes it with `AUTH_SECRET` before handing it
+ * to the adapter and emails the plaintext, so nothing on this path hashes it a second time.
  */
-const TOKEN_STORE = process.env.AUTH_TOKEN_STORE ?? join(tmpdir(), "aidp-auth-tokens.json");
-interface StoredToken {
-  identifier: string;
-  token: string;
-  expires: string;
+function internalTransport(): Transport {
+  const secret = process.env.AUTH_SECRET ?? "";
+  return createTransport(apiBaseUrl(), () => ({ [INTERNAL_AUTH_HEADER]: secret }));
 }
 
-function readTokens(): Record<string, StoredToken> {
-  try {
-    return JSON.parse(readFileSync(TOKEN_STORE, "utf8")) as Record<string, StoredToken>;
-  } catch {
-    return {};
-  }
-}
+const TOKENS_PATH = "/internal/auth/verification-tokens";
 
-function writeTokens(tokens: Record<string, StoredToken>): void {
-  const now = Date.now();
-  const live = Object.fromEntries(
-    Object.entries(tokens).filter(([, t]) => new Date(t.expires).getTime() > now),
-  );
-  // The file holds pending sign-in tokens: readable only by this user, in a directory only this
-  // user can enter, so a co-tenant process cannot enumerate who is signing in.
-  mkdirSync(dirname(TOKEN_STORE), { recursive: true, mode: 0o700 });
-  const tmp = `${TOKEN_STORE}.${process.pid}.${Math.random().toString(36).slice(2)}`;
-  writeFileSync(tmp, JSON.stringify(live), { mode: 0o600 });
-  renameSync(tmp, TOKEN_STORE);
+function toAuthJs(dto: VerificationTokenDto): VerificationToken {
+  return { identifier: dto.identifier, token: dto.token, expires: new Date(dto.expires) };
 }
 
 /**
- * A minimal adapter. Auth.js requires an adapter for the email (magic link) provider to
- * store verification tokens; with the JWT session strategy nothing else is persisted.
- * Users are keyed by email and carry no role: roles come from `GET /me` on the API, which
+ * A minimal adapter. Auth.js requires one for the email (magic link) provider to store
+ * verification tokens; with the JWT session strategy nothing else is persisted, so users and
+ * accounts stay in module memory and carry no role. Roles come from `GET /me` on the API, which
  * resolves the Auth.js JWT to `{ userId, companyId, role }`.
+ *
+ * `transport` is injectable so the token calls can be exercised without a running API.
  */
-export function memoryAdapter(): Adapter {
+export function apiAdapter(transport: Transport = internalTransport()): Adapter {
   const users = new Map<string, AdapterUser>();
   const accounts = new Map<string, string>(); // `${provider}:${providerAccountId}` -> userId
 
@@ -91,27 +89,34 @@ export function memoryAdapter(): Adapter {
     updateSession: async () => null,
     deleteSession: async () => undefined,
     createVerificationToken: async (token) => {
-      const tokens = readTokens();
-      tokens[`${token.identifier}:${token.token}`] = {
-        identifier: token.identifier,
-        token: token.token,
-        expires: token.expires.toISOString(),
-      };
-      writeTokens(tokens);
-      return token;
+      const { token: created } = await request(transport, {
+        method: "POST",
+        path: TOKENS_PATH,
+        body: {
+          identifier: token.identifier,
+          token: token.token,
+          expires: token.expires.toISOString(),
+        },
+        schema: VerificationTokenResponseSchema,
+      });
+      return toAuthJs(created);
     },
     useVerificationToken: async ({ identifier, token }) => {
-      const key = `${identifier}:${token}`;
-      const tokens = readTokens();
-      const found = tokens[key];
-      if (!found) return null;
-      writeTokens(Object.fromEntries(Object.entries(tokens).filter(([k]) => k !== key)));
-      const result: VerificationToken = {
-        identifier: found.identifier,
-        token: found.token,
-        expires: new Date(found.expires),
-      };
-      return result;
+      // The API enforces single use: the first consume returns the row and deletes it, every
+      // later one answers 404, which Auth.js reads as an invalid link. Expiry stays Auth.js's
+      // own check against the `expires` returned here.
+      try {
+        const { token: consumed } = await request(transport, {
+          method: "POST",
+          path: `${TOKENS_PATH}/consume`,
+          body: { identifier, token },
+          schema: VerificationTokenResponseSchema,
+        });
+        return toAuthJs(consumed);
+      } catch (e) {
+        if (e instanceof ApiError && e.isNotFound) return null;
+        throw e;
+      }
     },
   };
 }

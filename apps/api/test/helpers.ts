@@ -112,15 +112,19 @@ async function appRoleClient(owner: PrismaClient): Promise<PrismaClient> {
   }
 }
 
-export async function testWorld(modelUrl: string): Promise<TestWorld> {
+export const TEST_AUTH_SECRET = "test-secret-test-secret-test-secret";
+
+/** `env` overrides land on top of the defaults, so a suite can pick its own rate-limit ceilings. */
+export async function testWorld(modelUrl: string, env: Record<string, string> = {}): Promise<TestWorld> {
   const key = randomBytes(32).toString("base64");
   const config = loadConfig({
     ...process.env,
     NODE_ENV: "test",
     PLATFORM_ENCRYPTION_KEY: key,
-    AUTH_SECRET: "test-secret-test-secret-test-secret",
+    AUTH_SECRET: TEST_AUTH_SECRET,
     DATABASE_URL: process.env.DATABASE_URL ?? "",
     LOG_LEVEL: "silent",
+    ...env,
   });
   const db = new PrismaClient();
   // The application under test connects the way production does: as `app_api`, which owns nothing

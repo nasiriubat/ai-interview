@@ -5,6 +5,7 @@ import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import Fastify, {
   type FastifyBaseLogger,
+  type preHandlerAsyncHookHandler,
   type FastifyInstance,
   type RawReplyDefaultExpression,
   type RawRequestDefaultExpression,
@@ -20,10 +21,12 @@ import { authPlugin } from "./auth/plugin.js";
 import { PrincipalResolver } from "./auth/principal.js";
 import type { AppContext } from "./context.js";
 import { errorHandler } from "./lib/errors.js";
+import { principalKey, RATE_LIMIT_WINDOW } from "./lib/rate-limit.js";
 import { analysisRoutes } from "./modules/analysis/routes.js";
 import { auditRoutes } from "./modules/audit/routes.js";
 import { campaignRoutes } from "./modules/campaigns/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
+import { internalAuthRoutes } from "./modules/internal-auth/routes.js";
 import { operatorRoutes } from "./modules/operator/routes.js";
 import { participantRoutes } from "./modules/participant/routes.js";
 import { privacyRoutes } from "./modules/privacy/routes.js";
@@ -69,11 +72,6 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       done(err as Error, undefined);
     }
   });
-  app.setNotFoundHandler(
-    (_req, reply) =>
-      void reply.status(404).send({ error: { code: "not_found", message: "Route not found" } }),
-  );
-
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, {
     origin: ctx.config.WEB_ORIGIN,
@@ -81,7 +79,35 @@ export async function buildApp(ctx: AppContext): Promise<App> {
     exposedHeaders: ["x-request-id"],
   });
   await app.register(cookie);
-  await app.register(rateLimit, { global: false });
+  // The auth plugin first, so the limiter below can key on the principal it resolves. Its hook is
+  // instance-level and the limiter's is route-level, which settles the order regardless, but the
+  // dependency is real and reads better stated.
+  await app.register(authPlugin, {
+    resolver: new PrincipalResolver(ctx.db, ctx.crypto, ctx.config.AUTH_SECRET),
+  });
+  // Global by default (spec 11): before this, only the participant routes opted in and every
+  // staff and operator route was unlimited, so one leaked admin token could hammer the
+  // model-calling endpoints and the database. Routes that spend money per call narrow it further
+  // with `expensiveLimit`; health checks opt out entirely with `noLimit`. `enableDraftSpec` emits
+  // the standard `RateLimit-*` headers, and exceeding the limit throws a 429 that the error
+  // handler renders as the contract's `rate_limited` shape.
+  await app.register(rateLimit, {
+    global: true,
+    max: ctx.config.RATE_LIMIT_MAX,
+    timeWindow: RATE_LIMIT_WINDOW,
+    enableDraftSpec: true,
+    keyGenerator: principalKey,
+  });
+  // A path with no route has no route-level hook, so the 404 handler carries the limiter itself:
+  // otherwise scanning for endpoints that do not exist is the one thing left without a ceiling.
+  // The cast only drops the plugin's pino-specific `Logger` generic for Fastify's own
+  // `FastifyBaseLogger`; the handler it returns is unchanged.
+  const limitUnknownRoutes = app.rateLimit() as preHandlerAsyncHookHandler;
+  app.setNotFoundHandler(
+    { preHandler: limitUnknownRoutes },
+    (_req, reply) =>
+      void reply.status(404).send({ error: { code: "not_found", message: "Route not found" } }),
+  );
   await app.register(swagger, {
     openapi: {
       info: { title: "AI Discovery Platform API", version: "1.0.0" },
@@ -89,14 +115,12 @@ export async function buildApp(ctx: AppContext): Promise<App> {
     },
     transform: jsonSchemaTransform,
   });
-  await app.register(authPlugin, {
-    resolver: new PrincipalResolver(ctx.db, ctx.crypto, ctx.config.AUTH_SECRET),
-  });
 
   await app.register(
     async (api) => {
       const a = api as unknown as App;
       await healthRoutes(a, ctx);
+      await internalAuthRoutes(a, ctx);
       await userRoutes(a, ctx);
       await templateRoutes(a, ctx);
       await settingsRoutes(a, ctx);

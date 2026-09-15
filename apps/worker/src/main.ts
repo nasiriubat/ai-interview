@@ -95,6 +95,12 @@ async function main(): Promise<void> {
     1,
     failed("privacy.retention-sweep"),
   );
+  await jobs.consume(
+    "auth.prune-verification-tokens",
+    h["auth.prune-verification-tokens"],
+    1,
+    failed("auth.prune-verification-tokens"),
+  );
   await jobs.consume("analysis.run", h["analysis.run"], 1, failed("analysis.run"));
   await jobs.consume("spec.generate", h["spec.generate"], 1, failed("spec.generate"));
   // Timers last: the queues they feed are already consuming.

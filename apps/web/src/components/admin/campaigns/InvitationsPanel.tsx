@@ -139,7 +139,7 @@ export function InvitationsPanel({
                     <RowActions>
                       <IconButton
                         label={`${s.remind}: ${inv.email ?? inv.id}`}
-                        icon={BellIcon}
+                        icon={<BellIcon />}
                         disabled={rowAction.busy || inv.status === "revoked" || inv.status === "completed"}
                         onClick={() => {
                           void rowAction.run(async () => {
@@ -149,7 +149,7 @@ export function InvitationsPanel({
                       />
                       <IconButton
                         label={`${s.revoke}: ${inv.email ?? inv.id}`}
-                        icon={BanIcon}
+                        icon={<BanIcon />}
                         className="text-destructive hover:text-destructive"
                         disabled={rowAction.busy || inv.status === "revoked"}
                         onClick={() => {

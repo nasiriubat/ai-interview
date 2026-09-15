@@ -1,5 +1,13 @@
-# Local development infrastructure. The apps run on the host with `pnpm dev`;
-# `docker compose --profile full up` runs the API and worker in containers too.
+# The whole platform on one machine, for development: Postgres is published on 5432, a mail
+# catcher stands in for a relay, and there is no TLS. Do not point a domain at this.
+#
+# Production is a separate file, deploy/compose.prod.yml, with the runbook in docs/DEPLOY.md.
+#
+#   docker compose up -d --build          # postgres, mail catcher, migrations + bootstrap, api, worker, web
+#   docker compose --profile extras up -d # adds MinIO (object storage) and Kroki (diagram rendering)
+#
+# Secrets and bootstrap identities come from apps/api/.env (copy apps/api/.env.example).
+# Emails (magic links, invitations, verification codes) are caught by Mailpit: http://localhost:8025
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -12,11 +20,72 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app"]
+      test: ["CMD-SHELL", "pg_isready -U app -d ai_discovery"]
       interval: 5s
-      retries: 10
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+  migrate:
+    build: { context: ., dockerfile: apps/api/Dockerfile, target: api }
+    env_file: apps/api/.env
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
+    command: >
+      sh -c "pnpm --filter @aidp/db exec prisma migrate deploy && pnpm --filter @aidp/db bootstrap"
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile, target: api }
+    env_file: apps/api/.env
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
+      HOST: 0.0.0.0
+      PORT: 4000
+      WEB_ORIGIN: http://localhost:3000
+      PUBLIC_WEB_URL: http://localhost:3000
+      EMAIL_SMTP_URL: smtp://mailpit:1025
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      mailpit: { condition: service_started }
+
+  worker:
+    build: { context: ., dockerfile: apps/api/Dockerfile, target: worker }
+    env_file: apps/api/.env
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
+      EMAIL_SMTP_URL: smtp://mailpit:1025
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    env_file: apps/api/.env # AUTH_SECRET is shared with the API
+    environment:
+      API_URL: http://api:4000
+      AUTH_URL: http://localhost:3000
+      AUTH_TRUST_HOST: "true"
+      EMAIL_SERVER: smtp://mailpit:1025
+      EMAIL_FROM: no-reply@example.com
+    ports:
+      - "3000:3000"
+    depends_on:
+      api: { condition: service_healthy }
 
   minio:
+    profiles: ["extras"]
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
@@ -29,29 +98,10 @@ services:
       - minio:/data
 
   kroki:
+    profiles: ["extras"]
     image: yuzutech/kroki:latest
     ports:
       - "8000:8000"
-
-  api:
-    profiles: ["full"]
-    build: { context: ., dockerfile: apps/api/Dockerfile, target: api }
-    env_file: apps/api/.env
-    environment:
-      DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
-    ports:
-      - "4000:4000"
-    depends_on:
-      postgres: { condition: service_healthy }
-
-  worker:
-    profiles: ["full"]
-    build: { context: ., dockerfile: apps/api/Dockerfile, target: worker }
-    env_file: apps/api/.env
-    environment:
-      DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
-    depends_on:
-      postgres: { condition: service_healthy }
 
 volumes:
   pgdata:

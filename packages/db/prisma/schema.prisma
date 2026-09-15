@@ -407,6 +407,25 @@ model Setting {
   @@unique([scope, scopeId, key])
 }
 
+/// Pending Auth.js magic-link verification tokens (FR-01, D-56).
+///
+/// Platform-level, not tenant-owned: the token is minted from an email address alone, before
+/// anyone knows which company it belongs to. So it carries no `companyId`, stays out of
+/// `SCOPED_MODELS`, and is deliberately outside the row-level-security policy set in migration
+/// 0008. The web app reaches it only through `/internal/auth/verification-tokens` on the API.
+model VerificationToken {
+  identifier String
+  /// Already a hash. Auth.js hashes the magic-link token with AUTH_SECRET before handing it to
+  /// the adapter: the plaintext goes in the email, the digest comes here. Do not hash it again,
+  /// or `useVerificationToken` will never find the row it just wrote.
+  token      String
+  expires    DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([identifier, token])
+  @@index([expires])
+}
+
 /// Tenant overrides and canaries of the versioned prompt files shipped in packages/ai.
 model PromptVersion {
   id          String   @id @default(cuid())

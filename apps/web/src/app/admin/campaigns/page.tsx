@@ -85,12 +85,12 @@ export default async function CampaignsPage({ searchParams }: Props): Promise<Re
                     <RowActions>
                       <IconButton
                         label={t.admin.actions.view}
-                        icon={EyeIcon}
+                        icon={<EyeIcon />}
                         href={`/admin/campaigns/${c.id}`}
                       />
                       <IconButton
                         label={s.results}
-                        icon={BarChart3Icon}
+                        icon={<BarChart3Icon />}
                         href={`/admin/campaigns/${c.id}/results`}
                       />
                     </RowActions>
