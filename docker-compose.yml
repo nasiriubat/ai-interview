@@ -47,6 +47,7 @@ services:
     build: { context: ., dockerfile: apps/api/Dockerfile, target: api }
     env_file: apps/api/.env
     environment:
+      UPLOAD_DIR: /uploads
       DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
       HOST: 0.0.0.0
       PORT: 4000
@@ -55,6 +56,8 @@ services:
       EMAIL_SMTP_URL: smtp://mailpit:1025
     ports:
       - "4000:4000"
+    volumes:
+      - uploads:/uploads
     depends_on:
       postgres: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
@@ -64,8 +67,11 @@ services:
     build: { context: ., dockerfile: apps/api/Dockerfile, target: worker }
     env_file: apps/api/.env
     environment:
+      UPLOAD_DIR: /uploads
       DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
       EMAIL_SMTP_URL: smtp://mailpit:1025
+    volumes:
+      - uploads:/uploads
     depends_on:
       postgres: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
@@ -105,4 +111,5 @@ services:
 
 volumes:
   pgdata:
+  uploads:
   minio:

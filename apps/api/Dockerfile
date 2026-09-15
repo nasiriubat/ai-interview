@@ -47,6 +47,12 @@ WORKDIR /repo
 # node:22-alpine ships an unprivileged `node` user (uid 1000). Nothing here writes to the image,
 # so the tree stays root-owned and read-only to the process that serves the internet.
 COPY --from=build /repo ./
+# The one exception: uploaded audio and documents (FR-30, FR-31). Creating the directory here,
+# owned by the runtime user, is what makes it writable at run time — Docker seeds a fresh named
+# volume from the image's directory, ownership included. A volume mounted over a path that does
+# not exist in the image is created root-owned instead, and the unprivileged process cannot write
+# to it, which surfaces as every upload failing on a server and working perfectly in development.
+RUN mkdir -p /uploads && chown node:node /uploads
 ENV NODE_ENV=production HOME=/home/node
 USER node
 EXPOSE 4000

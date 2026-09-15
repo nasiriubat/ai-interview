@@ -10,4 +10,5 @@ export { defaultAnthropicRoutes, defaultOpenRouterRoutes } from "./routes/defaul
 export * from "./engine/index.js";
 export * from "./analysis/index.js";
 export * from "./spec/index.js";
+export * from "./ingest/index.js";
 export * from "./util/language.js";

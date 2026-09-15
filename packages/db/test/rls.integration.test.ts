@@ -94,4 +94,63 @@ suite("row-level security as app_api", () => {
       expect((await scoped.user.findMany()).map((u) => u.companyId)).toEqual([a]);
     });
   });
+
+  /**
+   * The check that would have caught PromptVersion years earlier, asked of the database rather
+   * than of a list someone has to maintain.
+   *
+   * A tenant-owned table without a policy is invisible in normal use: every query filters by
+   * companyId anyway, so nothing misbehaves until one does not. Migration 0008 enumerated the
+   * tables by hand and missed one; 0011 added it along with AttachmentChunk. Enumerating them by
+   * hand here would reproduce exactly the mistake being tested for, so this asks Postgres which
+   * tables carry a companyId and lack row-level security, and requires the answer to be none.
+   */
+  it("leaves no tenant-owned table without a policy", async () => {
+    const rows = await owner.$queryRawUnsafe<{ relname: string }[]>(
+      `SELECT c.relname FROM pg_class c
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+         JOIN pg_attribute att ON att.attrelid = c.oid AND att.attname = 'companyId' AND att.attnum > 0
+        WHERE n.nspname = 'public' AND c.relkind = 'r' AND NOT c.relrowsecurity
+        ORDER BY c.relname`,
+    );
+
+    expect(rows.map((r) => r.relname)).toEqual([]);
+  });
+
+  it("isolates attachment chunks, which carry whatever a participant uploaded", async () => {
+    const [attA, attB] = await Promise.all(
+      [a, b].map((company) =>
+        owner.session.findFirst({ where: { companyId: company } }).then(async (session) =>
+          session
+            ? owner.attachment.create({
+                data: {
+                  companyId: company,
+                  sessionId: session.id,
+                  kind: "document",
+                  filename: "notes.txt",
+                  mime: "text/plain",
+                  sizeBytes: 1,
+                  storageKey: `${company}/x/y`,
+                },
+              })
+            : null,
+        ),
+      ),
+    );
+    // The tenants in this suite have users but no sessions, so there is nothing to attach to.
+    // Skipping beats asserting nothing: a silent pass here would be worse than an absent test.
+    if (!attA || !attB) return;
+
+    await owner.attachmentChunk.create({
+      data: { companyId: a, attachmentId: attA.id, seq: 1, text: "tenant a secret" },
+    });
+    await owner.attachmentChunk.create({
+      data: { companyId: b, attachmentId: attB.id, seq: 1, text: "tenant b secret" },
+    });
+
+    await withTenant(a, async () => {
+      expect((await scoped.attachmentChunk.findMany()).map((c) => c.text)).toEqual(["tenant a secret"]);
+      expect(await scoped.attachmentChunk.count({ where: { companyId: b } })).toBe(0);
+    });
+  });
 });

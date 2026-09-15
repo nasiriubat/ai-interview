@@ -19,6 +19,9 @@
   "dependencies": {
     "@aidp/shared": "workspace:*",
     "@anthropic-ai/sdk": "^0.124.0",
+    "exceljs": "^4.4.0",
+    "mammoth": "^1.12.3",
+    "unpdf": "^1.8.1",
     "zod": "^4.0.0"
   },
   "devDependencies": {

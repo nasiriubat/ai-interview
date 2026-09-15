@@ -41,7 +41,21 @@ role=$(q "select current_user")
 privs=$(q "select rolsuper::text || ' ' || rolbypassrls::text from pg_roles where rolname = current_user")
 [ "$privs" = "false false" ] || fail "app_api has rolsuper/rolbypassrls = $privs, expected 'false false'"
 
-# 4. The tables that hold tenant data have RLS switched on. 0008 covers thirteen of them.
+# 4. Every table that holds tenant data has RLS switched on.
+#
+# Asked as "which tables have a companyId and no policy", not as "are there at least N protected
+# tables". A count with a floor only rises when somebody remembers to raise it, so it cannot catch
+# the mistake it exists for: a new tenant-owned table whose migration forgot its policy. That is
+# invisible in normal use, because the application filters by companyId anyway — right up until
+# the one query that does not. This phrasing catches it on the next boot after the migration.
+unprotected=$(q "select coalesce(string_agg(c.relname, ', ' order by c.relname), '')
+                   from pg_class c
+                   join pg_namespace n on n.oid = c.relnamespace
+                   join pg_attribute a on a.attrelid = c.oid and a.attname = 'companyId' and a.attnum > 0
+                  where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity")
+[ -z "$unprotected" ] ||
+	fail "these tables carry a companyId but have no row-level security: $unprotected"
+
 protected=$(q "select count(*) from pg_class c
                  join pg_namespace n on n.oid = c.relnamespace
                 where n.nspname = 'public' and c.relrowsecurity")

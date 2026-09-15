@@ -27,6 +27,7 @@ model Company {
   campaigns    Campaign[]
   sessions     Session[]
   attachments  Attachment[]
+  chunks       AttachmentChunk[]
   facts        Fact[]
   providers    Provider[]
   routes       Route[]
@@ -230,11 +231,47 @@ model Attachment {
   summary       String?
   createdAt     DateTime @default(now())
 
-  company Company  @relation(fields: [companyId], references: [id])
-  session Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  message Message? @relation(fields: [messageId], references: [id])
+  // Ingestion is a job, so an attachment exists before its text does (FR-31). The participant is
+  // shown this rather than an attachment that silently never becomes useful.
+  status     String    @default("pending") // pending | ready | failed
+  error      String?
+  ingestedAt DateTime?
+
+  // Audio only (FR-30). durationMs drives the player and the per-second transcription cost;
+  // confidence is one of the three voice signals the spec asks to trace per turn.
+  durationMs Int?
+  confidence Float?
+
+  company Company           @relation(fields: [companyId], references: [id])
+  session Session           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  message Message?          @relation(fields: [messageId], references: [id])
+  chunks  AttachmentChunk[]
 
   @@index([companyId, sessionId])
+  @@index([companyId, status])
+}
+
+/// One retrievable piece of an ingested document (FR-31). The interview carries the attachment's
+/// summary in context and recalls chunks on demand, so a 40-page PDF costs a summary per turn
+/// rather than 40 pages per turn.
+///
+/// `embedding` is null whenever no `embedding` route is configured, which is the common case on a
+/// provider that serves no embedding models. Recall then scores the same chunk text lexically,
+/// so the feature degrades rather than disappears.
+model AttachmentChunk {
+  id           String                       @id @default(cuid())
+  companyId    String
+  attachmentId String
+  seq          Int
+  text         String
+  embedding    Unsupported("vector(1536)")?
+  createdAt    DateTime                     @default(now())
+
+  company    Company    @relation(fields: [companyId], references: [id])
+  attachment Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@unique([attachmentId, seq])
+  @@index([companyId, attachmentId])
 }
 
 // ---------- Facts, analysis, opportunities ----------
