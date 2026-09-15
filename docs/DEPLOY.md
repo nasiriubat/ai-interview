@@ -436,7 +436,7 @@ issue from its own CA instead. Three variables in `deploy/.env`:
 
 ```bash
 PUBLIC_HOSTNAME=localhost
-CADDY_LOCAL_CERTS=local_certs     # Caddy's internal CA instead of Let's Encrypt
+CADDY_LOCAL_CERTS=1               # Caddy's internal CA instead of Let's Encrypt
 HTTP_PORT=5580                    # optional: only if 80/443 are taken
 HTTPS_PORT=5543
 ```

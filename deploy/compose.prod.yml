@@ -223,6 +223,25 @@ services:
       PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
       CADDY_LOCAL_CERTS: ${CADDY_LOCAL_CERTS:-}
+    # The Caddyfile substitutes CADDY_LOCAL_CERTS straight into its global options block, where the
+    # only value Caddy accepts is the literal directive `local_certs`. Setting it to `1`, which is
+    # what anyone would try, makes Caddy reject its own config and restart forever with
+    # "unrecognized global option: 1" — a message that names neither the variable nor the file the
+    # operator edited. This normalizes the obvious spellings and refuses the rest by name.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        case "$${CADDY_LOCAL_CERTS:-}" in
+          ''|0|false|no|off) CADDY_LOCAL_CERTS='' ;;
+          1|true|yes|on|local_certs) CADDY_LOCAL_CERTS='local_certs' ;;
+          *) echo "caddy: CADDY_LOCAL_CERTS in deploy/.env is '$$CADDY_LOCAL_CERTS'." >&2
+             echo "Leave it empty for a real certificate from Let's Encrypt, or set it to 1 to use" >&2
+             echo "Caddy's own CA when testing without a public domain. See docs/DEPLOY.md." >&2
+             exit 1 ;;
+        esac
+        export CADDY_LOCAL_CERTS
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
