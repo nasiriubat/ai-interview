@@ -83,7 +83,7 @@ docker compose -f deploy/compose.prod.yml --env-file deploy/.env logs migrate | 
 Step 5 should print exactly this, and the stack will not have started if it did not:
 
 ```
-preflight: ok — connected as app_api, no bypass, 13 tables under RLS, CREATE on database, untenanted reads return nothing
+preflight: ok — connected as app_api, no bypass, 15 tables under RLS, CREATE on database, untenanted reads return nothing
 ```
 
 Step 6 ends with the bootstrap line naming your operator, tenant and admin:

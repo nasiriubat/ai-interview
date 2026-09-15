@@ -128,8 +128,13 @@ services:
       PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}
       EMAIL_SMTP_URL: ${EMAIL_SMTP_URL:?set EMAIL_SMTP_URL in deploy/.env — sign-in does not work without an SMTP relay}
       EMAIL_FROM: ${EMAIL_FROM:?set EMAIL_FROM in deploy/.env}
+      # Recorded audio and uploaded documents (FR-30, FR-31). Always set: with no directory the
+      # store falls back to memory, which loses every upload on the next deploy and says nothing.
+      UPLOAD_DIR: /uploads
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - uploads:/uploads
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/api/v1/health/ready >/dev/null || exit 1"]
       interval: 15s
@@ -162,8 +167,13 @@ services:
       PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}
       EMAIL_SMTP_URL: ${EMAIL_SMTP_URL:?set EMAIL_SMTP_URL in deploy/.env — sign-in does not work without an SMTP relay}
       EMAIL_FROM: ${EMAIL_FROM:?}
+      # The same volume the API writes to: the API stores the upload, the worker reads it back to
+      # extract, transcribe and chunk it. Two containers, one directory, one copy of the bytes.
+      UPLOAD_DIR: /uploads
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - uploads:/uploads
     # The worker has no HTTP surface, so liveness is "the process that was started is still there".
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'apps/worker/dist/main.js' >/dev/null || exit 1"]
@@ -271,9 +281,13 @@ services:
       BACKUP_AT: ${BACKUP_AT:-03:20}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
       BACKUP_DIR: /backups
+      # Read-only, and read for a reason: a database-only backup restores Attachment rows whose
+      # bytes are gone, and nothing says so until somebody presses play.
+      UPLOAD_DIR: /uploads
     volumes:
       - ./backup.sh:/usr/local/bin/backup.sh:ro
       - backups:/backups
+      - uploads:/uploads:ro
     entrypoint: ["/usr/local/bin/backup.sh"]
     healthcheck:
       test:
@@ -294,6 +308,7 @@ services:
 
 volumes:
   pgdata:
+  uploads:
   backups:
   caddy_data:
   caddy_config:
