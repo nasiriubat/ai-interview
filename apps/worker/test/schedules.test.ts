@@ -1,9 +1,13 @@
-import { MemoryJobPublisher } from "@aidp/core";
+import { MemoryJobPublisher, RECURRING_JOBS } from "@aidp/core";
 import { describe, expect, it } from "vitest";
 import { registerSchedules } from "../src/schedules.js";
 
 describe("worker schedules", () => {
-  it("registers the retention sweep on start, and re-registering it does not add a second one", async () => {
+  // Deliberately derived from RECURRING_JOBS rather than a literal list. An earlier version of
+  // this test pinned the exact array, so adding a recurring job broke it in a way that said
+  // nothing about the job and nothing about the scheduler. What actually matters is the shape of
+  // the registration, and that a restart or a second replica does not double it.
+  it("puts every recurring job on its timer, with its own cron and timezone", async () => {
     const jobs = new MemoryJobPublisher();
     const lines: { message: string; meta?: Record<string, unknown> }[] = [];
 
@@ -11,14 +15,32 @@ describe("worker schedules", () => {
       info: (message, meta) => lines.push({ message, ...(meta ? { meta } : {}) }),
     });
 
-    expect(registered).toContain("privacy.retention-sweep");
-    expect(jobs.scheduled).toEqual([
-      { name: "privacy.retention-sweep", cron: "17 3 * * *", payload: {}, options: { tz: "UTC" } },
-    ]);
-    expect(lines[0]?.meta).toMatchObject({ job: "privacy.retention-sweep", cron: "17 3 * * *" });
+    const expected = Object.entries(RECURRING_JOBS);
+    expect(expected.length).toBeGreaterThan(0);
+    expect([...registered].sort()).toEqual(expected.map(([name]) => name).sort());
+    expect(jobs.scheduled).toHaveLength(expected.length);
 
-    // A restart, or a second replica.
+    for (const [name, spec] of expected) {
+      expect(jobs.scheduled).toContainEqual({
+        name,
+        cron: spec.cron,
+        payload: spec.payload,
+        options: { tz: spec.tz },
+      });
+      expect(lines).toContainEqual({
+        message: "job scheduled",
+        meta: { job: name, cron: spec.cron, tz: spec.tz },
+      });
+    }
+  });
+
+  it("does not add a second copy when a restart or a second replica registers again", async () => {
+    const jobs = new MemoryJobPublisher();
     await registerSchedules(jobs);
-    expect(jobs.scheduled).toHaveLength(1);
+    const afterFirst = jobs.scheduled.length;
+
+    await registerSchedules(jobs);
+
+    expect(jobs.scheduled).toHaveLength(afterFirst);
   });
 });

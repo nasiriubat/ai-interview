@@ -136,7 +136,7 @@ export function ProvidersPanel({
                       <div className="flex items-center gap-2">
                         <IconButton
                           label={tr === "running" ? s.testing : `${s.test}: ${p.name}`}
-                          icon={ZapIcon}
+                          icon={<ZapIcon />}
                           variant="outline"
                           disabled={tr === "running"}
                           onClick={() => {
@@ -166,7 +166,7 @@ export function ProvidersPanel({
                     </TableCell>
                     <TableCell className="text-right">
                       <RowActions>
-                        <IconButton label={s.models} icon={ListIcon} href={`${base}/${p.id}`} />
+                        <IconButton label={s.models} icon={<ListIcon />} href={`${base}/${p.id}`} />
                         <AlertDialog>
                           <IconTooltip label={`${s.delete}: ${p.name}`}>
                             <AlertDialogTrigger asChild>

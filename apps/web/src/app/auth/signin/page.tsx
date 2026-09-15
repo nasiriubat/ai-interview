@@ -21,12 +21,15 @@ export default async function SignInPage({ searchParams }: Props): Promise<React
   const sp = await searchParams;
   const callbackUrl = typeof sp.callbackUrl === "string" ? sp.callbackUrl : "/admin";
   const error = typeof sp.error === "string" ? sp.error : undefined;
+  // Matches the provider list in auth.config.ts: no credentials, no button. Offering a Google
+  // button that fails at the redirect is worse than not offering one.
+  const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
   return (
     <main id="main" className="flex min-h-dvh items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">{t.auth.title}</CardTitle>
-          <CardDescription>{t.auth.subtitle}</CardDescription>
+          <CardDescription>{googleEnabled ? t.auth.subtitle : t.auth.subtitleEmailOnly}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           {error ? (
@@ -34,17 +37,21 @@ export default async function SignInPage({ searchParams }: Props): Promise<React
               <AlertDescription>{t.auth.error}</AlertDescription>
             </Alert>
           ) : null}
-          <form action={signInWithGoogle}>
-            <input type="hidden" name="callbackUrl" value={callbackUrl} />
-            <Button type="submit" variant="outline" className="w-full">
-              {t.auth.google}
-            </Button>
-          </form>
-          <div className="text-muted-foreground flex items-center gap-3 text-xs">
-            <span className="bg-border h-px flex-1" />
-            {t.auth.or}
-            <span className="bg-border h-px flex-1" />
-          </div>
+          {googleEnabled ? (
+            <>
+              <form action={signInWithGoogle}>
+                <input type="hidden" name="callbackUrl" value={callbackUrl} />
+                <Button type="submit" variant="outline" className="w-full">
+                  {t.auth.google}
+                </Button>
+              </form>
+              <div className="text-muted-foreground flex items-center gap-3 text-xs">
+                <span className="bg-border h-px flex-1" />
+                {t.auth.or}
+                <span className="bg-border h-px flex-1" />
+              </div>
+            </>
+          ) : null}
           <form action={signInWithEmail} className="grid gap-3">
             <input type="hidden" name="callbackUrl" value={callbackUrl} />
             <div className="grid gap-1.5">

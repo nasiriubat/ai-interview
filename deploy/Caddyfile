@@ -1,0 +1,44 @@
+# Reverse proxy for the production stack. One public hostname, TLS obtained and renewed by Caddy.
+#
+# The API is deliberately absent from this file. The browser never talks to it: every call goes
+# through the Next.js route handlers in apps/web/src/app/api/**, which attach the bearer token
+# server-side (apps/web/src/lib/api/proxy.ts). Publishing the API would put a second origin on
+# the internet that has to be CORS-configured, rate-limited and token-exposed for no gain.
+#
+# Every placeholder below is supplied by compose.prod.yml, so none of them needs a default here.
+# CADDY_LOCAL_CERTS is empty in production, which leaves Caddy on Let's Encrypt via ACME; set it
+# to `local_certs` and Caddy issues from its own internal CA instead, which is what a test run
+# without a public domain uses.
+{
+	email {$ACME_EMAIL}
+	admin off
+	{$CADDY_LOCAL_CERTS}
+}
+
+# Liveness for the container healthcheck only; this port is not published to the host.
+:2020 {
+	respond /healthz "ok" 200
+	respond "not found" 404
+}
+
+{$PUBLIC_HOSTNAME} {
+	encode zstd gzip
+
+	# Server-sent events carry the interview stream; buffering them would stall every turn.
+	reverse_proxy web:3000 {
+		flush_interval -1
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+		-Server
+	}
+
+	log {
+		output stderr
+		format json
+	}
+}

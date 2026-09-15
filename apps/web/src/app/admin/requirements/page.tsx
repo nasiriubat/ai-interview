@@ -89,7 +89,7 @@ export default async function RequirementsPage({ searchParams }: Props): Promise
                     <RowActions>
                       <IconButton
                         label={t.admin.actions.view}
-                        icon={EyeIcon}
+                        icon={<EyeIcon />}
                         href={`/admin/requirements/${r.id}`}
                       />
                     </RowActions>

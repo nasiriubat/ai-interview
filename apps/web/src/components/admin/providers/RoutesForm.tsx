@@ -317,7 +317,7 @@ export function RoutesForm({
                         {sources[p] === "tenant" ? (
                           <IconButton
                             label={`${s.clearOverride}: ${humanize(p)}`}
-                            icon={RotateCcwIcon}
+                            icon={<RotateCcwIcon />}
                             disabled={action.busy}
                             onClick={() => {
                               clearOverride(p);

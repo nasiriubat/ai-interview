@@ -1,6 +1,5 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { Button, type ButtonProps } from "@/components/ui/button";
@@ -9,7 +8,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 interface CommonProps {
   /** The action's name: the tooltip text and the accessible name of the control. */
   label: string;
-  icon: LucideIcon;
+  /**
+   * The rendered icon — `icon={<EyeIcon />}`, not `icon={EyeIcon}`.
+   *
+   * This file is a client component, and a component *type* is a function, which React refuses to
+   * serialize across the server/client boundary: a server page passing `icon={EyeIcon}` crashed
+   * the whole route with the unhelpful minified error #441, and only at run time, on that page.
+   * An element is data, so it crosses fine, and the type now rejects the broken form at compile
+   * time on every page rather than in the browser on one.
+   */
+  icon: React.ReactNode;
   variant?: ButtonProps["variant"];
   size?: "icon" | "icon-sm";
   className?: string | undefined;
@@ -29,14 +37,20 @@ export type IconButtonProps = CommonProps &
  */
 export function IconButton({
   label,
-  icon: Icon,
+  icon,
   variant = "ghost",
   size = "icon-sm",
   className,
   disabled,
   ...rest
 }: IconButtonProps): React.JSX.Element {
-  const inner = <Icon aria-hidden="true" />;
+  // The button carries the accessible name, so the glyph itself is hidden rather than announced
+  // twice. A wrapper does that without needing to reach into whatever element was passed in.
+  const inner = (
+    <span aria-hidden="true" className="contents">
+      {icon}
+    </span>
+  );
   const button =
     rest.href !== undefined ? (
       <Button asChild variant={variant} size={size} className={className} aria-label={label}>

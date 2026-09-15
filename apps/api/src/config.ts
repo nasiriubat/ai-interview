@@ -13,6 +13,16 @@ const Env = z.object({
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
+  // Rate limiting (NFR, spec 11 "Rate limits per participant, per tenant, per IP"). These are
+  // configuration rather than settings-catalog keys: the limiter runs in an onRequest hook before
+  // any tenant is known, it has to hold for anonymous and participant callers too, and a catalog
+  // lookup is a database read the limiter exists to avoid. See lib/rate-limit.ts.
+  /** Requests per minute per principal on every route without a tighter limit of its own. */
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(600),
+  /** Requests per minute per principal on routes that call a model or a provider. */
+  RATE_LIMIT_EXPENSIVE_MAX: z.coerce.number().int().positive().default(20),
+  /** Requests per minute per caller on the internal shared-secret routes. */
+  RATE_LIMIT_INTERNAL_MAX: z.coerce.number().int().positive().default(120),
 });
 export type Config = z.infer<typeof Env>;
 

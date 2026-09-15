@@ -2,18 +2,19 @@ import NextAuth, { type NextAuthResult } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { authConfig } from "./auth.config";
-import { memoryAdapter } from "./lib/auth/adapter";
+import { apiAdapter } from "./lib/auth/adapter";
+import { resolveSmtpUrl } from "./lib/auth/smtp";
 
 // The beta's NodemailerConfig type is not assignable to Provider under
 // `exactOptionalPropertyTypes`; the runtime shape is the documented one.
 const emailProvider = Nodemailer({
-  server: process.env.EMAIL_SERVER ?? "smtp://localhost:1025",
+  server: resolveSmtpUrl(process.env),
   from: process.env.EMAIL_FROM ?? "no-reply@example.com",
 }) as unknown as Provider;
 
 const nextAuth = NextAuth({
   ...authConfig,
-  adapter: memoryAdapter(),
+  adapter: apiAdapter(),
   providers: [...authConfig.providers, emailProvider],
 });
 

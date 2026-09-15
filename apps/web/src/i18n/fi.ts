@@ -52,6 +52,7 @@ export const fi: Strings = {
   auth: {
     title: "Kirjaudu hallintaan",
     subtitle: "Käytä Google-tiliäsi tai pyydä kertakäyttöinen linkki sähköpostiin.",
+    subtitleEmailOnly: "Lähetämme sinulle kertakäyttöisen kirjautumislinkin sähköpostitse.",
     google: "Jatka Googlella",
     or: "tai",
     emailLabel: "Työsähköposti",

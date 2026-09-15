@@ -8,6 +8,7 @@ import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, notFound } from "../../lib/errors.js";
 import { PageQuery } from "../../lib/pagination.js";
+import { expensiveLimit } from "../../lib/rate-limit.js";
 import { ProviderService } from "./service.js";
 
 const Id = z.object({ id: z.string() });
@@ -237,13 +238,19 @@ function mountProviderRoutes(
   });
 
   // The body is optional: without a model the service picks the routed one, then the first listed.
-  app.post(`${prefix}/providers/:id/test`, { preHandler, schema: { params: Id } }, async (req) => {
-    const body = TestBody.parse(req.body ?? {});
-    return svc.test(scope(req), req.params.id, body.model);
-  });
+  app.post(
+    `${prefix}/providers/:id/test`,
+    { preHandler, ...expensiveLimit(ctx.config), schema: { params: Id } },
+    async (req) => {
+      const body = TestBody.parse(req.body ?? {});
+      return svc.test(scope(req), req.params.id, body.model);
+    },
+  );
 
-  app.get(`${prefix}/providers/:id/models`, { preHandler, schema: { params: Id } }, async (req) =>
-    svc.models(scope(req), req.params.id),
+  app.get(
+    `${prefix}/providers/:id/models`,
+    { preHandler, ...expensiveLimit(ctx.config), schema: { params: Id } },
+    async (req) => svc.models(scope(req), req.params.id),
   );
 
   app.get(

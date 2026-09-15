@@ -135,6 +135,14 @@ export function handlers(deps: HandlerDeps): Handlers {
       deps.log.info("retention sweep finished", { tenants: sweeps.length, deleted });
     }),
 
+    /** Expired Auth.js sign-in tokens (spec 11). Nothing references them once they lapse. */
+    "auth.prune-verification-tokens": scoped(async (): Promise<void> => {
+      const { count } = await deps.db.verificationToken.deleteMany({
+        where: { expires: { lt: new Date() } },
+      });
+      deps.log.info("verification tokens pruned", { deleted: count });
+    }),
+
     /** Collective analysis for a campaign (spec 04). Idempotent per analysis id. */
     "analysis.run": scoped(async ({ analysisId }: JobPayload<"analysis.run">): Promise<void> => {
       await analysis.run(analysisId);

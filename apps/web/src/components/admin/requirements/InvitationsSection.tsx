@@ -114,7 +114,7 @@ export function InvitationsSection({
                     <RowActions>
                       <IconButton
                         label={`${s.revoke}: ${inv.email}`}
-                        icon={BanIcon}
+                        icon={<BanIcon />}
                         className="text-destructive hover:text-destructive"
                         disabled={rowAction.busy || inv.status === "revoked"}
                         onClick={() => {

@@ -20,6 +20,7 @@ export const JOBS = {
   },
   /** Sweeps every tenant; the payload is empty so a cron tick needs no arguments (spec 11, retention). */
   "privacy.retention-sweep": { schema: z.object({}), retryLimit: 2 },
+  "auth.prune-verification-tokens": { schema: z.object({}), retryLimit: 2 },
   "analysis.run": { schema: z.object({ analysisId: z.string(), companyId: z.string() }), retryLimit: 2 },
   "spec.generate": { schema: z.object({ versionId: z.string(), companyId: z.string() }), retryLimit: 2 },
 } as const;
@@ -61,6 +62,9 @@ export const RECURRING_JOBS: {
   [N in JobName]?: { cron: string; payload: JobPayload<N>; tz: string };
 } = {
   "privacy.retention-sweep": { cron: "17 3 * * *", payload: {}, tz: "UTC" },
+  // Sign-in tokens expire in minutes; a sweep on sign-in traffic alone leaves rows behind on a
+  // quiet week, so they also get their own hour.
+  "auth.prune-verification-tokens": { cron: "42 4 * * *", payload: {}, tz: "UTC" },
 };
 
 /** Collects jobs in memory: tests, and dry runs. */

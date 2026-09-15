@@ -8,6 +8,7 @@ import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, notFound } from "../../lib/errors.js";
 import { PageQuery } from "../../lib/pagination.js";
+import { expensiveLimit } from "../../lib/rate-limit.js";
 
 const Id = z.object({ id: z.string() });
 
@@ -44,7 +45,7 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
 
   app.post(
     "/campaigns/:id/analyses",
-    { preHandler: requireStaff("admin"), schema: { params: Id } },
+    { preHandler: requireStaff("admin"), ...expensiveLimit(ctx.config), schema: { params: Id } },
     async (req, reply) => {
       await campaignOf(req.companyId, req.params.id);
       try {

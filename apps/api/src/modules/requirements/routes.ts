@@ -18,6 +18,7 @@ import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
 import { PageQuery } from "../../lib/pagination.js";
+import { expensiveLimit } from "../../lib/rate-limit.js";
 import { runTurn } from "../sessions/turn-runner.js";
 
 const Id = z.object({ id: z.string() });
@@ -114,7 +115,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
     "/requirements/:id/turns",
     {
       preHandler: requireStaff(),
-      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+      ...expensiveLimit(ctx.config),
       schema: { params: Id },
     },
     async (req, reply) => {
@@ -230,6 +231,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
     "/requirements/:id/versions",
     {
       preHandler: requireStaff(),
+      ...expensiveLimit(ctx.config),
       schema: { params: Id, body: z.object({ label: z.string().max(120).optional() }).default({}) },
     },
     async (req, reply) => {

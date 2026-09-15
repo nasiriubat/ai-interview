@@ -66,7 +66,11 @@ export function SessionsTable({ sessions }: { sessions: SessionListItem[] }): Re
                 </TableCell>
                 <TableCell className="text-right">
                   <RowActions>
-                    <IconButton label={s.viewSession} icon={EyeIcon} href={`/admin/sessions/${sess.id}`} />
+                    <IconButton
+                      label={s.viewSession}
+                      icon={<EyeIcon />}
+                      href={`/admin/sessions/${sess.id}`}
+                    />
                   </RowActions>
                 </TableCell>
               </TableRow>

@@ -297,7 +297,7 @@ export function ModelsPanel({
                         {row.manual ? null : editing(row.model) ? (
                           <IconButton
                             label={s.clearOverride}
-                            icon={RotateCcwIcon}
+                            icon={<RotateCcwIcon />}
                             onClick={() => {
                               stopEdit(row.model);
                             }}
@@ -305,7 +305,7 @@ export function ModelsPanel({
                         ) : (
                           <IconButton
                             label={s.overridePrice}
-                            icon={SquarePenIcon}
+                            icon={<SquarePenIcon />}
                             onClick={() => {
                               startEdit(row);
                             }}

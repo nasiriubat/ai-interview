@@ -94,7 +94,7 @@ export function TenantsPanel({ tenants }: { tenants: Tenant[] }): React.JSX.Elem
                       <RowActions>
                         <IconButton
                           label={`${suspended ? s.activate : s.suspend}: ${tn.name}`}
-                          icon={suspended ? PlayIcon : PauseIcon}
+                          icon={suspended ? <PlayIcon /> : <PauseIcon />}
                           variant={suspended ? "outline" : "ghost"}
                           disabled={action.busy}
                           onClick={() => {

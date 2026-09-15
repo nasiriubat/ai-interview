@@ -50,6 +50,7 @@ export const en = {
   auth: {
     title: "Sign in to the admin",
     subtitle: "Use your Google account or get a one-time link by email.",
+    subtitleEmailOnly: "We will email you a one-time sign-in link.",
     google: "Continue with Google",
     or: "or",
     emailLabel: "Work email",

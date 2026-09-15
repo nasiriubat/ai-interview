@@ -1,0 +1,25 @@
+# Build context for apps/api/Dockerfile and apps/web/Dockerfile (both build from the repo root).
+#
+# The rule that matters: no `.env` file ever reaches a layer. The API image copies `apps/api`
+# wholesale, so without this list the operator's real PLATFORM_ENCRYPTION_KEY and AUTH_SECRET
+# are baked into an image that gets pushed to a registry. Secrets arrive at run time, from
+# compose `environment:` entries, and nowhere else.
+**/.env
+**/.env.*
+!**/.env.example
+
+# Host build output and dependencies: the images install and build from source.
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/*.tsbuildinfo
+coverage
+**/coverage
+
+# Repository metadata and local scratch.
+.git
+.gitignore
+.github
+.claude
+.playwright-mcp

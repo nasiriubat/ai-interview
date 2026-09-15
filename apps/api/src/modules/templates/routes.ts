@@ -4,6 +4,7 @@ import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
+import { expensiveLimit } from "../../lib/rate-limit.js";
 import { fromRow, TemplateService } from "./service.js";
 
 const Id = z.object({ id: z.string() });
@@ -93,6 +94,7 @@ export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
     "/templates/:id/preview",
     {
       preHandler: requireStaff("admin"),
+      ...expensiveLimit(ctx.config),
       schema: { params: Id, body: z.object({ path: PathSchema.optional() }).default({}) },
     },
     async (req) => {

@@ -2,14 +2,23 @@ import "server-only";
 import type { NextRequest } from "next/server";
 import { apiBaseUrl } from "@/lib/env";
 
-const HOP_BY_HOP = new Set([
-  "connection",
-  "keep-alive",
-  "transfer-encoding",
-  "host",
-  "content-length",
-  "cookie",
-]);
+/**
+ * The only request headers a browser is allowed to put in front of the API.
+ *
+ * An allowlist rather than a denylist, because this function is the trust boundary: everything on
+ * the far side of it is the private compose network, and everything on this side was typed by
+ * whoever is holding the browser. A denylist has to predict every header that should not cross,
+ * which means a header added to the API later is forwardable by default — including
+ * `x-internal-auth`, which is the whole of the authorization on the machine-to-machine sign-in
+ * routes (D-56). It would still need the shared secret, but "an attacker must also know a secret"
+ * is a weaker position than "the request cannot be made".
+ *
+ * Headers the API is meant to receive from the caller are set explicitly by the route handlers
+ * through `extraHeaders`, so they do not need to be listed here. `x-company-id` is the example:
+ * the staff route reads it and passes it on deliberately, and the API honours it only for a
+ * platform operator.
+ */
+const FORWARDED = new Set(["accept", "accept-language", "content-type", "user-agent"]);
 
 /**
  * Forwards a browser request to the API with a Bearer credential attached server-side.
@@ -25,9 +34,8 @@ export async function forwardToApi(
   const url = `${apiBaseUrl()}/${path}${req.nextUrl.search}`;
   const headers = new Headers();
   req.headers.forEach((value, key) => {
-    if (!HOP_BY_HOP.has(key.toLowerCase())) headers.set(key, value);
+    if (FORWARDED.has(key.toLowerCase())) headers.set(key, value);
   });
-  headers.delete("authorization");
   if (token) headers.set("authorization", `Bearer ${token}`);
   for (const [k, v] of Object.entries(extraHeaders)) headers.set(k, v);
 

@@ -1,5 +1,7 @@
 # Running the platform locally
 
+For deploying to a server, see [DEPLOY.md](DEPLOY.md); this file is development only.
+
 Prerequisites: Node 22, pnpm 10, Docker.
 
 ```bash
@@ -37,7 +39,25 @@ is in force: `select current_user;` from the API's connection, or run the confor
 (`pnpm --filter @aidp/db test`), which connect as `app_api` and assert that a cross-tenant read
 returns nothing and a cross-tenant write is refused by Postgres.
 
-Checks: `pnpm check` runs build, typecheck, lint, and tests. Integration tests need `DATABASE_URL`.
+## Checks
+
+`pnpm check` runs build, typecheck, lint and tests. The unit suites need nothing. The integration
+suites — the whole API end-to-end suite, the row-level-security conformance tests, and part of
+`packages/core` — **skip silently** without `DATABASE_URL`, so a green `pnpm check` on a machine
+that never set it has not run them. Give them their own database:
+
+```bash
+docker exec ai-interview-postgres-1 psql -U app -d postgres -c 'CREATE DATABASE ai_discovery_test'
+export DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery_test
+export PLATFORM_ENCRYPTION_KEY=$(openssl rand -base64 32)
+pnpm --filter @aidp/db exec prisma migrate deploy
+pnpm check
+```
+
+A separate database, not the development one, for two reasons. The suites reset `app_api`'s
+password so they can connect as it, which disconnects a running stack that uses that role. And a
+failed run can leave test companies behind, which is noise you do not want in the data you are
+demonstrating from.
 
 Provider configuration without an Anthropic key: sign in as the operator, add a provider
 (OpenAI, OpenRouter, LiteLLM, or any OpenAI-compatible server), fetch its models, and set
