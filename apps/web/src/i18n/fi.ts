@@ -205,6 +205,23 @@ export const fi: Strings = {
       recordNoMicrophone:
         "Mikrofonia ei löytynyt. Liitä mikrofoni ja yritä uudelleen tai kirjoita vastauksesi.",
       recordFailed: "Nauhoitus ei onnistunut. Yritä uudelleen tai kirjoita vastauksesi.",
+      liveStart: "Aloita puhelu",
+      liveStartHint:
+        "Haastattelija puhuu ja kuuntelee vastauksesi. Voit lopettaa puhelun tai kirjoittaa milloin tahansa.",
+      liveConnecting: "Yhdistetään puhelua…",
+      liveListening: "Kuunnellaan",
+      liveListeningHint: "Puhu vapaasti. Lähetämme vastauksesi, kun lopetat puhumisen.",
+      liveThinking: "Haastattelija miettii vastaustasi",
+      liveSpeaking: "Haastattelija puhuu",
+      liveStopSpeaking: "Keskeytä haastattelija",
+      liveEnd: "Lopeta puhelu",
+      liveNotHeard: "Emme kuulleet mitään. Sanoisitko sen vielä uudelleen?",
+      liveTextOnly:
+        "Haastattelijan ääni ei ole käytettävissä, joten vastaukset näkyvät tässä tekstinä. Puhelu jatkuu.",
+      liveNoCaptions: "Puhettasi ei näytetä tässä, mutta se tallentuu haastatteluun.",
+      liveUnavailable:
+        "Puhelu ei ole juuri nyt mahdollinen. Nauhoita vastauksesi mikrofonilla tai kirjoita se.",
+      liveLost: "Yhteys puheluun katkesi. Kaikki tähän mennessä sanomasi on tallennettu.",
       attach: "Liitä tiedosto",
       attachUploading: "Lähetetään tiedostoasi…",
       attachmentsLabel: "Tiedostosi",

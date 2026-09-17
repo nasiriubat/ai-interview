@@ -195,6 +195,13 @@ export const AttachmentListSchema = listOf(AttachmentSchema, "attachments");
  */
 export const SessionCapabilitiesSchema = z.looseObject({
   recordedVoice: z.boolean().default(true),
+  /**
+   * FR-30a. Defaults to off, unlike the others: an API that predates live voice has no socket to
+   * connect to, and a call that fails to open is worse than a microphone button that works.
+   */
+  liveVoice: z.boolean().default(false),
+  /** Whether the live cascade sends `caption` frames. Without them nothing the participant says reaches this client. */
+  captions: z.boolean().default(true),
   fileUpload: z.boolean().default(true),
   maxSizeMb: z.number().positive().default(DEFAULT_MAX_SIZE_MB),
   allowedTypes: z.array(z.string()).default([...DEFAULT_ALLOWED_TYPES]),

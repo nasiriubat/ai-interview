@@ -21,7 +21,14 @@ const baseSession: ParticipantSession = {
   consented: true,
   progress: { areas: [{ key: "role", name: "Role", status: "untouched" }] },
   messages: [],
-  capabilities: { recordedVoice: true, fileUpload: true, maxSizeMb: 20, allowedTypes: ["application/pdf"] },
+  capabilities: {
+    recordedVoice: true,
+    liveVoice: false,
+    captions: true,
+    fileUpload: true,
+    maxSizeMb: 20,
+    allowedTypes: ["application/pdf"],
+  },
   attachments: [],
 };
 

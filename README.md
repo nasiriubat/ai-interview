@@ -26,4 +26,17 @@ This repository is built using the product's own process. Start reading here:
 ## Code
 
 - `packages/shared` contracts, `packages/db` schema and migrations, `packages/ai` provider layer and interview engine, `packages/core` server infrastructure, `apps/api` HTTP and SSE API, `apps/worker` jobs, `apps/web` web app, `evals/` engine evals.
-- How to run: `docs/RUNNING.md`. Quality gate: `pnpm check`.
+- How to run: `docs/RUNNING.md`. Deploying to a server: `docs/DEPLOY.md`. Quality gate: `pnpm check`.
+
+### Configuration
+
+There is no root `.env`, and nothing loads one. Two files carry configuration in development, each
+next to the app that reads it:
+
+| File            | Read by                                   |
+| --------------- | ----------------------------------------- |
+| `apps/api/.env` | the API, the worker, and `docker compose` |
+| `apps/web/.env` | the web app when run outside compose      |
+
+Copy the `.env.example` beside each. Production reads neither: `deploy/generate-env.sh` writes
+`deploy/.env` and `deploy/compose.prod.yml` names every variable explicitly.

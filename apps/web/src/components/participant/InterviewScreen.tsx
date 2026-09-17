@@ -4,6 +4,7 @@ import { AlertTriangleIcon, CheckIcon, PauseIcon, Trash2Icon } from "lucide-reac
 import * as React from "react";
 import { AttachmentList } from "./AttachmentList";
 import { Composer } from "./Composer";
+import { LiveVoiceCall } from "./LiveVoiceCall";
 import { MessageList } from "./MessageList";
 import { ModeSwitch } from "./ModeSwitch";
 import { ProgressAreas } from "./ProgressAreas";
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { WidgetRenderer } from "@/components/widgets";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useInterview } from "@/hooks/useInterview";
+import { useLiveVoice } from "@/hooks/useLiveVoice";
 import { t } from "@/i18n";
 import { participantClient } from "@/lib/api/browser";
 import { errorMessage } from "@/lib/api/errors";
@@ -33,14 +35,21 @@ export function InterviewScreen({
   api?: ParticipantApi;
   title?: string;
 }): React.JSX.Element {
-  const { state, activeWidget, sendText, sendVoice, sendWidget, retry, clearError } = useInterview(
-    api,
-    initial,
-  );
+  const {
+    state,
+    live: sink,
+    activeWidget,
+    sendText,
+    sendVoice,
+    sendWidget,
+    retry,
+    clearError,
+  } = useInterview(api, initial);
   const can = initial.capabilities;
+  const anyVoice = can.recordedVoice || can.liveVoice;
   // A stored `voice` preference outlives the setting that allowed it, so it is coerced back.
   const [mode, setMode] = React.useState<ModePreference>(
-    initial.modePreference === "voice" && !can.recordedVoice ? "chat" : (initial.modePreference ?? "chat"),
+    initial.modePreference === "voice" && !anyVoice ? "chat" : (initial.modePreference ?? "chat"),
   );
   const [screen, setScreen] = React.useState<Screen>(initial.status === "paused" ? "paused" : "interview");
   const attachments = useAttachments(api, {
@@ -52,13 +61,46 @@ export function InterviewScreen({
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
+  /**
+   * The real-time cascade (FR-30a). Its turns land in the same conversation as the typed ones, so
+   * the interview reads as one thread whichever way each answer was given. When the server says it
+   * cannot hear, `liveDropped` sends the screen down the spec's chain to the record button — the
+   * session itself is untouched, which is the whole point of "without losing the session".
+   */
+  const [liveDropped, setLiveDropped] = React.useState(false);
+  const live = useLiveVoice({
+    onTurn: sink.turn,
+    onHeard: sink.heard,
+    onEnded: sink.ended,
+    onError: sink.failed,
+    onFallbackToRecorded: () => {
+      setLiveDropped(true);
+    },
+  });
+  const liveOffered = can.liveVoice && !liveDropped;
+  const inCall = live.status !== "idle" && live.status !== "unavailable";
+
   const changeMode = (m: ModePreference): void => {
     setMode(m);
     setTypeInstead(false);
+    // The call reads the question already on screen as soon as it is up, so entering voice
+    // halfway through an interview sounds like picking up a phone rather than like silence.
+    if (m === "voice" && liveOffered) live.start();
+    else live.end();
     api.setMode(m).catch(() => undefined);
   };
 
+  /**
+   * Every turn taken over HTTP needs the call out of the way first: the server refuses two turns
+   * on one session, and a participant who just typed has chosen to stop talking anyway.
+   */
+  const typedTurn = (fn: () => void): void => {
+    live.end();
+    fn();
+  };
+
   const run = async (fn: () => Promise<void>): Promise<void> => {
+    live.end();
     setBusy(true);
     setActionError(null);
     try {
@@ -89,10 +131,14 @@ export function InterviewScreen({
     });
   };
   const skip = (area: ProgressArea): void => {
-    void sendText(`${t.participant.session.skipMessage} (${area.name})`);
+    typedTurn(() => {
+      void sendText(`${t.participant.session.skipMessage} (${area.name})`);
+    });
   };
   const back = (area: ProgressArea): void => {
-    void sendText(t.participant.session.returnMessage(area.name));
+    typedTurn(() => {
+      void sendText(t.participant.session.returnMessage(area.name));
+    });
   };
 
   if (screen === "deleted") {
@@ -137,9 +183,7 @@ export function InterviewScreen({
         <div className="flex items-center justify-between gap-2 px-4 py-2">
           <h1 className="truncate text-base font-semibold">{title ?? t.participant.session.title}</h1>
           <div className="flex items-center gap-2">
-            {!state.ended ? (
-              <ModeSwitch mode={mode} onChange={changeMode} voiceEnabled={can.recordedVoice} />
-            ) : null}
+            {!state.ended ? <ModeSwitch mode={mode} onChange={changeMode} voiceEnabled={anyVoice} /> : null}
             <LanguageSwitch />
             <SessionMenu onPause={pause} onDone={done} onDelete={remove} disabled={busy || state.ended} />
           </div>
@@ -166,7 +210,9 @@ export function InterviewScreen({
                 widget={activeWidget}
                 disabled={inputDisabled}
                 onSubmit={(r) => {
-                  void sendWidget(activeWidget, r);
+                  typedTurn(() => {
+                    void sendWidget(activeWidget, r);
+                  });
                 }}
               />
               {mode === "options" && !typeInstead ? (
@@ -240,6 +286,9 @@ export function InterviewScreen({
 
       {showComposer ? (
         <footer className="bg-background sticky bottom-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {mode === "voice" && (can.liveVoice || live.status === "unavailable") ? (
+            <LiveVoiceCall live={live} disabled={inputDisabled} onStart={live.start} />
+          ) : null}
           <AttachmentList
             items={attachments.items}
             uploading={attachments.uploading}
@@ -250,13 +299,17 @@ export function InterviewScreen({
           <Composer
             disabled={inputDisabled}
             autoFocus={!showWidget}
-            voiceFirst={mode === "voice"}
+            voiceFirst={mode === "voice" && !inCall}
             onSend={(text) => {
               setTypeInstead(false);
-              void sendText(text);
+              typedTurn(() => {
+                void sendText(text);
+              });
             }}
             onVoice={
-              can.recordedVoice
+              // One microphone at a time: while a live call is up, recording an answer as well
+              // would take a second turn on a session that only allows one.
+              can.recordedVoice && !inCall
                 ? (audio, durationMs) => {
                     setTypeInstead(false);
                     // The turn stores the audio server-side, so the list is re-read afterwards

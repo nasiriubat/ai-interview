@@ -25,6 +25,20 @@
 {$PUBLIC_HOSTNAME} {
 	encode zstd gzip
 
+	# Live voice (FR-30a) is the one path that reaches the API directly.
+	#
+	# Everything else goes through the Next.js proxy, which is what keeps the API off the internet.
+	# A Next.js route handler cannot upgrade a connection, so a WebSocket has nowhere to be proxied
+	# to. This forwards one exact path, and it is not a hole: the API authenticates it with the same
+	# `aidp_participant` cookie the web app set — same site, so the browser attaches it — and the
+	# socket can do nothing a participant could not already do over HTTP.
+	@voice path /api/v1/p/session/live
+	handle @voice {
+		reverse_proxy api:4000 {
+			flush_interval -1
+		}
+	}
+
 	# Server-sent events carry the interview stream; buffering them would stall every turn.
 	reverse_proxy web:3000 {
 		flush_interval -1

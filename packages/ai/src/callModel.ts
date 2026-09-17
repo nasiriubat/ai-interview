@@ -7,6 +7,8 @@ import type {
   ProviderConfig,
   Purpose,
   Route,
+  SpeechInput,
+  SpeechOutput,
   Transcript,
   TranscriptionInput,
   Usage,
@@ -219,6 +221,51 @@ export class ModelCaller {
     if (req.temperature !== undefined) out.temperature = req.temperature;
     if (effort && provider.capabilities.effort) out.effort = effort;
     return out;
+  }
+
+  /**
+   * Speaks a piece of text through the `tts` route (FR-30a).
+   *
+   * Returns undefined when no route is configured, the same signal `embed` uses, because a tenant
+   * without a speech model should fall back to a text interview rather than see an error: the
+   * spec's fallback chain is real-time → recorded → text, without losing the session.
+   *
+   * The ledger row is written before the audio is consumed, not after. Synthesis is billed at the
+   * moment the provider accepts the request, and barge-in means the stream is usually abandoned
+   * part-way; waiting for the stream to end would under-count exactly the calls that get
+   * interrupted, which in a live interview is most of them.
+   */
+  async speak(ctx: CallContext, input: SpeechInput, signal?: AbortSignal): Promise<SpeechOutput | undefined> {
+    const purpose: Purpose = "tts";
+    const route = await this.deps.routes.resolve(ctx.companyId, purpose);
+    if (!route) return undefined;
+    const provider = await this.providerFor(ctx.companyId, route.providerId);
+    if (!provider.speak)
+      throw new ProviderError(`Provider '${route.providerId}' cannot speak`, "unsupported", false);
+    const price = this.deps.prices.get(route.providerId, route.model);
+    // Speech is priced per character. Charging it as output tokens is the closest the ledger's
+    // shape allows, and roughly four characters to a token keeps the estimate honest enough to
+    // stop a runaway before it empties a budget.
+    const usage: Usage = {
+      inputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      outputTokens: Math.ceil(input.text.length / 4),
+    };
+    const check = await this.deps.budget.check(ctx, price ? estimateCents(price, 0, usage.outputTokens) : 0);
+    if (!check.allowed) {
+      await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
+      throw new BudgetExceededError(check);
+    }
+    const started = this.now();
+    try {
+      const out = await provider.speak(route.model, input, signal);
+      await this.record(purpose, ctx, route, price, usage, "ok", started);
+      return out;
+    } catch (err) {
+      await this.record(purpose, ctx, route, price, emptyUsage(), "error", started);
+      throw err;
+    }
   }
 
   private async record(

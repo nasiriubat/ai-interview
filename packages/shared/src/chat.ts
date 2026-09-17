@@ -54,6 +54,36 @@ export interface TranscriptionInput {
   filename: string;
   language?: string;
 }
+/**
+ * One request to speak a piece of text (FR-30a).
+ *
+ * `format` is what the browser will play. `opus` in a WebM container is the default because it is
+ * what every current browser decodes, is small enough to start playing within the latency target
+ * on a slow connection, and is what a self-hosted Piper or an OpenAI-compatible endpoint will
+ * produce on request.
+ */
+export interface SpeechInput {
+  text: string;
+  /** Provider-specific voice name; the route's model decides which voices exist. */
+  voice?: string;
+  format?: "opus" | "mp3" | "wav" | "pcm";
+  /** 0.25 to 4.0 where the provider supports it. A voice interview usually wants slightly quick. */
+  speed?: number;
+  language?: string;
+}
+
+/**
+ * Spoken audio, as a stream.
+ *
+ * A stream and not a buffer because the whole point is the first word: the spec asks for it inside
+ * 1.5 seconds, and waiting for a provider to finish synthesizing three sentences before playing
+ * any of them spends that budget several times over.
+ */
+export interface SpeechOutput {
+  audio: AsyncIterable<Uint8Array>;
+  mime: string;
+}
+
 export interface Transcript {
   text: string;
   durationSeconds?: number;

@@ -30,6 +30,7 @@ class FakeProvider implements Provider {
     batch: false,
     vision: true,
     transcription: false,
+    speech: false,
   };
   readonly calls: ChatRequest[] = [];
   embedCalls = 0;

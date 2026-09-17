@@ -32,6 +32,8 @@ export class AnthropicProvider implements Provider {
     batch: false, // batch endpoint wiring is a later step
     vision: true,
     transcription: false,
+    // Anthropic has no speech endpoint; a voice interview routes `tts` elsewhere.
+    speech: false,
   };
   private readonly client: Anthropic;
 

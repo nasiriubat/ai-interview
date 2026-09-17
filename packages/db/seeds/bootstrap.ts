@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import {
   defaultAnthropicRoutes,
+  defaultOpenAIRoutes,
   defaultOpenRouterRoutes,
   OpenAICompatibleProvider,
   PriceTable,
@@ -19,6 +20,8 @@ import { seed } from "./seed.js";
  * - a platform Anthropic provider from ANTHROPIC_API_KEY with seed prices and default routes
  * - a platform OpenRouter provider from OPENROUTER_API_KEY with published prices and default routes
  *   (used only for purposes that have no route yet, so Anthropic wins when both keys are set)
+ * - a platform OpenAI provider from OPENAI_API_KEY for the three purposes neither of the others
+ *   can serve: transcription, speech and embeddings
  * - the shipped templates
  */
 export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promise<void> {
@@ -131,9 +134,33 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
     providers.push("OpenRouter");
   }
 
+  /**
+   * OpenAI last, and only for what the others cannot do.
+   *
+   * Anthropic has no audio or embedding endpoints and OpenRouter proxies chat models only, so
+   * without this a deployment has an interview that works and a voice that does not, and clustering
+   * that falls back to word overlap. One key closes all three. It runs last so it never takes a
+   * conversation purpose from a provider the operator chose deliberately.
+   */
+  if (env.OPENAI_API_KEY) {
+    const provider =
+      (await db.provider.findFirst({ where: { companyId: null, kind: "openai" } })) ??
+      (await db.provider.create({
+        data: {
+          companyId: null,
+          kind: "openai",
+          name: "OpenAI (platform)",
+          apiKeyEnc: crypto.encrypt(env.OPENAI_API_KEY),
+          headers: {},
+        },
+      }));
+    await createMissingRoutes(db, defaultOpenAIRoutes(provider.id));
+    providers.push("OpenAI");
+  }
+
   const seeded = await seed(db);
   console.log(
-    `bootstrap: operator ${operatorEmail}, tenant "${tenantName}" admin ${adminEmail}, templates ${seeded.templates}${providers.length ? `, ${providers.join(" and ")} provider with default routes` : ", no provider (set ANTHROPIC_API_KEY or OPENROUTER_API_KEY, or add one in the admin UI)"}`,
+    `bootstrap: operator ${operatorEmail}, tenant "${tenantName}" admin ${adminEmail}, templates ${seeded.templates}${providers.length ? `, ${providers.join(" and ")} provider with default routes` : ", no provider (set ANTHROPIC_API_KEY, OPENROUTER_API_KEY or OPENAI_API_KEY, or add one in the admin UI)"}`,
   );
   if (!env.PLATFORM_ENCRYPTION_KEY) console.log(`generated key: ${randomBytes(32).toString("base64")}`);
 }

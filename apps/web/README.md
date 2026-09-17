@@ -36,7 +36,9 @@ standalone image listening on port 3000.
 
 Environment: `NEXT_PUBLIC_API_URL` (API origin, `/api/v1` is appended), `AUTH_SECRET`
 (shared with the API so it can decode the Auth.js JWT), `AUTH_GOOGLE_ID`,
-`AUTH_GOOGLE_SECRET`, `EMAIL_SERVER`, `EMAIL_FROM`.
+`AUTH_GOOGLE_SECRET`, `EMAIL_SERVER`, `EMAIL_FROM`, and `NEXT_PUBLIC_VOICE_WS_URL`
+(optional; the live voice socket, which is the one call the browser makes itself — empty
+in production, where it is same-origin).
 
 ## Structure
 
@@ -49,13 +51,14 @@ src/i18n/locale.ts               supported locales, `lang` cookie, Accept-Langua
 src/i18n/index.ts                `t`: a deep proxy resolving each string against the active locale
 src/i18n/server.ts               `requestLocale()` / `getStrings()` for server components and metadata
 src/i18n/LocaleProvider.tsx      publishes the locale to client components
-src/lib/env.ts                   API base URL, cookie names
+src/lib/env.ts                   API base URL, cookie names, the live voice socket URL
 src/lib/api/
   errors.ts                      ApiError + `{ error: { code, message } }` unwrapping
   http.ts                        Transport abstraction, request() with zod validation, requestStream()
   schemas.ts                     zod response schemas (exact where the contract is, tolerant elsewhere)
   sse.ts                         SSE parser and the typed turn stream
                                  (text | turn | ended | spec | transcript | error)
+  voice-live.ts                  zod frames of the live voice socket (FR-30a), both directions
   participant.ts, staff.ts       every endpoint of contracts 16 and 17, transport-agnostic
   server.ts                      server-side transports: Bearer token read from httpOnly cookies
   browser.ts                     browser clients that go through the /api/* proxies
@@ -81,6 +84,7 @@ src/app/admin/campaigns/[id]/results   analysis header, weights, filters, opport
 src/app/admin/campaigns/[id]/report    the organization report (Markdown + Mermaid, sections, print)
 src/hooks/useInterview.ts        optimistic messages, SSE streaming, progress, ending, errors
 src/hooks/useRecorder.ts         MediaRecorder: permission on demand, 5 min cap, tracks always released
+src/hooks/useLiveVoice.ts        the live call: socket, silence detection, barge-in, playback, fallbacks
 src/hooks/useAttachments.ts      upload, remove, play back, poll a pending attachment until it is read
 src/hooks/useAnalysisPolling.ts  polls the latest analysis every 5 s while queued or running
 src/hooks/useDebouncedSave.ts    persists a knob a moment after it stops changing
@@ -88,7 +92,8 @@ src/components/ui/*              shadcn-style primitives (phase 2 adds `sheet`, 
 src/components/common/*          language switch
 src/components/widgets/*         single_choice, multi_choice, scale, ranking, yes_no + renderer
 src/components/participant/*     arrival flow, message list, composer (typing, microphone, paperclip),
-                                 attachment list, mode switch, progress, menu, summary
+                                 attachment list, mode switch, progress, menu, summary,
+                                 live voice call panel
 src/components/admin/*           shell, forms, template editor, campaign panels, settings, providers,
                                  dashboard discovery tiles
 src/components/admin/results/*   analysis header, weights panel, filters, opportunity card, factor bars,
@@ -97,7 +102,8 @@ src/components/report/*          ReportView, ReportMarkdown (react-markdown), Me
 test/                            Vitest: widgets, SSE reader, API error wrapper, interview hook,
                                  locale resolution + `t` proxy, rank/override, Mermaid + sections,
                                  combobox, pagination, icon buttons, settings category form,
-                                 paginated list schemas, recording and attachments
+                                 paginated list schemas, recording and attachments,
+                                 the live voice call (socket, silence, barge-in, fallbacks)
 ````
 
 Server components load data directly from the API with the cookie token; client
@@ -158,9 +164,53 @@ fetching its bytes through the proxy into a blob URL, which is revoked when the 
 unmounts.
 
 What is offered comes from `session.capabilities`: the microphone and the voice mode appear
-only when `recordedVoice` is true, the paperclip only when `fileUpload` is true, and the
-picker's `accept`, the type check and the size check follow `allowedTypes` and `maxSizeMb`.
-Nobody learns from a 403 that they should not have spoken.
+only when `recordedVoice` or `liveVoice` is true, the paperclip only when `fileUpload` is
+true, and the picker's `accept`, the type check and the size check follow `allowedTypes` and
+`maxSizeMb`. Nobody learns from a 403 that they should not have spoken.
+
+### Real-time voice (FR-30a)
+
+With `capabilities.liveVoice` on, choosing the voice mode opens a call instead of showing a
+record button. `useLiveVoice` owns the socket, the microphone, the end-of-utterance detector
+and playback; `LiveVoiceCall` shows what is happening and `useInterview.live` folds the
+result into the same message list, so a session answered by voice reads afterwards exactly
+like one that was typed.
+
+As soon as the socket is ready the client sends `{type:"speak_last"}`, so the question
+already on screen is read aloud and entering a call halfway through an interview sounds
+like picking up a phone rather than like silence. It takes no turn and stores nothing, so
+it is also what a reconnect sends.
+
+The socket is the one API call the browser makes itself — a WebSocket cannot go through a
+Next.js route handler, so Caddy forwards `/api/v1/p/session/live` to the API and the
+`aidp_participant` cookie authenticates it. `NEXT_PUBLIC_VOICE_WS_URL` names it in
+development, where the API is on another port; in production the URL is derived from
+`location`.
+
+Hands-free comes from an `AnalyserNode` on the microphone stream, polled every 50 ms: speech
+above an RMS threshold starts a `MediaRecorder`, ~900 ms of quiet afterwards stops it and
+sends `{type:"utterance"}`. One recording per utterance, not one continuous stream, because
+the server treats each utterance as a complete webm file and only the first slice of a stream
+carries the container header. Nothing is sent when the room was never above the threshold.
+Barge-in needs a higher level held for three polls, since the speakers feed the microphone
+(`echoCancellation` is requested for the same reason); the "stop the interviewer" button
+works regardless of the tenant's `voice.bargeIn` setting.
+
+The interviewer's audio is buffered per `speech_start`/`speech_end` pair and played from a
+blob URL, so speech starts when synthesis finishes rather than when the first byte lands.
+`MediaSource` would start sooner but needs codec-exact mime strings and is missing on iOS
+Safari, where a mismatch fails silently; the server measures `first_word` from its own side,
+so the spec's latency target is still traced honestly.
+
+Fallbacks are the spec's chain. `{type:"unavailable", fallback:"recorded"}` ends the call and
+brings the push-to-record button back; `fallback:"captions"` keeps the call and stops waiting
+for audio. A socket that closes unexpectedly is reopened once, and a second close falls back
+to recording. Every one of those paths, plus end, unmount, a refused permission and the
+interview ending, runs through the same `release`, so the microphone is never left open.
+
+Captions are the participant's own words: the server takes the turn with the answer already
+transcribed, so no `turn` frame echoes them. The interviewer's caption repeats the `turn`
+frame that precedes it and is dropped, which is what keeps each exchange in the list once.
 
 ### Tokens never reach client JavaScript
 
@@ -177,7 +227,12 @@ Nobody learns from a 403 that they should not have spoken.
 Mobile-first layouts, visible focus rings, skip link, labeled controls, `aria-live`
 regions for streaming and status, keyboard-operable widgets (arrow keys on the scale,
 up/down buttons on the ranking), reduced-motion safe typing indicator, dialogs with
-focus management from Radix.
+focus management from Radix. In a live voice call the phase (connecting, listening,
+thinking, speaking) is announced through `role="status"`, the level meter is decorative
+(`aria-hidden`, and its bars differ in height as well as colour), the spinner and the meter's
+transition are `motion-safe:` only, and ending the call or switching to typing is always one
+visible, focusable button away — focus moves to "end the call" when it opens and back to
+"start a voice call" when it closes.
 
 ## Contract gaps
 
@@ -346,4 +401,22 @@ Phase 4 (voice and files, `09-voice-and-files.md`):
     attachment methods with "not available" and reports both capabilities as off: the staff
     requirements routes have no equivalent, and the owner workspace renders no controls.
 38. **Transcript confidence** is parsed from `event: transcript` but not shown; the spec traces
-    it in stats rather than in the interview.
+    it in stats rather than in the interview. The live socket's `caption.confidence` is treated
+    the same way.
+39. **`capabilities.liveVoice` and `capabilities.captions`** default to `false` and `true`. Live
+    voice is the one capability that defaults off, because an API that predates the socket has
+    nothing to connect to and a call that cannot open is worse than a record button.
+40. **With `voice.captions` off the participant's own words never reach this client.** The server
+    sends captions only when the setting is on, and nothing else carries the transcribed answer
+    to the browser, so the list shows only the interviewer's side for the length of the call. The
+    messages are persisted either way and appear on the next load; the call panel says so rather
+    than pretending the answers were lost.
+41. **Opening a call sends `{type:"speak_last"}`, never `{type:"start"}`.** `start` runs an engine
+    turn, and `useInterview` has already taken the opening turn over SSE by the time anyone picks
+    voice, so it would ask the same question twice. `speak_last` reads the question already on
+    screen, takes no turn, stores nothing and opens the interview when nothing has been asked yet,
+    so it is sent unconditionally — including after a reconnect, where it re-reads the question
+    the drop interrupted.
+42. **Only one turn at a time.** The API refuses concurrent turns on a session, so typing, a
+    widget answer, "skip", "come back", "I'm done", pause and delete all end the call first, and
+    the recorded-voice microphone is hidden while a call is up.

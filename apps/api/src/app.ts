@@ -4,6 +4,7 @@ import helmet from "@fastify/helmet";
 import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
+import websocket from "@fastify/websocket";
 import Fastify, {
   type FastifyBaseLogger,
   type preHandlerAsyncHookHandler,
@@ -31,6 +32,7 @@ import { internalAuthRoutes } from "./modules/internal-auth/routes.js";
 import { operatorRoutes } from "./modules/operator/routes.js";
 import { participantAttachmentRoutes } from "./modules/participant/attachments.js";
 import { participantRoutes } from "./modules/participant/routes.js";
+import { participantVoiceLiveRoutes } from "./modules/participant/voice-live.js";
 import { participantVoiceRoutes } from "./modules/participant/voice.js";
 import { privacyRoutes } from "./modules/privacy/routes.js";
 import { providerRoutes } from "./modules/providers/routes.js";
@@ -87,6 +89,11 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   await app.register(multipart, {
     limits: { fileSize: 200 * 1024 * 1024, files: 1, fields: 8, parts: 12 },
   });
+  // Live voice (FR-30a). The only upgraded connection the API serves; see voice-live.ts for why
+  // it is reached directly rather than through the web app's proxy.
+  await app.register(websocket, {
+    options: { maxPayload: 1024 * 1024, clientTracking: false },
+  });
   // The auth plugin first, so the limiter below can key on the principal it resolves. Its hook is
   // instance-level and the limiter's is route-level, which settles the order regardless, but the
   // dependency is real and reads better stated.
@@ -136,6 +143,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await participantRoutes(a, ctx);
       await participantAttachmentRoutes(a, ctx);
       await participantVoiceRoutes(a, ctx);
+      await participantVoiceLiveRoutes(a, ctx);
       await sessionRoutes(a, ctx);
       await providerRoutes(a, ctx);
       await statsRoutes(a, ctx);

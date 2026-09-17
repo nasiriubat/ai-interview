@@ -200,6 +200,23 @@ export const en = {
       recordNoMicrophone:
         "We could not find a microphone. Connect one and try again, or type your answer instead.",
       recordFailed: "The recording did not work. Please try again, or type your answer instead.",
+      liveStart: "Start a voice call",
+      liveStartHint:
+        "The interviewer speaks, and listens for your answer. You can end the call or type at any time.",
+      liveConnecting: "Connecting the call…",
+      liveListening: "Listening",
+      liveListeningHint: "Just talk. We send your answer when you stop speaking.",
+      liveThinking: "Thinking about your answer",
+      liveSpeaking: "The interviewer is speaking",
+      liveStopSpeaking: "Stop the interviewer",
+      liveEnd: "End the call",
+      liveNotHeard: "We did not catch that. Please say it again.",
+      liveTextOnly:
+        "The interviewer's voice is unavailable, so its answers appear here as text. The call continues.",
+      liveNoCaptions: "What you say is not shown here, but it is saved with the interview.",
+      liveUnavailable:
+        "A live call is not possible right now. Record your answer with the microphone instead, or type it.",
+      liveLost: "The voice call was disconnected. Everything you said so far is saved.",
       attach: "Attach a file",
       attachUploading: "Sending your file…",
       attachmentsLabel: "Your files",

@@ -6,6 +6,8 @@ import {
   type ChatRequest,
   type ModelInfo,
   type ProviderKind,
+  type SpeechInput,
+  type SpeechOutput,
   type StopReason,
   type Transcript,
   type TranscriptionInput,
@@ -13,6 +15,30 @@ import {
 } from "@aidp/shared";
 import { z } from "zod";
 import { ProviderError, type Provider } from "./types.js";
+
+/** What the browser must be told the audio is, per requested format. */
+const SPEECH_MIME: Record<NonNullable<SpeechInput["format"]>, string> = {
+  opus: "audio/ogg",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  pcm: "audio/pcm",
+};
+
+/** A web ReadableStream as an async iterable, which Node streams already are and this is not. */
+async function* streamBytes(body: ReadableStream<Uint8Array>): AsyncIterable<Uint8Array> {
+  const reader = body.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      if (value) yield value;
+    }
+  } finally {
+    // Barge-in aborts mid-stream; without this the connection is left half-read and the provider
+    // keeps synthesizing audio nobody will hear.
+    reader.releaseLock();
+  }
+}
 
 export type OpenAICompatibleKind = Exclude<ProviderKind, "anthropic">;
 
@@ -65,6 +91,8 @@ export class OpenAICompatibleProvider implements Provider {
       batch: false,
       vision: true,
       transcription: opts.kind !== "openrouter",
+      // Same story as transcription: OpenRouter proxies chat models only.
+      speech: opts.kind !== "openrouter",
     };
   }
 
@@ -216,6 +244,35 @@ export class OpenAICompatibleProvider implements Provider {
       },
       usage: emptyUsage(), // transcription is priced per minute; the ledger prices it from durationSeconds
     };
+  }
+
+  /**
+   * `/audio/speech`, streamed straight through (FR-30a).
+   *
+   * The response body is handed on as an async iterable rather than buffered, so the first chunk
+   * can reach the participant's speakers while the provider is still synthesizing the rest. That
+   * is the difference between meeting the 1.5-second target and missing it by a multiple.
+   *
+   * Priced per character rather than per token, so the ledger gets an empty `Usage` here and the
+   * caller records the character count; see ModelCaller.speak.
+   */
+  async speak(model: string, input: SpeechInput, signal?: AbortSignal): Promise<SpeechOutput> {
+    if (!this.capabilities.speech)
+      throw new ProviderError("Provider does not synthesize speech", "unsupported", false);
+    const format = input.format ?? "opus";
+    const res = await this.request("/audio/speech", {
+      method: "POST",
+      body: JSON.stringify({
+        model,
+        input: input.text,
+        voice: input.voice ?? "alloy",
+        response_format: format,
+        ...(input.speed === undefined ? {} : { speed: input.speed }),
+      }),
+      ...(signal ? { signal } : {}),
+    });
+    if (!res.body) throw new ProviderError("Speech response had no body", "parse", true);
+    return { audio: streamBytes(res.body), mime: SPEECH_MIME[format] };
   }
 
   async embed(model: string, texts: string[]): Promise<{ vectors: number[][]; usage: Usage }> {

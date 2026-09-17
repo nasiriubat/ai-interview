@@ -30,6 +30,12 @@ RUN if find . -name '.env' -not -name '.env.example' -not -path '*/node_modules/
       exit 1; \
     fi
 ENV NEXT_TELEMETRY_DISABLED=1
+# The live voice socket is the one URL the browser opens itself, so it has to be in the client
+# bundle, and Next inlines NEXT_PUBLIC_* at build time rather than reading it at run time. Empty
+# is the right default: the browser then uses its own origin, which is correct behind Caddy.
+# Development builds pass the API's own address, because there the two are on different ports.
+ARG NEXT_PUBLIC_VOICE_WS_URL=""
+ENV NEXT_PUBLIC_VOICE_WS_URL=$NEXT_PUBLIC_VOICE_WS_URL
 RUN pnpm --filter @aidp/shared build && pnpm --filter @aidp/web build
 
 FROM node:22-alpine AS runner

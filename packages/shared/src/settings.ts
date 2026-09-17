@@ -208,6 +208,28 @@ export const SETTINGS = {
     category: "voice",
     description: "Latency target for real-time voice",
   }),
+  "voice.captions": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["platform", "tenant", "template"],
+    category: "voice",
+    description: "Show what was said and heard as text during a live voice interview",
+  }),
+  "voice.voiceName": def({
+    schema: z.string().max(80),
+    default: "alloy",
+    scopes: ["platform", "tenant", "template"],
+    category: "voice",
+    description: "Which of the speech model's voices the interviewer uses",
+  }),
+  "voice.speakingRate": def({
+    schema: z.number().min(0.5).max(2),
+    default: 1.05,
+    scopes: ["platform", "tenant", "template"],
+    category: "voice",
+    // Slightly quick: an interviewer that reads at a measured pace sounds like it is dictating.
+    description: "Speaking rate of the interviewer's voice, 1 is the model's normal pace",
+  }),
   "voice.bargeIn": def({
     schema: z.boolean(),
     default: true,

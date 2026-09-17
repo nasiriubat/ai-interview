@@ -63,3 +63,25 @@ export function defaultOpenRouterRoutes(providerId: string): Route[] {
     r("vision_ingest", fast, "low", 4096),
   ];
 }
+
+/**
+ * The purposes only an OpenAI-compatible provider can serve.
+ *
+ * Deliberately narrow. Anthropic and OpenRouter cover the conversation perfectly well, and this
+ * exists to fill the three holes they leave: audio in, audio out, and vectors. A deployment with
+ * an OpenRouter key and an OpenAI key gets a complete system — interviews on whichever models it
+ * prefers, semantic clustering instead of word overlap, and a voice — without configuring a route
+ * by hand.
+ *
+ * `whisper-1` and `tts-1` rather than the newest models on purpose: both are an order of magnitude
+ * cheaper than their successors, and a voice interview pays per second of conversation. An admin
+ * who wants the better voice changes one row.
+ */
+export function defaultOpenAIRoutes(providerId: string): Route[] {
+  const r = rowFor(providerId);
+  return [
+    r("transcription", "whisper-1", "low", 0),
+    r("tts", "tts-1", "low", 0),
+    r("embedding", "text-embedding-3-small", "low", 0),
+  ];
+}
