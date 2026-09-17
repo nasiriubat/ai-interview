@@ -35,7 +35,14 @@ if (typeof window !== "undefined") {
     static isTypeSupported(): boolean {
       return true;
     }
+    /**
+     * The instance a test most recently constructed. The live voice call builds a recorder per
+     * utterance from inside its own silence detector, so a test has no other way to reach it.
+     */
+    static latest: MediaRecorderStub | null = null;
     state: "inactive" | "recording" = "inactive";
+    /** The timeslice `start` was given, so a test can check that audio is chunked and not held. */
+    timeslice: number | undefined = undefined;
     ondataavailable: ((e: { data: Blob }) => void) | null = null;
     onstop: (() => void) | null = null;
     onerror: (() => void) | null = null;
@@ -45,13 +52,19 @@ if (typeof window !== "undefined") {
       options?: { mimeType?: string },
     ) {
       this.mimeType = options?.mimeType ?? "audio/webm";
+      MediaRecorderStub.latest = this;
     }
-    start(): void {
+    start(timeslice?: number): void {
       this.state = "recording";
+      this.timeslice = timeslice;
+    }
+    /** What a real recorder does every `timeslice` milliseconds, on demand. */
+    requestData(): void {
+      this.ondataavailable?.({ data: new Blob(["audio"], { type: this.mimeType }) });
     }
     stop(): void {
       this.state = "inactive";
-      this.ondataavailable?.({ data: new Blob(["audio"], { type: this.mimeType }) });
+      this.requestData();
       this.onstop?.();
     }
   }

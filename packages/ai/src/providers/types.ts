@@ -4,6 +4,8 @@ import type {
   ChatRequest,
   ModelInfo,
   ProviderKind,
+  SpeechInput,
+  SpeechOutput,
   Transcript,
   TranscriptionInput,
   Usage,
@@ -30,6 +32,14 @@ export interface Provider {
   transcribe?(model: string, input: TranscriptionInput): Promise<{ transcript: Transcript; usage: Usage }>;
   /** Text embeddings, when the provider offers them (OpenAI-compatible `/embeddings`). */
   embed?(model: string, texts: string[]): Promise<{ vectors: number[][]; usage: Usage }>;
+  /**
+   * Text to speech, streamed (FR-30a).
+   *
+   * `signal` is not optional politeness: barge-in means the participant starts talking over the
+   * interviewer, and the synthesis in flight has to stop immediately — both so the audio stops and
+   * so the tokens stop being paid for.
+   */
+  speak?(model: string, input: SpeechInput, signal?: AbortSignal): Promise<SpeechOutput>;
 }
 
 export class ProviderError extends Error {

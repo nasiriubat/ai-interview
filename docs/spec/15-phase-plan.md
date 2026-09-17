@@ -12,7 +12,7 @@ work inside a phase is parallel across roles (`docs/team/roles.md`).
 | 1 Core interview                     | **Done**, and run against a real model.                                                                                                                                                   |
 | 2 Analysis and report                | **Done**, and run against a real model. Clustering falls back to lexical overlap unless an `embedding` route is configured; OpenRouter serves no embedding models.                        |
 | 3 Requirements interview             | **Done**, and run against a real model. The acceptance test in the table below (regenerate this spec from a rough prompt, build a feature from the bundle) has not been performed.        |
-| 4 Voice and files                    | **Files and recorded voice built; real-time voice not.** See below.                                                                                                                       |
+| 4 Voice and files                    | **Built.** Files, recorded voice and the live voice cascade. One honest limit, below.                                                                                                     |
 | 5 Admin depth and operations         | **Partly built.** Settings, providers, routing, budgets, users, audit log, spend and platform stats, server-side pagination and deployment are done. Canaries and notifications are not.  |
 | 6 Integrations                       | **Not built.** No SSO beyond Google, no Slack or Teams, no Jira or Linear, no webhooks, no public API keys.                                                                               |
 | 7 Collaboration and speech-to-speech | **Not built.**                                                                                                                                                                            |
@@ -23,10 +23,17 @@ size limits, ingestion as a job (text extraction for PDF, DOCX, XLSX, CSV, Markd
 image description through `vision_ingest`; a summary; chunks; optional embeddings), the summary
 carried in the interviewer's context every turn with chunks recalled on demand, recorded voice as a
 single request that stores the audio, transcribes it and streams the turn back, audio kept and
-playable, and a retention clock of its own for recordings. Not built: the real-time voice cascade
-(FR-30a) — streaming speech-to-text into the engine and streaming text-to-speech back out, with
-barge-in and live captions. The `Provider` interface has no `tts`, `sttStream` or `realtime` method
-yet, and that is where it would start.
+playable, and a retention clock of its own for recordings. The live voice cascade (FR-30a) is built: a WebSocket carries the participant's speech in, the
+same turn the text interview runs decides what to ask, and the interviewer's voice streams back,
+with barge-in, live captions, the voice signals traced per call, and a fallback chain that degrades
+to captions and then to typing without losing the session.
+
+**One limit, stated plainly.** Speech-to-text is per utterance, not per token: the browser detects
+the end of speech and sends that utterance to be transcribed, so a caption appears when the
+participant stops rather than growing as they talk. Token-level streaming needs a provider-specific
+socket protocol — Deepgram, AssemblyAI, a self-hosted Whisper server — and the `Provider` interface
+has no `sttStream` method yet. That is the next piece, and adding it does not change anything above
+it: the cascade already treats transcription as a replaceable step.
 
 Deployment is covered by `docs/DEPLOY.md` and `deploy/compose.prod.yml`, which is outside the
 phase table because it is not a feature: it is how any of the above reaches a server.

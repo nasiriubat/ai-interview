@@ -71,6 +71,21 @@ Reading a file needs model routes for `file_ingest` and, for images, `vision_ing
 voice needs one for `transcription`. Without them an upload is accepted and then marked failed,
 which is visible to the participant.
 
+## Voice
+
+Answering by recording needs a `transcription` route. A live conversation needs that plus a `tts`
+route, and the tenant setting `features.realtimeVoice`, which ships off.
+
+Neither Anthropic nor OpenRouter can transcribe, speak or embed. Setting `OPENAI_API_KEY` in
+`apps/api/.env` bootstraps a platform OpenAI provider routed to exactly those three purposes and
+nothing else, which is the shortest path to a working voice interview and to semantic clustering
+in the analysis.
+
+The live session is a WebSocket at `/api/v1/p/session/live` on the API. It is the one browser call
+that does not go through the Next.js proxy, because a route handler cannot upgrade a connection;
+in production Caddy forwards that single path. Running the web app on :3000 against the API on
+:4000, set `NEXT_PUBLIC_VOICE_WS_URL=ws://localhost:4000/api/v1/p/session/live`.
+
 Provider configuration without an Anthropic key: sign in as the operator, add a provider
 (OpenAI, OpenRouter, LiteLLM, or any OpenAI-compatible server), fetch its models, and set
 routes per purpose. Nothing works until `interview_turn` has a route.

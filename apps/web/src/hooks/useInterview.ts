@@ -29,8 +29,31 @@ export interface InterviewState {
   error: InterviewError | null;
 }
 
+/** One interviewer turn as the live voice socket delivers it (FR-30a). */
+export interface LiveTurn {
+  message: Message;
+  ended: boolean;
+  progress: Progress;
+}
+
+/**
+ * How the live voice call (FR-30a) writes into the same conversation.
+ *
+ * The socket runs the turn itself, so nothing here opens a request; these only fold what came back
+ * into the state the message list already renders. That is the point of the cascade: an exchange
+ * spoken and an exchange typed are the same `Message` by the time anything downstream sees it.
+ */
+export interface LiveInterviewSink {
+  turn: (turn: LiveTurn) => void;
+  /** What the participant was heard to say, shown as their own message before the reply. */
+  heard: (text: string) => void;
+  ended: (summaryAvailable: boolean) => void;
+  failed: (code: string, message: string) => void;
+}
+
 export interface InterviewController {
   state: InterviewState;
+  live: LiveInterviewSink;
   /** The widget of the latest interviewer message, when it is still unanswered. */
   activeWidget: Widget | undefined;
   send: (input: TurnInput | undefined) => Promise<void>;
@@ -275,5 +298,39 @@ export function useInterview(
     setState((s) => ({ ...s, error: null }));
   }, []);
 
-  return { state, activeWidget, send, sendText, sendWidget, sendVoice, retry, clearError };
+  const live = React.useMemo<LiveInterviewSink>(
+    () => ({
+      turn: (turn) => {
+        setState((s) => ({
+          ...s,
+          error: null,
+          pending: false,
+          streaming: null,
+          messages: [...s.messages.filter((m) => m.id !== turn.message.id), turn.message],
+          progress: turn.progress.areas.length > 0 ? turn.progress : s.progress,
+          ended: s.ended || turn.ended,
+        }));
+      },
+      heard: (text) => {
+        const said = text.trim();
+        if (said.length === 0) return;
+        // `pending` puts the typing indicator up: the engine is working on what was just said.
+        setState((s) => ({
+          ...s,
+          error: null,
+          pending: true,
+          messages: [...s.messages, heardMessage(said)],
+        }));
+      },
+      ended: (summaryAvailable) => {
+        setState((s) => ({ ...s, ended: true, summaryAvailable, pending: false, streaming: null }));
+      },
+      failed: (code, message) => {
+        setState((s) => ({ ...s, error: { code, message }, pending: false, streaming: null }));
+      },
+    }),
+    [],
+  );
+
+  return { state, live, activeWidget, send, sendText, sendWidget, sendVoice, retry, clearError };
 }

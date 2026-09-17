@@ -11,7 +11,7 @@ export interface ProgressArea {
 }
 
 export interface RunTurnOptions {
-  /** Extra SSE events sent right after each `turn` event, computed from the persisted state. */
+  /** Extra events sent right after each `turn` event, computed from the persisted state. */
   afterTurn?: (state: SessionState) => Promise<{ event: string; data: unknown }[]>;
   /**
    * Events sent before the turn begins.
@@ -24,17 +24,30 @@ export interface RunTurnOptions {
   prelude?: { event: string; data: unknown }[];
 }
 
+/** One thing to send the client. The transport decides how. */
+export interface TurnEvent {
+  event: string;
+  data: unknown;
+}
+
 /**
- * Runs one interviewer turn for a session and streams it as SSE (contract 16).
- * Owns the session status transitions and schedules follow-up jobs.
+ * Runs one interviewer turn and yields what the client should be told (contract 16).
+ *
+ * A generator rather than a function that writes to a socket, because there are now two transports
+ * and only one turn. `runTurn` renders these as server-sent events for the ordinary text interview;
+ * the live voice session consumes the same sequence over a WebSocket, speaking the `turn` events
+ * aloud as they arrive. Splitting them would mean two copies of the turn lock, the status
+ * transitions, the follow-up jobs and the error mapping, and the second copy would drift.
+ *
+ * Owns the session status transitions and schedules follow-up jobs. The turn lock is released when
+ * the generator finishes, including when a consumer abandons it part-way.
  */
-export async function runTurn(
+export async function* streamTurn(
   ctx: AppContext,
   sessionId: string,
   answer: UserAnswer | undefined,
-  reply: FastifyReply,
   options?: RunTurnOptions,
-): Promise<void> {
+): AsyncGenerator<TurnEvent, void> {
   const row = await ctx.db.session.findUniqueOrThrow({ where: { id: sessionId } });
   if (row.status === "deleted" || row.status === "completed")
     throw new AppError("conflict", `Session is ${row.status}`);
@@ -71,16 +84,6 @@ export async function runTurn(
       data: { status: "active", startedAt: row.startedAt ?? new Date() },
     });
 
-  reply.raw.writeHead(200, {
-    "content-type": "text/event-stream",
-    "cache-control": "no-cache, no-transform",
-    connection: "keep-alive",
-    "x-accel-buffering": "no",
-  });
-  const send = (event: string, data: unknown): void => {
-    reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-  };
-  for (const item of options?.prelude ?? []) send(item.event, item.data);
   const progress = (state: { coverage: Record<string, { status: string }> }): ProgressArea[] =>
     snapshot.template.coverageAreas.map((a) => ({
       key: a.key,
@@ -89,18 +92,31 @@ export async function runTurn(
     }));
 
   try {
+    for (const item of options?.prelude ?? []) yield item;
+
     const gen = bundle.engine.nextTurn(snapshot, answer, bundle.settings);
     let next = await gen.next();
     let ended = false;
     while (!next.done) {
       const ev: EngineEvent = next.value;
-      if (ev.type === "text") send("text", { delta: ev.text });
+      if (ev.type === "text") yield { event: "text", data: { delta: ev.text } };
       else if (ev.type === "turn") {
         ended = ev.turn.endInterview;
-        send("turn", { message: ev.message, ended, progress: { areas: progress(ev.state) } });
+        yield {
+          event: "turn",
+          data: {
+            message: ev.message,
+            ended,
+            progress: { areas: progress(ev.state) },
+            // The live voice session speaks this; a text client ignores it. Carried on the turn
+            // rather than fetched afterwards so speech can start before the next event arrives.
+            ...(ev.turn.voiceShortForm ? { voiceShortForm: ev.turn.voiceShortForm } : {}),
+            ...(ev.turn.widget ? { widget: ev.turn.widget } : {}),
+          },
+        };
         if (options?.afterTurn) {
           try {
-            for (const extra of await options.afterTurn(ev.state)) send(extra.event, extra.data);
+            for (const extra of await options.afterTurn(ev.state)) yield extra;
           } catch (err) {
             ctx.log.warn({ err, sessionId }, "after-turn events failed");
           }
@@ -116,7 +132,7 @@ export async function runTurn(
         where: { id: sessionId },
         data: { status: "completed", endedAt: new Date() },
       });
-      send("ended", { summaryAvailable: snapshot.template.endSummary });
+      yield { event: "ended", data: { summaryAvailable: snapshot.template.endSummary } };
       if (row.campaignId && snapshot.template.analysisEnabled) {
         await ctx.analysis.maybeQueueForCampaign(row.companyId, row.campaignId).catch((err: unknown) => {
           ctx.log.warn({ err, sessionId }, "could not queue analysis");
@@ -146,20 +162,61 @@ export async function runTurn(
     ctx.log.error({ err, sessionId }, "turn failed");
     if (code === "budget_exceeded")
       await ctx.db.session.update({ where: { id: sessionId }, data: { status: "paused" } });
-    send("error", {
-      code,
-      message:
-        code === "budget_exceeded"
-          ? "This interview is paused because the budget is exhausted. The organizer has been notified."
-          : code === "provider_error"
-            ? "The assistant is temporarily unavailable. Your answer is saved; try again in a moment."
-            : "Something went wrong. Your answer is saved.",
-    });
+    yield {
+      event: "error",
+      data: {
+        code,
+        message:
+          code === "budget_exceeded"
+            ? "This interview is paused because the budget is exhausted. The organizer has been notified."
+            : code === "provider_error"
+              ? "The assistant is temporarily unavailable. Your answer is saved; try again in a moment."
+              : "Something went wrong. Your answer is saved.",
+      },
+    };
   } finally {
+    // Runs when the consumer stops early too: a voice client that disconnects mid-turn must not
+    // leave the session locked for two minutes.
     await ctx.db.session.updateMany({
       where: { id: sessionId, turnLockedAt: lockedAt },
       data: { turnLockedAt: null },
     });
+  }
+}
+
+/**
+ * Renders one turn as server-sent events (contract 16). The text interview's transport.
+ */
+export async function runTurn(
+  ctx: AppContext,
+  sessionId: string,
+  answer: UserAnswer | undefined,
+  reply: FastifyReply,
+  options?: RunTurnOptions,
+): Promise<void> {
+  // The generator validates the session and takes the lock before yielding anything, so a refusal
+  // is thrown here and rendered as JSON by the error handler. Writing the SSE head first would
+  // turn every such refusal into a 200 with an error event, which a client cannot distinguish
+  // from a turn that started and then failed.
+  const stream = streamTurn(ctx, sessionId, answer, options);
+  const first = await stream.next();
+
+  reply.raw.writeHead(200, {
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache, no-transform",
+    connection: "keep-alive",
+    "x-accel-buffering": "no",
+  });
+  const send = (item: TurnEvent): void => {
+    reply.raw.write(`event: ${item.event}\ndata: ${JSON.stringify(item.data)}\n\n`);
+  };
+
+  try {
+    if (!first.done) {
+      send(first.value);
+      for await (const item of stream) send(item);
+    }
+  } finally {
     reply.raw.end();
   }
 }

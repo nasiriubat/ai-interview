@@ -115,7 +115,14 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
       { scope: "tenant" as const, scopeId: p.companyId },
     ];
     const values = await ctx.settings.resolveMany(
-      ["features.recordedVoice", "features.fileUpload", "files.maxSizeMb", "files.allowedTypes"],
+      [
+        "features.recordedVoice",
+        "features.realtimeVoice",
+        "features.fileUpload",
+        "files.maxSizeMb",
+        "files.allowedTypes",
+        "voice.captions",
+      ],
       chain,
     );
     const attachments =
@@ -129,6 +136,10 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
         attachments,
         capabilities: {
           recordedVoice: values["features.recordedVoice"] as boolean,
+          // Live voice ships off: it costs money per second of conversation and needs both a
+          // transcription and a speech route, which most tenants will not have on day one.
+          liveVoice: values["features.realtimeVoice"] as boolean,
+          captions: values["voice.captions"] as boolean,
           fileUpload: values["features.fileUpload"] as boolean,
           maxSizeMb: values["files.maxSizeMb"] as number,
           allowedTypes: values["files.allowedTypes"] as string[],

@@ -4,24 +4,9 @@ import { MicIcon, PaperclipIcon, SendHorizontalIcon, SquareIcon, XIcon } from "l
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useRecorder, type RecorderProblem } from "@/hooks/useRecorder";
+import { recorderProblemMessage, useRecorder } from "@/hooks/useRecorder";
 import { t } from "@/i18n";
 import { acceptFor, DEFAULT_ALLOWED_TYPES, formatClock } from "@/lib/attachments";
-
-/** Each way recording can be unavailable gets its own sentence; all of them end in "type instead". */
-function problemMessage(problem: RecorderProblem): string {
-  const s = t.participant.session;
-  switch (problem) {
-    case "denied":
-      return s.recordDenied;
-    case "unsupported":
-      return s.recordUnsupported;
-    case "no_microphone":
-      return s.recordNoMicrophone;
-    case "failed":
-      return s.recordFailed;
-  }
-}
 
 /**
  * The answer box: typing, a recording (FR-30) and a file (FR-31).
@@ -222,7 +207,7 @@ export function Composer({
       )}
       {recorder.problem ? (
         <p className="text-destructive text-xs" role="alert">
-          {problemMessage(recorder.problem)}
+          {recorderProblemMessage(recorder.problem)}
         </p>
       ) : null}
       {recorder.maxedOut ? (

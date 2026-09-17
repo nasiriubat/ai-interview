@@ -77,7 +77,14 @@ services:
       migrate: { condition: service_completed_successfully }
 
   web:
-    build: { context: ., dockerfile: apps/web/Dockerfile }
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Development runs the web app on 3000 and the API on 4000, so the browser cannot reach
+        # the voice socket on its own origin. In production Caddy puts both behind one hostname
+        # and this is left empty.
+        NEXT_PUBLIC_VOICE_WS_URL: ws://localhost:4000/api/v1/p/session/live
     env_file: apps/api/.env # AUTH_SECRET is shared with the API
     environment:
       API_URL: http://api:4000

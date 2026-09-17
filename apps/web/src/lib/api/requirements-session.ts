@@ -24,6 +24,8 @@ export function toParticipantSession(detail: RequirementsDetail): ParticipantSes
     // session says so rather than offering controls that would 404.
     capabilities: {
       recordedVoice: false,
+      liveVoice: false,
+      captions: false,
       fileUpload: false,
       maxSizeMb: DEFAULT_MAX_SIZE_MB,
       allowedTypes: [...DEFAULT_ALLOWED_TYPES],

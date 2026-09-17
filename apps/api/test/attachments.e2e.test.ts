@@ -369,6 +369,9 @@ suite("attachments and recorded voice", () => {
     // uploads against the shipped defaults rather than the limits actually in force.
     expect(session.capabilities.recordedVoice).toBe(true);
     expect(session.capabilities.fileUpload).toBe(true);
+    // Live voice is off until a tenant turns it on, and the browser is told so rather than
+    // offering a call that would be refused at the socket.
+    expect(session.capabilities.liveVoice).toBe(false);
     expect(session.capabilities.maxSizeMb).toBeGreaterThan(0);
     expect(session.capabilities.allowedTypes).toContain("application/pdf");
     expect(session.attachments).toEqual([]);

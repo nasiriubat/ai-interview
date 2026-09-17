@@ -118,9 +118,38 @@ with no embedding route it falls back to lexical overlap — the run succeeds, t
 produced, and the clusters are simply worse, grouping on shared words rather than shared meaning.
 The pipeline records which path it took, so check it after your first analysis.
 
-**OpenRouter serves no embedding models.** If OpenRouter is your only provider, that fallback is
-where you will stay. To get semantic clustering, add a second provider with a direct key that does
-serve them (OpenAI or Voyage) and route `embedding` to it. Everything else can stay on OpenRouter.
+**Neither Anthropic nor OpenRouter can transcribe, speak, or embed.** Anthropic has no audio or
+embedding endpoints, and OpenRouter proxies chat models only. Without a third key you get
+interviews that work, clustering that falls back to word overlap, and no voice at all.
+
+Setting `OPENAI_API_KEY` in `deploy/.env` closes all three at once: first boot adds a platform
+OpenAI provider and routes exactly `transcription`, `tts` and `embedding` to it, leaving every
+conversation purpose on whichever provider you chose. Nothing else changes.
+
+| Purpose         | Default model            | What it turns on                        |
+| --------------- | ------------------------ | --------------------------------------- |
+| `transcription` | `whisper-1`              | Voice answers, and live voice           |
+| `tts`           | `tts-1`                  | The interviewer's own voice             |
+| `embedding`     | `text-embedding-3-small` | Semantic clustering instead of keywords |
+
+The cheaper models are chosen deliberately: a voice interview pays per second of conversation.
+Change a row in Admin → Routing for a better voice.
+
+## Live voice
+
+A live voice interview is the one browser call that does not go through the Next.js proxy. A route
+handler cannot upgrade a connection, so `deploy/Caddyfile` forwards exactly
+`/api/v1/p/session/live` to the API and everything else to the web app. The API authenticates it
+with the same `aidp_participant` cookie the web app set, so the socket grants nothing an ordinary
+HTTP call would not.
+
+It is off until a tenant turns it on (Admin → Settings → Voice, `features.realtimeVoice`), and it
+needs both a `transcription` and a `tts` route. Without them it degrades rather than breaking:
+no speech model means captions only, no transcription model means the participant falls back to
+the push-to-record button, and either way the interview continues.
+
+Costs run per second of conversation rather than per turn, which is worth knowing before opening
+it to a whole department. The per-call figures land in the same cost ledger as everything else.
 
 ## Where the data lives
 
@@ -486,6 +515,12 @@ dc logs caddy | grep -i acme
 - [ ] `dc logs preflight` says `ok`, and `pg_stat_activity` shows the app on `app_api`.
 - [ ] A magic link actually arrives in a real inbox, from a real relay, and signs you in.
 - [ ] A provider is configured and `interview_turn` has a route — take one interview end to end.
+- [ ] If you want voice or semantic clustering, `OPENAI_API_KEY` is set and Admin → Routing shows
+      `transcription`, `tts` and `embedding` bound to it. Without them voice degrades and analysis
+      clusters on keywords; both are silent, so check rather than assume.
+- [ ] If live voice is on, hold one real conversation on a phone, on mobile data, and interrupt the
+      interviewer mid-sentence. Latency and barge-in are the two things a desk test will not show.
+- [ ] Attach a document during an interview and confirm it reaches `Ready`, not `Failed`.
 - [ ] `dc exec -T backup ls -lh /backups` shows a dump, and you have restored one into
       `ai_discovery_check` and looked at the row counts.
 - [ ] `deploy/.env` is copied somewhere off this host, and you know it contains

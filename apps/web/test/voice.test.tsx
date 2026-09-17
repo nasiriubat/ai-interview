@@ -55,6 +55,8 @@ const options = (
   enabled: true,
   capabilities: {
     recordedVoice: true,
+    liveVoice: false,
+    captions: true,
     fileUpload: true,
     maxSizeMb: 20,
     allowedTypes: ["application/pdf", "text/markdown", "image/png"],
@@ -302,6 +304,8 @@ describe("capabilities", () => {
     ...(modePreference === undefined ? {} : { modePreference }),
     capabilities: {
       recordedVoice: true,
+      liveVoice: false,
+      captions: true,
       fileUpload: true,
       maxSizeMb: 20,
       allowedTypes: ["application/pdf"],

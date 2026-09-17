@@ -77,8 +77,13 @@ EMAIL_FROM=no-reply@$hostname
 
 # Optional: seeds a platform provider with default routes at first boot. Can also be done in the
 # admin UI afterwards. Nothing works until 'interview_turn' has a route.
+#
+# Anthropic or OpenRouter runs the interviews. OPENAI_API_KEY is separate and worth setting even
+# if you use one of the others: it is the only one that can transcribe audio, speak, or produce
+# embeddings, so it is what turns on voice answers and semantic clustering in the analysis.
 ANTHROPIC_API_KEY=
 OPENROUTER_API_KEY=
+OPENAI_API_KEY=
 
 # Optional: Google sign-in for staff.
 AUTH_GOOGLE_ID=

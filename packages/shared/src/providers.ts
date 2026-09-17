@@ -33,6 +33,8 @@ export const CapabilitiesSchema = z.object({
   batch: z.boolean(),
   vision: z.boolean(),
   transcription: z.boolean(),
+  /** Text to speech, for the interviewer's own voice in a live interview (FR-30a). */
+  speech: z.boolean().default(false),
 });
 export type Capabilities = z.infer<typeof CapabilitiesSchema>;
 

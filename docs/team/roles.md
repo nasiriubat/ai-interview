@@ -44,11 +44,12 @@ OpenRouter rather than against the fake one. Phase 4 is built except for its rea
   versioned generation by the worker, spec.md / spec.json / agent-bundle exports, GitHub push,
   chaining from promoted opportunities, and external invitations. Replay evals cover both seeded
   templates.
-- **Phase 4, files and recorded voice.** A participant can attach a document or an image and it is
-  read once — extracted or described, summarized, chunked — with the summary in the interviewer's
-  context every turn and the wording recalled on demand. They can answer by speaking: the recording
-  is stored, transcribed and answered in one request, and kept playable under its own retention
-  clock. The real-time voice cascade (FR-30a) is not built.
+- **Phase 4, voice and files.** A participant can attach a document or an image and it is read
+  once — extracted or described, summarized, chunked — with the summary in the interviewer's context
+  every turn and the wording recalled on demand. They can answer by speaking, or hold a live
+  conversation: speech in, the same engine turn the text interview runs, the interviewer's voice
+  back, with barge-in and captions, degrading to captions and then to typing without losing the
+  session. Speech-to-text is per utterance rather than per token; see the phase plan.
 
 Deployment is owned and documented: `deploy/compose.prod.yml` with Caddy, nightly backups, a
 tested restore drill and a preflight gate that refuses to start the stack unless row-level security
@@ -59,6 +60,6 @@ embedding route is configured; OpenRouter serves no embedding models. Configure 
 purpose against a provider that has them (a direct OpenAI or Voyage key) to get semantic
 clustering. The fallback is deliberate and the pipeline reports which path it took.
 
-Next: the real-time voice cascade, then the phase 3 acceptance test in `15-phase-plan.md`
-(regenerate this spec from a rough prompt; build a feature from the bundle). Phases 6 (integrations),
-7 (collaboration) and 8 (billing) are specified and not built.
+Next: the phase 3 acceptance test in `15-phase-plan.md` (regenerate this spec from a rough prompt;
+build a feature from the bundle), and token-level speech-to-text. Phase 5 is partly built; phases 6
+(integrations), 7 (collaboration) and 8 (billing) are specified and not built.

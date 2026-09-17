@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { t } from "@/i18n";
 
 /**
  * Recording in the browser (FR-30).
@@ -20,6 +21,21 @@ export type RecorderProblem = "unsupported" | "denied" | "no_microphone" | "fail
 
 export type RecorderStatus = "idle" | "starting" | "recording";
 
+/** Each way the microphone can fail gets its own sentence; all of them end in "type instead". */
+export function recorderProblemMessage(problem: RecorderProblem): string {
+  const s = t.participant.session;
+  switch (problem) {
+    case "denied":
+      return s.recordDenied;
+    case "unsupported":
+      return s.recordUnsupported;
+    case "no_microphone":
+      return s.recordNoMicrophone;
+    case "failed":
+      return s.recordFailed;
+  }
+}
+
 export interface RecorderController {
   status: RecorderStatus;
   elapsedMs: number;
@@ -37,7 +53,7 @@ export interface RecorderController {
 /** In preference order; the first one this browser can produce wins. All are on the API's allowlist. */
 const CANDIDATE_MIMES = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
 
-function recorderOptions(): MediaRecorderOptions {
+export function recorderOptions(): MediaRecorderOptions {
   const supported = typeof window.MediaRecorder.isTypeSupported === "function";
   const mimeType = supported
     ? CANDIDATE_MIMES.find((m) => window.MediaRecorder.isTypeSupported(m))
@@ -46,7 +62,7 @@ function recorderOptions(): MediaRecorderOptions {
 }
 
 /** `getUserMedia` reports refusal and absence through the error's name. */
-function problemFor(e: unknown): RecorderProblem {
+export function microphoneProblem(e: unknown): RecorderProblem {
   const name = e instanceof Error ? e.name : "";
   if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
     return "denied";
@@ -117,7 +133,7 @@ export function useRecorder(onRecorded: (audio: Blob, durationMs: number) => voi
       stream = await media.getUserMedia({ audio: true });
     } catch (e) {
       setStatus("idle");
-      setProblem(problemFor(e));
+      setProblem(microphoneProblem(e));
       return;
     }
     streamRef.current = stream;
