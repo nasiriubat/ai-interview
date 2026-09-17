@@ -406,10 +406,26 @@ class LiveVoiceSession {
     this.send({
       type: "unavailable",
       reason: unsupported ? `no_${stage}_route` : `${stage}_failed`,
-      // Losing speech-to-text means voice cannot work at all; losing the voice means it can, in
-      // captions. Either way the session itself is untouched and typing still works.
-      fallback: stage === "transcription" ? "recorded" : "captions",
+      fallback: this.fallbackFor(stage, unsupported),
     });
+  }
+
+  /**
+   * Which rung of the chain to drop to.
+   *
+   * The distinction that matters is between a missing route and a provider having a bad minute.
+   * Recorded voice and live voice transcribe through the same `transcription` route, so when that
+   * route does not exist, telling the participant to press the record button instead sends them at
+   * the one thing guaranteed to fail the same way. The honest answer there is typing. A
+   * transcription that merely *failed* is worth retrying by hand, so that one does point at the
+   * button. Losing the interviewer's voice is different again: the call still works, in captions.
+   */
+  private fallbackFor(
+    stage: "transcription" | "speech" | "turn",
+    unsupported: boolean,
+  ): "text" | "recorded" | "captions" {
+    if (stage !== "transcription") return "captions";
+    return unsupported ? "text" : "recorded";
   }
 
   /** The three signals spec 09 asks to trace per session, written once at the end. */

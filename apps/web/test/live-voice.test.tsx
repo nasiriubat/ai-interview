@@ -133,7 +133,7 @@ const callbacks = (over: Partial<LiveVoiceCallbacks> = {}): LiveVoiceCallbacks =
   onHeard: vi.fn(),
   onEnded: vi.fn(),
   onError: vi.fn(),
-  onFallbackToRecorded: vi.fn(),
+  onUnavailable: vi.fn(),
   ...over,
 });
 
@@ -272,22 +272,42 @@ describe("useLiveVoice", () => {
 
   it("drops to the recorded microphone when the cascade cannot hear, releasing the device", async () => {
     const mic = microphone();
-    const onFallbackToRecorded = vi.fn();
-    const { result, socket } = await callInProgress(callbacks({ onFallbackToRecorded }));
+    const onUnavailable = vi.fn();
+    const { result, socket } = await callInProgress(callbacks({ onUnavailable }));
 
-    socket.emit({ type: "unavailable", reason: "no_transcription_route", fallback: "recorded" });
-    expect(onFallbackToRecorded).toHaveBeenCalledWith("no_transcription_route");
+    socket.emit({ type: "unavailable", reason: "transcription_failed", fallback: "recorded" });
+    expect(onUnavailable).toHaveBeenCalledWith("recorded", "transcription_failed");
     expect(result.current.status).toBe("unavailable");
     expect(mic.stopped()).toBe(1);
   });
 
+  it("asks for typing, not the microphone, when there is no route that listens at all", async () => {
+    const mic = microphone();
+    const onUnavailable = vi.fn();
+    const { result, socket } = await callInProgress(callbacks({ onUnavailable }));
+
+    socket.emit({ type: "unavailable", reason: "no_transcription_route", fallback: "text" });
+    expect(onUnavailable).toHaveBeenCalledWith("text", "no_transcription_route");
+    expect(result.current.status).toBe("unavailable");
+    expect(mic.stopped()).toBe(1);
+  });
+
+  it("treats a rung it does not recognize as text, the one that cannot itself be broken", async () => {
+    microphone();
+    const onUnavailable = vi.fn();
+    const { socket } = await callInProgress(callbacks({ onUnavailable }));
+
+    socket.emit({ type: "unavailable", reason: "something_new", fallback: "semaphore" });
+    expect(onUnavailable).toHaveBeenCalledWith("text", "something_new");
+  });
+
   it("stays in the call, without waiting for audio, when only the voice is gone", async () => {
     const mic = microphone();
-    const onFallbackToRecorded = vi.fn();
-    const { result, socket } = await callInProgress(callbacks({ onFallbackToRecorded }));
+    const onUnavailable = vi.fn();
+    const { result, socket } = await callInProgress(callbacks({ onUnavailable }));
 
     socket.emit({ type: "unavailable", reason: "no_tts_route", fallback: "captions" });
-    expect(onFallbackToRecorded).not.toHaveBeenCalled();
+    expect(onUnavailable).not.toHaveBeenCalled();
     expect(result.current.textOnly).toBe(true);
     expect(result.current.status).toBe("listening");
     expect(mic.stopped()).toBe(0);
@@ -299,17 +319,17 @@ describe("useLiveVoice", () => {
 
   it("reopens a socket that drops once, then falls back when the second one drops too", async () => {
     microphone();
-    const onFallbackToRecorded = vi.fn();
-    const { result, socket } = await callInProgress(callbacks({ onFallbackToRecorded }));
+    const onUnavailable = vi.fn();
+    const { result, socket } = await callInProgress(callbacks({ onUnavailable }));
 
     socket.drop();
     expect(SocketStub.instances).toHaveLength(2);
     expect(result.current.status).toBe("connecting");
-    expect(onFallbackToRecorded).not.toHaveBeenCalled();
+    expect(onUnavailable).not.toHaveBeenCalled();
 
     SocketStub.instances[1]!.drop();
     expect(SocketStub.instances).toHaveLength(2);
-    expect(onFallbackToRecorded).toHaveBeenCalledWith("connection_lost");
+    expect(onUnavailable).toHaveBeenCalledWith("recorded", "connection_lost");
     expect(result.current.problem).toBe("lost");
     expect(result.current.status).toBe("unavailable");
   });
@@ -455,14 +475,34 @@ describe("the interview screen in a live call", () => {
     expect(screen.queryByRole("button", { name: "End the call" })).not.toBeInTheDocument();
   });
 
-  it("offers the recorded microphone again once the cascade says it cannot hear", async () => {
+  it("offers the recorded microphone again when transcription merely failed", async () => {
     microphone();
     const socket = await enterVoice();
     socket.emit({ type: "ready", captions: true, bargeIn: true });
-    socket.emit({ type: "unavailable", reason: "no_transcription_route", fallback: "recorded" });
+    socket.emit({ type: "unavailable", reason: "transcription_failed", fallback: "recorded" });
 
     expect(screen.getByText(/A live call is not possible right now/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Record your answer" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Your answer")).toBeInTheDocument();
+  });
+
+  it("withdraws every microphone when there is no route that listens, and moves to typing", async () => {
+    microphone();
+    const socket = await enterVoice();
+    socket.emit({ type: "ready", captions: true, bargeIn: true });
+    socket.emit({ type: "unavailable", reason: "no_transcription_route", fallback: "text" });
+    await settle();
+
+    expect(
+      screen.getByText("This interview cannot take spoken answers. Please type your answer instead."),
+    ).toBeInTheDocument();
+    // Recorded voice transcribes through the same missing route, so pointing at it would be the
+    // one suggestion guaranteed to fail.
+    expect(screen.queryByRole("button", { name: "Record your answer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "End the call" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start a voice call" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Voice" })).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Chat" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByLabelText("Your answer")).toBeInTheDocument();
   });
 

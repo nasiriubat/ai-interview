@@ -216,6 +216,7 @@ export const en = {
       liveNoCaptions: "What you say is not shown here, but it is saved with the interview.",
       liveUnavailable:
         "A live call is not possible right now. Record your answer with the microphone instead, or type it.",
+      liveTypeOnly: "This interview cannot take spoken answers. Please type your answer instead.",
       liveLost: "The voice call was disconnected. Everything you said so far is saved.",
       attach: "Attach a file",
       attachUploading: "Sending your file…",

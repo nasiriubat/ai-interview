@@ -2,7 +2,13 @@
 
 import * as React from "react";
 import { microphoneProblem, recorderOptions, type RecorderProblem } from "./useRecorder";
-import { toServerFrame, type ClientFrame, type ServerFrame, type TurnFrame } from "@/lib/api/voice-live";
+import {
+  toServerFrame,
+  type ClientFrame,
+  type ServerFrame,
+  type TurnFrame,
+  type VoiceFallback,
+} from "@/lib/api/voice-live";
 import { voiceSocketUrl } from "@/lib/env";
 
 /**
@@ -81,10 +87,14 @@ export interface LiveVoiceCallbacks {
   /** A turn that failed, in the same shape the interview's own error alert takes. */
   onError: (code: string, message: string) => void;
   /**
-   * The cascade cannot hear at all. Spec 09's chain is real-time → recorded → text, so the screen
-   * drops to the push-to-record button and the session carries on untouched.
+   * The call is over because the cascade cannot hear, and this is the rung of spec 09's chain that
+   * is still standing: `recorded` when transcription merely failed, `text` when there is no
+   * transcription route at all and the microphone would fail the same way.
+   *
+   * The hook does not decide what to offer instead — it has already released the device and closed
+   * the socket. `reason` is the server's word for why, for logs and for wording.
    */
-  onFallbackToRecorded: (reason: string) => void;
+  onUnavailable: (fallback: Exclude<VoiceFallback, "captions">, reason: string) => void;
 }
 
 export interface LiveVoiceController {
@@ -213,11 +223,11 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
     setPhase(next);
   };
 
-  const fallBackToRecorded = (reason: string): void => {
+  const giveUp = (fallback: Exclude<VoiceFallback, "captions">, reason: string): void => {
     if (fellBackRef.current) return;
     fellBackRef.current = true;
     teardown("unavailable");
-    cb.current.onFallbackToRecorded(reason);
+    cb.current.onUnavailable(fallback, reason);
   };
 
   const toListening = (): void => {
@@ -430,7 +440,7 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
           toListening();
           return;
         }
-        fallBackToRecorded(frame.reason);
+        giveUp(frame.fallback, frame.reason);
         return;
     }
   };
@@ -449,7 +459,9 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
       return;
     }
     setProblem("lost");
-    fallBackToRecorded("connection_lost");
+    // The socket, not the cascade: the transcription route is presumably fine, so the record
+    // button is worth offering.
+    giveUp("recorded", "connection_lost");
   };
 
   function connect(): void {
@@ -457,7 +469,7 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
     try {
       socket = new WebSocket(voiceSocketUrl());
     } catch {
-      fallBackToRecorded("socket_failed");
+      giveUp("recorded", "socket_failed");
       return;
     }
     socket.binaryType = "arraybuffer";

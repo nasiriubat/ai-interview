@@ -46,10 +46,11 @@ export function InterviewScreen({
     clearError,
   } = useInterview(api, initial);
   const can = initial.capabilities;
-  const anyVoice = can.recordedVoice || can.liveVoice;
+  /** Whether this tenant does spoken answers at all, either way round. */
+  const voiceConfigured = can.recordedVoice || can.liveVoice;
   // A stored `voice` preference outlives the setting that allowed it, so it is coerced back.
   const [mode, setMode] = React.useState<ModePreference>(
-    initial.modePreference === "voice" && !anyVoice ? "chat" : (initial.modePreference ?? "chat"),
+    initial.modePreference === "voice" && !voiceConfigured ? "chat" : (initial.modePreference ?? "chat"),
   );
   const [screen, setScreen] = React.useState<Screen>(initial.status === "paused" ? "paused" : "interview");
   const attachments = useAttachments(api, {
@@ -63,22 +64,33 @@ export function InterviewScreen({
 
   /**
    * The real-time cascade (FR-30a). Its turns land in the same conversation as the typed ones, so
-   * the interview reads as one thread whichever way each answer was given. When the server says it
-   * cannot hear, `liveDropped` sends the screen down the spec's chain to the record button — the
-   * session itself is untouched, which is the whole point of "without losing the session".
+   * the interview reads as one thread whichever way each answer was given.
+   *
+   * When the call gives up, `gaveUp` holds the rung of spec 09's chain that is still standing, and
+   * the screen offers exactly that. `recorded` brings the microphone back; `text` means there is no
+   * transcription route at all, so the microphone would fail the same way and pointing at it would
+   * be the one suggestion guaranteed not to work. Either way the session is untouched, which is
+   * what "without losing the session" asks for.
    */
-  const [liveDropped, setLiveDropped] = React.useState(false);
+  const [gaveUp, setGaveUp] = React.useState<"recorded" | "text" | null>(null);
   const live = useLiveVoice({
     onTurn: sink.turn,
     onHeard: sink.heard,
     onEnded: sink.ended,
     onError: sink.failed,
-    onFallbackToRecorded: () => {
-      setLiveDropped(true);
-    },
+    onUnavailable: setGaveUp,
   });
-  const liveOffered = can.liveVoice && !liveDropped;
+  const spokenAnswers = gaveUp !== "text";
+  const liveOffered = can.liveVoice && gaveUp === null;
   const inCall = live.status !== "idle" && live.status !== "unavailable";
+
+  // Nothing under the voice mode can work without a route that listens, so the interview moves to
+  // typing rather than leaving a mode selected whose every control is broken.
+  React.useEffect(() => {
+    if (spokenAnswers) return;
+    setMode("chat");
+    api.setMode("chat").catch(() => undefined);
+  }, [spokenAnswers, api]);
 
   const changeMode = (m: ModePreference): void => {
     setMode(m);
@@ -183,7 +195,9 @@ export function InterviewScreen({
         <div className="flex items-center justify-between gap-2 px-4 py-2">
           <h1 className="truncate text-base font-semibold">{title ?? t.participant.session.title}</h1>
           <div className="flex items-center gap-2">
-            {!state.ended ? <ModeSwitch mode={mode} onChange={changeMode} voiceEnabled={anyVoice} /> : null}
+            {!state.ended ? (
+              <ModeSwitch mode={mode} onChange={changeMode} voiceEnabled={voiceConfigured && spokenAnswers} />
+            ) : null}
             <LanguageSwitch />
             <SessionMenu onPause={pause} onDone={done} onDelete={remove} disabled={busy || state.ended} />
           </div>
@@ -286,8 +300,13 @@ export function InterviewScreen({
 
       {showComposer ? (
         <footer className="bg-background sticky bottom-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          {mode === "voice" && (can.liveVoice || live.status === "unavailable") ? (
+          {mode === "voice" && liveOffered ? (
             <LiveVoiceCall live={live} disabled={inputDisabled} onStart={live.start} />
+          ) : null}
+          {gaveUp !== null ? (
+            <p className="text-muted-foreground mb-2 text-sm" role="status">
+              {gaveUp === "text" ? t.participant.session.liveTypeOnly : t.participant.session.liveUnavailable}
+            </p>
           ) : null}
           <AttachmentList
             items={attachments.items}
@@ -308,8 +327,10 @@ export function InterviewScreen({
             }}
             onVoice={
               // One microphone at a time: while a live call is up, recording an answer as well
-              // would take a second turn on a session that only allows one.
-              can.recordedVoice && !inCall
+              // would take a second turn on a session that only allows one. And with no route
+              // that listens, recorded voice transcribes through the same missing thing the call
+              // just failed on, so the button is withdrawn rather than left as a dead end.
+              can.recordedVoice && !inCall && spokenAnswers
                 ? (audio, durationMs) => {
                     setTypeInstead(false);
                     // The turn stores the audio server-side, so the list is re-read afterwards
