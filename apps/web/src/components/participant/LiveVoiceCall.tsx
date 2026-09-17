@@ -67,13 +67,9 @@ export function LiveVoiceCall({
     wasLive.current = isLive;
   }, [isLive]);
 
-  if (status === "unavailable") {
-    return (
-      <p className="text-muted-foreground mb-2 text-sm" role="status">
-        {s.liveUnavailable}
-      </p>
-    );
-  }
+  // A call that gave up says nothing here: which rung of the chain is left is the screen's to
+  // answer, because only it knows whether the microphone is still worth offering.
+  if (status === "unavailable") return <></>;
 
   if (status === "idle") {
     return (

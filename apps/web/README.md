@@ -202,11 +202,20 @@ blob URL, so speech starts when synthesis finishes rather than when the first by
 Safari, where a mismatch fails silently; the server measures `first_word` from its own side,
 so the spec's latency target is still traced honestly.
 
-Fallbacks are the spec's chain. `{type:"unavailable", fallback:"recorded"}` ends the call and
-brings the push-to-record button back; `fallback:"captions"` keeps the call and stops waiting
-for audio. A socket that closes unexpectedly is reopened once, and a second close falls back
-to recording. Every one of those paths, plus end, unmount, a refused permission and the
-interview ending, runs through the same `release`, so the microphone is never left open.
+Fallbacks are the spec's chain, and `unavailable.fallback` says which rung is still standing.
+`captions` keeps the call and stops waiting for audio. `recorded` means transcription failed
+but the route exists, so the call ends and the push-to-record button comes back. `text` means
+there is no transcription route at all — recorded voice goes through that same route, so the
+microphone and the voice mode are both withdrawn, the mode moves to chat and the participant
+is asked to type; sending them at the microphone there would be the one suggestion guaranteed
+to fail. A value this client does not recognize is read as `text` for the same reason: typing
+is the only rung that cannot itself be the broken thing. The hook reports `recorded` or `text`
+through `onUnavailable` and decides nothing about the UI; the screen picks what to offer.
+
+A socket that closes unexpectedly is reopened once, and a second close falls back to
+`recorded` — the cascade is presumably fine, it was the connection that went. Every one of
+those paths, plus end, unmount, a refused permission and the interview ending, runs through
+the same `release`, so the microphone is never left open.
 
 Captions are the participant's own words: the server takes the turn with the answer already
 transcribed, so no `turn` frame echoes them. The interviewer's caption repeats the `turn`
@@ -420,3 +429,8 @@ Phase 4 (voice and files, `09-voice-and-files.md`):
 42. **Only one turn at a time.** The API refuses concurrent turns on a session, so typing, a
     widget answer, "skip", "come back", "I'm done", pause and delete all end the call first, and
     the recorded-voice microphone is hidden while a call is up.
+43. **`unavailable.fallback: "text"` withdraws recorded voice too.** Recorded voice transcribes
+    through the same route the live call just failed to find, so with no transcription route the
+    microphone, the voice mode and the call panel all go away and the mode switches to chat. An
+    unrecognized `fallback` value is treated as `text`, since typing is the only rung of the chain
+    that cannot itself be the thing that is broken.

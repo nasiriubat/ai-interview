@@ -70,15 +70,25 @@ const ErrorFrameSchema = z.object({
 });
 
 /**
- * A rung of the spec's real-time → recorded → text chain.
+ * Which rung of the spec's real-time → recorded → text chain is still standing.
  *
- * `recorded` means the cascade cannot hear at all, so the call ends and the push-to-record button
- * comes back. `captions` means only the voice is missing, so the call carries on in text.
+ * - `captions`: only the interviewer's voice is missing, so the call carries on in text.
+ * - `recorded`: transcription failed, but the route exists — the push-to-record button is worth
+ *   trying, so the call ends and it comes back.
+ * - `text`: there is no transcription route at all. Recorded voice goes through that same route,
+ *   so offering the microphone would send the participant at the one thing guaranteed to fail.
+ *   Typing is the only honest suggestion.
  */
+export const VOICE_FALLBACKS = ["recorded", "captions", "text"] as const;
+export type VoiceFallback = (typeof VOICE_FALLBACKS)[number];
+
 const UnavailableFrameSchema = z.object({
   type: z.literal("unavailable"),
   reason: z.string().default(""),
-  fallback: z.enum(["recorded", "captions"]).catch("recorded"),
+  // An unrecognized rung falls to `text`, not to `recorded`: typing is the only one that cannot
+  // itself be the thing that is broken, so it is the safe answer to a value this client is too
+  // old to understand.
+  fallback: z.enum(VOICE_FALLBACKS).catch("text"),
 });
 
 export const ServerFrameSchema = z.discriminatedUnion("type", [

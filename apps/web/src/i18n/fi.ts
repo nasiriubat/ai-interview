@@ -221,6 +221,7 @@ export const fi: Strings = {
       liveNoCaptions: "Puhettasi ei näytetä tässä, mutta se tallentuu haastatteluun.",
       liveUnavailable:
         "Puhelu ei ole juuri nyt mahdollinen. Nauhoita vastauksesi mikrofonilla tai kirjoita se.",
+      liveTypeOnly: "Tässä haastattelussa ei voi vastata puhumalla. Kirjoita vastauksesi.",
       liveLost: "Yhteys puheluun katkesi. Kaikki tähän mennessä sanomasi on tallennettu.",
       attach: "Liitä tiedosto",
       attachUploading: "Lähetetään tiedostoasi…",

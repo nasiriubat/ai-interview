@@ -144,9 +144,16 @@ with the same `aidp_participant` cookie the web app set, so the socket grants no
 HTTP call would not.
 
 It is off until a tenant turns it on (Admin → Settings → Voice, `features.realtimeVoice`), and it
-needs both a `transcription` and a `tts` route. Without them it degrades rather than breaking:
-no speech model means captions only, no transcription model means the participant falls back to
-the push-to-record button, and either way the interview continues.
+needs both a `transcription` and a `tts` route. Without them it degrades rather than breaking, and
+which rung it drops to depends on what is missing:
+
+| What is missing             | What the participant gets                                  |
+| --------------------------- | ---------------------------------------------------------- |
+| No `tts` route              | The call continues in captions, without the spoken voice   |
+| A transcription that failed | The push-to-record button, worth retrying by hand          |
+| No `transcription` route    | Typing. Nothing that listens can work, so nothing pretends |
+
+The interview itself is untouched in every case.
 
 Costs run per second of conversation rather than per turn, which is worth knowing before opening
 it to a whole department. The per-call figures land in the same cost ledger as everything else.

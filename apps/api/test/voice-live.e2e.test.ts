@@ -374,4 +374,35 @@ suite("live voice", () => {
     expect(turn).toBeDefined();
     client.close();
   });
+
+  it("points at typing, not the record button, when there is no transcription route at all", async () => {
+    // Recorded voice transcribes through the same route. Sending someone to the record button when
+    // that route does not exist sends them at the one thing guaranteed to fail identically.
+    const route = await world.db.route.findFirstOrThrow({
+      where: { companyId: world.companyId, purpose: "transcription" },
+    });
+    await world.db.route.delete({ where: { id: route.id } });
+    try {
+      const token = await participantToken();
+      const client = await connect(token);
+      await client.waitFor("ready");
+      client.socket.send(Buffer.from("some audio"));
+      client.send({ type: "utterance" });
+
+      const frame = await client.waitFor("unavailable", (f) => f.reason === "no_transcription_route");
+
+      expect(frame).toMatchObject({ fallback: "text" });
+      client.close();
+    } finally {
+      await world.db.route.create({
+        data: {
+          companyId: route.companyId,
+          purpose: route.purpose,
+          providerId: route.providerId,
+          model: route.model,
+          maxOutputTokens: route.maxOutputTokens,
+        },
+      });
+    }
+  });
 });
