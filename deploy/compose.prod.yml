@@ -125,8 +125,11 @@ services:
       # A failure is also written here for ops-notify to deliver: when this gate refuses, the
       # application is not running and cannot tell anyone (D-94).
       OPS_STATE_DIR: /ops-state
+      RLS_EXEMPT_FILE: /etc/aidp/rls-exempt.txt
     volumes:
       - ./preflight.sh:/usr/local/bin/preflight.sh:ro
+      # The reviewed list of tables that are outside row-level security; everything else must be in.
+      - ./rls-exempt.txt:/etc/aidp/rls-exempt.txt:ro
       - ops_state:/ops-state
     entrypoint: ["/usr/local/bin/preflight.sh"]
     depends_on:

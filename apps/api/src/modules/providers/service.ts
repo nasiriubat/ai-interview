@@ -248,6 +248,11 @@ export class ProviderService {
     } catch (err) {
       return this.storedModels(p.id, probeStatus(err));
     }
+    // A platform provider's prices are the operator's to set (see `setPrices`), and the database now
+    // refuses a tenant's write to a platform row: a tenant admin listing a platform provider's
+    // models sees them, and nothing is imported (D-141).
+    if (p.companyId !== companyId)
+      return { models, importedPrices: 0, fetchedAt: new Date(), stale: false, status: "ok" };
     const table = new PriceTable();
     table.importFromModels(p.id, models);
     let importedPrices = 0;

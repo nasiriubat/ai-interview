@@ -110,6 +110,7 @@ export class ParticipantService {
     const code = newNumericCode();
     await this.db.emailCode.create({
       data: {
+        companyId: campaign.companyId,
         campaignId: campaign.id,
         emailHash,
         codeHash: this.crypto.hashToken(code),
@@ -226,7 +227,7 @@ export class ParticipantService {
         return { participantToken: token, sessionId: session.id, resume: session.status !== "created" };
       }
     }
-    await this.db.campaignEmailHash.create({ data: { campaignId: campaign.id, emailHash } });
+    await this.db.campaignEmailHash.create({ data: { companyId: campaign.companyId, campaignId: campaign.id, emailHash } });
     return this.createParticipantAndSession(campaign, emailHash, email);
   }
 

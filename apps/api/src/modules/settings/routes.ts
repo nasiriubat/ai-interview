@@ -1,4 +1,5 @@
 import { EgressBlockedError, SettingsService } from "@aidp/core";
+import { withSystemTenant } from "@aidp/db";
 import { isSmtpUrl, maskSecretSettings, SECRET_SENTINEL, type SettingKey } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
@@ -21,6 +22,20 @@ function scrubSmtp(message: string): string {
 }
 
 export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
+  /**
+   * A platform operator names the scope it acts on explicitly (`ref` checks it), and platform rows
+   * and other tenants' rows are outside any single tenant's policy. So an operator's settings work
+   * runs in the system context even when `X-Company-Id` pinned the request to one tenant; everyone
+   * else stays inside their own (D-141).
+   */
+  const asCaller = <T>(
+    req: { principal: { kind: string; role?: string } },
+    fn: () => Promise<T>,
+  ): Promise<T> =>
+    req.principal.kind === "staff" && req.principal.role === "platform_operator"
+      ? withSystemTenant(fn)
+      : fn();
+
   /**
    * The scope a request acts on, after checking the caller may see (or change) it. A template or
    * campaign id is never taken on trust: it must belong to the caller's tenant, and a platform
@@ -70,11 +85,13 @@ export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
     const r = await ref(req, req.query, "read");
     const chain = r.scope === "platform" ? [] : [r, { scope: "tenant" as const, scopeId: req.companyId }];
     const catalog = SettingsService.catalog().filter((c) => c.scopes.includes(r.scope));
-    const effective = await ctx.settings.resolveMany(
-      catalog.map((c) => c.key),
-      chain,
-    );
-    const at = await ctx.settings.describeAt(r);
+    const { effective, at } = await asCaller(req, async () => ({
+      effective: await ctx.settings.resolveMany(
+        catalog.map((c) => c.key),
+        chain,
+      ),
+      at: await ctx.settings.describeAt(r),
+    }));
     // Secrets leave the API as the sentinel, in the values set here and in the effective values alike.
     return {
       scope: r,
@@ -116,8 +133,10 @@ export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
       const r = await ref(req, req.query, "write");
       const actor = staff(req).userId;
       await assertRelayAllowed(r.scope, req.body.values["email.smtpUrl"]);
-      const written = await ctx.settings.set(r, req.body.values, actor);
-      const at = await ctx.settings.describeAt(r);
+      const { written, at } = await asCaller(req, async () => ({
+        written: await ctx.settings.set(r, req.body.values, actor),
+        at: await ctx.settings.describeAt(r),
+      }));
       // The audit diff names the keys that were submitted and never carries a value with it.
       await audit(ctx.db, {
         companyId: req.companyId,
