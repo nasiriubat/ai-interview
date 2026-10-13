@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
+import { DirtyGuardProvider } from "@/components/common/DirtyGuard";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
@@ -38,40 +39,48 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const MAIN: NavGroup[] = [
-  {
-    label: t.admin.nav.groups.research,
-    items: [
-      { href: "/admin", label: t.admin.nav.dashboard, icon: LayoutDashboardIcon, exact: true },
-      { href: "/admin/campaigns", label: t.admin.nav.campaigns, icon: MegaphoneIcon },
-      { href: "/admin/requirements", label: t.admin.nav.requirements, icon: ClipboardListIcon },
-      { href: "/admin/templates", label: t.admin.nav.templates, icon: FileTextIcon },
-    ],
-  },
-  {
-    label: t.admin.nav.groups.configuration,
-    items: [
-      { href: "/admin/settings", label: t.admin.nav.settings, icon: SettingsIcon },
-      { href: "/admin/providers", label: t.admin.nav.providers, icon: ServerIcon },
-      { href: "/admin/routes", label: t.admin.nav.routes, icon: RouteIcon },
-      { href: "/admin/budgets", label: t.admin.nav.budgets, icon: CoinsIcon },
-    ],
-  },
-  {
-    label: t.admin.nav.groups.organization,
-    items: [
-      { href: "/admin/users", label: t.admin.nav.users, icon: UsersIcon },
-      { href: "/admin/audit", label: t.admin.nav.audit, icon: ScrollTextIcon },
-    ],
-  },
-];
+/*
+ * Functions, not module constants: a label read at module load takes the locale of whoever imported
+ * the module first (the server's default), and every later request would render the sidebar in it.
+ */
+function mainNav(): NavGroup[] {
+  return [
+    {
+      label: t.admin.nav.groups.research,
+      items: [
+        { href: "/admin", label: t.admin.nav.dashboard, icon: LayoutDashboardIcon, exact: true },
+        { href: "/admin/campaigns", label: t.admin.nav.campaigns, icon: MegaphoneIcon },
+        { href: "/admin/requirements", label: t.admin.nav.requirements, icon: ClipboardListIcon },
+        { href: "/admin/templates", label: t.admin.nav.templates, icon: FileTextIcon },
+      ],
+    },
+    {
+      label: t.admin.nav.groups.configuration,
+      items: [
+        { href: "/admin/settings", label: t.admin.nav.settings, icon: SettingsIcon },
+        { href: "/admin/providers", label: t.admin.nav.providers, icon: ServerIcon },
+        { href: "/admin/routes", label: t.admin.nav.routes, icon: RouteIcon },
+        { href: "/admin/budgets", label: t.admin.nav.budgets, icon: CoinsIcon },
+      ],
+    },
+    {
+      label: t.admin.nav.groups.organization,
+      items: [
+        { href: "/admin/users", label: t.admin.nav.users, icon: UsersIcon },
+        { href: "/admin/audit", label: t.admin.nav.audit, icon: ScrollTextIcon },
+      ],
+    },
+  ];
+}
 
-const OPERATOR: NavItem[] = [
-  { href: "/admin/operator", label: t.admin.nav.tenants, icon: BuildingIcon, exact: true },
-  { href: "/admin/operator/providers", label: t.admin.nav.platformProviders, icon: ServerIcon },
-  { href: "/admin/operator/routes", label: t.admin.nav.platformRoutes, icon: RouteIcon },
-  { href: "/admin/operator/stats", label: t.admin.nav.platformStats, icon: ActivityIcon },
-];
+function operatorNav(): NavItem[] {
+  return [
+    { href: "/admin/operator", label: t.admin.nav.tenants, icon: BuildingIcon, exact: true },
+    { href: "/admin/operator/providers", label: t.admin.nav.platformProviders, icon: ServerIcon },
+    { href: "/admin/operator/routes", label: t.admin.nav.platformRoutes, icon: RouteIcon },
+    { href: "/admin/operator/stats", label: t.admin.nav.platformStats, icon: ActivityIcon },
+  ];
+}
 
 export function AdminShell({
   me,
@@ -91,7 +100,8 @@ export function AdminShell({
   const close = (): void => {
     setOpen(false);
   };
-  const groups = isOperator ? [...MAIN, { label: t.admin.nav.operator, items: OPERATOR }] : MAIN;
+  const main = mainNav();
+  const groups = isOperator ? [...main, { label: t.admin.nav.operator, items: operatorNav() }] : main;
   const nav = (
     <nav aria-label={t.admin.nav.menu} className="grid gap-5 text-sm">
       {groups.map((group) => (
@@ -108,48 +118,50 @@ export function AdminShell({
   );
 
   return (
-    <div className="flex min-h-dvh">
-      <aside className="bg-sidebar sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r px-3 py-4 md:flex print:hidden">
-        <Brand />
-        <div className="-mx-1 flex-1 overflow-y-auto px-1 pt-5">{nav}</div>
-        <UserBox me={me} signOutAction={signOutAction} />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="bg-card/90 sticky top-0 z-20 flex items-center justify-between border-b px-4 py-2 backdrop-blur md:hidden print:hidden">
+    <DirtyGuardProvider>
+      <div className="flex min-h-dvh">
+        <aside className="bg-sidebar sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r px-3 py-4 md:flex print:hidden">
           <Brand />
-          <div className="flex items-center gap-2">
-            <LanguageSwitch />
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={t.admin.nav.menu}
-              aria-expanded={open}
-              aria-controls="mobile-nav"
-              onClick={() => {
-                setOpen((v) => !v);
-              }}
-            >
-              {open ? <XIcon /> : <MenuIcon />}
-            </Button>
-          </div>
-        </header>
-        {open ? (
-          <div id="mobile-nav" className="bg-card border-b p-4 shadow-sm md:hidden print:hidden">
-            {nav}
-            <div className="mt-4">
-              <UserBox me={me} signOutAction={signOutAction} />
+          <div className="-mx-1 flex-1 overflow-y-auto px-1 pt-5">{nav}</div>
+          <UserBox me={me} signOutAction={signOutAction} />
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="bg-card/90 sticky top-0 z-20 flex items-center justify-between border-b px-4 py-2 backdrop-blur md:hidden print:hidden">
+            <Brand />
+            <div className="flex items-center gap-2">
+              <LanguageSwitch />
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={t.admin.nav.menu}
+                aria-expanded={open}
+                aria-controls="mobile-nav"
+                onClick={() => {
+                  setOpen((v) => !v);
+                }}
+              >
+                {open ? <XIcon /> : <MenuIcon />}
+              </Button>
             </div>
-          </div>
-        ) : null}
-        <main
-          id="main"
-          className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-10 md:py-8 print:max-w-none print:p-0"
-        >
-          {children}
-        </main>
+          </header>
+          {open ? (
+            <div id="mobile-nav" className="bg-card border-b p-4 shadow-sm md:hidden print:hidden">
+              {nav}
+              <div className="mt-4">
+                <UserBox me={me} signOutAction={signOutAction} />
+              </div>
+            </div>
+          ) : null}
+          <main
+            id="main"
+            className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-10 md:py-8 print:max-w-none print:p-0"
+          >
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </DirtyGuardProvider>
   );
 }
 

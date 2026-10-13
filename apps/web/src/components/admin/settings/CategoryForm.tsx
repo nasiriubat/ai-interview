@@ -4,6 +4,7 @@ import { MailCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
+import { useDirty } from "@/components/common/DirtyGuard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,15 @@ export function CategoryForm({
   const [resets, setResets] = React.useState<Record<string, true>>({});
   const [secretEdits, setSecretEdits] = React.useState<Record<string, string>>({});
   const [secretCleared, setSecretCleared] = React.useState<Record<string, true>>({});
+  // Edits, resets and typed secrets are all unsaved work; leaving the category would drop them.
+  useDirty(
+    `settings-${category}`,
+    Object.keys(edits).length +
+      Object.keys(resets).length +
+      Object.keys(secretEdits).length +
+      Object.keys(secretCleared).length >
+      0,
+  );
 
   const setValue = (key: string, v: unknown): void => {
     setEdits((prev) => ({ ...prev, [key]: v }));

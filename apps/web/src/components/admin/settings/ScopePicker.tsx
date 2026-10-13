@@ -1,8 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
+import { useDirtyGuard } from "@/components/common/DirtyGuard";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,6 +22,14 @@ function needsTarget(scope: Scope, allowPlatform: boolean): scope is ScopeKind {
   return scope === "tenant" && allowPlatform;
 }
 
+/**
+ * Which level of the settings hierarchy the page shows. There is no Open button: choosing a level
+ * that stands alone, or a target for one that needs it, navigates at once (D-113). Template and
+ * campaign settings have nothing to show until a target is chosen, so the page says so (see the
+ * settings page) rather than falling back to the tenant's values under another scope's name.
+ *
+ * Navigation goes through the dirty guard, so unsaved edits are asked about, not dropped.
+ */
 export function ScopePicker({
   scope,
   scopeId,
@@ -37,13 +44,20 @@ export function ScopePicker({
   /** Query parameters to carry across, e.g. the selected settings category. */
   extraParams?: Record<string, string>;
 }): React.JSX.Element {
-  const router = useRouter();
+  const guard = useDirtyGuard();
   const s = t.admin.settings;
   const [nextScope, setNextScope] = React.useState<Scope>(isScope(scope) ? scope : "tenant");
   const [nextId, setNextId] = React.useState(scopeId);
   const [targets, setTargets] = React.useState<ComboboxOption[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [announcement, setAnnouncement] = React.useState("");
   const wanted = needsTarget(nextScope, allowPlatform);
+
+  // The URL is the source of truth: back/forward and the category links change it from outside.
+  React.useEffect(() => {
+    setNextScope(isScope(scope) ? scope : "tenant");
+    setNextId(scopeId);
+  }, [scope, scopeId]);
 
   React.useEffect(() => {
     if (!needsTarget(nextScope, allowPlatform)) {
@@ -75,25 +89,32 @@ export function ScopePicker({
     };
   }, [nextScope, allowPlatform]);
 
+  const go = (toScope: Scope, toId: string, announce: string): void => {
+    const params = new URLSearchParams({ ...extraParams, scope: toScope });
+    if (toId) params.set("scopeId", toId);
+    setAnnouncement(announce);
+    guard.navigate(`${basePath}?${params.toString()}`);
+  };
+
   return (
-    <form
-      className="mb-6 grid gap-3 sm:flex sm:flex-wrap sm:items-end"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const params = new URLSearchParams({ ...extraParams, scope: nextScope });
-        if (wanted && nextId) params.set("scopeId", nextId);
-        router.push(`${basePath}?${params.toString()}`);
-      }}
-    >
+    <div role="group" aria-label={s.scope} className="mb-6 grid gap-3 sm:flex sm:flex-wrap sm:items-end">
       <div className="grid gap-1.5">
         <Label htmlFor="scope">{s.scope}</Label>
         <Select
           value={nextScope}
           onValueChange={(v) => {
-            if (isScope(v)) {
-              setNextScope(v);
-              setNextId("");
-            }
+            if (!isScope(v) || v === nextScope) return;
+            setNextScope(v);
+            setNextId("");
+            // Template and campaign have no values until a target is chosen: the page then shows an
+            // instruction instead of the tenant's values under another scope's name.
+            go(
+              v,
+              "",
+              v === "template" || v === "campaign"
+                ? t.admin.form.scopeInstruction(s.scopes[v].toLowerCase())
+                : t.admin.form.scopeShowing(s.scopes[v]),
+            );
           }}
         >
           <SelectTrigger id="scope" className="w-full sm:w-44">
@@ -114,7 +135,12 @@ export function ScopePicker({
           <Combobox
             id="scopeTarget"
             value={nextId}
-            onChange={setNextId}
+            onChange={(id) => {
+              setNextId(id);
+              if (!id) return;
+              const label = targets.find((x) => x.value === id)?.label ?? id;
+              go(nextScope, id, t.admin.form.scopeShowing(label));
+            }}
             options={targets}
             loading={loading}
             labels={{
@@ -126,9 +152,9 @@ export function ScopePicker({
           />
         </div>
       ) : null}
-      <Button type="submit" variant="outline" disabled={wanted && !nextId && nextScope !== "tenant"}>
-        {t.app.open}
-      </Button>
-    </form>
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
+    </div>
   );
 }

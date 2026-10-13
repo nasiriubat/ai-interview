@@ -29,6 +29,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  cancelLabel,
   tone = "destructive",
   onConfirm,
 }: {
@@ -37,6 +38,8 @@ export function ConfirmDialog({
   title: string;
   description: React.ReactNode;
   confirmLabel: string;
+  /** Defaults to "Cancel"; a question about leaving reads better as "Stay on this page". */
+  cancelLabel?: string | undefined;
   tone?: "destructive" | "default";
   onConfirm: () => void;
 }): React.JSX.Element {
@@ -50,7 +53,7 @@ export function ConfirmDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{t.app.cancel}</AlertDialogCancel>
+          <AlertDialogCancel>{cancelLabel ?? t.app.cancel}</AlertDialogCancel>
           <AlertDialogAction
             className={cn(tone === "destructive" && buttonVariants({ variant: "destructive" }))}
             onClick={onConfirm}
