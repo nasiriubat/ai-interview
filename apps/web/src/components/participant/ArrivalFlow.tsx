@@ -82,6 +82,26 @@ export function ArrivalFlow({
   const [fields, setFields] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  /**
+   * What is wrong with one field, shown under it and tied to it (`aria-describedby`); the page-level
+   * alert stays for failures that belong to no field (the network, the server). `focus` moves
+   * focus to the first field to fix after the error has rendered.
+   */
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const [focusRequest, setFocusRequest] = React.useState<{ id: string; n: number } | null>(null);
+  const requestFocus = (id: string): void => {
+    setFocusRequest((prev) => ({ id, n: (prev?.n ?? 0) + 1 }));
+  };
+  React.useEffect(() => {
+    if (focusRequest) document.getElementById(focusRequest.id)?.focus();
+  }, [focusRequest]);
+  const clearFieldError = (id: string): void => {
+    setFieldErrors((prev) => {
+      if (!(id in prev)) return prev;
+      const { [id]: _drop, ...rest } = prev;
+      return rest;
+    });
+  };
 
   const needsChoice = campaign.participationMode === "participant_choice";
   const needsDetails = needsChoice || campaign.participantFields.length > 0;
@@ -121,9 +141,12 @@ export function ArrivalFlow({
 
   const sendCode = (): void => {
     if (!EMAIL_RE.test(email)) {
-      setError(t.participant.verify.invalidEmail);
+      setError(null);
+      setFieldErrors({ email: t.participant.verify.invalidEmail });
+      requestFocus("email");
       return;
     }
+    setFieldErrors({});
     void run(async () => {
       await api.requestCode(linkToken, email);
       setStep("code");
@@ -137,11 +160,11 @@ export function ArrivalFlow({
         afterGrant(grant.resume);
       } catch (e) {
         if (isApiError(e) && (e.status === 400 || e.status === 401 || e.status === 403)) {
-          throw new Error(
-            e.code === "domain_not_allowed"
-              ? t.participant.verify.domainNotAllowed
-              : t.participant.verify.invalidCode,
-          );
+          // A wrong code belongs to the code field; a refused domain belongs to the address.
+          if (e.code === "domain_not_allowed") throw new Error(t.participant.verify.domainNotAllowed);
+          setFieldErrors({ code: t.participant.verify.invalidCode });
+          requestFocus("code");
+          return;
         }
         throw e;
       }
@@ -149,11 +172,18 @@ export function ArrivalFlow({
   };
 
   const submitDetails = (): void => {
-    const missing = campaign.participantFields.find((f) => f.required && !(fields[f.key] ?? "").trim());
-    if (missing) {
-      setError(t.participant.details.fieldRequired(missing.label));
+    const missing = campaign.participantFields.filter((f) => f.required && !(fields[f.key] ?? "").trim());
+    if (missing.length > 0) {
+      setError(null);
+      setFieldErrors(
+        Object.fromEntries(
+          missing.map((f) => [`field-${f.key}`, t.participant.details.fieldRequired(f.label)]),
+        ),
+      );
+      requestFocus(`field-${missing[0]?.key ?? ""}`);
       return;
     }
+    setFieldErrors({});
     setError(null);
     setStep("consent");
   };
@@ -241,6 +271,7 @@ export function ArrivalFlow({
             body={t.participant.verify.body}
           />
           <form
+            noValidate
             className="grid gap-4"
             onSubmit={(e) => {
               e.preventDefault();
@@ -257,10 +288,18 @@ export function ArrivalFlow({
                 required
                 value={email}
                 placeholder={t.participant.verify.emailPlaceholder}
+                aria-invalid={fieldErrors.email ? true : undefined}
+                aria-describedby={fieldErrors.email ? "email-error" : undefined}
                 onChange={(e) => {
                   setEmail(e.target.value);
+                  clearFieldError("email");
                 }}
               />
+              {fieldErrors.email ? (
+                <p id="email-error" className="text-destructive text-sm">
+                  {fieldErrors.email}
+                </p>
+              ) : null}
             </div>
             {errorBox}
             <Button type="submit" size="lg" loading={busy}>
@@ -288,6 +327,7 @@ export function ArrivalFlow({
             body={t.participant.verify.codeBody(email)}
           />
           <form
+            noValidate
             className="grid gap-4"
             onSubmit={(e) => {
               e.preventDefault();
@@ -303,16 +343,23 @@ export function ArrivalFlow({
                 pattern="[0-9]{6}"
                 maxLength={6}
                 required
-                aria-describedby="code-hint"
+                aria-invalid={fieldErrors.code ? true : undefined}
+                aria-describedby={fieldErrors.code ? "code-hint code-error" : "code-hint"}
                 className="text-center text-2xl tracking-[0.5em]"
                 value={code}
                 onChange={(e) => {
                   setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                  clearFieldError("code");
                 }}
               />
               <p id="code-hint" className="text-muted-foreground text-xs">
                 {t.participant.verify.codeHint}
               </p>
+              {fieldErrors.code ? (
+                <p id="code-error" className="text-destructive text-sm">
+                  {fieldErrors.code}
+                </p>
+              ) : null}
             </div>
             {errorBox}
             <Button type="submit" size="lg" disabled={busy || code.length !== 6}>
@@ -346,6 +393,7 @@ export function ArrivalFlow({
             body={t.participant.details.body}
           />
           <form
+            noValidate
             className="grid gap-5"
             onSubmit={(e) => {
               e.preventDefault();
@@ -395,10 +443,18 @@ export function ArrivalFlow({
                   id={`field-${f.key}`}
                   required={f.required}
                   value={fields[f.key] ?? ""}
+                  aria-invalid={fieldErrors[`field-${f.key}`] ? true : undefined}
+                  aria-describedby={fieldErrors[`field-${f.key}`] ? `field-${f.key}-error` : undefined}
                   onChange={(e) => {
                     setFields((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    clearFieldError(`field-${f.key}`);
                   }}
                 />
+                {fieldErrors[`field-${f.key}`] ? (
+                  <p id={`field-${f.key}-error`} className="text-destructive text-sm">
+                    {fieldErrors[`field-${f.key}`]}
+                  </p>
+                ) : null}
               </div>
             ))}
             {errorBox}

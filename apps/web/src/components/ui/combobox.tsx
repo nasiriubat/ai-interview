@@ -41,6 +41,7 @@ export interface ComboboxProps {
   /** When the trigger has no visible `<label htmlFor>`. */
   "aria-label"?: string | undefined;
   "aria-describedby"?: string | undefined;
+  "aria-invalid"?: boolean | undefined;
   size?: "default" | "sm" | undefined;
 }
 
@@ -152,6 +153,7 @@ export function Combobox({
           aria-controls={open ? listId : undefined}
           aria-label={aria["aria-label"]}
           aria-describedby={aria["aria-describedby"]}
+          aria-invalid={aria["aria-invalid"]}
           className={cn(
             "w-full justify-between font-normal",
             !selected && !value && "text-muted-foreground",

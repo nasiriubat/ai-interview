@@ -1,15 +1,26 @@
 "use client";
 
+import { AlertTriangleIcon } from "lucide-react";
 import * as React from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Combobox, type ComboboxLabels, type ComboboxOption } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { t } from "@/i18n";
+import type { FormIssue } from "@/lib/admin/validation";
 import { cn } from "@/lib/utils";
 
 export type FieldErrors = Record<string, string>;
+
+/**
+ * Inside a `ValidatedForm` the summary, the focus move and the status line announce the problems,
+ * so each field's own error is described to the control (aria-describedby) but is not also a live
+ * region: twelve errors at once would otherwise be twelve interruptions.
+ */
+const QuietFieldErrors = React.createContext(false);
 
 /**
  * A labeled field with an optional hint and error, wired with aria-describedby. `required`
@@ -33,6 +44,7 @@ export function Field({
   children: React.ReactNode;
   className?: string | undefined;
 }): React.JSX.Element {
+  const quiet = React.useContext(QuietFieldErrors);
   return (
     <div className={cn("grid gap-1.5", className)}>
       <Label htmlFor={id}>
@@ -50,7 +62,7 @@ export function Field({
         </p>
       ) : null}
       {error ? (
-        <p id={`${id}-error`} className="text-destructive text-xs" role="alert">
+        <p id={`${id}-error`} className="text-destructive text-xs" role={quiet ? undefined : "alert"}>
           {error}
         </p>
       ) : null}
@@ -215,7 +227,12 @@ export function SelectField<T extends string>({
           onChange(v as T);
         }}
       >
-        <SelectTrigger id={id} className="w-full" aria-describedby={describedBy(id, hint, error)}>
+        <SelectTrigger
+          id={id}
+          className="w-full"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy(id, hint, error)}
+        >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -305,6 +322,7 @@ export function ComboboxField({
         allowCustom={allowCustom}
         loading={loading}
         disabled={disabled}
+        aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
       />
     </Field>
@@ -312,21 +330,143 @@ export function ComboboxField({
 }
 
 export function FormSection({
+  id,
   title,
+  errorCount = 0,
   children,
 }: {
+  /** A stable key (the title is localized and changes); the section's anchor is `section-<id>`. */
+  id?: string | undefined;
   title: string;
+  /** Problems found in this section on the last submit; shown in the heading. */
+  errorCount?: number | undefined;
   children: React.ReactNode;
 }): React.JSX.Element {
+  const key = id ?? title;
   return (
     <section
+      id={`section-${key}`}
+      tabIndex={-1}
       className="grid gap-4 bg-card shadow-card rounded-lg p-4 md:p-5"
-      aria-labelledby={`section-${title}`}
+      aria-labelledby={`section-${key}-title`}
     >
-      <h2 id={`section-${title}`} className="text-base font-semibold">
+      <h2 id={`section-${key}-title`} className="flex flex-wrap items-center gap-2 text-base font-semibold">
         {title}
+        {errorCount > 0 ? (
+          <span className="bg-destructive-soft text-destructive-soft-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+            {t.admin.form.sectionProblems(errorCount)}
+          </span>
+        ) : null}
       </h2>
       {children}
     </section>
+  );
+}
+
+/**
+ * Everything wrong with a form, in one list that is read before the fields. Each entry is a link to
+ * its field: activating it moves focus there (the hash alone would only scroll).
+ */
+export function ErrorSummary({
+  issues,
+  className,
+}: {
+  issues: readonly FormIssue[];
+  className?: string | undefined;
+}): React.JSX.Element | null {
+  const headingId = React.useId();
+  if (issues.length === 0) return null;
+  return (
+    <Alert
+      variant="destructive"
+      // The focus move and the status line announce it; this stays a plain landmark of the page.
+      role="status"
+      aria-labelledby={headingId}
+      className={className}
+    >
+      <AlertTriangleIcon aria-hidden="true" />
+      <AlertTitle id={headingId} className="line-clamp-none">
+        {t.admin.form.summaryTitle(issues.length)}
+      </AlertTitle>
+      <AlertDescription>
+        <ul className="grid gap-1">
+          {issues.map((issue) => (
+            <li key={`${issue.id}:${issue.label}`}>
+              <a
+                href={`#${issue.id}`}
+                className="underline underline-offset-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const el = document.getElementById(issue.id);
+                  el?.focus();
+                  el?.scrollIntoView({ block: "center" });
+                }}
+              >
+                {issue.label}
+              </a>
+              : {issue.message}
+            </li>
+          ))}
+        </ul>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+/**
+ * Under the submit button: says why a click did nothing ("Fix 3 problems to save"). A polite
+ * status, so it is read once when it appears and not again on every keystroke.
+ */
+export function SubmitStatus({ count }: { count: number }): React.JSX.Element {
+  return (
+    <p role="status" className="text-destructive text-sm">
+      {count > 0 ? t.admin.form.problems(count) : ""}
+    </p>
+  );
+}
+
+/**
+ * A form that validates on submit. A failed attempt (`attempt` goes up) puts focus on the first
+ * field marked invalid, in document order, after the errors have rendered; with the summary above
+ * and the field's own description, a keyboard or screen reader user lands on the first thing to fix
+ * and can reach the rest from the list. `noValidate`, because the browser's own bubbles are
+ * neither localized nor reachable by assistive technology the way these are.
+ */
+export function ValidatedForm({
+  onSubmit,
+  issues,
+  attempt,
+  className,
+  children,
+}: {
+  onSubmit: () => void;
+  issues: readonly FormIssue[];
+  /** Increment on every failed submit. */
+  attempt: number;
+  className?: string | undefined;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const ref = React.useRef<HTMLFormElement>(null);
+  React.useEffect(() => {
+    if (attempt === 0) return;
+    const first = ref.current?.querySelector<HTMLElement>('[aria-invalid="true"],[data-invalid="true"]');
+    first?.focus();
+    first?.scrollIntoView({ block: "center" });
+  }, [attempt]);
+  return (
+    <QuietFieldErrors.Provider value>
+      <form
+        ref={ref}
+        noValidate
+        className={className}
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+      >
+        <ErrorSummary issues={issues} />
+        {children}
+      </form>
+    </QuietFieldErrors.Provider>
   );
 }
