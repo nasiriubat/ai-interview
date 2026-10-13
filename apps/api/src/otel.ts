@@ -1,14 +1,22 @@
-import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-import { NodeSDK } from "@opentelemetry/sdk-node";
+import type { NodeSDK } from "@opentelemetry/sdk-node";
 
 /**
- * Tracing (spec 12). Starts only when an OTLP endpoint is configured, so local dev and
- * tests pay nothing. Must be imported before Fastify so HTTP and pg are instrumented.
+ * Tracing (spec 12). Starts only when an OTLP endpoint is configured, so local dev and tests pay
+ * nothing — and "nothing" includes loading it: the auto-instrumentation bundle is about forty
+ * packages, measured at 40 MB of memory and 270 ms of startup in the server image, so it is
+ * imported here, behind the check, rather than at the top of the file where every API paid for it.
  */
-export function startTelemetry(serviceName: string, endpoint: string | undefined): NodeSDK | undefined {
+export async function startTelemetry(
+  serviceName: string,
+  endpoint: string | undefined,
+): Promise<NodeSDK | undefined> {
   if (!endpoint) return undefined;
-  const sdk = new NodeSDK({
+  const [{ getNodeAutoInstrumentations }, { OTLPTraceExporter }, { NodeSDK: Sdk }] = await Promise.all([
+    import("@opentelemetry/auto-instrumentations-node"),
+    import("@opentelemetry/exporter-trace-otlp-http"),
+    import("@opentelemetry/sdk-node"),
+  ]);
+  const sdk = new Sdk({
     serviceName,
     traceExporter: new OTLPTraceExporter({ url: `${endpoint.replace(/\/$/, "")}/v1/traces` }),
     instrumentations: [

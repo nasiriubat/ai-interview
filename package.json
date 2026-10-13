@@ -12,7 +12,11 @@
     "lint": "eslint packages apps evals",
     "check": "pnpm -r build && pnpm -r typecheck && pnpm lint && pnpm format:check && pnpm -r test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "stack:up": "docker compose up -d --build --remove-orphans && docker image prune -f --filter label=com.docker.compose.project=ai-interview",
+    "stack:down": "docker compose down --remove-orphans",
+    "stack:logs": "docker compose logs -f --tail=100 api worker web",
+    "stack:clean": "docker compose down --remove-orphans && docker image rm -f aidp-server aidp-web ai-interview-api ai-interview-migrate ai-interview-worker ai-interview-web; docker image prune -f --filter label=com.docker.compose.project=ai-interview"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
