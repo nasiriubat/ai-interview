@@ -210,13 +210,18 @@ function mountProviderRoutes(
   },
 ): void {
   const { prefix, guard: access, scope } = opts;
-  const view = (p: Awaited<ReturnType<ProviderService["get"]>>) => ({
+  /**
+   * A provider as the browser receives it. Header values are never returned, only their names, and
+   * a platform provider's header names are the operator's alone: a tenant that can use the provider
+   * is not told how the operator's gateway is configured (D-147).
+   */
+  const view = (p: Awaited<ReturnType<ProviderService["get"]>>, req: FastifyRequest) => ({
     id: p.id,
     companyId: p.companyId,
     kind: p.kind,
     name: p.name,
     baseUrl: p.baseUrl,
-    headers: p.headers,
+    headerNames: p.companyId === null && scope(req) !== null ? [] : svc.headerNames(p),
     enabled: p.enabled,
     hasKey: p.apiKeyEnc.length > 0,
     createdAt: p.createdAt,
@@ -224,7 +229,7 @@ function mountProviderRoutes(
   const auditCompany = (req: FastifyRequest): string => req.companyId || "platform";
 
   app.get(`${prefix}/providers`, access, async (req) => ({
-    providers: (await svc.list(scope(req))).map(view),
+    providers: (await svc.list(scope(req))).map((p) => view(p, req)),
   }));
 
   app.post(`${prefix}/providers`, { ...access, schema: { body: ProviderBody } }, async (req, reply) => {
@@ -237,7 +242,7 @@ function mountProviderRoutes(
       targetId: p.id,
       diff: { kind: p.kind, name: p.name },
     });
-    return reply.status(201).send({ provider: view(p) });
+    return reply.status(201).send({ provider: view(p, req) });
   });
 
   app.patch(
@@ -251,9 +256,18 @@ function mountProviderRoutes(
         action: "provider.update",
         targetType: "provider",
         targetId: p.id,
-        diff: { ...req.body, apiKey: req.body.apiKey ? "(rotated)" : undefined },
+        // Names, never values: the audit log is read by every administrator of the tenant, and
+        // a header value is a credential like the key beside it.
+        diff: {
+          ...(req.body.kind !== undefined ? { kind: req.body.kind } : {}),
+          ...(req.body.name !== undefined ? { name: req.body.name } : {}),
+          ...(req.body.baseUrl !== undefined ? { baseUrl: req.body.baseUrl } : {}),
+          ...(req.body.enabled !== undefined ? { enabled: req.body.enabled } : {}),
+          ...(req.body.headers !== undefined ? { headerNames: Object.keys(req.body.headers).sort() } : {}),
+          ...(req.body.apiKey ? { apiKey: "(rotated)" } : {}),
+        },
       });
-      return { provider: view(p) };
+      return { provider: view(p, req) };
     },
   );
 

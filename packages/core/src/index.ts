@@ -1,6 +1,7 @@
 export * from "./crypto.js";
 export * from "./settings/service.js";
 export * from "./providers/prisma-sources.js";
+export * from "./providers/headers.js";
 export * from "./providers/caller-factory.js";
 export * from "./sessions/prisma-store.js";
 export * from "./sessions/prompt-source.js";
