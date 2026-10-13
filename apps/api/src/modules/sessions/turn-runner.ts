@@ -298,17 +298,17 @@ export async function runTurn(
 
   // Whether the client has been told how this turn ended. A turn aborted by the process draining
   // has not, and must be told to retry rather than left with a stream that just stops.
-  let concluded = false;
+  const told = { concluded: false };
   const sendTracked = (item: TurnEvent): void => {
     send(item);
-    if (item.event === "turn" || item.event === "ended" || item.event === "error") concluded = true;
+    if (item.event === "turn" || item.event === "ended" || item.event === "error") told.concluded = true;
   };
   try {
     if (!first.done) {
       sendTracked(first.value);
       for await (const item of stream) sendTracked(item);
     }
-    if (!concluded && ctx.shutdown.signal.aborted && !gone.signal.aborted) {
+    if (!told.concluded && ctx.shutdown.signal.aborted && !gone.signal.aborted) {
       send({
         event: "error",
         data: {
