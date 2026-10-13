@@ -132,6 +132,20 @@ describe.each(adapters)("StoragePort: %s", (_name, make) => {
     expect(await s.head(attachmentKey("c2", "s3", "a3"))).not.toBeNull();
   });
 
+  it("lists the immediate children of a prefix, with when each last changed", async () => {
+    const s = make();
+    await s.put(attachmentKey("c1", "s1", "a1"), Buffer.from("1"), { contentType: "text/plain" });
+    await s.put(attachmentKey("c1", "s1", "a2"), Buffer.from("2"), { contentType: "text/plain" });
+    await s.put(attachmentKey("c1", "s2", "b1"), Buffer.from("3"), { contentType: "text/plain" });
+    await s.put(attachmentKey("c2", "s9", "x1"), Buffer.from("4"), { contentType: "text/plain" });
+
+    const listed = await s.listPrefixes(companyPrefix("c1"));
+
+    expect(listed.map((p) => p.name).sort()).toEqual(["s1", "s2"]);
+    for (const p of listed) expect(Date.now() - p.modifiedAt.getTime()).toBeLessThan(60_000);
+    expect(await s.listPrefixes(companyPrefix("nobody"))).toEqual([]);
+  });
+
   it("refuses a key that could walk out of the store", async () => {
     const s = make();
     for (const bad of ["../escape", "c1/../../etc/passwd", "c1//s1", "c1/s1/a b"]) {

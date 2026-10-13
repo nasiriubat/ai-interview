@@ -26,6 +26,21 @@ export interface StoragePort {
    * row lost along the way strands bytes that nobody can find but everybody is still storing.
    */
   deletePrefix(prefix: string): Promise<number>;
+  /**
+   * The immediate children of a prefix, with when anything under each last changed.
+   *
+   * This is what lets storage be reconciled against the database without a database row to start
+   * from: the retention sweep lists a tenant's session directories and removes the ones whose
+   * session no longer exists. `modifiedAt` is the newest write beneath the child, so a caller can
+   * leave alone anything an in-flight upload may still be creating.
+   */
+  listPrefixes(parent: string): Promise<PrefixInfo[]>;
+}
+
+export interface PrefixInfo {
+  /** One path segment, without separators. */
+  name: string;
+  modifiedAt: Date;
 }
 
 export interface PutOptions {

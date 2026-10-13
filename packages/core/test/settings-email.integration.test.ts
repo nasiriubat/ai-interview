@@ -1,12 +1,13 @@
 import { randomBytes } from "node:crypto";
+import { describeDb } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { Crypto } from "../src/crypto.js";
 import { MemoryEmail, type EmailMessage, type EmailPort } from "../src/email/port.js";
 import { SettingsEmail } from "../src/email/settings-email.js";
 import { SettingsService } from "../src/settings/service.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 /** Stands in for SmtpEmail so nothing opens a socket; records which URL it was built for. */
 class FakeTransport implements EmailPort {

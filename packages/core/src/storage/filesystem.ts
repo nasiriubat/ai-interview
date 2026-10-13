@@ -1,10 +1,11 @@
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, rename, rm, stat, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rename, rm, stat, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import {
   assertSafeKey,
+  type PrefixInfo,
   ObjectNotFound,
   ObjectTooLarge,
   type PutOptions,
@@ -92,6 +93,27 @@ export class FilesystemStorage implements StoragePort {
     return counted;
   }
 
+  async listPrefixes(parent: string): Promise<PrefixInfo[]> {
+    const trimmed = parent.replace(/\/+$/, "");
+    const dir = trimmed === "" ? this.root : this.pathFor(trimmed);
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return [];
+    }
+    const out: PrefixInfo[] = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      try {
+        out.push({ name: entry.name, modifiedAt: await newestWrite(join(dir, entry.name)) });
+      } catch {
+        // Removed between the listing and the stat: it is gone, which is what the caller wants.
+      }
+    }
+    return out;
+  }
+
   private async contentType(path: string): Promise<string> {
     try {
       return (await readFile(`${path}.type`, "utf8")).trim() || "application/octet-stream";
@@ -133,9 +155,19 @@ async function writeStream(body: Readable, path: string, maxBytes?: number): Pro
   return total;
 }
 
+/** The newest modification time anywhere beneath a directory, the directory itself included. */
+async function newestWrite(path: string): Promise<Date> {
+  let newest = (await stat(path)).mtime;
+  for (const entry of await readdir(path, { withFileTypes: true })) {
+    const child = join(path, entry.name);
+    const t = entry.isDirectory() ? await newestWrite(child) : (await stat(child)).mtime;
+    if (t > newest) newest = t;
+  }
+  return newest;
+}
+
 /** Objects, not files: the sidecar that records a content type is not one. */
 async function countObjects(path: string): Promise<number> {
-  const { readdir } = await import("node:fs/promises");
   let total = 0;
   let entries;
   try {

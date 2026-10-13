@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import {
   assertSafeKey,
+  type PrefixInfo,
   ObjectNotFound,
   ObjectTooLarge,
   type PutOptions,
@@ -10,7 +11,10 @@ import {
 
 /** Keeps objects in a map. Used by tests, and by a development run with no upload directory set. */
 export class MemoryStorage implements StoragePort {
-  private readonly objects = new Map<string, { body: Buffer; contentType: string }>();
+  private readonly objects = new Map<string, { body: Buffer; contentType: string; modifiedAt: Date }>();
+
+  /** `now` is a test seam: it stamps each write, which the orphan sweep's grace window reads. */
+  constructor(private readonly now: () => Date = () => new Date()) {}
 
   async put(key: string, body: Buffer | Readable, options: PutOptions): Promise<StoredObject> {
     assertSafeKey(key);
@@ -18,7 +22,7 @@ export class MemoryStorage implements StoragePort {
     if (options.maxBytes !== undefined && buffer.byteLength > options.maxBytes) {
       throw new ObjectTooLarge(options.maxBytes, buffer.byteLength);
     }
-    this.objects.set(key, { body: buffer, contentType: options.contentType });
+    this.objects.set(key, { body: buffer, contentType: options.contentType, modifiedAt: this.now() });
     return { key, contentType: options.contentType, sizeBytes: buffer.byteLength };
   }
 
@@ -47,6 +51,19 @@ export class MemoryStorage implements StoragePort {
       }
     }
     return removed;
+  }
+
+  async listPrefixes(parent: string): Promise<PrefixInfo[]> {
+    const base = parent.endsWith("/") || parent === "" ? parent : `${parent}/`;
+    const newest = new Map<string, Date>();
+    for (const [key, obj] of this.objects) {
+      if (!key.startsWith(base)) continue;
+      const name = key.slice(base.length).split("/")[0];
+      if (!name) continue;
+      const seen = newest.get(name);
+      if (!seen || obj.modifiedAt > seen) newest.set(name, obj.modifiedAt);
+    }
+    return [...newest].map(([name, modifiedAt]) => ({ name, modifiedAt }));
   }
 
   /** Test helper: how many objects are held. */
