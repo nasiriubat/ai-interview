@@ -257,9 +257,10 @@ suite("staff list queries (D-79)", () => {
 
     it("carries invited, started and completed counts on every row of the page", async () => {
       const { db } = world;
-      const invite = (campaignId: string, n: string, status: string) =>
+      const invite = async (campaignId: string, n: string, status: string) =>
         db.invitation.create({
           data: {
+            companyId: (await db.campaign.findUniqueOrThrow({ where: { id: campaignId } })).companyId,
             campaignId,
             emailHash: `${n}-${tag}`,
             tokenHash: randomBytes(16).toString("hex"),
@@ -711,8 +712,8 @@ suite("staff list queries (D-79)", () => {
     it("filters by status and sorts by version both ways", async () => {
       await world.db.analysis.createMany({
         data: [
-          { campaignId: campaignIds.alpha, version: 1, status: "done" },
-          { campaignId: campaignIds.alpha, version: 2, status: "failed" },
+          { companyId: world.companyId, campaignId: campaignIds.alpha, version: 1, status: "done" },
+          { companyId: world.companyId, campaignId: campaignIds.alpha, version: 2, status: "failed" },
         ],
       });
       const url = `/campaigns/${campaignIds.alpha}/analyses`;

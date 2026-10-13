@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { Logger } from "@aidp/ai";
-import { tenantTransaction, withTenant } from "@aidp/db";
+import { tenantTransaction, withSystemTenant, withTenant } from "@aidp/db";
 import { Prisma, type PrismaClient } from "@prisma/client";
 import type { SettingsService } from "../settings/service.js";
 import { companyPrefix, sessionPrefix, type StoragePort } from "../storage/index.js";
@@ -445,7 +445,12 @@ export async function runRetentionSweep(deps: RetentionSweepDeps): Promise<Tenan
   const batchSize = deps.batchSize ?? RETENTION_BATCH_SIZE;
   const maxBatches = deps.maxBatches ?? RETENTION_MAX_BATCHES;
 
-  const companies = await db.company.findMany({ select: { id: true }, orderBy: { id: "asc" } });
+  // The only cross-tenant read in the sweep: which tenants exist. Everything after it runs fenced
+  // into one tenant. The Company policy shows a tenant context nobody but itself (D-141), so the
+  // listing steps into the system context and back out.
+  const companies = await withSystemTenant(() =>
+    db.company.findMany({ select: { id: true }, orderBy: { id: "asc" } }),
+  );
   const sweeps: TenantSweep[] = [];
   for (const company of companies) {
     // One tenant at a time, inside that tenant's scope: the job spans companies, its statements

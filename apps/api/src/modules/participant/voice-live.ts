@@ -728,6 +728,7 @@ class LiveVoiceSession {
     await this.ctx.db.sessionEvent
       .create({
         data: {
+          companyId: this.scope.companyId,
           sessionId: this.scope.sessionId,
           seq: Date.now() % 2_147_483_647,
           type: "voice.live",

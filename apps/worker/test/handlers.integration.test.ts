@@ -78,7 +78,7 @@ describeDb("worker handlers against Postgres", () => {
     const s = await db.session.create({
       data: { companyId, templateId, status: "completed", summary: "said something", state: { a: 1 } },
     });
-    await db.message.create({ data: { sessionId: s.id, seq: 1, role: "user", content: "hello" } });
+    await db.message.create({ data: { companyId, sessionId: s.id, seq: 1, role: "user", content: "hello" } });
     await db.fact.create({
       data: {
         companyId,

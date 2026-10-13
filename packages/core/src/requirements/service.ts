@@ -908,8 +908,18 @@ export class RequirementsService {
         orderBy: { seq: "desc" },
         select: { seq: true },
       });
+      const owner = await tx.session.findUniqueOrThrow({
+        where: { id: sessionId },
+        select: { companyId: true },
+      });
       await tx.sessionEvent.create({
-        data: { sessionId, seq: (last?.seq ?? 0) + 1, type, payload: payload as Prisma.InputJsonValue },
+        data: {
+          companyId: owner.companyId,
+          sessionId,
+          seq: (last?.seq ?? 0) + 1,
+          type,
+          payload: payload as Prisma.InputJsonValue,
+        },
       });
     });
   }

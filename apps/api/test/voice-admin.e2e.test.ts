@@ -1,4 +1,5 @@
 import type { Server } from "node:http";
+import { withTenant } from "@aidp/db";
 import { encode } from "@auth/core/jwt";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fakeModelServer, TEST_AUTH_SECRET, testWorld, type TestWorld } from "./helpers.js";
@@ -153,7 +154,9 @@ suite("live voice setup (D-77)", () => {
     expect(on.statusCode).toBe(200);
     expect(on.json<Readiness>().liveVoiceEnabled).toBe(true);
     expect(
-      await world.ctx.settings.get("features.realtimeVoice", [{ scope: "tenant", scopeId: world.companyId }]),
+      await withTenant(world.companyId, () =>
+        world.ctx.settings.get("features.realtimeVoice", [{ scope: "tenant", scopeId: world.companyId }]),
+      ),
     ).toBe(true);
     const entry = await world.db.auditLog.findFirstOrThrow({
       where: { companyId: world.companyId, action: "voice.live_toggle" },

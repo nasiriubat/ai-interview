@@ -175,6 +175,7 @@ export class CampaignService {
       const token = newToken(24);
       const inv = await this.db.invitation.create({
         data: {
+          companyId,
           campaignId,
           emailHash,
           email: campaign.participationMode === "anonymous" ? null : email,
