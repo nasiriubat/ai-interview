@@ -20,7 +20,11 @@ const Env = z.object({
   // because it has to work when the database does not.
   ALERT_EMAIL: z.string().optional(),
   ALERT_WEBHOOK_URL: z.string().optional(),
-  ALERT_WEBHOOK_FORMAT: z.enum(["ntfy", "slack", "generic"]).optional(),
+  // Compose passes an unset variable through as the empty string, which is "not set" here.
+  ALERT_WEBHOOK_FORMAT: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.enum(["ntfy", "slack", "generic"]).optional(),
+  ),
   /**
    * Where the admin's one-step live voice setup checks an OpenAI key and points the provider it
    * creates (D-77). Unset means OpenAI itself; set it for a regional endpoint or a proxy. The test

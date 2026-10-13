@@ -12,9 +12,32 @@ set -euo pipefail
 
 : "${APP_DATABASE_URL:?preflight: APP_DATABASE_URL is required}"
 
+# Where a failure is also written for the ops-notify sidecar to deliver (D-92). This gate runs
+# before the API and worker, so when it refuses, nothing in the application is alive to raise an
+# alert; a file on the shared ops_state volume is the one channel that still works. Absent in
+# development, where the failure on the terminal is the alert.
+OPS_STATE_DIR="${OPS_STATE_DIR:-}"
+
+# Escapes a string for a JSON value: backslash, quote, and anything that would break the line.
+json_str() {
+	printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr '\n\r\t' '   '
+}
+
+emit_alert() {
+	[ -n "$OPS_STATE_DIR" ] && [ -d "$OPS_STATE_DIR/alerts" ] || return 0
+	local now file
+	now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+	file="$OPS_STATE_DIR/alerts/rls.preflight_failed-$(date -u +%Y%m%dT%H%M%SZ).json"
+	# Written to a hidden name and renamed, so the sidecar never reads half a file.
+	printf '{"kind":"rls.preflight_failed","severity":"critical","key":"rls.preflight_failed","title":"RLS preflight failed on boot","message":"%s","occurredAt":"%s"}\n' \
+		"$(json_str "$1")" "$now" >"$OPS_STATE_DIR/alerts/.tmp.$$" 2>/dev/null &&
+		mv "$OPS_STATE_DIR/alerts/.tmp.$$" "$file" 2>/dev/null || true
+}
+
 fail() {
 	echo "preflight: FAIL: $*" >&2
 	echo "preflight: refusing to start the application. See docs/DEPLOY.md, 'Database roles'." >&2
+	emit_alert "RLS preflight FAILED on boot: $*. api and worker did not start. See docs/OPERATIONS.md#rlspreflight_failed."
 	exit 1
 }
 

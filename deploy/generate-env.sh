@@ -55,6 +55,11 @@ cat >"$target" <<EOF
 # Mode 600, never committed, never copied into an image. Back it up somewhere other than this VPS:
 # without PLATFORM_ENCRYPTION_KEY a database restore cannot decrypt provider keys.
 
+# Names the volumes (aidp_pgdata, aidp_backups ...). An install made before this setting existed
+# has volumes called deploy_pgdata and must put COMPOSE_PROJECT_NAME=deploy here instead, or the
+# next upgrade starts on an empty database. upgrade.sh checks for exactly that and stops.
+COMPOSE_PROJECT_NAME=aidp
+
 PUBLIC_HOSTNAME=$hostname
 ACME_EMAIL=$operator
 
@@ -89,9 +94,41 @@ OPENAI_API_KEY=
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
 
-# Backups. Time is the container clock, which is UTC.
+# Backups. Time is the container clock, which is UTC; a comma list runs it more than once a day.
 BACKUP_AT=03:20
 BACKUP_RETENTION_DAYS=14
+# The backup is reported unhealthy, and alerted, when the last success is older than this.
+BACKUP_MAX_AGE_HOURS=26
+
+# Offsite copy of the (already encrypted) backups. Empty means none, and docs/OPERATIONS.md says
+# what that costs you. rclone reads the remote from these variables, so there is no config file:
+# name the remote 'offsite', give it a type and its credentials, and point RCLONE_REMOTE at a bucket
+# on it. Example for an S3-compatible bucket (Hetzner, Scaleway):
+#   RCLONE_REMOTE=offsite:my-aidp-backups
+#   RCLONE_CONFIG_OFFSITE_TYPE=s3
+#   RCLONE_CONFIG_OFFSITE_PROVIDER=Other
+#   RCLONE_CONFIG_OFFSITE_ENDPOINT=https://fsn1.your-objectstorage.com
+#   RCLONE_CONFIG_OFFSITE_ACCESS_KEY_ID=...
+#   RCLONE_CONFIG_OFFSITE_SECRET_ACCESS_KEY=...
+# Backblaze B2: RCLONE_CONFIG_OFFSITE_TYPE=b2, RCLONE_CONFIG_OFFSITE_ACCOUNT=..., RCLONE_CONFIG_OFFSITE_KEY=...
+RCLONE_REMOTE=
+
+# Where the operator is told when something breaks (docs/OPERATIONS.md has a section for each
+# alert). Either or both. The settings screen (Operations alerts) overrides these once someone has
+# set it; these are what works before that, and what the sidecar that runs when the application
+# does not reads. ntfy: https://ntfy.sh/<a-long-random-topic>. Slack: an incoming-webhook URL, and
+# ALERT_WEBHOOK_FORMAT=slack. Empty ALERT_EMAIL falls back to the operator address above.
+ALERT_EMAIL=
+ALERT_WEBHOOK_URL=
+ALERT_WEBHOOK_FORMAT=ntfy
+
+# Outbound model-call limits, in milliseconds. Empty keeps the defaults (120000 total, 20000 to
+# the first token, 30000 of silence mid-stream, 2 retries); raise the first two for a slow
+# self-hosted gateway.
+PROVIDER_TIMEOUT_MS=
+PROVIDER_FIRST_TOKEN_TIMEOUT_MS=
+PROVIDER_IDLE_TIMEOUT_MS=
+PROVIDER_MAX_RETRIES=
 
 # Observability. Empty disables OTLP export.
 OTEL_EXPORTER_OTLP_ENDPOINT=
@@ -103,6 +140,15 @@ EOF
 
 chmod 600 "$target"
 echo "wrote $target (mode 600)"
+
+# The backup encryption key pair (D-95). Made here when this machine has age-keygen; otherwise
+# deploy/upgrade.sh makes it from the backup image once that is built, before the first backup can
+# run. Either way it ends up in this file, which is why the file must be copied off the host.
+ENV_FILE_PATH="$target" "$here/ensure-backup-key.sh" || echo "(the backup key will be created by deploy/upgrade.sh)"
+
 echo
-echo "Next: set EMAIL_SMTP_URL to your relay, then"
-echo "  docker compose -f deploy/compose.prod.yml --env-file deploy/.env up -d --build"
+echo "Next:"
+echo "  1. set EMAIL_SMTP_URL to your relay (and ALERT_EMAIL / ALERT_WEBHOOK_URL, so a failure reaches you)"
+echo "  2. copy $target somewhere other than this host (your password manager): it holds the keys to"
+echo "     the database backups and to the stored provider keys"
+echo "  3. ./deploy/upgrade.sh        # builds the images, starts the stack, checks it"

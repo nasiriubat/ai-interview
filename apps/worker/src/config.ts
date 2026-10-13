@@ -13,7 +13,11 @@ const Env = z.object({
   // Operator alerting (D-90); see apps/api/src/config.ts. Same variables, same fallbacks.
   ALERT_EMAIL: z.string().optional(),
   ALERT_WEBHOOK_URL: z.string().optional(),
-  ALERT_WEBHOOK_FORMAT: z.enum(["ntfy", "slack", "generic"]).optional(),
+  // Compose passes an unset variable through as the empty string, which is "not set" here.
+  ALERT_WEBHOOK_FORMAT: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.enum(["ntfy", "slack", "generic"]).optional(),
+  ),
   /**
    * The shared `ops_state` volume (D-92): the backup writes `status/backup.json` there and the
    * worker writes `heartbeat/worker`. Unset in development, where neither check is meaningful.

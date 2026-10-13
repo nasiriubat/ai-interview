@@ -9,5 +9,10 @@ coverage/
 .next/
 .claude/
 
+# Written by deploy/upgrade.sh and rollback.sh: which image tag is running. Machine state.
+deploy/versions.env
+deploy/versions.env.previous
+deploy/.upgrade.lock
+
 # Browser-tool snapshots
 .playwright-mcp/
