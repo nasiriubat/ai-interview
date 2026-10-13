@@ -4,67 +4,61 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /*
+   * One light theme modelled on Stripe (D-78): an off-white canvas, white cards lifted by layered
+   * shadows, navy text, one indigo accent. Every foreground/background pair used for text clears
+   * WCAG AA (4.5:1); the lowest is white on --primary at 4.7:1. Components use these semantic
+   * tokens only, so a dark theme later is a second block, not a rewrite.
+   */
+  --radius: 0.5rem;
+  --background: #f6f8fb;
+  --foreground: #0a2540;
+  --card: #ffffff;
+  --card-foreground: #0a2540;
+  --popover: #ffffff;
+  --popover-foreground: #0a2540;
+  --primary: #635bff;
+  --primary-hover: #574ff0;
+  --primary-foreground: #ffffff;
+  --secondary: #eef2f7;
+  --secondary-foreground: #0a2540;
+  --muted: #f1f4f8;
+  --muted-foreground: #5b6b82;
+  --body: #425466;
+  --accent: #f0efff;
+  --accent-foreground: #4b44d6;
+  --destructive: #df1b41;
+  --destructive-soft: #fde8ec;
+  --destructive-soft-foreground: #b3123a;
+  --success: #0e8a55;
+  --success-soft: #e6f6ee;
+  --success-soft-foreground: #0b6b43;
+  --warning: #c47a00;
+  --warning-soft: #fff4e0;
+  --warning-soft-foreground: #8a4b00;
+  --info-soft: #e8f1fd;
+  --info-soft-foreground: #0b5cad;
+  --border: #e3e8ef;
+  --input: #d5dce6;
+  --ring: #635bff;
+  --chart-1: #635bff;
+  --chart-2: #00b8d9;
+  --chart-3: #0e8a55;
+  --chart-4: #f5a623;
+  --chart-5: #df1b41;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #425466;
+  --sidebar-primary: #635bff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0efff;
+  --sidebar-accent-foreground: #4b44d6;
+  --sidebar-border: #e3e8ef;
+  --sidebar-ring: #635bff;
+  --shadow-card:
+    0 0 0 1px rgb(10 37 64 / 0.05), 0 1px 2px rgb(10 37 64 / 0.06), 0 3px 8px -2px rgb(10 37 64 / 0.06);
+  --shadow-raised:
+    0 0 0 1px rgb(10 37 64 / 0.06), 0 13px 27px -5px rgb(50 50 93 / 0.18), 0 8px 16px -8px rgb(0 0 0 / 0.14);
+  --shadow-control: 0 1px 1px rgb(10 37 64 / 0.06), 0 0 0 1px rgb(10 37 64 / 0.1);
 }
 
 @theme inline {
@@ -87,6 +81,21 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-soft-foreground: var(--destructive-soft-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+  --color-body: var(--body);
+  --color-primary-hover: var(--primary-hover);
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-control: var(--shadow-control);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -104,7 +113,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
 }
 
 @layer base {
@@ -112,7 +122,14 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-body font-sans text-sm antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-foreground tracking-tight;
   }
   /* WCAG 2.2: visible focus for keyboard users everywhere. */
   :focus-visible {
@@ -273,4 +290,21 @@
   .report-prose a::after {
     content: "";
   }
+}
+
+/*
+ * A table is a card of its own unless it already sits inside one (D-78). Doing this here rather
+ * than at every call site means no page can forget, and a table in a card does not get a second
+ * frame. The header row's tint reaches the rounded corners because the container clips.
+ */
+[data-slot="table-container"] {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+[data-slot="card"] [data-slot="table-container"],
+[data-slot="table-container"] [data-slot="table-container"] {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }

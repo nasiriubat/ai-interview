@@ -119,7 +119,7 @@ export function OverrideSheet({
                           score: e.target.value === GENERATED ? null : Number(e.target.value),
                         });
                       }}
-                      className="border-input bg-background focus-visible:ring-ring/50 h-8 rounded-md border px-2 text-xs outline-none focus-visible:ring-[3px]"
+                      className="bg-card text-foreground shadow-control focus-visible:ring-ring/40 h-8 rounded-md border-0 px-2 text-xs outline-none focus-visible:ring-[3px]"
                     >
                       <option value={GENERATED}>{s.override.generated(`${generated.score}/5`)}</option>
                       {[1, 2, 3, 4, 5].map((n) => (
@@ -170,7 +170,7 @@ export function OverrideSheet({
             >
               {s.override.reset}
             </Button>
-            <Button type="submit" disabled={action.busy}>
+            <Button type="submit" loading={action.busy}>
               {action.busy ? t.app.saving : t.app.save}
             </Button>
           </SheetFooter>

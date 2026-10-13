@@ -4,6 +4,7 @@ import type { Path } from "@aidp/shared";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { PathChoice } from "./PathChoice";
+import { CenteredShell } from "@/components/common/CenteredShell";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -20,14 +21,9 @@ type Step = "arrival" | "consent" | "path";
 
 function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <header className="flex justify-end px-6 pt-4">
-        <LanguageSwitch />
-      </header>
-      <main id="main" className="flex flex-1 flex-col justify-center gap-6 p-6">
-        {children}
-      </main>
-    </div>
+    <CenteredShell aside={<LanguageSwitch />} className="grid gap-6">
+      {children}
+    </CenteredShell>
   );
 }
 
@@ -99,7 +95,9 @@ export function InviteArrival({
         <Shell>
           <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">{s.eyebrow}</p>
           <div className="grid gap-2">
-            <h1 className="text-2xl font-semibold text-balance">{s.welcome(session.title)}</h1>
+            <h1 className="text-foreground text-2xl font-semibold tracking-tight text-balance">
+              {s.welcome(session.title)}
+            </h1>
             {session.purpose ? <p className="text-muted-foreground">{session.purpose}</p> : null}
           </div>
           <dl className="grid gap-4 text-sm">
@@ -132,7 +130,9 @@ export function InviteArrival({
     case "consent":
       return (
         <Shell>
-          <h1 className="text-2xl font-semibold text-balance">{t.participant.consent.title}</h1>
+          <h1 className="text-foreground text-2xl font-semibold tracking-tight text-balance">
+            {t.participant.consent.title}
+          </h1>
           <Card>
             <CardContent className="text-sm leading-relaxed whitespace-pre-wrap">
               {session.consentText}
@@ -169,7 +169,9 @@ export function InviteArrival({
     case "path":
       return (
         <Shell>
-          <h1 className="text-2xl font-semibold text-balance">{t.participant.path.title}</h1>
+          <h1 className="text-foreground text-2xl font-semibold tracking-tight text-balance">
+            {t.participant.path.title}
+          </h1>
           <PathChoice disabled={busy} onChoose={choosePath} />
           {errorBox}
         </Shell>

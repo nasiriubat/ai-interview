@@ -32,7 +32,11 @@ export default async function EditTemplatePage({ params }: Props): Promise<React
   const initial = toTemplateInput(tpl);
   return (
     <>
-      <PageHeader title={t.admin.templates.editTitle(tpl.name)} subtitle={`${tpl.key} · v${tpl.version}`} />
+      <PageHeader
+        crumbLabels={{ [id]: tpl.name }}
+        title={t.admin.templates.editTitle(tpl.name)}
+        subtitle={`${tpl.key} · v${tpl.version}`}
+      />
       <TemplateForm initial={{ ...initial, version: tpl.version + 1 }} templateId={tpl.id} />
     </>
   );

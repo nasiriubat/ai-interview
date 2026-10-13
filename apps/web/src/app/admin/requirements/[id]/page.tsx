@@ -44,6 +44,7 @@ export default async function RequirementsSessionPage({ params }: Props): Promis
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: detail.session.title || t.admin.common.unnamed }}
         title={detail.session.title || t.admin.common.unnamed}
         subtitle={subtitle || undefined}
         actions={

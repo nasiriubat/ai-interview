@@ -38,6 +38,7 @@ export default async function TemplatePage({ params }: Props): Promise<React.JSX
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: tpl.name }}
         title={tpl.name}
         subtitle={`${tpl.key} · v${tpl.version}`}
         actions={

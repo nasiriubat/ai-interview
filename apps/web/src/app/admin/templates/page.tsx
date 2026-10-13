@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
+import { ListToolbar } from "@/components/admin/ListToolbar";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { Pagination } from "@/components/admin/Pagination";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { t } from "@/i18n";
 import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
+import { listParams } from "@/lib/admin/pagination";
+import { enumFilter, isFiltered, statusFilter } from "@/lib/admin/toolbar";
+import { LISTS } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
@@ -18,10 +23,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).admin.templates.title };
 }
 
-export default async function TemplatesPage(): Promise<React.JSX.Element> {
+interface Props {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function TemplatesPage({ searchParams }: Props): Promise<React.JSX.Element> {
   await requireMe();
+  const lp = listParams(await searchParams, LISTS.templates);
   const api = await staffServer();
-  const templates = await api.templates.list();
+  const result = await api.templates.page(lp.query);
+  const templates = result.items;
   const s = t.admin.templates;
   return (
     <>
@@ -36,8 +47,22 @@ export default async function TemplatesPage(): Promise<React.JSX.Element> {
           </Button>
         }
       />
+      <ListToolbar
+        searchLabel={t.admin.list.searchTemplates}
+        filters={[
+          statusFilter(LISTS.templates),
+          enumFilter(
+            LISTS.templates,
+            "origin",
+            t.admin.list.fields.origin ?? "Origin",
+            t.admin.list.allOrigins,
+            (v) => t.admin.list.origins[v] ?? v,
+          ),
+        ]}
+        sort={{ list: LISTS.templates, labels: t.admin.list.fields }}
+      />
       {templates.length === 0 ? (
-        <EmptyState text={s.empty} />
+        <EmptyState text={isFiltered(lp.q, lp.filters) ? t.admin.list.noMatches : s.empty} />
       ) : (
         <Table>
           <TableHeader>
@@ -76,6 +101,7 @@ export default async function TemplatesPage(): Promise<React.JSX.Element> {
           </TableBody>
         </Table>
       )}
+      <Pagination page={lp.page} limit={lp.limit} count={templates.length} total={result.total} />
     </>
   );
 }

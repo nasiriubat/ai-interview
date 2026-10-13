@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Panel } from "@/components/admin/Panel";
 import { StatTile } from "@/components/admin/StatTile";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
@@ -45,7 +46,9 @@ export function StatsGroups({ stats }: { stats: Stats }): React.JSX.Element {
             aria-label={name ? (GROUP_LABELS[name] ?? humanize(name)) : undefined}
           >
             {name ? (
-              <h2 className="mb-2 text-sm font-medium">{GROUP_LABELS[name] ?? humanize(name)}</h2>
+              <h2 className="text-foreground mb-3 text-base font-semibold tracking-tight">
+                {GROUP_LABELS[name] ?? humanize(name)}
+              </h2>
             ) : null}
             {tiles.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -55,8 +58,7 @@ export function StatsGroups({ stats }: { stats: Stats }): React.JSX.Element {
               </div>
             ) : null}
             {tables.map(([k, v]) => (
-              <div key={k} className="mt-3 rounded-lg border">
-                <h3 className="border-b px-3 py-2 text-xs font-medium">{humanize(k)}</h3>
+              <Panel key={k} title={humanize(k)} headingLevel={3} className="mt-3">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -73,7 +75,7 @@ export function StatsGroups({ stats }: { stats: Stats }): React.JSX.Element {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+              </Panel>
             ))}
           </section>
         );

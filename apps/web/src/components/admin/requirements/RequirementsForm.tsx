@@ -120,7 +120,7 @@ export function RequirementsForm({ templates }: { templates: TemplateListItem[] 
         />
       </div>
       <div className="flex gap-2">
-        <Button type="submit" disabled={action.busy}>
+        <Button type="submit" loading={action.busy}>
           {action.busy ? s.starting : s.submit}
         </Button>
         <Button

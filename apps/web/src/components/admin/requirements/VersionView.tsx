@@ -119,7 +119,7 @@ export function VersionView({
       <section aria-label={s.document} className="grid gap-3">
         <h2 className="text-base font-semibold">{s.document}</h2>
         {markdown ? (
-          <div className="rounded-xl border p-4 md:p-6">
+          <div className="bg-card shadow-card rounded-lg p-4 md:p-6">
             <ReportMarkdown markdown={markdown} />
           </div>
         ) : (

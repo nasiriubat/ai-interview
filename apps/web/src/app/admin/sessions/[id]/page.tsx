@@ -43,6 +43,7 @@ export default async function SessionPage({ params }: Props): Promise<React.JSX.
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: s.title(session.id.slice(0, 8)) }}
         title={s.title(session.id.slice(0, 8))}
         actions={
           <div className="flex items-center gap-2">

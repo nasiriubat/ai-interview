@@ -27,7 +27,7 @@ export function UsersPanel({ users, canEdit }: { users: User[]; canEdit: boolean
     <div className="grid gap-6">
       {canEdit ? (
         <form
-          className="grid gap-3 rounded-xl border p-4 md:grid-cols-[1fr_1fr_10rem_auto] md:items-end"
+          className="grid gap-3 bg-card shadow-card rounded-lg p-4 md:grid-cols-[1fr_1fr_10rem_auto] md:items-end"
           onSubmit={(e) => {
             e.preventDefault();
             void action.run(async () => {

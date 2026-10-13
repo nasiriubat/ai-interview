@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import * as React from "react";
+import { ListToolbar } from "@/components/admin/ListToolbar";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
@@ -8,7 +9,9 @@ import { SpendPanel } from "@/components/admin/SpendPanel";
 import { t } from "@/i18n";
 import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
-import { pageParams } from "@/lib/admin/pagination";
+import { listParams } from "@/lib/admin/pagination";
+import { enumFilter, isFiltered } from "@/lib/admin/toolbar";
+import { LISTS } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -21,12 +24,13 @@ interface Props {
 
 export default async function BudgetsPage({ searchParams }: Props): Promise<React.JSX.Element> {
   const me = await requireMe();
-  const { page, limit, offset } = pageParams(await searchParams);
+  const lp = listParams(await searchParams, LISTS.budgets);
+  const { page, limit } = lp;
   const api = await staffServer();
   const now = new Date();
   const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const [budgetsR, spendR] = await Promise.allSettled([
-    api.budgets.list({ limit, offset }),
+    api.budgets.list(lp.query),
     api.spend({ from, to: now.toISOString(), groupBy: "purpose" }),
   ]);
   const budgets = settled(budgetsR);
@@ -37,6 +41,29 @@ export default async function BudgetsPage({ searchParams }: Props): Promise<Reac
       <div className="grid gap-8">
         {budgets.data ? (
           <div>
+            <ListToolbar
+              searchLabel={t.admin.list.searchBudgets}
+              filters={[
+                enumFilter(
+                  LISTS.budgets,
+                  "scope",
+                  t.admin.list.fields.scope ?? "Scope",
+                  t.admin.list.allScopes,
+                  (v) => t.admin.list.scopes[v] ?? v,
+                ),
+                enumFilter(
+                  LISTS.budgets,
+                  "period",
+                  t.admin.list.fields.period ?? "Period",
+                  t.admin.list.allPeriods,
+                  (v) => t.admin.budgets.periods[v as "month" | "total"] ?? v,
+                ),
+              ]}
+              sort={{ list: LISTS.budgets, labels: t.admin.list.fields }}
+            />
+            {budgets.data.items.length === 0 && isFiltered(lp.q, lp.filters) ? (
+              <p className="text-muted-foreground py-6 text-sm">{t.admin.list.noMatches}</p>
+            ) : null}
             <BudgetsPanel budgets={budgets.data.items} companyId={me?.user.companyId ?? null} />
             <Pagination
               page={page}

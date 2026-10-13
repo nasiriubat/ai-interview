@@ -124,7 +124,7 @@ export function CategoryForm({
         {title}
       </h2>
       <Flash flash={action.flash} />
-      <div className="grid gap-4 rounded-xl border p-4 md:p-5">
+      <div className="grid gap-4 bg-card shadow-card rounded-lg p-4 md:p-5">
         {entries.map((entry) => (
           <SettingRow
             key={entry.key}
@@ -158,7 +158,7 @@ export function CategoryForm({
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={action.busy}>
+        <Button type="submit" loading={action.busy}>
           {action.busy ? t.app.saving : s.save}
         </Button>
         {category === "email" ? <EmailTestButton scope={scope} scopeId={scopeId} /> : null}

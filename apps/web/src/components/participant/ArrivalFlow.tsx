@@ -4,6 +4,7 @@ import type { Path } from "@aidp/shared";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { PathChoice } from "./PathChoice";
+import { CenteredShell } from "@/components/common/CenteredShell";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -24,21 +25,16 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <header className="flex justify-end px-6 pt-4">
-        <LanguageSwitch />
-      </header>
-      <main id="main" className="flex flex-1 flex-col justify-center gap-6 p-6">
-        {children}
-      </main>
-    </div>
+    <CenteredShell aside={<LanguageSwitch />} className="grid gap-6">
+      {children}
+    </CenteredShell>
   );
 }
 
 function Heading({ title, body }: { title: string; body?: string }): React.JSX.Element {
   return (
     <div className="grid gap-2">
-      <h1 className="text-2xl font-semibold text-balance">{title}</h1>
+      <h1 className="text-foreground text-2xl font-semibold tracking-tight text-balance">{title}</h1>
       {body ? <p className="text-muted-foreground">{body}</p> : null}
     </div>
   );
@@ -205,7 +201,7 @@ export function ArrivalFlow({
             </div>
           </dl>
           {errorBox}
-          <Button size="lg" onClick={start} disabled={busy} className="w-full">
+          <Button size="lg" onClick={start} loading={busy} className="w-full">
             {busy ? t.app.loading : t.participant.arrival.start}
           </Button>
           <p className="text-muted-foreground text-center text-xs">
@@ -242,7 +238,7 @@ export function ArrivalFlow({
               />
             </div>
             {errorBox}
-            <Button type="submit" size="lg" disabled={busy}>
+            <Button type="submit" size="lg" loading={busy}>
               {busy ? t.participant.verify.sending : t.participant.verify.sendCode}
             </Button>
             <Button
@@ -390,7 +386,7 @@ export function ArrivalFlow({
             </CardContent>
           </Card>
           {errorBox}
-          <Button size="lg" onClick={consent} disabled={busy} className="w-full">
+          <Button size="lg" onClick={consent} loading={busy} className="w-full">
             {busy ? t.participant.consent.starting : t.participant.consent.start}
           </Button>
         </Shell>
