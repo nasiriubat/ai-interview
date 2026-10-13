@@ -1,6 +1,6 @@
 import type { Server } from "node:http";
-import { encode } from "@auth/core/jwt";
 import { describeDb } from "@aidp/testing";
+import { encode } from "@auth/core/jwt";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fakeModelServer, TEST_AUTH_SECRET, testWorld, type TestWorld } from "./helpers.js";
 
@@ -38,11 +38,11 @@ describeDb("transcript visibility by role and explicit staff DTOs", () => {
     });
     expect(res.statusCode).toBe(200);
   };
-  type SessionBody = {
+  interface SessionBody {
     session: Record<string, unknown> & { messages: unknown[] | null; summary: string };
     messages: { content: string }[] | null;
     transcriptVisible: boolean;
-  };
+  }
   const read = async (headers: Record<string, string>, id: string) => {
     const res = await world.app.inject({ method: "GET", url: `/api/v1/sessions/${id}`, headers });
     expect(res.statusCode).toBe(200);
