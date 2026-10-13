@@ -17,3 +17,5 @@ export * from "./analysis/service.js";
 export * from "./requirements/service.js";
 export * from "./requirements/github.js";
 export * from "./requirements/zip.js";
+export * from "./tenancy/gate.js";
+export * from "./net/egress.js";

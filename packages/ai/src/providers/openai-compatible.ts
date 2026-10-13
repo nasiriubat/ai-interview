@@ -14,7 +14,7 @@ import {
   type Usage,
 } from "@aidp/shared";
 import { z } from "zod";
-import { ProviderError, type Provider } from "./types.js";
+import { ProviderError, redactedBody, upstreamMessage, type Provider } from "./types.js";
 
 /** What the browser must be told the audio is, per requested format. */
 const SPEECH_MIME: Record<NonNullable<SpeechInput["format"]>, string> = {
@@ -69,6 +69,7 @@ export class OpenAICompatibleProvider implements Provider {
   private readonly baseUrl: string;
   private readonly headers: Record<string, string>;
   private readonly fetchImpl: typeof fetch;
+  private readonly apiKey: string;
 
   constructor(opts: OpenAICompatibleOptions) {
     this.id = opts.id;
@@ -76,6 +77,7 @@ export class OpenAICompatibleProvider implements Provider {
     const base = opts.baseUrl ?? DEFAULT_BASE_URLS[opts.kind];
     if (!base)
       throw new ProviderError(`Provider kind '${opts.kind}' requires a base URL`, "bad_request", false);
+    this.apiKey = opts.apiKey;
     this.baseUrl = base.replace(/\/+$/, "");
     this.headers = {
       "content-type": "application/json",
@@ -326,12 +328,26 @@ export class OpenAICompatibleProvider implements Provider {
     }
     if (res.ok || init.allowStatuses?.includes(res.status)) return res;
     const text = await res.text().catch(() => "");
-    const msg = `${res.status} from ${path}: ${text.slice(0, 500)}`;
-    if (res.status === 401 || res.status === 403) throw new ProviderError(msg, "auth", false);
-    if (res.status === 404) throw new ProviderError(msg, "not_found", false);
-    if (res.status === 429) throw new ProviderError(msg, "rate_limit", true);
-    if (res.status >= 500) throw new ProviderError(msg, "server", true);
-    throw new ProviderError(msg, "bad_request", false);
+    // The message names the status and, at most, a short identifier the upstream chose. The body
+    // goes on `cause` only, redacted, for the server log (see upstreamMessage).
+    const msg = upstreamMessage(res.status, upstreamCode(text));
+    const detail = { status: res.status, path, body: redactedBody(text, [this.apiKey]) };
+    if (res.status === 401 || res.status === 403) throw new ProviderError(msg, "auth", false, detail);
+    if (res.status === 404) throw new ProviderError(msg, "not_found", false, detail);
+    if (res.status === 429) throw new ProviderError(msg, "rate_limit", true, detail);
+    if (res.status >= 500) throw new ProviderError(msg, "server", true, detail);
+    throw new ProviderError(msg, "bad_request", false, detail);
+  }
+}
+
+/** The upstream's own error identifier (`error.code`, else `error.type`), if the body is the usual JSON. */
+function upstreamCode(body: string): string | undefined {
+  try {
+    const parsed = JSON.parse(body) as { error?: { code?: unknown; type?: unknown } };
+    const code = parsed.error?.code ?? parsed.error?.type;
+    return typeof code === "string" ? code : undefined;
+  } catch {
+    return undefined;
   }
 }
 

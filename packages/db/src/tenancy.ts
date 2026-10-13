@@ -77,12 +77,22 @@ export async function tenantTransaction<T>(
   fn: (
     tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
   ) => Promise<T>,
+  /** Prisma's interactive-transaction limits, for work that legitimately outlasts the 5 s default. */
+  options?: { maxWait?: number; timeout?: number },
 ): Promise<T> {
   const tenant = currentTenant();
-  return db.$transaction(async (tx) => {
-    if (tenant !== null) await setTenant(tx, tenant);
-    return runInContext({ companyId: tenant, inTransaction: true }, () => fn(tx));
-  });
+  return db.$transaction(
+    (tx) =>
+      // The setting is issued from inside the in-transaction context, not before it. On a
+      // tenant-scoped client the query extension wraps any statement it sees outside one in its own
+      // transaction, which would put `set_config` on a different connection from the work that
+      // follows and leave the policies reading no tenant at all.
+      runInContext({ companyId: tenant, inTransaction: true }, async () => {
+        if (tenant !== null) await setTenant(tx, tenant);
+        return fn(tx);
+      }),
+    options,
+  );
 }
 
 /**

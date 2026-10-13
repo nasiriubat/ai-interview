@@ -41,6 +41,13 @@ export function isSmtpUrl(value: string): boolean {
   return url.port === "" || Number(url.port) > 0;
 }
 
+/**
+ * The most a single upload can ever be, whatever a tenant sets (S6, D-87). Every layer in front
+ * of the files enforces its own cap off this number: Caddy and the web proxy size their bodies
+ * from it, the API's multipart ceiling is it, and `files.maxSizeMb` cannot be set above it.
+ */
+export const PLATFORM_MAX_UPLOAD_MB = 50;
+
 export const SETTINGS = {
   // Engine
   "engine.recentWindowTurns": def({
@@ -155,6 +162,22 @@ export const SETTINGS = {
     category: "privacy",
     description: "Days a voice recording is kept; 0 deletes it as soon as it is transcribed",
   }),
+  // Abuse limits on the email-code flow (S1, D-82). Counted per address and campaign from the
+  // EmailCode rows themselves, so they hold across restarts and across API replicas.
+  "privacy.codeRequestsPerHour": def({
+    schema: z.number().int().min(1).max(20),
+    default: 3,
+    scopes: ["platform", "tenant"],
+    category: "privacy",
+    description: "Verification codes one email address may request per hour for one campaign",
+  }),
+  "privacy.codeFailuresPerHour": def({
+    schema: z.number().int().min(1).max(100),
+    default: 10,
+    scopes: ["platform", "tenant"],
+    category: "privacy",
+    description: "Wrong codes accepted per email address and campaign in an hour before it is locked",
+  }),
   // Cost
   "cost.warnFraction": def({
     schema: z.number().min(0.1).max(1),
@@ -179,7 +202,7 @@ export const SETTINGS = {
   }),
   // Files and voice
   "files.maxSizeMb": def({
-    schema: z.number().int().min(1).max(200),
+    schema: z.number().int().min(1).max(PLATFORM_MAX_UPLOAD_MB),
     default: 20,
     scopes: ["platform", "tenant"],
     category: "files",
