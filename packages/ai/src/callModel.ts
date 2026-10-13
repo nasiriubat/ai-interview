@@ -9,6 +9,9 @@ import type {
   Route,
   SpeechInput,
   SpeechOutput,
+  SttStreamEvent,
+  SttStreamInput,
+  SttStreamSession,
   Transcript,
   TranscriptionInput,
   Usage,
@@ -146,6 +149,71 @@ export class ModelCaller {
     } finally {
       await this.record(purpose, ctx, route, price, emptyUsage(), status, started);
     }
+  }
+
+  /**
+   * Streaming speech to text through the `stt_stream` route (FR-30a, D-77).
+   *
+   * Undefined when no route is configured, the signal `speak` and `embed` use: the live call then
+   * transcribes per utterance through `transcription`, which is the rung below on the spec's chain,
+   * rather than failing.
+   *
+   * Metered like `transcribe`: one ledger row per completed utterance, carrying whatever usage the
+   * provider reported for it, and an error row if the session dies. The budget is checked when the
+   * session opens; a session is one call, and the turns it feeds are each checked on their own.
+   */
+  async transcribeStream(ctx: CallContext, input: SttStreamInput): Promise<SttStreamSession | undefined> {
+    const purpose: Purpose = "stt_stream";
+    const route = await this.deps.routes.resolve(ctx.companyId, purpose);
+    if (!route) return undefined;
+    const provider = await this.providerFor(ctx.companyId, route.providerId);
+    if (!provider.transcribeStream || !provider.capabilities.streamingTranscription)
+      throw new ProviderError(
+        `Provider '${route.providerId}' cannot stream transcription`,
+        "unsupported",
+        false,
+      );
+    const price = this.deps.prices.get(route.providerId, route.model);
+    const check = await this.deps.budget.check(ctx, 0);
+    if (!check.allowed) {
+      await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
+      throw new BudgetExceededError(check);
+    }
+    const opened = this.now();
+    let session: SttStreamSession;
+    try {
+      session = await provider.transcribeStream(route.model, input);
+    } catch (e) {
+      await this.record(purpose, ctx, route, price, emptyUsage(), "error", opened);
+      throw e;
+    }
+    const record = this.record.bind(this);
+    const now = this.now;
+    const routed: Route = route;
+    // Each utterance is timed from the end of the previous one, so latency is per utterance.
+    let since = now();
+    async function* metered(): AsyncIterable<SttStreamEvent> {
+      for await (const ev of session.events) {
+        if (ev.type === "final") {
+          await record(purpose, ctx, routed, price, ev.usage ?? emptyUsage(), "ok", since);
+          since = now();
+        } else if (ev.type === "error" && ev.fatal) {
+          await record(purpose, ctx, routed, price, emptyUsage(), "error", since);
+        } else if (ev.type === "speech_started") {
+          since = now();
+        }
+        yield ev;
+      }
+    }
+    return {
+      push: (pcm) => {
+        session.push(pcm);
+      },
+      close: () => {
+        session.close();
+      },
+      events: metered(),
+    };
   }
 
   /** Embeddings through the `embedding` route, or undefined when no route is configured (callers fall back). */

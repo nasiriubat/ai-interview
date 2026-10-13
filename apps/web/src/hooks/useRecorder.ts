@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { t } from "@/i18n";
+import { toSpeechWav } from "@/lib/audio/wav";
 
 /**
  * Recording in the browser (FR-30).
@@ -181,7 +182,11 @@ export function useRecorder(onRecorded: (audio: Blob, durationMs: number) => voi
         setProblem("failed");
         return;
       }
-      onRecordedRef.current(audio, durationMs);
+      // Converted to 16 kHz WAV before upload, so the server can transcribe it itself without
+      // ffmpeg (D-75). A browser that cannot decode its own recording sends the original.
+      void toSpeechWav(audio).then((wav) => {
+        onRecordedRef.current(wav, durationMs);
+      });
     };
 
     recorder.start();

@@ -1,10 +1,23 @@
-import type { ProviderConfig } from "@aidp/shared";
+import type { ProviderConfig, ProviderKind, Purpose } from "@aidp/shared";
 import { AnthropicProvider } from "./anthropic.js";
+import type { SpeechRunner } from "./local-whisper/runner.js";
+import { LocalWhisperProvider } from "./local-whisper.js";
 import { OpenAICompatibleProvider } from "./openai-compatible.js";
-import type { Provider } from "./types.js";
+import type { Provider, RealtimeSocketFactory } from "./types.js";
+
+export interface ProviderDeps {
+  fetch?: typeof fetch;
+  /** The socket streaming adapters open; tests hand in a fake server. */
+  socket?: RealtimeSocketFactory;
+  /** The on-server Whisper runner; defaults to the process-wide one. Tests pass a fake. */
+  speech?: SpeechRunner;
+}
 
 /** Build an adapter from a (decrypted) provider row. Adding a kind touches this file and one adapter. */
-export function createProvider(cfg: ProviderConfig, deps: { fetch?: typeof fetch } = {}): Provider {
+export function createProvider(cfg: ProviderConfig, deps: ProviderDeps = {}): Provider {
+  if (cfg.kind === "local") {
+    return new LocalWhisperProvider({ id: cfg.id, ...(deps.speech ? { runner: deps.speech } : {}) });
+  }
   if (cfg.kind === "anthropic") {
     return new AnthropicProvider({
       id: cfg.id,
@@ -20,13 +33,35 @@ export function createProvider(cfg: ProviderConfig, deps: { fetch?: typeof fetch
     ...(cfg.baseUrl ? { baseUrl: cfg.baseUrl } : {}),
     headers: cfg.headers,
     ...(deps.fetch ? { fetch: deps.fetch } : {}),
+    ...(deps.socket ? { socket: deps.socket } : {}),
   });
+}
+
+/** The purposes that need audio endpoints: Anthropic has none and OpenRouter proxies chat models only. */
+const AUDIO_PURPOSES: ReadonlySet<Purpose> = new Set([
+  "transcription",
+  "stt_stream",
+  "tts",
+  "realtime_voice",
+]);
+
+/**
+ * Whether a provider of this kind can serve a purpose at all, without building an adapter or
+ * decrypting a key. Mirrors the adapters' `capabilities` for the audio purposes, which are the
+ * only ones a kind cannot serve; used by the admin's live voice readiness check.
+ */
+export function kindSupportsPurpose(kind: ProviderKind, purpose: Purpose): boolean {
+  // On-server Whisper (D-75) transcribes a finished recording and does nothing else: it has no
+  // streaming socket, no voice, and no chat model.
+  if (kind === "local") return purpose === "transcription";
+  if (!AUDIO_PURPOSES.has(purpose)) return true;
+  return kind !== "anthropic" && kind !== "openrouter";
 }
 
 /** Caches adapters per provider id so clients are reused across calls. */
 export class ProviderRegistry {
   private readonly cache = new Map<string, { config: ProviderConfig; provider: Provider }>();
-  constructor(private readonly deps: { fetch?: typeof fetch } = {}) {}
+  constructor(private readonly deps: ProviderDeps = {}) {}
 
   get(cfg: ProviderConfig): Provider {
     const hit = this.cache.get(cfg.id);

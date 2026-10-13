@@ -131,7 +131,20 @@ export function LiveVoiceCall({
           {s.liveEnd}
         </Button>
       </div>
-      {status === "listening" ? <p className="text-muted-foreground text-xs">{s.liveListeningHint}</p> : null}
+      {status === "listening" && !live.partial ? (
+        <p className="text-muted-foreground text-xs">{s.liveListeningHint}</p>
+      ) : null}
+      {/*
+       * Streaming captions, growing as the participant talks. Deliberately not a live region: it
+       * changes several times a second, and the finished caption is announced once, by the message
+       * list, when it arrives there.
+       */}
+      {live.partial ? (
+        <p className="text-sm" aria-live="off">
+          <span className="text-muted-foreground">{s.livePartial}: </span>
+          <span className="italic">{live.partial}</span>
+        </p>
+      ) : null}
       {live.notHeard ? (
         <p className="text-xs" role="status">
           {s.liveNotHeard}

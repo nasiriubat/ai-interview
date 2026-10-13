@@ -7,3 +7,9 @@ onlyBuiltDependencies:
   - "@prisma/engines"
   - prisma
   - esbuild
+# Deliberately not run (D-75). onnxruntime-node ships its CPU binaries for linux x64/arm64 and
+# macOS inside the package; its postinstall only downloads the CUDA provider from NuGet on
+# linux/x64, which a CPU-only VPS never uses. sharp needs no script either: its binaries come as
+# prebuilt @img/* optional dependencies.
+ignoredBuiltDependencies:
+  - onnxruntime-node

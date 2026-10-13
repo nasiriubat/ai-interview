@@ -65,13 +65,27 @@ export function defaultOpenRouterRoutes(providerId: string): Route[] {
 }
 
 /**
+ * OpenAI's recommended model for live transcription (checked September 2026: "Start with
+ * gpt-live-transcribe"), priced per minute of audio. Used by the bootstrap and by the admin's
+ * one-step live voice setup, so both route the same model.
+ */
+export const LIVE_TRANSCRIPTION_MODEL = "gpt-live-transcribe";
+
+/** The `tts` and `transcription` models the one-step setup routes, the same as the bootstrap. */
+export const DEFAULT_TTS_MODEL = "tts-1";
+export const DEFAULT_TRANSCRIPTION_MODEL = "whisper-1";
+
+/**
  * The purposes only an OpenAI-compatible provider can serve.
  *
  * Deliberately narrow. Anthropic and OpenRouter cover the conversation perfectly well, and this
- * exists to fill the three holes they leave: audio in, audio out, and vectors. A deployment with
+ * exists to fill the holes they leave: audio in, audio out, and vectors. A deployment with
  * an OpenRouter key and an OpenAI key gets a complete system — interviews on whichever models it
  * prefers, semantic clustering instead of word overlap, and a voice — without configuring a route
  * by hand.
+ *
+ * `stt_stream` is the live captions of a voice call (D-77, D-80): the one purpose in the set that
+ * is a socket rather than a request, on the model OpenAI recommends for live audio.
  *
  * `whisper-1` and `tts-1` rather than the newest models on purpose: both are an order of magnitude
  * cheaper than their successors, and a voice interview pays per second of conversation. An admin
@@ -80,8 +94,9 @@ export function defaultOpenRouterRoutes(providerId: string): Route[] {
 export function defaultOpenAIRoutes(providerId: string): Route[] {
   const r = rowFor(providerId);
   return [
-    r("transcription", "whisper-1", "low", 0),
-    r("tts", "tts-1", "low", 0),
+    r("transcription", DEFAULT_TRANSCRIPTION_MODEL, "low", 0),
+    r("stt_stream", LIVE_TRANSCRIPTION_MODEL, "low", 0),
+    r("tts", DEFAULT_TTS_MODEL, "low", 0),
     r("embedding", "text-embedding-3-small", "low", 0),
   ];
 }

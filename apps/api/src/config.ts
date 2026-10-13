@@ -15,6 +15,12 @@ const Env = z.object({
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
+  /**
+   * Where the admin's one-step live voice setup checks an OpenAI key and points the provider it
+   * creates (D-77). Unset means OpenAI itself; set it for a regional endpoint or a proxy. The test
+   * suite points it at its fake model server so no test reaches the network.
+   */
+  OPENAI_BASE_URL: z.url().optional(),
   // Rate limiting (NFR, spec 11 "Rate limits per participant, per tenant, per IP"). These are
   // configuration rather than settings-catalog keys: the limiter runs in an onRequest hook before
   // any tenant is known, it has to hold for anonymous and participant callers too, and a catalog

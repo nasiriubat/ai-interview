@@ -1,3 +1,4 @@
+import { localSpeechRunner, type SpeechRunner } from "@aidp/ai";
 import {
   AnalysisService,
   AttachmentService,
@@ -36,6 +37,8 @@ export interface AppContext {
   github: GitHubPort;
   storage: StoragePort;
   attachments: AttachmentService;
+  /** Whisper on this server (D-75): one runner per process, shared by every `local` provider. */
+  speech: SpeechRunner;
 }
 
 export function buildContext(input: {
@@ -47,8 +50,11 @@ export function buildContext(input: {
   github?: GitHubPort;
   /** Tests pass a MemoryStorage; production passes nothing and gets one from UPLOAD_DIR. */
   storage?: StoragePort;
+  /** Tests pass a runner over an in-memory engine, so nothing loads a model. */
+  speech?: SpeechRunner;
 }): AppContext {
   const { config, db, log } = input;
+  const speech = input.speech ?? localSpeechRunner();
   const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
   const settings = new SettingsService(db, crypto, {
     warn: (message, meta) => {
@@ -59,6 +65,7 @@ export function buildContext(input: {
     db,
     crypto,
     settings,
+    speech,
     onBudgetWarning: (ctx, warnings) => {
       log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
     },
@@ -106,5 +113,6 @@ export function buildContext(input: {
     github,
     storage,
     attachments,
+    speech,
   };
 }
