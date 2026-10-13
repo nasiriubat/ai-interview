@@ -253,6 +253,15 @@ export const SETTINGS = {
     // Slightly quick: an interviewer that reads at a measured pace sounds like it is dictating.
     description: "Speaking rate of the interviewer's voice, 1 is the model's normal pace",
   }),
+  "voice.endOfSpeechMs": def({
+    schema: z.number().int().min(200).max(3000),
+    default: 700,
+    scopes: ["platform", "tenant", "template"],
+    category: "voice",
+    // Short enough that the interviewer answers promptly, long enough that a breath mid-sentence
+    // does not end the answer. Only the streaming path uses it; the provider detects the silence.
+    description: "Silence that ends a spoken answer in a live call with streaming captions, in milliseconds",
+  }),
   "voice.bargeIn": def({
     schema: z.boolean(),
     default: true,

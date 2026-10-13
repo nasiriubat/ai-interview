@@ -1,6 +1,11 @@
-import { ProviderError, toSpokenTurn } from "@aidp/ai";
+import { ProviderError, speechLanguages, toSpokenTurn, UnsupportedAudioError } from "@aidp/ai";
 import { withTenant } from "@aidp/db";
-import type { Widget } from "@aidp/shared";
+import {
+  STT_STREAM_SAMPLE_RATE,
+  type SttStreamEvent,
+  type SttStreamSession,
+  type Widget,
+} from "@aidp/shared";
 import type { WebSocket } from "@fastify/websocket";
 import { z } from "zod";
 import type { App } from "../../app.js";
@@ -22,12 +27,14 @@ import { streamTurn } from "../sessions/turn-runner.js";
  * the same `aidp_participant` cookie the proxy sets — same site, so the browser attaches it — and
  * the socket can do nothing a participant could not already do over HTTP.
  *
- * **Where the speech-to-text actually streams.** The browser detects the end of an utterance
- * locally (silence) and sends that utterance as one piece, which is transcribed through the
- * `transcription` route. Partial words do not appear as the participant speaks; a caption appears
- * when they stop. Token-level streaming needs a provider-specific socket protocol (Deepgram,
- * AssemblyAI, a self-hosted Whisper server) and the `Provider` interface has no method for it
- * yet — that is the honest boundary of what is built, and it is the piece to add next.
+ * **Two ways to hear, announced in `ready.mode`.** With an `stt_stream` route (D-77) the browser
+ * streams PCM16 at 24 kHz continuously; this pipes it to the provider's realtime transcription
+ * socket, forwards the growing text as `caption_partial` while the participant is still talking,
+ * and on the provider's final transcript takes the turn. Without one, or when that socket cannot
+ * be opened, the call runs in `utterance` mode: the browser detects the end of speech itself and
+ * sends each utterance as one recording for the `transcription` route (D-70). A streaming session
+ * that dies mid-call drops to `utterance` mode with a `mode` frame, when there is a transcription
+ * route to drop to; otherwise the participant is pointed at typing.
  */
 
 /** Frames the browser sends. Audio arrives as binary; everything else is one of these. */
@@ -49,13 +56,30 @@ const ClientFrame = z.discriminatedUnion("type", [
   /** Discard buffered audio without taking a turn (they changed their mind). */
   z.object({ type: z.literal("cancel") }),
   z.object({ type: z.literal("bye") }),
+  /**
+   * The browser has switched its capture to what the server asked for in a `mode` frame. Until it
+   * says so, binary frames are the old format in flight and are dropped rather than transcribed.
+   */
+  z.object({ type: z.literal("capture"), mode: z.enum(["stream", "utterance"]) }),
 ]);
+
+/** How the participant's speech reaches the transcriber; the server decides and says so in `ready`. */
+type HearingMode = "stream" | "utterance";
+
+/** Something the participant said while a turn was running: a recording, or an already-final transcript. */
+type Held = { kind: "audio"; audio: Buffer } | { kind: "text"; text: string };
 
 /** A single utterance may not exceed this before the server stops accepting audio for it. */
 const MAX_UTTERANCE_BYTES = 8 * 1024 * 1024;
 
 /** Beyond this the socket is closed: something is sending audio that never ends. */
 const MAX_SESSION_BYTES = 200 * 1024 * 1024;
+
+/**
+ * Stream mode sends raw PCM16 at 24 kHz, 48 kB a second whether anyone is talking or not, so its
+ * ceiling is time rather than utterances: two hours of continuous audio.
+ */
+const MAX_STREAM_SESSION_BYTES = 2 * 60 * 60 * STT_STREAM_SAMPLE_RATE * 2;
 
 const CLOSE_POLICY = 1008;
 const CLOSE_TOO_BIG = 1009;
@@ -88,11 +112,20 @@ interface Scope {
   sessionId: string;
 }
 
+/** The tenant's voice knobs, read once when the call opens. */
+interface SessionOpts {
+  captions: boolean;
+  bargeIn: boolean;
+  voice: string;
+  speed: number;
+}
+
 /**
  * One live conversation.
  *
- * Holds the buffered audio of the utterance in progress, the abort handle for the speech currently
- * playing, and the counters the spec asks to trace. Everything is per-socket; nothing is shared.
+ * Holds the buffered audio of the utterance in progress (utterance mode) or the provider's
+ * transcription socket (stream mode), the abort handle for the speech currently playing, and the
+ * counters the spec asks to trace. Everything is per-socket; nothing is shared.
  */
 class LiveVoiceSession {
   private readonly chunks: Buffer[] = [];
@@ -100,20 +133,33 @@ class LiveVoiceSession {
   private sessionBytes = 0;
   private busy = false;
   /**
-   * An utterance that arrived while a turn was still running.
+   * Something said while a turn was still running.
    *
    * Dropping it would be wrong in the most ordinary case there is: the participant hears the
    * question, starts answering immediately, and the interviewer is still speaking. Barge-in means
-   * exactly that is expected. The audio is held and answered as soon as the turn in flight ends.
+   * exactly that is expected. It is held and answered as soon as the turn in flight ends.
    */
-  private pending: Buffer | undefined;
+  private pending: Held | undefined;
   private closed = false;
   /** Aborts the synthesis in flight. Replaced on every turn, called on barge-in. */
   private speaking: AbortController | undefined;
+  private mode: HearingMode = "utterance";
+  /** The provider's transcription socket, in stream mode. */
+  private stt: SttStreamSession | undefined;
+  /** Binary frames are dropped until the browser confirms it changed capture format. */
+  private awaitingCapture = false;
+  /** The provider said the participant stopped; a final transcript (or a failure) is owed. */
+  private awaitingFinal = false;
+  private speechStartedAt: number | undefined;
+  private partialSeen = false;
+  private opts: SessionOpts = { captions: true, bargeIn: true, voice: "alloy", speed: 1 };
   private interruptions = 0;
   private turns = 0;
   private firstWordMsTotal = 0;
   private firstWordSamples = 0;
+  private firstPartialMsTotal = 0;
+  private firstPartialSamples = 0;
+  private streamFallbacks = 0;
 
   constructor(
     private readonly ctx: AppContext,
@@ -135,65 +181,110 @@ class LiveVoiceSession {
   }
 
   async run(): Promise<void> {
-    const { captions, bargeIn, voice, speed, enabled } = await this.scoped(() => this.settings());
-    if (!enabled) {
-      this.send({ type: "unavailable", reason: "disabled", fallback: "recorded" });
-      this.socket.close(CLOSE_POLICY, "live voice is turned off");
-      return;
-    }
-    this.send({ type: "ready", captions, bargeIn });
-
-    this.socket.on("message", (data: Buffer, isBinary: boolean) => {
-      void this.scoped(() => this.onMessage(data, isBinary, { captions, voice, speed }));
-    });
+    // Listeners first: the provider socket takes a moment to open, and a participant who hangs up
+    // in that moment must not leave it open behind them.
     this.socket.on("close", () => {
       this.closed = true;
       this.speaking?.abort();
+      this.stt?.close();
       void this.scoped(() => this.recordMetrics());
     });
     this.socket.on("error", () => {
       this.closed = true;
       this.speaking?.abort();
+      this.stt?.close();
+    });
+
+    const settings = await this.scoped(() => this.settings());
+    if (!settings.enabled) {
+      this.send({ type: "unavailable", reason: "disabled", fallback: "recorded" });
+      this.socket.close(CLOSE_POLICY, "live voice is turned off");
+      return;
+    }
+    this.opts = settings;
+    await this.scoped(() => this.openStream(settings));
+    if (this.closed) {
+      this.stt?.close();
+      return;
+    }
+    this.send({
+      type: "ready",
+      captions: settings.captions,
+      bargeIn: settings.bargeIn,
+      mode: this.mode,
+      ...(this.mode === "stream" ? { sampleRate: STT_STREAM_SAMPLE_RATE } : {}),
+    });
+
+    this.socket.on("message", (data: Buffer, isBinary: boolean) => {
+      void this.scoped(() => this.onMessage(data, isBinary));
     });
   }
 
-  private async onMessage(
-    data: Buffer,
-    isBinary: boolean,
-    opts: { captions: boolean; voice: string; speed: number },
-  ): Promise<void> {
+  /**
+   * Opens the provider's streaming transcription when the tenant has an `stt_stream` route.
+   *
+   * Any failure here is a fallback, not an error: a bad key, a host that does not speak the
+   * Realtime protocol, or a spent budget all leave the per-utterance path, which is what live voice
+   * did before streaming existed and which still works.
+   */
+  private async openStream(settings: { endOfSpeechMs: number; language: string | undefined }): Promise<void> {
+    try {
+      const caller = await this.ctx.callers.forCompany(this.scope.companyId);
+      const stt = await caller.transcribeStream(
+        { companyId: this.scope.companyId, sessionId: this.scope.sessionId },
+        {
+          silenceMs: settings.endOfSpeechMs,
+          ...(settings.language ? { language: settings.language } : {}),
+        },
+      );
+      if (!stt) return;
+      this.stt = stt;
+      this.mode = "stream";
+      void this.pump(stt);
+    } catch (err) {
+      this.streamFallbacks++;
+      this.ctx.log.warn(
+        { err, sessionId: this.scope.sessionId },
+        "live voice: streaming transcription unavailable, transcribing per utterance",
+      );
+    }
+  }
+
+  private async onMessage(data: Buffer, isBinary: boolean): Promise<void> {
     if (this.closed) return;
     if (isBinary) {
-      this.collect(data);
+      if (this.awaitingCapture) return;
+      if (this.mode === "stream") this.stream(data);
+      else this.collect(data);
       return;
     }
     const parsed = ClientFrame.safeParse(safeJson(data.toString("utf8")));
     if (!parsed.success) return;
     const frame = parsed.data;
-    // The token was valid when the socket opened; the session may have been deleted, or the
-    // organization suspended, since. Re-checked on every control frame, which is every utterance.
-    if (!(await this.stillAllowed())) return;
-
+    // Not re-checked here: awaiting a query before a `capture` or `cancel` frame is handled would
+    // let the binary frames behind it overtake it. The checks sit where a turn is begun
+    // (`takeTurn`), where audio is paid for (`onUtterance`) and where text is replayed.
     switch (frame.type) {
       case "start":
         // The opening question, spoken. No answer, so the engine asks its first thing.
-        await this.takeTurn(undefined, opts);
+        await this.takeTurn(undefined);
         return;
       case "speak_last":
-        await this.speakLast(opts);
+        await this.speakLast();
         return;
       case "barge":
-        // Stop talking immediately. This is the whole point of barge-in: a participant who starts
-        // answering should not have to wait for the interviewer to finish a sentence.
-        this.interruptions++;
-        this.speaking?.abort();
-        this.send({ type: "speech_end", interrupted: true });
+        this.barge();
         return;
       case "cancel":
         this.reset();
         return;
       case "utterance":
-        await this.onUtterance(opts);
+        if (this.mode === "utterance") await this.onUtterance();
+        return;
+      case "capture":
+        if (frame.mode === this.mode) this.awaitingCapture = false;
+        // Asked to stream, and this browser cannot capture PCM (no AudioWorklet): the rung below.
+        else if (frame.mode === "utterance") await this.fallBackFromStream("client_capture");
         return;
       case "bye":
         this.socket.close(1000, "bye");
@@ -202,9 +293,15 @@ class LiveVoiceSession {
   }
 
   /**
-   * Reads the most recent interviewer question aloud. No engine turn, so nothing is stored and the
-   * turn lock is never taken: this is a replay of something the participant can already see.
+   * Stop talking immediately. This is the whole point of barge-in: a participant who starts
+   * answering should not have to wait for the interviewer to finish a sentence.
    */
+  private barge(): void {
+    this.interruptions++;
+    this.speaking?.abort();
+    this.send({ type: "speech_end", interrupted: true });
+  }
+
   /**
    * False, and the socket closed, once the session is deleted or its tenant suspended (S3, S8).
    * The door was checked when the connection opened; a conversation can outlive that decision.
@@ -218,16 +315,22 @@ class LiveVoiceSession {
     if (session && session.status !== "deleted" && active) return true;
     this.closed = true;
     this.speaking?.abort();
+    this.stt?.close();
     this.send({ type: "unavailable", reason: "disabled", fallback: "recorded" });
     this.socket.close(CLOSE_POLICY, "session no longer available");
     return false;
   }
 
-  private async speakLast(opts: { captions: boolean; voice: string; speed: number }): Promise<void> {
+  /**
+   * Reads the most recent interviewer question aloud. No engine turn, so nothing is stored and the
+   * turn lock is never taken: this is a replay of something the participant can already see.
+   */
+  private async speakLast(): Promise<void> {
     if (this.busy) return;
     this.busy = true;
     const askedAt = Date.now();
     try {
+      if (!(await this.stillAllowed())) return;
       const last = await this.ctx.db.message.findFirst({
         where: { sessionId: this.scope.sessionId, role: "assistant" },
         orderBy: { seq: "desc" },
@@ -236,12 +339,12 @@ class LiveVoiceSession {
       if (!last) {
         // Nothing has been asked yet, so there is nothing to repeat; open the interview instead.
         this.busy = false;
-        await this.takeTurn(undefined, opts);
+        await this.takeTurn(undefined);
         return;
       }
       const widget = last.widget ? (last.widget as Widget) : undefined;
       const spoken = toSpokenTurn(last.content, widget);
-      await this.speak(spoken.text, opts, askedAt, spoken.shortened);
+      await this.speak(spoken.text, askedAt, spoken.shortened);
     } catch (err) {
       this.onProviderFailure(err, "speech");
     } finally {
@@ -249,16 +352,31 @@ class LiveVoiceSession {
     }
   }
 
-  private collect(data: Buffer): void {
+  /** Counts audio against the session's ceiling; false when the socket had to be closed. */
+  private admit(data: Buffer, ceiling: number): boolean {
     this.sessionBytes += data.byteLength;
-    if (this.sessionBytes > MAX_SESSION_BYTES) {
+    if (this.sessionBytes > ceiling) {
       this.socket.close(CLOSE_TOO_BIG, "too much audio");
       this.closed = true;
-      return;
+      this.stt?.close();
+      return false;
     }
+    return true;
+  }
+
+  private collect(data: Buffer): void {
+    if (!this.admit(data, MAX_SESSION_BYTES)) return;
     if (this.bytes + data.byteLength > MAX_UTTERANCE_BYTES) return; // drop the tail, keep the head
     this.chunks.push(data);
     this.bytes += data.byteLength;
+  }
+
+  /** Stream mode: PCM16 goes straight to the provider, nothing is buffered here. */
+  private stream(data: Buffer): void {
+    if (!this.admit(data, MAX_STREAM_SESSION_BYTES)) return;
+    // An odd byte count would shift every later sample by half a sample: noise, not speech.
+    const even = data.byteLength % 2 === 0 ? data : data.subarray(0, data.byteLength - 1);
+    this.stt?.push(new Uint8Array(even.buffer, even.byteOffset, even.byteLength));
   }
 
   private reset(): void {
@@ -266,24 +384,149 @@ class LiveVoiceSession {
     this.bytes = 0;
   }
 
+  /**
+   * Reads the provider's transcription events for as long as the session lasts.
+   *
+   * The final transcript is handled exactly like a transcribed utterance: captioned, then answered
+   * as a normal turn, or held when a turn is already running.
+   */
+  private async pump(stt: SttStreamSession): Promise<void> {
+    try {
+      for await (const ev of stt.events) {
+        if (this.closed) break;
+        if (ev.type === "error" && ev.fatal) break;
+        // Not awaited: a final transcript runs a whole turn, and the partial captions of whatever
+        // the participant says next must keep flowing while it does.
+        void this.scoped(() => this.onSttEvent(ev));
+      }
+    } catch (err) {
+      this.ctx.log.warn({ err, sessionId: this.scope.sessionId }, "live voice: stt stream failed");
+    }
+    if (this.closed || this.stt !== stt) return;
+    // The events ended without this side closing them: the provider went away mid-call.
+    await this.scoped(() => this.fallBackFromStream("stt_stream_failed"));
+  }
+
+  private async onSttEvent(ev: SttStreamEvent): Promise<void> {
+    switch (ev.type) {
+      case "speech_started":
+        this.speechStartedAt = Date.now();
+        this.partialSeen = false;
+        {
+          // The provider hears the participant start talking over the interviewer: the same
+          // barge-in the browser's own detector performs, from the other end. `barged` tells the
+          // browser the server already did it, so it stops playback without a second `barge`.
+          const barged = Boolean(this.speaking) && this.opts.bargeIn;
+          if (barged) this.barge();
+          this.send({ type: "speech_started", barged });
+          return;
+        }
+      case "speech_stopped":
+        this.awaitingFinal = true;
+        this.send({ type: "speech_stopped" });
+        return;
+      case "partial":
+        if (!this.partialSeen && this.speechStartedAt !== undefined) {
+          this.partialSeen = true;
+          this.firstPartialMsTotal += Date.now() - this.speechStartedAt;
+          this.firstPartialSamples++;
+        }
+        if (this.opts.captions) this.send({ type: "caption_partial", text: ev.text });
+        return;
+      case "final":
+        this.awaitingFinal = false;
+        await this.onFinal(ev.text, ev.confidence);
+        return;
+      case "error":
+        this.ctx.log.warn({ sessionId: this.scope.sessionId, message: ev.message }, "live voice: stt");
+        // A turn the provider could not transcribe is a turn the participant has to repeat.
+        if (this.awaitingFinal) {
+          this.awaitingFinal = false;
+          this.send({ type: "not_heard" });
+        }
+        return;
+    }
+  }
+
+  /** Answers a final transcript from the stream, or holds it while a turn is running. */
+  private async onFinal(raw: string, confidence: number | undefined): Promise<void> {
+    const text = raw.trim();
+    if (text.length === 0) {
+      this.send({ type: "not_heard" });
+      return;
+    }
+    if (this.opts.captions) {
+      this.send({
+        type: "caption_final",
+        role: "user",
+        text,
+        ...(confidence === undefined ? {} : { confidence }),
+      });
+    }
+    if (this.busy) {
+      // Keep the most recent one, for the reason `onUtterance` gives.
+      this.pending = { kind: "text", text };
+      return;
+    }
+    await this.takeTurn({ content: text.slice(0, 8000), modality: "voice" as const });
+  }
+
+  /**
+   * Streaming is over for this call: the provider's socket died, or the browser cannot capture PCM.
+   * Per-utterance transcription is the rung below it, so the browser is told to capture that way;
+   * with no transcription route there is nothing below it but typing.
+   */
+  private async fallBackFromStream(reason: "stt_stream_failed" | "client_capture"): Promise<void> {
+    const stt = this.stt;
+    this.stt = undefined;
+    stt?.close();
+    this.streamFallbacks++;
+    if (await this.hasRoute("transcription")) {
+      this.mode = "utterance";
+      this.reset();
+      // A browser that asked for utterance mode is already capturing that way; one the server
+      // moved has PCM in flight, which must not be mistaken for the start of a recording.
+      this.awaitingCapture = reason === "stt_stream_failed";
+      this.send({ type: "mode", mode: "utterance", reason });
+      return;
+    }
+    this.send({ type: "unavailable", reason, fallback: "text" });
+  }
+
+  /** Tenant route first, platform second, as the resolver reads them. */
+  private async hasRoute(purpose: "transcription"): Promise<boolean> {
+    const row = await this.ctx.db.route.findFirst({
+      where: { purpose, OR: [{ companyId: this.scope.companyId }, { companyId: null }] },
+      select: { id: true },
+    });
+    return row !== null;
+  }
+
   /** Transcribe what was said, then take a turn on it. */
-  private async onUtterance(opts: { captions: boolean; voice: string; speed: number }): Promise<void> {
+  private async onUtterance(): Promise<void> {
     const audio = Buffer.concat(this.chunks);
     this.reset();
     if (audio.byteLength === 0) return;
     if (this.busy) {
       // Keep the most recent one. If they said two things while the interviewer was talking, the
       // second is the one they meant; answering the first would put the conversation a turn behind.
-      this.pending = audio;
+      this.pending = { kind: "audio", audio };
       return;
     }
 
     this.busy = true;
     try {
+      // Before the transcription, which is paid for, not only before the turn that follows it.
+      if (!(await this.stillAllowed())) return;
       const caller = await this.ctx.callers.forCompany(this.scope.companyId);
       const transcript = await caller.transcribe(
         { companyId: this.scope.companyId, sessionId: this.scope.sessionId },
-        { data: new Uint8Array(audio), mime: "audio/webm", filename: "utterance.webm" },
+        {
+          data: new Uint8Array(audio),
+          mime: "audio/webm",
+          filename: "utterance.webm",
+          languages: speechLanguages(await this.ctx.attachments.languageFor(this.scope.sessionId)),
+        },
       );
       const text = transcript.text.trim();
       if (text.length === 0) {
@@ -292,7 +535,7 @@ class LiveVoiceSession {
         this.send({ type: "not_heard" });
         return;
       }
-      if (opts.captions) {
+      if (this.opts.captions) {
         this.send({
           type: "caption",
           role: "user",
@@ -300,12 +543,12 @@ class LiveVoiceSession {
           ...(transcript.confidence === undefined ? {} : { confidence: transcript.confidence }),
         });
       }
-      await this.takeTurn({ content: text.slice(0, 8000), modality: "voice" as const }, opts, true);
+      await this.takeTurn({ content: text.slice(0, 8000), modality: "voice" as const }, true);
     } catch (err) {
       this.onProviderFailure(err, "transcription");
     } finally {
       this.busy = false;
-      await this.drainPending(opts);
+      await this.drainPending();
     }
   }
 
@@ -318,12 +561,17 @@ class LiveVoiceSession {
    */
   private async takeTurn(
     answer: { content: string; modality: "voice" } | undefined,
-    opts: { captions: boolean; voice: string; speed: number },
     alreadyBusy = false,
   ): Promise<void> {
     if (!alreadyBusy) {
       if (this.busy) return;
       this.busy = true;
+    }
+    // Every turn passes here, whatever started it: a control frame, a streamed final from the
+    // provider, or an utterance held back while the last turn finished.
+    if (!(await this.stillAllowed())) {
+      if (!alreadyBusy) this.busy = false;
+      return;
     }
     const askedAt = Date.now();
     try {
@@ -340,10 +588,10 @@ class LiveVoiceSession {
           this.turns++;
           this.send({ type: "turn", ...data });
           const spoken = toSpokenTurn(data.message.content, data.widget, data.voiceShortForm);
-          if (opts.captions) {
+          if (this.opts.captions) {
             this.send({ type: "caption", role: "assistant", text: data.message.content });
           }
-          await this.speak(spoken.text, opts, askedAt, spoken.shortened);
+          await this.speak(spoken.text, askedAt, spoken.shortened);
         } else if (item.event === "ended") {
           this.send({ type: "ended", ...(item.data as object) });
         } else if (item.event === "error") {
@@ -357,19 +605,23 @@ class LiveVoiceSession {
     } finally {
       if (!alreadyBusy) {
         this.busy = false;
-        await this.drainPending(opts);
+        await this.drainPending();
       }
     }
   }
 
-  /** Answers an utterance that arrived mid-turn, now that the turn is over. */
-  private async drainPending(opts: { captions: boolean; voice: string; speed: number }): Promise<void> {
-    const audio = this.pending;
-    if (!audio || this.closed) return;
+  /** Answers whatever was said mid-turn, now that the turn is over. */
+  private async drainPending(): Promise<void> {
+    const held = this.pending;
+    if (!held || this.closed) return;
     this.pending = undefined;
-    this.chunks.push(audio);
-    this.bytes = audio.byteLength;
-    await this.onUtterance(opts);
+    if (held.kind === "text") {
+      await this.takeTurn({ content: held.text.slice(0, 8000), modality: "voice" as const });
+      return;
+    }
+    this.chunks.push(held.audio);
+    this.bytes = held.audio.byteLength;
+    await this.onUtterance();
   }
 
   /**
@@ -379,12 +631,7 @@ class LiveVoiceSession {
    * captions only, which is the middle rung of the spec's real-time → recorded → text chain. The
    * interview continues either way — that is the requirement, "without losing the session".
    */
-  private async speak(
-    text: string,
-    opts: { voice: string; speed: number },
-    askedAt: number,
-    shortened: boolean,
-  ): Promise<void> {
+  private async speak(text: string, askedAt: number, shortened: boolean): Promise<void> {
     if (text.length === 0) return;
     const controller = new AbortController();
     this.speaking = controller;
@@ -392,7 +639,7 @@ class LiveVoiceSession {
       const caller = await this.ctx.callers.forCompany(this.scope.companyId);
       const out = await caller.speak(
         { companyId: this.scope.companyId, sessionId: this.scope.sessionId },
-        { text, voice: opts.voice, speed: opts.speed, format: "opus" },
+        { text, voice: this.opts.voice, speed: this.opts.speed, format: "opus" },
         controller.signal,
       );
       if (!out) {
@@ -427,6 +674,17 @@ class LiveVoiceSession {
    * than ending the interview.
    */
   private onProviderFailure(err: unknown, stage: "transcription" | "speech" | "turn"): void {
+    if (err instanceof UnsupportedAudioError) {
+      // The route exists but reads WAV only — the on-server Whisper (D-75) — and live voice sends
+      // WebM. Recorded voice converts to WAV in the browser before uploading, so it does work, and
+      // that is where the participant goes; telling them to type would give up a working voice.
+      this.ctx.log.info(
+        { sessionId: this.scope.sessionId },
+        "live voice: route reads WAV only, using recorded",
+      );
+      this.send({ type: "unavailable", reason: "transcription_needs_wav", fallback: "recorded" });
+      return;
+    }
     const unsupported = err instanceof ProviderError && err.code === "unsupported";
     this.ctx.log.warn({ err, stage, sessionId: this.scope.sessionId }, "live voice degraded");
     this.send({
@@ -454,11 +712,10 @@ class LiveVoiceSession {
     return unsupported ? "text" : "recorded";
   }
 
-  /** The three signals spec 09 asks to trace per session, written once at the end. */
+  /** The signals spec 09 asks to trace per session, written once at the end. */
   private async recordMetrics(): Promise<void> {
     if (this.turns === 0) return;
-    const avgFirstWordMs =
-      this.firstWordSamples > 0 ? Math.round(this.firstWordMsTotal / this.firstWordSamples) : null;
+    const avg = (total: number, n: number): number | null => (n > 0 ? Math.round(total / n) : null);
     await this.ctx.db.sessionEvent
       .create({
         data: {
@@ -468,7 +725,11 @@ class LiveVoiceSession {
           payload: {
             turns: this.turns,
             interruptions: this.interruptions,
-            avgFirstWordMs,
+            avgFirstWordMs: avg(this.firstWordMsTotal, this.firstWordSamples),
+            // Stream mode only: the participant starts talking to the first word of their caption.
+            avgFirstPartialMs: avg(this.firstPartialMsTotal, this.firstPartialSamples),
+            mode: this.mode,
+            streamFallbacks: this.streamFallbacks,
             audioBytes: this.sessionBytes,
           },
         },
@@ -476,24 +737,35 @@ class LiveVoiceSession {
       .catch(() => undefined);
   }
 
-  private async settings(): Promise<{
-    enabled: boolean;
-    captions: boolean;
-    bargeIn: boolean;
-    voice: string;
-    speed: number;
-  }> {
+  private async settings(): Promise<
+    SessionOpts & { enabled: boolean; endOfSpeechMs: number; language: string | undefined }
+  > {
     const chain = [{ scope: "tenant" as const, scopeId: this.scope.companyId }];
-    const values = await this.ctx.settings.resolveMany(
-      ["features.realtimeVoice", "voice.captions", "voice.bargeIn", "voice.voiceName", "voice.speakingRate"],
-      chain,
-    );
+    const [values, session] = await Promise.all([
+      this.ctx.settings.resolveMany(
+        [
+          "features.realtimeVoice",
+          "voice.captions",
+          "voice.bargeIn",
+          "voice.voiceName",
+          "voice.speakingRate",
+          "voice.endOfSpeechMs",
+        ],
+        chain,
+      ),
+      this.ctx.db.session.findUnique({
+        where: { id: this.scope.sessionId },
+        select: { template: { select: { language: true } } },
+      }),
+    ]);
     return {
       enabled: values["features.realtimeVoice"] as boolean,
       captions: values["voice.captions"] as boolean,
       bargeIn: values["voice.bargeIn"] as boolean,
       voice: values["voice.voiceName"] as string,
       speed: values["voice.speakingRate"] as number,
+      endOfSpeechMs: values["voice.endOfSpeechMs"] as number,
+      language: session?.template.language,
     };
   }
 

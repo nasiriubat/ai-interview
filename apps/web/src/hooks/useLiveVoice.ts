@@ -5,11 +5,13 @@ import { microphoneProblem, recorderOptions, type RecorderProblem } from "./useR
 import {
   toServerFrame,
   type ClientFrame,
+  type HearingMode,
   type ServerFrame,
   type TurnFrame,
   type VoiceFallback,
 } from "@/lib/api/voice-live";
 import { voiceSocketUrl } from "@/lib/env";
+import { PCM_FRAME_MS, PCM_WORKLET_NAME, PCM_WORKLET_SOURCE } from "@/lib/voice/pcm-worklet";
 
 /**
  * The browser half of the real-time voice cascade (FR-30a).
@@ -17,12 +19,21 @@ import { voiceSocketUrl } from "@/lib/env";
  * The socket, the microphone, the end-of-utterance detector and playback, behind one state
  * machine. Three decisions shape it.
  *
- * **One recording per utterance, not one continuous stream.** The server treats everything sent
- * since the last `utterance` frame as a complete `audio/webm` file and hands it to the
- * transcription route. A webm stream cut at an arbitrary point is not a file: only the first piece
- * carries the container header. So the `MediaRecorder` is started when the participant starts
- * talking and stopped when they stop, and the audio in between goes out in 250 ms slices. The
- * analyser runs continuously on the `MediaStream` instead, which is what makes it hands-free.
+ * **Two ways to hear, and the server picks (D-77).** Its `ready` frame names the mode.
+ *
+ * - `stream`: an AudioWorklet turns the microphone into PCM16 at 24 kHz and sends it in 80 ms
+ *   frames for as long as the call lasts. The server's provider transcribes while the participant
+ *   talks, the growing text comes back as `caption_partial`, and the provider decides when they
+ *   have finished. Nothing here detects the end of speech.
+ * - `utterance`: one recording per utterance (D-70). The server treats everything sent since the
+ *   last `utterance` frame as a complete `audio/webm` file. A webm stream cut at an arbitrary point
+ *   is not a file: only the first piece carries the container header. So the `MediaRecorder` is
+ *   started when the participant starts talking and stopped when they stop, and the audio in
+ *   between goes out in 250 ms slices.
+ *
+ * Either way the analyser runs continuously on the `MediaStream`, for the meter and for barge-in.
+ * A server that loses its streaming provider mid-call sends `mode: utterance`, and the call carries
+ * on with recordings; a browser without AudioWorklet asks for that itself.
  *
  * **Playback is buffered, not incremental.** The audio of one `speech_start`/`speech_end` pair is
  * collected into a Blob and played from an object URL, so speech begins when the server has
@@ -107,6 +118,14 @@ export interface LiveVoiceController {
   textOnly: boolean;
   /** The last utterance transcribed to nothing, so the participant can be asked to try again. */
   notHeard: boolean;
+  /**
+   * Stream mode: what the participant has said so far in the utterance in progress. Visual only —
+   * it changes several times a second, so it is never put in a live region; the finished caption
+   * reaches the message list, which announces it once.
+   */
+  partial: string;
+  /** How speech is being captured in this call. */
+  mode: HearingMode;
   problem: LiveVoiceProblem | null;
   start: () => void;
   end: () => void;
@@ -124,6 +143,8 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
   const [captions, setCaptions] = React.useState(false);
   const [textOnly, setTextOnly] = React.useState(false);
   const [notHeard, setNotHeard] = React.useState(false);
+  const [partial, setPartial] = React.useState("");
+  const [mode, setMode] = React.useState<HearingMode>("utterance");
   const [problem, setProblem] = React.useState<LiveVoiceProblem | null>(null);
 
   // Everything the polling loop and the socket handlers touch lives in a ref: both outlive the
@@ -149,6 +170,10 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
   /** The call was ended on purpose, so a closing socket is not a failure. */
   const endedRef = React.useRef(false);
   const fellBackRef = React.useRef(false);
+  const modeRef = React.useRef<HearingMode>("utterance");
+  const sourceRef = React.useRef<MediaStreamAudioSourceNode | null>(null);
+  const workletRef = React.useRef<AudioWorkletNode | null>(null);
+  const sinkRef = React.useRef<GainNode | null>(null);
 
   const setPhase = (next: LiveVoiceStatus): void => {
     statusRef.current = next;
@@ -181,7 +206,21 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
     speechRef.current = null;
   };
 
+  /** Disconnects the PCM capture. The microphone itself is released by `release`. */
+  const stopStreaming = (): void => {
+    const node = workletRef.current;
+    workletRef.current = null;
+    if (node) {
+      node.port.onmessage = null;
+      node.disconnect();
+    }
+    sinkRef.current?.disconnect();
+    sinkRef.current = null;
+  };
+
   const release = (): void => {
+    stopStreaming();
+    sourceRef.current = null;
     if (pollRef.current !== null) {
       clearInterval(pollRef.current);
       pollRef.current = null;
@@ -204,6 +243,7 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
     context?.close().catch(() => undefined);
     stepRef.current = 0;
     setLevel(0);
+    setPartial("");
   };
 
   const teardown = (next: LiveVoiceStatus): void => {
@@ -349,9 +389,13 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
     if (phase === "speaking") {
       if (!bargeInRef.current) return;
       loudPollsRef.current = rms >= BARGE_RMS ? loudPollsRef.current + 1 : 0;
-      if (loudPollsRef.current >= BARGE_POLLS) interrupt(true);
+      // In stream mode the audio is already on its way; there is no recording to start.
+      if (loudPollsRef.current >= BARGE_POLLS) interrupt(modeRef.current === "utterance");
       return;
     }
+
+    // Stream mode: the provider finds the end of each utterance, not this loop.
+    if (modeRef.current === "stream") return;
 
     // Listening, or thinking: an answer given while the turn is still running is the ordinary
     // case, not an error, and the server holds it until the turn in flight is done.
@@ -372,12 +416,75 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
     if (now - silenceSinceRef.current >= SILENCE_MS) endUtterance();
   };
 
+  const setHearing = (next: HearingMode): void => {
+    modeRef.current = next;
+    setMode(next);
+  };
+
+  /**
+   * Stream mode: routes the microphone through the PCM worklet and sends each frame as it is made.
+   *
+   * While the interviewer is talking with barge-in off, frames are not sent: nothing the
+   * participant says then can interrupt, and the speakers leaking into the microphone would
+   * otherwise be transcribed as their answer. With barge-in on they are sent, because the
+   * provider's own speech detection is the second half of barge-in; echo cancellation keeps the
+   * interviewer's voice out of them.
+   */
+  const startStreaming = async (sampleRate: number): Promise<void> => {
+    const context = contextRef.current;
+    const source = sourceRef.current;
+    const cannot = (): void => {
+      // No AudioWorklet (an old browser), or it failed to load: record per utterance instead.
+      stopStreaming();
+      setHearing("utterance");
+      send({ type: "capture", mode: "utterance" });
+    };
+    if (!context || !source || typeof context.audioWorklet === "undefined") {
+      cannot();
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([PCM_WORKLET_SOURCE], { type: "text/javascript" }));
+    try {
+      await context.audioWorklet.addModule(url);
+      if (contextRef.current !== context || modeRef.current !== "stream") return;
+      const node = new AudioWorkletNode(context, PCM_WORKLET_NAME, {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        channelCount: 1,
+        channelCountMode: "explicit",
+        processorOptions: { targetRate: sampleRate, frameMs: PCM_FRAME_MS },
+      });
+      node.port.onmessage = (e: MessageEvent<unknown>): void => {
+        if (!(e.data instanceof ArrayBuffer) || modeRef.current !== "stream") return;
+        const phase = statusRef.current;
+        if (phase === "idle" || phase === "connecting" || phase === "unavailable") return;
+        if (phase === "speaking" && !bargeInRef.current) return;
+        const socket = socketRef.current;
+        if (socket?.readyState === SOCKET_OPEN) socket.send(e.data);
+      };
+      // A worklet nobody pulls from is not guaranteed to run, so it feeds a silent sink.
+      const sink = context.createGain();
+      sink.gain.value = 0;
+      source.connect(node);
+      node.connect(sink);
+      sink.connect(context.destination);
+      workletRef.current = node;
+      sinkRef.current = sink;
+    } catch {
+      cannot();
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+
   const onFrame = (frame: ServerFrame): void => {
     switch (frame.type) {
       case "ready":
         reconnectsRef.current = 0;
         bargeInRef.current = frame.bargeIn;
         setCaptions(frame.captions);
+        setHearing(frame.mode);
+        if (frame.mode === "stream") void startStreaming(frame.sampleRate);
         setPhase("listening");
         // Say the question that is already on screen, so somebody who switches to voice halfway
         // through hears where they are instead of silence. It takes no turn and stores nothing,
@@ -394,6 +501,38 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
         // The interviewer's caption repeats the `turn` frame that came immediately before it;
         // rendering both would put every exchange in the list twice.
         if (frame.role === "user") cb.current.onHeard(frame.text);
+        return;
+      case "caption_partial":
+        setPartial(frame.text);
+        return;
+      case "caption_final":
+        setPartial("");
+        cb.current.onHeard(frame.text);
+        // The server is answering it now.
+        if (statusRef.current === "listening") setPhase("thinking");
+        return;
+      case "speech_started":
+        setNotHeard(false);
+        // The provider heard them start talking. Over the interviewer, that is barge-in: the
+        // server already stopped any synthesis still running (`barged`), so only the playback here
+        // is left to stop, and `barge` is sent only when the server did not do it itself.
+        if (statusRef.current === "speaking" && bargeInRef.current) {
+          if (frame.barged) {
+            stopPlayback();
+            loudPollsRef.current = 0;
+            setPhase("listening");
+          } else interrupt(false);
+        }
+        return;
+      case "speech_stopped":
+        return;
+      case "mode":
+        // The server lost its streaming provider (or this browser asked): capture per utterance
+        // from now on, and say so, so the server stops discarding what arrives.
+        stopStreaming();
+        setPartial("");
+        setHearing(frame.mode);
+        send({ type: "capture", mode: frame.mode });
         return;
       case "speech_start":
         // An utterance still open when the interviewer starts talking is closed here rather than
@@ -419,6 +558,7 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
         return;
       case "not_heard":
         setNotHeard(true);
+        setPartial("");
         toListening();
         return;
       case "ended":
@@ -532,7 +672,9 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
       contextRef.current = context;
       const analyser = context.createAnalyser();
       analyser.fftSize = ANALYSER_FFT;
-      context.createMediaStreamSource(stream).connect(analyser);
+      const source = context.createMediaStreamSource(stream);
+      source.connect(analyser);
+      sourceRef.current = source;
       analyserRef.current = analyser;
       samplesRef.current = new Uint8Array(analyser.fftSize);
     } catch {
@@ -555,6 +697,8 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
     setTextOnly(false);
     setProblem(null);
     setNotHeard(false);
+    setPartial("");
+    setHearing("utterance");
     setPhase("connecting");
     void open();
   };
@@ -580,6 +724,8 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
     captions,
     textOnly,
     notHeard,
+    partial,
+    mode,
     problem,
     start,
     end,

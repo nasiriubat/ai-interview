@@ -7,6 +7,8 @@ import {
   createProvider,
   type ModelCallerDeps,
   type Provider,
+  type RealtimeSocketFactory,
+  type SpeechRunner,
 } from "@aidp/ai";
 import type { ProviderConfig } from "@aidp/shared";
 import type { PrismaClient } from "@prisma/client";
@@ -31,6 +33,8 @@ export interface CallerFactoryDeps {
    * never leave the process; the API and the worker always pass one.
    */
   egress?: EgressGuard;
+  /** The on-server Whisper runner (D-75); the process-wide one when absent. Tests pass a fake. */
+  speech?: SpeechRunner;
 }
 
 /**
@@ -43,7 +47,11 @@ export class CallerFactory {
 
   constructor(private readonly deps: CallerFactoryDeps) {
     this.ledger = new PrismaLedger(deps.db);
-    this.registry = new ProviderRegistry({ fetchFor: (cfg) => this.fetchFor(cfg) });
+    this.registry = new ProviderRegistry({
+      ...(deps.speech ? { speech: deps.speech } : {}),
+      fetchFor: (cfg) => this.fetchFor(cfg),
+      socketFor: (cfg) => this.socketFor(cfg),
+    });
   }
 
   /**
@@ -68,9 +76,21 @@ export class CallerFactory {
     return egress.fetchFor(origin);
   }
 
+  /** The streaming-transcription socket for one provider, held to the same policy as its HTTP calls. */
+  private socketFor(cfg: ProviderConfig): RealtimeSocketFactory | undefined {
+    const { egress } = this.deps;
+    if (!egress) return undefined;
+    return egress.socketFor(cfg.companyId === null ? "platform" : "tenant");
+  }
+
   /** An adapter for one provider row, on the guarded transport. Used by "test connection" and "list models". */
-  adapterFor(cfg: ProviderConfig): Provider {
-    return createProvider(cfg, { fetchFor: (c) => this.fetchFor(c) });
+  adapterFor(cfg: ProviderConfig, extra: { speech?: SpeechRunner } = {}): Provider {
+    const speech = extra.speech ?? this.deps.speech;
+    return createProvider(cfg, {
+      ...(speech ? { speech } : {}),
+      fetchFor: (c) => this.fetchFor(c),
+      socketFor: (c) => this.socketFor(c),
+    });
   }
 
   async forCompany(companyId: string): Promise<ModelCaller> {

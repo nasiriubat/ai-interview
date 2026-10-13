@@ -50,11 +50,20 @@ export class PrismaProviderConfigSource implements ProviderConfigSource {
       kind: row.kind,
       name: row.name,
       ...(row.baseUrl ? { baseUrl: row.baseUrl } : {}),
-      apiKey: this.crypto.decrypt(row.apiKeyEnc),
+      apiKey: decryptApiKey(this.crypto, row.apiKeyEnc),
       headers: row.headers,
       enabled: row.enabled,
     });
   }
+}
+
+/**
+ * A provider's key, decrypted. An empty column means the provider has no key at all — the `local`
+ * provider runs on this server and needs none (D-75) — rather than an encrypted empty string, so
+ * "Key set" in the admin screen stays true only for providers that actually hold a secret.
+ */
+export function decryptApiKey(crypto: Crypto, apiKeyEnc: string): string {
+  return apiKeyEnc === "" ? "" : crypto.decrypt(apiKeyEnc);
 }
 
 /** Ledger rows and spend queries (FR-45, FR-47). */

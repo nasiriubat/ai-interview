@@ -1,7 +1,14 @@
 import type { Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { WebSocket as WsClient } from "ws";
-import { fakeModelServer, testWorld, TURN_MARKER, type TestWorld } from "./helpers.js";
+import {
+  fakeModelServer,
+  testWorld,
+  TURN_MARKER,
+  type FakeRealtime,
+  type RealtimeLog,
+  type TestWorld,
+} from "./helpers.js";
 
 const suite = process.env.DATABASE_URL ? describe : describe.skip;
 
@@ -14,7 +21,11 @@ const suite = process.env.DATABASE_URL ? describe : describe.skip;
  */
 suite("live voice", () => {
   let world: TestWorld;
-  let model: { server: Server; url: string; requests: unknown[] };
+  let model: { server: Server; url: string; requests: unknown[]; realtime: RealtimeLog };
+  let realtime: FakeRealtime = {
+    kind: "transcript",
+    text: "We copy every figure into the spreadsheet by hand.",
+  };
   let port = 0;
   let transcript: { text: string; duration?: number } | Error = {
     text: "We type everything twice, once in the patient system and once in the sheet.",
@@ -30,6 +41,7 @@ suite("live voice", () => {
       () => reply,
       undefined,
       () => transcript,
+      () => realtime,
     );
     world = await testWorld(model.url);
     // Live voice ships off (`features.realtimeVoice` defaults to false), because it costs money
@@ -375,6 +387,40 @@ suite("live voice", () => {
     client.close();
   });
 
+  it("points at the record button when the route is Whisper on this server, which reads WAV only", async () => {
+    // Live voice streams WebM; the on-server Whisper cannot read it (D-75). Recorded voice converts
+    // to WAV in the browser first, so it works there, and typing would give up a working voice.
+    const route = await world.db.route.findFirstOrThrow({
+      where: { companyId: world.companyId, purpose: "transcription" },
+    });
+    const local = await world.db.provider.create({
+      data: { companyId: null, kind: "local", name: "On this server (test)", apiKeyEnc: "", headers: {} },
+    });
+    await world.db.route.update({
+      where: { id: route.id },
+      data: { providerId: local.id, model: "onnx-community/whisper-small" },
+    });
+    try {
+      const token = await participantToken();
+      const client = await connect(token);
+      await client.waitFor("ready");
+      client.socket.send(Buffer.from("webm bytes"));
+      client.send({ type: "utterance" });
+
+      const frame = await client.waitFor("unavailable", (f) => f.reason === "transcription_needs_wav");
+
+      expect(frame).toMatchObject({ fallback: "recorded" });
+      client.close();
+    } finally {
+      await world.db.route.update({
+        where: { id: route.id },
+        data: { providerId: route.providerId, model: route.model },
+      });
+      await world.db.llmCall.deleteMany({ where: { providerId: local.id } });
+      await world.db.provider.delete({ where: { id: local.id } });
+    }
+  });
+
   it("points at typing, not the record button, when there is no transcription route at all", async () => {
     // Recorded voice transcribes through the same route. Sending someone to the record button when
     // that route does not exist sends them at the one thing guaranteed to fail identically.
@@ -404,5 +450,189 @@ suite("live voice", () => {
         },
       });
     }
+  });
+  /**
+   * Streaming captions (FR-30a, D-77): with an `stt_stream` route the browser sends PCM16 as it
+   * captures it, the provider's realtime socket transcribes while the participant talks, and the
+   * final transcript takes the turn exactly as a transcribed utterance does.
+   */
+  describe("with streaming transcription", () => {
+    let routeId = "";
+    /** 100 ms of 24 kHz PCM16 silence: the content is irrelevant to the fake, the format is not. */
+    const pcm = (): Buffer => Buffer.alloc(4800);
+
+    beforeAll(async () => {
+      const provider = await world.db.route.findFirstOrThrow({
+        where: { companyId: world.companyId, purpose: "interview_turn" },
+      });
+      const route = await world.db.route.create({
+        data: {
+          companyId: world.companyId,
+          purpose: "stt_stream",
+          providerId: provider.providerId,
+          model: "gpt-live-transcribe",
+          maxOutputTokens: 0,
+        },
+      });
+      routeId = route.id;
+    });
+    afterAll(async () => {
+      await world.db.route.deleteMany({ where: { id: routeId } });
+    });
+
+    it("announces stream mode and configures a 24 kHz transcription session", async () => {
+      realtime = { kind: "transcript", text: "We copy every figure into the spreadsheet by hand." };
+      const before = model.realtime.sessionUpdates.length;
+      const client = await connect(await participantToken());
+
+      const ready = await client.waitFor("ready");
+
+      expect(ready).toMatchObject({ mode: "stream", sampleRate: 24000 });
+      const update = model.realtime.sessionUpdates[before] as {
+        type: string;
+        audio: { input: { format: unknown; transcription: { model: string }; turn_detection: unknown } };
+      };
+      expect(update.type).toBe("transcription");
+      expect(update.audio.input.format).toEqual({ type: "audio/pcm", rate: 24000 });
+      expect(update.audio.input.transcription.model).toBe("gpt-live-transcribe");
+      expect(update.audio.input.turn_detection).toMatchObject({
+        type: "server_vad",
+        silence_duration_ms: 700,
+      });
+      expect(model.realtime.connections.at(-1)).toMatchObject({
+        url: "/v1/realtime?intent=transcription",
+        authorization: "Bearer k",
+      });
+      client.close();
+    });
+
+    it("captions while the participant talks, then answers the final transcript as a turn", async () => {
+      realtime = { kind: "transcript", text: "We copy every figure into the spreadsheet by hand." };
+      const { token, sessionId } = await participantSession();
+      const client = await connect(token);
+      await client.waitFor("ready");
+      client.send({ type: "start" });
+      await client.waitFor("turn");
+
+      client.socket.send(pcm());
+
+      const partials = await client.waitForCount("caption_partial", 2);
+      // Growing text, not deltas: each partial is the whole utterance so far.
+      expect(partials[0]?.text).toBe("We copy every figure into");
+      expect(partials[1]?.text).toBe("We copy every figure into the spreadsheet by hand.");
+      const final = await client.waitFor("caption_final");
+      expect(final).toMatchObject({
+        role: "user",
+        text: "We copy every figure into the spreadsheet by hand.",
+      });
+      // Answered on the same session as a normal voice turn: the opening question and the reply.
+      await client.waitForCount("turn", 2);
+      const answer = await world.db.message.findFirst({
+        where: { sessionId, role: "user" },
+        orderBy: { seq: "desc" },
+      });
+      expect(answer?.content).toBe("We copy every figure into the spreadsheet by hand.");
+      // Metered through ModelCaller like every other call.
+      const rows = await world.db.llmCall.count({
+        where: { sessionId, purpose: "stt_stream", status: "ok" },
+      });
+      expect(rows).toBeGreaterThan(0);
+      client.close();
+    });
+
+    it("forwards the provider's speech events, which also serve as barge-in", async () => {
+      realtime = { kind: "transcript", text: "Yes." };
+      const client = await connect(await participantToken());
+      await client.waitFor("ready");
+
+      client.socket.send(pcm());
+
+      await client.waitFor("speech_started");
+      await client.waitFor("speech_stopped");
+      client.close();
+    });
+
+    it("traces time to first caption with the other voice signals", async () => {
+      realtime = { kind: "transcript", text: "About an hour a day." };
+      const { token, sessionId } = await participantSession();
+      const client = await connect(token);
+      await client.waitFor("ready");
+      client.send({ type: "start" });
+      await client.waitFor("turn");
+      client.socket.send(pcm());
+      await client.waitForCount("turn", 2);
+      client.close();
+
+      let payload: { avgFirstPartialMs: number | null; mode: string } | undefined;
+      for (let i = 0; i < 40 && !payload; i++) {
+        await new Promise((r) => setTimeout(r, 50));
+        const row = await world.db.sessionEvent.findFirst({ where: { sessionId, type: "voice.live" } });
+        payload = row?.payload as typeof payload;
+      }
+      expect(payload?.mode).toBe("stream");
+      expect(typeof payload?.avgFirstPartialMs).toBe("number");
+    });
+
+    it("falls back to per-utterance transcription when the provider refuses the session", async () => {
+      realtime = { kind: "refuse" };
+      const client = await connect(await participantToken());
+
+      const ready = await client.waitFor("ready");
+
+      expect(ready).toMatchObject({ mode: "utterance" });
+      // And the rung below works: a recorded utterance is transcribed through `transcription`.
+      client.socket.send(Buffer.from("fake opus bytes"));
+      client.send({ type: "utterance" });
+      const heard = await client.waitFor("caption", (f) => f.role === "user");
+      expect(heard.text).toContain("everything twice");
+      client.close();
+    });
+
+    it("drops to per-utterance mid-call when the stream dies and a transcription route exists", async () => {
+      realtime = { kind: "drop" };
+      const client = await connect(await participantToken());
+      await client.waitFor("ready", (f) => f.mode === "stream");
+
+      client.socket.send(pcm());
+
+      const mode = await client.waitFor("mode");
+      expect(mode).toMatchObject({ mode: "utterance", reason: "stt_stream_failed" });
+      // PCM still in flight is dropped until the browser says it switched capture.
+      client.socket.send(pcm());
+      client.send({ type: "capture", mode: "utterance" });
+      client.socket.send(Buffer.from("fake opus bytes"));
+      client.send({ type: "utterance" });
+      const heard = await client.waitFor("caption", (f) => f.role === "user");
+      expect(heard.text).toContain("everything twice");
+      client.close();
+    });
+
+    it("points at typing when the stream dies and there is no transcription route to drop to", async () => {
+      realtime = { kind: "drop" };
+      const route = await world.db.route.findFirstOrThrow({
+        where: { companyId: world.companyId, purpose: "transcription" },
+      });
+      await world.db.route.delete({ where: { id: route.id } });
+      try {
+        const client = await connect(await participantToken());
+        await client.waitFor("ready", (f) => f.mode === "stream");
+
+        client.socket.send(pcm());
+
+        const frame = await client.waitFor("unavailable");
+        expect(frame).toMatchObject({ reason: "stt_stream_failed", fallback: "text" });
+        client.close();
+      } finally {
+        await world.db.route.create({
+          data: {
+            companyId: route.companyId,
+            purpose: route.purpose,
+            providerId: route.providerId,
+            model: route.model,
+            maxOutputTokens: route.maxOutputTokens,
+          },
+        });
+      }
+    });
   });
 });

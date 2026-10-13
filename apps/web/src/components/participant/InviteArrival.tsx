@@ -4,7 +4,9 @@ import type { Path } from "@aidp/shared";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { PathChoice } from "./PathChoice";
+import { CenteredShell } from "@/components/common/CenteredShell";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
+import { PageHeading } from "@/components/common/PageHeading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,14 +22,9 @@ type Step = "arrival" | "consent" | "path";
 
 function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <header className="flex justify-end px-6 pt-4">
-        <LanguageSwitch />
-      </header>
-      <main id="main" className="flex flex-1 flex-col justify-center gap-6 p-6">
-        {children}
-      </main>
-    </div>
+    <CenteredShell aside={<LanguageSwitch />} className="grid gap-6">
+      {children}
+    </CenteredShell>
   );
 }
 
@@ -46,7 +43,14 @@ export function InviteArrival({
 }): React.JSX.Element {
   const router = useRouter();
   const s = t.participant.invite;
-  const [step, setStep] = React.useState<Step>("arrival");
+  const [step, setStepState] = React.useState<Step>("arrival");
+  // The first screen of the page does not take focus (it would skip the skip link); every later
+  // one moves it to its heading, because the control that was clicked is gone.
+  const moved = React.useRef(false);
+  const setStep = (next: Step): void => {
+    moved.current = true;
+    setStepState(next);
+  };
   const [agreed, setAgreed] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -96,10 +100,10 @@ export function InviteArrival({
   switch (step) {
     case "arrival":
       return (
-        <Shell>
+        <Shell key="arrival">
           <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">{s.eyebrow}</p>
           <div className="grid gap-2">
-            <h1 className="text-2xl font-semibold text-balance">{s.welcome(session.title)}</h1>
+            <PageHeading focusOnMount={moved.current}>{s.welcome(session.title)}</PageHeading>
             {session.purpose ? <p className="text-muted-foreground">{session.purpose}</p> : null}
           </div>
           <dl className="grid gap-4 text-sm">
@@ -131,8 +135,8 @@ export function InviteArrival({
 
     case "consent":
       return (
-        <Shell>
-          <h1 className="text-2xl font-semibold text-balance">{t.participant.consent.title}</h1>
+        <Shell key="consent">
+          <PageHeading focusOnMount>{t.participant.consent.title}</PageHeading>
           <Card>
             <CardContent className="text-sm leading-relaxed whitespace-pre-wrap">
               {session.consentText}
@@ -168,8 +172,8 @@ export function InviteArrival({
 
     case "path":
       return (
-        <Shell>
-          <h1 className="text-2xl font-semibold text-balance">{t.participant.path.title}</h1>
+        <Shell key="path">
+          <PageHeading focusOnMount>{t.participant.path.title}</PageHeading>
           <PathChoice disabled={busy} onChoose={choosePath} />
           {errorBox}
         </Shell>

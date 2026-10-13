@@ -4,7 +4,7 @@ import * as React from "react";
 import { InviteArrival } from "@/components/participant/InviteArrival";
 import { StatusScreen } from "@/components/participant/StatusScreen";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { isApiError } from "@/lib/api/errors";
 import { participantApi } from "@/lib/api/participant";
 import { publicTransport } from "@/lib/api/server";
@@ -21,6 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** Public arrival for a person invited into a requirements session (contract 18, `/p/r/:token`). */
 export default async function InvitePage({ params }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   const { token } = await params;
   const s = t.participant.invite;
 

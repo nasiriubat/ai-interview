@@ -18,15 +18,20 @@ import {
   FormSection,
   NumberField,
   SelectField,
+  SubmitStatus,
   SwitchField,
   TextAreaField,
   TextField,
+  ValidatedForm,
   type FieldErrors,
 } from "@/components/admin/forms";
+import { useDirty, useDirtyGuard } from "@/components/common/DirtyGuard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { t } from "@/i18n";
+import { templateIssues } from "@/lib/admin/templateIssues";
+import { countBySection, issueMessage, type FormIssue } from "@/lib/admin/validation";
 import { staffClient } from "@/lib/api/browser";
 
 const s = t.admin.templates;
@@ -121,6 +126,20 @@ export function TemplateForm({
   );
   const [mappingText, setMappingText] = React.useState(mappingToText(initial.chainMapping));
   const action = useAction();
+  const guard = useDirtyGuard();
+  const [issues, setIssues] = React.useState<FormIssue[]>([]);
+  const [attempt, setAttempt] = React.useState(0);
+  const counts = countBySection(issues);
+  // The editor's own state is the whole template plus two text areas that parse into it, so the
+  // baseline is all three as first rendered.
+  const baseline = React.useRef(
+    JSON.stringify([
+      initial,
+      Object.fromEntries(initial.contextBlock.map((q, i) => [i, optionsToText(q.options)])),
+      mappingToText(initial.chainMapping),
+    ]),
+  );
+  useDirty("template-form", JSON.stringify([d, optionsText, mappingText]) !== baseline.current);
   const patch = (p: Partial<InterviewTemplate>): void => {
     setD((prev) => ({ ...prev, ...p }));
   };
@@ -141,13 +160,15 @@ export function TemplateForm({
       const map: FieldErrors = {};
       for (const issue of parsed.error.issues) {
         const path = issue.path.map(String).join(".");
-        if (!(path in map)) map[path] = issue.message;
+        if (!(path in map)) map[path] = issueMessage(issue);
       }
       setErrors(map);
-      action.setFlash({ kind: "error", text: s.validation });
+      setIssues(templateIssues(parsed.error.issues));
+      setAttempt((n) => n + 1);
       return;
     }
     setErrors({});
+    setIssues([]);
     void action.run(async () => {
       const saved = templateId
         ? await staffClient.templates.update(templateId, parsed.data)
@@ -160,17 +181,10 @@ export function TemplateForm({
   const err = (path: string): string | undefined => errors[path];
 
   return (
-    <form
-      className="grid gap-6"
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        submit();
-      }}
-    >
+    <ValidatedForm className="grid gap-6" onSubmit={submit} issues={issues} attempt={attempt}>
       <Flash flash={action.flash} />
 
-      <FormSection title={s.sections.basics}>
+      <FormSection id="basics" errorCount={counts.basics} title={s.sections.basics}>
         <div className="grid gap-4 md:grid-cols-2">
           <TextField
             id="key"
@@ -231,7 +245,7 @@ export function TemplateForm({
         />
       </FormSection>
 
-      <FormSection title={s.sections.participants}>
+      <FormSection id="participants" errorCount={counts.participants} title={s.sections.participants}>
         <SelectField
           id="pathSelection"
           label={f.pathSelection}
@@ -296,7 +310,7 @@ export function TemplateForm({
         </div>
       </FormSection>
 
-      <FormSection title={s.sections.context}>
+      <FormSection id="context" errorCount={counts.context} title={s.sections.context}>
         <p className="text-muted-foreground -mt-2 text-xs">{f.contextBlockHint}</p>
         <ListEditor<ContextQuestion>
           items={d.contextBlock}
@@ -367,13 +381,9 @@ export function TemplateForm({
         />
       </FormSection>
 
-      <FormSection title={s.sections.areas}>
+      <FormSection id="areas" errorCount={counts.areas} title={s.sections.areas}>
         <p className="text-muted-foreground -mt-2 text-xs">{f.coverageAreasHint}</p>
-        {err("coverageAreas") ? (
-          <p className="text-destructive text-xs" role="alert">
-            {err("coverageAreas")}
-          </p>
-        ) : null}
+        {err("coverageAreas") ? <p className="text-destructive text-xs">{err("coverageAreas")}</p> : null}
         <ListEditor<CoverageArea>
           items={d.coverageAreas}
           onChange={(items) => {
@@ -494,7 +504,7 @@ export function TemplateForm({
         />
       </FormSection>
 
-      <FormSection title={s.sections.ai}>
+      <FormSection id="ai" errorCount={counts.ai} title={s.sections.ai}>
         <TextAreaField
           id="aiInstructions"
           label={f.aiInstructions}
@@ -507,7 +517,7 @@ export function TemplateForm({
         />
       </FormSection>
 
-      <FormSection title={s.sections.adaptivity}>
+      <FormSection id="adaptivity" errorCount={counts.adaptivity} title={s.sections.adaptivity}>
         <div className="grid gap-4 md:grid-cols-2">
           <SelectField
             id="followUpPolicy"
@@ -550,7 +560,7 @@ export function TemplateForm({
         />
       </FormSection>
 
-      <FormSection title={s.sections.widgets}>
+      <FormSection id="widgets" errorCount={counts.widgets} title={s.sections.widgets}>
         <fieldset className="grid gap-2">
           <legend className="mb-1 text-sm font-medium">{f.allowedWidgetTypes}</legend>
           <div className="flex flex-wrap gap-4">
@@ -601,7 +611,7 @@ export function TemplateForm({
         </div>
       </FormSection>
 
-      <FormSection title={s.sections.issues}>
+      <FormSection id="issues" errorCount={counts.issues} title={s.sections.issues}>
         <SwitchField
           id="issueEnabled"
           label={f.issueEnabled}
@@ -674,14 +684,10 @@ export function TemplateForm({
         />
       </FormSection>
 
-      <FormSection title={s.sections.outputs}>
+      <FormSection id="outputs" errorCount={counts.outputs} title={s.sections.outputs}>
         <fieldset className="grid gap-2">
           <legend className="mb-1 text-sm font-medium">{f.outputs}</legend>
-          {err("outputs") ? (
-            <p className="text-destructive text-xs" role="alert">
-              {err("outputs")}
-            </p>
-          ) : null}
+          {err("outputs") ? <p className="text-destructive text-xs">{err("outputs")}</p> : null}
           <div className="flex flex-wrap gap-4">
             {FACT_KINDS.map((k) => (
               <label key={k} className="flex items-center gap-2 text-sm">
@@ -709,7 +715,7 @@ export function TemplateForm({
         />
       </FormSection>
 
-      <FormSection title={s.sections.chaining}>
+      <FormSection id="chaining" errorCount={counts.chaining} title={s.sections.chaining}>
         <TextField
           id="chainToKey"
           label={f.chainToKey}
@@ -732,7 +738,7 @@ export function TemplateForm({
         </Field>
       </FormSection>
 
-      <FormSection title={s.sections.closing}>
+      <FormSection id="closing" errorCount={counts.closing} title={s.sections.closing}>
         <TextField
           id="closingQuestion"
           label={f.closingQuestion}
@@ -776,20 +782,23 @@ export function TemplateForm({
       </FormSection>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={action.busy}>
+        <Button type="submit" loading={action.busy}>
           {action.busy ? t.app.saving : templateId ? s.saveVersion : t.app.create}
         </Button>
         <Button
           type="button"
           variant="ghost"
           onClick={() => {
-            router.back();
+            guard.confirmLeave(() => {
+              router.back();
+            });
           }}
         >
           {t.app.cancel}
         </Button>
         <Label className="text-muted-foreground text-xs font-normal">v{d.version}</Label>
+        <SubmitStatus count={issues.length} />
       </div>
-    </form>
+    </ValidatedForm>
   );
 }

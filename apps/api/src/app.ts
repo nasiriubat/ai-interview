@@ -44,6 +44,7 @@ import { settingsRoutes } from "./modules/settings/routes.js";
 import { statsRoutes } from "./modules/stats/routes.js";
 import { templateRoutes } from "./modules/templates/routes.js";
 import { userRoutes } from "./modules/users/routes.js";
+import { voiceAdminRoutes } from "./modules/voice/routes.js";
 
 export type App = FastifyInstance<
   RawServerDefault,
@@ -82,6 +83,14 @@ export async function buildApp(ctx: AppContext): Promise<App> {
     } catch (err) {
       done(err as Error, undefined);
     }
+  });
+  // A request with no body and no content type arrives with `body === null`, and zod's
+  // `.default({})` fills in `undefined` only, so every route whose body is all-optional refused a
+  // bare POST with 400. The admin's "Preview" button was one of them. The parser above covers an
+  // empty body sent *with* a JSON content type; this covers the one sent without. Routes that
+  // require fields still reject `{}`, with a message naming the field instead of "received null".
+  app.addHook("preValidation", async (request) => {
+    if (request.body == null && ["POST", "PUT", "PATCH"].includes(request.method)) request.body = {};
   });
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, {
@@ -155,6 +164,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await participantVoiceLiveRoutes(a, ctx);
       await sessionRoutes(a, ctx);
       await providerRoutes(a, ctx);
+      await voiceAdminRoutes(a, ctx);
       await statsRoutes(a, ctx);
       await auditRoutes(a, ctx);
       await privacyRoutes(a, ctx);

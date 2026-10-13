@@ -2,6 +2,7 @@
 
 import { CheckCircle2Icon, MoreHorizontalIcon, PauseIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,7 @@ export function SessionMenu({
 }): React.JSX.Element {
   const [open, setOpen] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const [confirmDone, setConfirmDone] = React.useState(false);
   return (
     <>
       <Popover open={open} onOpenChange={setOpen}>
@@ -57,8 +59,9 @@ export function SessionMenu({
               className="justify-start"
               disabled={disabled}
               onClick={() => {
+                // Ending the interview is the participant's call and ends their part of it: ask.
                 setOpen(false);
-                onDone();
+                setConfirmDone(true);
               }}
             >
               <CheckCircle2Icon /> {t.participant.session.done}
@@ -76,6 +79,15 @@ export function SessionMenu({
           </div>
         </PopoverContent>
       </Popover>
+      <ConfirmDialog
+        open={confirmDone}
+        onOpenChange={setConfirmDone}
+        title={t.participant.session.doneTitle}
+        description={<p>{t.participant.session.doneBody}</p>}
+        confirmLabel={t.participant.session.doneConfirm}
+        tone="default"
+        onConfirm={onDone}
+      />
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>

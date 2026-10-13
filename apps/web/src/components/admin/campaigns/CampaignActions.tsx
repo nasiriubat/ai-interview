@@ -4,6 +4,7 @@ import { CheckIcon, CopyIcon, LockIcon, PlayIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ export function CampaignActions({ campaign }: { campaign: Campaign }): React.JSX
   const router = useRouter();
   const action = useAction();
   const [copied, setCopied] = React.useState(false);
+  const [confirmClose, setConfirmClose] = React.useState(false);
   const link = campaign.link?.url;
   const isOpen = campaign.status === "open";
 
@@ -60,10 +62,7 @@ export function CampaignActions({ campaign }: { campaign: Campaign }): React.JSX
             variant="outline"
             disabled={action.busy}
             onClick={() => {
-              void action.run(async () => {
-                await staffClient.campaigns.close(campaign.id);
-                router.refresh();
-              }, s.closed);
+              setConfirmClose(true);
             }}
           >
             <LockIcon /> {s.close}
@@ -83,6 +82,20 @@ export function CampaignActions({ campaign }: { campaign: Campaign }): React.JSX
         )}
       </div>
       <Flash flash={action.flash} />
+      <ConfirmDialog
+        open={confirmClose}
+        onOpenChange={setConfirmClose}
+        title={s.closeTitle}
+        description={<p>{s.closeBody}</p>}
+        confirmLabel={s.closeConfirm}
+        tone="default"
+        onConfirm={() => {
+          void action.run(async () => {
+            await staffClient.campaigns.close(campaign.id);
+            router.refresh();
+          }, s.closed);
+        }}
+      />
     </div>
   );
 }

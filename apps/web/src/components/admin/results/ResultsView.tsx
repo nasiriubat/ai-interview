@@ -13,11 +13,18 @@ import { PromoteDialog } from "./PromoteDialog";
 import { WeightsPanel } from "./WeightsPanel";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
+import { undoToast } from "@/components/common/undoToast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAnalysisPolling } from "@/hooks/useAnalysisPolling";
 import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { t } from "@/i18n";
-import { effectiveClass, effectiveWeights, rerank, type WeightsPreset } from "@/lib/analysis/rank";
+import {
+  effectiveClass,
+  effectiveTitle,
+  effectiveWeights,
+  rerank,
+  type WeightsPreset,
+} from "@/lib/analysis/rank";
 import { staffClient } from "@/lib/api/browser";
 import { isApiError } from "@/lib/api/errors";
 import type { Analysis, AnalysisDetail, Opportunity } from "@/lib/api/schemas";
@@ -92,10 +99,30 @@ export function ResultsView({
     setOpps((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
   };
 
-  const setStatus = (o: Opportunity, status: OpportunityStatusInput): void => {
-    void action.run(async () => {
-      replace(await staffClient.opportunities.setStatus(o.id, status));
-    }, s.statusChanged);
+  /**
+   * Shortlist, dismiss and restore take effect at once and offer Undo, which sends the status the
+   * card had (D-111). Undo itself does not offer Undo.
+   */
+  const setStatus = (o: Opportunity, status: OpportunityStatusInput, offerUndo = true): void => {
+    const previous: OpportunityStatusInput =
+      o.status === "shortlisted" || o.status === "dismissed" ? o.status : "new";
+    void action
+      .run(async () => {
+        replace(await staffClient.opportunities.setStatus(o.id, status));
+      })
+      .then((ok) => {
+        if (!ok || !offerUndo) return;
+        const title = effectiveTitle(o);
+        const text =
+          status === "shortlisted"
+            ? s.undoShortlisted(title)
+            : status === "dismissed"
+              ? s.undoDismissed(title)
+              : s.undoRestored(title);
+        undoToast(text, () => {
+          setStatus(o, previous, false);
+        });
+      });
   };
 
   const visible = ranked.filter(

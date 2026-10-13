@@ -20,18 +20,20 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "seed": "tsx seeds/seed.ts",
-    "bootstrap": "tsx seeds/bootstrap.ts"
+    "bootstrap": "tsx seeds/bootstrap.ts",
+    "build:seeds": "tsc -p tsconfig.seeds.json",
+    "bootstrap:prod": "node dist-seeds/seeds/bootstrap.js"
   },
   "dependencies": {
     "@aidp/shared": "workspace:*",
     "@prisma/client": "^6.19.0",
     "zod": "^4.0.0",
     "@aidp/ai": "workspace:*",
-    "@aidp/core": "workspace:*"
+    "@aidp/core": "workspace:*",
+    "prisma": "^6.19.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "prisma": "^6.19.0",
     "tsx": "^4.19.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"

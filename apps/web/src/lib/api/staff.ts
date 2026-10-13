@@ -8,6 +8,7 @@ import type {
 } from "@aidp/shared";
 import { type z } from "zod";
 import { request, requestStream, type Transport } from "./http";
+import type { LISTS, ListQueryOf } from "./lists";
 import type { TurnInput } from "./participant";
 import {
   type GitHubPushResult,
@@ -88,6 +89,7 @@ import {
   TemplateDiffSchema,
   TemplateEnvelopeSchema,
   TemplateListSchema,
+  TemplatePageSchema,
   type TemplateDiff,
   type TemplateListItem,
   type TemplateRecord,
@@ -96,6 +98,8 @@ import {
   type Tenant,
   UserPageSchema,
   type User,
+  type VoiceReadiness,
+  VoiceReadinessSchema,
 } from "./schemas";
 
 export interface CampaignCreateInput {
@@ -128,6 +132,24 @@ export interface PageQuery {
   limit?: number;
   offset?: number;
 }
+
+/** D-79: each list's search, sort and filters on top of the window (see `LISTS`). */
+export type CampaignListQuery = ListQueryOf<(typeof LISTS)["campaigns"]>;
+export type CampaignSessionListQuery = ListQueryOf<(typeof LISTS)["campaignSessions"]>;
+export type AnalysisListQuery = ListQueryOf<(typeof LISTS)["analyses"]>;
+export type RequirementsListQuery = ListQueryOf<(typeof LISTS)["requirements"]>;
+export type TemplateListQuery = ListQueryOf<(typeof LISTS)["templates"]>;
+export type UserListQuery = ListQueryOf<(typeof LISTS)["users"]>;
+export type AuditListQuery = ListQueryOf<(typeof LISTS)["audit"]>;
+export type BudgetListQuery = ListQueryOf<(typeof LISTS)["budgets"]>;
+export type PriceListQuery = ListQueryOf<(typeof LISTS)["prices"]>;
+export type TenantListQuery = ListQueryOf<(typeof LISTS)["tenants"]>;
+
+/**
+ * `templates.list()` feeds pickers (a campaign's template, a requirements template), which want
+ * every usable template rather than a page of them; the catalogue is small, so one full window.
+ */
+const TEMPLATE_PICKER_LIMIT = 200;
 
 /** The scopes that answer `GET /settings/scopes` with named targets. */
 export type ScopeKind = "template" | "campaign" | "tenant";
@@ -199,7 +221,13 @@ export function staffApi(transport: Transport): StaffApi {
     },
 
     templates: {
-      list: () => request(transport, { path: "/templates", schema: TemplateListSchema }),
+      list: (q) =>
+        request(transport, {
+          path: "/templates",
+          query: { limit: TEMPLATE_PICKER_LIMIT, ...q },
+          schema: TemplateListSchema,
+        }),
+      page: (q) => request(transport, { path: "/templates", query: { ...q }, schema: TemplatePageSchema }),
       get: (id) => request(transport, { path: `/templates/${id}`, schema: envelope(TemplateEnvelopeSchema) }),
       create: (input, copyFromId) =>
         request(transport, {
@@ -335,6 +363,24 @@ export function staffApi(transport: Transport): StaffApi {
             schema: OkSchema,
           }),
         ),
+    },
+
+    voice: {
+      readiness: () => request(transport, { path: "/admin/voice/readiness", schema: VoiceReadinessSchema }),
+      connectOpenAI: (apiKey) =>
+        request(transport, {
+          method: "POST",
+          path: "/admin/voice/openai",
+          body: { apiKey },
+          schema: VoiceReadinessSchema,
+        }),
+      setLive: (enabled) =>
+        request(transport, {
+          method: "PUT",
+          path: "/admin/voice/live",
+          body: { enabled },
+          schema: VoiceReadinessSchema,
+        }),
     },
 
     providers: {
@@ -529,7 +575,7 @@ export interface ProvidersApi {
   test(id: string): Promise<ProviderTest>;
   /** The provider's own catalogue with the prices it publishes (contract 19). */
   models(id: string): Promise<ModelCatalogue>;
-  prices(id: string, q?: PageQuery): Promise<Paged<ModelPriceRow>>;
+  prices(id: string, q?: PriceListQuery): Promise<Paged<ModelPriceRow>>;
   putPrices(id: string, prices: ModelPriceInput[]): Promise<void>;
 }
 
@@ -539,7 +585,7 @@ export interface RoutesApi {
 }
 
 export interface RequirementsApi {
-  list(q?: PageQuery): Promise<Paged<RequirementsListItem>>;
+  list(q?: RequirementsListQuery): Promise<Paged<RequirementsListItem>>;
   create(input: RequirementsCreateInput): Promise<RequirementsSession>;
   get(id: string): Promise<RequirementsDetail>;
   setPath(id: string, path: Path): Promise<void>;
@@ -568,12 +614,15 @@ export interface StaffApi {
   me(): Promise<Me>;
   health(): Promise<unknown>;
   users: {
-    list(q?: PageQuery): Promise<Paged<User>>;
+    list(q?: UserListQuery): Promise<Paged<User>>;
     create(input: UserInput): Promise<unknown>;
     update(id: string, input: Partial<UserInput>): Promise<unknown>;
   };
   templates: {
-    list(): Promise<TemplateListItem[]>;
+    /** Every usable template in one call, for pickers; archived versions only when asked for. */
+    list(q?: TemplateListQuery): Promise<TemplateListItem[]>;
+    /** One page of templates with the counters, for the templates table (D-79). */
+    page(q?: TemplateListQuery): Promise<Paged<TemplateListItem>>;
     get(id: string): Promise<TemplateRecord>;
     create(input: InterviewTemplateInput, copyFromId?: string): Promise<TemplateRecord>;
     update(id: string, input: InterviewTemplateInput): Promise<TemplateRecord>;
@@ -583,7 +632,7 @@ export interface StaffApi {
     preview(id: string): Promise<{ participantToken: string; sessionId: string }>;
   };
   campaigns: {
-    list(q?: PageQuery): Promise<Paged<Campaign>>;
+    list(q?: CampaignListQuery): Promise<Paged<Campaign>>;
     get(id: string): Promise<Campaign>;
     create(input: CampaignCreateInput): Promise<Campaign>;
     update(id: string, input: Partial<CampaignCreateInput> & { status?: string }): Promise<Campaign>;
@@ -593,7 +642,7 @@ export interface StaffApi {
     invitations(id: string): Promise<Invitation[]>;
     remind(id: string, invId: string): Promise<void>;
     revoke(id: string, invId: string): Promise<void>;
-    sessions(id: string, q?: PageQuery): Promise<Paged<SessionListItem>>;
+    sessions(id: string, q?: CampaignSessionListQuery): Promise<Paged<SessionListItem>>;
   };
   sessions: {
     get(id: string): Promise<StaffSession>;
@@ -602,7 +651,7 @@ export interface StaffApi {
   /** Contract 17: analysis runs are versioned per campaign. */
   analyses: {
     start(campaignId: string): Promise<Analysis>;
-    list(campaignId: string, q?: PageQuery): Promise<Paged<Analysis>>;
+    list(campaignId: string, q?: AnalysisListQuery): Promise<Paged<Analysis>>;
     get(id: string): Promise<AnalysisDetail>;
     diff(id: string, otherId: string): Promise<AnalysisDiff>;
   };
@@ -621,19 +670,27 @@ export interface StaffApi {
   };
   providers: ProvidersApi;
   routes: RoutesApi;
+  /** Live voice as one switch with a readiness check (D-77). */
+  voice: {
+    readiness(): Promise<VoiceReadiness>;
+    /** Checks the key with OpenAI, stores it encrypted and routes the voice purposes. Never echoed. */
+    connectOpenAI(apiKey: string): Promise<VoiceReadiness>;
+    /** Fails with `voice_not_ready` (details.missing) when a required route is missing. */
+    setLive(enabled: boolean): Promise<VoiceReadiness>;
+  };
   budgets: {
-    list(q?: PageQuery): Promise<Paged<BudgetRecord>>;
+    list(q?: BudgetListQuery): Promise<Paged<BudgetRecord>>;
     create(input: BudgetLimit): Promise<unknown>;
     remove(id: string): Promise<void>;
   };
   spend(q: SpendQuery): Promise<Spend>;
   stats(): Promise<Stats>;
-  audit(q: { from?: string; to?: string } & PageQuery): Promise<Paged<AuditEntry>>;
+  audit(q?: AuditListQuery): Promise<Paged<AuditEntry>>;
   /** Contract 18: requirements sessions owned by staff, their live spec, versions and invitations. */
   requirements: RequirementsApi;
   operator: {
     tenants: {
-      list(q?: PageQuery): Promise<Paged<Tenant>>;
+      list(q?: TenantListQuery): Promise<Paged<Tenant>>;
       create(input: TenantInput): Promise<Tenant>;
       update(id: string, input: Partial<TenantInput>): Promise<Tenant>;
     };

@@ -2,13 +2,14 @@ import { render, screen } from "@testing-library/react";
 import * as React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Pagination } from "@/components/admin/Pagination";
-import { hasNextPage, pageParams, pageRange } from "@/lib/admin/pagination";
+import { hasNextPage, pageParams, pageRange, pageWindow } from "@/lib/admin/pagination";
 
 let search = "";
 
 vi.mock("next/navigation", () => ({
   usePathname: (): string => "/admin/audit",
   useSearchParams: (): URLSearchParams => new URLSearchParams(search),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 beforeEach(() => {
@@ -86,5 +87,32 @@ describe("Pagination", () => {
   it("renders nothing when a single short page is all there is", () => {
     const { container } = render(<Pagination page={1} limit={50} count={12} total={12} />);
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("pageWindow", () => {
+  it("lists every page when there are few", () => {
+    expect(pageWindow(1, 1)).toEqual([1]);
+    expect(pageWindow(3, 7)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it("keeps first, last and the neighbourhood of the current page, with gaps", () => {
+    expect(pageWindow(1, 20)).toEqual([1, 2, 3, 4, 5, "gap", 20]);
+    expect(pageWindow(10, 20)).toEqual([1, "gap", 9, 10, 11, "gap", 20]);
+    expect(pageWindow(20, 20)).toEqual([1, "gap", 16, 17, 18, 19, 20]);
+  });
+
+  it("never exceeds seven slots", () => {
+    for (let p = 1; p <= 50; p++) expect(pageWindow(p, 50).length).toBeLessThanOrEqual(7);
+  });
+});
+
+describe("Pagination page numbers", () => {
+  it("links each page by its accessible name and marks the current one", () => {
+    search = "page=2";
+    render(<Pagination page={2} limit={50} count={50} total={120} />);
+    expect(href("Page 3")).toBe("/admin/audit?page=3");
+    expect(screen.getByRole("link", { name: "Page 2" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByLabelText("Rows per page")).toHaveValue("50");
   });
 });

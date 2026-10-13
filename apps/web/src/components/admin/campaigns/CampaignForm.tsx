@@ -3,9 +3,18 @@
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
-import { ComboboxField, NumberField, SelectField, TextField } from "@/components/admin/forms";
+import {
+  ComboboxField,
+  NumberField,
+  SelectField,
+  SubmitStatus,
+  TextField,
+  ValidatedForm,
+} from "@/components/admin/forms";
+import { useDirty, useDirtyGuard } from "@/components/common/DirtyGuard";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
+import { type FormIssue } from "@/lib/admin/validation";
 import { staffClient } from "@/lib/api/browser";
 import type { TemplateListItem } from "@/lib/api/schemas";
 import type { CampaignCreateInput } from "@/lib/api/staff";
@@ -26,13 +35,39 @@ export function CampaignForm({ templates }: { templates: TemplateListItem[] }): 
   const [threshold, setThreshold] = React.useState<number | "">("");
   const [expiresAt, setExpiresAt] = React.useState("");
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [issues, setIssues] = React.useState<FormIssue[]>([]);
+  const [attempt, setAttempt] = React.useState(0);
+  const guard = useDirtyGuard();
+  const firstTemplate = templates[0]?.id ?? "";
+  useDirty(
+    "campaign-form",
+    name !== "" ||
+      templateId !== firstTemplate ||
+      participationMode !== "" ||
+      verification !== "" ||
+      domains !== "" ||
+      maxTurns !== "" ||
+      threshold !== "" ||
+      expiresAt !== "",
+  );
 
   const submit = (): void => {
     const errs: Record<string, string> = {};
-    if (!templateId) errs.templateId = t.app.required;
-    if (!name.trim()) errs.name = t.app.required;
+    const found: FormIssue[] = [];
+    if (!templateId) {
+      errs.templateId = t.admin.form.required;
+      found.push({ id: "templateId", label: s.template, message: t.admin.form.required });
+    }
+    if (!name.trim()) {
+      errs.name = t.admin.form.required;
+      found.push({ id: "name", label: s.name, message: t.admin.form.required });
+    }
     setErrors(errs);
-    if (Object.keys(errs).length) return;
+    setIssues(found);
+    if (found.length > 0) {
+      setAttempt((n) => n + 1);
+      return;
+    }
     const input: CampaignCreateInput = {
       templateId,
       name: name.trim(),
@@ -58,14 +93,7 @@ export function CampaignForm({ templates }: { templates: TemplateListItem[] }): 
   };
 
   return (
-    <form
-      className="grid max-w-2xl gap-4"
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        submit();
-      }}
-    >
+    <ValidatedForm className="grid max-w-2xl gap-4" onSubmit={submit} issues={issues} attempt={attempt}>
       <Flash flash={action.flash} />
       <ComboboxField
         id="templateId"
@@ -136,19 +164,22 @@ export function CampaignForm({ templates }: { templates: TemplateListItem[] }): 
         />
       </div>
       <div className="flex gap-2">
-        <Button type="submit" disabled={action.busy}>
+        <Button type="submit" loading={action.busy}>
           {action.busy ? t.app.saving : s.createButton}
         </Button>
         <Button
           type="button"
           variant="ghost"
           onClick={() => {
-            router.back();
+            guard.confirmLeave(() => {
+              router.back();
+            });
           }}
         >
           {t.app.cancel}
         </Button>
+        <SubmitStatus count={issues.length} />
       </div>
-    </form>
+    </ValidatedForm>
   );
 }

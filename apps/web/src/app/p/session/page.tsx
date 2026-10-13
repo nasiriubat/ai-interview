@@ -4,7 +4,7 @@ import * as React from "react";
 import { InterviewScreen } from "@/components/participant/InterviewScreen";
 import { StatusScreen } from "@/components/participant/StatusScreen";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { isApiError } from "@/lib/api/errors";
 import { participantServer } from "@/lib/api/server";
 
@@ -14,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SessionPage(): Promise<React.JSX.Element> {
+  await requestLocale();
   const { api, hasToken } = await participantServer();
   if (!hasToken) {
     return (

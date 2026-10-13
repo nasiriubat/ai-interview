@@ -10,7 +10,7 @@ export default function ParticipantError({
   error,
   reset,
 }: {
-  error: Error;
+  error: Error & { digest?: string };
   reset: () => void;
 }): React.JSX.Element {
   React.useEffect(() => {
@@ -20,8 +20,8 @@ export default function ParticipantError({
     <StatusScreen
       icon={<AlertTriangleIcon />}
       tone="warning"
-      title={t.participant.session.errorProviderTitle}
-      body={t.participant.session.errorProviderBody}
+      title={t.participant.session.errorServerTitle}
+      body={t.participant.session.errorServerBody}
     >
       <Button
         onClick={() => {
@@ -30,6 +30,11 @@ export default function ParticipantError({
       >
         {t.app.retry}
       </Button>
+      {error.digest ? (
+        <p className="text-muted-foreground w-full text-xs">
+          {t.participant.session.errorReference(error.digest)}
+        </p>
+      ) : null}
     </StatusScreen>
   );
 }

@@ -10,12 +10,59 @@ import { MessageSchema, ProgressSchema } from "./schemas";
  * be ignored rather than thrown at the participant mid-sentence.
  */
 
+/**
+ * How the participant's speech reaches the transcriber (D-77).
+ *
+ * - `stream`: raw PCM16 at `sampleRate`, sent continuously; the server's provider transcribes as
+ *   the participant talks and decides when they have finished.
+ * - `utterance`: one recording per utterance, cut by this browser's own silence detector (D-70).
+ *
+ * An unknown value falls to `utterance`, the mode every server has always understood.
+ */
+export const HEARING_MODES = ["stream", "utterance"] as const;
+export type HearingMode = (typeof HEARING_MODES)[number];
+
 /** The socket is up and the tenant's knobs are known. */
 const ReadyFrameSchema = z.object({
   type: z.literal("ready"),
   captions: z.boolean().default(false),
   bargeIn: z.boolean().default(false),
+  mode: z.enum(HEARING_MODES).catch("utterance"),
+  sampleRate: z.number().int().positive().default(24_000),
 });
+
+/** The server changed how it hears mid-call; the browser switches capture and acknowledges. */
+const ModeFrameSchema = z.object({
+  type: z.literal("mode"),
+  mode: z.enum(HEARING_MODES).catch("utterance"),
+  reason: z.string().default(""),
+});
+
+/** Stream mode: what the participant has said so far in the utterance in progress, growing. */
+const CaptionPartialFrameSchema = z.object({
+  type: z.literal("caption_partial"),
+  text: z.string().default(""),
+});
+
+/** Stream mode: the finished transcript of one utterance, which the server is now answering. */
+const CaptionFinalFrameSchema = z.object({
+  type: z.literal("caption_final"),
+  role: z.literal("user").default("user"),
+  text: z.string().default(""),
+  confidence: z.number().optional(),
+});
+
+/**
+ * Stream mode: the provider heard the participant start talking. `barged` says the server already
+ * cut off speech it was still synthesizing, so the browser only has to stop what it is playing.
+ */
+const SpeechStartedFrameSchema = z.object({
+  type: z.literal("speech_started"),
+  barged: z.boolean().default(false),
+});
+
+/** Stream mode: the provider decided the participant stopped; a final caption follows. */
+const SpeechStoppedFrameSchema = z.object({ type: z.literal("speech_stopped") });
 
 /**
  * One interviewer turn — the same payload the SSE stream sends, so it becomes an ordinary message.
@@ -93,6 +140,11 @@ const UnavailableFrameSchema = z.object({
 
 export const ServerFrameSchema = z.discriminatedUnion("type", [
   ReadyFrameSchema,
+  ModeFrameSchema,
+  CaptionPartialFrameSchema,
+  CaptionFinalFrameSchema,
+  SpeechStartedFrameSchema,
+  SpeechStoppedFrameSchema,
   TurnFrameSchema,
   CaptionFrameSchema,
   SpeechStartFrameSchema,
@@ -120,7 +172,12 @@ export type ClientFrame =
   | { type: "utterance"; durationMs?: number }
   | { type: "barge" }
   | { type: "cancel" }
-  | { type: "bye" };
+  | { type: "bye" }
+  /**
+   * The capture this browser is now using. Sent after a `mode` frame, so the server stops dropping
+   * audio, or straight after `ready` when it asked for `stream` and this browser cannot.
+   */
+  | { type: "capture"; mode: HearingMode };
 
 /** Parses one text frame, or `undefined` when it is not something this client understands. */
 export function toServerFrame(data: string): ServerFrame | undefined {

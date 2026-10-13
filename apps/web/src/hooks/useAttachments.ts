@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { undoToast, UNDO_MS } from "@/components/common/undoToast";
 import { t } from "@/i18n";
 import { isApiError } from "@/lib/api/errors";
 import type { ParticipantApi } from "@/lib/api/participant";
@@ -105,17 +106,55 @@ export function useAttachments(api: ParticipantApi, options: AttachmentsOptions)
     [api, capabilities.allowedTypes, capabilities.maxSizeMb],
   );
 
+  /**
+   * Removal is deferred, not undone afterwards: the row leaves the list at once and the DELETE is
+   * sent only when the Undo offer lapses (six seconds, or the toast being closed). A file that was
+   * pulled by mistake is therefore never gone from the server, which has no way to give it back.
+   * Anything still waiting when the screen goes away is sent then, so leaving never un-removes.
+   */
+  const pending = React.useRef(new Map<string, () => void>());
   const remove = React.useCallback(
     (attachmentId: string): void => {
-      // Removed from the list first: the participant asked for it to be gone, and a failed
-      // delete that only the server knows about is recovered by the next load.
+      const index = items.findIndex((a) => a.id === attachmentId);
+      const item = items[index];
+      if (!item || pending.current.has(attachmentId)) return;
       setItems((list) => list.filter((a) => a.id !== attachmentId));
-      api.deleteAttachment(attachmentId).catch(() => {
-        setError(t.app.unknownError);
-      });
+
+      const commit = (): void => {
+        pending.current.delete(attachmentId);
+        api.deleteAttachment(attachmentId).catch(() => {
+          // The server still has it: show it again rather than pretend it is gone.
+          setItems((list) => (list.some((a) => a.id === item.id) ? list : [...list, item]));
+          setError(t.app.unknownError);
+        });
+      };
+      const timer = setTimeout(commit, UNDO_MS);
+      const settle = (): void => {
+        clearTimeout(timer);
+        if (pending.current.has(attachmentId)) commit();
+      };
+      pending.current.set(attachmentId, settle);
+      const name = item.kind === "audio" ? t.participant.session.attachmentRecording : item.filename;
+      undoToast(
+        t.participant.session.attachmentRemoved(name),
+        () => {
+          clearTimeout(timer);
+          pending.current.delete(attachmentId);
+          setItems((list) =>
+            list.some((a) => a.id === item.id) ? list : [...list.slice(0, index), item, ...list.slice(index)],
+          );
+        },
+        { onClose: settle },
+      );
     },
-    [api],
+    [api, items],
   );
+  React.useEffect(() => {
+    const waiting = pending.current;
+    return () => {
+      for (const settle of [...waiting.values()]) settle();
+    };
+  }, []);
 
   const bytes = React.useCallback(
     (attachmentId: string): Promise<Blob> => api.attachmentBytes(attachmentId),

@@ -1,5 +1,6 @@
 import { tenantBatch } from "@aidp/db";
-import { PurposeSchema } from "@aidp/shared";
+import { ProviderKindSchema, PurposeSchema } from "@aidp/shared";
+import type { Prisma } from "@prisma/client";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../../app.js";
@@ -8,22 +9,13 @@ import { staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, notFound } from "../../lib/errors.js";
-import { PageQuery } from "../../lib/pagination.js";
+import { contains, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
 import { ProviderService } from "./service.js";
 
 const Id = z.object({ id: z.string() });
 const ProviderBody = z.object({
-  kind: z.enum([
-    "anthropic",
-    "openai",
-    "openrouter",
-    "litellm",
-    "openai_compatible",
-    "stt",
-    "tts",
-    "realtime",
-  ]),
+  kind: ProviderKindSchema,
   name: z.string().min(1),
   baseUrl: z.url().optional(),
   apiKey: z.string().min(1).optional(),
@@ -54,9 +46,26 @@ const RouteRow = z.object({
 
 type ScopeOf = (req: FastifyRequest) => string | null;
 
+/** `/budgets` (D-79): `q` matches the target id exactly, or the name of a budgeted campaign. */
+export const BudgetList = listSpec({
+  sort: { createdAt: "asc", limitCents: "desc", scope: "asc" },
+  defaultSort: "createdAt",
+  filters: {
+    scope: z.enum(["tenant", "campaign", "session"]).optional(),
+    period: z.enum(["month", "total"]).optional(),
+  },
+});
+
+/** `/providers/:id/prices` and its operator twin (D-79): `q` matches the model id. */
+export const PriceList = listSpec({
+  sort: { model: "asc", inputPerMtok: "asc", outputPerMtok: "asc", updatedAt: "desc" },
+  defaultSort: "model",
+  filters: { source: z.enum(["seed", "provider", "admin"]).optional() },
+});
+
 /** Providers, routing, prices, budgets. Platform operators without X-Company-Id manage platform-level rows. */
 export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
-  const svc = new ProviderService(ctx.db, ctx.crypto, ctx.callers, ctx.egress);
+  const svc = new ProviderService(ctx.db, ctx.crypto, ctx.callers, ctx.egress, ctx.speech);
   const tenantScope: ScopeOf = (req) =>
     req.principal.kind === "staff" &&
     req.principal.role === "platform_operator" &&
@@ -76,12 +85,38 @@ export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
     scope: () => null,
   });
 
-  app.get("/budgets", { ...guard.admin(), schema: { querystring: PageQuery } }, async (req) => {
-    const where = { companyId: req.companyId };
+  app.get("/budgets", { ...guard.admin(), schema: { querystring: listQuery(BudgetList) } }, async (req) => {
+    const q = searchTerm(req.query.q);
+    // A budget names its target by id; a search by name resolves campaigns in this tenant.
+    const campaignIds = q
+      ? (
+          await ctx.db.campaign.findMany({
+            where: { companyId: req.companyId, name: contains(q) },
+            select: { id: true },
+            take: 500,
+          })
+        ).map((c) => c.id)
+      : [];
+    const where: Prisma.BudgetWhereInput = {
+      companyId: req.companyId,
+      ...(req.query.scope ? { scope: req.query.scope } : {}),
+      ...(req.query.period ? { period: req.query.period } : {}),
+      ...(q
+        ? {
+            OR: [
+              { scopeId: q },
+              ...(campaignIds.length ? [{ scope: "campaign", scopeId: { in: campaignIds } }] : []),
+            ],
+          }
+        : {}),
+    };
     const [budgets, total] = await tenantBatch(ctx.db, [
       ctx.db.budget.findMany({
         where,
-        orderBy: { id: "asc" },
+        orderBy: listOrder<Prisma.BudgetOrderByWithRelationInput, typeof req.query.sort>(
+          BudgetList,
+          req.query,
+        ),
         take: req.query.limit,
         skip: req.query.offset,
       }),
@@ -252,10 +287,22 @@ function mountProviderRoutes(
 
   app.get(
     `${prefix}/providers/:id/prices`,
-    { ...access, schema: { params: Id, querystring: PageQuery } },
+    { ...access, schema: { params: Id, querystring: listQuery(PriceList) } },
     async (req) => {
       await svc.get(scope(req), req.params.id);
-      const { prices, total } = await svc.pricesPage(req.params.id, req.query);
+      const q = searchTerm(req.query.q);
+      const { prices, total } = await svc.pricesPage(req.params.id, {
+        limit: req.query.limit,
+        offset: req.query.offset,
+        where: {
+          ...(q ? { model: contains(q) } : {}),
+          ...(req.query.source ? { source: req.query.source } : {}),
+        },
+        orderBy: listOrder<Prisma.ModelPriceOrderByWithRelationInput, typeof req.query.sort>(
+          PriceList,
+          req.query,
+        ),
+      });
       return { prices, total, limit: req.query.limit, offset: req.query.offset };
     },
   );

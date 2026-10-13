@@ -4,12 +4,26 @@ import { MicIcon, PaperclipIcon, SendHorizontalIcon, SquareIcon, XIcon } from "l
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useCoarsePointer } from "@/hooks/useMediaQuery";
 import { recorderProblemMessage, useRecorder } from "@/hooks/useRecorder";
 import { t } from "@/i18n";
 import { acceptFor, DEFAULT_ALLOWED_TYPES, formatClock } from "@/lib/attachments";
 
+const HINT_KEY = "aidp.composerHintDismissed";
+
+function hintDismissed(): boolean {
+  try {
+    return window.localStorage.getItem(HINT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The answer box: typing, a recording (FR-30) and a file (FR-31).
+ *
+ * Enter sends on a pointer-and-keyboard device, with Shift+Enter for a new line. On a touch device
+ * the keyboard has no Shift+Enter, so Enter is the line break and only the Send button sends.
  *
  * The microphone and the paperclip appear only when the screen passes a handler for them, so the
  * owner-side requirements workspace — which has no such routes — keeps the plain composer.
@@ -24,7 +38,11 @@ export function Composer({
   voiceFirst = false,
 }: {
   disabled: boolean;
-  onSend: (text: string) => void;
+  /**
+   * Resolves `false` when the answer was not delivered; the text is then put back, so a failed
+   * send never costs the person what they wrote.
+   */
+  onSend: (text: string) => Promise<boolean>;
   autoFocus?: boolean;
   /** Recorded voice. Absent hides the microphone — as it is when the tenant has voice off. */
   onVoice?: ((audio: Blob, durationMs: number) => void) | undefined;
@@ -38,7 +56,10 @@ export function Composer({
   const s = t.participant.session;
   const [text, setText] = React.useState("");
   const [announcement, setAnnouncement] = React.useState("");
+  const coarse = useCoarsePointer();
+  const [hintOpen, setHintOpen] = React.useState(false);
   const id = React.useId();
+  const hintId = `${id}-hint`;
   const fileRef = React.useRef<HTMLInputElement>(null);
   const micRef = React.useRef<HTMLButtonElement>(null);
   const stopRef = React.useRef<HTMLButtonElement>(null);
@@ -61,8 +82,27 @@ export function Composer({
 
   const submit = (): void => {
     if (!canSend) return;
-    onSend(text.trim());
+    const sent = text.trim();
+    const result: unknown = onSend(sent);
     setText("");
+    if (result instanceof Promise) {
+      void result.then((delivered: unknown) => {
+        // Only when nothing new was typed meanwhile: never overwrite what the person wrote next.
+        if (delivered === false) setText((current) => (current === "" ? sent : current));
+      });
+    }
+  };
+
+  const showHint = (): void => {
+    if (!coarse && !hintDismissed()) setHintOpen(true);
+  };
+  const dismissHint = (): void => {
+    setHintOpen(false);
+    try {
+      window.localStorage.setItem(HINT_KEY, "1");
+    } catch {
+      // A per-viewer convenience: not being able to remember it is fine.
+    }
   };
 
   const record = (): void => {
@@ -87,7 +127,7 @@ export function Composer({
     <div className="grid gap-1.5">
       {recording ? (
         <div className="flex items-center gap-2">
-          <div className="bg-muted flex min-h-11 flex-1 items-center gap-2 rounded-md px-3">
+          <div className="bg-destructive-soft text-destructive-soft-foreground flex min-h-11 flex-1 items-center gap-2 rounded-xl px-3">
             <span
               aria-hidden="true"
               className="bg-destructive size-2.5 shrink-0 rounded-full motion-safe:animate-pulse"
@@ -165,13 +205,17 @@ export function Composer({
             rows={1}
             autoFocus={autoFocus && !voiceFirst}
             placeholder={s.composerPlaceholder}
-            className="max-h-40 min-h-11 flex-1 resize-none text-base"
-            enterKeyHint="send"
+            className="max-h-40 min-h-11 flex-1 resize-none border-0 bg-transparent text-base shadow-none hover:shadow-none focus-visible:shadow-none"
+            enterKeyHint={coarse ? "enter" : "send"}
+            aria-describedby={hintOpen ? hintId : undefined}
             disabled={disabled}
+            onFocus={showHint}
             onChange={(e) => {
               setText(e.target.value);
             }}
             onKeyDown={(e) => {
+              // Touch keyboards keep Enter as a line break; only the Send button sends there.
+              if (coarse) return;
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 submit();
@@ -205,6 +249,18 @@ export function Composer({
           </Button>
         </form>
       )}
+      {hintOpen && !recording ? (
+        <p id={hintId} className="text-muted-foreground flex items-center gap-2 px-1 text-xs">
+          <span>{s.composerHint}</span>
+          <button
+            type="button"
+            onClick={dismissHint}
+            className="text-foreground rounded-sm underline underline-offset-2"
+          >
+            {s.composerHintDismiss}
+          </button>
+        </p>
+      ) : null}
       {recorder.problem ? (
         <p className="text-destructive text-xs" role="alert">
           {recorderProblemMessage(recorder.problem)}

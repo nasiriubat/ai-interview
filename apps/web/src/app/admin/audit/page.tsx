@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
+import { ListToolbar } from "@/components/admin/ListToolbar";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
-import { pageParams } from "@/lib/admin/pagination";
+import { listParams } from "@/lib/admin/pagination";
+import { isFiltered } from "@/lib/admin/toolbar";
+import { LISTS } from "@/lib/api/lists";
 import type { AuditEntry } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
@@ -42,6 +45,7 @@ function targetOf(e: AuditEntry): string {
 }
 
 export default async function AuditPage({ searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const sp = await searchParams;
   const to = typeof sp.to === "string" && sp.to ? sp.to : new Date().toISOString().slice(0, 10);
@@ -49,20 +53,28 @@ export default async function AuditPage({ searchParams }: Props): Promise<React.
     typeof sp.from === "string" && sp.from
       ? sp.from
       : new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const { page, limit, offset } = pageParams(sp);
+  const lp = listParams(sp, LISTS.audit);
+  const { page, limit } = lp;
   const api = await staffServer();
   const result = await api.audit({
+    ...lp.query,
     from: new Date(from).toISOString(),
     to: new Date(`${to}T23:59:59Z`).toISOString(),
-    limit,
-    offset,
   });
   const entries = result.items;
   const s = t.admin.audit;
   return (
     <>
       <PageHeader title={s.title} subtitle={s.subtitle} />
+      <ListToolbar
+        searchLabel={t.admin.list.searchAudit}
+        sort={{ list: LISTS.audit, labels: t.admin.list.fields }}
+      />
       <form className="mb-6 flex flex-wrap items-end gap-3" method="get">
+        {/* A GET form sends only its own fields; carry the search and sort across a date change. */}
+        {lp.q ? <input type="hidden" name="q" value={lp.q} /> : null}
+        {typeof sp.sort === "string" ? <input type="hidden" name="sort" value={sp.sort} /> : null}
+        {typeof sp.dir === "string" ? <input type="hidden" name="dir" value={sp.dir} /> : null}
         <div className="grid gap-1.5">
           <Label htmlFor="from">{s.from}</Label>
           <Input id="from" name="from" type="date" defaultValue={from} />
@@ -76,7 +88,7 @@ export default async function AuditPage({ searchParams }: Props): Promise<React.
         </Button>
       </form>
       {entries.length === 0 ? (
-        <EmptyState text={s.empty} />
+        <EmptyState text={isFiltered(lp.q, {}) ? t.admin.list.noMatches : s.empty} />
       ) : (
         <div className="overflow-x-auto">
           <Table>

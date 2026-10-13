@@ -4,15 +4,18 @@ import Link from "next/link";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
+import { ListToolbar } from "@/components/admin/ListToolbar";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
-import { pageParams } from "@/lib/admin/pagination";
+import { listParams } from "@/lib/admin/pagination";
+import { isFiltered, statusFilter } from "@/lib/admin/toolbar";
+import { LISTS } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
@@ -25,10 +28,12 @@ interface Props {
 }
 
 export default async function CampaignsPage({ searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
-  const { page, limit, offset } = pageParams(await searchParams);
+  const lp = listParams(await searchParams, LISTS.campaigns);
+  const { page, limit } = lp;
   const api = await staffServer();
-  const result = await api.campaigns.list({ limit, offset });
+  const result = await api.campaigns.list(lp.query);
   const campaigns = result.items;
   const s = t.admin.campaigns;
   return (
@@ -44,8 +49,13 @@ export default async function CampaignsPage({ searchParams }: Props): Promise<Re
           </Button>
         }
       />
+      <ListToolbar
+        searchLabel={t.admin.list.searchCampaigns}
+        filters={[statusFilter(LISTS.campaigns)]}
+        sort={{ list: LISTS.campaigns, labels: t.admin.list.fields }}
+      />
       {campaigns.length === 0 ? (
-        <EmptyState text={s.empty} />
+        <EmptyState text={isFiltered(lp.q, lp.filters) ? t.admin.list.noMatches : s.empty} />
       ) : (
         <div className="overflow-x-auto">
           <Table>

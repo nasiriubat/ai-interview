@@ -1,4 +1,4 @@
-import { shippedTemplate, tenantTransaction } from "@aidp/db";
+import { containsInsensitive, shippedTemplate, tenantBatch, tenantTransaction } from "@aidp/db";
 import { InterviewTemplateSchema, type InterviewTemplate, type InterviewTemplateInput } from "@aidp/shared";
 import { Prisma, type InterviewTemplate as Template, type PrismaClient } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
@@ -10,11 +10,46 @@ export type TemplateBodyInput = Omit<InterviewTemplateInput, "version">;
 export class TemplateService {
   constructor(private readonly db: PrismaClient) {}
 
-  list(companyId: string): Promise<Template[]> {
-    return this.db.interviewTemplate.findMany({
-      where: { OR: [{ companyId }, { companyId: null }], status: { not: "archived" } },
-      orderBy: [{ key: "asc" }, { version: "desc" }],
-    });
+  /**
+   * One page of the templates this tenant can use: its own and the platform's (D-79). Archived
+   * versions are left out unless `status` asks for them, as the unfiltered list always has.
+   */
+  async list(
+    companyId: string,
+    query: {
+      limit: number;
+      offset: number;
+      q?: string | undefined;
+      status?: "draft" | "published" | "archived" | undefined;
+      origin?: "tenant" | "platform" | undefined;
+      orderBy?: Prisma.InterviewTemplateOrderByWithRelationInput[];
+    } = { limit: 200, offset: 0 },
+  ): Promise<{ templates: Template[]; total: number }> {
+    const owner =
+      query.origin === "tenant"
+        ? { companyId }
+        : query.origin === "platform"
+          ? { companyId: null }
+          : { OR: [{ companyId }, { companyId: null }] };
+    const where: Prisma.InterviewTemplateWhereInput = {
+      AND: [
+        owner,
+        { status: query.status ?? { not: "archived" } },
+        ...(query.q
+          ? [{ OR: [{ name: containsInsensitive(query.q) }, { key: containsInsensitive(query.q) }] }]
+          : []),
+      ],
+    };
+    const [templates, total] = await tenantBatch(this.db, [
+      this.db.interviewTemplate.findMany({
+        where,
+        orderBy: query.orderBy ?? [{ key: "asc" }, { version: "desc" }],
+        take: query.limit,
+        skip: query.offset,
+      }),
+      this.db.interviewTemplate.count({ where }),
+    ]);
+    return { templates, total };
   }
 
   async get(companyId: string, id: string): Promise<Template> {

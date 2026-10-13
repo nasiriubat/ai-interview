@@ -135,6 +135,32 @@ describe("URL policy", () => {
   });
 });
 
+describe("an address the deployment configured", () => {
+  // The admin voice setup writes OPENAI_BASE_URL onto a tenant's provider row (D-77).
+  const guard = new EgressGuard(
+    { mode: "strict", allowHosts: [], trustedUrls: ["http://litellm:4000/v1"] },
+    { resolver: table({ litellm: ["10.0.0.6"] }) },
+  );
+
+  it("is accepted for a tenant's provider even though it is http and internal", async () => {
+    expect(() => guard.checkUrl("http://litellm:4000/v1/models", "tenant")).not.toThrow();
+    await expect(guard.validateUrl("http://litellm:4000/v1", "tenant")).resolves.toBeInstanceOf(URL);
+  });
+
+  it("does not make the rest of that host or any other internal address reachable", () => {
+    expect(() => guard.checkUrl("http://litellm:9999/v1", "tenant")).toThrow(EgressBlockedError);
+    expect(() => guard.checkUrl("http://db:4000/v1", "tenant")).toThrow(EgressBlockedError);
+  });
+
+  it("still refuses the metadata address if it is what the name resolves to", async () => {
+    const hostile = new EgressGuard(
+      { mode: "strict", allowHosts: [], trustedUrls: ["http://litellm:4000/v1"] },
+      { resolver: table({ litellm: ["169.254.169.254"] }) },
+    );
+    await expect(hostile.validateUrl("http://litellm:4000/v1", "tenant")).rejects.toThrow(/metadata_address/);
+  });
+});
+
 describe("tenant headers", () => {
   it.each([
     "Authorization",
@@ -346,6 +372,33 @@ describe("guarded fetch", () => {
   });
 });
 
+describe("realtime transcription socket", () => {
+  const guard = new EgressGuard(
+    { mode: "strict", allowHosts: ["whisper-stream"] },
+    { resolver: table({ "stream.example.com": ["10.0.0.4"], "whisper-stream": ["10.0.0.9"] }) },
+  );
+
+  it.each([
+    ["a loopback literal", "wss://127.0.0.1/v1/realtime"],
+    ["the metadata address", "wss://169.254.169.254/v1/realtime"],
+    ["a plain ws URL", "ws://api.example.com/v1/realtime"],
+    ["an internal name", "wss://db.internal/v1/realtime"],
+  ])("refuses %s for a tenant before opening a connection", (_name, url) => {
+    expect(() => guard.socketFor("tenant")(url, {})).toThrow(EgressBlockedError);
+  });
+
+  it("refuses a name that resolves inside, when the handshake would be dialled", async () => {
+    // The socket is created (the URL is acceptable), then its own lookup refuses the address.
+    const socket = guard.socketFor("tenant")("wss://stream.example.com/v1/realtime", {});
+    const err = await new Promise<Error>((resolve) => {
+      socket.on("error", (e: Error) => {
+        resolve(e);
+      });
+    });
+    expect(classifyConnectFailure(err)).toBe("blocked_address");
+  });
+});
+
 describe("classifyConnectFailure", () => {
   it("reduces every failure to one of four answers", () => {
     expect(classifyConnectFailure(new EgressBlockedError("private_address"))).toBe("blocked_address");
@@ -377,7 +430,16 @@ describe("egressConfigFromEnv", () => {
     ).toEqual({
       mode: "strict",
       allowHosts: ["kroki", "minio"],
+      trustedUrls: [],
     });
+    expect(
+      egressConfigFromEnv({
+        mode: "strict",
+        allowHosts: "",
+        nodeEnv: "production",
+        trustedUrls: [undefined, "https://proxy.example.com/v1"],
+      }).trustedUrls,
+    ).toEqual(["https://proxy.example.com/v1"]);
     expect(() => egressConfigFromEnv({ mode: "permissive", allowHosts: "", nodeEnv: "production" })).toThrow(
       /permissive/,
     );

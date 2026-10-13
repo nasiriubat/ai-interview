@@ -3,27 +3,40 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
+  "relative w-full rounded-lg border-0 px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
   {
     variants: {
       variant: {
-        default: "bg-card text-card-foreground",
+        default:
+          "bg-info-soft text-info-soft-foreground *:data-[slot=alert-description]:text-info-soft-foreground/90",
         destructive:
-          "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
-        warning: "bg-amber-50 text-amber-950 border-amber-300 dark:bg-amber-950 dark:text-amber-100",
+          "bg-destructive-soft text-destructive-soft-foreground [&>svg]:text-current *:data-[slot=alert-description]:text-destructive-soft-foreground/90",
+        warning:
+          "bg-warning-soft text-warning-soft-foreground *:data-[slot=alert-description]:text-warning-soft-foreground/90",
+        success:
+          "bg-success-soft text-success-soft-foreground *:data-[slot=alert-description]:text-success-soft-foreground/90",
       },
     },
     defaultVariants: { variant: "default" },
   },
 );
 
+/**
+ * `alert` interrupts the screen reader and is for what blocks the person right now (a failed save, a
+ * refused upload). `status` is announced politely and is for everything that is true but not urgent
+ * (a degraded service, a note about the data). Overusing `alert` makes the urgent ones unheard.
+ */
+export type AlertRole = "alert" | "status";
+
 export function Alert({
   className,
   variant,
+  role = "alert",
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>): React.JSX.Element {
+}: Omit<React.ComponentProps<"div">, "role"> &
+  VariantProps<typeof alertVariants> & { role?: AlertRole }): React.JSX.Element {
   return (
-    <div data-slot="alert" role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
+    <div data-slot="alert" role={role} className={cn(alertVariants({ variant }), className)} {...props} />
   );
 }
 

@@ -140,6 +140,8 @@ model Campaign {
   llmCalls     LlmCall[]
 
   @@index([companyId])
+  @@index([companyId, createdAt])
+  @@index([companyId, status, createdAt])
 }
 
 model Session {
@@ -166,6 +168,8 @@ model Session {
   startedAt      DateTime?
   endedAt        DateTime?
   createdAt      DateTime  @default(now())
+  /// Last write to the row: every turn rewrites `state`, so this is the session's last activity (D-79).
+  updatedAt      DateTime  @default(now()) @updatedAt
 
   company     Company           @relation(fields: [companyId], references: [id])
   template    InterviewTemplate @relation(fields: [templateId], references: [id])
@@ -181,6 +185,7 @@ model Session {
   invitation  Invitation?
 
   @@index([companyId, campaignId])
+  @@index([companyId, campaignId, status])
   @@index([companyId, ownerUserId])
 }
 
@@ -585,4 +590,5 @@ model AuditLog {
   company Company @relation(fields: [companyId], references: [id])
 
   @@index([companyId, createdAt])
+  @@index([companyId, action, createdAt])
 }

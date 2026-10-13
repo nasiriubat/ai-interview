@@ -5,6 +5,7 @@ import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { DateText } from "@/components/common/DateText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export function InvitationsSection({
   const rowAction = useAction();
   const [invitations, setInvitations] = React.useState(initial);
   const [email, setEmail] = React.useState("");
+  const [revoking, setRevoking] = React.useState<SessionInvitation | null>(null);
 
   const send = (): void => {
     const value = email.trim().toLowerCase();
@@ -118,7 +120,7 @@ export function InvitationsSection({
                         className="text-destructive hover:text-destructive"
                         disabled={rowAction.busy || inv.status === "revoked"}
                         onClick={() => {
-                          revoke(inv);
+                          setRevoking(inv);
                         }}
                       />
                     </RowActions>
@@ -129,6 +131,18 @@ export function InvitationsSection({
           </Table>
         </div>
       )}
+      <ConfirmDialog
+        open={revoking !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevoking(null);
+        }}
+        title={s.revokeTitle}
+        description={<p>{s.revokeBody(revoking?.email ?? "")}</p>}
+        confirmLabel={s.revokeConfirm}
+        onConfirm={() => {
+          if (revoking) revoke(revoking);
+        }}
+      />
     </section>
   );
 }

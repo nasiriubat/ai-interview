@@ -5,6 +5,7 @@ import * as React from "react";
 import { ClassBadge, RankMeter } from "./ClassBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
@@ -82,21 +83,24 @@ export function CompareVersions({
         ) : (
           <div className="grid gap-1.5">
             <Label htmlFor="compare-version">{s.pick}</Label>
-            <select
+            <Combobox
               id="compare-version"
+              className="max-w-xs"
               value={otherId}
-              onChange={(e) => {
-                setOtherId(e.target.value);
+              onChange={setOtherId}
+              options={[
+                { value: "", label: s.none },
+                ...others.map((a) => ({
+                  value: a.id,
+                  label: t.admin.results.versionOption(a.version, t.admin.results.status[a.status]),
+                })),
+              ]}
+              labels={{
+                placeholder: s.none,
+                search: t.admin.list.searchPlaceholder,
+                empty: t.admin.list.noMatches,
               }}
-              className="border-input bg-background focus-visible:ring-ring/50 h-9 w-full max-w-xs rounded-md border px-2 text-sm outline-none focus-visible:ring-[3px]"
-            >
-              <option value="">{s.none}</option>
-              {others.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {t.admin.results.versionOption(a.version, t.admin.results.status[a.status])}
-                </option>
-              ))}
-            </select>
+            />
           </div>
         )}
         {loading ? (

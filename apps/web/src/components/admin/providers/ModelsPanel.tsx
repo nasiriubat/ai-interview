@@ -194,7 +194,7 @@ export function ModelsPanel({
     >
       <p className="text-muted-foreground text-sm">{s.catalogueBody}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" disabled={action.busy} onClick={refresh}>
+        <Button type="button" variant="outline" loading={action.busy} onClick={refresh}>
           <RefreshCwIcon /> {s.refresh}
         </Button>
         <Button type="button" variant="outline" onClick={addRow}>

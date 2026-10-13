@@ -4,12 +4,14 @@ import { Loader2Icon, PlayIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { StatTile } from "@/components/admin/StatTile";
-import { DateText } from "@/components/common/DateText";
+import { startNavigationProgress } from "@/components/common/NavigationProgress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import { t } from "@/i18n";
 import type { Analysis, AnalysisStatus } from "@/lib/api/schemas";
+import { formatDate } from "@/lib/utils";
 
 const STATUS_TONE: Record<AnalysisStatus, "secondary" | "warning" | "success" | "destructive"> = {
   queued: "secondary",
@@ -64,24 +66,28 @@ export function AnalysisHeader({
           {analyses.length > 0 ? (
             <div className="grid gap-1.5">
               <Label htmlFor="analysis-version">{s.version}</Label>
-              <select
+              <Combobox
                 id="analysis-version"
+                className="min-w-64"
                 value={selected?.id ?? ""}
-                onChange={(e) => {
-                  const params = new URLSearchParams({ version: e.target.value });
+                onChange={(id) => {
+                  const params = new URLSearchParams({ version: id });
+                  startNavigationProgress();
                   router.push(`/admin/campaigns/${campaignId}/results?${params.toString()}`);
                 }}
-                className="border-input bg-background focus-visible:ring-ring/50 h-9 rounded-md border px-2 text-sm outline-none focus-visible:ring-[3px]"
-              >
-                {analyses.map((a, i) => (
-                  <option key={a.id} value={a.id}>
-                    {s.versionOption(a.version, s.status[a.status])}
-                    {i === 0 ? ` (${s.latest})` : ""}
-                    {a.preliminary ? ` · ${s.preliminary}` : ""} ·{" "}
-                    <DateText iso={a.finishedAt ?? a.createdAt} />
-                  </option>
-                ))}
-              </select>
+                options={analyses.map((a, i) => ({
+                  value: a.id,
+                  label: `${s.versionOption(a.version, s.status[a.status])}${i === 0 ? ` (${s.latest})` : ""}${
+                    a.preliminary ? ` · ${s.preliminary}` : ""
+                  }`,
+                  detail: formatDate(a.finishedAt ?? a.createdAt),
+                }))}
+                labels={{
+                  placeholder: s.version,
+                  search: t.admin.list.searchPlaceholder,
+                  empty: t.admin.list.noMatches,
+                }}
+              />
             </div>
           ) : null}
           {selected && !selected.stats.thresholdMet ? (

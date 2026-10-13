@@ -6,8 +6,8 @@ import {
   type EmailPort,
   type SettingsService,
 } from "@aidp/core";
-import { tenantBatch } from "@aidp/db";
-import type { Campaign, Invitation, PrismaClient } from "@prisma/client";
+import { containsInsensitive, tenantBatch } from "@aidp/db";
+import type { Campaign, Invitation, Prisma, PrismaClient } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
 
@@ -40,18 +40,28 @@ export class CampaignService {
     private readonly publicWebUrl: string,
   ) {}
 
-  /** One page of campaigns, newest first, with the row count beside it (contract 19). */
+  /** One page of campaigns with the row count beside it; `total` counts the filtered set (D-79). */
   async list(
     companyId: string,
-    page: { limit: number; offset: number },
+    query: {
+      limit: number;
+      offset: number;
+      q?: string | undefined;
+      status?: string | undefined;
+      orderBy: Prisma.CampaignOrderByWithRelationInput[];
+    },
   ): Promise<{ campaigns: Campaign[]; total: number }> {
-    const where = { companyId };
+    const where: Prisma.CampaignWhereInput = {
+      companyId,
+      ...(query.q ? { name: containsInsensitive(query.q) } : {}),
+      ...(query.status ? { status: query.status } : {}),
+    };
     const [campaigns, total] = await tenantBatch(this.db, [
       this.db.campaign.findMany({
         where,
-        orderBy: { createdAt: "desc" },
-        take: page.limit,
-        skip: page.offset,
+        orderBy: query.orderBy,
+        take: query.limit,
+        skip: query.offset,
       }),
       this.db.campaign.count({ where }),
     ]);
@@ -214,6 +224,42 @@ export class CampaignService {
     return this.db.invitation.findMany({ where: { campaignId }, orderBy: { createdAt: "asc" } });
   }
 
+  /**
+   * The counters a campaign row shows in the list, for a whole page in two grouped queries
+   * rather than two per row. `invited` leaves out revoked invitations, as the detail view does;
+   * `started` is every session past `created` that still exists (not `deleted`).
+   */
+  async listStats(
+    companyId: string,
+    campaignIds: string[],
+  ): Promise<Map<string, { invited: number; started: number; completed: number }>> {
+    const out = new Map(campaignIds.map((id) => [id, { invited: 0, started: 0, completed: 0 }]));
+    if (campaignIds.length === 0) return out;
+    const [invitations, sessions] = await tenantBatch(this.db, [
+      this.db.invitation.groupBy({
+        by: ["campaignId"],
+        where: { campaignId: { in: campaignIds }, campaign: { companyId }, status: { not: "revoked" } },
+        _count: { _all: true },
+      }),
+      this.db.session.groupBy({
+        by: ["campaignId", "status"],
+        where: { companyId, campaignId: { in: campaignIds } },
+        _count: { _all: true },
+      }),
+    ]);
+    for (const i of invitations) {
+      const row = out.get(i.campaignId);
+      if (row) row.invited = i._count._all;
+    }
+    for (const s of sessions) {
+      const row = s.campaignId ? out.get(s.campaignId) : undefined;
+      if (!row) continue;
+      if (s.status !== "created" && s.status !== "deleted") row.started += s._count._all;
+      if (s.status === "completed") row.completed += s._count._all;
+    }
+    return out;
+  }
+
   async stats(
     companyId: string,
     campaignId: string,
@@ -223,16 +269,19 @@ export class CampaignService {
       this.db.invitation.count({ where: { campaignId, status: { not: "revoked" } } }),
       this.db.session.findMany({ where: { campaignId }, select: { status: true, state: true } }),
     ]);
+    // One rule for "started", shared with the campaign list's counters: every session past the
+    // link except those the participant deleted, whose answers no longer exist to count.
+    const counted = sessions.filter((s) => s.status !== "deleted");
     const dropOffByArea: Record<string, number> = {};
-    for (const s of sessions) {
+    for (const s of counted) {
       if (s.status === "completed") continue;
       const area = (s.state as { lastAreaKey?: string }).lastAreaKey ?? "start";
       dropOffByArea[area] = (dropOffByArea[area] ?? 0) + 1;
     }
     return {
       invited,
-      started: sessions.filter((s) => s.status !== "created").length,
-      completed: sessions.filter((s) => s.status === "completed").length,
+      started: counted.filter((s) => s.status !== "created").length,
+      completed: counted.filter((s) => s.status === "completed").length,
       dropOffByArea,
     };
   }

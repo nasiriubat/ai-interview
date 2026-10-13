@@ -37,7 +37,7 @@ function PathSwitch({
           disabled={disabled}
           aria-pressed={value === p}
           className={cn(
-            "focus-visible:ring-ring/50 rounded-md px-2.5 py-1 text-xs font-medium transition-colors focus-visible:ring-[3px] disabled:opacity-50",
+            "rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
             value === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
           )}
           onClick={() => {
@@ -118,7 +118,10 @@ export function ConversationPane({
   const lastId = state.messages[state.messages.length - 1]?.id;
 
   return (
-    <section aria-label={s.conversation} className="bg-card flex min-h-[60dvh] flex-col rounded-xl border">
+    <section
+      aria-label={s.conversation}
+      className="bg-card shadow-card flex min-h-[60dvh] flex-col rounded-lg"
+    >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="truncate text-base font-semibold">{title}</h2>
@@ -206,13 +209,7 @@ export function ConversationPane({
         </footer>
       ) : (
         <footer className="border-t px-4 py-3">
-          <Composer
-            disabled={inputDisabled}
-            autoFocus={false}
-            onSend={(text) => {
-              void sendText(text);
-            }}
-          />
+          <Composer disabled={inputDisabled} autoFocus={false} onSend={(text) => sendText(text)} />
         </footer>
       )}
     </section>
