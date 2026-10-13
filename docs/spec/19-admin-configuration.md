@@ -95,10 +95,80 @@ Every staff list that can grow without bound takes `limit` (1 to 200, default 50
 keeps its current name so existing clients keep working.
 
 Paginated: `/audit`, `/campaigns`, `/campaigns/:id/sessions`, `/requirements`, `/users`,
-`/budgets`, `/providers/:id/prices`, `/operator/tenants`, `/campaigns/:id/analyses`.
+`/budgets`, `/providers/:id/prices` (and `/operator/providers/:id/prices`), `/operator/tenants`,
+`/campaigns/:id/analyses`, `/templates`.
 
-Not paginated, because the row count is bounded by the catalogue: `/routes`, `/templates`,
-`/settings`, `/providers`, `/stats`, `/spend`.
+Not paginated, because the row count is bounded by the catalogue: `/routes`, `/settings`,
+`/providers`, `/stats`, `/spend`. `/templates` was on this list until D-79; a picker that wants
+every template asks for `limit=200`.
+
+## Search, sort and filters (D-79)
+
+Every paginated list also takes these query parameters. Every list in the staff web app except
+provider prices keeps them in the URL next to the page, so a reload or a shared link shows the
+same rows. Provider prices are read in one request of up to 200 rows and filtered by the model
+combobox on the page, so the web does not expose search for them; the API still accepts it.
+
+| Parameter | Meaning                                                                                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `q`       | Trimmed, at most 200 characters (more is a 400). A case-insensitive substring match over the list's search fields; `%`, `_` and `\` match themselves. Empty or whitespace means no search. |
+| `sort`    | One of the list's sort fields. Anything else is a 400, so nothing the caller sends reaches the database as a column name.                                                                  |
+| `dir`     | `asc` or `desc`. When absent, the sort field's own default direction (the table below).                                                                                                    |
+| filters   | Per list, below. Enum filters answer 400 to an unknown value rather than an empty page.                                                                                                    |
+| `limit`   | 1 to 200, default 50.                                                                                                                                                                      |
+| `offset`  | Default 0.                                                                                                                                                                                 |
+
+The response shape does not change: `{ <list>, total, limit, offset }`, where `total` counts the
+rows that match the search and filters, so "x to y of n" and the next-page button stay exact.
+Rows with equal sort keys are ordered by id in the same direction, so pages never overlap.
+
+In the table, a field marked "exact" must equal `q` rather than contain it. The first sort field
+listed is the default sort, and each field is followed by the direction it takes when `dir` is
+absent.
+
+| Endpoint                                                          | `q` matches                                                                            | `sort` (default first, default `dir`)                                        | Filters                                                                                                                                    |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /campaigns`                                                  | `name`                                                                                 | `createdAt` desc, `name` asc, `status` asc                                   | `status`: `draft` \| `open` \| `analyzing` \| `closed`                                                                                     |
+| `GET /campaigns/:id/sessions`                                     | session `id` (exact); participant `name`, `email` only when identified (below)         | `createdAt` desc, `startedAt` desc, `lastActivity` desc, `status` asc        | `status`: `created` \| `consented` \| `active` \| `paused` \| `completed` \| `deleted`                                                     |
+| `GET /campaigns/:id/analyses`                                     | nothing (ignored)                                                                      | `version` desc, `createdAt` desc                                             | `status`: `queued` \| `running` \| `done` \| `failed`                                                                                      |
+| `GET /requirements`                                               | `title`                                                                                | `createdAt` desc, `title` asc, `status` asc, `lastActivity` desc             | `status`: `created` \| `consented` \| `active` \| `paused` \| `completed` (deleted sessions are never listed)                              |
+| `GET /templates`                                                  | `name`, `key`                                                                          | `key` asc (versions newest first within a key), `name` asc, `updatedAt` desc | `status`: `draft` \| `published` \| `archived` (absent: everything but `archived`); `origin`: `tenant` \| `platform`                       |
+| `GET /users`                                                      | `email`, `name`                                                                        | `createdAt` asc, `email` asc, `name` asc, `role` asc                         | `role`: `admin` \| `member` \| `platform_operator`                                                                                         |
+| `GET /audit`                                                      | `action`; `targetId` (exact); the actor's `email` or `name` (this tenant's users only) | `createdAt` desc, `action` asc                                               | `action`: one action (`campaign.create`) or a family ending in a dot (`campaign.`); `targetType` (`[a-z][a-z0-9_]*`); `from`, `to` (below) |
+| `GET /budgets`                                                    | `scopeId` (exact); the name of a budgeted campaign                                     | `createdAt` asc, `limitCents` desc, `scope` asc                              | `scope`: `tenant` \| `campaign` \| `session`; `period`: `month` \| `total`                                                                 |
+| `GET /providers/:id/prices`, `GET /operator/providers/:id/prices` | `model`                                                                                | `model` asc, `inputPerMtok` asc, `outputPerMtok` asc, `updatedAt` desc       | `source`: `seed` \| `provider` \| `admin`                                                                                                  |
+| `GET /operator/tenants`                                           | `name`; `id` (exact)                                                                   | `createdAt` asc, `name` asc, `status` asc                                    | `status`: `active` \| `suspended`; `region` (`[a-z0-9-]+`)                                                                                 |
+
+Notes for the screens:
+
+- **Session identity.** `/campaigns/:id/sessions` rows carry `participantName` and
+  `participantEmail`, and `q` searches them, only where the participant is identified: the
+  campaign is `identified`, or it is `participant_choice` and the participant has consented
+  (consent is where they choose). Everyone else gets `null` in both fields and is findable only
+  by session id. An anonymous participant cannot be found by an email, even one that ended up
+  stored against them. Rows also carry `lastActivityAt`, the last write to the session, which is
+  what `sort=lastActivity` orders by; `startedAt` sorts sessions that never started last in both
+  directions.
+- **Audit dates.** `from` and `to` take an ISO date (`2026-09-21`) or an ISO date-time with `Z` or
+  an offset. `from` is inclusive; `to` is inclusive, and a bare date covers that whole day in UTC.
+  A range that runs backwards is a 400.
+- **Templates.** One row per version. `updatedAt` is the version's creation time, because an edit
+  writes a new version row.
+- **Campaign rows** carry `stats: { invited, started, completed }` for the page, where `invited`
+  leaves out revoked invitations and `started` is every session past `created` that is not
+  `deleted`.
+- **Not searchable:** `/providers` and `/routes` (bounded by the catalogue) and
+  `/campaigns/:id/invitations` (not paginated yet).
+
+The web client mirrors this table in `apps/web/src/lib/api/lists.ts` (`LISTS`), and
+`listParams(searchParams, LISTS.x)` in `apps/web/src/lib/admin/pagination.ts` reads the page,
+`q`, `sort`, `dir` and filters from the URL, dropping anything the list does not accept, and
+returns a `query` ready for the matching `staffApi` method. `listHref` and `sortHref` build the
+links that change one of them and go back to page 1.
+
+Search is `ILIKE '%q%'` over the tenant's rows, behind companyId-led indexes (migration 0012).
+Trigram indexes (`pg_trgm`) would make substring search indexable but cost an extension and a
+GIN index on every write, which does not pay at thousands of rows per tenant.
 
 ## Web conventions
 
@@ -114,3 +184,62 @@ Not paginated, because the row count is bounded by the catalogue: `/routes`, `/t
   read the native `required` instead.
 - **Paginated tables** show "x to y of n" with previous and next, and keep the page in the URL
   so a reload and a shared link land in the same place.
+
+## Live voice (D-77)
+
+Live voice is one switch with a readiness check. A tenant admin (or a platform operator acting on a
+tenant with `X-Company-Id`) sees what the call needs, and turning it on without the routes asks for
+an OpenAI key instead of failing. All three routes act on the caller's own tenant; none takes a
+tenant id from the path or the body.
+
+`GET /admin/voice/readiness` answers:
+
+```json
+{
+  "liveVoiceEnabled": false,
+  "recordedVoiceEnabled": true,
+  "purposes": {
+    "transcription": {
+      "ready": true,
+      "providerName": "OpenAI (platform)",
+      "model": "whisper-1",
+      "scope": "platform"
+    },
+    "stt_stream": { "ready": false, "scope": null },
+    "tts": { "ready": false, "scope": null }
+  },
+  "canEnableLive": false,
+  "missing": ["tts"]
+}
+```
+
+Each purpose is resolved tenant route first, platform route second, exactly as the model caller
+resolves it. `ready` also requires the provider to be enabled and of a kind that has audio
+endpoints (not Anthropic, not OpenRouter). `transcription` and `tts` are required; `stt_stream`
+(streaming captions) is optional, because without it a call transcribes per utterance (D-70).
+`missing` lists the required purposes that are not ready.
+
+`POST /admin/voice/openai` with `{ "apiKey": "sk-..." }` (20 to 512 characters) checks the key with
+one authenticated model-list call, then creates the tenant's OpenAI provider, or rotates the key of
+the one it already has, through the provider service (encrypted like any other key). It routes
+`stt_stream` to `gpt-live-transcribe` and `tts` to `tts-1` unless the tenant already has a working
+route of its own for them, and `transcription` to `whisper-1` only when nothing at any scope can
+transcribe. It answers the new readiness, writes `voice.openai_connect` to the audit log with the
+provider id and the purposes it routed, and never returns or logs the key. The check goes to
+`OPENAI_BASE_URL` when that is set.
+
+`PUT /admin/voice/live` with `{ "enabled": true | false }` sets `features.realtimeVoice` at tenant
+scope through the settings service, writes `voice.live_toggle` to the audit log, and answers the
+new readiness. Turning it off always succeeds.
+
+| Code              | Status | When                                                                                |
+| ----------------- | ------ | ----------------------------------------------------------------------------------- |
+| `voice_not_ready` | 409    | `enabled: true` while a required purpose is not ready; `details.missing` names them |
+| `invalid_api_key` | 422    | OpenAI refused the key; nothing was stored                                          |
+| `provider_error`  | 502    | OpenAI could not be reached to check the key; nothing was stored                    |
+| `validation`      | 400    | The body does not match                                                             |
+| `forbidden`       | 403    | The caller is not an admin                                                          |
+
+The web settings screen shows this as a panel at the top of the Voice category, at tenant scope: the
+switch, the checklist, and a dialog that asks for the key when the switch is turned on and the call
+is not ready, then turns it on once the key is connected.

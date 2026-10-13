@@ -28,12 +28,12 @@ same turn the text interview runs decides what to ask, and the interviewer's voi
 with barge-in, live captions, the voice signals traced per call, and a fallback chain that degrades
 to captions and then to typing without losing the session.
 
-**One limit, stated plainly.** Speech-to-text is per utterance, not per token: the browser detects
-the end of speech and sends that utterance to be transcribed, so a caption appears when the
-participant stops rather than growing as they talk. Token-level streaming needs a provider-specific
-socket protocol — Deepgram, AssemblyAI, a self-hosted Whisper server — and the `Provider` interface
-has no `sttStream` method yet. That is the next piece, and adding it does not change anything above
-it: the cascade already treats transcription as a replaceable step.
+**Streaming captions (D-77).** With an `stt_stream` route the browser streams PCM16 at 24 kHz and
+the provider's realtime transcription socket (OpenAI's, through `Provider.transcribeStream`)
+captions the participant while they talk; its final transcript takes the turn. Without that route,
+or when the socket fails, the call transcribes per utterance as before (D-70), so a caption appears
+when the participant stops. An admin turns live voice on from Settings → Voice, and is asked for an
+OpenAI key when the routes are missing.
 
 Deployment is covered by `docs/DEPLOY.md` and `deploy/compose.prod.yml`, which is outside the
 phase table because it is not a feature: it is how any of the above reaches a server.
