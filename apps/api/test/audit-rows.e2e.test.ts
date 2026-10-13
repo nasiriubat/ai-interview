@@ -99,7 +99,7 @@ suite("audit rows: every administrative mutation writes one", () => {
     url: string,
     payload: unknown,
     expected: Expect,
-  ): Promise<{ json: <T>() => T }> {
+  ): Promise<Awaited<ReturnType<TestWorld["app"]["inject"]>>> {
     exercised.add(route);
     const method = route.split(" ")[0] as Method;
     const since = new Date(Date.now() - 1000);
@@ -131,7 +131,7 @@ suite("audit rows: every administrative mutation writes one", () => {
     for (const secret of expected.secrets ?? []) {
       expect(diff, `${expected.action} diff leaks a secret`).not.toContain(secret);
     }
-    return { json: <T>() => res.json<T>() };
+    return res;
   }
 
   const templateBody = (() => {
