@@ -135,6 +135,35 @@ conversation purpose on whichever provider you chose. Nothing else changes.
 The cheaper models are chosen deliberately: a voice interview pays per second of conversation.
 Change a row in Admin → Routing for a better voice.
 
+## Who may connect to what, and what may connect out
+
+Three settings carry the network-facing security decisions; the defaults are right for the
+single-host layout in this document and each is a stated number or list rather than a switch.
+
+- **`TRUST_PROXY_HOPS`** (API, default `1`). How many proxies between the internet and the API
+  write `X-Forwarded-For`. Caddy is one: for ordinary calls it writes the client address, the web
+  app forwards that single value, and for the live-voice socket Caddy talks to the API directly.
+  Caddy overwrites the header from the connection (`header_up X-Forwarded-For {remote_host}`),
+  so a client cannot choose its own rate-limit bucket. Put another proxy or a CDN in front and
+  this number has to change with it; a wrong value either lumps every visitor into one bucket or
+  lets one visitor pick theirs. IPv6 clients are limited by their /64.
+- **`EGRESS_ALLOW_HOSTS`** (API and worker, default empty). The API connects out to model
+  providers and mail relays that admins name. A **tenant** admin's address must be `https`, a
+  public DNS name, port 443 or 8443, and may not resolve to a loopback, private, link-local or
+  cloud-metadata address; this is checked on every connection, not only when it is saved. The
+  **platform operator** may use `http` and may reach a private address only for the hostnames
+  listed here (for instance a LiteLLM container named `litellm`). Leave it empty unless you run
+  a model server inside this compose network. The metadata addresses (`169.254.169.254` and its
+  relatives) are refused whatever you list. `EGRESS_MODE=permissive` exists for tests and the API
+  refuses to start with it in production.
+- **Request size.** Caddy refuses a body over 2 MB, except the two upload paths at 55 MB; the web
+  app and the API apply the same ceilings, and a tenant's `files.maxSizeMb` (at most 50) is
+  enforced before the file is read. Slow clients are cut off after 10 s of headers or 3 minutes of
+  body.
+
+Sign-in relay (`EMAIL_SMTP_URL`) is yours and is not restricted. An SMTP relay a tenant types in
+Admin → Settings is: a public name, port 465, 587 or 2525, TLS required.
+
 ## Live voice
 
 A live voice interview is the one browser call that does not go through the Next.js proxy. A route
@@ -528,6 +557,9 @@ dc logs caddy | grep -i acme
 - [ ] If live voice is on, hold one real conversation on a phone, on mobile data, and interrupt the
       interviewer mid-sentence. Latency and barge-in are the two things a desk test will not show.
 - [ ] Attach a document during an interview and confirm it reaches `Ready`, not `Failed`.
+- [ ] `curl -s -o /dev/null -w "%{http_code}" -X POST --data-binary @<a 3 MB file> https://<hostname>/api/staff/campaigns`
+      answers `413` from Caddy, and `TRUST_PROXY_HOPS` still matches the proxies you run.
+- [ ] `pnpm audit --prod --audit-level=high` is clean on the commit you deployed.
 - [ ] `dc exec -T backup ls -lh /backups` shows a dump, and you have restored one into
       `ai_discovery_check` and looked at the row counts.
 - [ ] `deploy/.env` is copied somewhere off this host, and you know it contains
