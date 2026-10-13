@@ -33,9 +33,16 @@ can be read top to bottom and believed.
                   uploads volume ───────────┘  (audio and attached documents)
 ```
 
-Images: `aidp-server` runs `migrate`, `api` and `worker`; `aidp-web` runs `web`; the stock
-`pgvector/pgvector:pg16` runs `postgres` and the three one-shot database helpers (`db-grants`,
-`preflight`, `backup`); `caddy:2-alpine` runs Caddy. Four images for nine services.
+Two more services keep watch from outside the application, described under
+[Operating it](#operating-it): `backup` encrypts, verifies and reports, and `ops-notify` delivers
+alerts when the application cannot.
+
+Images, all tagged with the git SHA they were built from (so the previous version stays on the host
+and a rollback needs no build): `aidp-server` runs `migrate`, `api` and `worker`; `aidp-web` runs
+`web`; `aidp-backup` (the server's Postgres plus `age`, `rclone` and `jq`) runs `backup`;
+`aidp-ops-notify` (a shell script on Alpine) runs `ops-notify` and the `ops-state-init` one-shot.
+The stock `pgvector/pgvector:pg16` runs `postgres` and the two database helpers (`db-grants`,
+`preflight`); `caddy:2-alpine` runs Caddy. Six images for eleven services.
 
 **The API is not on the internet.** The browser never calls it: every request goes to a Next.js
 route handler (`apps/web/src/app/api/**`), which attaches the bearer token server-side
@@ -56,45 +63,49 @@ and would put tokens in the browser, for no capability the product uses. So the 
   what redirects visitors to HTTPS.
 - An SMTP relay you can send from. Sign-in is a magic link; without a relay nobody can log in.
 - Git, to clone the repository onto the host. The images are built on the VPS from the checkout.
+  A 4 GB host building on top of the running stack is the likeliest way to run it out of memory:
+  `upgrade.sh` refuses below 3 GB of free disk, and the quiet hour is the time to run it.
+- Outbound HTTPS from the build host, once per build: the web build downloads the Inter font from
+  Google Fonts and serves it from your own origin afterwards, so a build host with no egress fails
+  at `next build`. The running site never contacts Google.
 
 ## First deployment
 
-Seven commands. Run them as a user in the `docker` group, from the repository root.
+Run these as a user in the `docker` group, from the repository root.
 
 ```bash
 git clone <your-remote> ai-interview && cd ai-interview
 
-# 1. Secrets and settings. Writes deploy/.env, mode 600. Refuses to overwrite an existing file.
+# 1. Secrets and settings. Writes deploy/.env, mode 600, including a backup encryption key pair
+#    (when age-keygen is on this machine; upgrade.sh makes it otherwise). Refuses to overwrite.
 ./deploy/generate-env.sh pilot.example.com ops@example.com
 
-# 2. Fill in the one thing it cannot invent. Sign-in is broken until this points at a real relay.
-#    (And if you have an ANTHROPIC_API_KEY or OPENROUTER_API_KEY, add it now so first boot seeds
-#    a provider with default routes; you can also do it in the admin UI later.)
-$EDITOR deploy/.env          # set EMAIL_SMTP_URL=smtp://user:pass@relay.example.com:587
+# 2. Fill in what it cannot invent. Sign-in is broken until EMAIL_SMTP_URL points at a real relay,
+#    and a failure reaches nobody until ALERT_EMAIL or ALERT_WEBHOOK_URL is set. (And if you have
+#    an ANTHROPIC_API_KEY or OPENROUTER_API_KEY, add it now so first boot seeds a provider with
+#    default routes; you can also do it in the admin UI later.)
+$EDITOR deploy/.env
 
-# 3. Build and start. Two images are built: aidp-server (migrate, api and worker all run it,
-#    with different commands) and aidp-web. See D-74. The web build downloads the Inter font
-#    from Google Fonts once and serves it from your own origin, so the build host needs outbound
-#    HTTPS; the running site never contacts Google.
-docker compose -f deploy/compose.prod.yml --env-file deploy/.env up -d --build
+# 3. COPY deploy/.env TO YOUR PASSWORD MANAGER NOW. It holds the keys to the database, to the
+#    stored provider keys and to every backup. It is not in the repository and not in the volumes.
 
-# 4. Watch it come up. Every service should reach (healthy).
-docker compose -f deploy/compose.prod.yml --env-file deploy/.env ps
+# 4. Build, migrate, start, and check. The images are tagged with the git SHA; the backup image
+#    and the key pair come first; the checks at the end are the ones in the list below.
+./deploy/upgrade.sh
 
-# 5. Confirm the two gates passed.
-docker compose -f deploy/compose.prod.yml --env-file deploy/.env logs preflight db-grants
-
-# 6. Confirm the operator exists and the schema is at head.
-docker compose -f deploy/compose.prod.yml --env-file deploy/.env logs migrate | tail -3
+# 5. Watch it. Every service should be (healthy); `deploy/dc` is `docker compose` for this stack.
+./deploy/dc ps
 ```
 
-Step 5 should print exactly this, and the stack will not have started if it did not:
+What step 4 proves, and what to look for if it stops: `preflight` printing exactly
 
 ```
 preflight: ok — connected as app_api, no bypass, 15 tables under RLS, CREATE on database, untenanted reads return nothing
 ```
 
-Step 6 ends with the bootstrap line naming your operator, tenant and admin:
+(`./deploy/dc logs preflight db-grants`; the count is whatever the schema has, and the stack does
+not start if the check fails), and `migrate` ending with the bootstrap line naming your operator,
+tenant and admin (`./deploy/dc logs migrate | tail -3`):
 
 ```
 bootstrap: operator ops@example.com, tenant "First tenant" admin ops@example.com, templates 2, ...
@@ -107,16 +118,30 @@ add a provider and set routes in the admin UI (see RUNNING.md, "Provider configu
 Because the commands are long, the rest of this document uses:
 
 ```bash
-alias dc='docker compose -f deploy/compose.prod.yml --env-file deploy/.env'
+alias dc='./deploy/dc'
 ```
+
+`deploy/dc` supplies the compose file, `deploy/.env` and `deploy/versions.env` (the image tag
+`upgrade.sh` recorded). Run through it, and never `docker compose up` by hand.
+
+An install made before the images were versioned has volumes named `deploy_pgdata` and so on; it
+must put `COMPOSE_PROJECT_NAME=deploy` in `deploy/.env`, and `upgrade.sh` refuses to continue
+without it rather than start on an empty database.
 
 ## Model configuration, and the one route that is easy to miss
 
-The platform routes each _purpose_ — `interview_turn`, `extraction`, `summarize`, `analysis`,
-`report`, `embedding`, and the phase 3 spec purposes — to a model independently, so a cheap model
-can drive the conversation while a stronger one writes the report. Admin → Providers adds a
-provider and imports its model list from the provider's own API; Admin → Routing binds purposes to
-models; Admin → Settings holds the defaults.
+The platform routes each _purpose_ to a model independently, so a cheap model can drive the
+conversation while a stronger one writes the report. The purposes are `interview_turn`,
+`resume_summary`, `extraction`, `clustering`, `analysis_report`, `spec_turn`, `issue_detection`,
+`spec_generation`, `transcription`, `stt_stream`, `tts`, `realtime_voice`, `file_ingest`,
+`vision_ingest` and `embedding` (`packages/shared/src/purposes.ts` is the list). Admin → Providers
+adds a provider and imports its model list from the provider's own API; Admin → Routing binds
+purposes to models; Admin → Settings holds the defaults.
+
+Every call to a provider has a deadline and a bounded number of retries, so a provider that goes
+quiet fails the turn after two minutes at most instead of hanging it. The limits are
+`PROVIDER_*` variables in `deploy/.env`; [OPERATIONS.md](OPERATIONS.md#provider-timeouts-and-retries)
+has the table.
 
 `interview_turn` is the one that blocks everything: with no route, no interview can start.
 
@@ -194,7 +219,8 @@ single-host layout in this document and each is a stated number or list rather t
   cloud-metadata address; this is checked on every connection, not only when it is saved. The
   **platform operator** may use `http` and may reach a private address only for the hostnames
   listed here (for instance a LiteLLM container named `litellm`). Leave it empty unless you run
-  a model server inside this compose network. The metadata addresses (`169.254.169.254` and its
+  a model server inside this compose network, or an alert webhook (`ALERT_WEBHOOK_URL`, held to
+  the same policy as a platform provider's address) on a private name. The metadata addresses (`169.254.169.254` and its
   relatives) are refused whatever you list. `EGRESS_MODE=permissive` exists for tests and the API
   refuses to start with it in production.
 - **Request size.** Caddy refuses a body over 2 MB, except the two upload paths at 55 MB; the web
@@ -252,23 +278,27 @@ it to a whole department. The per-call figures land in the same cost ledger as e
 
 ## Where the data lives
 
-Five named Docker volumes, all on this host's disk, under `/var/lib/docker/volumes/`:
+Named Docker volumes, all on this host's disk, under `/var/lib/docker/volumes/`:
 
-| Volume                | Holds                                                  |
-| --------------------- | ------------------------------------------------------ |
-| `deploy_pgdata`       | The database. Everything that matters.                 |
-| `deploy_uploads`      | Recorded audio and attached documents (FR-30, FR-31).  |
-| `deploy_backups`      | Nightly `pg_dump` files and the matching file archive. |
-| `deploy_caddy_data`   | TLS certificates and ACME account keys.                |
-| `deploy_caddy_config` | Caddy's autosaved config.                              |
+| Volume              | Holds                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| `aidp_pgdata`       | The database. Everything that matters.                                                         |
+| `aidp_uploads`      | Recorded audio and attached documents (FR-30, FR-31).                                          |
+| `aidp_backups`      | Encrypted nightly `pg_dump` files and the matching file archive.                               |
+| `aidp_models`       | The on-server Whisper model cache. Not backed up: it is re-downloaded.                         |
+| `aidp_ops_state`    | Status and alert files shared between containers: the worker's heartbeat, the backup's status. |
+| `aidp_caddy_data`   | TLS certificates and ACME account keys.                                                        |
+| `aidp_caddy_config` | Caddy's autosaved config.                                                                      |
+| `aidp_caddy_maint`  | The maintenance flag `upgrade.sh` raises during a switch.                                      |
 
-`deploy_uploads` is the one people forget. Participants' recordings and the documents they attach
+`aidp_uploads` is the one people forget. Participants' recordings and the documents they attach
 live there, not in Postgres, so a database-only backup would restore a system whose `Attachment`
 rows all point at bytes that are gone — and nothing would say so until somebody pressed play. The
 nightly job takes both, stamped identically, and `restore.sh` puts both back.
 
-The prefix is the compose project name, which defaults to the directory holding the compose file
-(`deploy`). `docker volume ls` shows the real names.
+The prefix is the compose project name, pinned to `aidp` by `COMPOSE_PROJECT_NAME` in `deploy/.env`
+(`generate-env.sh` writes it). An install made before it was pinned has the prefix `deploy`, and
+keeps it by setting `COMPOSE_PROJECT_NAME=deploy`. `docker volume ls` shows the real names.
 
 Every container that faces the network runs unprivileged: the API, the worker and the web app all
 run as uid 1000 (`node`, in both images) over a root-owned, read-only
@@ -295,9 +325,13 @@ make impossible:
   `APP_DB_PASSWORD` so `bootstrap` gives `app_api` a login.
 - `preflight` runs between them and refuses to let `api` or `worker` start unless it can prove, on
   a live connection, that: the URL names `app_api`, `current_user` agrees, the role has neither
-  `rolsuper` nor `rolbypassrls`, thirteen tables have RLS enabled, the role can read the job
-  queue, and an untenanted connection sees **zero** `User` rows. A stack that would have run on
-  the owner does not start at all.
+  `rolsuper` nor `rolbypassrls`, no table that carries a `companyId` lacks row-level security,
+  the role can read the job queue, and an untenanted connection sees **zero** `User` rows. The
+  table check asks the database which tables have a `companyId` and no policy, and does not count
+  against a floor, so a new tenant-owned table whose migration forgot its policy stops the stack on
+  the next boot and names the table. A stack that would have run on the owner does not start at
+  all, and the refusal is also written for the `ops-notify` sidecar to deliver, because nothing in
+  the application is running to say so.
 
 To check which role is in force on a running system:
 
@@ -333,47 +367,38 @@ healthy system.
 
 ## Backups
 
-`backup` runs every night at `BACKUP_AT` (default 03:20, container clock, UTC) into the `backups`
-volume, deletes files older than `BACKUP_RETENTION_DAYS` (default 14), and logs one line per run.
-Because it shares the server's image, `pg_dump` can never drift from the server version.
+`backup` runs every night at `BACKUP_AT` (default 03:20, container clock, UTC) and writes an
+**encrypted pair**, stamped identically: `ai_discovery-<stamp>.dump.age` (`pg_dump`, custom format)
+and `uploads-<stamp>.tar.gz.age` (the uploads volume at the same moment). It decrypts the dump and
+reads its table of contents before calling the run good, writes
+`/ops-state/status/backup.json` (when, how big, table counts, offsite result), and keeps local files
+for `BACKUP_RETENTION_DAYS` (14).
 
-Each run writes two files with the same timestamp:
-
-| File                        | What                                                 |
-| --------------------------- | ---------------------------------------------------- |
-| `ai_discovery-<stamp>.dump` | `pg_dump --format=custom --compress=6`               |
-| `uploads-<stamp>.tar.gz`    | Everything in the uploads volume at that same moment |
-
-The pair matters. Restoring a dump next to a file archive from a different night gives you rows
-and bytes that disagree, so `restore.sh` looks for the archive whose stamp matches the dump and
-tells you plainly when there is not one.
+The container is **healthy only when the last backup succeeded and is recent.** It used to be
+healthy for as long as its loop was alive, which a nightly `pg_dump` failing for a month never
+disturbed. A failure now turns the container `unhealthy` and raises an alert (`backup.failed`, or
+`backup.missing` after 26 hours without a success).
 
 ```bash
-dc logs backup --tail 20                                  # what it has been doing
-dc exec -T backup ls -lh /backups                          # what it has
+dc logs backup --tail 20                                   # what it has been doing
+dc exec -T backup cat /ops-state/status/backup.json        # the last result, as data
 dc exec -T backup /usr/local/bin/backup.sh once            # take one now
 ```
 
-### The volume is on this machine
+**Encryption.** The key pair is `BACKUP_AGE_RECIPIENT` and `BACKUP_AGE_IDENTITY` in `deploy/.env`,
+made once by `generate-env.sh` or `upgrade.sh`. Lose the identity and every backup is unreadable;
+that is why `deploy/.env` goes to your password manager on day one.
 
-`deploy_backups` lives on the same disk as `deploy_pgdata`. A dropped table it saves you from; a
-dead host, a deleted VPS or a ransomwared filesystem it does not. **Offsite copies are your job.**
-One concrete arrangement, roughly five minutes of work: create a storage bucket at a second EU
-provider, install [`rclone`](https://rclone.org) on the host, and add a root cron entry:
+**Offsite.** The volume is on the same disk as the database, so on its own it protects against a
+dropped table and not against a dead host. Set `RCLONE_REMOTE` and its credentials in `deploy/.env`
+(a commented block there shows an S3-compatible bucket and Backblaze B2, three lines each) and each
+run copies the pair offsite, keeping 30 daily, 13 weekly and 13 monthly copies. Unset, the status
+file says `offsite: not_configured`; the go-live list below asks you to decide that on purpose.
 
-```cron
-30 4 * * * docker run --rm -v deploy_backups:/backups:ro -v /root/.config/rclone:/config/rclone:ro \
-             rclone/rclone:latest sync /backups remote:ai-interview-backups --max-age 30d
-```
-
-Then set a calendar reminder to restore one of those offsite copies into a scratch database every
-quarter. An untested backup is a rumour.
+Restoring, the restore drill, the upgrade and rollback flow, and what every alert means are in
+[OPERATIONS.md](OPERATIONS.md#backups).
 
 ## Restoring
-
-`deploy/restore.sh` restores a dump into a target database. It refuses to overwrite a database that
-still holds rows unless you pass `--force`, and it asks you to type the target database name before
-it does anything.
 
 ```bash
 ./deploy/restore.sh                                     # list the dumps
@@ -381,58 +406,20 @@ it does anything.
 ./deploy/restore.sh --latest --force                     # disaster: restore over the live database
 ```
 
-Restoring over `ai_discovery` stops `api` and `worker`, recreates the database, runs `pg_restore`,
-then starts them again — which re-runs `migrate`, `db-grants` and `preflight` on the way back up.
-That is deliberate: a dump older than the current code gets migrated forward, the runtime grants
-are re-applied, and the role gate re-checks the result before traffic returns.
+It refuses to overwrite a database that still holds rows unless you pass `--force`, asks you to
+type the target database name, and **reads and decrypts the dump before it stops or drops
+anything**. Restoring over `ai_discovery` stops `api` and `worker`, recreates the database, runs
+`pg_restore`, restores the matching uploads archive, then starts them again, which re-runs
+`migrate`, `db-grants` and `preflight` on the way up: a dump older than the current code is migrated
+forward, the runtime grants are re-applied and the role gate re-checks the result before traffic
+returns.
 
-### The drill, as actually run
-
-Performed against this exact compose file on 2026-09-14, Docker Desktop on an Apple-silicon laptop,
-against a freshly bootstrapped database (3 companies, 3 users, 2 templates — a 124 KB dump).
-
-```bash
-# seed two rows a restore has to bring back
-dc exec -T postgres psql -U app -d ai_discovery -c \
-  "insert into \"Company\" (id, name, \"monthlyBudgetCents\") values ('drill-co-1','Restore Drill Oy',12345);
-   insert into \"User\" (id, \"companyId\", email, role) values ('drill-user-1','drill-co-1','drill@example.com','admin');"
-
-dc exec -T backup /usr/local/bin/backup.sh once
-
-# destroy: drop the database out from under the running stack
-dc exec -T postgres psql -U app -d postgres -c \
-  "select pg_terminate_backend(pid) from pg_stat_activity where datname='ai_discovery' and pid<>pg_backend_pid();"
-dc exec -T postgres psql -U app -d postgres -c "drop database ai_discovery;"
-
-./deploy/restore.sh --latest --yes
-
-# prove it
-dc exec -T postgres psql -U app -d ai_discovery -c \
-  'select (select count(*) from "Company") companies, (select count(*) from "User") users,
-          (select name from "Company" where id='"'"'drill-co-1'"'"') drill_company;'
-```
-
-Measured:
-
-| Step                                                                                                                      | Time    |
-| ------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `backup.sh once` (124 KB dump)                                                                                            | 0.17 s  |
-| `restore.sh --latest` end to end: stop, recreate, `pg_restore`, re-run migrate + grants + preflight, start api and worker | 5.1 s   |
-| Cold boot from empty volumes to every service healthy, images already built                                               | 48–51 s |
-| `docker compose build --no-cache`, both images, 605 packages installed from the registry                                  | 40 s    |
-
-Result: `companies = 3`, `users = 3`, `drill_company = Restore Drill Oy`. `/api/v1/health/ready`
-returned `{"ok":true,"database":true}`, the sign-in page returned 200 through Caddy, connections
-were back on `app_api`, and after a further 90 seconds every container reported `RestartCount = 0`
-and no permission errors. The drill was run twice, the second time against the final images.
-
-These numbers are floors, not forecasts. They come from a laptop with a fast disk and a fast
-network, against a database with a handful of rows in it. Restore time is dominated by
-`pg_restore`, which scales with data volume; the first build on a modest VPS is dominated by
-`pnpm install` and `tsc`, and several minutes there would be unremarkable. Budget minutes rather
-than seconds, and measure your own restore into a scratch database before you need it.
-
-### Refusals, also exercised
+The measured times (a restore on an Apple-silicon laptop against a freshly bootstrapped database
+took 5 seconds end to end; a build from empty volumes to every service healthy took 48 to 51
+seconds, images already built) are floors, not forecasts. Restore time is dominated by
+`pg_restore`, which scales with data volume. Budget minutes rather than seconds, and measure your
+own restore into a scratch database before you need it. The step-by-step, including onto a new
+host from the offsite copy, is in [OPERATIONS.md](OPERATIONS.md#restoring).
 
 ```
 restore: refusing to overwrite 'ai_discovery', which still has 3 User rows.
@@ -474,60 +461,38 @@ also needs `dc exec postgres psql -U app -c "alter role app password '<new>'"` b
 
 Back up `deploy/.env`. A database dump without it is only half a backup.
 
-## Upgrading
+## Upgrading and rolling back
 
 ```bash
 cd ai-interview
 git pull
-dc up -d --build
+./deploy/upgrade.sh              # --dry-run says what it would do and changes nothing
+./deploy/rollback.sh             # the previous version again: no build, no network
 ```
 
-That is the whole upgrade. `--build` rebuilds any image whose inputs changed; compose recreates
-only the containers whose image or configuration moved, and `depends_on` orders the restart:
-`migrate` applies new migrations, `db-grants` re-applies runtime privileges, `preflight` re-checks
-the role, then `api` and `worker` restart, then `web`, then `caddy`. Migrations run before the new
-code serves traffic.
+`upgrade.sh` takes a backup through the running backup container (and stops if that fails), builds
+the images tagged with the git SHA, runs `migrate`, `db-grants` and `preflight`, switches `api`,
+`worker` and `web` behind a maintenance page that says so in English and Finnish with a
+`Retry-After`, and then checks that every service is healthy, that the API is ready with a live
+database, and that Caddy serves the sign-in page. If a check fails it puts the previous code back
+by itself. The previous image generation stays on the host (three are kept), which is what makes
+`rollback.sh` a tag switch and not a rebuild.
 
-There is a gap of a few seconds where `api` is down and `web` returns errors. On one host, with one
-replica of each service, that is the honest cost; a blue-green rollout needs a second host or a
-second stack and is out of scope here.
+Two things it will not do silently: build uncommitted changes (`--allow-dirty` tags them
+`<sha>-dirty-<time>`, never the sha), and start on a host whose volumes belong to a different
+project name (the empty-database mistake, caught before the build).
 
-Watch it land:
+There is a gap of a few seconds while `api` restarts; the maintenance page covers it. A blue-green
+rollout would double the memory the stack needs for those seconds and gain nothing on the schema
+side, which is shared: it is not done here.
 
-```bash
-dc logs -f migrate preflight api
-```
-
-## Rolling back
-
-Code and schema roll back differently, and the second one is the dangerous one.
-
-**Code only** (the new release is bad, migrations were additive or there were none):
-
-```bash
-git log --oneline -5             # find the previous good commit
-git checkout <previous-sha>
-dc up -d --build
-```
-
-**Code and data** (a migration destroyed or transformed data):
-
-```bash
-./deploy/restore.sh                            # find the dump from before the upgrade
-git checkout <the-sha-that-dump-was-taken-on>
-dc up -d --build                               # get the old code in place first
-./deploy/restore.sh <that-dump> --force        # then the old data
-```
-
-Order matters. Restoring an old dump under new code lets `migrate` roll it forward into exactly the
-state you were trying to escape. Check out the old commit first.
-
-Prisma migrations here are forward-only; there are no down migrations. The dump is the rollback.
-Take one by hand before any upgrade you are unsure about:
-
-```bash
-dc exec -T backup /usr/local/bin/backup.sh once
-```
+**Migrations** are forward-only and written to be additive: a column is added in one release and
+dropped in a later one, after the code stopped reading it. That is what lets `rollback.sh` put old
+code on the newer schema. A release that cannot honour this says so in its migration's header, and
+for that one the dump `upgrade.sh` printed (also recorded in `deploy/versions.env`) is the way back:
+`./deploy/rollback.sh`, then `./deploy/restore.sh <that dump> --force`. The three ways an upgrade's
+migration can fail, and what to do in each, are in
+[OPERATIONS.md](OPERATIONS.md#migratefailed).
 
 ## Reading the logs
 
@@ -552,12 +517,14 @@ pilot and it is the reason the cap is there.
 
 ## When the disk fills
 
-Symptoms: Postgres refuses writes, the API returns 500s, `dc ps` looks fine.
+Symptoms: Postgres refuses writes, the API returns 500s, `dc ps` looks fine. You are warned well
+before this: the worker's sweep alerts at 80 percent (warning) and 90 (critical), and the sidecar
+takes over if the worker is down. The runbook is in [OPERATIONS.md](OPERATIONS.md#diskhigh).
 
 ```bash
 df -h /                                  # how bad
 docker system df                         # what Docker is holding
-dc exec -T backup du -sh /backups        # how much is dumps
+dc exec -T backup du -sh /backups        # how much is backups
 ```
 
 In order of what to try:
@@ -565,14 +532,13 @@ In order of what to try:
 ```bash
 docker image prune -a -f                 # old images from previous builds; usually the biggest win
 docker builder prune -f                  # BuildKit cache
-dc exec -T backup sh -c 'ls -1t /backups/*.dump | tail -n +4 | xargs -r rm'   # keep the newest 3
 ```
 
+`docker image prune -a` also removes the previous version's images, which `rollback.sh` needs; it
+only does so for images no container uses, so run it after you have decided not to roll back.
 Then lower `BACKUP_RETENTION_DAYS` in `deploy/.env` and `dc up -d backup`. If the database itself is
 the size, that is a capacity decision, not a cleanup: grow the volume or move to a bigger host.
 Check `dc exec -T postgres psql -U app -d ai_discovery -c "\l+"` for the real figure.
-
-Set up a disk alert before you need one. Even a cron job that emails you at 80% is enough.
 
 ## Testing without a public domain
 
@@ -589,7 +555,7 @@ HTTPS_PORT=5543
 Then the ordinary commands work, with `curl -k` to accept the self-signed certificate:
 
 ```bash
-dc up -d --build
+./deploy/upgrade.sh                   # or, to change only deploy/.env: dc up -d
 curl -k -o /dev/null -w '%{http_code}\n' https://localhost:5543/auth/signin     # 200
 ```
 
@@ -623,29 +589,36 @@ dc logs caddy | grep -i acme
 - [ ] `curl -s -o /dev/null -w "%{http_code}" -X POST --data-binary @<a 3 MB file> https://<hostname>/api/staff/campaigns`
       answers `413` from Caddy, and `TRUST_PROXY_HOPS` still matches the proxies you run.
 - [ ] `pnpm audit --prod --audit-level=high` is clean on the commit you deployed.
-- [ ] `dc exec -T backup ls -lh /backups` shows a dump, and you have restored one into
-      `ai_discovery_check` and looked at the row counts.
+- [ ] `dc exec -T backup cat /ops-state/status/backup.json` says `lastResult: ok`, and you have
+      restored that dump into `ai_discovery_check` and compared the row counts with its `counts`.
 - [ ] `deploy/.env` is copied somewhere off this host, and you know it contains
-      `PLATFORM_ENCRYPTION_KEY`.
-- [ ] Offsite backup copying is set up, or you have written down that it is not and accepted that.
+      `PLATFORM_ENCRYPTION_KEY` and `BACKUP_AGE_IDENTITY`: the backups are unreadable without them.
+- [ ] `RCLONE_REMOTE` is set and `offsite` in the status file is `ok`, or you have written down
+      that it is not and accepted that.
+- [ ] An alert reaches you: set `ALERT_WEBHOOK_URL` or `ALERT_EMAIL`, then
+      `dc exec -T ops-notify sh -c 'echo "{\"kind\":\"alerts.storm\",\"severity\":\"critical\",\"key\":\"test\",\"title\":\"Test alert\",\"message\":\"If you can read this, alerts work.\"}" > /ops-state/alerts/test.json'`
+      and see it arrive within a minute.
 - [ ] `ufw status` (or your provider's firewall) allows only 22, 80 and 443. Nothing but Caddy
       publishes a port, but a firewall is the fence you get to keep when compose changes.
 - [ ] Unattended security upgrades are on for the host OS.
-- [ ] `df -h` shows room, and something will tell you when it does not.
-- [ ] Someone other than you knows this document exists.
+- [ ] `df -h` shows room; the disk alert is the thing that tells you when it does not.
+- [ ] Someone other than you knows this document, and [OPERATIONS.md](OPERATIONS.md), exist.
 
 ## What this deliberately does not cover
 
-- **Offsite backups.** The dumps sit on the same disk as the database. There is a suggestion above;
-  wiring it up and testing it is yours.
-- **Monitoring and alerting.** Health checks restart a wedged container, and that is all. Nothing
-  pages anyone. `docs/spec/12-operations.md` describes the OpenTelemetry and Grafana Tempo setup
-  the platform is built for; `OTEL_EXPORTER_OTLP_ENDPOINT` is wired through and empty by default.
+- **Dashboards, tracing and p95s.** Failures are alerted (see [OPERATIONS.md](OPERATIONS.md)); what
+  is not built yet is the picture: worker traces, request and session ids in log lines, first-token
+  and voice latency percentiles, Grafana. `docs/spec/12-operations.md` describes the
+  OpenTelemetry setup the platform is built for; the API exports spans when
+  `OTEL_EXPORTER_OTLP_ENDPOINT` is set and the worker does not export any yet.
 - **Multi-host, high availability, zero-downtime deploys.** One host, one replica of each service,
-  a few seconds of downtime per upgrade. Blue-green (`12-operations.md`) needs somewhere to be
-  green.
-- **Object storage.** MinIO is in the development stack under the `extras` profile. When voice and
-  attachments land, they need a bucket and a backup story of their own.
+  a few seconds of downtime per upgrade behind a maintenance page. Blue-green (`12-operations.md`)
+  needs somewhere to be green.
+- **An offsite copy you did not configure.** Backups leave the host only when `RCLONE_REMOTE` is
+  set, and the account at the other end is yours to create.
+- **Object storage.** Uploads are a volume on this host, backed up with the dump. MinIO is in the
+  development stack under the `extras` profile, as a stand-in for the `StoragePort` S3 adapter; it
+  is not part of the production stack.
 - **Host hardening.** SSH keys, fail2ban, unattended-upgrades, kernel tuning — standard VPS work,
   no different here.
 - **Database tuning.** `shared_buffers=512MB` and `max_connections=100` are defensible defaults for

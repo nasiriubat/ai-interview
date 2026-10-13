@@ -55,7 +55,7 @@ describe("OpenAICompatibleProvider", () => {
     });
   });
 
-  it("passes the caller's signal to the request, for chat and for structured output", async () => {
+  it("ties the request to the caller's signal, for chat and for structured output", async () => {
     const seen: (AbortSignal | null | undefined)[] = [];
     const fetchMock: typeof fetch = async (_url, init) => {
       seen.push(init?.signal);
@@ -77,8 +77,12 @@ describe("OpenAICompatibleProvider", () => {
     for await (const _ of p.chat("m", req));
     await p.complete("m", req, z.object({ ok: z.boolean() }));
 
+    // The request carries the caller's signal combined with the adapter's own deadline (D-93), so
+    // it is a derived signal, not the same object: it must follow the caller's abort.
     expect(seen.length).toBeGreaterThanOrEqual(2);
-    for (const s of seen) expect(s).toBe(ac.signal);
+    for (const s of seen) expect(s?.aborted).toBe(false);
+    ac.abort();
+    for (const s of seen) expect(s?.aborted).toBe(true);
   });
 
   it("falls back to JSON mode when the server rejects json_schema, and validates locally", async () => {
@@ -163,7 +167,14 @@ describe("OpenAICompatibleProvider", () => {
 
   it("maps HTTP errors to typed provider errors", async () => {
     const fetchMock: typeof fetch = async () => new Response("slow down", { status: 429 });
-    const p = new OpenAICompatibleProvider({ id: "oa", kind: "openai", apiKey: "k", fetch: fetchMock });
+    // Retried with backoff before it is reported (D-93); the sleep is replaced so the test is not.
+    const p = new OpenAICompatibleProvider({
+      id: "oa",
+      kind: "openai",
+      apiKey: "k",
+      fetch: fetchMock,
+      sleep: async () => undefined,
+    });
     await expect(p.listModels()).rejects.toMatchObject({
       name: "ProviderError",
       code: "rate_limit",

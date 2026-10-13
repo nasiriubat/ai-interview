@@ -18,7 +18,7 @@ import type {
 } from "@aidp/shared";
 import { emptyUsage } from "@aidp/shared";
 import type { z } from "zod";
-import { BudgetExceededError, type BudgetGuard } from "./cost/budget.js";
+import { BudgetExceededError, type BudgetCheck, type BudgetGuard } from "./cost/budget.js";
 import type { LedgerSink } from "./cost/ledger.js";
 import { costCents, estimateCents, estimateTokens, type PriceTable } from "./cost/pricing.js";
 import type { ProviderRegistry } from "./providers/registry.js";
@@ -111,6 +111,15 @@ export interface ModelCallerDeps {
     ctx: CallContext,
     warnings: Awaited<ReturnType<BudgetGuard["check"]>>["warnings"],
   ) => void;
+  /**
+   * Called once for every call a budget refuses, after the ledger row and before the error is
+   * thrown (D-90). It is how an exhausted budget reaches a human instead of ending in a log line.
+   *
+   * It is awaited, because the participant-facing sentence depends on whether anyone was told,
+   * and its answer travels on the thrown error as `notified`. It must not throw; if it does, the
+   * refusal still happens and `notified` stays false.
+   */
+  onBudgetExceeded?: (ctx: CallContext, check: BudgetCheck) => Promise<{ notified: boolean } | undefined>;
 }
 
 /**
@@ -309,10 +318,7 @@ export class ModelCaller implements ModelCallerPort {
       throw new ProviderError(`Provider '${route.providerId}' cannot transcribe audio`, "unsupported", false);
     const price = this.deps.prices.get(route.providerId, route.model);
     const check = await this.deps.budget.check(ctx, 0);
-    if (!check.allowed) {
-      await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
-      throw new BudgetExceededError(check);
-    }
+    if (!check.allowed) throw await this.refuse(purpose, ctx, route, price, check);
     const started = this.now();
     let status: LedgerEntry["status"] = "ok";
     try {
@@ -350,10 +356,7 @@ export class ModelCaller implements ModelCallerPort {
       );
     const price = this.deps.prices.get(route.providerId, route.model);
     const check = await this.deps.budget.check(ctx, 0);
-    if (!check.allowed) {
-      await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
-      throw new BudgetExceededError(check);
-    }
+    if (!check.allowed) throw await this.refuse(purpose, ctx, route, price, check);
     const opened = this.now();
     let session: SttStreamSession;
     try {
@@ -405,10 +408,7 @@ export class ModelCaller implements ModelCallerPort {
     const price = this.deps.prices.get(route.providerId, route.model);
     const inputTokens = estimateTokens(texts.join(" "));
     const check = await this.deps.budget.check(ctx, price ? estimateCents(price, inputTokens, 0) : 0);
-    if (!check.allowed) {
-      await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
-      throw new BudgetExceededError(check);
-    }
+    if (!check.allowed) throw await this.refuse(purpose, ctx, route, price, check);
     const started = this.now();
     let usage = emptyUsage();
     let status: LedgerEntry["status"] = "ok";
@@ -434,12 +434,28 @@ export class ModelCaller implements ModelCallerPort {
       ? estimateCents(price, inputTokens, req.maxOutputTokens ?? route.maxOutputTokens)
       : 0;
     const check = await this.deps.budget.check(ctx, estimate);
-    if (!check.allowed) {
-      await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
-      throw new BudgetExceededError(check);
-    }
+    if (!check.allowed) throw await this.refuse(purpose, ctx, route, price, check);
     if (check.warnings.length) this.deps.onBudgetWarning?.(ctx, check.warnings);
     return { route, provider, price };
+  }
+
+  /** Records the refused call, tells the hook, and returns the error for the caller to throw. */
+  private async refuse(
+    purpose: Purpose,
+    ctx: CallContext,
+    route: Route,
+    price: ReturnType<PriceTable["get"]>,
+    check: BudgetCheck,
+  ): Promise<BudgetExceededError> {
+    await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
+    const error = new BudgetExceededError(check);
+    try {
+      const told = await this.deps.onBudgetExceeded?.(ctx, check);
+      error.notified = told?.notified === true;
+    } catch {
+      error.notified = false;
+    }
+    return error;
   }
 
   private async providerFor(companyId: string, providerId: string): Promise<Provider> {
@@ -497,10 +513,7 @@ export class ModelCaller implements ModelCallerPort {
       outputTokens: Math.ceil(input.text.length / 4),
     };
     const check = await this.deps.budget.check(ctx, price ? estimateCents(price, 0, usage.outputTokens) : 0);
-    if (!check.allowed) {
-      await this.record(purpose, ctx, route, price, emptyUsage(), "budget_exceeded", this.now());
-      throw new BudgetExceededError(check);
-    }
+    if (!check.allowed) throw await this.refuse(purpose, ctx, route, price, check);
     const started = this.now();
     try {
       const out = await provider.speak(route.model, input, signal);

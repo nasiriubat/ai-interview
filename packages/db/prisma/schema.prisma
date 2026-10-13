@@ -34,6 +34,7 @@ model Company {
   budgets      Budget[]
   llmCalls     LlmCall[]
   auditLogs    AuditLog[]
+  opsAlerts    OpsAlert[]
 }
 
 model User {
@@ -612,4 +613,35 @@ model SentEmail {
 
   @@index([state, claimedAt])
   @@index([sentAt])
+}
+
+/// One row per alert key: the dedupe, rate-limit and history store behind `AlertPort`
+/// (packages/core/src/alerts, D-90). `key` names the condition, not the occurrence, so the same
+/// failing job or the same exhausted budget is one row whose `count` grows while it persists.
+///
+/// `companyId` is null for a platform condition (a full disk, a missing backup) and set for one
+/// that belongs to a tenant, which is why this table needs the same nullable-companyId policy as
+/// Provider and Route (migration 0014). The router reads and writes it in the system context,
+/// because the key is global and a platform row is not writable under a tenant.
+model OpsAlert {
+  id         String    @id @default(cuid())
+  key        String    @unique
+  kind       String
+  severity   String // info | warning | critical
+  companyId  String?
+  title      String
+  message    String    @default("")
+  count      Int       @default(1)
+  firstAt    DateTime  @default(now())
+  lastAt     DateTime  @default(now())
+  /// Set when a notification was claimed for this key; cleared again if every channel failed, so
+  /// the next occurrence retries at once instead of waiting out the repeat window.
+  notifiedAt DateTime?
+  resolvedAt DateTime?
+  context    Json      @default("{}")
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([kind, lastAt])
+  @@index([companyId, lastAt])
 }

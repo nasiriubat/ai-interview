@@ -1,5 +1,6 @@
 import { localSpeechRunner, type SpeechRunner } from "@aidp/ai";
 import {
+  AlertRouter,
   AnalysisService,
   AttachmentService,
   CallerFactory,
@@ -8,14 +9,18 @@ import {
   EngineFactory,
   GitHubApi,
   MemoryEmail,
+  MemoryJobAdmin,
+  PrismaAlertState,
   RequirementsService,
   SettingsEmail,
   SettingsService,
   TenantGate,
   createStorage,
   egressConfigFromEnv,
+  type AlertPort,
   type EmailPort,
   type GitHubPort,
+  type JobAdminPort,
   type JobPublisher,
   type StoragePort,
 } from "@aidp/core";
@@ -52,6 +57,10 @@ export interface AppContext {
    * retries instead of seeing a reset connection.
    */
   shutdown: AbortController;
+  /** Operator alerts (D-90): email and webhook, deduped and rate limited. */
+  alerts: AlertPort;
+  /** The queue's dead letters and counters, for the operator jobs page (D-92). */
+  jobAdmin: JobAdminPort;
 }
 
 export function buildContext(input: {
@@ -67,6 +76,10 @@ export function buildContext(input: {
   egress?: EgressGuard;
   /** Tests pass a runner over an in-memory engine, so nothing loads a model. */
   speech?: SpeechRunner;
+  /** Tests pass a MemoryAlerts; production gets an AlertRouter over the database. */
+  alerts?: AlertPort;
+  /** Required in production (PgBossJobAdmin); tests get a MemoryJobAdmin. */
+  jobAdmin?: JobAdminPort;
 }): AppContext {
   const { config, db, log } = input;
   const speech = input.speech ?? localSpeechRunner();
@@ -87,17 +100,6 @@ export function buildContext(input: {
         trustedUrls: [config.OPENAI_BASE_URL],
       }),
     );
-  const callers = new CallerFactory({
-    db,
-    crypto,
-    settings,
-    egress,
-    speech,
-    onBudgetWarning: (ctx, warnings) => {
-      log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
-    },
-  });
-  const engines = new EngineFactory(db, callers, settings, engineLogger(log));
   const tenants = new TenantGate(db);
   // Every send resolves its SMTP settings from the tenant, then the platform, then the environment.
   const email =
@@ -111,6 +113,46 @@ export function buildContext(input: {
       gate: tenants,
       egress,
     });
+  // Budget warnings and exhaustion, dead letters and the rest reach a human through this (D-90).
+  // Tests pass a MemoryAlerts to assert on what was raised.
+  const alerts =
+    input.alerts ??
+    new AlertRouter({
+      db,
+      state: new PrismaAlertState(db),
+      settings,
+      email,
+      // The operator's webhook is held to the platform egress policy like a platform provider's URL.
+      fetch: egress.fetchFor("platform"),
+      publicWebUrl: config.PUBLIC_WEB_URL,
+      env: {
+        alertEmail: config.ALERT_EMAIL,
+        alertWebhookUrl: config.ALERT_WEBHOOK_URL,
+        alertWebhookFormat: config.ALERT_WEBHOOK_FORMAT,
+      },
+      log: {
+        warn: (message, meta) => {
+          log.warn(meta ?? {}, message);
+        },
+      },
+    });
+  const callers = new CallerFactory({
+    db,
+    crypto,
+    settings,
+    egress,
+    speech,
+    alerts,
+    publicWebUrl: config.PUBLIC_WEB_URL,
+    onBudgetWarning: (ctx, warnings) => {
+      log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
+    },
+  });
+  const engines = new EngineFactory(db, callers, settings, engineLogger(log));
+  // The queue's own tables, for the operator jobs page. Tests pass a MemoryJobAdmin.
+  if (!input.jobAdmin && config.NODE_ENV === "production")
+    throw new Error("buildContext: jobAdmin is required in production; pass PgBossJobAdmin");
+  const jobAdmin = input.jobAdmin ?? new MemoryJobAdmin();
   const analysis = new AnalysisService({ db, callers, settings, jobs: input.jobs, log: engineLogger(log) });
   const github = input.github ?? new GitHubApi();
   // The API stores uploads and hands them to the worker to read; it never ingests them itself,
@@ -147,5 +189,7 @@ export function buildContext(input: {
     egress,
     speech,
     shutdown: new AbortController(),
+    alerts,
+    jobAdmin,
   };
 }

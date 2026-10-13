@@ -214,7 +214,7 @@ export async function* streamTurn(
         );
         return;
       }
-      const e = err as { code?: string; message?: string; name?: string };
+      const e = err as { code?: string; message?: string; name?: string; notified?: boolean };
       const code =
         e.name === "BudgetExceededError"
           ? "budget_exceeded"
@@ -230,7 +230,7 @@ export async function* streamTurn(
           code,
           message:
             code === "budget_exceeded"
-              ? "This interview is paused because the budget is exhausted. The organizer has been notified."
+              ? budgetPausedMessage(e.notified === true)
               : code === "provider_error"
                 ? "The assistant is temporarily unavailable. Your answer is saved; try again in a moment."
                 : "Something went wrong. Your answer is saved.",
@@ -352,3 +352,14 @@ export async function runTurn(
  */
 export const TURN_LOCK_HEARTBEAT_MS = 30_000;
 export const TURN_LOCK_TTL_MS = 90_000;
+
+/**
+ * What a participant is told when a budget pauses the interview. The second sentence is only
+ * allowed to say the organizer was notified when an alert actually reached someone (D-90):
+ * `notified` comes from the alert router through the thrown error, and defaults to false.
+ */
+export function budgetPausedMessage(notified: boolean): string {
+  return notified
+    ? "This interview is paused because its budget is used up. Your answers are saved and the organizer has been notified."
+    : "This interview is paused because its budget is used up. Your answers are saved; please contact the organizer.";
+}

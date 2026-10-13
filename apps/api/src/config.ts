@@ -17,6 +17,16 @@ const Env = z.object({
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
+  // Operator alerting (D-90). Both are optional fallbacks: the settings catalog (`ops.alertEmail`,
+  // `ops.alertWebhookUrl`) wins when set, and `deploy/ops/notify.sh` reads these two directly
+  // because it has to work when the database does not.
+  ALERT_EMAIL: z.string().optional(),
+  ALERT_WEBHOOK_URL: z.string().optional(),
+  // Compose passes an unset variable through as the empty string, which is "not set" here.
+  ALERT_WEBHOOK_FORMAT: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.enum(["ntfy", "slack", "generic"]).optional(),
+  ),
   /**
    * Outbound-connection policy for tenant-supplied addresses (provider base URLs, SMTP relays).
    * `strict` is the only mode a production process accepts. See packages/core/src/net/egress.ts.

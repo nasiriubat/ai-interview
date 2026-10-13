@@ -1,6 +1,11 @@
 # Production stack for a single EU VPS. Read docs/DEPLOY.md before running this.
 #
-#   docker compose -f deploy/compose.prod.yml --env-file deploy/.env up -d --build
+#   deploy/upgrade.sh          # build, back up, migrate, switch, check (the first deploy too)
+#   deploy/dc ps               # `docker compose` with this file, deploy/.env and deploy/versions.env
+#
+# Run through those two and never `docker compose up` by hand: they supply deploy/versions.env,
+# which names the image tag (the git SHA the images were built from), and upgrade.sh takes the
+# backup and runs the post-switch checks that a bare `up` skips.
 #
 # This is a separate file, not an overlay on docker-compose.yml, because the two differ by
 # subtraction as much as by addition: development publishes Postgres on 5432 and runs Mailpit,
@@ -10,6 +15,12 @@
 # Nothing here reads apps/api/.env. Every value is named explicitly and comes from the
 # --env-file, so a variable that is missing stops the stack instead of silently defaulting.
 
+# Pinned, so the volume names (aidp_pgdata ...) do not depend on the name of the directory the
+# repository happens to be cloned into. An install made before this line existed has volumes called
+# deploy_pgdata; it sets COMPOSE_PROJECT_NAME=deploy in deploy/.env (generate-env.sh does not, and
+# upgrade.sh refuses to continue if it finds those volumes without it). See D-96.
+name: aidp
+
 x-logging: &logging
   driver: json-file
   options:
@@ -17,9 +28,10 @@ x-logging: &logging
     max-file: "3"
 
 # One server image for migrate, api and worker (D-74). Only `migrate` builds it; the other two
-# reuse it by name, so `up --build` produces one image rather than three identical copies.
+# reuse it by name, so `build` produces one image rather than three identical copies. The tag is
+# the git SHA (D-96): a rollback is `up` with the previous tag, and needs no build.
 x-app-image: &app-image
-  image: aidp-server:latest
+  image: "aidp-server:${AIDP_VERSION:?AIDP_VERSION is not set, run deploy/upgrade.sh or use deploy/dc}"
   pull_policy: never
 
 services:
@@ -58,7 +70,8 @@ services:
   # One-shot. Runs as the owner role, which is the only role allowed to change the schema, and
   # hands bootstrap APP_DB_PASSWORD so it gives `app_api` a login (packages/db/seeds/bootstrap.ts).
   migrate:
-    image: aidp-server:latest
+    image: aidp-server:${AIDP_VERSION:?}
+    pull_policy: never
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
@@ -109,13 +122,36 @@ services:
     restart: "no"
     environment:
       APP_DATABASE_URL: postgresql://app_api:${APP_DB_PASSWORD:?}@postgres:5432/ai_discovery
+      # A failure is also written here for ops-notify to deliver: when this gate refuses, the
+      # application is not running and cannot tell anyone (D-94).
+      OPS_STATE_DIR: /ops-state
     volumes:
       - ./preflight.sh:/usr/local/bin/preflight.sh:ro
+      - ops_state:/ops-state
     entrypoint: ["/usr/local/bin/preflight.sh"]
     depends_on:
       postgres: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
       db-grants: { condition: service_completed_successfully }
+      ops-state-init: { condition: service_completed_successfully }
+    logging: *logging
+
+  # One-shot. Creates the directories of the shared ops_state volume with the permissions its
+  # writers need: preflight runs as the postgres user, the worker as uid 1000 and the backup as
+  # root, and a named volume starts out root-owned, so nobody but root could create their own.
+  # Sticky world-writable: anyone may write a file, only its owner (or root) may delete it.
+  ops-state-init:
+    image: aidp-ops-notify:${AIDP_VERSION:?}
+    pull_policy: never
+    restart: "no"
+    entrypoint:
+      - sh
+      - -c
+      - |
+        mkdir -p /ops-state/alerts/sent /ops-state/status /ops-state/heartbeat /ops-state/watchdog
+        chmod 1777 /ops-state /ops-state/alerts /ops-state/alerts/sent /ops-state/status /ops-state/heartbeat /ops-state/watchdog
+    volumes:
+      - ops_state:/ops-state
     logging: *logging
 
   api:
@@ -156,6 +192,18 @@ services:
       # Hostnames a platform provider may reach on a private address. Empty is right unless the
       # operator runs a model server or proxy inside this compose network; tenants never can.
       EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-}
+      # Where operator alerts go before anyone has opened the settings screen (D-90); the catalog
+      # keys ops.alertEmail and ops.alertWebhookUrl win when set. Empty falls back to the bootstrap
+      # operator's address, and to no webhook.
+      ALERT_EMAIL: ${ALERT_EMAIL:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_WEBHOOK_FORMAT: ${ALERT_WEBHOOK_FORMAT:-}
+      # Outbound model-call limits (D-93). Empty means the built-in defaults: 120 s per call,
+      # 20 s to the first token, 30 s of silence mid-stream, two retries.
+      PROVIDER_TIMEOUT_MS: ${PROVIDER_TIMEOUT_MS:-}
+      PROVIDER_FIRST_TOKEN_TIMEOUT_MS: ${PROVIDER_FIRST_TOKEN_TIMEOUT_MS:-}
+      PROVIDER_IDLE_TIMEOUT_MS: ${PROVIDER_IDLE_TIMEOUT_MS:-}
+      PROVIDER_MAX_RETRIES: ${PROVIDER_MAX_RETRIES:-}
     volumes:
       - uploads:/uploads
       - models:/models
@@ -200,22 +248,44 @@ services:
       # The same volume the API writes to: the API stores the upload, the worker reads it back to
       # extract, transcribe and chunk it. Two containers, one directory, one copy of the bytes.
       UPLOAD_DIR: /uploads
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      # No OTEL_EXPORTER_OTLP_ENDPOINT: the worker does not read it, and passing a variable
+      # nothing reads is how a setting appears to work and does not. Worker tracing is planned.
       LOG_LEVEL: ${LOG_LEVEL:-info}
       EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-}
+      ALERT_EMAIL: ${ALERT_EMAIL:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_WEBHOOK_FORMAT: ${ALERT_WEBHOOK_FORMAT:-}
+      PROVIDER_TIMEOUT_MS: ${PROVIDER_TIMEOUT_MS:-}
+      PROVIDER_FIRST_TOKEN_TIMEOUT_MS: ${PROVIDER_FIRST_TOKEN_TIMEOUT_MS:-}
+      PROVIDER_IDLE_TIMEOUT_MS: ${PROVIDER_IDLE_TIMEOUT_MS:-}
+      PROVIDER_MAX_RETRIES: ${PROVIDER_MAX_RETRIES:-}
+      # The shared status volume: the worker writes heartbeat/worker here and reads the backup's
+      # status/backup.json for its health sweep (D-92).
+      OPS_STATE_DIR: /ops-state
     volumes:
       - uploads:/uploads
-    # The worker has no HTTP surface, so liveness is "the process that was started is still there".
-    # It runs as PID 1, and the slim image has no pgrep.
+      - ops_state:/ops-state
+    # The worker has no HTTP surface. It used to be `kill -0 1`, which is true of a worker that has
+    # lost its database and is doing nothing. The heartbeat file is refreshed only while pg-boss
+    # answers (apps/worker/src/heartbeat.ts), so a stale file is a worker that cannot work. The
+    # worker also exits for restart after three misses: Docker never restarts an unhealthy
+    # container by itself, so the exit is what turns this check into a repair. Written in node:
+    # the slim image carries no tooling worth depending on, and node is the one thing certain to
+    # be there.
     healthcheck:
-      test: ["CMD-SHELL", "kill -0 1"]
+      test:
+        - CMD
+        - node
+        - -e
+        - process.exit(Date.now()-require('fs').statSync('/ops-state/heartbeat/worker').mtimeMs<90000?0:1)
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 60s
     depends_on:
       postgres: { condition: service_healthy }
       preflight: { condition: service_completed_successfully }
+      ops-state-init: { condition: service_completed_successfully }
     logging: *logging
     deploy:
       resources:
@@ -224,7 +294,8 @@ services:
           memory: 1024M
 
   web:
-    image: aidp-web:latest
+    image: aidp-web:${AIDP_VERSION:?}
+    pull_policy: never
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
@@ -293,6 +364,10 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      # The maintenance flag: while /maintenance/on exists Caddy answers 503 with a page instead of
+      # a proxy error. upgrade.sh creates it before the switch and removes it after the checks
+      # pass (D-96). Mounted read-write only so that `exec` into this container can toggle it.
+      - caddy_maint:/maintenance
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2020/healthz >/dev/null || exit 1"]
       interval: 30s
@@ -308,10 +383,17 @@ services:
           cpus: "0.5"
           memory: 256M
 
-  # Nightly pg_dump into the `backups` volume. Same image as the server, so the dump format and
-  # the pg_dump version can never drift apart.
+  # Nightly encrypted backup into the `backups` volume, verified, reported in
+  # /ops-state/status/backup.json, and copied offsite when RCLONE_REMOTE is set (D-95). Its own
+  # image (deploy/backup.Dockerfile): the server's Postgres major, so pg_dump matches, plus age,
+  # rclone and jq. It is unhealthy when the LAST BACKUP failed or is old, not merely when the
+  # loop has stopped (deploy/backup-health.sh).
   backup:
-    image: pgvector/pgvector:pg16
+    image: aidp-backup:${AIDP_VERSION:?}
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: backup.Dockerfile
     restart: unless-stopped
     environment:
       PGURL: postgresql://app:${POSTGRES_PASSWORD:?}@postgres:5432/ai_discovery
@@ -321,27 +403,90 @@ services:
       # Read-only, and read for a reason: a database-only backup restores Attachment rows whose
       # bytes are gone, and nothing says so until somebody presses play.
       UPLOAD_DIR: /uploads
+      # Written by deploy/ensure-backup-key.sh. There is no unencrypted mode: a backup that leaves
+      # this host in the clear is the thing the offsite copy would otherwise be.
+      BACKUP_AGE_RECIPIENT: "${BACKUP_AGE_RECIPIENT:?no backup encryption key, run deploy/upgrade.sh or deploy/ensure-backup-key.sh}"
+      BACKUP_AGE_IDENTITY: ${BACKUP_AGE_IDENTITY:-}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-26}
+      OPS_STATE_DIR: /ops-state
+      # Offsite copy. Unset means "not configured", which /operator and OPERATIONS.md call out as
+      # an accepted risk, not a silent one. rclone reads the remote's settings from RCLONE_CONFIG_*.
+      RCLONE_REMOTE: ${RCLONE_REMOTE:-}
+      RCLONE_CONFIG_OFFSITE_TYPE: ${RCLONE_CONFIG_OFFSITE_TYPE:-}
+      RCLONE_CONFIG_OFFSITE_PROVIDER: ${RCLONE_CONFIG_OFFSITE_PROVIDER:-}
+      RCLONE_CONFIG_OFFSITE_ENDPOINT: ${RCLONE_CONFIG_OFFSITE_ENDPOINT:-}
+      RCLONE_CONFIG_OFFSITE_REGION: ${RCLONE_CONFIG_OFFSITE_REGION:-}
+      RCLONE_CONFIG_OFFSITE_ACCESS_KEY_ID: ${RCLONE_CONFIG_OFFSITE_ACCESS_KEY_ID:-}
+      RCLONE_CONFIG_OFFSITE_SECRET_ACCESS_KEY: ${RCLONE_CONFIG_OFFSITE_SECRET_ACCESS_KEY:-}
+      RCLONE_CONFIG_OFFSITE_ACCOUNT: ${RCLONE_CONFIG_OFFSITE_ACCOUNT:-}
+      RCLONE_CONFIG_OFFSITE_KEY: ${RCLONE_CONFIG_OFFSITE_KEY:-}
     volumes:
-      - ./backup.sh:/usr/local/bin/backup.sh:ro
       - backups:/backups
       - uploads:/uploads:ro
-    entrypoint: ["/usr/local/bin/backup.sh"]
+      - ops_state:/ops-state
     healthcheck:
-      test:
-        - CMD-SHELL
-        - test -f /run/backup-alive && [ $$(( $$(date +%s) - $$(stat -c %Y /run/backup-alive) )) -lt 300 ]
+      test: ["CMD", "/usr/local/bin/backup-health.sh"]
       interval: 60s
-      timeout: 5s
+      timeout: 10s
       retries: 3
       start_period: 30s
     depends_on:
       postgres: { condition: service_healthy }
+      ops-state-init: { condition: service_completed_successfully }
     logging: *logging
     deploy:
       resources:
         limits:
           cpus: "0.5"
           memory: 512M
+
+  # The alerting path that does not need the application (D-94): delivers the alert files shell
+  # producers drop in /ops-state/alerts (the RLS preflight, a failed offsite copy), and watches
+  # what the application cannot watch about itself: the worker's heartbeat, the API's readiness,
+  # the certificate, and, while the worker is down, the backup and the disk. Posts to
+  # ALERT_WEBHOOK_URL and mails ALERT_EMAIL through EMAIL_SMTP_URL, from its own image
+  # (deploy/ops-notify.Dockerfile) so that it shares nothing with what is broken.
+  ops-notify:
+    image: aidp-ops-notify:${AIDP_VERSION:?}
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: ops-notify.Dockerfile
+    restart: unless-stopped
+    environment:
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?}
+      ALERT_EMAIL: ${ALERT_EMAIL:-}
+      BOOTSTRAP_OPERATOR_EMAIL: ${BOOTSTRAP_OPERATOR_EMAIL:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_WEBHOOK_FORMAT: ${ALERT_WEBHOOK_FORMAT:-ntfy}
+      EMAIL_SMTP_URL: ${EMAIL_SMTP_URL:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-26}
+      API_READY_URL: http://api:4000/api/v1/health/ready
+      TLS_CONNECT: caddy:443
+      DISK_PATH: /watch/uploads
+      OPS_STATE_DIR: /ops-state
+    volumes:
+      - ops_state:/ops-state
+      # Only to read the size of the filesystem it is on: the uploads, the database and the
+      # backups all share the host's one disk.
+      - uploads:/watch/uploads:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - test $$(( $$(date +%s) - $$(cat /ops-state/watchdog/alive 2>/dev/null || echo 0) )) -lt 180
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      ops-state-init: { condition: service_completed_successfully }
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 32M
 
 volumes:
   pgdata:
@@ -350,3 +495,7 @@ volumes:
   backups:
   caddy_data:
   caddy_config:
+  caddy_maint:
+  # Shared status and alert files between the containers that cannot talk to each other (D-92):
+  # heartbeat/worker, status/backup.json, alerts/*.json, watchdog/ state.
+  ops_state:

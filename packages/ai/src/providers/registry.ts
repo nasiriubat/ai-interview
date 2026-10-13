@@ -3,6 +3,7 @@ import { AnthropicProvider } from "./anthropic.js";
 import type { SpeechRunner } from "./local-whisper/runner.js";
 import { LocalWhisperProvider } from "./local-whisper.js";
 import { OpenAICompatibleProvider } from "./openai-compatible.js";
+import type { ProviderTimeouts } from "./resilience.js";
 import type { Provider, RealtimeSocketFactory } from "./types.js";
 
 /**
@@ -20,6 +21,8 @@ export interface ProviderDeps {
   socketFor?: (cfg: ProviderConfig) => RealtimeSocketFactory | undefined;
   /** The on-server Whisper runner; defaults to the process-wide one. Tests pass a fake. */
   speech?: SpeechRunner;
+  /** Deadlines and retries for every adapter built here (D-93); `PROVIDER_*` environment when absent. */
+  timeouts?: ProviderTimeouts;
 }
 
 /** Build an adapter from a (decrypted) provider row. Adding a kind touches this file and one adapter. */
@@ -36,6 +39,7 @@ export function createProvider(cfg: ProviderConfig, deps: ProviderDeps = {}): Pr
       ...(cfg.baseUrl ? { baseUrl: cfg.baseUrl } : {}),
       ...(Object.keys(cfg.headers).length ? { headers: cfg.headers } : {}),
       ...(fetchImpl ? { fetch: fetchImpl } : {}),
+      ...(deps.timeouts ? { timeouts: deps.timeouts } : {}),
     });
   }
   return new OpenAICompatibleProvider({
@@ -46,6 +50,7 @@ export function createProvider(cfg: ProviderConfig, deps: ProviderDeps = {}): Pr
     headers: cfg.headers,
     ...(fetchImpl ? { fetch: fetchImpl } : {}),
     ...(socketImpl ? { socket: socketImpl } : {}),
+    ...(deps.timeouts ? { timeouts: deps.timeouts } : {}),
   });
 }
 

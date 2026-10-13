@@ -337,6 +337,7 @@ export const en = {
       platformProviders: "Platform providers",
       platformRoutes: "Platform routing",
       platformStats: "Platform stats",
+      platformJobs: "Background jobs",
       groups: {
         research: "Research",
         configuration: "Configuration",
@@ -1181,6 +1182,8 @@ export const en = {
         requirements: "Requirements",
         exports: "Exports",
         email: "Email",
+        notifications: "Notifications",
+        ops: "Operations alerts",
         other: "Other",
       },
       empty: "The settings catalog is empty.",
@@ -1337,6 +1340,42 @@ export const en = {
       empty: "No tenants yet.",
       statsTitle: "Platform statistics",
       actAs: "Act on tenant",
+      jobs: {
+        title: "Background jobs",
+        subtitle:
+          "Every queue, the jobs that failed their last attempt, and the jobs you can run by hand. A dead letter waits here for 30 days.",
+        empty: "No queues are registered.",
+        queue: "Queue",
+        queued: "Queued",
+        active: "Running",
+        dead: "Dead letters",
+        oldest: "Oldest waiting",
+        expires: "Time limit and attempts",
+        lastFailure: "Last failure",
+        runNow: "Run now",
+        runNowQueued: "Job queued",
+        deadTitle: (queue: string): string => `Dead letters in ${queue}`,
+        noDead: "Nothing is dead-lettered in this queue.",
+        pickQueue: "Choose a queue with dead letters in the table above to see them here.",
+        reference: "Job",
+        failedAt: "Failed",
+        error: "Last error",
+        attempts: (n: number): string => `${n} ${n === 1 ? "attempt" : "attempts"}`,
+        duration: (seconds: number): string =>
+          seconds < 120
+            ? `${seconds} s`
+            : seconds < 7200
+              ? `${Math.round(seconds / 60)} min`
+              : `${Math.round(seconds / 3600)} h`,
+        retry: "Retry",
+        retryConfirm:
+          "Queue this job again with its original payload and a fresh set of attempts? If it fails again it returns here.",
+        retried: "Job queued again",
+        discard: "Discard",
+        discardConfirm:
+          "Delete this job for good? Whatever it was going to do will not happen, and this cannot be undone.",
+        discarded: "Job discarded",
+      },
     },
     common: {
       status: "Status",

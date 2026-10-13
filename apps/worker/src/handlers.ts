@@ -21,6 +21,7 @@ import {
   type Crypto,
   type EmailOutbox,
   type EmailPort,
+  type HealthSweep,
   type JobName,
   type JobPayload,
   type JobPublisher,
@@ -50,6 +51,8 @@ export interface HandlerDeps {
   prompts?: PromptSource;
   /** A suspended tenant's jobs are acknowledged and skipped (S8); deletion jobs still run. */
   tenants: TenantGate;
+  /** The `ops.health-sweep` job (D-92). */
+  health?: HealthSweep;
 }
 
 /** The session store a job needs: the engine's port plus loading a snapshot with its status. */
@@ -262,5 +265,17 @@ export function handlers(deps: HandlerDeps): Handlers {
         await requirements.runGeneration(versionId);
       },
     ),
+
+    /**
+     * The five-minute look at everything that fails without anyone calling (D-92): stuck jobs,
+     * dead letters, backups, the disk, provider error rates. It reads and alerts; it fixes nothing.
+     */
+    "ops.health-sweep": scoped(async (): Promise<void> => {
+      // Optional so that a caller that builds handlers for the jobs it cares about (a test) need
+      // not build the sweep; the worker always passes it, and a missing one is an error, not a no-op.
+      if (!deps.health) throw new Error("ops.health-sweep ran without a HealthSweep configured");
+      const r = await deps.health.run();
+      deps.log.info("health sweep finished", { raised: r.raised.length, resolved: r.resolved.length });
+    }),
   };
 }

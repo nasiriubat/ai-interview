@@ -341,6 +341,7 @@ export const fi: Strings = {
       platformProviders: "Alustan palveluntarjoajat",
       platformRoutes: "Alustan reititys",
       platformStats: "Alustan tilastot",
+      platformJobs: "Taustatyöt",
       groups: {
         research: "Tutkimus",
         configuration: "Määritykset",
@@ -1194,6 +1195,8 @@ export const fi: Strings = {
         requirements: "Vaatimukset",
         exports: "Viennit",
         email: "Sähköposti",
+        notifications: "Ilmoitukset",
+        ops: "Käytön hälytykset",
         other: "Muut",
       },
       empty: "Asetusluettelo on tyhjä.",
@@ -1353,6 +1356,42 @@ export const fi: Strings = {
       empty: "Ei vielä asiakkaita.",
       statsTitle: "Alustan tilastot",
       actAs: "Toimi asiakkaan puolesta",
+      jobs: {
+        title: "Taustatyöt",
+        subtitle:
+          "Kaikki jonot, työt joiden viimeinen yritys epäonnistui, sekä työt, jotka voit ajaa käsin. Kuollut työ säilyy täällä 30 päivää.",
+        empty: "Yhtään jonoa ei ole rekisteröity.",
+        queue: "Jono",
+        queued: "Jonossa",
+        active: "Käynnissä",
+        dead: "Kuolleet työt",
+        oldest: "Vanhin odottaa",
+        expires: "Aikaraja ja yritykset",
+        lastFailure: "Viimeisin epäonnistuminen",
+        runNow: "Aja nyt",
+        runNowQueued: "Työ lisätty jonoon",
+        deadTitle: (queue: string): string => `Kuolleet työt jonossa ${queue}`,
+        noDead: "Tässä jonossa ei ole kuolleita töitä.",
+        pickQueue: "Valitse yllä olevasta taulukosta jono, jossa on kuolleita töitä, niin näet ne tässä.",
+        reference: "Työ",
+        failedAt: "Epäonnistui",
+        error: "Viimeisin virhe",
+        attempts: (n: number): string => `${n} ${n === 1 ? "yritys" : "yritystä"}`,
+        duration: (seconds: number): string =>
+          seconds < 120
+            ? `${seconds} s`
+            : seconds < 7200
+              ? `${Math.round(seconds / 60)} min`
+              : `${Math.round(seconds / 3600)} h`,
+        retry: "Yritä uudelleen",
+        retryConfirm:
+          "Laitetaanko tämä työ jonoon uudelleen alkuperäisillä tiedoilla ja uudella yrityskiintiöllä? Jos se epäonnistuu taas, se palaa tänne.",
+        retried: "Työ lisätty jonoon uudelleen",
+        discard: "Hylkää",
+        discardConfirm:
+          "Poistetaanko tämä työ pysyvästi? Se, mitä työn piti tehdä, jää tekemättä, eikä tätä voi perua.",
+        discarded: "Työ hylätty",
+      },
     },
     common: {
       status: "Tila",

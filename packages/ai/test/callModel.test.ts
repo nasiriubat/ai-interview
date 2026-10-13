@@ -1,7 +1,7 @@
 import type { Capabilities, ChatEvent, ChatRequest, ProviderConfig, Route } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { CallAbortedError, ModelCaller, ProbeLimitError } from "../src/callModel.js";
+import { CallAbortedError, ModelCaller, ProbeLimitError, type ModelCallerDeps } from "../src/callModel.js";
 import { BudgetExceededError, BudgetGuard, StaticBudgetLimits } from "../src/cost/budget.js";
 import { InMemoryLedger } from "../src/cost/ledger.js";
 import { PriceTable } from "../src/cost/pricing.js";
@@ -43,7 +43,7 @@ class FakeProvider implements Provider {
   }
 }
 
-function setup(limitCents: number) {
+function setup(limitCents: number, onBudgetExceeded?: ModelCallerDeps["onBudgetExceeded"]) {
   const provider = new FakeProvider("p1");
   const registry = new ProviderRegistry();
   (registry as unknown as { cache: Map<string, unknown> }).cache.set("p1", { config: cfg, provider });
@@ -79,6 +79,7 @@ function setup(limitCents: number) {
       ledger,
     ),
     onBudgetWarning: (_ctx, w) => warnings.push(...w),
+    ...(onBudgetExceeded ? { onBudgetExceeded } : {}),
   });
   return { caller, ledger, provider, warnings };
 }
@@ -127,6 +128,66 @@ describe("ModelCaller", () => {
     );
     await expect(it[Symbol.asyncIterator]().next()).rejects.toBeInstanceOf(BudgetExceededError);
     expect(ledger.entries[0]).toMatchObject({ status: "budget_exceeded", costCents: 0 });
+  });
+
+  describe("onBudgetExceeded", () => {
+    const refused = async (caller: ModelCaller): Promise<BudgetExceededError> => {
+      const it = caller.chat(
+        "interview_turn",
+        { companyId: "c1", sessionId: "s1" },
+        { messages: [{ role: "user", content: "hi" }], cachePrefix: false },
+      );
+      try {
+        await it[Symbol.asyncIterator]().next();
+      } catch (e) {
+        return e as BudgetExceededError;
+      }
+      throw new Error("the call was not refused");
+    };
+
+    it("hears every refusal, after the ledger row, and marks the error with what it answered", async () => {
+      const seen: unknown[] = [];
+      const { caller, ledger } = setup(0.01, async (ctx, check) => {
+        // The refusal is already on the ledger by the time anyone is told.
+        expect(ledger.entries).toHaveLength(1);
+        seen.push({ ctx, blockedBy: check.blockedBy?.scope });
+        return { notified: true };
+      });
+      const err = await refused(caller);
+      expect(err).toBeInstanceOf(BudgetExceededError);
+      expect(err.notified).toBe(true);
+      expect(seen).toEqual([{ ctx: { companyId: "c1", sessionId: "s1" }, blockedBy: "tenant" }]);
+    });
+
+    it("leaves notified false when nobody was told, and when the hook itself fails", async () => {
+      const silent = await refused(setup(0.01, async () => undefined).caller);
+      expect(silent.notified).toBe(false);
+      const broken = await refused(
+        setup(0.01, async () => {
+          throw new Error("alerting is down");
+        }).caller,
+      );
+      expect(broken).toBeInstanceOf(BudgetExceededError);
+      expect(broken.notified).toBe(false);
+      expect(new BudgetExceededError({ allowed: false, warnings: [] }).notified).toBe(false);
+    });
+
+    it("hears a refusal from structured completion as well as from streaming", async () => {
+      const heard: string[] = [];
+      const { caller } = setup(0, async (_ctx, check) => {
+        heard.push(check.blockedBy?.scope ?? "?");
+        return { notified: true };
+      });
+      await expect(
+        caller.complete(
+          "interview_turn",
+          { companyId: "c1" },
+          { messages: [{ role: "user", content: "hi" }] },
+          z.object({ ok: z.boolean() }),
+        ),
+      ).rejects.toBeInstanceOf(BudgetExceededError);
+      expect(heard).toEqual(["tenant"]);
+    });
   });
 
   it("emits a warning when a call lands past 80 percent of a budget", async () => {
