@@ -9,7 +9,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r build && pnpm -r typecheck",
     "test": "pnpm -r build && pnpm -r test",
-    "lint": "eslint packages apps evals",
+    "lint": "eslint packages apps evals scripts/live-run",
     "check": "tsx scripts/check.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -17,7 +17,8 @@
     "stack:down": "docker compose down --remove-orphans",
     "stack:logs": "docker compose logs -f --tail=100 api worker web",
     "stack:clean": "docker compose down --remove-orphans && docker image rm -f aidp-server aidp-web ai-interview-api ai-interview-migrate ai-interview-worker ai-interview-web; docker image prune -f --filter label=com.docker.compose.project=ai-interview",
-    "db:up": "docker compose up -d --wait postgres && DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery pnpm --filter @aidp/db exec prisma migrate deploy && echo 'export DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery'"
+    "db:up": "docker compose up -d --wait postgres && DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery pnpm --filter @aidp/db exec prisma migrate deploy && echo 'export DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery'",
+    "live:run": "pnpm --filter @aidp/live-run live:run"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
