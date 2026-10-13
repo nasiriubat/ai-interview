@@ -173,7 +173,7 @@ async function main(): Promise<void> {
       name: "Live run: hospital group discovery",
       participationMode: "participant_choice",
       verification: "open",
-      maxTurns: 26,
+      maxTurns: Number(process.env.LIVE_CAMPAIGN_MAX_TURNS ?? 18),
       completionThreshold: PERSONAS.length,
     });
     const campaignId = created.campaign.id;
@@ -321,13 +321,13 @@ async function main(): Promise<void> {
       await admin.ok("POST", `/campaigns/${campaignId}/analyses`, {});
     }
     const waitAnalysis = async (): Promise<AnalysisView> => {
-      const deadline = Date.now() + 15 * 60_000;
+      const deadline = Date.now() + 40 * 60_000;
       for (;;) {
         const list = await listAnalyses();
         const latest = list[0];
         if (latest && (latest.status === "done" || latest.status === "failed")) return latest;
         if (abortState.reason) throw new Error(abortState.reason);
-        if (Date.now() > deadline) throw new Error("analysis did not finish in 15 minutes");
+        if (Date.now() > deadline) throw new Error("analysis did not finish in 40 minutes");
         await sleep(5000);
       }
     };

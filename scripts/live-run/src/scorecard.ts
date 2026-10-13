@@ -270,6 +270,9 @@ export function renderScorecard(c: Scorecard): string {
       out.push(
         `| ${s.sessionId.slice(-6)} | ${s.status} | ${s.turnCount} | ${s.assistantMessages} | ${s.lastExtractedSeq} | ${s.maxSeq} | ${s.factsInState} | ${s.factRows} |`,
       );
+    out.push("", "Queue (pg-boss) by job and state:", "");
+    for (const j of c.integrity.jobs)
+      out.push(`- ${j.name} ${j.state}: ${j.jobs} jobs, max retries ${j.maxRetries}`);
     out.push(
       "",
       "Model calls by purpose and status (ledger rows; failed calls book what the provider reported):",

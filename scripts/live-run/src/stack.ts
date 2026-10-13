@@ -147,6 +147,8 @@ export interface DbIntegrity {
     factsInState: number;
     factRows: number;
   }[];
+  /** Queue rows: how many jobs ended in each state and how often pg-boss retried them. */
+  jobs: { name: string; state: string; jobs: number; maxRetries: number }[];
   llmByPurpose: {
     purpose: string;
     status: string;
@@ -176,8 +178,17 @@ export async function dbIntegrity(): Promise<DbIntegrity> {
        round(coalesce(sum("costCents"),0)::numeric, 3)
      from "LlmCall" group by 1,2 order by 1,2`,
   );
+  const jobs = await queryRows(
+    `select name, state, count(*), max(retry_count) from pgboss.job group by 1,2 order by 1,2`,
+  ).catch(() => []);
   const n = (v: string | undefined): number => Number(v ?? 0);
   return {
+    jobs: jobs.map((r) => ({
+      name: r[0] ?? "",
+      state: r[1] ?? "",
+      jobs: n(r[2]),
+      maxRetries: n(r[3]),
+    })),
     sessions: sessions.map((r) => ({
       sessionId: r[0] ?? "",
       status: r[1] ?? "",

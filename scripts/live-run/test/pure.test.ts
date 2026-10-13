@@ -58,6 +58,8 @@ describe("flagMessage", () => {
   });
   it("flags suggested solutions and the where-should-AI-go question", () => {
     expect(flagMessage("Have you considered a chatbot for that?", 500).suggestsSolution).toBe(true);
+    expect(flagMessage("You could try a shared spreadsheet.", 500).suggestsSolution).toBe(true);
+    expect(flagMessage("How long was it held up before you could start?", 500).suggestsSolution).toBe(false);
     expect(flagMessage("Where would you use AI in your day?", 500).asksWhereAiGoes).toBe(true);
     expect(flagMessage("How long did the export take last time?", 500)).toMatchObject({
       suggestsSolution: false,
