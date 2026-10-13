@@ -8,10 +8,10 @@ import {
 import type { FastifyRequest } from "fastify";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
-import type { AppContext } from "../../context.js";
+import type { RouteContext } from "../../context.js";
 import { notFound, unauthenticated } from "../../lib/errors.js";
 import { internalLimit } from "../../lib/rate-limit.js";
-import { secretMatches, VerificationTokenService } from "./service.js";
+import { secretMatches } from "./service.js";
 
 /**
  * Machine-to-machine routes for Auth.js magic-link sign-in (D-56). Not staff routes: a session,
@@ -21,8 +21,8 @@ import { secretMatches, VerificationTokenService } from "./service.js";
  * They are hidden from the OpenAPI document because they are not part of the public contract and
  * the web app generates its client from it.
  */
-export async function internalAuthRoutes(app: App, ctx: AppContext): Promise<void> {
-  const svc = new VerificationTokenService(ctx.db);
+export async function internalAuthRoutes(app: App, ctx: RouteContext): Promise<void> {
+  const svc = ctx.services.verificationTokens;
   const base = "/internal/auth/verification-tokens";
 
   /** The whole of the authorization: no principal is consulted, so no session can stand in. */

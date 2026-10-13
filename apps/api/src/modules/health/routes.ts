@@ -2,7 +2,7 @@ import { storageKind } from "@aidp/core";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { guard } from "../../auth/access.js";
-import type { AppContext } from "../../context.js";
+import type { RouteContext } from "../../context.js";
 import { noLimit } from "../../lib/rate-limit.js";
 
 /**
@@ -13,7 +13,7 @@ import { noLimit } from "../../lib/rate-limit.js";
 const quiet = { logLevel: "warn" as const };
 
 /** Public and never rate limited: a load balancer polls these constantly and must never see 429. */
-export async function healthRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
+export async function healthRoutes(app: FastifyInstance, ctx: RouteContext): Promise<void> {
   app.get(
     "/health/live",
     {
@@ -52,13 +52,9 @@ export async function healthRoutes(app: FastifyInstance, ctx: AppContext): Promi
     "/health/ready",
     { ...guard.public({ ...noLimit, ...quiet }), schema: { response: { 200: Ready, 503: Ready } } },
     async (_req, reply) => {
-      let database = false;
-      try {
-        await ctx.db.$queryRaw`SELECT 1`;
-        database = true;
-      } catch (err) {
-        ctx.log.error({ err }, "readiness: database unreachable");
-      }
+      const probe = await ctx.services.health.checkDatabase();
+      const database = probe.ok;
+      if (!probe.ok) ctx.log.error({ err: probe.err }, "readiness: database unreachable");
       return reply
         .status(database ? 200 : 503)
         .send({ ok: database, database, storage: storageKind(ctx.storage), speech: speech() });

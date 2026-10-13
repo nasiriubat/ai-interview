@@ -1,11 +1,9 @@
 import { JOBS, RUN_NOW_JOBS, deadLetterKey, type JobName } from "@aidp/core";
-import { withSystemTenant } from "@aidp/db";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
-import type { AppContext } from "../../context.js";
-import { audit } from "../../lib/audit.js";
+import type { RouteContext } from "../../context.js";
 import { AppError, notFound } from "../../lib/errors.js";
 
 const JOB_NAMES = Object.keys(JOBS) as [JobName, ...JobName[]];
@@ -17,17 +15,8 @@ const RunNowName = z.enum(RUN_NOW_JOBS as [JobName, ...JobName[]]);
  * the three verbs that make a dead letter a thing someone can act on from a browser instead of a
  * `psql` session. Every verb is audited, on the job's tenant when it has one.
  */
-export async function operatorJobRoutes(app: App, ctx: AppContext): Promise<void> {
+export async function operatorJobRoutes(app: App, ctx: RouteContext): Promise<void> {
   const op = guard.operator();
-
-  /** The tenant a job belonged to, if that tenant still exists; otherwise the operator's own company. */
-  const auditCompany = async (jobCompanyId: string | null, fallback: string): Promise<string> => {
-    if (!jobCompanyId) return fallback;
-    const found = await withSystemTenant(async () => {
-      return await ctx.db.company.findUnique({ where: { id: jobCompanyId }, select: { id: true } });
-    });
-    return found?.id ?? fallback;
-  };
 
   app.get("/operator/jobs", op, async () => ({ queues: await ctx.jobAdmin.list() }));
 
@@ -60,14 +49,16 @@ export async function operatorJobRoutes(app: App, ctx: AppContext): Promise<void
           "The job could not be queued again, most likely because an identical job is already waiting. It was left in the dead-letter queue.",
         );
       await ctx.alerts.resolve(deadLetterKey(req.params.queue, result.job.sourceId ?? result.job.id));
-      await audit(ctx.db, {
-        companyId: await auditCompany(result.job.companyId, req.companyId),
-        actorId: staff(req).userId,
-        action: "job.retry",
-        targetType: "job",
-        targetId: result.job.id,
-        diff: { queue: req.params.queue, queuedAs: result.queuedAs },
-      });
+      await ctx.services.operator.auditJob(
+        { userId: staff(req).userId },
+        {
+          jobCompanyId: result.job.companyId,
+          fallbackCompanyId: req.companyId,
+          action: "job.retry",
+          targetId: result.job.id,
+          diff: { queue: req.params.queue, queuedAs: result.queuedAs },
+        },
+      );
       return { ok: true as const, queuedAs: result.queuedAs };
     },
   );
@@ -79,14 +70,16 @@ export async function operatorJobRoutes(app: App, ctx: AppContext): Promise<void
       const result = await ctx.jobAdmin.discard(req.params.queue, req.params.id);
       if (!result) throw notFound("Dead-lettered job");
       await ctx.alerts.resolve(deadLetterKey(req.params.queue, result.job.sourceId ?? result.job.id));
-      await audit(ctx.db, {
-        companyId: await auditCompany(result.job.companyId, req.companyId),
-        actorId: staff(req).userId,
-        action: "job.discard",
-        targetType: "job",
-        targetId: result.job.id,
-        diff: { queue: req.params.queue },
-      });
+      await ctx.services.operator.auditJob(
+        { userId: staff(req).userId },
+        {
+          jobCompanyId: result.job.companyId,
+          fallbackCompanyId: req.companyId,
+          action: "job.discard",
+          targetId: result.job.id,
+          diff: { queue: req.params.queue },
+        },
+      );
       return { ok: true as const };
     },
   );
@@ -97,13 +90,15 @@ export async function operatorJobRoutes(app: App, ctx: AppContext): Promise<void
     async (req) => {
       // The payload is empty by construction: only parameterless recurring jobs are runnable here.
       await ctx.jobs.publish(req.params.name, {});
-      await audit(ctx.db, {
-        companyId: req.companyId,
-        actorId: staff(req).userId,
-        action: "job.run_now",
-        targetType: "job",
-        targetId: req.params.name,
-      });
+      await ctx.services.operator.auditJob(
+        { userId: staff(req).userId },
+        {
+          jobCompanyId: null,
+          fallbackCompanyId: req.companyId,
+          action: "job.run_now",
+          targetId: req.params.name,
+        },
+      );
       return { ok: true as const, queued: req.params.name };
     },
   );

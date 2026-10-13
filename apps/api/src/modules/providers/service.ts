@@ -17,9 +17,28 @@ import {
   type EgressGuard,
 } from "@aidp/core";
 import { tenantBatch } from "@aidp/db";
-import { ROUTABLE_PURPOSES, ProviderConfigSchema, type ModelInfo, type Purpose } from "@aidp/shared";
+import {
+  ROUTABLE_PURPOSES,
+  ProviderConfigSchema,
+  toListResponse,
+  type ListEnvelope,
+  type ModelInfo,
+  type Purpose,
+} from "@aidp/shared";
 import type { Prisma, PrismaClient, Provider } from "@prisma/client";
+import { z } from "zod";
 import { AppError, notFound } from "../../lib/errors.js";
+import { contains, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
+
+/** `/providers/:id/prices` and its operator twin (D-79): `q` matches the model id. */
+export const PriceList = listSpec({
+  sort: { model: "asc", inputPerMtok: "asc", outputPerMtok: "asc", updatedAt: "desc" },
+  defaultSort: "model",
+  filters: { source: z.enum(["seed", "provider", "admin"]).optional() },
+});
+
+export const PriceListQuery = listQuery(PriceList);
+export type PriceListQuery = z.output<typeof PriceListQuery>;
 
 export interface ProviderInput {
   kind: string;
@@ -473,6 +492,29 @@ export class ProviderService {
       })),
       total,
     };
+  }
+
+  /**
+   * One page of a provider's prices, after checking the provider is visible to this scope. The
+   * search and filters narrow within the provider and can never widen past it.
+   */
+  async pricesList(
+    companyId: string | null,
+    providerId: string,
+    query: PriceListQuery,
+  ): Promise<ListEnvelope<"prices", ModelPrice>> {
+    await this.get(companyId, providerId);
+    const q = searchTerm(query.q);
+    const { prices, total } = await this.pricesPage(providerId, {
+      limit: query.limit,
+      offset: query.offset,
+      where: {
+        ...(q ? { model: contains(q) } : {}),
+        ...(query.source ? { source: query.source } : {}),
+      },
+      orderBy: listOrder<Prisma.ModelPriceOrderByWithRelationInput, typeof query.sort>(PriceList, query),
+    });
+    return toListResponse("prices", prices, total, query);
   }
 
   async setPrice(

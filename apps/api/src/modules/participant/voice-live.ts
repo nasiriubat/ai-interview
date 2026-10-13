@@ -10,7 +10,7 @@ import type { WebSocket } from "@fastify/websocket";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
-import type { AppContext } from "../../context.js";
+import type { RouteContext } from "../../context.js";
 import { streamTurn } from "../sessions/turn-runner.js";
 
 /**
@@ -84,7 +84,7 @@ const MAX_STREAM_SESSION_BYTES = 2 * 60 * 60 * STT_STREAM_SAMPLE_RATE * 2;
 const CLOSE_POLICY = 1008;
 const CLOSE_TOO_BIG = 1009;
 
-export async function participantVoiceLiveRoutes(app: App, ctx: AppContext): Promise<void> {
+export async function participantVoiceLiveRoutes(app: App, ctx: RouteContext): Promise<void> {
   app.get(
     "/p/session/live",
     { ...guard.participantSocket(), websocket: true, schema: { hide: true } },
@@ -167,7 +167,7 @@ class LiveVoiceSession {
   private streamFallbacks = 0;
 
   constructor(
-    private readonly ctx: AppContext,
+    private readonly ctx: RouteContext,
     private readonly socket: WebSocket,
     private readonly scope: Scope,
   ) {}
@@ -314,12 +314,9 @@ class LiveVoiceSession {
    * The door was checked when the connection opened; a conversation can outlive that decision.
    */
   private async stillAllowed(): Promise<boolean> {
-    const session = await this.ctx.db.session.findUnique({
-      where: { id: this.scope.sessionId },
-      select: { status: true },
-    });
+    const status = await this.ctx.services.turns.status(this.scope.companyId, this.scope.sessionId);
     const active = await this.ctx.tenants.isActive(this.scope.companyId);
-    if (session && session.status !== "deleted" && active) return true;
+    if (status !== null && status !== "deleted" && active) return true;
     this.closed = true;
     this.speaking?.abort();
     this.stt?.close();
@@ -338,11 +335,10 @@ class LiveVoiceSession {
     const askedAt = Date.now();
     try {
       if (!(await this.stillAllowed())) return;
-      const last = await this.ctx.db.message.findFirst({
-        where: { sessionId: this.scope.sessionId, role: "assistant" },
-        orderBy: { seq: "desc" },
-        select: { content: true, widget: true },
-      });
+      const last = await this.ctx.services.turns.lastInterviewerMessage(
+        this.scope.companyId,
+        this.scope.sessionId,
+      );
       if (!last) {
         // Nothing has been asked yet, so there is nothing to repeat; open the interview instead.
         this.busy = false;
@@ -502,11 +498,9 @@ class LiveVoiceSession {
 
   /** Tenant route first, platform second, as the resolver reads them. */
   private async hasRoute(purpose: "transcription"): Promise<boolean> {
-    const row = await this.ctx.db.route.findFirst({
-      where: { purpose, OR: [{ companyId: this.scope.companyId }, { companyId: null }] },
-      select: { id: true },
-    });
-    return row !== null;
+    return purpose === "transcription"
+      ? this.ctx.services.turns.hasTranscriptionRoute(this.scope.companyId)
+      : false;
   }
 
   /** Transcribe what was said, then take a turn on it. */
@@ -725,32 +719,23 @@ class LiveVoiceSession {
   private async recordMetrics(): Promise<void> {
     if (this.turns === 0) return;
     const avg = (total: number, n: number): number | null => (n > 0 ? Math.round(total / n) : null);
-    await this.ctx.db.sessionEvent
-      .create({
-        data: {
-          sessionId: this.scope.sessionId,
-          seq: Date.now() % 2_147_483_647,
-          type: "voice.live",
-          payload: {
-            turns: this.turns,
-            interruptions: this.interruptions,
-            avgFirstWordMs: avg(this.firstWordMsTotal, this.firstWordSamples),
-            // Stream mode only: the participant starts talking to the first word of their caption.
-            avgFirstPartialMs: avg(this.firstPartialMsTotal, this.firstPartialSamples),
-            mode: this.mode,
-            streamFallbacks: this.streamFallbacks,
-            audioBytes: this.sessionBytes,
-          },
-        },
-      })
-      .catch(() => undefined);
+    await this.ctx.services.turns.recordVoiceMetrics(this.scope.companyId, this.scope.sessionId, {
+      turns: this.turns,
+      interruptions: this.interruptions,
+      avgFirstWordMs: avg(this.firstWordMsTotal, this.firstWordSamples),
+      // Stream mode only: the participant starts talking to the first word of their caption.
+      avgFirstPartialMs: avg(this.firstPartialMsTotal, this.firstPartialSamples),
+      mode: this.mode,
+      streamFallbacks: this.streamFallbacks,
+      audioBytes: this.sessionBytes,
+    });
   }
 
   private async settings(): Promise<
     SessionOpts & { enabled: boolean; endOfSpeechMs: number; language: string | undefined }
   > {
     const chain = [{ scope: "tenant" as const, scopeId: this.scope.companyId }];
-    const [values, session] = await Promise.all([
+    const [values, language] = await Promise.all([
       this.ctx.settings.resolveMany(
         [
           "features.realtimeVoice",
@@ -762,10 +747,7 @@ class LiveVoiceSession {
         ],
         chain,
       ),
-      this.ctx.db.session.findUnique({
-        where: { id: this.scope.sessionId },
-        select: { template: { select: { language: true } } },
-      }),
+      this.ctx.services.turns.templateLanguage(this.scope.companyId, this.scope.sessionId),
     ]);
     return {
       enabled: values["features.realtimeVoice"] as boolean,
@@ -774,7 +756,7 @@ class LiveVoiceSession {
       voice: values["voice.voiceName"] as string,
       speed: values["voice.speakingRate"] as number,
       endOfSpeechMs: values["voice.endOfSpeechMs"] as number,
-      language: session?.template.language,
+      language,
     };
   }
 

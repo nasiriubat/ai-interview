@@ -2,11 +2,8 @@ import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
-import type { AppContext } from "../../context.js";
-import { audit } from "../../lib/audit.js";
+import type { RouteContext } from "../../context.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
-import { ProviderService } from "../providers/service.js";
-import { VoiceSetupService } from "./service.js";
 
 /** An OpenAI key is a few hundred characters at most; the bound only stops garbage. */
 const OpenAIKeyBody = z.object({ apiKey: z.string().trim().min(20).max(512) });
@@ -18,13 +15,8 @@ const LiveBody = z.object({ enabled: z.boolean() });
  * Always the caller's own tenant: `req.companyId` is the admin's company, or the tenant a platform
  * operator named with `X-Company-Id`. No route takes a tenant id from the body or the path.
  */
-export async function voiceAdminRoutes(app: App, ctx: AppContext): Promise<void> {
-  const voice = new VoiceSetupService({
-    db: ctx.db,
-    settings: ctx.settings,
-    providers: new ProviderService(ctx.db, ctx.crypto, ctx.callers, ctx.egress, ctx.speech),
-    openaiBaseUrl: ctx.config.OPENAI_BASE_URL,
-  });
+export async function voiceAdminRoutes(app: App, ctx: RouteContext): Promise<void> {
+  const voice = ctx.services.voiceSetup;
 
   app.get("/admin/voice/readiness", { ...guard.admin() }, async (req) => voice.readiness(req.companyId));
 
@@ -34,8 +26,7 @@ export async function voiceAdminRoutes(app: App, ctx: AppContext): Promise<void>
     async (req) => {
       const result = await voice.connectOpenAI(req.companyId, req.body.apiKey);
       // What changed, never the key: the provider service already encrypted it.
-      await audit(ctx.db, {
-        companyId: req.companyId,
+      await ctx.services.audit.record(req.companyId, {
         actorId: staff(req).userId,
         action: "voice.openai_connect",
         targetType: "provider",
@@ -49,8 +40,7 @@ export async function voiceAdminRoutes(app: App, ctx: AppContext): Promise<void>
   app.put("/admin/voice/live", { ...guard.admin(), schema: { body: LiveBody } }, async (req) => {
     const actor = staff(req).userId;
     const readiness = await voice.setLive(req.companyId, req.body.enabled, actor);
-    await audit(ctx.db, {
-      companyId: req.companyId,
+    await ctx.services.audit.record(req.companyId, {
       actorId: actor,
       action: "voice.live_toggle",
       targetType: "settings:tenant",
