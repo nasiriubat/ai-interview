@@ -69,3 +69,4 @@ export type ScopedClient = ReturnType<typeof buildScoped>;
 
 export * from "./tenancy.js";
 export { shippedTemplate, shippedTemplates } from "./seed-templates/index.js";
+export { containsInsensitive, escapeLike } from "./search.js";

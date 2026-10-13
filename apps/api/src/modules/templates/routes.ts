@@ -1,14 +1,31 @@
 import { InterviewTemplateSchema, PathSchema } from "@aidp/shared";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
+import { listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
 import { fromRow, TemplateService } from "./service.js";
 
 const Id = z.object({ id: z.string() });
 const TemplateBody = InterviewTemplateSchema.omit({ version: true });
+
+/**
+ * `/templates` (D-79): the tenant's own templates and the platform's, one row per version.
+ * `q` matches the name or the key. Without `status`, archived versions are left out. `updatedAt`
+ * is the version's creation time: a template is edited by writing a new version row.
+ */
+export const TemplateList = listSpec({
+  sort: { key: "asc", name: "asc", updatedAt: "desc" },
+  defaultSort: "key",
+  columns: { updatedAt: "createdAt" },
+  filters: {
+    status: z.enum(["draft", "published", "archived"]).optional(),
+    origin: z.enum(["tenant", "platform"]).optional(),
+  },
+});
 
 export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
   const svc = new TemplateService(ctx.db);
@@ -22,9 +39,30 @@ export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
     updatedAt: t.createdAt,
   });
 
-  app.get("/templates", { preHandler: requireStaff() }, async (req) => ({
-    templates: (await svc.list(req.companyId)).map(view),
-  }));
+  app.get(
+    "/templates",
+    { preHandler: requireStaff(), schema: { querystring: listQuery(TemplateList) } },
+    async (req) => {
+      const sort = req.query.sort;
+      const dir = req.query.dir ?? TemplateList.sort[sort];
+      const { templates, total } = await svc.list(req.companyId, {
+        limit: req.query.limit,
+        offset: req.query.offset,
+        q: searchTerm(req.query.q),
+        status: req.query.status,
+        origin: req.query.origin,
+        // A key sorts its versions newest first, so the current version heads its group.
+        orderBy:
+          sort === "key"
+            ? [{ key: dir }, { version: "desc" }, { id: dir }]
+            : listOrder<Prisma.InterviewTemplateOrderByWithRelationInput, typeof req.query.sort>(
+                TemplateList,
+                req.query,
+              ),
+      });
+      return { templates: templates.map(view), total, limit: req.query.limit, offset: req.query.offset };
+    },
+  );
   app.get("/templates/:id", { preHandler: requireStaff(), schema: { params: Id } }, async (req) =>
     view(await svc.get(req.companyId, req.params.id)),
   );
