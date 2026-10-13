@@ -9,7 +9,7 @@ import {
   type Path,
   type SessionState,
 } from "@aidp/shared";
-import type { ModelCaller } from "../callModel.js";
+import type { ModelCallerPort } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";
 import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js";
 import { areasComplete, contextComplete } from "../engine/selection.js";
@@ -91,7 +91,7 @@ export function selectFindings(
 }
 
 export interface IssueDetectionDeps {
-  caller: ModelCaller;
+  caller: ModelCallerPort;
   prompts: PromptSource;
   logger: Logger;
 }

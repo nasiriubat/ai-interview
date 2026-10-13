@@ -63,11 +63,33 @@ export interface ModelCallerDeps {
 }
 
 /**
+ * What the engine, extraction, summary, issue detection, spec generation and analysis need from a
+ * model caller: streamed chat, schema-validated completion and embeddings.
+ *
+ * The class has private fields, so `implements ModelCaller` is not expressible and test doubles
+ * used to be cast (`this as unknown as ModelCaller`), which let a fake drift from the real
+ * signatures without the compiler noticing. Consumers that only chat and complete depend on this
+ * port instead, and the class and every fake are checked against it.
+ */
+export interface ModelCallerPort {
+  chat(purpose: Purpose, ctx: CallContext, req: CallRequest): AsyncIterable<ChatEvent>;
+  complete<T>(
+    purpose: Purpose,
+    ctx: CallContext,
+    req: CallRequest,
+    schema: z.ZodType<T>,
+    schemaName?: string,
+  ): Promise<T>;
+  /** Embeddings, or undefined when no `embedding` route is configured (callers fall back). */
+  embed(ctx: CallContext, texts: string[]): Promise<{ vectors: number[][]; model: string } | undefined>;
+}
+
+/**
  * The single entry point for model calls. Resolves the route for the purpose, checks the
  * budget with a conservative estimate, invokes the adapter, and writes the ledger row
  * whatever happens. No other code may call a provider adapter directly.
  */
-export class ModelCaller {
+export class ModelCaller implements ModelCallerPort {
   private readonly now: () => Date;
   constructor(private readonly deps: ModelCallerDeps) {
     this.now = deps.now ?? (() => new Date());

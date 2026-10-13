@@ -1,9 +1,10 @@
 import type { Server } from "node:http";
 import { withTenant } from "@aidp/db";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describeDb } from "@aidp/testing";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { fakeModelServer, testWorld, type TestWorld } from "./helpers.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 const factors = (simplicity: number, ai: number) => ({
   expected_impact: { score: 4, rationale: "r" },
@@ -97,6 +98,8 @@ suite("analysis end to end", () => {
           sessionId: session.id,
           kind: "task",
           extractorVersion: "extraction@1",
+          batchEndSeq: 2,
+          ordinal: 0,
           payload: {
             kind: "task",
             name: `Charting notes twice ${i}`,
