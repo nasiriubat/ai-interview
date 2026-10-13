@@ -1,10 +1,12 @@
 import * as React from "react";
 import { Panel } from "@/components/admin/Panel";
 import { StatTile } from "@/components/admin/StatTile";
+import { EnumLabel } from "@/components/common/EnumLabel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import type { Stats } from "@/lib/api/schemas";
-import { formatNumber, humanize } from "@/lib/utils";
+import { label } from "@/lib/i18n/enums";
+import { formatNumber } from "@/lib/utils";
 
 const GROUP_LABELS: Record<string, string> = t.admin.dashboard.group;
 
@@ -43,33 +45,35 @@ export function StatsGroups({ stats }: { stats: Stats }): React.JSX.Element {
         return (
           <section
             key={name || "root"}
-            aria-label={name ? (GROUP_LABELS[name] ?? humanize(name)) : undefined}
+            aria-label={name ? (GROUP_LABELS[name] ?? label("statKey", name)) : undefined}
           >
             {name ? (
               <h2 className="text-foreground mb-3 text-base font-semibold tracking-tight">
-                {GROUP_LABELS[name] ?? humanize(name)}
+                {GROUP_LABELS[name] ?? label("statKey", name)}
               </h2>
             ) : null}
             {tiles.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {tiles.map(([k, v]) => (
-                  <StatTile key={k} label={humanize(k)} value={formatValue(v)} />
+                  <StatTile key={k} label={label("statKey", k)} value={formatValue(v)} />
                 ))}
               </div>
             ) : null}
             {tables.map(([k, v]) => (
-              <Panel key={k} title={humanize(k)} headingLevel={3} className="mt-3">
+              <Panel key={k} title={label("statKey", k)} headingLevel={3} className="mt-3">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{humanize(k)}</TableHead>
+                      <TableHead>{label("statKey", k)}</TableHead>
                       <TableHead className="text-right">{t.admin.common.status}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {Object.entries(v as Record<string, unknown>).map(([rk, rv]) => (
                       <TableRow key={rk}>
-                        <TableCell>{humanize(rk)}</TableCell>
+                        <TableCell>
+                          <EnumLabel kind="status" value={rk} />
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">{formatValue(rv)}</TableCell>
                       </TableRow>
                     ))}

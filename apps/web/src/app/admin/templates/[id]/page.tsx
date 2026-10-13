@@ -13,6 +13,7 @@ import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
+import { label } from "@/lib/i18n/enums";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).admin.templates.title };
@@ -62,7 +63,7 @@ export default async function TemplatePage({ params }: Props): Promise<React.JSX
               <Row label={f.objective} value={tpl.objective} />
               <Row label={f.privacyMode} value={f.privacy[tpl.privacyMode]} />
               <Row label={f.pathSelection} value={f.pathSelectionOptions[tpl.pathSelection]} />
-              <Row label={f.language} value={tpl.language} />
+              <Row label={f.language} value={label("language", tpl.language)} />
               <Row
                 label={f.participantFields}
                 value={tpl.participantFields.map((p) => p.label).join(", ") || t.app.none}

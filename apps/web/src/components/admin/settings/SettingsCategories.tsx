@@ -4,7 +4,7 @@ import { CategoryForm } from "./CategoryForm";
 import { LiveVoicePanel } from "./LiveVoicePanel";
 import { t } from "@/i18n";
 import type { SettingsCatalogEntry, SettingsResponse } from "@/lib/api/schemas";
-import { cn, humanize } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const CATEGORY_ORDER = [
   "engine",
@@ -26,7 +26,7 @@ const CATEGORY_ORDER = [
 
 function categoryLabel(key: string): string {
   const labels: Record<string, string> = t.admin.settings.categories;
-  return labels[key] ?? humanize(key);
+  return labels[key] ?? key;
 }
 
 /**

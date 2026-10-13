@@ -16,14 +16,8 @@ import { dailySeries, dashboardNumbers } from "@/lib/admin/dashboard";
 import { extractDiscoveryStats } from "@/lib/admin/discoveryStats";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
-import {
-  formatCents,
-  formatCompact,
-  formatDuration,
-  formatNumber,
-  formatPercent,
-  humanize,
-} from "@/lib/utils";
+import { label } from "@/lib/i18n/enums";
+import { formatCents, formatCompact, formatDuration, formatNumber, formatPercent } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).admin.dashboard.title };
@@ -180,7 +174,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
                     label={s.spendByPurpose}
                     items={byPurpose.data.rows.map((row) => ({
                       key: row.key,
-                      label: humanize(row.key),
+                      label: label("purpose", row.key),
                       value: row.costCents,
                       display: formatCents(row.costCents),
                       detail: `${formatNumber(row.calls)} ${s.calls.toLowerCase()}`,

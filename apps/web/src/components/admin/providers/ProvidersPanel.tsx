@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { SelectField, SwitchField, TextAreaField, TextField } from "@/components/admin/forms";
 import { IconButton, IconTooltip, RowActions } from "@/components/admin/IconButton";
+import { EnumLabel } from "@/components/common/EnumLabel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { Provider, ProviderTest } from "@/lib/api/schemas";
 import type { ProvidersApi } from "@/lib/api/staff";
+import { label as enumLabel } from "@/lib/i18n/enums";
 import { formatCents } from "@/lib/utils";
 
 const s = t.admin.providers;
@@ -111,7 +113,9 @@ export function ProvidersPanel({
                       ) : null}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{p.kind}</Badge>
+                      <Badge variant="outline">
+                        <EnumLabel kind="providerKind" value={p.kind} />
+                      </Badge>
                     </TableCell>
                     <TableCell>{p.companyId ? s.tenantLevel : s.platformLevel}</TableCell>
                     <TableCell>
@@ -272,7 +276,7 @@ function AddProviderDialog({ scope }: { scope: ProviderScope }): React.JSX.Eleme
             label={s.kind}
             value={kind}
             required
-            options={PROVIDER_KINDS.map((k) => ({ value: k, label: k }))}
+            options={PROVIDER_KINDS.map((k) => ({ value: k, label: enumLabel("providerKind", k) }))}
             onChange={setKind}
           />
           <TextField id="pname" label={s.name} value={name} required onChange={setName} />

@@ -100,7 +100,7 @@ describe("CategoryForm", () => {
     const user = userEvent.setup();
     renderForm({ secrets: { "email.smtpUrl": true } });
 
-    const secret = screen.getByLabelText(/Smtp url/i);
+    const secret = screen.getByLabelText(/SMTP connection/i);
     expect(secret).toHaveAttribute("type", "password");
     expect(secret).toHaveValue("");
     expect(screen.getByText("Set")).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe("CategoryForm", () => {
       effective: { "email.from": "platform@aidp.dev" },
       sources: { "email.from": "platform" },
     });
-    expect(screen.getByLabelText(/^From/i)).toHaveValue("platform@aidp.dev");
+    expect(screen.getByLabelText(/^Sender address/i)).toHaveValue("platform@aidp.dev");
     expect(screen.getByText("Inherited from platform")).toBeInTheDocument();
   });
 

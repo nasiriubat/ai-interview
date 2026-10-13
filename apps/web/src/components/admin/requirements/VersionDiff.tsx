@@ -2,6 +2,7 @@
 
 import { Loader2Icon } from "lucide-react";
 import * as React from "react";
+import { EnumLabel } from "@/components/common/EnumLabel";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
@@ -10,6 +11,7 @@ import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import { errorMessage } from "@/lib/api/errors";
 import type { SpecDiff, SpecDiffSection, SpecRequirementRecord, SpecVersionSummary } from "@/lib/api/schemas";
+import { label } from "@/lib/i18n/enums";
 import { sectionTitle } from "@/lib/requirements/labels";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +73,7 @@ function RequirementRows({
           <span className="text-muted-foreground mr-2 font-mono text-xs">{r.id}</span>
           {r.title}
           <Badge variant="outline" className="ml-2">
-            {r.scope}
+            <EnumLabel kind="specScope" value={r.scope} />
           </Badge>
         </li>
       ))}
@@ -213,10 +215,10 @@ export function VersionDiff({
                   <li key={after.id} className="grid gap-1 rounded-md border p-2">
                     <span className="text-muted-foreground font-mono text-xs">{after.id}</span>
                     <span className="text-red-900 line-through">
-                      {before.title} · {before.scope}
+                      {before.title} · {label("specScope", before.scope)}
                     </span>
                     <span className="text-emerald-900">
-                      {after.title} · {after.scope}
+                      {after.title} · {label("specScope", after.scope)}
                     </span>
                   </li>
                 ))}

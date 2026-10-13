@@ -3,10 +3,10 @@
 import * as React from "react";
 import { SpecSectionCard } from "./SpecSectionCard";
 import { StatTile } from "@/components/admin/StatTile";
+import { EnumLabel } from "@/components/common/EnumLabel";
 import { Badge } from "@/components/ui/badge";
 import { t } from "@/i18n";
 import type { LiveSpec } from "@/lib/api/schemas";
-import { humanize } from "@/lib/utils";
 
 /** The Spec tab: context answers, MVP challenge state, stats and the sections in order. */
 export function SpecSections({
@@ -46,7 +46,9 @@ export function SpecSections({
             <dl className="grid gap-2 sm:grid-cols-[max-content_1fr] sm:gap-x-4">
               {context.map(([key, value]) => (
                 <React.Fragment key={key}>
-                  <dt className="text-muted-foreground text-xs font-medium sm:pt-0.5">{humanize(key)}</dt>
+                  <dt className="text-muted-foreground text-xs font-medium sm:pt-0.5">
+                    <EnumLabel kind="contextKey" value={key} />
+                  </dt>
                   <dd className="whitespace-pre-wrap">{value}</dd>
                 </React.Fragment>
               ))}

@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { StatTile } from "@/components/admin/StatTile";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { EnumLabel } from "@/components/common/EnumLabel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,7 +25,6 @@ import { isFiltered, statusFilter } from "@/lib/admin/toolbar";
 import { isApiError } from "@/lib/api/errors";
 import { LISTS } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
-import { humanize } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).admin.campaigns.title };
@@ -57,6 +57,16 @@ export default async function CampaignPage({ params, searchParams }: Props): Pro
   const s = t.admin.campaigns;
   const stats = campaign.stats;
   const dropOff = Object.entries(stats?.dropOffByArea ?? {});
+  // The area keys are template data: the template's own names win, the shipped names are the fallback.
+  const areaNames: Record<string, string> = {};
+  if (dropOff.length > 0 && campaign.templateId) {
+    try {
+      const template = await api.templates.get(campaign.templateId);
+      for (const a of template.coverageAreas) areaNames[a.key] = a.name;
+    } catch {
+      // A missing template only costs the friendly names.
+    }
+  }
 
   return (
     <>
@@ -110,7 +120,7 @@ export default async function CampaignPage({ params, searchParams }: Props): Pro
                   <TableBody>
                     {dropOff.map(([k, v]) => (
                       <TableRow key={k}>
-                        <TableCell>{humanize(k)}</TableCell>
+                        <TableCell>{areaNames[k] ?? <EnumLabel kind="coverageArea" value={k} />}</TableCell>
                         <TableCell className="text-right tabular-nums">{v}</TableCell>
                       </TableRow>
                     ))}

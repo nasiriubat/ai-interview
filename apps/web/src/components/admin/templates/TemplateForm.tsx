@@ -33,6 +33,7 @@ import { t } from "@/i18n";
 import { templateIssues } from "@/lib/admin/templateIssues";
 import { countBySection, issueMessage, type FormIssue } from "@/lib/admin/validation";
 import { staffClient } from "@/lib/api/browser";
+import { label } from "@/lib/i18n/enums";
 
 const s = t.admin.templates;
 const f = s.fields;
@@ -636,7 +637,10 @@ export function TemplateForm({
             id="issueAggressiveness"
             label={f.issueAggressiveness}
             value={d.issueDetection.aggressiveness}
-            options={(["gentle", "standard", "strict"] as const).map((v) => ({ value: v, label: v }))}
+            options={(["gentle", "standard", "strict"] as const).map((v) => ({
+              value: v,
+              label: label("aggressiveness", v),
+            }))}
             onChange={(v) => {
               patch({ issueDetection: { ...d.issueDetection, aggressiveness: v } });
             }}
@@ -661,7 +665,7 @@ export function TemplateForm({
                     });
                   }}
                 />
-                {it.replace("_", " ")}
+                {label("findingType", it)}
               </label>
             ))}
           </div>

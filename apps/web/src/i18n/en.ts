@@ -2,6 +2,8 @@
  * Every user-facing string of the web app. Phase 2 adds languages by adding a sibling
  * file with the same shape; components only ever import `t` from `@/i18n`.
  */
+import type { BudgetScope, CallStatus, Effort, ProviderKind, Purpose, SettingKey } from "@aidp/shared";
+
 export const en = {
   app: {
     name: "Discovery",
@@ -870,7 +872,7 @@ export const en = {
       transcriptHidden: "Transcript hidden by the privacy setting.",
       events: "Event log",
       noEvents: "No events.",
-      eventType: "Type",
+      eventType: "Event",
       eventAt: "At",
       eventPayload: "Details",
       cost: "Cost",
@@ -1447,6 +1449,11 @@ export const en = {
         raised: "Raised",
         resolved: "Resolved",
         deferred: "Deferred",
+        unknown: "Unknown",
+        new: "New",
+        shortlisted: "Shortlisted",
+        promoted: "In requirements",
+        dismissed: "Dismissed",
       } as Record<string, string>,
       fields: {
         createdAt: "Created",
@@ -1495,6 +1502,473 @@ export const en = {
       rowsPerPage: "Rows per page",
       page: (n: number): string => `Page ${n}`,
     },
+  },
+  /**
+   * Display names for identifiers that come from the shared packages or the API. Components read
+   * them through `label()` in `@/lib/i18n/enums`, never by humanizing the identifier (D-132).
+   */
+  enums: {
+    purpose: {
+      interview_turn: "Interview questions",
+      resume_summary: "Recap when a participant returns",
+      extraction: "Extracting items from answers",
+      clustering: "Grouping similar items",
+      analysis_report: "Organization report",
+      spec_turn: "Requirements questions",
+      issue_detection: "Finding detection",
+      spec_generation: "Writing the specification",
+      transcription: "Transcribing recordings",
+      stt_stream: "Live captions",
+      tts: "Interviewer's voice",
+      realtime_voice: "Live voice calls",
+      file_ingest: "Reading attached documents",
+      vision_ingest: "Reading attached images",
+      embedding: "Similarity search",
+      probe: "Connection tests",
+    } satisfies Record<Purpose, string>,
+    providerKind: {
+      anthropic: "Anthropic",
+      openai: "OpenAI",
+      openrouter: "OpenRouter",
+      litellm: "LiteLLM proxy",
+      openai_compatible: "OpenAI-compatible API",
+      stt: "Speech-to-text service",
+      tts: "Text-to-speech service",
+      realtime: "Real-time voice service",
+      local: "On this server (no key, audio never leaves it)",
+    } satisfies Record<ProviderKind, string>,
+    effort: {
+      low: "Low (fastest, cheapest)",
+      medium: "Medium",
+      high: "High",
+      xhigh: "Very high",
+      max: "Maximum (slowest, most expensive)",
+    } satisfies Record<Effort, string>,
+    aggressiveness: {
+      gentle: "Gentle: mentions, does not insist",
+      standard: "Standard: raises once, then accepts",
+      strict: "Strict: insists on a decision",
+      template: "As set in the template",
+    },
+    budgetScope: {
+      tenant: "Whole organization",
+      campaign: "One campaign",
+      session: "One interview",
+    } satisfies Record<BudgetScope, string>,
+    budgetPeriod: {
+      month: "Per month",
+      total: "In total",
+    },
+    specScope: {
+      mvp: "Version one (MVP)",
+      future: "Later",
+    },
+    callStatus: {
+      ok: "Succeeded",
+      error: "Failed",
+      refused: "Refused by the model",
+      budget_exceeded: "Stopped by a budget",
+      aborted: "Cancelled",
+    } satisfies Record<CallStatus, string>,
+    /** Fallback names for the shipped discovery template's areas; a template's own names win. */
+    coverageArea: {
+      role: "Role and responsibilities",
+      daily: "Daily activities",
+      repetitive: "Repetitive tasks",
+      tools: "Tools and systems",
+      manual: "Manual processes",
+      flows: "Information flows and hand-offs",
+      bottlenecks: "Bottlenecks and waiting",
+      problems: "Common problems",
+      wish: "What they would change first",
+      problem: "Product overview and problem",
+      users: "Target users and roles",
+      stories: "User stories",
+      functional: "Functional requirements",
+      rules: "Business rules",
+      acceptance: "Acceptance criteria",
+      technical: "Technical requirements",
+      technical_recommended: "Technical recommendations",
+      data: "Data requirements",
+      integrations: "Integrations",
+      security: "Security and privacy",
+      nfr: "Non-functional requirements",
+      admin: "Administrative surface",
+      mvp: "MVP scope",
+      future: "Future scope",
+      phases: "Implementation phases",
+    } as Record<string, string>,
+    /** The top-level fields of an interview template, as `changedFields` of a template diff names them. */
+    templateField: {
+      name: "Name",
+      language: "Language",
+      objective: "Objective",
+      privacyMode: "Privacy mode",
+      participantFields: "Participant fields",
+      pathSelection: "Technical or nontechnical path",
+      contextBlock: "Background questions",
+      coverageAreas: "Topics",
+      aiInstructions: "AI instructions",
+      adaptivity: "Adaptivity",
+      widgetPolicy: "Answer options",
+      issueDetection: "Findings",
+      outputs: "What to extract",
+      analysisEnabled: "Include in campaign analysis",
+      chainToKey: "Next template",
+      chainMapping: "Field mapping",
+      closingQuestion: "Closing question",
+      endSummary: "Summary at the end",
+      maxTurns: "Turns at most",
+      maxAssistantChars: "Characters per interviewer turn, at most",
+    } as Record<string, string>,
+    /** Fallback names for the shipped requirements template's background questions. */
+    contextKey: {
+      hosting: "Hosting",
+      existing_systems: "Existing systems",
+      builder: "Who builds it",
+      team_skills: "Team skills",
+      timeline: "Timeline",
+      budget: "Budget",
+      users_at_launch: "Users at launch",
+      compliance: "Compliance",
+    } as Record<string, string>,
+    /** Keys of the platform and tenant statistics tiles and tables. */
+    statKey: {
+      tenants: "Organizations",
+      sessions: "Interviews",
+      campaigns: "Campaigns",
+      invited: "Invited",
+      spendByTenant: "Spend by organization",
+    } as Record<string, string>,
+    /** Option labels of the enum-valued settings, by setting key. */
+    settingValue: {
+      "campaign.verification": {
+        invitation: "Personal invitation links",
+        email_code: "Shared link; email code required",
+        open: "Open link; anyone can answer, duplicates possible",
+      },
+      "privacy.rawTranscriptsVisibleTo": {
+        nobody: "Nobody",
+        admins: "Admins",
+        admins_when_identified_and_opted_in: "Admins, when the participant took part with their name",
+      },
+      "ops.alertWebhookFormat": { ntfy: "ntfy", slack: "Slack", generic: "Generic JSON" },
+      "ops.alertEmailMinSeverity": { info: "Information", warning: "Warning", critical: "Critical" },
+      "ops.alertWebhookMinSeverity": { info: "Information", warning: "Warning", critical: "Critical" },
+      "analysis.weightsPreset": {
+        balanced: "Balanced",
+        quick_wins: "Quick wins",
+        strategic: "Strategic",
+        custom: "Custom",
+      },
+      "requirements.aggressivenessTechnical": {
+        template: "As set in the template",
+        gentle: "Gentle: mentions, does not insist",
+        standard: "Standard: raises once, then accepts",
+        strict: "Strict: insists on a decision",
+      },
+      "requirements.aggressivenessNontechnical": {
+        template: "As set in the template",
+        gentle: "Gentle: mentions, does not insist",
+        standard: "Standard: raises once, then accepts",
+        strict: "Strict: insists on a decision",
+      },
+      "requirements.mvpChallenge": {
+        template: "As set in the template",
+        mandatory: "Required",
+        optional: "Optional",
+        off: "Off",
+      },
+      "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Generic" },
+    } as Record<string, Record<string, string>>,
+    /** A name and a one-sentence description for every key of the settings catalog. */
+    settingKey: {
+      "engine.recentWindowTurns": {
+        label: "Recent turns kept word for word",
+        description:
+          "How many of the latest turns the interviewer sees unabridged. Older turns are summarized.",
+      },
+      "engine.inputTokenBudget": {
+        label: "Input budget per turn (tokens)",
+        description: "How much text the interviewer may read before each question. Higher values cost more.",
+      },
+      "engine.summarizeEveryTurns": {
+        label: "Update the running summary every N turns",
+        description: "How often the conversation so far is summarized so the interviewer keeps the thread.",
+      },
+      "engine.extractEveryTurns": {
+        label: "Pick out items every N turns",
+        description: "How often items such as tasks and pain points are picked out of the answers.",
+      },
+      "engine.maxTurns": {
+        label: "Longest interview, in turns",
+        description: "The interview is wrapped up when this many interviewer turns have been used.",
+      },
+      "campaign.completionThreshold": {
+        label: "Interviews needed for final results",
+        description: "How many interviews must be completed before the analysis is treated as final.",
+      },
+      "campaign.completionThresholdPercent": {
+        label: "Share of invited who must finish",
+        description:
+          "What percentage of the invited people must finish before the analysis is treated as final.",
+      },
+      "campaign.linkExpiryDays": {
+        label: "Days a link stays valid",
+        description: "How long an invitation or shared link works after it is created.",
+      },
+      "campaign.verification": {
+        label: "Who can answer on a shared link",
+        description: "How we make sure each person answers once when a link is shared.",
+      },
+      "campaign.allowedEmailDomains": {
+        label: "Allowed email domains",
+        description:
+          "Only addresses at these domains can use a shared link. Leave empty to allow everyone. One per line.",
+      },
+      "campaign.consentText": {
+        label: "Consent text shown to participants",
+        description: "Shown before the first question. Write it in the language of the interview.",
+      },
+      "privacy.retentionMonths": {
+        label: "Months interview data is kept",
+        description: "After this the answers, files and recordings are deleted automatically.",
+      },
+      "privacy.kAnonymity": {
+        label: "Minimum people behind any quote or breakdown",
+        description:
+          "Quotes and department comparisons stay hidden until at least this many people stand behind them.",
+      },
+      "privacy.rawTranscriptsVisibleTo": {
+        label: "Who may read full transcripts",
+        description:
+          "Applies to the complete conversation of one interview. Combined results are not affected.",
+      },
+      "privacy.audioRetentionDays": {
+        label: "Days a voice recording is kept (0 = delete once transcribed)",
+        description: "The written answer is kept for the longer retention period above.",
+      },
+      "privacy.codeRequestsPerHour": {
+        label: "Verification codes per email address and hour",
+        description: "How many codes one email address may ask for per hour for one campaign.",
+      },
+      "privacy.codeFailuresPerHour": {
+        label: "Wrong codes allowed per hour",
+        description:
+          "How many wrong codes one email address may enter per campaign in an hour before it is locked.",
+      },
+      "cost.warnFraction": {
+        label: "Budget share that triggers a warning",
+        description: "Admins are warned when spending reaches this share of a budget. 0.8 means 80 percent.",
+      },
+      "cost.probeMaxPerDay": {
+        label: "Connection tests per day",
+        description:
+          "How many times a provider connection may be tested per rolling day. 0 turns the test button off.",
+      },
+      "cost.defaultMonthlyBudgetCents": {
+        label: "Default monthly budget (cents)",
+        description: "The monthly limit a new organization starts with, in euro cents.",
+      },
+      "files.maxSizeMb": {
+        label: "Largest file (MB)",
+        description:
+          "The most one uploaded file may weigh. The platform sets a ceiling this cannot go above.",
+      },
+      "files.allowedTypes": {
+        label: "Accepted file types",
+        description: "File types participants may attach, one MIME type per line.",
+      },
+      "voice.targetFirstWordMs": {
+        label: "Target time to the first spoken word (ms)",
+        description: "How quickly the interviewer should start speaking in a live call.",
+      },
+      "voice.captions": {
+        label: "Show captions during live calls",
+        description: "Show what was said and heard as text during a live voice interview.",
+      },
+      "voice.voiceName": {
+        label: "Interviewer's voice",
+        description: "Which of the speech model's voices the interviewer uses.",
+      },
+      "voice.speakingRate": {
+        label: "Speaking pace",
+        description: "1 is the voice's normal pace; higher is faster.",
+      },
+      "voice.endOfSpeechMs": {
+        label: "Silence that ends an answer (ms)",
+        description: "How long a pause must last in a live call before the answer is sent.",
+      },
+      "voice.bargeIn": {
+        label: "Participants can interrupt the interviewer",
+        description: "The participant can start talking while the interviewer is still speaking.",
+      },
+      "features.optionsView": {
+        label: "Answer options",
+        description: "Show choices, scales and rankings next to questions where the template allows them.",
+      },
+      "features.recordedVoice": {
+        label: "Recorded voice answers",
+        description: "Participants can answer by recording their voice.",
+      },
+      "features.realtimeVoice": {
+        label: "Live voice calls",
+        description:
+          "Participants can talk with the interviewer in a live call. Needs the speech assignments to be set up.",
+      },
+      "features.fileUpload": {
+        label: "File attachments",
+        description: "Participants can attach documents and images to their answers.",
+      },
+      "features.chaining": {
+        label: "Template chaining",
+        description: "A template can start another one from what it learned.",
+      },
+      "features.collaboration": {
+        label: "Invited collaborators",
+        description: "The owner of a requirements interview can invite a second person to answer.",
+      },
+      "branding.productName": {
+        label: "Product name shown to participants",
+        description: "Appears on the arrival page and in emails.",
+      },
+      "branding.primaryColor": {
+        label: "Primary color",
+        description: "Saved for later use; the participant pages do not use it yet.",
+      },
+      "branding.emailSender": {
+        label: "Sender address (deprecated)",
+        description: "Replaced by the sender address under Email; used only when that one is empty.",
+      },
+      "email.smtpUrl": {
+        label: "SMTP connection",
+        description:
+          "Format smtp://user:password@host:587. When empty, the server's own mail configuration is used.",
+      },
+      "email.from": {
+        label: "Sender address",
+        description: "The address outgoing emails come from.",
+      },
+      "email.replyTo": {
+        label: "Reply-to address",
+        description: "Optional. Where replies to outgoing emails go.",
+      },
+      "ops.alertEmail": {
+        label: "Alert email address",
+        description:
+          "Where platform alerts are emailed. When empty, the ALERT_EMAIL environment value is used, then the first platform operator.",
+      },
+      "ops.alertWebhookUrl": {
+        label: "Alert webhook URL",
+        description:
+          "A ntfy topic URL, Slack incoming webhook or generic JSON endpoint that receives platform alerts.",
+      },
+      "ops.alertWebhookFormat": {
+        label: "Webhook format",
+        description: "The body shape sent to the alert webhook.",
+      },
+      "ops.alertEmailMinSeverity": {
+        label: "Lowest severity emailed",
+        description: "Alerts below this level are not emailed.",
+      },
+      "ops.alertWebhookMinSeverity": {
+        label: "Lowest severity sent to the webhook",
+        description: "Alerts below this level are not posted to the webhook.",
+      },
+      "ops.alertRepeatMinutes": {
+        label: "Minutes before an alert repeats",
+        description:
+          "How long an unresolved alert waits before it is sent again. When set, it replaces each alert's own interval.",
+      },
+      "ops.alertMaxPerHour": {
+        label: "Alerts per hour",
+        description: "More alerts than this in an hour are held back and replaced by one summary notice.",
+      },
+      "ops.diskWarnPercent": {
+        label: "Disk use that raises a warning (%)",
+        description: "A warning is raised when the disk is this full.",
+      },
+      "ops.diskCriticalPercent": {
+        label: "Disk use that raises a critical alert (%)",
+        description: "A critical alert is raised when the disk is this full.",
+      },
+      "ops.providerErrorRateWarn": {
+        label: "Provider failure rate that raises a warning",
+        description:
+          "Share of a provider's calls that failed in ten minutes (at least ten calls). 0.25 means 25 percent.",
+      },
+      "ops.backupMaxAgeHours": {
+        label: "Hours without a backup before an alert",
+        description: "A backup older than this is reported as missing.",
+      },
+      "notifications.recipients": {
+        label: "Who receives notices",
+        description:
+          "Email addresses that receive this organization's notices, one per line. Empty means every admin.",
+      },
+      "notifications.budgetWarnings": {
+        label: "Email budget warnings",
+        description: "Email the organization's admins when a budget passes its warning share.",
+      },
+      "analysis.weightsPreset": {
+        label: "Scoring preset",
+        description:
+          "How the factors are weighted when opportunities are scored. Choose Custom to set your own weights.",
+      },
+      "analysis.weights": {
+        label: "Custom scoring weights",
+        description: "Used when the preset is Custom. A higher weight means the factor counts for more.",
+      },
+      "analysis.similarityThreshold": {
+        label: "How alike items must be to be grouped",
+        description:
+          "Items whose similarity is at or above this value (0 to 1) are grouped into one opportunity.",
+      },
+      "analysis.reportSections": {
+        label: "Report sections",
+        description: "The sections included in the organization report, one key per line.",
+      },
+      "analysis.preliminaryVisibleToMembers": {
+        label: "Members see preliminary results",
+        description: "Members may see results before enough interviews are complete.",
+      },
+      "analysis.departmentComparison": {
+        label: "Compare departments",
+        description:
+          "Show a department comparison when every department has at least the minimum number of people.",
+      },
+      "analysis.language": {
+        label: "Report language",
+        description: "Language code of the generated report, for example en or fi.",
+      },
+      "requirements.aggressivenessTechnical": {
+        label: "Strictness on the technical path",
+        description:
+          "How firmly the interviewer pushes on findings. “As set in the template” uses the template's own value.",
+      },
+      "requirements.aggressivenessNontechnical": {
+        label: "Strictness on the nontechnical path",
+        description:
+          "How firmly the interviewer pushes on findings. “As set in the template” uses the template's own value.",
+      },
+      "requirements.mvpChallenge": {
+        label: "Challenge version one before finalizing",
+        description:
+          "Required: always challenged. Optional: the person may end the challenge early. Off: never challenged.",
+      },
+      "requirements.specSections": {
+        label: "Specification sections",
+        description: "The sections of the specification, in order, one key per line.",
+      },
+      "requirements.diagramTypes": {
+        label: "Diagram types",
+        description: "Diagram types generated into the specification, one per line.",
+      },
+      "exports.bundleFormat": {
+        label: "Agent bundle format",
+        description: "Which coding agent the downloadable bundle is prepared for.",
+      },
+    } satisfies Record<SettingKey, { label: string; description: string }>,
   },
 };
 

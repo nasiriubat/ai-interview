@@ -1,4 +1,5 @@
 import * as React from "react";
+import { EnumLabel } from "@/components/common/EnumLabel";
 import { t } from "@/i18n";
 import type { TemplateDiff as Diff } from "@/lib/api/schemas";
 
@@ -25,7 +26,9 @@ export function TemplateDiff({ diff }: { diff: Diff }): React.JSX.Element {
       <p className="text-muted-foreground text-sm">{s.diffChanged(diff.changedFields.length)}</p>
       {diff.changedFields.map((field) => (
         <div key={field} className="grid gap-2 rounded-lg border p-3 md:grid-cols-2">
-          <p className="text-sm font-medium md:col-span-2">{field}</p>
+          <p className="text-sm font-medium md:col-span-2">
+            <EnumLabel kind="templateField" value={field} />
+          </p>
           <div>
             <p className="text-muted-foreground mb-1 text-xs">{s.shipped}</p>
             <pre className="bg-muted max-h-60 overflow-auto rounded p-2 text-xs whitespace-pre-wrap">

@@ -1,7 +1,7 @@
 import * as React from "react";
+import { EnumLabel } from "@/components/common/EnumLabel";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
-import { t } from "@/i18n";
-import { humanize } from "@/lib/utils";
+import { label } from "@/lib/i18n/enums";
 
 const TONES: Record<string, BadgeProps["variant"]> = {
   open: "success",
@@ -35,10 +35,14 @@ const TONES: Record<string, BadgeProps["variant"]> = {
 
 export function StatusBadge({ status }: { status: string | null | undefined }): React.JSX.Element {
   const s = status ?? "unknown";
-  return <Badge variant={TONES[s] ?? "outline"}>{statusLabel(s)}</Badge>;
+  return (
+    <Badge variant={TONES[s] ?? "outline"}>
+      <EnumLabel kind="status" value={s} />
+    </Badge>
+  );
 }
 
-/** A status in the reader's language; an unknown one is spelled out rather than hidden. */
+/** A status in the reader's language; an unknown one comes back as its identifier. */
 export function statusLabel(status: string): string {
-  return t.admin.list.statuses[status] ?? humanize(status);
+  return label("status", status);
 }
