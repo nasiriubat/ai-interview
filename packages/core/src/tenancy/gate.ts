@@ -48,9 +48,12 @@ export class TenantGate {
     if (hit && this.now() - hit.at < this.ttlMs) return hit.state;
     // The status of a tenant is read across the fence on purpose: the caller may be a participant
     // or a job whose own tenant context is the thing being checked.
-    const row = await withSystemTenant(() =>
-      this.db.company.findUnique({ where: { id: companyId }, select: { status: true } }),
-    );
+    // Awaited inside the callback: a Prisma query is lazy, and one returned un-awaited would run
+    // after the scope has been left, as no tenant at all.
+    const row = await withSystemTenant(async () => {
+      const found = await this.db.company.findUnique({ where: { id: companyId }, select: { status: true } });
+      return found;
+    });
     const state: TenantState = !row ? "missing" : row.status === "active" ? "active" : "suspended";
     this.cache.set(companyId, { state, at: this.now() });
     return state;
