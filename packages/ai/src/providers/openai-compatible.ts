@@ -18,6 +18,16 @@ import {
 import { z } from "zod";
 import { openRealtimeTranscription } from "./openai-realtime-stt.js";
 import { wsSocketFactory } from "./realtime-socket.js";
+import {
+  backoffMs,
+  guardStream,
+  isTimeoutAbort,
+  retryAfterMs,
+  sleep,
+  timeoutError,
+  timeoutsFromEnv,
+  type ProviderTimeouts,
+} from "./resilience.js";
 import { ProviderError, type Provider, type RealtimeSocketFactory } from "./types.js";
 
 /** What the browser must be told the audio is, per requested format. */
@@ -56,6 +66,10 @@ export interface OpenAICompatibleOptions {
   fetch?: typeof fetch;
   /** Test seam for the streaming transcription socket; defaults to `ws`. */
   socket?: RealtimeSocketFactory;
+  /** Deadlines and retries (D-93); the process environment's `PROVIDER_*` values when absent. */
+  timeouts?: ProviderTimeouts;
+  /** Test seam: what waits between retries, so a test does not really sleep. */
+  sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
 }
 
 const DEFAULT_BASE_URLS: Partial<Record<OpenAICompatibleKind, string>> = {
@@ -76,6 +90,8 @@ export class OpenAICompatibleProvider implements Provider {
   private readonly headers: Record<string, string>;
   private readonly fetchImpl: typeof fetch;
   private readonly socketFactory: RealtimeSocketFactory;
+  private readonly timeouts: ProviderTimeouts;
+  private readonly sleepFn: (ms: number, signal?: AbortSignal) => Promise<void>;
 
   constructor(opts: OpenAICompatibleOptions) {
     this.id = opts.id;
@@ -92,6 +108,8 @@ export class OpenAICompatibleProvider implements Provider {
     };
     this.fetchImpl = opts.fetch ?? fetch;
     this.socketFactory = opts.socket ?? wsSocketFactory;
+    this.timeouts = opts.timeouts ?? timeoutsFromEnv();
+    this.sleepFn = opts.sleep ?? sleep;
     this.capabilities = {
       caching: false, // OpenAI-style providers cache automatically; there is no marker to set
       structuredOutput: true, // json_schema response_format, with a JSON-mode fallback
@@ -128,19 +146,41 @@ export class OpenAICompatibleProvider implements Provider {
       stream_options: { include_usage: true },
       ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
     };
-    const res = await this.request("/chat/completions", { method: "POST", body: JSON.stringify(body) });
+    // The first-token clock starts at the request, not at the first byte of the response: a
+    // gateway that holds the headers until it has output would otherwise get a fresh deadline.
+    const began = Date.now();
+    const controller = new AbortController();
+    const res = await this.request("/chat/completions", {
+      method: "POST",
+      body: JSON.stringify(body),
+      controller,
+    });
     if (!res.body) throw new ProviderError("Empty stream body", "server", true);
     let usage = emptyUsage();
     let stop: StopReason = "other";
     let seenModel = model;
-    for await (const chunk of parseSse(res.body)) {
-      const c = chunk as OpenAIChunk;
-      if (c.model) seenModel = c.model;
-      const choice = c.choices?.[0];
-      const text = choice?.delta?.content;
-      if (text) yield { type: "text", text };
-      if (choice?.finish_reason) stop = toStopReason(choice.finish_reason);
-      if (c.usage) usage = toUsage(c.usage);
+    const chunks = guardStream(parseSse(res.body), {
+      firstMs: this.timeouts.firstTokenMs,
+      idleMs: this.timeouts.idleMs,
+      since: began,
+      isOutput: startsOutput,
+      abort: () => {
+        controller.abort();
+      },
+      label: "Model stream",
+    });
+    try {
+      for await (const chunk of chunks) {
+        const c = chunk as OpenAIChunk;
+        if (c.model) seenModel = c.model;
+        const choice = c.choices?.[0];
+        const text = choice?.delta?.content;
+        if (text) yield { type: "text", text };
+        if (choice?.finish_reason) stop = toStopReason(choice.finish_reason);
+        if (c.usage) usage = toUsage(c.usage);
+      }
+    } catch (e) {
+      throw this.streamError(e);
     }
     yield { type: "done", usage, stopReason: stop, model: seenModel };
   }
@@ -337,28 +377,84 @@ export class OpenAICompatibleProvider implements Provider {
     }
   }
 
+  /**
+   * One HTTP call with a deadline and a bounded number of retries (D-93).
+   *
+   * Every attempt carries `AbortSignal.timeout(totalMs)`, which also covers reading the body, so a
+   * provider that answers the headers and then stalls is cut off like one that never answered.
+   * A network error, a timeout, a 429 or a 5xx is tried again up to `maxRetries` times with
+   * jittered backoff, honouring a short `Retry-After`; anything else (a bad key, a bad request) is
+   * the same on the next attempt and is not retried. Nothing is retried once the caller's own
+   * signal has aborted: that is a participant who started talking, not a provider that failed.
+   *
+   * Until this, `speak` handed its barge-in signal to this method and the method dropped it, so an
+   * interrupted synthesis kept streaming (and billing) to nobody.
+   */
   private async request(
     path: string,
-    init: { method: string; body?: BodyInit; headers?: Record<string, string>; allowStatuses?: number[] },
+    init: {
+      method: string;
+      body?: BodyInit;
+      headers?: Record<string, string>;
+      allowStatuses?: number[];
+      signal?: AbortSignal;
+      /** Lets a stream guard cancel the connection it is watching. */
+      controller?: AbortController;
+    },
   ): Promise<Response> {
-    let res: Response;
-    try {
-      res = await this.fetchImpl(`${this.baseUrl}${path}`, {
-        method: init.method,
-        headers: init.headers ?? this.headers,
-        ...(init.body !== undefined ? { body: init.body } : {}),
-      });
-    } catch (e) {
-      throw new ProviderError(`Network error calling ${path}`, "network", true, e);
+    const { totalMs, maxRetries } = this.timeouts;
+    for (let attempt = 1; ; attempt++) {
+      const signals = [AbortSignal.timeout(totalMs)];
+      if (init.signal) signals.push(init.signal);
+      if (init.controller) signals.push(init.controller.signal);
+      const signal = AbortSignal.any(signals);
+      const retriesLeft = attempt <= maxRetries;
+      let res: Response;
+      try {
+        res = await this.fetchImpl(`${this.baseUrl}${path}`, {
+          method: init.method,
+          headers: init.headers ?? this.headers,
+          ...(init.body !== undefined ? { body: init.body } : {}),
+          signal,
+        });
+      } catch (e) {
+        if (init.signal?.aborted)
+          throw new ProviderError(`Network error calling ${path}`, "network", true, e);
+        // A call that has already used its whole ceiling is not run again inside this request:
+        // that would turn a two-minute limit into six, in the middle of an interview turn. The
+        // error is retryable, so the layer that owns retries (the job queue, the participant's
+        // "try again") decides, with the time it actually has.
+        if (isTimeoutAbort(e)) throw timeoutError(`Call to ${path}`, totalMs, e);
+        const failure = new ProviderError(`Network error calling ${path}`, "network", true, e);
+        if (!retriesLeft) throw failure;
+        await this.pause(backoffMs(attempt), init.signal);
+        continue;
+      }
+      if (res.ok || init.allowStatuses?.includes(res.status)) return res;
+      const text = await res.text().catch(() => "");
+      const msg = `${res.status} from ${path}: ${text.slice(0, 500)}`;
+      if (res.status === 401 || res.status === 403) throw new ProviderError(msg, "auth", false);
+      if (res.status === 404) throw new ProviderError(msg, "not_found", false);
+      if (res.status !== 429 && res.status < 500) throw new ProviderError(msg, "bad_request", false);
+      if (!retriesLeft) throw new ProviderError(msg, res.status === 429 ? "rate_limit" : "server", true);
+      await this.pause(retryAfterMs(res.headers.get("retry-after")) ?? backoffMs(attempt), init.signal);
     }
-    if (res.ok || init.allowStatuses?.includes(res.status)) return res;
-    const text = await res.text().catch(() => "");
-    const msg = `${res.status} from ${path}: ${text.slice(0, 500)}`;
-    if (res.status === 401 || res.status === 403) throw new ProviderError(msg, "auth", false);
-    if (res.status === 404) throw new ProviderError(msg, "not_found", false);
-    if (res.status === 429) throw new ProviderError(msg, "rate_limit", true);
-    if (res.status >= 500) throw new ProviderError(msg, "server", true);
-    throw new ProviderError(msg, "bad_request", false);
+  }
+
+  /** What a stream that died mid-way is reported as: the guard's own timeout, or a dropped connection. */
+  private streamError(e: unknown): ProviderError {
+    if (e instanceof ProviderError) return e;
+    if (isTimeoutAbort(e)) return timeoutError("Model stream", this.timeouts.totalMs, e);
+    return new ProviderError("The model stream was interrupted", "network", true, e);
+  }
+
+  /** The wait between attempts; the caller's signal ends it, so a barge-in is not held up by a backoff. */
+  private async pause(ms: number, signal?: AbortSignal): Promise<void> {
+    try {
+      await this.sleepFn(ms, signal);
+    } catch (e) {
+      throw new ProviderError("Request aborted while waiting to retry", "network", true, e);
+    }
   }
 }
 
@@ -373,6 +469,19 @@ interface OpenAIChunk {
   choices?: { delta?: { content?: string | null }; finish_reason?: string | null }[];
   usage?: OpenAIUsage | null;
 }
+/**
+ * Whether a streamed chunk is the provider producing something: any delta field beyond the role
+ * (content, reasoning, tool use) or a finish reason. The opening `{"role":"assistant"}` chunk
+ * arrives at once even from a model that then thinks for a minute, so it does not count.
+ */
+function startsOutput(chunk: unknown): boolean {
+  const choice = (chunk as OpenAIChunk).choices?.[0];
+  if (!choice) return false;
+  if (choice.finish_reason) return true;
+  const delta = choice.delta as Record<string, unknown> | undefined;
+  return Object.entries(delta ?? {}).some(([k, v]) => k !== "role" && v !== null && v !== "");
+}
+
 interface OpenAICompletion {
   choices?: { message?: { content?: string | null }; finish_reason?: string | null }[];
   usage?: OpenAIUsage | null;
