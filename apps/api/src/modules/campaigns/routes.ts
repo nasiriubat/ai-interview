@@ -156,6 +156,14 @@ export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void>
     },
     async (req) => {
       await svc.remind(req.companyId, req.params.id, req.params.invId);
+      // A reminder sends mail to a named person, so it is an admin action like the invitation is.
+      await ctx.services.audit.record(req.companyId, {
+        actorId: staff(req).userId,
+        action: "invitation.remind",
+        targetType: "invitation",
+        targetId: req.params.invId,
+        diff: { campaignId: req.params.id },
+      });
       return { ok: true as const };
     },
   );

@@ -234,6 +234,14 @@ export class ProviderService {
       throw new AppError("forbidden", "Platform providers are managed by the platform operator");
     const routes = await this.db.route.count({ where: { providerId: p.id } });
     if (routes) throw new AppError("conflict", "Provider is used by routes; reassign them first");
+    // The ledger keeps every call a provider made (cost control, FR-40), so a provider that has
+    // been used cannot be erased; it was a foreign-key violation answered as a 500.
+    const calls = await this.db.llmCall.count({ where: { providerId: p.id } });
+    if (calls)
+      throw new AppError(
+        "conflict",
+        "This provider has recorded usage and cannot be deleted; disable it instead",
+      );
     await this.db.provider.delete({ where: { id: p.id } });
     this.callers.invalidateProvider(p.id);
   }
