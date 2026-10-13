@@ -13,6 +13,10 @@ export type ErrorCode =
   | "rate_limited"
   | "budget_exceeded"
   | "provider_error"
+  /** An API key the provider itself refused when it was checked (D-77). */
+  | "invalid_api_key"
+  /** Live voice cannot be turned on: `details.missing` names the purposes without a working route (D-77). */
+  | "voice_not_ready"
   | "internal";
 
 const STATUS: Record<ErrorCode, number> = {
@@ -26,6 +30,8 @@ const STATUS: Record<ErrorCode, number> = {
   rate_limited: 429,
   budget_exceeded: 402,
   provider_error: 502,
+  invalid_api_key: 422,
+  voice_not_ready: 409,
   internal: 500,
 };
 

@@ -34,6 +34,7 @@ export class AnthropicProvider implements Provider {
     transcription: false,
     // Anthropic has no speech endpoint; a voice interview routes `tts` elsewhere.
     speech: false,
+    streamingTranscription: false,
   };
   private readonly client: Anthropic;
 

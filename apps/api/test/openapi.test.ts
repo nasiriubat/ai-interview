@@ -47,6 +47,9 @@ suite("OpenAPI and health", () => {
       "/requirements/{id}/versions/{v}/export",
       "/p/r/{token}",
       "/templates/{id}/preview",
+      "/admin/voice/readiness",
+      "/admin/voice/openai",
+      "/admin/voice/live",
     ]) {
       expect(paths).toContain(p);
     }
@@ -54,6 +57,12 @@ suite("OpenAPI and health", () => {
     // `storage` is on this response so a deployment can assert it: with no UPLOAD_DIR the store
     // is memory, every upload works in testing, and every recording vanishes on the next deploy
     // with nothing in the logs to say so. The test world deliberately runs on memory.
-    expect(ready.json()).toEqual({ ok: true, database: true, storage: "memory" });
+    // `speech` is the on-server Whisper model (D-75): reported, never a reason to be unready.
+    expect(ready.json()).toEqual({
+      ok: true,
+      database: true,
+      storage: "memory",
+      speech: { model: null, state: "not_loaded", queued: 0 },
+    });
   });
 });

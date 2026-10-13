@@ -421,6 +421,17 @@ suite("requirements interview end to end", () => {
     );
   });
 
+  it("previews a template when the request carries no body at all, as the web client sends it", async () => {
+    const { app, adminToken } = world;
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/v1/templates/${world.templateId}/preview`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ participantToken: string }>().participantToken).toBeTruthy();
+  });
+
   it("previews a template as a throwaway participant session", async () => {
     const { app, adminToken } = world;
     const h = { authorization: `Bearer ${adminToken}` };

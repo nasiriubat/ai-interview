@@ -52,8 +52,70 @@ export interface TranscriptionInput {
   data: Uint8Array;
   mime: string;
   filename: string;
+  /** The language the audio is in, when it is known for certain. Forces it. */
   language?: string;
+  /**
+   * The languages the speaker is likely to use (ISO 639-1), when `language` is not known: the
+   * interview's own language first. A provider that identifies the language itself chooses among
+   * these instead of among all of them, which is what keeps a one-word Finnish answer from being
+   * heard as Estonian. Providers that cannot use it ignore it.
+   */
+  languages?: string[];
 }
+/**
+ * Streaming speech-to-text (FR-30a, D-77): the `stt_stream` purpose.
+ *
+ * The caller pushes raw audio as it is captured and reads transcripts as they form. Audio is
+ * always PCM16, little-endian, mono, at {@link STT_STREAM_SAMPLE_RATE}: that is the one format the
+ * OpenAI Realtime transcription API accepts ("Only a 24kHz sample rate is supported"), and fixing
+ * it here keeps every adapter and the browser agreeing without negotiation.
+ */
+export const STT_STREAM_SAMPLE_RATE = 24_000;
+
+export interface SttStreamInput {
+  /** ISO 639-1 code of the language the participant is expected to speak. */
+  language?: string;
+  /** Silence that ends an utterance, in milliseconds, for providers that detect turns themselves. */
+  silenceMs?: number;
+}
+
+/**
+ * What a streaming transcription session reports. Transport-agnostic: the adapter maps its
+ * provider's socket events onto these and nothing downstream knows which provider it was.
+ *
+ * - `speech_started` / `speech_stopped`: the provider's voice activity detector changed its mind.
+ *   `speech_started` doubles as a barge-in signal while the interviewer is talking.
+ * - `partial`: the transcript of the utterance in progress so far. `text` is the whole growing
+ *   text of the item, not a delta, so a consumer that misses one frame loses nothing.
+ * - `final`: the utterance is complete. `usage` carries what the provider billed, when it said.
+ * - `error`: `fatal` means the session is gone and no further events will come.
+ */
+export const SttStreamEventSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("speech_started") }),
+  z.object({ type: z.literal("speech_stopped") }),
+  z.object({ type: z.literal("partial"), itemId: z.string(), text: z.string() }),
+  z.object({
+    type: z.literal("final"),
+    itemId: z.string(),
+    text: z.string(),
+    durationSeconds: z.number().nonnegative().optional(),
+    confidence: z.number().min(0).max(1).optional(),
+    usage: UsageSchema.optional(),
+  }),
+  z.object({ type: z.literal("error"), message: z.string(), fatal: z.boolean() }),
+]);
+export type SttStreamEvent = z.infer<typeof SttStreamEventSchema>;
+
+/** One open streaming transcription. Owned by whoever opened it; always end it with close or abort. */
+export interface SttStreamSession {
+  /** Appends PCM16 audio. Ignored once the session is closed. */
+  push(pcm16: Uint8Array): void;
+  /** Every event the session reports, ending when it closes. */
+  readonly events: AsyncIterable<SttStreamEvent>;
+  /** Ends the session politely: the socket is closed and the event stream finishes. */
+  close(): void;
+}
+
 /**
  * One request to speak a piece of text (FR-30a).
  *

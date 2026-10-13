@@ -1,4 +1,11 @@
-import { BudgetGuard, ModelCaller, PriceTable, ProviderRegistry, type ModelCallerDeps } from "@aidp/ai";
+import {
+  BudgetGuard,
+  ModelCaller,
+  PriceTable,
+  ProviderRegistry,
+  type ModelCallerDeps,
+  type SpeechRunner,
+} from "@aidp/ai";
 import type { PrismaClient } from "@prisma/client";
 import type { Crypto } from "../crypto.js";
 import type { SettingsService } from "../settings/service.js";
@@ -15,6 +22,8 @@ export interface CallerFactoryDeps {
   crypto: Crypto;
   settings: SettingsService;
   onBudgetWarning?: ModelCallerDeps["onBudgetWarning"];
+  /** The on-server Whisper runner (D-75); the process-wide one when absent. Tests pass a fake. */
+  speech?: SpeechRunner;
 }
 
 /**
@@ -22,10 +31,11 @@ export interface CallerFactoryDeps {
  * reused; prices and the warning threshold are loaded per call to reflect admin changes.
  */
 export class CallerFactory {
-  private readonly registry = new ProviderRegistry();
+  private readonly registry: ProviderRegistry;
   private readonly ledger: PrismaLedger;
 
   constructor(private readonly deps: CallerFactoryDeps) {
+    this.registry = new ProviderRegistry(deps.speech ? { speech: deps.speech } : {});
     this.ledger = new PrismaLedger(deps.db);
   }
 

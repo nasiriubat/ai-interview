@@ -10,6 +10,11 @@ export const PROVIDER_KINDS = [
   "stt",
   "tts",
   "realtime",
+  /**
+   * Runs on the API server itself: Whisper through transformers.js, so recording needs no API key
+   * and audio never leaves the machine (D-75). Transcription only, and it has no key.
+   */
+  "local",
 ] as const;
 export const ProviderKindSchema = z.enum(PROVIDER_KINDS);
 export type ProviderKind = z.infer<typeof ProviderKindSchema>;
@@ -20,7 +25,7 @@ export const ProviderConfigSchema = z.object({
   kind: ProviderKindSchema,
   name: z.string(),
   baseUrl: z.url().optional(),
-  apiKey: z.string(), // decrypted before it reaches the ai package
+  apiKey: z.string(), // decrypted before it reaches the ai package; empty for kind `local`
   headers: z.record(z.string(), z.string()).default({}),
   enabled: z.boolean().default(true),
 });
@@ -35,6 +40,8 @@ export const CapabilitiesSchema = z.object({
   transcription: z.boolean(),
   /** Text to speech, for the interviewer's own voice in a live interview (FR-30a). */
   speech: z.boolean().default(false),
+  /** Streaming speech-to-text over a socket, for live captions (FR-30a, D-77). */
+  streamingTranscription: z.boolean().default(false),
 });
 export type Capabilities = z.infer<typeof CapabilitiesSchema>;
 
@@ -57,7 +64,12 @@ export const RouteSchema = z.object({
   providerId: z.string(),
   model: z.string(),
   effort: EffortSchema.optional(),
-  maxOutputTokens: z.number().int().positive(),
+  /**
+   * Zero for the audio purposes (transcription, stt_stream, tts), which produce no tokens. The
+   * platform defaults write zero there, and a positive-only schema made every such route fail to
+   * resolve, which is to say the bootstrapped voice never worked.
+   */
+  maxOutputTokens: z.number().int().nonnegative(),
   batchAllowed: z.boolean().default(false),
 });
 export type Route = z.infer<typeof RouteSchema>;
