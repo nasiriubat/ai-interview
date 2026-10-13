@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InterviewScreen } from "@/components/participant/InterviewScreen";
 import { useLiveVoice, type LiveVoiceCallbacks } from "@/hooks/useLiveVoice";
@@ -456,8 +456,11 @@ describe("the interview screen in a live call", () => {
     });
     socket.emit({ type: "caption", role: "assistant", text: "How big is the team?" });
 
-    expect(screen.getAllByText("How big is the team?")).toHaveLength(1);
-    expect(screen.getAllByText("I run the support desk.")).toHaveLength(1);
+    // Counted inside the conversation: the visually hidden announcer repeats the interviewer's
+    // finished turn once on purpose (asserted in interview-a11y.test.tsx).
+    const conversation = within(screen.getByRole("list", { name: "Conversation" }));
+    expect(conversation.getAllByText("How big is the team?")).toHaveLength(1);
+    expect(conversation.getAllByText("I run the support desk.")).toHaveLength(1);
   });
 
   it("keeps typing available during the call and hangs up when the participant types", async () => {

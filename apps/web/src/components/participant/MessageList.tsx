@@ -1,19 +1,20 @@
 "use client";
 
+import type { Widget } from "@aidp/shared";
 import { SquareIcon, Volume2Icon } from "lucide-react";
 import * as React from "react";
+import type { Announcement } from "@/hooks/useInterview";
+import { usePrefersReducedMotion } from "@/hooks/useMediaQuery";
 import type { Speech } from "@/hooks/useSpeech";
 import { t } from "@/i18n";
 import type { Message } from "@/lib/api/schemas";
 import { cn } from "@/lib/utils";
 
+/** "Writing" is a status, so it carries its words as text: that is what a live region announces. */
 export function TypingIndicator(): React.JSX.Element {
   return (
-    <div
-      className="flex items-center gap-1 px-1 py-2"
-      role="status"
-      aria-label={t.participant.session.typing}
-    >
+    <div className="flex items-center gap-1 px-1 py-2" role="status">
+      <span className="sr-only">{t.participant.session.typing}</span>
       {[0, 1, 2].map((i) => (
         <span
           key={i}
@@ -83,37 +84,78 @@ export function MessageBubble({
   );
 }
 
-/** The conversation. New interviewer messages are announced politely to screen readers. */
+/** One line that says a question has something to choose from, so a listener knows to look. */
+export function widgetSummary(widget: Widget): string {
+  const s = t.participant.session;
+  switch (widget.type) {
+    case "single_choice":
+      return s.announceChoice(widget.options.length);
+    case "multi_choice":
+      return s.announceMulti(widget.options.length, widget.max);
+    case "scale":
+      return s.announceScale;
+    case "ranking":
+      return s.announceRanking(widget.options.length);
+    case "yes_no":
+      return s.announceYesNo;
+  }
+}
+
+/** The text the announcer says for one completed interviewer turn. */
+export function announcementText(a: Announcement): string {
+  return a.widget ? `${a.text} ${widgetSummary(a.widget)}.` : a.text;
+}
+
+/**
+ * The conversation.
+ *
+ * Screen readers hear a turn once, when it is complete. The list is a plain ordered list (not a
+ * live `log`, which would read every token as it streams and then read the whole message again),
+ * the streaming bubble is visual only (`aria-live="off"`), and one visually hidden status region
+ * receives the finished interviewer text. The participant's own messages are never announced: they
+ * typed them.
+ */
 export function MessageList({
   messages,
   streaming,
   pending,
+  announcement,
   speech,
   children,
 }: {
   messages: Message[];
   streaming: string | null;
   pending: boolean;
+  /** The last completed interviewer turn; changes once per turn. */
+  announcement?: Announcement | null | undefined;
   speech?: Speech | undefined;
   children?: React.ReactNode;
 }): React.JSX.Element {
   const endRef = React.useRef<HTMLDivElement>(null);
+  const reduceMotion = usePrefersReducedMotion();
   React.useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [messages.length, streaming, pending]);
+    endRef.current?.scrollIntoView({ block: "end", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [messages.length, streaming, pending, reduceMotion]);
 
   const visible = messages.filter((m) => m.role !== "system");
   return (
-    <div className="flex flex-col gap-3" aria-label={t.participant.session.messagesLabel} role="log">
-      {visible.map((m) => (
-        <MessageBubble key={m.id} message={m} speech={speech} />
-      ))}
-      <div aria-live="polite" aria-atomic="false">
-        {streaming !== null ? (
+    <div className="flex flex-col gap-3">
+      <ol aria-label={t.participant.session.messagesLabel} className="flex flex-col gap-3">
+        {visible.map((m) => (
+          <li key={m.id}>
+            <MessageBubble message={m} speech={speech} />
+          </li>
+        ))}
+      </ol>
+      {streaming !== null ? (
+        <div aria-live="off">
           <MessageBubble message={{ role: "assistant", content: streaming }} streaming />
-        ) : null}
-        {pending && streaming === null ? <TypingIndicator /> : null}
-      </div>
+        </div>
+      ) : null}
+      {pending && streaming === null ? <TypingIndicator /> : null}
+      <p role="status" aria-atomic="true" className="sr-only">
+        {announcement ? announcementText(announcement) : ""}
+      </p>
       {children}
       <div ref={endRef} />
     </div>

@@ -17,6 +17,26 @@ export interface InterviewError {
   message: string;
 }
 
+/**
+ * What a screen reader is told when the interviewer finishes speaking. Set exactly once per
+ * completed interviewer turn (never per streamed token), so the message is heard once. `n` makes two
+ * turns with identical text still distinct for a live region.
+ */
+export interface Announcement {
+  n: number;
+  text: string;
+  /** The widget under the message, so the announcement can say a question has options. */
+  widget?: Widget | undefined;
+}
+
+function announce(previous: Announcement | null, message: Message): Announcement {
+  return {
+    n: (previous?.n ?? 0) + 1,
+    text: message.content,
+    ...(message.widget ? { widget: message.widget } : {}),
+  };
+}
+
 export interface InterviewState {
   messages: Message[];
   /** Text of the assistant turn currently streaming, or null when idle. */
@@ -27,6 +47,8 @@ export interface InterviewState {
   ended: boolean;
   summaryAvailable: boolean;
   error: InterviewError | null;
+  /** The last completed interviewer turn, for the one polite announcement per turn. */
+  lastAnnouncement: Announcement | null;
 }
 
 /** One interviewer turn as the live voice socket delivers it (FR-30a). */
@@ -56,16 +78,20 @@ export interface InterviewController {
   live: LiveInterviewSink;
   /** The widget of the latest interviewer message, when it is still unanswered. */
   activeWidget: Widget | undefined;
-  send: (input: TurnInput | undefined) => Promise<void>;
-  sendText: (text: string) => Promise<void>;
-  sendWidget: (widget: Widget, response: WidgetResponse) => Promise<void>;
+  /**
+   * The send functions resolve `true` when the turn was delivered and answered, `false` when it
+   * failed (the error is in `state.error`). The composer uses that to give the text back.
+   */
+  send: (input: TurnInput | undefined) => Promise<boolean>;
+  sendText: (text: string) => Promise<boolean>;
+  sendWidget: (widget: Widget, response: WidgetResponse) => Promise<boolean>;
   /**
    * Recorded voice (FR-30): uploads the recording as the turn. The transcript arrives first and
    * becomes the participant's own message, before the interviewer answers it.
    */
-  sendVoice: (audio: Blob, durationMs?: number) => Promise<void>;
+  sendVoice: (audio: Blob, durationMs?: number) => Promise<boolean>;
   /** Re-sends the last failed input, or the first turn when nothing was sent yet. */
-  retry: () => Promise<void>;
+  retry: () => Promise<boolean>;
   clearError: () => void;
 }
 
@@ -120,6 +146,7 @@ export function useInterview(
     ended: isCompleted(initial.status),
     summaryAvailable: isCompleted(initial.status),
     error: null,
+    lastAnnouncement: null,
   });
   const abortRef = React.useRef<AbortController | null>(null);
   const lastAttemptRef = React.useRef<Attempt>({ kind: "first" });
@@ -134,24 +161,29 @@ export function useInterview(
     async (
       open: (signal: AbortSignal) => Promise<Response>,
       optimistic: Message | undefined,
-    ): Promise<void> => {
+    ): Promise<boolean> => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
 
       let localId = optimistic?.id;
+      let failed = false;
       setState((s) => ({
         ...s,
         error: null,
         pending: true,
         streaming: null,
-        messages: optimistic ? [...s.messages, optimistic] : s.messages,
+        // A new attempt after a failure replaces the failed one's optimistic copy instead of
+        // stacking beside it (the composer hands the text back, so the person may well resend it).
+        messages: optimistic
+          ? [...(s.error ? s.messages.filter((m) => !m.id.startsWith("local-")) : s.messages), optimistic]
+          : s.messages,
       }));
 
       try {
         const res = await open(controller.signal);
         for await (const ev of readTurnStream(res)) {
-          if (controller.signal.aborted) return;
+          if (controller.signal.aborted) return false;
           switch (ev.type) {
             case "text":
               setState((s) => ({ ...s, streaming: (s.streaming ?? "") + ev.delta }));
@@ -179,6 +211,7 @@ export function useInterview(
                   streaming: null,
                   progress: ev.progress.areas.length > 0 ? ev.progress : s.progress,
                   ended: s.ended || ev.ended,
+                  lastAnnouncement: announce(s.lastAnnouncement, msg),
                 };
               });
               break;
@@ -194,6 +227,7 @@ export function useInterview(
               onSpecRef.current?.(ev.spec);
               break;
             case "error":
+              failed = true;
               setState((s) => ({ ...s, error: { code: ev.code, message: ev.message }, streaming: null }));
               break;
           }
@@ -209,12 +243,19 @@ export function useInterview(
               content: s.streaming,
               createdAt: new Date().toISOString(),
             };
-            return { ...s, messages: [...s.messages, partial], streaming: null, pending: false };
+            return {
+              ...s,
+              messages: [...s.messages, partial],
+              streaming: null,
+              pending: false,
+              lastAnnouncement: announce(s.lastAnnouncement, partial),
+            };
           }
           return { ...s, pending: false };
         });
+        return !failed;
       } catch (e) {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted) return false;
         const code = isApiError(e) ? e.code : "network_error";
         const message = e instanceof Error ? e.message : "";
         setState((s) => ({
@@ -224,13 +265,14 @@ export function useInterview(
           error: { code, message },
           // Keep the optimistic message so a retry can resend it.
         }));
+        return false;
       }
     },
     [],
   );
 
   const send = React.useCallback(
-    (input: TurnInput | undefined): Promise<void> => {
+    (input: TurnInput | undefined): Promise<boolean> => {
       lastAttemptRef.current = input ? { kind: "turn", input } : { kind: "first" };
       return run(
         (signal) => api.sendTurn(input, signal),
@@ -241,7 +283,7 @@ export function useInterview(
   );
 
   const sendVoice = React.useCallback(
-    (audio: Blob, durationMs?: number): Promise<void> => {
+    (audio: Blob, durationMs?: number): Promise<boolean> => {
       lastAttemptRef.current = {
         kind: "voice",
         audio,
@@ -286,7 +328,7 @@ export function useInterview(
       send({ content: widgetResponseToText(widget, response), modality: "widget", widgetResponse: response }),
     [send],
   );
-  const retry = React.useCallback(async () => {
+  const retry = React.useCallback(async (): Promise<boolean> => {
     const last = lastAttemptRef.current;
     if (last.kind === "first") return send(undefined);
     // Drop the optimistic copy before re-sending so it is not shown twice.
@@ -309,6 +351,10 @@ export function useInterview(
           messages: [...s.messages.filter((m) => m.id !== turn.message.id), turn.message],
           progress: turn.progress.areas.length > 0 ? turn.progress : s.progress,
           ended: s.ended || turn.ended,
+          lastAnnouncement:
+            turn.message.role === "assistant"
+              ? announce(s.lastAnnouncement, turn.message)
+              : s.lastAnnouncement,
         }));
       },
       heard: (text) => {

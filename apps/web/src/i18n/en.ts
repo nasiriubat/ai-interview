@@ -146,7 +146,7 @@ export const en = {
       interviewer: "Interviewer",
       you: "You",
       typing: "The interviewer is writing",
-      streaming: "Answer is streaming",
+      streaming: "The interviewer is answering",
       composerLabel: "Your answer",
       composerPlaceholder: "Type your answer…",
       send: "Send",
@@ -247,6 +247,21 @@ export const en = {
       recapLabel: "Where you left off",
       messagesLabel: "Conversation",
       newMessage: "New message from the interviewer",
+      announceChoice: (n: number): string => `Question with ${n} options`,
+      announceMulti: (n: number, max: number | undefined): string =>
+        max === undefined
+          ? `Question with ${n} options, choose any that apply`
+          : `Question with ${n} options, choose up to ${max}`,
+      announceScale: "Scale from 1 to 5",
+      announceRanking: (n: number): string => `Put ${n} items in order`,
+      announceYesNo: "Yes or no",
+      offlineTitle: "You seem to be offline",
+      offlineBody:
+        "Your last answer was not sent. It is kept here, and we will try again when you are back online.",
+      offlineBar: "You are offline. Your answer is kept and is sent when you are back online.",
+      backOnline: "Back online, sending…",
+      composerHint: "Enter sends, Shift+Enter starts a new line.",
+      composerHintDismiss: "Hide this tip",
       errorBudgetTitle: "The interview is paused",
       errorBudgetBody:
         "Your organization's usage limit for this interview was reached. Your answers are saved; please come back later.",
