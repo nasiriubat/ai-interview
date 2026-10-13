@@ -117,6 +117,9 @@ services:
   api:
     <<: *app-image
     restart: unless-stopped
+    # Longer than the API's own drain (API_SHUTDOWN_DRAIN_SECONDS, 20 s): Docker's default of 10 s
+    # kills a turn that is still streaming before the server can tell the client to retry.
+    stop_grace_period: 40s
     # No `ports:`. Caddy reaches it over the compose network; the browser never does.
     environment:
       NODE_ENV: production
@@ -161,6 +164,9 @@ services:
       dockerfile: apps/api/Dockerfile
       target: worker
     restart: unless-stopped
+    # Longer than WORKER_SHUTDOWN_GRACE_SECONDS (25 s), so the worker exits on its own terms and
+    # logs what it abandoned instead of being killed mid-job.
+    stop_grace_period: 40s
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://app_api:${APP_DB_PASSWORD:?}@postgres:5432/ai_discovery

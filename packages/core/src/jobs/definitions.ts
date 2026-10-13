@@ -11,6 +11,12 @@ export const JOBS = {
       text: z.string(),
       html: z.string().optional(),
       companyId: z.string().optional(),
+      /**
+       * What makes this message the same message on a retry: purpose plus target, such as
+       * `invite:${invitationId}` or `completion:${sessionId}`. Required, so a producer cannot
+       * forget it and quietly lose the send-once guarantee (D-105).
+       */
+      idempotencyKey: z.string().min(1),
     }),
     retryLimit: 5,
   },

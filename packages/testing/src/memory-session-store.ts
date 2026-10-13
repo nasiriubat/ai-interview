@@ -42,11 +42,23 @@ export class MemorySessionStore implements SessionStore {
   /** Every commit that reached the store, applied or not, for assertions on retry behaviour. */
   commits: { fromSeq: number; toSeq: number; outcome: "committed" | "stale" | "failed" }[] = [];
 
+  readonly sessionId: string;
+  readonly companyId: string;
+  /** Required by `snapshot()`; the engine-facing tests that never snapshot may leave it out. */
+  readonly template: InterviewTemplate | undefined;
+
   constructor(
-    readonly sessionId = "s1",
-    initial: Partial<SessionState> = {},
+    options: {
+      sessionId?: string;
+      companyId?: string;
+      template?: InterviewTemplate;
+      state?: Partial<SessionState>;
+    } = {},
   ) {
-    this.state = SessionStateSchema.parse(initial);
+    this.sessionId = options.sessionId ?? "s1";
+    this.companyId = options.companyId ?? "c1";
+    this.template = options.template;
+    this.state = SessionStateSchema.parse(options.state ?? {});
   }
 
   async appendMessage(_id: string, m: NewMessage): Promise<StoredMessage> {
@@ -121,12 +133,13 @@ export class MemorySessionStore implements SessionStore {
     return "committed";
   }
 
-  /** The snapshot a job would load: current state and summary, with the template attached. */
-  snapshot(template: InterviewTemplate, companyId = "c1"): SessionSnapshot & { status: string } {
+  /** What `PrismaSessionStore.snapshot` returns: current state and summary, with the template attached. */
+  async snapshot(_sessionId?: string): Promise<SessionSnapshot & { status: string }> {
+    if (!this.template) throw new Error("MemorySessionStore.snapshot needs a template option");
     return {
       id: this.sessionId,
-      companyId,
-      template,
+      companyId: this.companyId,
+      template: this.template,
       state: this.state,
       summary: this.summary,
       status: this.status,
