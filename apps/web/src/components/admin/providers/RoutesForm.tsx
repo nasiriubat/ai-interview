@@ -1,6 +1,6 @@
 "use client";
 
-import { PURPOSES, type Effort, type Purpose, type Route } from "@aidp/shared";
+import { ROUTABLE_PURPOSES, type Effort, type Purpose, type Route } from "@aidp/shared";
 import { RotateCcwIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -69,7 +69,7 @@ export function RoutesForm({
 
   const sources = React.useMemo(() => {
     const out = {} as Record<Purpose, RouteSource>;
-    for (const p of PURPOSES) {
+    for (const p of ROUTABLE_PURPOSES) {
       const tenant = routes.find((r) => r.purpose === p && r.companyId !== null);
       const platform = routes.find((r) => r.purpose === p && r.companyId === null);
       out[p] =
@@ -88,7 +88,7 @@ export function RoutesForm({
 
   const [drafts, setDrafts] = React.useState<Record<Purpose, Draft>>(() => {
     const out = {} as Record<Purpose, Draft>;
-    for (const p of PURPOSES) {
+    for (const p of ROUTABLE_PURPOSES) {
       const own = routes.find(
         (r) => r.purpose === p && (scope === "platform" ? r.companyId === null : r.companyId !== null),
       );
@@ -127,7 +127,7 @@ export function RoutesForm({
 
   const routesPayload = (current: Record<Purpose, Draft>): Route[] => {
     const out: Route[] = [];
-    for (const p of PURPOSES) {
+    for (const p of ROUTABLE_PURPOSES) {
       const d = current[p];
       // A row with no provider is sent too: that is how an existing override is cleared.
       out.push({
@@ -202,7 +202,7 @@ export function RoutesForm({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {PURPOSES.map((p) => {
+            {ROUTABLE_PURPOSES.map((p) => {
               const d = drafts[p];
               const entry = models[d.providerId];
               const loading = entry === "loading";

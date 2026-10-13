@@ -1,7 +1,14 @@
-import { createProvider, costCents, estimateTokens, PriceTable, type ModelPrice } from "@aidp/ai";
-import { loadPrices, type CallerFactory, type Crypto } from "@aidp/core";
+import {
+  createProvider,
+  costCents,
+  estimateTokens,
+  PriceTable,
+  ProbeLimitError,
+  type ModelPrice,
+} from "@aidp/ai";
+import { type CallerFactory, type Crypto } from "@aidp/core";
 import { tenantBatch } from "@aidp/db";
-import { PURPOSES, ProviderConfigSchema, type ModelInfo, type Purpose } from "@aidp/shared";
+import { ROUTABLE_PURPOSES, ProviderConfigSchema, type ModelInfo, type Purpose } from "@aidp/shared";
 import type { PrismaClient, Provider } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
@@ -226,8 +233,13 @@ export class ProviderService {
   }
 
   /**
-   * Sends one tiny request through the adapter and prices it (FR-43). Without an explicit model
-   * it uses the newest route that points at this provider, else the first model the provider lists.
+   * Sends one tiny request through `ModelCaller.probe` (FR-43). Without an explicit model it uses
+   * the newest route that points at this provider, else the first model the provider lists.
+   *
+   * It goes through the caller rather than the adapter so the call is priced from the tenant's
+   * price table, ledgered, bounded by the daily probe cap, and subject to the same outbound
+   * guards as every other model call. The provider id is checked against what this tenant may
+   * use before anything is sent.
    */
   async test(
     companyId: string | null,
@@ -245,24 +257,18 @@ export class ProviderService {
     const chosen = model ?? (await this.defaultModel(companyId, p));
     const started = Date.now();
     try {
-      const events = this.adapter(p).chat(chosen, {
-        messages: [{ role: "user", content: "Reply with the single word: ready" }],
-        maxOutputTokens: 16,
-        cachePrefix: false,
-      });
-      let usage = { inputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 };
-      for await (const ev of events) if (ev.type === "done") usage = ev.usage;
-      const table = new PriceTable();
-      await loadPrices(this.db, companyId ?? "", table);
-      const price = table.get(p.id, chosen);
+      const caller = await this.callers.forCompany(companyId ?? "");
+      const r = await caller.probe({ companyId }, { providerId: p.id, model: chosen });
       return {
         ok: true,
         model: chosen,
-        latencyMs: Date.now() - started,
-        tokens: usage.inputTokens + usage.outputTokens,
-        costCents: price ? costCents(price, usage) : 0,
+        latencyMs: r.latencyMs,
+        tokens: r.usage.inputTokens + r.usage.outputTokens,
+        costCents: r.costCents,
       };
     } catch (err) {
+      // Over the daily cap is not "the provider failed": say so with the right status.
+      if (err instanceof ProbeLimitError) throw new AppError("rate_limited", err.message);
       return {
         ok: false,
         model: chosen,
@@ -353,7 +359,7 @@ export class ProviderService {
       where: companyId ? { OR: [{ companyId }, { companyId: null }] } : { companyId: null },
     });
     const out: RouteRowOut[] = [];
-    for (const purpose of PURPOSES) {
+    for (const purpose of ROUTABLE_PURPOSES) {
       const own = rows.find((r) => r.purpose === purpose && r.companyId === companyId);
       const platform = rows.find((r) => r.purpose === purpose && r.companyId === null);
       const r = own ?? platform;

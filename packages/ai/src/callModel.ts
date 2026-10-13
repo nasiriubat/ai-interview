@@ -67,6 +67,33 @@ export interface CallContext {
   promptVersion?: string;
 }
 
+/** Decides whether a tenant may run another provider probe. Throws `ProbeLimitError` when not. */
+export interface ProbeGuard {
+  check(companyId: string, at: Date): Promise<void>;
+}
+
+export class ProbeLimitError extends Error {
+  constructor(readonly limitPerDay: number) {
+    super(`Provider tests are limited to ${limitPerDay} per day`);
+    this.name = "ProbeLimitError";
+  }
+}
+
+/** What a probe is aimed at. The only call that names its provider instead of resolving a route. */
+export interface ProbeTarget {
+  providerId: string;
+  model: string;
+}
+
+export interface ProbeResult {
+  text: string;
+  usage: Usage;
+  latencyMs: number;
+  costCents: number;
+  /** False for a platform-level probe, which has no tenant to attribute a ledger row to. */
+  ledgered: boolean;
+}
+
 export interface ModelCallerDeps {
   routes: RouteResolver;
   providerConfigs: ProviderConfigSource;
@@ -75,6 +102,8 @@ export interface ModelCallerDeps {
   ledger: LedgerSink;
   budget: BudgetGuard;
   now?: () => Date;
+  /** Caps `probe`. Omitted in tests that do not exercise the limit. */
+  probeGuard?: ProbeGuard;
   onBudgetWarning?: (
     ctx: CallContext,
     warnings: Awaited<ReturnType<BudgetGuard["check"]>>["warnings"],
@@ -195,6 +224,75 @@ export class ModelCaller implements ModelCallerPort {
       throw e;
     } finally {
       await this.record(purpose, ctx, route, price, usage, status, started);
+    }
+  }
+
+  /**
+   * One tiny request to a named provider and model: the admin "test connection" (FR-43).
+   *
+   * Everything else here resolves a route and checks a budget; a probe does neither, because its
+   * whole point is to ask a specific provider that may not be routed yet, and an admin whose
+   * budget is spent still has to be able to find out why their provider is failing. It is bounded
+   * the other way instead: `probeGuard` caps how many a tenant may run per day. The provider must
+   * be one this tenant may use (its own, or platform-level), the key never leaves the config
+   * source, and the call is ledgered under purpose `probe` with the provider as its reference.
+   *
+   * `ctx.companyId` is null for the platform operator testing a platform provider. There is no
+   * tenant to attribute the row to, so that case is not ledgered (`ledgered: false`).
+   */
+  async probe(
+    ctx: { companyId: string | null },
+    target: ProbeTarget,
+    options: { prompt?: string; maxOutputTokens?: number; signal?: AbortSignal } = {},
+  ): Promise<ProbeResult> {
+    const tenant = ctx.companyId;
+    if (tenant !== null) await this.deps.probeGuard?.check(tenant, this.now());
+    const provider = await this.providerFor(tenant ?? "", target.providerId);
+    const price = this.deps.prices.get(target.providerId, target.model);
+    const route: Route = {
+      companyId: tenant,
+      purpose: "probe",
+      providerId: target.providerId,
+      model: target.model,
+      maxOutputTokens: options.maxOutputTokens ?? 16,
+      batchAllowed: false,
+    };
+    const request: ChatRequest = {
+      messages: [{ role: "user", content: options.prompt ?? "Reply with the single word: ready" }],
+      maxOutputTokens: route.maxOutputTokens,
+      cachePrefix: false,
+      ...(options.signal ? { signal: options.signal } : {}),
+    };
+    const started = this.now();
+    let usage = emptyUsage();
+    let text = "";
+    let status: LedgerEntry["status"] = "ok";
+    try {
+      for await (const ev of provider.chat(target.model, request)) {
+        if (ev.type === "text") text += ev.text;
+        if (ev.type === "done") usage = ev.usage;
+      }
+      return {
+        text,
+        usage,
+        latencyMs: Math.max(0, this.now().getTime() - started.getTime()),
+        costCents: price ? costCents(price, usage) : 0,
+        ledgered: tenant !== null,
+      };
+    } catch (e) {
+      status = options.signal?.aborted ? "aborted" : "error";
+      throw e;
+    } finally {
+      if (tenant !== null)
+        await this.record(
+          "probe",
+          { companyId: tenant, ref: { type: "provider", id: target.providerId } },
+          route,
+          price,
+          usage,
+          status,
+          started,
+        );
     }
   }
 

@@ -1,7 +1,7 @@
 import type { Capabilities, ChatEvent, ChatRequest, ProviderConfig, Route } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { CallAbortedError, ModelCaller } from "../src/callModel.js";
+import { CallAbortedError, ModelCaller, ProbeLimitError } from "../src/callModel.js";
 import { BudgetExceededError, BudgetGuard, StaticBudgetLimits } from "../src/cost/budget.js";
 import { InMemoryLedger } from "../src/cost/ledger.js";
 import { PriceTable } from "../src/cost/pricing.js";
@@ -263,5 +263,93 @@ describe("ModelCaller cancellation (D-104)", () => {
     ).rejects.toBeInstanceOf(CallAbortedError);
 
     expect(ledger.entries[0]).toMatchObject({ status: "aborted" });
+  });
+});
+
+describe("ModelCaller.probe (D-106)", () => {
+  const target = { providerId: "p1", model: "m" };
+
+  it("ledgers one priced row under purpose probe, referencing the provider, and skips routing", async () => {
+    const { caller, ledger } = setup(10_000);
+
+    const r = await caller.probe({ companyId: "c1" }, target);
+
+    expect(r).toMatchObject({ text: "ok", ledgered: true });
+    expect(r.costCents).toBeCloseTo(0.2, 9);
+    expect(ledger.entries).toHaveLength(1);
+    expect(ledger.entries[0]).toMatchObject({
+      purpose: "probe",
+      companyId: "c1",
+      providerId: "p1",
+      status: "ok",
+      ref: { type: "provider", id: "p1" },
+    });
+  });
+
+  it("is exempt from budgets: a spent tenant can still test its provider", async () => {
+    const { caller, ledger } = setup(0);
+
+    await expect(caller.probe({ companyId: "c1" }, target)).resolves.toMatchObject({ ledgered: true });
+    expect(ledger.entries.map((e) => e.status)).toEqual(["ok"]);
+  });
+
+  it("is refused by the guard before any request is made", async () => {
+    const { provider } = setup(10_000);
+    const registry = new ProviderRegistry();
+    (registry as unknown as { cache: Map<string, unknown> }).cache.set("p1", { config: cfg, provider });
+    const ledger = new InMemoryLedger();
+    const caller = new ModelCaller({
+      routes: { resolve: async () => undefined },
+      providerConfigs: { get: async () => cfg },
+      registry,
+      prices: new PriceTable(),
+      ledger,
+      budget: new BudgetGuard(new StaticBudgetLimits([]), ledger),
+      probeGuard: {
+        check: async () => {
+          throw new ProbeLimitError(3);
+        },
+      },
+    });
+
+    await expect(caller.probe({ companyId: "c1" }, target)).rejects.toBeInstanceOf(ProbeLimitError);
+
+    expect(provider.lastReq).toBeUndefined();
+    expect(ledger.entries).toHaveLength(0);
+  });
+
+  it("cannot pin a provider the tenant is not allowed to use", async () => {
+    const registry = new ProviderRegistry();
+    const ledger = new InMemoryLedger();
+    const caller = new ModelCaller({
+      routes: { resolve: async () => undefined },
+      // The config source is the tenant boundary: it knows only this tenant's and platform providers.
+      providerConfigs: { get: async (company, id) => (company === "c1" && id === "mine" ? cfg : undefined) },
+      registry,
+      prices: new PriceTable(),
+      ledger,
+      budget: new BudgetGuard(new StaticBudgetLimits([]), ledger),
+    });
+
+    await expect(
+      caller.probe({ companyId: "c1" }, { providerId: "someone-elses", model: "m" }),
+    ).rejects.toThrow(/not available to this tenant/);
+    expect(ledger.entries).toHaveLength(0);
+  });
+
+  it("ledgers a failed probe as an error and does not ledger a platform-level one", async () => {
+    const { caller, ledger, provider } = setup(10_000);
+    provider.chat = async function* () {
+      yield* [];
+      throw new Error("connection refused");
+    };
+
+    await expect(caller.probe({ companyId: "c1" }, target)).rejects.toThrow("connection refused");
+    expect(ledger.entries.map((e) => e.status)).toEqual(["error"]);
+
+    const platform = setup(10_000);
+    const r = await platform.caller.probe({ companyId: null }, target);
+    expect(r.ledgered).toBe(false);
+    expect(platform.ledger.entries).toHaveLength(0);
   });
 });

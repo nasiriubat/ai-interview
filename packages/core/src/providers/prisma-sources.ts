@@ -1,11 +1,13 @@
-import type {
-  BudgetLimitSource,
-  LedgerSink,
-  ModelPrice,
-  PriceTable,
-  ProviderConfigSource,
-  RouteResolver,
-  SpendSource,
+import {
+  ProbeLimitError,
+  type BudgetLimitSource,
+  type LedgerSink,
+  type ModelPrice,
+  type PriceTable,
+  type ProbeGuard,
+  type ProviderConfigSource,
+  type RouteResolver,
+  type SpendSource,
 } from "@aidp/ai";
 import type { BudgetLimit, BudgetScope, LedgerEntry, ProviderConfig, Purpose, Route } from "@aidp/shared";
 import { ProviderConfigSchema, RouteSchema } from "@aidp/shared";
@@ -101,6 +103,25 @@ export class PrismaLedger implements LedgerSink, SpendSource {
       where: { ...where, ...(period === "month" ? { createdAt: { gte: from } } : {}) },
     });
     return agg._sum.costCents ?? 0;
+  }
+}
+
+/**
+ * Caps provider tests per tenant over a rolling day, counted from the ledger itself so it needs no
+ * state of its own and survives restarts. Counts calls rather than cents: a probe costs a fraction
+ * of a cent and may have no price at all, so a cents cap would never fire on exactly the provider
+ * it is most needed for.
+ */
+export class PrismaProbeGuard implements ProbeGuard {
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly limitPerDay: number,
+  ) {}
+
+  async check(companyId: string, at: Date): Promise<void> {
+    const since = new Date(at.getTime() - 24 * 60 * 60 * 1000);
+    const used = await this.db.llmCall.count({ where: { companyId, purpose: "probe", createdAt: { gte: since } } });
+    if (used >= this.limitPerDay) throw new ProbeLimitError(this.limitPerDay);
   }
 }
 
