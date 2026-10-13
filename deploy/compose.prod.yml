@@ -136,6 +136,13 @@ services:
       UPLOAD_DIR: /uploads
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Proxies between the internet and this process that write X-Forwarded-For, counted from
+      # here: Caddy is one, for the web app's calls (which forward the address Caddy wrote) and for
+      # the live-voice socket alike. Any other number makes per-address rate limits spoofable.
+      TRUST_PROXY_HOPS: "1"
+      # Hostnames a platform provider may reach on a private address. Empty is right unless the
+      # operator runs a model server or proxy inside this compose network; tenants never can.
+      EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-}
     volumes:
       - uploads:/uploads
     healthcheck:
@@ -175,6 +182,7 @@ services:
       UPLOAD_DIR: /uploads
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-}
     volumes:
       - uploads:/uploads
     # The worker has no HTTP surface, so liveness is "the process that was started is still there".

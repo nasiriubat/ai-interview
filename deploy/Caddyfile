@@ -14,6 +14,17 @@
 	email {$ACME_EMAIL}
 	admin off
 	{$CADDY_LOCAL_CERTS}
+
+	# Slow-client defences (S6, D-87). A request that dribbles its headers or body holds a
+	# connection, and a socket, for as long as it likes unless the server says otherwise. The
+	# body timeout is generous because recordings and documents are up to 50 MB over mobile links.
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 3m
+			idle 2m
+		}
+	}
 }
 
 # Liveness for the container healthcheck only; this port is not published to the host.
@@ -36,12 +47,33 @@
 	handle @voice {
 		reverse_proxy api:4000 {
 			flush_interval -1
+			# The only value the API believes as the client address (TRUST_PROXY_HOPS=1). Written
+			# explicitly, from the connection itself, so it holds whatever the client sent and
+			# whatever Caddy's defaults are in a later version (S1, D-82).
+			header_up X-Forwarded-For {remote_host}
 		}
+	}
+
+	# Request bodies are bounded here, before they reach the web process (S6, D-87). Two uploads
+	# may carry a file, up to the platform maximum of 50 MB plus multipart framing; every other
+	# route is JSON and gets 2 MB, the same ceiling the API itself enforces. The matchers are
+	# complements of one another so exactly one limit applies to a request: stacked limits would
+	# let the small one refuse the upload.
+	@uploads path /api/participant/p/session/attachments /api/participant/p/session/voice-turns
+	@bounded not path /api/participant/p/session/attachments /api/participant/p/session/voice-turns
+	request_body @uploads {
+		max_size 55MB
+	}
+	request_body @bounded {
+		max_size 2MB
 	}
 
 	# Server-sent events carry the interview stream; buffering them would stall every turn.
 	reverse_proxy web:3000 {
 		flush_interval -1
+		# One address, the client's, replacing anything the client sent. The web app forwards
+		# it to the API as the rate-limit identity of an anonymous caller (S1, D-82).
+		header_up X-Forwarded-For {remote_host}
 	}
 
 	header {

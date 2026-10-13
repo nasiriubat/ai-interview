@@ -1,0 +1,44 @@
+# Dependency updates (spec 11: "Dependency and container scanning in CI"; security plan S5b).
+# Dependabot rather than Renovate: GitHub-hosted, nothing for a solo operator to run. Security
+# updates are raised immediately by GitHub regardless of the schedule; this covers the routine
+# drift so that an advisory finds a codebase that is already close to current.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # next-auth 5 declares a nodemailer peer range of ^7 || ^8 and runs 10 through a pnpm
+      # override (D-85). Keep the major under a human's eye until the peer range catches up.
+      - dependency-name: nodemailer
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: docker
+    directory: "/apps/api"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: "/apps/web"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker-compose
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker-compose
+    directory: "/deploy"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
