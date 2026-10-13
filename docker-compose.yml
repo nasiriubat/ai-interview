@@ -54,6 +54,8 @@ services:
       WEB_ORIGIN: http://localhost:3000
       PUBLIC_WEB_URL: http://localhost:3000
       EMAIL_SMTP_URL: smtp://mailpit:1025
+      # Platform providers may reach these local services; a tenant never can (D-83).
+      EGRESS_ALLOW_HOSTS: kroki,minio,mailpit,host.docker.internal
     ports:
       - "4000:4000"
     volumes:
@@ -70,6 +72,7 @@ services:
       UPLOAD_DIR: /uploads
       DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
       EMAIL_SMTP_URL: smtp://mailpit:1025
+      EGRESS_ALLOW_HOSTS: kroki,minio,mailpit,host.docker.internal
     volumes:
       - uploads:/uploads
     depends_on:
