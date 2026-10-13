@@ -17,6 +17,18 @@ export const PURPOSES = [
   "file_ingest",
   "vision_ingest",
   "embedding",
+  /**
+   * "Does this provider answer?" from the admin screen. Ledgered like any call, but never routed
+   * (the caller names the provider and model) and never counted against a budget; it has its own
+   * small daily cap instead (D-106). It exists so the one model call that used to bypass
+   * `ModelCaller` goes through it.
+   */
+  "probe",
 ] as const;
 export const PurposeSchema = z.enum(PURPOSES);
 export type Purpose = z.infer<typeof PurposeSchema>;
+
+/** The purposes a route can be configured for: every one except the unrouted `probe`. */
+export const ROUTABLE_PURPOSES = PURPOSES.filter((p) => p !== "probe");
+export const RoutablePurposeSchema = PurposeSchema.exclude(["probe"]);
+export type RoutablePurpose = z.infer<typeof RoutablePurposeSchema>;

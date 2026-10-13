@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { describeDb } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Crypto } from "../src/crypto.js";
@@ -11,7 +12,7 @@ import {
 import { SettingsService } from "../src/settings/service.js";
 import { attachmentKey, MemoryStorage } from "../src/storage/index.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 const monthsAgo = (n: number): Date => {
   const d = new Date();
@@ -66,6 +67,8 @@ suite("retention sweep (spec 11)", () => {
         kind: "task",
         payload: { text: "t" },
         extractorVersion: "extraction@1",
+        batchEndSeq: 2,
+        ordinal: 0,
       },
     });
     await db.attachment.create({

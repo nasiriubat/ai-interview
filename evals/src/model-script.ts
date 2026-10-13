@@ -1,17 +1,17 @@
-import type { CallRequest, ModelCaller } from "@aidp/ai";
+import type { CallContext, CallRequest, ModelCallerPort } from "@aidp/ai";
 import { TURN_MARKER } from "@aidp/ai";
-import type { ChatEvent, InterviewTemplate } from "@aidp/shared";
+import type { ChatEvent, InterviewTemplate, Purpose } from "@aidp/shared";
 
 /**
  * A deterministic stand-in for the interviewer model: it reads the engine focus from the
  * last user message and answers as an ideal model would, marking the focused area covered
  * once the participant has answered on it. Lets evals exercise the engine end to end.
  */
-export class IdealScriptedModel {
+export class IdealScriptedModel implements ModelCallerPort {
   readonly requests: CallRequest[] = [];
   constructor(private readonly template: InterviewTemplate) {}
 
-  async *chat(_purpose: string, _ctx: unknown, req: CallRequest): AsyncIterable<ChatEvent> {
+  async *chat(_purpose: Purpose, _ctx: CallContext, req: CallRequest): AsyncIterable<ChatEvent> {
     this.requests.push(req);
     const last = String(req.messages.at(-1)?.content ?? "");
     const area = /area "([a-z_]+)"/.exec(last)?.[1];
@@ -43,11 +43,11 @@ export class IdealScriptedModel {
     };
   }
 
-  async complete<T>(): Promise<T> {
-    throw new Error("not used");
+  async complete<T>(purpose: Purpose): Promise<T> {
+    throw new Error(`IdealScriptedModel only scripts the interviewer; unexpected '${purpose}' completion`);
   }
 
-  asCaller(): ModelCaller {
-    return this as unknown as ModelCaller;
+  async embed(): Promise<undefined> {
+    return undefined;
   }
 }

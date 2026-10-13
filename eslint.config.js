@@ -52,6 +52,22 @@ export default tseslint.config(
     },
   },
   {
+    // A prompt version is read from the prompt object (`promptVersionTag`), never typed. The worker
+    // once stamped every extracted fact with the literal "extraction@1" while the prompt moved on,
+    // which made the recorded version a lie (D-101).
+    files: ["apps/*/src/**/*.{ts,tsx}", "packages/*/src/**/*.ts"],
+    ignores: ["packages/ai/src/**/prompts/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/^[a-z_]+@\\d+$/]",
+          message: "Do not write a prompt version by hand; use promptVersionTag(prompt) (D-101).",
+        },
+      ],
+    },
+  },
+  {
     files: ["**/test/**", "**/*.test.ts", "**/seeds/**", "**/evals/**"],
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",

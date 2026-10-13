@@ -6,6 +6,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -16,6 +17,9 @@ jobs:
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U app" --health-interval 5s --health-timeout 5s --health-retries 10
+    # DATABASE_URL is set for the whole job and AIDP_ALLOW_SKIP_DB never is: `pnpm check` fails when
+    # the database is missing and fails when any test was skipped, so a misconfigured job goes red
+    # instead of green with the integration suites quietly absent.
     env:
       DATABASE_URL: postgresql://app:app@localhost:5432/ai_discovery
     steps:
@@ -28,9 +32,15 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - run: pnpm --filter @aidp/db prisma:generate
       - run: pnpm --filter @aidp/db exec prisma migrate deploy
-      - run: pnpm -r typecheck
-      - run: pnpm lint
-      - run: pnpm format:check
-      - run: pnpm -r test
+      # The gate must be able to say no. Without a database `pnpm check` has to refuse at once; if
+      # it ever passes here the "zero skipped" guarantee below means nothing.
+      - name: The gate refuses to run without a database
+        run: |
+          if env -u DATABASE_URL pnpm check; then
+            echo "pnpm check passed without DATABASE_URL: the gate is not honest" >&2
+            exit 1
+          fi
+      # format, build, typecheck, lint, then every package's tests, all against the database above.
+      - run: pnpm check

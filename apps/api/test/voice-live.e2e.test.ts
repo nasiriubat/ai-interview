@@ -1,4 +1,5 @@
 import type { Server } from "node:http";
+import { describeDb } from "@aidp/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { WebSocket as WsClient } from "ws";
 import {
@@ -10,7 +11,7 @@ import {
   type TestWorld,
 } from "./helpers.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 /**
  * The live voice cascade over a real WebSocket (FR-30a).

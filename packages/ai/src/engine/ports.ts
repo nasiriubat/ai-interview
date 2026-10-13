@@ -1,4 +1,5 @@
 import type {
+  Fact,
   Handoff,
   InterviewTemplate,
   Modality,
@@ -49,14 +50,49 @@ export interface AttachedFile {
   status: string;
 }
 
+/**
+ * One extraction batch, committed as a unit (FR-14, NFR-09).
+ *
+ * The model call that produced `facts` happens before this and outside any transaction. What is
+ * atomic is everything after it: the fact rows, the session state's `facts` and
+ * `lastExtractedSeq`, and the `facts_extracted` event either all land or none do.
+ */
+export interface ExtractionCommit {
+  companyId: string;
+  /** The cursor this batch was extracted from. The commit is rejected if the stored cursor differs. */
+  fromSeq: number;
+  /** Highest message sequence this batch covered; becomes the new cursor. */
+  toSeq: number;
+  /** This batch's facts only; the store appends them to what the session already holds. */
+  facts: Fact[];
+  /** `promptVersionTag` of the prompt that produced them, never a literal. */
+  extractorVersion: string;
+  /** Payload of the `facts_extracted` event written in the same transaction. */
+  event: { count: number; upToSeq: number; promptVersion: string };
+}
+
 /** Persistence port. The API implements it with Prisma; tests use memory. */
 export interface SessionStore {
   appendMessage(sessionId: string, message: NewMessage): Promise<StoredMessage>;
   recentMessages(sessionId: string, limit: number): Promise<StoredMessage[]>;
   messagesAfter(sessionId: string, seq: number): Promise<StoredMessage[]>;
   saveState(sessionId: string, state: SessionState): Promise<void>;
-  saveSummary(sessionId: string, summary: string): Promise<void>;
+  /**
+   * Stores a folded summary and advances `summaryUpToSeq` without rewriting the rest of the
+   * state. The summary job runs beside live turns, so writing its whole (older) snapshot back
+   * would undo whatever the turn did in between.
+   */
+  commitSummary(sessionId: string, summary: string, upToSeq: number): Promise<void>;
   appendEvent(sessionId: string, type: string, payload: unknown): Promise<void>;
+  /**
+   * Persists one extraction batch atomically, with compare-and-set on the cursor.
+   *
+   * Returns `"stale"` and writes nothing when the stored `lastExtractedSeq` is no longer
+   * `fromSeq` (another run committed first, a retry overlapped its still-running original) or the
+   * session was deleted. The rows are keyed by (session, `toSeq`, ordinal), so replaying a batch
+   * that did commit is harmless even if the compare-and-set is bypassed.
+   */
+  commitExtraction(sessionId: string, commit: ExtractionCommit): Promise<"committed" | "stale">;
 }
 
 /** Finds older material by meaning. Phase 1 ships a lexical implementation; phase 4 adds embeddings. */

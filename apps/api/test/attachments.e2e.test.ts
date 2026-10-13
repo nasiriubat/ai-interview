@@ -1,8 +1,9 @@
 import type { Server } from "node:http";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describeDb } from "@aidp/testing";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { fakeModelServer, parseSse, testWorld, TURN_MARKER, type TestWorld } from "./helpers.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 /**
  * Attachments and recorded voice through the real HTTP surface (FR-30, FR-31, FR-32).

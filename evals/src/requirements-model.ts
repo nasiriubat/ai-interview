@@ -1,6 +1,6 @@
-import type { CallRequest, ModelCaller } from "@aidp/ai";
+import type { CallContext, CallRequest, ModelCallerPort } from "@aidp/ai";
 import { TURN_MARKER } from "@aidp/ai";
-import type { ChatEvent, InterviewTemplate } from "@aidp/shared";
+import type { ChatEvent, InterviewTemplate, Purpose } from "@aidp/shared";
 import type { z } from "zod";
 
 /**
@@ -10,14 +10,14 @@ import type { z } from "zod";
  * settles findings it raised, re-records MVP items after the challenge, and returns one
  * finding from the issue-detection pass the first time it is asked.
  */
-export class RequirementsScriptedModel {
+export class RequirementsScriptedModel implements ModelCallerPort {
   readonly requests: { purpose: string; req: CallRequest }[] = [];
   readonly issueScans: string[] = [];
   private lastFocus: { mode: string; key?: string } = { mode: "none" };
 
   constructor(private readonly template: InterviewTemplate) {}
 
-  async *chat(purpose: string, _ctx: unknown, req: CallRequest): AsyncIterable<ChatEvent> {
+  async *chat(purpose: Purpose, _ctx: CallContext, req: CallRequest): AsyncIterable<ChatEvent> {
     this.requests.push({ purpose, req });
     const last = String(req.messages.at(-1)?.content ?? "");
     const meta: Record<string, unknown> = { reason: "scripted" };
@@ -131,7 +131,7 @@ export class RequirementsScriptedModel {
     };
   }
 
-  async complete<T>(purpose: string, _ctx: unknown, req: CallRequest, schema: z.ZodType<T>): Promise<T> {
+  async complete<T>(purpose: Purpose, _ctx: CallContext, req: CallRequest, schema: z.ZodType<T>): Promise<T> {
     this.requests.push({ purpose, req });
     if (purpose !== "issue_detection") throw new Error(`unexpected purpose ${purpose}`);
     this.issueScans.push(String(req.messages[0]?.content ?? ""));
@@ -151,7 +151,7 @@ export class RequirementsScriptedModel {
     return schema.parse({ findings });
   }
 
-  asCaller(): ModelCaller {
-    return this as unknown as ModelCaller;
+  async embed(): Promise<undefined> {
+    return undefined;
   }
 }

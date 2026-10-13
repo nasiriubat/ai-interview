@@ -1,7 +1,8 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describeDb } from "@aidp/testing";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { fakeModelServer, testWorld, type TestWorld } from "./helpers.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 suite("OpenAPI and health", () => {
   let world: TestWorld;

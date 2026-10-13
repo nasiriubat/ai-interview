@@ -1,4 +1,11 @@
-import type { NewMessage, SessionSnapshot, SessionStore, StoredMessage } from "@aidp/ai";
+import {
+  reconcileBackgroundProgress,
+  type ExtractionCommit,
+  type NewMessage,
+  type SessionSnapshot,
+  type SessionStore,
+  type StoredMessage,
+} from "@aidp/ai";
 import { tenantTransaction } from "@aidp/db";
 import {
   HandoffSchema,
@@ -85,27 +92,79 @@ export class PrismaSessionStore implements SessionStore {
     return rows.map(toStored);
   }
 
+  /**
+   * Whole-state write, for the turn. Reconciled against the stored document under a row lock so a
+   * turn that started before a background job committed cannot move the job's cursors backwards
+   * (see `reconcileBackgroundProgress`).
+   */
   async saveState(sessionId: string, state: SessionState): Promise<void> {
-    await this.db.session.update({
-      where: { id: sessionId },
-      data: { state: state as Prisma.InputJsonValue },
+    await tenantTransaction(this.db, async (tx) => {
+      const rows = await tx.$queryRaw<{ state: unknown }[]>`
+        SELECT state FROM "Session" WHERE id = ${sessionId} FOR UPDATE`;
+      const stored = SessionStateSchema.safeParse(rows[0]?.state ?? {});
+      const next = stored.success ? reconcileBackgroundProgress(stored.data, state) : state;
+      await tx.session.update({
+        where: { id: sessionId },
+        data: { state: next as Prisma.InputJsonValue },
+      });
     });
   }
 
-  async saveSummary(sessionId: string, summary: string): Promise<void> {
-    await this.db.session.update({ where: { id: sessionId }, data: { summary } });
+  async commitSummary(sessionId: string, summary: string, upToSeq: number): Promise<void> {
+    await tenantTransaction(this.db, async (tx) => {
+      // Only the one key, and only forwards: the document may have moved on since the job read it.
+      await tx.$executeRaw`
+        UPDATE "Session"
+        SET summary = ${summary},
+            state = jsonb_set(state, '{summaryUpToSeq}', to_jsonb(
+              GREATEST(COALESCE((state->>'summaryUpToSeq')::int, 0), ${upToSeq}::int)))
+        WHERE id = ${sessionId} AND status <> 'deleted'`;
+    });
   }
 
   async appendEvent(sessionId: string, type: string, payload: unknown): Promise<void> {
-    await tenantTransaction(this.db, async (tx) => {
-      const last = await tx.sessionEvent.findFirst({
-        where: { sessionId },
-        orderBy: { seq: "desc" },
-        select: { seq: true },
-      });
-      await tx.sessionEvent.create({
-        data: { sessionId, seq: (last?.seq ?? 0) + 1, type, payload: payload as Prisma.InputJsonValue },
-      });
+    await tenantTransaction(this.db, (tx) => appendEventIn(tx, sessionId, type, payload));
+  }
+
+  /**
+   * One extraction batch in one transaction (FR-14, NFR-09). The cursor compare-and-set is the
+   * first statement and also takes the row lock, so two overlapping runs serialize here and the
+   * loser sees a moved cursor, writes nothing and reports `stale`.
+   *
+   * The state is patched in place with `jsonb_set` rather than replaced: the stored document is
+   * the source of truth for everything this job does not own, and the facts are appended to what
+   * is stored, not to what the job read minutes ago.
+   */
+  async commitExtraction(sessionId: string, c: ExtractionCommit): Promise<"committed" | "stale"> {
+    return tenantTransaction(this.db, async (tx) => {
+      const patched = await tx.$executeRaw`
+        UPDATE "Session"
+        SET state = jsonb_set(
+              jsonb_set(state, '{lastExtractedSeq}', to_jsonb(${c.toSeq}::int)),
+              '{facts}',
+              COALESCE(state->'facts', '[]'::jsonb) || ${JSON.stringify(c.facts)}::jsonb)
+        WHERE id = ${sessionId}
+          AND status <> 'deleted'
+          AND COALESCE((state->>'lastExtractedSeq')::int, 0) = ${c.fromSeq}::int`;
+      if (patched === 0) return "stale";
+      if (c.facts.length > 0) {
+        // (sessionId, batchEndSeq, ordinal) is unique: a batch that somehow commits twice
+        // writes its rows once.
+        await tx.fact.createMany({
+          skipDuplicates: true,
+          data: c.facts.map((f, ordinal) => ({
+            companyId: c.companyId,
+            sessionId,
+            kind: f.kind,
+            payload: f as Prisma.InputJsonValue,
+            extractorVersion: c.extractorVersion,
+            batchEndSeq: c.toSeq,
+            ordinal,
+          })),
+        });
+      }
+      await appendEventIn(tx, sessionId, "facts_extracted", c.event);
+      return "committed";
     });
   }
 
@@ -153,6 +212,19 @@ export class PrismaSessionStore implements SessionStore {
       participantId: row.participantId,
     };
   }
+}
+
+type Tx = Parameters<Parameters<typeof tenantTransaction>[1]>[0];
+
+async function appendEventIn(tx: Tx, sessionId: string, type: string, payload: unknown): Promise<void> {
+  const last = await tx.sessionEvent.findFirst({
+    where: { sessionId },
+    orderBy: { seq: "desc" },
+    select: { seq: true },
+  });
+  await tx.sessionEvent.create({
+    data: { sessionId, seq: (last?.seq ?? 0) + 1, type, payload: payload as Prisma.InputJsonValue },
+  });
 }
 
 export function toStored(row: {

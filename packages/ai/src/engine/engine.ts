@@ -1,6 +1,6 @@
 import type { Modality, SessionState, TurnObject, WidgetResponse } from "@aidp/shared";
 import { SessionStateSchema, TurnObjectSchema } from "@aidp/shared";
-import type { ModelCaller } from "../callModel.js";
+import type { ModelCallerPort } from "../callModel.js";
 import { detectIssues, shouldScanIssues } from "../spec/issues.js";
 import { nextMvpItem } from "../spec/live.js";
 import { resolvePolicy } from "../spec/policy.js";
@@ -51,6 +51,15 @@ export type EngineEvent =
   | { type: "turn"; turn: TurnObject; message: StoredMessage; focus: Focus; state: SessionState }
   | { type: "ended"; state: SessionState };
 
+export interface TurnOptions {
+  /**
+   * Cancels the turn. Every model call the turn makes carries it, so an abort tears down the
+   * request in flight; the engine then throws `CallAbortedError` and persists nothing further
+   * (the participant's own message, written first, stays).
+   */
+  signal?: AbortSignal;
+}
+
 export interface TurnResult {
   ended: boolean;
   state: SessionState;
@@ -59,7 +68,7 @@ export interface TurnResult {
 }
 
 export interface EngineDeps {
-  caller: ModelCaller;
+  caller: ModelCallerPort;
   store: SessionStore;
   prompts: PromptSource;
   recall: RecallSource;
@@ -83,8 +92,10 @@ export class InterviewEngine {
     session: SessionSnapshot,
     answer: UserAnswer | undefined,
     settings: EngineSettings,
+    options: TurnOptions = {},
   ): AsyncGenerator<EngineEvent, TurnResult> {
     const { store, logger } = this.deps;
+    const { signal } = options;
     let state = SessionStateSchema.parse(session.state);
     if (session.template.pathSelection !== "none" && !session.path) {
       throw new Error("Path must be selected before the first turn");
@@ -117,6 +128,7 @@ export class InterviewEngine {
         ...(session.path ? { path: session.path } : {}),
         policy,
         reason: scan,
+        ...(signal ? { signal } : {}),
       });
       state = {
         ...state,
@@ -182,7 +194,7 @@ export class InterviewEngine {
         promptVersion: promptVersionTag(prompt),
         ref: { type: "session", id: session.id },
       },
-      { system: ctx.system, messages: ctx.messages, cachePrefix: true },
+      { system: ctx.system, messages: ctx.messages, cachePrefix: true, ...(signal ? { signal } : {}) },
     );
     for await (const ev of stream) {
       if (ev.type === "text") {

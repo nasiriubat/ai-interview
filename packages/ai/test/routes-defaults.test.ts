@@ -1,4 +1,4 @@
-import { PURPOSES, RouteSchema } from "@aidp/shared";
+import { PURPOSES, ROUTABLE_PURPOSES, RouteSchema } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import {
   defaultAnthropicRoutes,
@@ -67,6 +67,23 @@ describe("platform default routes", () => {
     // supply one or a first boot produces a system that cannot do anything.
     for (const rows of [defaultAnthropicRoutes("p"), defaultOpenRouterRoutes("p")]) {
       expect(rows.map((r) => r.purpose)).toContain("interview_turn");
+    }
+  });
+
+  /**
+   * `probe` is a purpose so the ledger can name it, but it is never routed: the caller pins the
+   * provider. A route for it would be dead configuration the admin screen offered and nothing read.
+   */
+  it("exempts probe: a purpose, never routable, never given a default route", () => {
+    expect(PURPOSES).toContain("probe");
+    expect(ROUTABLE_PURPOSES).not.toContain("probe");
+    expect(ROUTABLE_PURPOSES).toHaveLength(PURPOSES.length - 1);
+    for (const rows of [
+      defaultAnthropicRoutes("p"),
+      defaultOpenRouterRoutes("p"),
+      defaultOpenAIRoutes("p"),
+    ]) {
+      expect(rows.map((r) => r.purpose)).not.toContain("probe");
     }
   });
 });

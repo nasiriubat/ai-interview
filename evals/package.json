@@ -12,6 +12,7 @@
     "@aidp/ai": "workspace:*",
     "@aidp/db": "workspace:*",
     "@aidp/shared": "workspace:*",
+    "@aidp/testing": "workspace:*",
     "zod": "^4.0.0"
   },
   "devDependencies": {

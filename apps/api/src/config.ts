@@ -4,6 +4,8 @@ const Env = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
   HOST: z.string().default("0.0.0.0"),
+  /** How long turns in flight may keep streaming after SIGTERM before they are told to retry. */
+  API_SHUTDOWN_DRAIN_SECONDS: z.coerce.number().int().min(0).max(120).default(20),
   DATABASE_URL: z.string().min(1),
   PLATFORM_ENCRYPTION_KEY: z.string().min(1),
   AUTH_SECRET: z.string().min(16),

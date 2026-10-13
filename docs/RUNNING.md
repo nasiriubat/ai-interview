@@ -60,15 +60,33 @@ returns nothing and a cross-tenant write is refused by Postgres.
 
 ## Checks
 
-`pnpm check` runs build, typecheck, lint and tests. The unit suites need nothing. The integration
-suites — the whole API end-to-end suite, the row-level-security conformance tests, and part of
-`packages/core` — **skip silently** without `DATABASE_URL`, so a green `pnpm check` on a machine
-that never set it has not run them. Give them their own database:
+`pnpm check` runs format, build, typecheck, lint and every package's tests, cheapest first. It
+needs a database, because the integration suites (the whole API end-to-end suite, the
+row-level-security conformance tests, and part of `packages/core` and `apps/worker`) are part of
+the gate. Without `DATABASE_URL` it refuses to start and says how to get one. With a database, a
+single skipped test fails the run.
+
+```bash
+pnpm db:up                       # pgvector container, migrations; prints the DATABASE_URL to export
+export DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery
+pnpm check
+```
+
+`pnpm check --no-db` runs everything except the database-backed suites, ends with a banner
+("SKIPPED: N db tests ... does not satisfy the quality gate") and records the run in
+`.check-state.json`. It is for a quick local loop, and it is not what CI runs. Suites declare
+their need with `describeDb` from `@aidp/testing`: it runs with a database, skips visibly under
+`--no-db`, and otherwise fails the file.
+
+Tests never reach the network. A setup file loaded by every package's Vitest config makes `fetch`
+and raw sockets to anything but loopback (and the database host) throw "network access in tests",
+and a canary test in each package proves the guard is live.
+
+To give the suites their own database rather than the development one:
 
 ```bash
 docker exec ai-interview-postgres-1 psql -U app -d postgres -c 'CREATE DATABASE ai_discovery_test'
 export DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery_test
-export PLATFORM_ENCRYPTION_KEY=$(openssl rand -base64 32)
 pnpm --filter @aidp/db exec prisma migrate deploy
 pnpm check
 ```
