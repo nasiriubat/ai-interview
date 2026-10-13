@@ -137,6 +137,29 @@ describe("server pages follow the lang cookie", () => {
     expect(screen.getByText(fi.auth.verifyRequest)).toBeInTheDocument();
   });
 
+  it("not-found page in Finnish, with no way to the staff sign-in for a participant", async () => {
+    const { default: NotFound } = await import("@/app/not-found");
+    await renderPage(NotFound());
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(fi.app.notFoundTitle);
+    expect(screen.getByText(fi.app.notFoundBody)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("not-found page offers the dashboard only to a signed-in staff member", async () => {
+    api.staffToken = "jwt";
+    const { default: NotFound } = await import("@/app/not-found");
+    await renderPage(NotFound());
+    expect(screen.getByRole("link", { name: fi.app.notFoundDashboard })).toHaveAttribute("href", "/admin");
+  });
+
+  it("participant not-found says the link is not valid and has no link of its own", async () => {
+    const { default: NotFound } = await import("@/app/p/not-found");
+    await renderPage(NotFound());
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(fi.participant.arrival.invalidTitle);
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("an admin list page renders its header in Finnish", async () => {
     const { default: Page } = await import("@/app/admin/users/page");
     await renderPage(Page({ searchParams: Promise.resolve({}) }));
