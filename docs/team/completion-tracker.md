@@ -3,7 +3,7 @@
 The one file to read to see where the program stands. Updated at every merge. The plan behind it
 is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026-10-13.md`.
 
-**Last updated:** 2026-10-13, after the M2 copy pass merged.
+**Last updated:** 2026-10-14 02:15, after the three running agents were interrupted by the account session limit and resumed.
 
 ## Headline numbers
 
@@ -99,9 +99,10 @@ contact address, live voice in the first pilot (default: behind its flag).
 
 ## Log
 
-| Date       | What happened                                                                                                |
-| ---------- | ------------------------------------------------------------------------------------------------------------ |
-| 2026-10-13 | Status review: six parallel reviews; seven discipline plans; master plan written                             |
-| 2026-10-13 | M0: working tree committed in six commits                                                                    |
-| 2026-10-13 | M1: web, engineering, security merged; operations merged by a dedicated agent after 20 conflicts; gate green |
-| 2026-10-13 | M2 wave 1 launched; copy pass merged (450 web tests)                                                         |
+| Date       | What happened                                                                                                                                                                                        |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-13 | Status review: six parallel reviews; seven discipline plans; master plan written                                                                                                                     |
+| 2026-10-13 | M0: working tree committed in six commits                                                                                                                                                            |
+| 2026-10-13 | M1: web, engineering, security merged; operations merged by a dedicated agent after 20 conflicts; gate green                                                                                         |
+| 2026-10-13 | M2 wave 1 launched; copy pass merged (450 web tests)                                                                                                                                                 |
+| 2026-10-14 | Account session limit (reset 02:10) killed the architecture, tenancy and live-run agents mid-work; their committed work (6, 4 and 5 commits) survived in their worktrees; all three resumed at 02:11 |
