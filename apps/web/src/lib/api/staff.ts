@@ -44,6 +44,10 @@ import {
   CampaignEnvelopeSchema,
   CampaignPageSchema,
   type Campaign,
+  DeadJobListSchema,
+  type DeadJob,
+  QueueListSchema,
+  type QueueSummary,
   type EmailTest,
   EmailTestSchema,
   HealthSchema,
@@ -563,6 +567,32 @@ export function staffApi(transport: Transport): StaffApi {
           ok(request(transport, { method: "PUT", path: "/operator/routes", body: { routes } })),
       },
       stats: () => request(transport, { path: "/operator/stats", schema: StatsSchema }),
+      jobs: {
+        list: () =>
+          request(transport, { path: "/operator/jobs", schema: QueueListSchema }).then((r) => r.queues),
+        dead: (queue, limit) =>
+          request(transport, {
+            path: "/operator/jobs/dead",
+            query: { queue, ...(limit ? { limit } : {}) },
+            schema: DeadJobListSchema,
+          }).then((r) => r.jobs),
+        retry: (queue, id) =>
+          ok(
+            request(transport, {
+              method: "POST",
+              path: `/operator/jobs/dead/${encodeURIComponent(queue)}/${encodeURIComponent(id)}/retry`,
+            }),
+          ),
+        discard: (queue, id) =>
+          ok(
+            request(transport, {
+              method: "POST",
+              path: `/operator/jobs/dead/${encodeURIComponent(queue)}/${encodeURIComponent(id)}/discard`,
+            }),
+          ),
+        runNow: (name) =>
+          ok(request(transport, { method: "POST", path: `/operator/jobs/run/${encodeURIComponent(name)}` })),
+      },
     },
   };
 }
@@ -697,5 +727,13 @@ export interface StaffApi {
     providers: ProvidersApi;
     routes: RoutesApi;
     stats(): Promise<Stats>;
+    /** The background queue: counters, dead letters, and the verbs that act on them (D-92). */
+    jobs: {
+      list(): Promise<QueueSummary[]>;
+      dead(queue: string, limit?: number): Promise<DeadJob[]>;
+      retry(queue: string, id: string): Promise<void>;
+      discard(queue: string, id: string): Promise<void>;
+      runNow(name: string): Promise<void>;
+    };
   };
 }
