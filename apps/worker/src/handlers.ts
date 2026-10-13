@@ -32,7 +32,7 @@ export interface HandlerDeps {
   /** Where uploaded audio and documents live; the worker reads what the API wrote. */
   storage: StoragePort;
   /** The `ops.health-sweep` job (D-92). */
-  health: HealthSweep;
+  health?: HealthSweep;
 }
 
 /**
@@ -195,6 +195,9 @@ export function handlers(deps: HandlerDeps): Handlers {
      * dead letters, backups, the disk, provider error rates. It reads and alerts; it fixes nothing.
      */
     "ops.health-sweep": scoped(async (): Promise<void> => {
+      // Optional so that a caller that builds handlers for the jobs it cares about (a test) need
+      // not build the sweep; the worker always passes it, and a missing one is an error, not a no-op.
+      if (!deps.health) throw new Error("ops.health-sweep ran without a HealthSweep configured");
       const r = await deps.health.run();
       deps.log.info("health sweep finished", { raised: r.raised.length, resolved: r.resolved.length });
     }),
