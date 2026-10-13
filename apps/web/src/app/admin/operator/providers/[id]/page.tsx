@@ -5,7 +5,7 @@ import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { ModelsPanel } from "@/components/admin/providers/ModelsPanel";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export default async function PlatformProviderModelsPage({ params }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const { id } = await params;
   const api = await staffServer();

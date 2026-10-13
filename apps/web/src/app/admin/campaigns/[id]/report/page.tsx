@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { ReportView } from "@/components/report/ReportView";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { isApiError } from "@/lib/api/errors";
 import type { Report } from "@/lib/api/schemas";
@@ -25,6 +25,7 @@ interface Props {
 }
 
 export default async function ReportPage({ params, searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const { id } = await params;
   const sp = await searchParams;

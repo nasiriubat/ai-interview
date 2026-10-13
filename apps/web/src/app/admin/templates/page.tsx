@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { enumFilter, isFiltered, statusFilter } from "@/lib/admin/toolbar";
@@ -28,6 +28,7 @@ interface Props {
 }
 
 export default async function TemplatesPage({ searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const lp = listParams(await searchParams, LISTS.templates);
   const api = await staffServer();

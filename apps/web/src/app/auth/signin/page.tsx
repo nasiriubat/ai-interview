@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).app.signIn };
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export default async function SignInPage({ searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   const sp = await searchParams;
   const callbackUrl = typeof sp.callbackUrl === "string" ? sp.callbackUrl : "/admin";
   const error = typeof sp.error === "string" ? sp.error : undefined;

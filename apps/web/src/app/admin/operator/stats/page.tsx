@@ -4,7 +4,7 @@ import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { StatsGroups } from "@/components/admin/StatsGroups";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
@@ -13,6 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PlatformStatsPage(): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const api = await staffServer();
   const [statsR] = await Promise.allSettled([api.operator.stats()]);

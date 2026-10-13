@@ -3,7 +3,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { RequirementsForm } from "@/components/admin/requirements/RequirementsForm";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
@@ -16,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const REQUIREMENTS_TEMPLATE_KEY = "requirements_discovery";
 
 export default async function NewRequirementsPage(): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const api = await staffServer();
   let templates: Awaited<ReturnType<typeof api.templates.list>> = [];

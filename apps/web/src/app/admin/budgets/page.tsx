@@ -7,7 +7,7 @@ import { Pagination } from "@/components/admin/Pagination";
 import { BudgetsPanel } from "@/components/admin/providers/BudgetsPanel";
 import { SpendPanel } from "@/components/admin/SpendPanel";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { enumFilter, isFiltered } from "@/lib/admin/toolbar";
@@ -23,6 +23,7 @@ interface Props {
 }
 
 export default async function BudgetsPage({ searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   const me = await requireMe();
   const lp = listParams(await searchParams, LISTS.budgets);
   const { page, limit } = lp;

@@ -9,7 +9,7 @@ import { TemplateDiff } from "@/components/admin/templates/TemplateDiff";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
@@ -23,6 +23,7 @@ interface Props {
 }
 
 export default async function TemplatePage({ params }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const { id } = await params;
   const api = await staffServer();
