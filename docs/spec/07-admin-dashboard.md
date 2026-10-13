@@ -18,7 +18,7 @@ not a constant in code.
 - Prompts: every system prompt editable per tenant with the shipped version as reset and a diff view; canary a prompt version to a share of sessions.
 - Scoring: weights, presets, class thresholds.
 - Providers, models, routing per purpose, effort, max tokens, batch flags, price table, test configuration.
-- Budgets at three levels, warning threshold, behavior at 100 percent (pause, or downgrade to a cheaper route).
+- Budgets at three levels and a warning threshold. At 100 percent the budget pauses and the tenant's admins and the operator are notified (D-91); there is no behaviour knob.
 - Campaign defaults: max turns, completion threshold, link expiry, consent text, participant fields, domain restriction, verification.
 - Privacy: retention period, k for anonymity, who sees raw transcripts, deletion handling.
 - Exports: sections on or off, bundle format, GitHub target, PDF branding.

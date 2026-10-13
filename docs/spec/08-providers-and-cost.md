@@ -24,7 +24,7 @@ quality-critical purposes default to the strongest tier.
 - Ledger row per call: tenant, purpose, provider, model, prompt version, tokens (input, cache read, cache write, output), latency, status, computed cost, session and campaign.
 - Price table per provider and model: seeded, admin-editable, provider-imported; admin overrides win.
 - Budgets: tenant monthly (platform default; tenant may lower), campaign cap, session cap. Guard before each call with a conservative estimate; actuals recorded after.
-- Warn at 80 percent; at 100 percent either pause with a visible state or downgrade to a configured cheaper route (knob). Never silent.
+- Warn at 80 percent (and again at 90); at 100 percent pause with a visible state, and tell the tenant's admins and the operator (D-90, D-91). Never silent: the participant is told the interview is paused, and is told "the organizer has been notified" only when an alert actually reached someone. There is no downgrade-to-a-cheaper-model behaviour; a lower soft budget is a second budget line.
 - Fewer tokens per call: cached stable prefix, layered context (`03`), file summaries, turn caps, batch endpoints for non-interactive purposes.
 - Spend dashboard by tenant, campaign, purpose, model, day.
 

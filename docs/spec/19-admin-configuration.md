@@ -57,6 +57,51 @@ platform-level twins of the tenant routes, operator only, acting on rows with `c
 | GET/PUT      | `/operator/providers/:id/prices` | `/providers/:id/prices` |
 | GET/PUT      | `/operator/routes`               | `/routes`               |
 
+## Operations: alert settings, notifications and background jobs (D-90 to D-92)
+
+Two new settings categories. `ops` is platform scope only: it decides who the operator is told,
+how loudly and how often, and it is what the "Operations alerts" screen edits. `notifications` is
+platform and tenant: it decides which of a tenant's own people receive that tenant's notices.
+
+| Key                            | Type     | Scopes           | Secret | Default   | Meaning                                                                                   |
+| ------------------------------ | -------- | ---------------- | ------ | --------- | ----------------------------------------------------------------------------------------- |
+| `ops.alertEmail`               | string   | platform         | no     | `""`      | Where operator alerts are emailed; empty falls back to `ALERT_EMAIL`, then the operator   |
+| `ops.alertWebhookUrl`          | string   | platform         | yes    | `""`      | ntfy topic URL, Slack incoming webhook or generic JSON endpoint (an http or https URL)    |
+| `ops.alertWebhookFormat`       | enum     | platform         | no     | `ntfy`    | `ntfy` \| `slack` \| `generic`                                                            |
+| `ops.alertEmailMinSeverity`    | enum     | platform         | no     | `warning` | Lowest severity emailed: `info` \| `warning` \| `critical`                                |
+| `ops.alertWebhookMinSeverity`  | enum     | platform         | no     | `info`    | Lowest severity posted to the webhook                                                     |
+| `ops.alertRepeatMinutes`       | int      | platform         | no     | `60`      | When set, replaces every kind's own repeat window (1 to 10080)                            |
+| `ops.alertMaxPerHour`          | int      | platform         | no     | `30`      | Alerts per audience per hour before the rest are suppressed behind one storm notice       |
+| `ops.diskWarnPercent`          | int      | platform         | no     | `80`      | Disk use that raises `disk.high` as a warning                                             |
+| `ops.diskCriticalPercent`      | int      | platform         | no     | `90`      | Disk use that raises it as critical                                                       |
+| `ops.providerErrorRateWarn`    | number   | platform         | no     | `0.25`    | Share of a provider's calls that failed in ten minutes (at least ten calls)               |
+| `ops.backupMaxAgeHours`        | int      | platform         | no     | `26`      | Hours without a successful backup before `backup.missing`                                 |
+| `notifications.recipients`     | string[] | platform, tenant | no     | `[]`      | Whose addresses receive the tenant's notices; empty means every admin of the tenant       |
+| `notifications.budgetWarnings` | boolean  | platform, tenant | no     | `true`    | Email the tenant's admins when a budget passes its warning threshold (not the exhaustion) |
+
+`cost.onBudgetExceeded` is removed (D-91). There is no behaviour knob at 100 percent: the budget
+pauses, and the tenant's admins and the operator are told.
+
+**What a tenant receives.** Only `budget.warning` (at 80 and 90 percent of a budget) and
+`budget.exceeded`, to the admins of the tenant the budget belongs to. The recipients are resolved
+from the alert's own `companyId`; no other kind is ever addressed to a tenant.
+
+### Background jobs (operator only)
+
+All under `platform_operator`, audited on the job's tenant when it has one.
+
+| Method | Path                                     | Body | Response                                                                                                                                                      |
+| ------ | ---------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/operator/jobs`                         |      | `{ queues: [{ name, queued, active, deadLettered, oldestQueuedAt, expireInSeconds, retryLimit, lastFailure, runNow }] }`                                      |
+| GET    | `/operator/jobs/dead?queue=&limit=`      |      | `{ queue, jobs: [{ id, queue, createdAt, sourceId, retryCount, companyId, data, error }] }`; `data` holds identifiers only, never addresses, subjects or text |
+| POST   | `/operator/jobs/dead/:queue/:id/retry`   |      | `{ ok: true, queuedAs }`: the payload is queued again with a fresh attempt budget; audit `job.retry`                                                          |
+| POST   | `/operator/jobs/dead/:queue/:id/discard` |      | `{ ok: true }`; audit `job.discard`                                                                                                                           |
+| POST   | `/operator/jobs/run/:name`               |      | `{ ok: true, queued }`: only for the parameterless recurring jobs; audit `job.run_now`                                                                        |
+
+`404 not_found` when the dead letter is not there; `409 conflict` when a retry could not be queued
+(an identical job is already waiting), in which case the dead letter is left in place; `400` for a
+queue or job name that is not in the catalog.
+
 ## Models and prices
 
 `GET /providers/:id/models` already asks the provider for its live catalogue and imports any

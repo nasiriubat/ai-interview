@@ -1,13 +1,18 @@
 # 12 Operations and production readiness
 
-- Tracing with OpenTelemetry: session, turn, model call, job, tokens, cost, latency in one trace. Exported to Grafana Tempo by default (self-hosted stack in `infra/`), or any OTLP backend.
+This file is the requirement. How it is met on the single-host deployment, step by step, is in
+[`docs/OPERATIONS.md`](../OPERATIONS.md); what is built and what is not is stated there under "Not yet".
+
+- Tracing with OpenTelemetry: session, turn, model call, job, tokens, cost, latency in one trace. Exported to Grafana Tempo by default (self-hosted stack in `infra/`, planned: the directory does not exist yet and the development compose stack carries only Kroki and MinIO), or any OTLP backend. Today the API exports; the worker does not.
 - Structured logs with request, tenant, session ids; metrics with SLOs: first token under 2 s at p95 (NFR-01), voice first word under 1.5 s at p95, job success rate above 99.5 percent, budget-block rate visible.
 - Replayable event log: any session re-runs offline against a new prompt version.
 - Evals in CI on fixed transcripts: coverage progression, fact recall after summary, issue detection precision, specification completeness, extraction accuracy. Merges blocked on regression (NFR-06).
-- Jobs: idempotent, exponential backoff, dead-letter queue, admin retry view (NFR-09).
-- Typed contracts; generated API client for the frontend; migrations reviewed and reversible.
+- Alerting (D-90, D-94): every failure that is not visible to a user reaches the operator within five minutes, by email and webhook, through one `AlertPort`. The kinds are a catalog (`packages/core/src/alerts/kinds.ts`), each with a runbook section in `docs/OPERATIONS.md` that a test requires. The ones the application cannot raise about itself (the RLS preflight refusing to start it, the worker's heartbeat, API readiness, certificate expiry, and the backup and disk while the worker is down) are raised by a sidecar that shares nothing with it. Tenant admins are sent only their own tenant's budget notices.
+- Jobs (D-92, NFR-09): idempotent, exponential backoff, a time limit per job (`expireInSeconds`), a dead-letter queue kept 30 days, and an operator view to retry, discard or run a job by hand. A health sweep every five minutes reads stuck jobs, dead letters, backup status, disk use and provider error rates. The worker proves it can reach the queue; a worker that cannot exits for restart.
+- Provider calls (D-93): every outbound call has a deadline, a first-token deadline when streaming and a bounded retry, configurable by environment; a timeout is a retryable `timeout` error.
+- Typed contracts; generated API client for the frontend. Migrations are reviewed, forward-only and additive (a column is dropped one release after the code stopped reading it), so that the previous code runs on the newer schema; the way back from a migration that cannot honour this is the pre-upgrade dump (D-96). There are no down scripts.
 - Feature flags per tenant; prompt version canaries; instant rollback.
 - Load tests before each phase ships; chaos test for provider outage: the interview pauses politely and resumes.
-- Backups: nightly Postgres and object storage snapshots, restore drill each phase.
-- Deployment: Docker Compose with health checks; blue-green by service; migrations run before rollout.
+- Backups (D-95): nightly Postgres dump and uploads archive, encrypted before they touch the disk, verified by reading them back, reported in a status file the healthcheck and the sweep read, and copied offsite when configured. The container is unhealthy when the last backup failed or is old. A restore drill each phase; an automatic weekly one is planned.
+- Deployment (D-96): Docker Compose with health checks; images tagged with the git SHA and kept for three generations; `upgrade.sh` takes a backup, migrates, switches behind a maintenance page and smoke-tests, and undoes the switch on failure; `rollback.sh` needs no build. Blue-green by service is not done on one host (it doubles the memory for seconds and the schema is shared anyway); the maintenance page is what covers the gap.
 - Cache-hit test (NFR-08) and cost regression test per prompt change.
