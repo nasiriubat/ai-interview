@@ -106,9 +106,7 @@ describe("Composer recording", () => {
     render(<Composer disabled={false} onSend={onSend} onVoice={vi.fn()} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Record your answer" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Your browser did not give us the microphone.",
-    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("Microphone access was blocked.");
     await user.type(screen.getByLabelText("Your answer"), "I typed it instead");
     await user.click(screen.getByRole("button", { name: "Send" }));
     expect(onSend).toHaveBeenCalledWith("I typed it instead");
@@ -126,7 +124,7 @@ describe("Composer recording", () => {
     vi.stubGlobal("MediaRecorder", undefined);
     render(<Composer disabled={false} onSend={vi.fn()} onVoice={vi.fn()} />);
     await userEvent.setup().click(screen.getByRole("button", { name: "Record your answer" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("This browser cannot record sound.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("This browser cannot record audio.");
     expect(mic.asked()).toBe(0);
   });
 
@@ -164,7 +162,7 @@ describe("attachments", () => {
       />,
     );
 
-    expect(screen.getByText(/Reading that…/)).toBeInTheDocument();
+    expect(screen.getByText(/Reading your file…/)).toBeInTheDocument();
     expect(screen.getByText("2 kB · Ready")).toBeInTheDocument();
     expect(screen.getByText(/We could not read any text in that image/)).toBeInTheDocument();
     expect(screen.getByText(/0:07/)).toBeInTheDocument();
@@ -335,7 +333,7 @@ describe("capabilities", () => {
     expect(screen.queryByRole("radio", { name: "Voice" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Attach a file" })).not.toBeInTheDocument();
     // A stored voice preference from before the setting changed falls back to chat.
-    expect(screen.getByRole("radio", { name: "Chat" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Text" })).toHaveAttribute("aria-checked", "true");
   });
 });
 

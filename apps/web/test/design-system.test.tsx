@@ -33,12 +33,12 @@ beforeEach(() => {
 describe("buildCrumbs", () => {
   it("is empty outside the admin and a single crumb on the dashboard", () => {
     expect(buildCrumbs("/p/session")).toEqual([]);
-    expect(buildCrumbs("/admin")).toEqual([{ label: "Dashboard" }]);
+    expect(buildCrumbs("/admin")).toEqual([{ label: "Overview" }]);
   });
 
   it("links every ancestor and leaves the current page unlinked", () => {
     expect(buildCrumbs("/admin/campaigns/new")).toEqual([
-      { label: "Dashboard", href: "/admin" },
+      { label: "Overview", href: "/admin" },
       { label: "Campaigns", href: "/admin/campaigns" },
       { label: "New" },
     ]);
@@ -46,19 +46,19 @@ describe("buildCrumbs", () => {
 
   it("names id segments from the labels the page supplies, never showing the id", () => {
     expect(buildCrumbs("/admin/campaigns/c_123/results", { c_123: "Q3 survey" })).toEqual([
-      { label: "Dashboard", href: "/admin" },
+      { label: "Overview", href: "/admin" },
       { label: "Campaigns", href: "/admin/campaigns" },
       { label: "Q3 survey", href: "/admin/campaigns/c_123" },
       { label: "Results" },
     ]);
     const unnamed = buildCrumbs("/admin/templates/t_9");
-    expect(unnamed.map((c) => c.label)).toEqual(["Dashboard", "Templates", "Details"]);
+    expect(unnamed.map((c) => c.label)).toEqual(["Overview", "Templates", "Details"]);
   });
 
   it("does not link namespaces that have no page, and names versions", () => {
     const crumbs = buildCrumbs("/admin/requirements/r1/versions/3", { r1: "Payroll app" });
     expect(crumbs.map((c) => c.label)).toEqual([
-      "Dashboard",
+      "Overview",
       "Requirements",
       "Payroll app",
       "Versions",
@@ -66,12 +66,12 @@ describe("buildCrumbs", () => {
     ]);
     expect(crumbs[3]?.href).toBeUndefined();
     const session = buildCrumbs("/admin/sessions/s1/");
-    expect(session[1]).toEqual({ label: "Sessions" });
+    expect(session[1]).toEqual({ label: "Interviews" });
   });
 
   it("uses the operator section names", () => {
     expect(buildCrumbs("/admin/operator/providers").map((c) => c.label)).toEqual([
-      "Dashboard",
+      "Overview",
       "Tenants",
       "Platform providers",
     ]);

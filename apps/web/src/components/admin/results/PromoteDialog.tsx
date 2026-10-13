@@ -78,7 +78,7 @@ export function PromoteDialog({
       <DialogContent closeLabel={t.app.close} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{result ? s.done : s.title}</DialogTitle>
-          <DialogDescription>{result ? s.sessionCreated(result.session.id) : s.body}</DialogDescription>
+          <DialogDescription>{result ? s.sessionCreated : s.body}</DialogDescription>
         </DialogHeader>
         <p className="text-sm font-medium">{effectiveTitle(o)}</p>
         {h ? (

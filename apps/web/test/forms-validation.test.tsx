@@ -97,7 +97,7 @@ describe("template issues point at the control the editor renders", () => {
       { path: ["coverageAreas", 1, "key"], code: "too_big", message: "dup" },
       { path: ["name"], code: "too_small", message: "x" },
     ]);
-    expect(issues.map((i) => i.label)).toEqual(["Coverage areas: Key 2", "Basics: Name"]);
+    expect(issues.map((i) => i.label)).toEqual(["Topics: Key 2", "Basics: Name"]);
     expect(countBySection(issues)).toEqual({ areas: 1, basics: 1 });
   });
 });
@@ -254,8 +254,8 @@ describe("scope picker", () => {
       </DirtyGuardProvider>,
     );
     expect(screen.queryByRole("button", { name: "Open" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("combobox", { name: "Scope" }));
-    await user.click(await screen.findByRole("option", { name: "Tenant" }));
+    await user.click(screen.getByRole("combobox", { name: "Level" }));
+    await user.click(await screen.findByRole("option", { name: "Organization" }));
     expect(push).toHaveBeenCalledWith("/admin/settings?category=engine&scope=tenant");
   });
 
@@ -294,7 +294,7 @@ describe("scope picker", () => {
         <Unsaved />
       </DirtyGuardProvider>,
     );
-    await user.click(screen.getByRole("combobox", { name: "Scope" }));
+    await user.click(screen.getByRole("combobox", { name: "Level" }));
     await user.click(await screen.findByRole("option", { name: "Campaign" }));
     expect(push).not.toHaveBeenCalled();
     await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Leave" }));
