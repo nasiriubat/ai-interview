@@ -10,3 +10,6 @@ coverage/
 
 # Browser-tool snapshots
 .playwright-mcp/
+
+# Live-run harness output (transcripts, reports, scorecards)
+scripts/live-run/out/
