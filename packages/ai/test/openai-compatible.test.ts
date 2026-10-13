@@ -137,7 +137,14 @@ describe("OpenAICompatibleProvider", () => {
 
   it("maps HTTP errors to typed provider errors", async () => {
     const fetchMock: typeof fetch = async () => new Response("slow down", { status: 429 });
-    const p = new OpenAICompatibleProvider({ id: "oa", kind: "openai", apiKey: "k", fetch: fetchMock });
+    // Retried with backoff before it is reported (D-93); the sleep is replaced so the test is not.
+    const p = new OpenAICompatibleProvider({
+      id: "oa",
+      kind: "openai",
+      apiKey: "k",
+      fetch: fetchMock,
+      sleep: async () => undefined,
+    });
     await expect(p.listModels()).rejects.toMatchObject({
       name: "ProviderError",
       code: "rate_limit",

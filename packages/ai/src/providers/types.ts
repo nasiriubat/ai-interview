@@ -77,6 +77,8 @@ export class ProviderError extends Error {
       | "not_found"
       | "server"
       | "network"
+      /** A deadline passed with no answer or no output (D-93). Retryable: slow once is rarely slow twice. */
+      | "timeout"
       | "refusal"
       | "parse"
       | "unsupported",
