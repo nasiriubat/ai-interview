@@ -61,6 +61,7 @@ export class PrismaSessionStore implements SessionStore {
       });
       const row = await tx.message.create({
         data: {
+          companyId: await sessionCompany(tx, sessionId),
           sessionId,
           seq: (last?.seq ?? 0) + 1,
           role: m.role,
@@ -223,8 +224,25 @@ async function appendEventIn(tx: Tx, sessionId: string, type: string, payload: u
     select: { seq: true },
   });
   await tx.sessionEvent.create({
-    data: { sessionId, seq: (last?.seq ?? 0) + 1, type, payload: payload as Prisma.InputJsonValue },
+    data: {
+      companyId: await sessionCompany(tx, sessionId),
+      sessionId,
+      seq: (last?.seq ?? 0) + 1,
+      type,
+      payload: payload as Prisma.InputJsonValue,
+    },
   });
+}
+
+/**
+ * The tenant a session belongs to, read from the session row itself. Child rows carry it as a
+ * denormalised column behind a composite foreign key (D-140), so the writer states the owner it
+ * read rather than the one the request context happens to hold; under the system context those
+ * differ and the key would refuse the write.
+ */
+async function sessionCompany(tx: Tx, sessionId: string): Promise<string> {
+  const row = await tx.session.findUniqueOrThrow({ where: { id: sessionId }, select: { companyId: true } });
+  return row.companyId;
 }
 
 export function toStored(row: {

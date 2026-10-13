@@ -55,10 +55,10 @@ suite("retention sweep (spec 11)", () => {
       },
     });
     await db.message.create({
-      data: { sessionId: session.id, seq: 1, role: "user", content: "my name is Alice" },
+      data: { companyId: company, sessionId: session.id, seq: 1, role: "user", content: "my name is Alice" },
     });
     await db.sessionEvent.create({
-      data: { sessionId: session.id, seq: 1, type: "state_delta", payload: { a: 1 } },
+      data: { companyId: company, sessionId: session.id, seq: 1, type: "state_delta", payload: { a: 1 } },
     });
     await db.fact.create({
       data: {

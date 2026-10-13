@@ -131,6 +131,7 @@ model Campaign {
   createdAt           DateTime @default(now())
   invitations         Invitation[]
   emailHashes         CampaignEmailHash[]
+  emailCodes          EmailCode[]
 
   company      Company           @relation(fields: [companyId], references: [id])
   template     InterviewTemplate @relation(fields: [templateId], references: [id])
@@ -140,6 +141,7 @@ model Campaign {
   analyses     Analysis[]
   llmCalls     LlmCall[]
 
+  @@unique([id, companyId])
   @@index([companyId])
   @@index([companyId, createdAt])
   @@index([companyId, status, createdAt])
@@ -185,6 +187,9 @@ model Session {
   llmCalls    LlmCall[]
   invitation  Invitation?
 
+  // Children carry (id, companyId) as a composite foreign key, so a row can never name a tenant
+  // other than its parent's (migration 0016, D-140).
+  @@unique([id, companyId])
   @@index([companyId, campaignId])
   @@index([companyId, campaignId, status])
   @@index([companyId, ownerUserId])
@@ -192,6 +197,8 @@ model Session {
 
 model Message {
   id        String   @id @default(cuid())
+  /// Denormalised from the session so the row carries its own tenant fence (migration 0016, D-140).
+  companyId String
   sessionId String
   seq       Int
   role           String // user | assistant
@@ -202,7 +209,7 @@ model Message {
   areaKey        String?
   createdAt      DateTime @default(now())
 
-  session     Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session     Session      @relation(fields: [sessionId, companyId], references: [id, companyId], onDelete: Cascade)
   attachments Attachment[]
 
   @@unique([sessionId, seq])
@@ -211,13 +218,14 @@ model Message {
 /// Append-only (FR-51). state_delta, finding, attachment, admin_note, system.
 model SessionEvent {
   id        String   @id @default(cuid())
+  companyId String
   sessionId String
   seq       Int
   type      String
   payload   Json
   createdAt DateTime @default(now())
 
-  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId, companyId], references: [id, companyId], onDelete: Cascade)
 
   @@unique([sessionId, seq])
 }
@@ -301,11 +309,13 @@ model Fact {
   evidence OpportunityEvidence[]
 
   @@unique([sessionId, batchEndSeq, ordinal])
+  @@unique([id, companyId])
   @@index([companyId, sessionId])
 }
 
 model Analysis {
   id         String    @id @default(cuid())
+  companyId  String
   campaignId String
   version    Int
   status      String    @default("queued") // queued | running | done | failed
@@ -315,15 +325,17 @@ model Analysis {
   finishedAt DateTime?
   createdAt  DateTime  @default(now())
 
-  campaign      Campaign      @relation(fields: [campaignId], references: [id])
+  campaign      Campaign      @relation(fields: [campaignId, companyId], references: [id, companyId])
   opportunities Opportunity[]
   reports       Report[]
 
   @@unique([campaignId, version])
+  @@unique([id, companyId])
 }
 
 model Opportunity {
   id            String   @id @default(cuid())
+  companyId     String
   analysisId    String
   title         String
   summary       String
@@ -341,26 +353,29 @@ model Opportunity {
   promotedSessionId String?
   createdAt     DateTime @default(now())
 
-  analysis Analysis              @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  analysis Analysis              @relation(fields: [analysisId, companyId], references: [id, companyId], onDelete: Cascade)
   evidence OpportunityEvidence[]
 
+  @@unique([id, companyId])
   @@index([analysisId, rankScore])
 }
 
 model OpportunityEvidence {
+  companyId     String
   opportunityId String
   factId        String
   snippet       String
   anonymized    Boolean @default(true)
 
-  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  fact        Fact        @relation(fields: [factId], references: [id], onDelete: Cascade)
+  opportunity Opportunity @relation(fields: [opportunityId, companyId], references: [id, companyId], onDelete: Cascade)
+  fact        Fact        @relation(fields: [factId, companyId], references: [id, companyId], onDelete: Cascade)
 
   @@id([opportunityId, factId])
 }
 
 model Report {
   id            String   @id @default(cuid())
+  companyId     String
   analysisId    String
   version       Int
   markdown      String
@@ -368,7 +383,7 @@ model Report {
   pdfStorageKey String?
   createdAt     DateTime @default(now())
 
-  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  analysis Analysis @relation(fields: [analysisId, companyId], references: [id, companyId], onDelete: Cascade)
 
   @@unique([analysisId, version])
 }
@@ -400,6 +415,7 @@ model SpecVersion {
 /// Personal one-time links and email-code bindings (FR-10, FR-04). One session per invitation.
 model Invitation {
   id         String    @id @default(cuid())
+  companyId  String
   campaignId String
   emailHash  String // salted hash; the plain email is kept only when the campaign is identified
   email      String?
@@ -411,32 +427,48 @@ model Invitation {
   expiresAt  DateTime
   createdAt  DateTime  @default(now())
 
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  session  Session? @relation(fields: [sessionId], references: [id])
+  campaign Campaign @relation(fields: [campaignId, companyId], references: [id, companyId], onDelete: Cascade)
+  session  Session? @relation(fields: [sessionId, companyId], references: [id, companyId])
 
   @@unique([campaignId, emailHash])
+  @@unique([sessionId, companyId])
+  @@index([companyId])
 }
 
 /// Uniqueness record for anonymous share links: proves an email responded without linking it to a session.
 model CampaignEmailHash {
+  companyId  String
   campaignId String
   emailHash  String
+  /// Where to find the participant again, sealed under a key only the returning person can
+  /// supply (the address they type, or the invitation token). Nothing else in the database
+  /// connects this row to a session (D-142).
+  resumeSeal String?
+  /// A keyed tag of (campaign, participant), computable only with the platform key. It lets a
+  /// participant's deletion find and remove this row without any stored pointer from the
+  /// participant to it (D-142).
+  ownerTag   String?
+  /// Day granularity on anonymous campaigns, so the row cannot be matched to a session by time.
   createdAt  DateTime @default(now())
 
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId, companyId], references: [id, companyId], onDelete: Cascade)
 
   @@id([campaignId, emailHash])
+  @@index([campaignId, ownerTag])
 }
 
 /// Short-lived email verification codes for share links.
 model EmailCode {
   id         String   @id @default(cuid())
+  companyId  String
   campaignId String
   emailHash  String
   codeHash   String
   attempts   Int      @default(0)
   expiresAt  DateTime
   createdAt  DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId, companyId], references: [id, companyId], onDelete: Cascade)
 
   @@index([campaignId, emailHash])
 }
@@ -446,6 +478,9 @@ model Setting {
   id        String   @id @default(cuid())
   scope     String // platform | tenant | template | campaign
   scopeId   String   @default("") // empty for platform
+  /// The owning tenant, derived by a trigger from the scope (NULL: platform rows, readable by
+  /// every tenant and writable only by the system context). Migration 0017, D-141.
+  companyId String?
   key       String
   value     Json
   version   Int      @default(1)
@@ -453,6 +488,7 @@ model Setting {
   updatedAt DateTime @updatedAt
 
   @@unique([scope, scopeId, key])
+  @@index([companyId])
 }
 
 /// Pending Auth.js magic-link verification tokens (FR-01, D-56).
@@ -498,7 +534,11 @@ model Provider {
   name      String
   baseUrl   String?
   apiKeyEnc String
+  /// Legacy plaintext custom headers. Emptied by the backfill at boot; `headersEnc` replaces it
+  /// and the column is dropped in a follow-up migration (D-147).
   headers   Json     @default("{}")
+  /// Custom headers as one encrypted JSON object, like `apiKeyEnc`; "" means none.
+  headersEnc String  @default("")
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now())
 
@@ -512,6 +552,8 @@ model Provider {
 
 model ModelPrice {
   id                 String   @id @default(cuid())
+  /// Derived by a trigger from the provider (NULL: a platform provider's price). Migration 0017.
+  companyId          String?
   providerId         String
   model              String
   inputPerMtok       Float
@@ -523,6 +565,7 @@ model ModelPrice {
   provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, model])
+  @@index([companyId])
 }
 
 model Route {

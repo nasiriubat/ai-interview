@@ -239,11 +239,21 @@ describe("runAnalysis", () => {
     expect(staffing.whyNotAi).toContain("rota");
     expect(r.report.markdown).toContain("# Discovery report: Ward interviews");
     expect(r.report.markdown).toContain("preliminary");
-    expect(r.report.markdown).toContain("```mermaid");
+    // The process map comes from one participant, below k = 3, so it is withheld (D-143).
+    expect(r.report.markdown).not.toContain("```mermaid");
     expect(r.report.markdown).toContain("Where AI is not the answer");
     expect(r.report.markdown).toContain("Night shift staffing");
     expect(model.calls.filter((c) => c.name === "opportunity")).toHaveLength(3);
     expect(r.stats.promptVersions).toEqual(["clustering@1", "opportunity@1", "report@1"]);
+  });
+
+  it("draws the process map once enough participants stand behind the cluster", async () => {
+    const model = new ScriptedAnalysisModel();
+    const r = await runAnalysis(
+      { caller: model.asCaller(), prompts: new ShippedPromptSource(), logger },
+      input({ k: 1 }),
+    );
+    expect(r.report.markdown).toContain("```mermaid");
   });
 
   it("falls back to similarity drafts when the naming pass fails", async () => {

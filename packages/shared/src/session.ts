@@ -145,3 +145,43 @@ export type TurnObject = z.infer<typeof TurnObjectSchema>;
 
 export const ModalitySchema = z.enum(["text", "voice", "file", "widget"]);
 export type Modality = z.infer<typeof ModalitySchema>;
+
+/**
+ * What a staff screen may know about a session (`GET /sessions/:id`). An explicit view rather than
+ * the database row: a row spread into a response carried the campaign's link hash, the invitees'
+ * addresses of a requirements session and the participant's fields to every staff role. Fastify
+ * serialises through this schema, so a field added to the table is not exposed until it is listed
+ * here (D-144).
+ */
+export const StaffSessionViewSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  sourceKind: z.string(),
+  campaignId: z.string().nullable(),
+  templateId: z.string(),
+  templateKey: z.string().nullable(),
+  templateVersion: z.number(),
+  path: z.string().nullable(),
+  modePreference: z.string(),
+  consentVersion: z.string().nullable(),
+  consentedAt: z.date().nullable(),
+  startedAt: z.date().nullable(),
+  endedAt: z.date().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  campaign: z.object({ id: z.string(), name: z.string(), participationMode: z.string() }).nullable(),
+  /** Empty unless the viewer may read the transcript: it is the transcript, condensed. */
+  summary: z.string(),
+  /** The whole state when the transcript is visible, otherwise coverage alone. */
+  state: z.record(z.string(), z.unknown()),
+  /** Null when the viewer may not read the transcript. */
+  messages: z.array(z.unknown()).nullable(),
+  transcriptVisible: z.boolean(),
+});
+export type StaffSessionView = z.infer<typeof StaffSessionViewSchema>;
+
+export const StaffSessionResponseSchema = z.object({
+  session: StaffSessionViewSchema,
+  messages: z.array(z.unknown()).nullable(),
+  transcriptVisible: z.boolean(),
+});

@@ -12,8 +12,12 @@ suite("SettingsService", () => {
   const db = new PrismaClient();
   const crypto = new Crypto(randomBytes(32).toString("base64"));
   const svc = new SettingsService(db, crypto);
-  const tenant = `t_${Date.now()}`;
-  const campaign = `c_${Date.now()}`;
+  // A campaign-scoped setting must name a campaign that exists: the database derives the owning
+  // tenant from it (migration 0017), so a setting for a made-up id is refused.
+  let tenant = "";
+  let campaign = "";
+  let templateId = "";
+  let userId = "";
   const keys = ["campaign.linkExpiryDays", "email.smtpUrl", "email.from"];
 
   const cleanup = () =>
@@ -22,10 +26,43 @@ suite("SettingsService", () => {
     });
 
   beforeAll(async () => {
+    tenant = (await db.company.create({ data: { name: `Settings ${Date.now()}` } })).id;
+    userId = (
+      await db.user.create({
+        data: { companyId: tenant, email: `settings-${Date.now()}@t.io`, role: "admin" },
+      })
+    ).id;
+    templateId = (
+      await db.interviewTemplate.create({
+        data: {
+          companyId: tenant,
+          key: `t${Date.now()}`,
+          name: "t",
+          objective: "o",
+          privacyMode: "anonymous",
+        },
+      })
+    ).id;
+    campaign = (
+      await db.campaign.create({
+        data: {
+          companyId: tenant,
+          templateId,
+          name: "c",
+          participationMode: "anonymous",
+          linkTokenHash: `settings-${Date.now()}`,
+          createdById: userId,
+        },
+      })
+    ).id;
     await cleanup();
   });
   afterAll(async () => {
     await cleanup();
+    await db.campaign.deleteMany({ where: { companyId: tenant } });
+    await db.interviewTemplate.deleteMany({ where: { companyId: tenant } });
+    await db.user.deleteMany({ where: { companyId: tenant } });
+    await db.company.delete({ where: { id: tenant } });
     await db.$disconnect();
   });
 

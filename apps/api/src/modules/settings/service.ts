@@ -1,4 +1,5 @@
 import { EgressBlockedError, SettingsService, type EgressGuard, type EmailPort } from "@aidp/core";
+import { withSystemTenant } from "@aidp/db";
 import { isSmtpUrl, maskSecretSettings, SECRET_SENTINEL, type SettingKey } from "@aidp/shared";
 import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
@@ -68,6 +69,16 @@ export class SettingsAdminService {
   ) {}
 
   /**
+   * A platform operator names the scope it acts on explicitly (`resolveScope` checks it), and
+   * platform rows and other tenants' rows are outside any single tenant's policy. So an operator's
+   * settings work runs in the system context even when `X-Company-Id` pinned the request to one
+   * tenant; everyone else stays inside their own (D-141).
+   */
+  private asCaller<T>(caller: SettingsCaller, fn: () => Promise<T>): Promise<T> {
+    return caller.operator ? withSystemTenant(fn) : fn();
+  }
+
+  /**
    * The scope a request acts on, after checking the caller may see (or change) it. A template or
    * campaign id is never taken on trust: it must belong to the caller's tenant, and a platform
    * template is readable by an admin but writable only by the operator.
@@ -112,7 +123,11 @@ export class SettingsAdminService {
     return { scope: q.scope, scopeId: q.scopeId };
   }
 
-  async read(caller: SettingsCaller, q: SettingsScopeQuery): Promise<SettingsView> {
+  read(caller: SettingsCaller, q: SettingsScopeQuery): Promise<SettingsView> {
+    return this.asCaller(caller, () => this.readAs(caller, q));
+  }
+
+  private async readAs(caller: SettingsCaller, q: SettingsScopeQuery): Promise<SettingsView> {
     const r = await this.resolveScope(caller, q, "read");
     const chain = r.scope === "platform" ? [] : [r, { scope: "tenant" as const, scopeId: caller.companyId }];
     const catalog = SettingsService.catalog().filter((c) => c.scopes.includes(r.scope));
@@ -152,7 +167,15 @@ export class SettingsAdminService {
     }
   }
 
-  async write(
+  write(
+    caller: SettingsCaller,
+    q: SettingsScopeQuery,
+    values: Record<string, unknown>,
+  ): ReturnType<SettingsAdminService["writeAs"]> {
+    return this.asCaller(caller, () => this.writeAs(caller, q, values));
+  }
+
+  private async writeAs(
     caller: SettingsCaller,
     q: SettingsScopeQuery,
     values: Record<string, unknown>,
@@ -178,7 +201,14 @@ export class SettingsAdminService {
   }
 
   /** Names for the scope pickers, so nobody types an id by hand (contract 19). */
-  async targets(
+  targets(
+    caller: SettingsCaller,
+    scope: TargetScopeQuery["scope"],
+  ): Promise<{ targets: { id: string; name: string; detail: string }[] }> {
+    return this.asCaller(caller, () => this.targetsAs(caller, scope));
+  }
+
+  private async targetsAs(
     caller: SettingsCaller,
     scope: TargetScopeQuery["scope"],
   ): Promise<{ targets: { id: string; name: string; detail: string }[] }> {
@@ -208,7 +238,14 @@ export class SettingsAdminService {
   }
 
   /** Sends one message to the caller with the configuration in effect, and says which scope won. */
-  async emailTest(
+  emailTest(
+    caller: SettingsCaller,
+    body: EmailTestBody,
+  ): Promise<{ ok: boolean; usedScope: string; error?: string }> {
+    return this.asCaller(caller, () => this.emailTestAs(caller, body));
+  }
+
+  private async emailTestAs(
     caller: SettingsCaller,
     body: EmailTestBody,
   ): Promise<{ ok: boolean; usedScope: string; error?: string }> {

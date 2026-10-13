@@ -13,6 +13,7 @@ import type { BudgetLimit, BudgetScope, LedgerEntry, ProviderConfig, Purpose, Ro
 import { ProviderConfigSchema, RouteSchema } from "@aidp/shared";
 import type { PrismaClient } from "@prisma/client";
 import type { Crypto } from "../crypto.js";
+import { openHeaders } from "./headers.js";
 
 /** Routes: tenant override first, then platform default (FR-42). */
 export class PrismaRouteResolver implements RouteResolver {
@@ -53,7 +54,8 @@ export class PrismaProviderConfigSource implements ProviderConfigSource {
       name: row.name,
       ...(row.baseUrl ? { baseUrl: row.baseUrl } : {}),
       apiKey: decryptApiKey(this.crypto, row.apiKeyEnc),
-      headers: row.headers,
+      // Opened here and nowhere else a connection is not being made (D-147).
+      headers: openHeaders(this.crypto, row.headersEnc, row.headers),
       enabled: row.enabled,
     });
   }

@@ -54,6 +54,7 @@ export class AnalysisService {
     const threshold = await this.thresholdMet(campaign.id, campaign.companyId);
     const run = await db.analysis.create({
       data: {
+        companyId: campaign.companyId,
         campaignId,
         version: (last?.version ?? 0) + 1,
         status: "queued",
@@ -197,6 +198,7 @@ export class AnalysisService {
         for (const o of result.opportunities) {
           const row = await tx.opportunity.create({
             data: {
+              companyId,
               analysisId,
               title: o.title,
               summary: o.summary,
@@ -215,6 +217,7 @@ export class AnalysisService {
           if (o.evidence.length)
             await tx.opportunityEvidence.createMany({
               data: o.evidence.map((e) => ({
+                companyId,
                 opportunityId: row.id,
                 factId: e.factId,
                 snippet: e.snippet,
@@ -224,6 +227,7 @@ export class AnalysisService {
         }
         await tx.report.create({
           data: {
+            companyId,
             analysisId,
             version: analysis.version,
             markdown: result.report.markdown,

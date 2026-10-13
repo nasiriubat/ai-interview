@@ -1,4 +1,5 @@
 import type { Server } from "node:http";
+import { withTenant } from "@aidp/db";
 import { SECRET_SENTINEL } from "@aidp/shared";
 import { describeDb } from "@aidp/testing";
 import { afterAll, beforeAll, expect, it } from "vitest";
@@ -64,8 +65,12 @@ suite("admin configuration surface (contract 19)", () => {
 
     // The sentinel leaves it as it is; another key in the same body still lands.
     await settings({ "email.smtpUrl": SECRET_SENTINEL, "email.from": "team@tenant.test" });
+    // The service is fenced like a request: without a tenant in context the policies show it
+    // platform rows only, so the read says which tenant it is for.
     expect(
-      await world.ctx.settings.get("email.smtpUrl", [{ scope: "tenant", scopeId: world.companyId }]),
+      await withTenant(world.companyId, () =>
+        world.ctx.settings.get("email.smtpUrl", [{ scope: "tenant", scopeId: world.companyId }]),
+      ),
     ).toBe(url);
     expect((await readSettings()).json<{ values: Record<string, unknown> }>().values["email.from"]).toBe(
       "team@tenant.test",
