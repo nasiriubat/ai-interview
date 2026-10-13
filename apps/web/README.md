@@ -562,11 +562,11 @@ Phase 4 (voice and files, `09-voice-and-files.md`):
     microphone, the voice mode and the call panel all go away and the mode switches to chat. An
     unrecognized `fallback` value is treated as `text`, since typing is the only rung of the chain
     that cannot itself be the thing that is broken.
-44. **Skip, "come back" and "I'm done" still go through `sendText`** and so still appear in the
-    transcript as things the participant said. Making them engine state operations needs
-    `TurnBody.control`, the engine change and a `control` SSE event (ux-design 1.5 item 3); the web
-    side is not started until the contract exists. "I'm done" also still fires without a dialog for
-    the same reason: the dialog is wired to the control, not to the fake utterance.
+44. **Skip and "come back" still go through `sendText`** and so still appear in the transcript as
+    things the participant said. Making them engine state operations needs `TurnBody.control`, the
+    engine change and a `control` SSE event (ux-design 1.5 item 3); the web side waits for the
+    contract. "I'm done" asks first (D-111) but still ends by sending the `"I'm done"` text turn,
+    for the same reason.
 45. **The answer-mode change is not recorded as a `mode_switch` session event.** The web posts the
     existing `PUT /p/session/mode`; the event is written server-side (ux-design 1.5 item 2), and the
     web sends nothing extra for it.

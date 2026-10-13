@@ -176,6 +176,10 @@ export const en = {
       resumeNow: "Resume now",
       done: "I'm done",
       doneMessage: "I'm done",
+      doneTitle: "Finish the interview?",
+      doneBody:
+        "The interviewer asks one closing question, then shows you a summary you can edit. You can still delete your answers afterwards.",
+      doneConfirm: "Finish",
       deleteData: "Delete my data",
       deleteTitle: "Delete your answers?",
       deleteBody:
