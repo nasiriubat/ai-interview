@@ -83,7 +83,11 @@ describeDb("anonymous campaigns: salt, no stored link, coarse time", () => {
     return /invitation=([^\s&]+)/.exec(world.email.sent.at(-1)?.text ?? "")![1]!;
   }
 
-  type Grant = { participantToken: string; sessionId: string; resume: boolean };
+  interface Grant {
+    participantToken: string;
+    sessionId: string;
+    resume: boolean;
+  }
 
   describe("the address hash", () => {
     it("is different in every campaign and never the platform-wide value", async () => {
@@ -238,7 +242,12 @@ describeDb("anonymous campaigns: salt, no stored link, coarse time", () => {
   });
 
   describe("the staff list of sessions", () => {
-    type Row = { id: string; createdAt: string; startedAt: string | null; lastActivityAt: string };
+    interface Row {
+      id: string;
+      createdAt: string;
+      startedAt: string | null;
+      lastActivityAt: string;
+    }
     const list = async (id: string, query: string): Promise<Row[]> =>
       (
         await world.app.inject({

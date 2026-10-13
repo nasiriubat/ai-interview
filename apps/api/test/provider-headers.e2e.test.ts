@@ -24,7 +24,10 @@ describeDb("provider headers", () => {
       headers: admin(),
       payload: { kind: "openai_compatible", name, baseUrl: model.url, apiKey: "k", headers },
     });
-  type View = { id: string; headerNames: string[] };
+  interface View {
+    id: string;
+    headerNames: string[];
+  }
 
   beforeAll(async () => {
     model = await fakeModelServer(() => "ok");

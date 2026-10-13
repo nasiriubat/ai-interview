@@ -532,7 +532,7 @@ describeDb("row-level security conformance (D-140)", () => {
       expect(after[0]?.n).toEqual(before[0]?.n);
     });
 
-    it.skipIf(model === "Company")("does not let a row be moved to the other tenant", async () => {
+    it("does not let a row be moved to the other tenant", async () => {
       const owned = async (company: string): Promise<number> =>
         Number(
           (
