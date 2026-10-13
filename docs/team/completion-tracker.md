@@ -3,16 +3,16 @@
 The one file to read to see where the program stands. Updated at every merge. The plan behind it
 is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026-10-13.md`.
 
-**Last updated:** 2026-10-14 02:15, after the three running agents were interrupted by the account session limit and resumed.
+**Last updated:** 2026-10-14, after the architecture refactor and live harness merged; tenancy merge in progress.
 
 ## Headline numbers
 
-| Measure                                                        | Now      | How it is computed                                                                               |
-| -------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
-| Program to "A+ production-ready handover" (phases 0 to 5)      | **~20%** | About 42 of about 210 deduplicated engineer-days merged and verified                             |
-| Safe to run a first pilot tenant (owner operating, one tenant) | **~85%** | The ten pilot blockers from the status review: nine fixed and tested, the live-model run pending |
-| Spec coverage, phases 0 to 4                                   | ~87%     | Was ~85%; resume recap, flags, PDF, cluster edits and prompt admin still open                    |
-| Automated tests (all merged, zero skipped)                     | 913+     | `pnpm check` with a database; web alone is now 450                                               |
+| Measure                                                        | Now      | How it is computed                                                                                   |
+| -------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| Program to "A+ production-ready handover" (phases 0 to 5)      | **~27%** | About 42 of about 210 deduplicated engineer-days merged and verified                                 |
+| Safe to run a first pilot tenant (owner operating, one tenant) | **~80%** | Lowered from 85%: the live run found analysis does not scale (bug 5) and reopen re-closes; both open |
+| Spec coverage, phases 0 to 4                                   | ~87%     | Was ~85%; resume recap, flags, PDF, cluster edits and prompt admin still open                        |
+| Automated tests (all merged, zero skipped)                     | 913+     | `pnpm check` with a database; web alone is now 450                                                   |
 
 ## Milestones
 
@@ -106,3 +106,5 @@ contact address, live voice in the first pilot (default: behind its flag).
 | 2026-10-13 | M1: web, engineering, security merged; operations merged by a dedicated agent after 20 conflicts; gate green                                                                                         |
 | 2026-10-13 | M2 wave 1 launched; copy pass merged (450 web tests)                                                                                                                                                 |
 | 2026-10-14 | Account session limit (reset 02:10) killed the architecture, tenancy and live-run agents mid-work; their committed work (6, 4 and 5 commits) survived in their worktrees; all three resumed at 02:11 |
+| 2026-10-14 | Live OpenRouter run completed: found the "finish interview" sentinel bug (-1), analysis scaling defect, reopen defect; sentinel fixed and merged; findings in `docs/team/live-run-2026-10-14.md`     |
+| 2026-10-14 | Architecture refactor merged: services, lint fences, three file splits, role matrix of 169 routes, audit-row tests; 214 API tests                                                                    |
