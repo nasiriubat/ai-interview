@@ -1,17 +1,13 @@
-import { tenantBatch } from "@aidp/db";
 import { ProviderKindSchema, RoutablePurposeSchema } from "@aidp/shared";
-import type { Prisma } from "@prisma/client";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard, withConfig, type RouteGuard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
-import type { AppContext } from "../../context.js";
-import { audit } from "../../lib/audit.js";
-import { AppError, notFound } from "../../lib/errors.js";
-import { contains, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
+import type { RouteContext } from "../../context.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
-import { ProviderService } from "./service.js";
+import { BudgetBody, BudgetListQuery } from "./budgets.js";
+import { PriceListQuery, type ProviderService } from "./service.js";
 
 const Id = z.object({ id: z.string() });
 const ProviderBody = z.object({
@@ -46,26 +42,9 @@ const RouteRow = z.object({
 
 type ScopeOf = (req: FastifyRequest) => string | null;
 
-/** `/budgets` (D-79): `q` matches the target id exactly, or the name of a budgeted campaign. */
-export const BudgetList = listSpec({
-  sort: { createdAt: "asc", limitCents: "desc", scope: "asc" },
-  defaultSort: "createdAt",
-  filters: {
-    scope: z.enum(["tenant", "campaign", "session"]).optional(),
-    period: z.enum(["month", "total"]).optional(),
-  },
-});
-
-/** `/providers/:id/prices` and its operator twin (D-79): `q` matches the model id. */
-export const PriceList = listSpec({
-  sort: { model: "asc", inputPerMtok: "asc", outputPerMtok: "asc", updatedAt: "desc" },
-  defaultSort: "model",
-  filters: { source: z.enum(["seed", "provider", "admin"]).optional() },
-});
-
 /** Providers, routing, prices, budgets. Platform operators without X-Company-Id manage platform-level rows. */
-export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
-  const svc = new ProviderService(ctx.db, ctx.crypto, ctx.callers, ctx.egress, ctx.speech);
+export async function providerRoutes(app: App, ctx: RouteContext): Promise<void> {
+  const svc = ctx.services.providers;
   const tenantScope: ScopeOf = (req) =>
     req.principal.kind === "staff" &&
     req.principal.role === "platform_operator" &&
@@ -85,112 +64,22 @@ export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
     scope: () => null,
   });
 
-  app.get("/budgets", { ...guard.admin(), schema: { querystring: listQuery(BudgetList) } }, async (req) => {
-    const q = searchTerm(req.query.q);
-    // A budget names its target by id; a search by name resolves campaigns in this tenant.
-    const campaignIds = q
-      ? (
-          await ctx.db.campaign.findMany({
-            where: { companyId: req.companyId, name: contains(q) },
-            select: { id: true },
-            take: 500,
-          })
-        ).map((c) => c.id)
-      : [];
-    const where: Prisma.BudgetWhereInput = {
-      companyId: req.companyId,
-      ...(req.query.scope ? { scope: req.query.scope } : {}),
-      ...(req.query.period ? { period: req.query.period } : {}),
-      ...(q
-        ? {
-            OR: [
-              { scopeId: q },
-              ...(campaignIds.length ? [{ scope: "campaign", scopeId: { in: campaignIds } }] : []),
-            ],
-          }
-        : {}),
-    };
-    const [budgets, total] = await tenantBatch(ctx.db, [
-      ctx.db.budget.findMany({
-        where,
-        orderBy: listOrder<Prisma.BudgetOrderByWithRelationInput, typeof req.query.sort>(
-          BudgetList,
-          req.query,
-        ),
-        take: req.query.limit,
-        skip: req.query.offset,
-      }),
-      ctx.db.budget.count({ where }),
-    ]);
-    return { budgets, total, limit: req.query.limit, offset: req.query.offset };
-  });
-  app.post(
-    "/budgets",
-    {
-      ...guard.admin(),
-      schema: {
-        body: z.object({
-          scope: z.enum(["tenant", "campaign", "session"]),
-          scopeId: z.string().optional(),
-          limitCents: z.number().int().min(0),
-          period: z.enum(["month", "total"]),
-        }),
-      },
-    },
-    async (req) => {
-      const scopeId = req.body.scope === "tenant" ? req.companyId : (req.body.scopeId ?? "");
-      if (!scopeId) throw new AppError("validation", "A scopeId is required for this scope");
-      if (req.body.scope === "tenant") {
-        const company = await ctx.db.company.findUniqueOrThrow({ where: { id: req.companyId } });
-        if (staff(req).role !== "platform_operator" && req.body.limitCents > company.monthlyBudgetCents)
-          throw new AppError(
-            "validation",
-            "A tenant may lower its budget but not raise it above the platform default",
-          );
-      }
-      // A campaign or session id is never taken on trust: it has to belong to this tenant.
-      if (req.body.scope === "campaign") {
-        const c = await ctx.db.campaign.findFirst({
-          where: { id: scopeId, companyId: req.companyId },
-          select: { id: true },
-        });
-        if (!c) throw notFound("Campaign");
-      }
-      if (req.body.scope === "session") {
-        const s = await ctx.db.session.findFirst({
-          where: { id: scopeId, companyId: req.companyId },
-          select: { id: true },
-        });
-        if (!s) throw notFound("Session");
-      }
-      const budget = await ctx.db.budget.upsert({
-        where: { scope_scopeId: { scope: req.body.scope, scopeId } },
-        create: {
-          companyId: req.companyId,
-          scope: req.body.scope,
-          scopeId,
-          limitCents: req.body.limitCents,
-          period: req.body.period,
-        },
-        update: { limitCents: req.body.limitCents, period: req.body.period },
-      });
-      await audit(ctx.db, {
-        companyId: req.companyId,
-        actorId: staff(req).userId,
-        action: "budget.set",
-        targetType: "budget",
-        targetId: budget.id,
-        diff: req.body,
-      });
-      return { budget };
-    },
+  app.get("/budgets", { ...guard.admin(), schema: { querystring: BudgetListQuery } }, async (req) =>
+    ctx.services.budgets.list(req.companyId, req.query),
   );
+  app.post("/budgets", { ...guard.admin(), schema: { body: BudgetBody } }, async (req) => {
+    const p = staff(req);
+    return {
+      budget: await ctx.services.budgets.set(
+        req.companyId,
+        p.userId,
+        p.role === "platform_operator",
+        req.body,
+      ),
+    };
+  });
   app.delete("/budgets/:id", { ...guard.admin(), schema: { params: Id } }, async (req) => {
-    const b = await ctx.db.budget.findFirst({
-      where: { id: req.params.id, companyId: req.companyId, scope: { not: "tenant" } },
-    });
-    if (!b) throw notFound("Budget");
-    await ctx.db.budget.delete({ where: { id: b.id } });
+    await ctx.services.budgets.remove(req.companyId, staff(req).userId, req.params.id);
     return { ok: true as const };
   });
 }
@@ -201,7 +90,7 @@ export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
  */
 function mountProviderRoutes(
   app: App,
-  ctx: AppContext,
+  ctx: RouteContext,
   svc: ProviderService,
   opts: {
     prefix: "" | "/operator";
@@ -229,8 +118,7 @@ function mountProviderRoutes(
 
   app.post(`${prefix}/providers`, { ...access, schema: { body: ProviderBody } }, async (req, reply) => {
     const p = await svc.create(scope(req), req.body);
-    await audit(ctx.db, {
-      companyId: auditCompany(req),
+    await ctx.services.audit.record(auditCompany(req), {
       actorId: staff(req).userId,
       action: "provider.create",
       targetType: "provider",
@@ -245,8 +133,7 @@ function mountProviderRoutes(
     { ...access, schema: { params: Id, body: ProviderBody.partial() } },
     async (req) => {
       const p = await svc.update(scope(req), req.params.id, req.body);
-      await audit(ctx.db, {
-        companyId: auditCompany(req),
+      await ctx.services.audit.record(auditCompany(req), {
         actorId: staff(req).userId,
         action: "provider.update",
         targetType: "provider",
@@ -259,8 +146,7 @@ function mountProviderRoutes(
 
   app.delete(`${prefix}/providers/:id`, { ...access, schema: { params: Id } }, async (req) => {
     await svc.remove(scope(req), req.params.id);
-    await audit(ctx.db, {
-      companyId: auditCompany(req),
+    await ctx.services.audit.record(auditCompany(req), {
       actorId: staff(req).userId,
       action: "provider.delete",
       targetType: "provider",
@@ -276,8 +162,7 @@ function mountProviderRoutes(
     async (req) => {
       const body = TestBody.parse(req.body ?? {});
       const result = await svc.test(scope(req), req.params.id, body.model);
-      await audit(ctx.db, {
-        companyId: auditCompany(req),
+      await ctx.services.audit.record(auditCompany(req), {
         actorId: staff(req).userId,
         action: "provider.test",
         targetType: "provider",
@@ -296,24 +181,8 @@ function mountProviderRoutes(
 
   app.get(
     `${prefix}/providers/:id/prices`,
-    { ...access, schema: { params: Id, querystring: listQuery(PriceList) } },
-    async (req) => {
-      await svc.get(scope(req), req.params.id);
-      const q = searchTerm(req.query.q);
-      const { prices, total } = await svc.pricesPage(req.params.id, {
-        limit: req.query.limit,
-        offset: req.query.offset,
-        where: {
-          ...(q ? { model: contains(q) } : {}),
-          ...(req.query.source ? { source: req.query.source } : {}),
-        },
-        orderBy: listOrder<Prisma.ModelPriceOrderByWithRelationInput, typeof req.query.sort>(
-          PriceList,
-          req.query,
-        ),
-      });
-      return { prices, total, limit: req.query.limit, offset: req.query.offset };
-    },
+    { ...access, schema: { params: Id, querystring: PriceListQuery } },
+    async (req) => svc.pricesList(scope(req), req.params.id, req.query),
   );
 
   app.put(
@@ -325,8 +194,7 @@ function mountProviderRoutes(
         req.params.id,
         req.body.prices.map((p) => ({ ...p, cachedInputPerMtok: p.cachedInputPerMtok ?? p.inputPerMtok })),
       );
-      await audit(ctx.db, {
-        companyId: auditCompany(req),
+      await ctx.services.audit.record(auditCompany(req), {
         actorId: staff(req).userId,
         action: "prices.update",
         targetType: "provider",
@@ -356,8 +224,7 @@ function mountProviderRoutes(
             : null;
         await svc.setRoute(scope(req), row.purpose, route);
       }
-      await audit(ctx.db, {
-        companyId: auditCompany(req),
+      await ctx.services.audit.record(auditCompany(req), {
         actorId: staff(req).userId,
         action: "routes.update",
         targetType: "routes",

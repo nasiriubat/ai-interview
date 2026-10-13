@@ -1,7 +1,7 @@
 import { CallAbortedError, type EngineEvent, type UserAnswer } from "@aidp/ai";
 import type { SessionState } from "@aidp/shared";
 import type { FastifyReply } from "fastify";
-import type { AppContext } from "../../context.js";
+import type { RouteContext } from "../../context.js";
 import { AppError } from "../../lib/errors.js";
 
 export interface ProgressArea {
@@ -51,12 +51,13 @@ export interface TurnEvent {
  * the generator finishes, including when a consumer abandons it part-way.
  */
 export async function* streamTurn(
-  ctx: AppContext,
+  ctx: RouteContext,
   sessionId: string,
   answer: UserAnswer | undefined,
   options?: RunTurnOptions,
 ): AsyncGenerator<TurnEvent, void> {
-  const row = await ctx.db.session.findUniqueOrThrow({ where: { id: sessionId } });
+  const turns = ctx.services.turns;
+  const row = await turns.load(sessionId);
   if (row.status === "deleted" || row.status === "completed")
     throw new AppError("conflict", `Session is ${row.status}`);
   if (row.status === "created") throw new AppError("conflict", "Consent is required before the first turn");
@@ -64,17 +65,8 @@ export async function* streamTurn(
   // One turn at a time per session (double taps, retries, dev double-mounts). A lock that has not
   // been renewed within the TTL belongs to a process that died, and is taken over.
   const firstLockedAt = new Date();
-  const locked = await ctx.db.session.updateMany({
-    where: {
-      id: sessionId,
-      OR: [
-        { turnLockedAt: null },
-        { turnLockedAt: { lt: new Date(firstLockedAt.getTime() - TURN_LOCK_TTL_MS) } },
-      ],
-    },
-    data: { turnLockedAt: firstLockedAt },
-  });
-  if (locked.count === 0) throw new AppError("conflict", "A turn is already in progress for this session");
+  const locked = await turns.acquireLock(row.companyId, sessionId, firstLockedAt, TURN_LOCK_TTL_MS);
+  if (!locked) throw new AppError("conflict", "A turn is already in progress for this session");
 
   // From here the lock is ours and must be released on every path out, including a failure while
   // loading what the turn needs; so the heartbeat starts now and everything else is inside try.
@@ -85,11 +77,8 @@ export async function* streamTurn(
   const beat = async (): Promise<void> => {
     const next = new Date();
     try {
-      const renewed = await ctx.db.session.updateMany({
-        where: { id: sessionId, turnLockedAt: lock.token },
-        data: { turnLockedAt: next },
-      });
-      if (renewed.count === 0) {
+      const renewed = await turns.renewLock(row.companyId, sessionId, lock.token, next);
+      if (!renewed) {
         // Someone else holds the session now (the lock was taken over, or the row was reset).
         // Carrying on would run two turns at once, so this one stops.
         lock.lost = true;
@@ -117,17 +106,10 @@ export async function* streamTurn(
     const bundle = await ctx.engines.forSession(row.companyId, chain, sessionId);
     const snapshot = await bundle.store.snapshot(sessionId);
     if (row.campaignId) {
-      const campaign = await ctx.db.campaign.findUniqueOrThrow({
-        where: { id: row.campaignId },
-        select: { maxTurns: true },
-      });
-      bundle.settings.maxTurns = Math.min(bundle.settings.maxTurns, campaign.maxTurns);
+      const maxTurns = await turns.campaignMaxTurns(row.companyId, row.campaignId);
+      bundle.settings.maxTurns = Math.min(bundle.settings.maxTurns, maxTurns);
     }
-    if (row.status !== "active")
-      await ctx.db.session.update({
-        where: { id: sessionId },
-        data: { status: "active", startedAt: row.startedAt ?? new Date() },
-      });
+    if (row.status !== "active") await turns.activate(row.companyId, sessionId, row.startedAt ?? new Date());
 
     const progress = (state: { coverage: Record<string, { status: string }> }): ProgressArea[] =>
       snapshot.template.coverageAreas.map((a) => ({
@@ -173,10 +155,7 @@ export async function* streamTurn(
       }
       const result = next.value;
       if (result.ended) {
-        await ctx.db.session.update({
-          where: { id: sessionId },
-          data: { status: "completed", endedAt: new Date() },
-        });
+        await turns.complete(row.companyId, sessionId);
         yield { event: "ended", data: { summaryAvailable: snapshot.template.endSummary } };
         if (row.campaignId && snapshot.template.analysisEnabled) {
           await ctx.analysis.maybeQueueForCampaign(row.companyId, row.campaignId).catch((err: unknown) => {
@@ -222,8 +201,7 @@ export async function* streamTurn(
             ? "provider_error"
             : "internal";
       ctx.log.error({ err, sessionId }, "turn failed");
-      if (code === "budget_exceeded")
-        await ctx.db.session.update({ where: { id: sessionId }, data: { status: "paused" } });
+      if (code === "budget_exceeded") await turns.pause(row.companyId, sessionId);
       yield {
         event: "error",
         data: {
@@ -244,10 +222,7 @@ export async function* streamTurn(
     clearInterval(heartbeat);
     await beating;
     abort.abort();
-    await ctx.db.session.updateMany({
-      where: { id: sessionId, turnLockedAt: lock.token },
-      data: { turnLockedAt: null },
-    });
+    await turns.releaseLock(row.companyId, sessionId, lock.token);
   }
 }
 
@@ -255,7 +230,7 @@ export async function* streamTurn(
  * Renders one turn as server-sent events (contract 16). The text interview's transport.
  */
 export async function runTurn(
-  ctx: AppContext,
+  ctx: RouteContext,
   sessionId: string,
   answer: UserAnswer | undefined,
   reply: FastifyReply,

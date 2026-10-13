@@ -4,7 +4,7 @@ import type { FastifyRequest } from "fastify";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { participant } from "../../auth/plugin.js";
-import type { AppContext } from "../../context.js";
+import type { RouteContext } from "../../context.js";
 import { AppError } from "../../lib/errors.js";
 import { runTurn } from "../sessions/turn-runner.js";
 
@@ -36,7 +36,7 @@ const AUDIO_MIMES = new Set([
   "audio/flac",
 ]);
 
-export async function participantVoiceRoutes(app: App, ctx: AppContext): Promise<void> {
+export async function participantVoiceRoutes(app: App, ctx: RouteContext): Promise<void> {
   app.post(
     "/p/session/voice-turns",
     {
@@ -90,7 +90,7 @@ export async function participantVoiceRoutes(app: App, ctx: AppContext): Promise
       } catch (err) {
         // The recording is kept even though the turn failed. The participant can retry, and the
         // audio of what they already said should not be thrown away because a provider was down.
-        await markFailed(ctx, attachmentId, err);
+        await ctx.services.recordings.markFailed(p.companyId, attachmentId, err);
         if (err instanceof UnsupportedAudioError) {
           // The on-server Whisper reads WAV, and this browser could not convert its recording
           // (D-75). Recording again will fail the same way, so the honest advice is to type.
@@ -109,7 +109,7 @@ export async function participantVoiceRoutes(app: App, ctx: AppContext): Promise
       }
 
       const text = transcript.text.trim();
-      await recordTranscription(ctx, attachmentId, transcript);
+      await ctx.services.recordings.recordTranscription(p.companyId, attachmentId, transcript);
 
       if (text.length === 0) {
         // Silence, or a microphone that recorded nothing. Saying so beats sending an empty answer
@@ -155,37 +155,4 @@ function durationFrom(file: { fields: Record<string, unknown> }): number | undef
     raw && typeof raw === "object" && !Array.isArray(raw) && "value" in raw ? raw.value : undefined;
   const parsed = typeof value === "string" ? Number.parseInt(value, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed >= 0 && parsed < 3_600_000 ? parsed : undefined;
-}
-
-/**
- * Records what the transcription reported: its own duration, which is what the provider actually
- * billed for, and its confidence, which is one of the three voice signals the spec asks to trace.
- */
-async function recordTranscription(
-  ctx: AppContext,
-  attachmentId: string,
-  transcript: { text: string; durationSeconds?: number; confidence?: number },
-): Promise<void> {
-  await ctx.db.attachment.update({
-    where: { id: attachmentId },
-    data: {
-      status: "ready",
-      extractedText: transcript.text.slice(0, 200_000),
-      ingestedAt: new Date(),
-      ...(transcript.durationSeconds === undefined
-        ? {}
-        : { durationMs: Math.round(transcript.durationSeconds * 1000) }),
-      ...(transcript.confidence === undefined ? {} : { confidence: transcript.confidence }),
-    },
-  });
-}
-
-async function markFailed(ctx: AppContext, attachmentId: string, err: unknown): Promise<void> {
-  const message = err instanceof Error ? err.message : String(err);
-  await ctx.db.attachment
-    .update({
-      where: { id: attachmentId },
-      data: { status: "failed", error: message.slice(0, 500), ingestedAt: new Date() },
-    })
-    .catch(() => undefined);
 }

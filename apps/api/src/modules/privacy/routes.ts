@@ -1,8 +1,7 @@
-import { retentionStatus } from "@aidp/core";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
-import type { AppContext } from "../../context.js";
+import type { RouteContext } from "../../context.js";
 
 const RetentionStatus = z.object({
   retentionMonths: z.number().int(),
@@ -17,10 +16,10 @@ const RetentionStatus = z.object({
  * how much of it is currently past the window (zero between nightly sweeps) and when the last sweep
  * that removed anything ran.
  */
-export async function privacyRoutes(app: App, ctx: AppContext): Promise<void> {
+export async function privacyRoutes(app: App, ctx: RouteContext): Promise<void> {
   app.get(
     "/privacy/retention",
     { ...guard.admin(), schema: { response: { 200: RetentionStatus } } },
-    async (req) => retentionStatus({ db: ctx.db, settings: ctx.settings }, req.companyId),
+    async (req) => ctx.services.privacy.retention(req.companyId),
   );
 }
