@@ -206,6 +206,7 @@ export function handlers(deps: HandlerDeps): Handlers {
           storage: deps.storage,
           companyId,
           log: deps.log,
+          crypto: deps.crypto,
         });
         // The rows are gone and re-running is harmless, so a failed file delete is retried by the
         // queue (with backoff) instead of waiting for the nightly storage GC to notice it.
@@ -227,6 +228,7 @@ export function handlers(deps: HandlerDeps): Handlers {
         // unreferenced and undiscoverable, which is the one outcome the retention promise cannot
         // survive.
         storage: deps.storage,
+        crypto: deps.crypto,
       });
       const deleted = sweeps.reduce((n, s) => n + s.deleted, 0);
       const orphans = sweeps.reduce((n, s) => n + s.orphansCollected, 0);

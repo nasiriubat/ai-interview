@@ -444,12 +444,17 @@ model CampaignEmailHash {
   /// supply (the address they type, or the invitation token). Nothing else in the database
   /// connects this row to a session (D-142).
   resumeSeal String?
+  /// A keyed tag of (campaign, participant), computable only with the platform key. It lets a
+  /// participant's deletion find and remove this row without any stored pointer from the
+  /// participant to it (D-142).
+  ownerTag   String?
   /// Day granularity on anonymous campaigns, so the row cannot be matched to a session by time.
   createdAt  DateTime @default(now())
 
   campaign Campaign @relation(fields: [campaignId, companyId], references: [id, companyId], onDelete: Cascade)
 
   @@id([campaignId, emailHash])
+  @@index([campaignId, ownerTag])
 }
 
 /// Short-lived email verification codes for share links.

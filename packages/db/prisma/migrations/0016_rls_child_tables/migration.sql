@@ -33,8 +33,12 @@ ALTER TABLE "Invitation"          ADD COLUMN "companyId" TEXT;
 ALTER TABLE "CampaignEmailHash"   ADD COLUMN "companyId" TEXT;
 ALTER TABLE "EmailCode"           ADD COLUMN "companyId" TEXT;
 
--- The sealed pointer that replaces the participant-to-hash join on anonymous campaigns (D-142).
+-- The sealed pointer and the keyed owner tag that replace the participant-to-hash join on
+-- anonymous campaigns (D-142). Both are NULL on rows written before this migration; the application
+-- fills them in when the person returns, and handles the old shape until then.
 ALTER TABLE "CampaignEmailHash" ADD COLUMN "resumeSeal" TEXT;
+ALTER TABLE "CampaignEmailHash" ADD COLUMN "ownerTag" TEXT;
+CREATE INDEX "CampaignEmailHash_campaignId_ownerTag_idx" ON "CampaignEmailHash"("campaignId", "ownerTag");
 
 -- ---------------------------------------------------------------------------------------------
 -- 2. Backfill from the parent, top of the tree first. One statement per table: the tables are
