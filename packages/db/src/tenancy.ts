@@ -77,19 +77,21 @@ export async function tenantTransaction<T>(
   fn: (
     tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
   ) => Promise<T>,
+  /** Prisma's interactive-transaction limits, for work that legitimately outlasts the 5 s default. */
+  options?: { maxWait?: number; timeout?: number },
 ): Promise<T> {
   const tenant = currentTenant();
-  return db.$transaction(async (tx) =>
-    // The context flips to "in a transaction" before the setting is sent, not after. `tx` is the
-    // extended client, so with the old order the extension saw a plain request, ran `set_config`
-    // as its own statement on another pooled connection, and left the transaction's connection
-    // with no tenant. Row-level security then fails closed: every read inside the transaction
-    // found nothing and every update of a tenant table "did not exist". It went unnoticed while
-    // the only transactions on tenant tables ran against tables without a policy.
-    runInContext({ companyId: tenant, inTransaction: true }, async () => {
-      if (tenant !== null) await setTenant(tx, tenant);
-      return fn(tx);
-    }),
+  return db.$transaction(
+    (tx) =>
+      // The setting is issued from inside the in-transaction context, not before it. On a
+      // tenant-scoped client the query extension wraps any statement it sees outside one in its own
+      // transaction, which would put `set_config` on a different connection from the work that
+      // follows and leave the policies reading no tenant at all.
+      runInContext({ companyId: tenant, inTransaction: true }, async () => {
+        if (tenant !== null) await setTenant(tx, tenant);
+        return fn(tx);
+      }),
+    options,
   );
 }
 

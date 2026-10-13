@@ -10,7 +10,7 @@ import type {
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
-import { ProviderError, type Provider } from "./types.js";
+import { ProviderError, upstreamMessage, type Provider } from "./types.js";
 
 export interface AnthropicProviderOptions {
   id: string;
@@ -19,6 +19,8 @@ export interface AnthropicProviderOptions {
   headers?: Record<string, string>;
   /** Test seam: inject a preconfigured client. */
   client?: Anthropic;
+  /** The transport the SDK uses; the server passes one that enforces the egress policy. */
+  fetch?: typeof fetch;
 }
 
 /** Anthropic direct, through the official SDK. Caching, structured output and effort are exposed. */
@@ -46,6 +48,7 @@ export class AnthropicProvider implements Provider {
         apiKey: opts.apiKey,
         ...(opts.baseUrl ? { baseURL: opts.baseUrl } : {}),
         ...(opts.headers ? { defaultHeaders: opts.headers } : {}),
+        ...(opts.fetch ? { fetch: opts.fetch } : {}),
       });
   }
 
@@ -153,17 +156,26 @@ function toStopReason(r: Anthropic.Message["stop_reason"]): StopReason {
   return "other";
 }
 
+/** Same rule as the OpenAI-compatible adapter: status and identifier, never the response body. */
+function sdkMessage(e: { status?: number | undefined; error?: unknown }): string {
+  const type = (e.error as { error?: { type?: unknown } } | undefined)?.error?.type;
+  return upstreamMessage(e.status, typeof type === "string" ? type : undefined);
+}
+
 export function mapError(e: unknown): ProviderError {
   if (e instanceof ProviderError) return e;
   if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) {
-    return new ProviderError(e.message, "auth", false, e);
+    return new ProviderError(sdkMessage(e), "auth", false, e);
   }
-  if (e instanceof Anthropic.NotFoundError) return new ProviderError(e.message, "not_found", false, e);
-  if (e instanceof Anthropic.BadRequestError) return new ProviderError(e.message, "bad_request", false, e);
-  if (e instanceof Anthropic.RateLimitError) return new ProviderError(e.message, "rate_limit", true, e);
-  if (e instanceof Anthropic.InternalServerError) return new ProviderError(e.message, "server", true, e);
+  if (e instanceof Anthropic.NotFoundError) return new ProviderError(sdkMessage(e), "not_found", false, e);
+  if (e instanceof Anthropic.BadRequestError)
+    return new ProviderError(sdkMessage(e), "bad_request", false, e);
+  if (e instanceof Anthropic.RateLimitError) return new ProviderError(sdkMessage(e), "rate_limit", true, e);
+  if (e instanceof Anthropic.InternalServerError) return new ProviderError(sdkMessage(e), "server", true, e);
   // APIConnectionError is a subclass of APIError in the TS SDK: check it first.
-  if (e instanceof Anthropic.APIConnectionError) return new ProviderError(e.message, "network", true, e);
-  if (e instanceof Anthropic.APIError) return new ProviderError(e.message, "server", false, e);
-  return new ProviderError(e instanceof Error ? e.message : String(e), "server", false, e);
+  if (e instanceof Anthropic.APIConnectionError) {
+    return new ProviderError("Network error calling the provider", "network", true, e);
+  }
+  if (e instanceof Anthropic.APIError) return new ProviderError(sdkMessage(e), "server", false, e);
+  return new ProviderError("Provider request failed", "server", false, e);
 }

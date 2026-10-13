@@ -4,7 +4,8 @@ import type { Prisma } from "@prisma/client";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff, staff } from "../../auth/plugin.js";
+import { guard, withConfig, type RouteGuard } from "../../auth/access.js";
+import { staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, notFound } from "../../lib/errors.js";
@@ -64,7 +65,7 @@ export const PriceList = listSpec({
 
 /** Providers, routing, prices, budgets. Platform operators without X-Company-Id manage platform-level rows. */
 export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
-  const svc = new ProviderService(ctx.db, ctx.crypto, ctx.callers, ctx.speech);
+  const svc = new ProviderService(ctx.db, ctx.crypto, ctx.callers, ctx.egress, ctx.speech);
   const tenantScope: ScopeOf = (req) =>
     req.principal.kind === "staff" &&
     req.principal.role === "platform_operator" &&
@@ -74,63 +75,59 @@ export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
 
   mountProviderRoutes(app, ctx, svc, {
     prefix: "",
-    preHandler: requireStaff("admin"),
+    guard: guard.admin(),
     scope: tenantScope,
   });
   // The platform twins of the same routes (contract 19): operator only, always on companyId null.
   mountProviderRoutes(app, ctx, svc, {
     prefix: "/operator",
-    preHandler: requireStaff("platform_operator"),
+    guard: guard.operator(),
     scope: () => null,
   });
 
-  app.get(
-    "/budgets",
-    { preHandler: requireStaff("admin"), schema: { querystring: listQuery(BudgetList) } },
-    async (req) => {
-      const q = searchTerm(req.query.q);
-      // A budget names its target by id; a search by name resolves campaigns in this tenant.
-      const campaignIds = q
-        ? (
-            await ctx.db.campaign.findMany({
-              where: { companyId: req.companyId, name: contains(q) },
-              select: { id: true },
-              take: 500,
-            })
-          ).map((c) => c.id)
-        : [];
-      const where: Prisma.BudgetWhereInput = {
-        companyId: req.companyId,
-        ...(req.query.scope ? { scope: req.query.scope } : {}),
-        ...(req.query.period ? { period: req.query.period } : {}),
-        ...(q
-          ? {
-              OR: [
-                { scopeId: q },
-                ...(campaignIds.length ? [{ scope: "campaign", scopeId: { in: campaignIds } }] : []),
-              ],
-            }
-          : {}),
-      };
-      const [budgets, total] = await tenantBatch(ctx.db, [
-        ctx.db.budget.findMany({
-          where,
-          orderBy: listOrder<Prisma.BudgetOrderByWithRelationInput, typeof req.query.sort>(
-            BudgetList,
-            req.query,
-          ),
-          take: req.query.limit,
-          skip: req.query.offset,
-        }),
-        ctx.db.budget.count({ where }),
-      ]);
-      return { budgets, total, limit: req.query.limit, offset: req.query.offset };
-    },
-  );
+  app.get("/budgets", { ...guard.admin(), schema: { querystring: listQuery(BudgetList) } }, async (req) => {
+    const q = searchTerm(req.query.q);
+    // A budget names its target by id; a search by name resolves campaigns in this tenant.
+    const campaignIds = q
+      ? (
+          await ctx.db.campaign.findMany({
+            where: { companyId: req.companyId, name: contains(q) },
+            select: { id: true },
+            take: 500,
+          })
+        ).map((c) => c.id)
+      : [];
+    const where: Prisma.BudgetWhereInput = {
+      companyId: req.companyId,
+      ...(req.query.scope ? { scope: req.query.scope } : {}),
+      ...(req.query.period ? { period: req.query.period } : {}),
+      ...(q
+        ? {
+            OR: [
+              { scopeId: q },
+              ...(campaignIds.length ? [{ scope: "campaign", scopeId: { in: campaignIds } }] : []),
+            ],
+          }
+        : {}),
+    };
+    const [budgets, total] = await tenantBatch(ctx.db, [
+      ctx.db.budget.findMany({
+        where,
+        orderBy: listOrder<Prisma.BudgetOrderByWithRelationInput, typeof req.query.sort>(
+          BudgetList,
+          req.query,
+        ),
+        take: req.query.limit,
+        skip: req.query.offset,
+      }),
+      ctx.db.budget.count({ where }),
+    ]);
+    return { budgets, total, limit: req.query.limit, offset: req.query.offset };
+  });
   app.post(
     "/budgets",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: {
         body: z.object({
           scope: z.enum(["tenant", "campaign", "session"]),
@@ -188,7 +185,7 @@ export async function providerRoutes(app: App, ctx: AppContext): Promise<void> {
       return { budget };
     },
   );
-  app.delete("/budgets/:id", { preHandler: requireStaff("admin"), schema: { params: Id } }, async (req) => {
+  app.delete("/budgets/:id", { ...guard.admin(), schema: { params: Id } }, async (req) => {
     const b = await ctx.db.budget.findFirst({
       where: { id: req.params.id, companyId: req.companyId, scope: { not: "tenant" } },
     });
@@ -208,11 +205,11 @@ function mountProviderRoutes(
   svc: ProviderService,
   opts: {
     prefix: "" | "/operator";
-    preHandler: (req: FastifyRequest) => Promise<void>;
+    guard: RouteGuard;
     scope: ScopeOf;
   },
 ): void {
-  const { prefix, preHandler, scope } = opts;
+  const { prefix, guard: access, scope } = opts;
   const view = (p: Awaited<ReturnType<ProviderService["get"]>>) => ({
     id: p.id,
     companyId: p.companyId,
@@ -226,11 +223,11 @@ function mountProviderRoutes(
   });
   const auditCompany = (req: FastifyRequest): string => req.companyId || "platform";
 
-  app.get(`${prefix}/providers`, { preHandler }, async (req) => ({
+  app.get(`${prefix}/providers`, access, async (req) => ({
     providers: (await svc.list(scope(req))).map(view),
   }));
 
-  app.post(`${prefix}/providers`, { preHandler, schema: { body: ProviderBody } }, async (req, reply) => {
+  app.post(`${prefix}/providers`, { ...access, schema: { body: ProviderBody } }, async (req, reply) => {
     const p = await svc.create(scope(req), req.body);
     await audit(ctx.db, {
       companyId: auditCompany(req),
@@ -245,7 +242,7 @@ function mountProviderRoutes(
 
   app.patch(
     `${prefix}/providers/:id`,
-    { preHandler, schema: { params: Id, body: ProviderBody.partial() } },
+    { ...access, schema: { params: Id, body: ProviderBody.partial() } },
     async (req) => {
       const p = await svc.update(scope(req), req.params.id, req.body);
       await audit(ctx.db, {
@@ -260,7 +257,7 @@ function mountProviderRoutes(
     },
   );
 
-  app.delete(`${prefix}/providers/:id`, { preHandler, schema: { params: Id } }, async (req) => {
+  app.delete(`${prefix}/providers/:id`, { ...access, schema: { params: Id } }, async (req) => {
     await svc.remove(scope(req), req.params.id);
     await audit(ctx.db, {
       companyId: auditCompany(req),
@@ -275,7 +272,7 @@ function mountProviderRoutes(
   // The body is optional: without a model the service picks the routed one, then the first listed.
   app.post(
     `${prefix}/providers/:id/test`,
-    { preHandler, ...expensiveLimit(ctx.config), schema: { params: Id } },
+    { ...withConfig(access, expensiveLimit(ctx.config)), schema: { params: Id } },
     async (req) => {
       const body = TestBody.parse(req.body ?? {});
       const result = await svc.test(scope(req), req.params.id, body.model);
@@ -293,13 +290,13 @@ function mountProviderRoutes(
 
   app.get(
     `${prefix}/providers/:id/models`,
-    { preHandler, ...expensiveLimit(ctx.config), schema: { params: Id } },
+    { ...withConfig(access, expensiveLimit(ctx.config)), schema: { params: Id } },
     async (req) => svc.models(scope(req), req.params.id),
   );
 
   app.get(
     `${prefix}/providers/:id/prices`,
-    { preHandler, schema: { params: Id, querystring: listQuery(PriceList) } },
+    { ...access, schema: { params: Id, querystring: listQuery(PriceList) } },
     async (req) => {
       await svc.get(scope(req), req.params.id);
       const q = searchTerm(req.query.q);
@@ -321,7 +318,7 @@ function mountProviderRoutes(
 
   app.put(
     `${prefix}/providers/:id/prices`,
-    { preHandler, schema: { params: Id, body: PricesBody } },
+    { ...access, schema: { params: Id, body: PricesBody } },
     async (req) => {
       await svc.setPrices(
         scope(req),
@@ -340,11 +337,11 @@ function mountProviderRoutes(
     },
   );
 
-  app.get(`${prefix}/routes`, { preHandler }, async (req) => ({ routes: await svc.routes(scope(req)) }));
+  app.get(`${prefix}/routes`, access, async (req) => ({ routes: await svc.routes(scope(req)) }));
 
   app.put(
     `${prefix}/routes`,
-    { preHandler, schema: { body: z.object({ routes: z.array(RouteRow) }) } },
+    { ...access, schema: { body: z.object({ routes: z.array(RouteRow) }) } },
     async (req) => {
       for (const row of req.body.routes) {
         const route =

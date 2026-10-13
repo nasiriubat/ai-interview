@@ -21,15 +21,17 @@
     "@aidp/db": "workspace:*",
     "@aidp/shared": "workspace:*",
     "@prisma/client": "^6.19.0",
-    "nodemailer": "^7.0.0",
+    "nodemailer": "^10.1.0",
     "pg-boss": "^12.0.0",
     "pino": "^9.0.0",
+    "undici": "^7.30.0",
+    "ws": "^8.21.3",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@aidp/testing": "workspace:*",
     "@types/node": "^22.0.0",
-    "@types/nodemailer": "^6.4.0",
+    "@types/ws": "^8.18.1",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   }

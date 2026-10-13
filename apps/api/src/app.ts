@@ -1,3 +1,4 @@
+import { PLATFORM_MAX_UPLOAD_MB } from "@aidp/shared";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -19,6 +20,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
+import { guard, installAccessGuard } from "./auth/access.js";
 import { authPlugin } from "./auth/plugin.js";
 import { PrincipalResolver } from "./auth/principal.js";
 import type { AppContext } from "./context.js";
@@ -58,7 +60,11 @@ export const API_PREFIX = "/api/v1";
 export async function buildApp(ctx: AppContext): Promise<App> {
   const app = Fastify({
     loggerInstance: ctx.log,
-    trustProxy: true,
+    // A hop count, never `true`: with `true` the leftmost X-Forwarded-For entry is believed, and
+    // any client could choose its own rate-limit bucket by sending one (S1, D-82).
+    // Written as a function because Fastify's typings omit the numeric form; it is the numeric
+    // form exactly (hop 0 is the socket peer, so `hop < N` trusts N proxies).
+    trustProxy: (_address: string, hop: number): boolean => hop < ctx.config.TRUST_PROXY_HOPS,
     bodyLimit: 2 * 1024 * 1024,
   }).withTypeProvider<ZodTypeProvider>();
   app.setValidatorCompiler(validatorCompiler);
@@ -93,10 +99,11 @@ export async function buildApp(ctx: AppContext): Promise<App> {
     exposedHeaders: ["x-request-id"],
   });
   await app.register(cookie);
-  // Uploads (FR-30, FR-31). The per-route limit is the real one; this ceiling only stops a body
-  // large enough to be a denial of service from ever reaching a handler.
+  // Uploads (FR-30, FR-31). The per-route limit is the real one (the tenant's files.maxSizeMb,
+  // resolved before the body is read); this ceiling is the platform maximum, so no handler can
+  // be made to hold more than that whatever the tenant has configured.
   await app.register(multipart, {
-    limits: { fileSize: 200 * 1024 * 1024, files: 1, fields: 8, parts: 12 },
+    limits: { fileSize: PLATFORM_MAX_UPLOAD_MB * 1024 * 1024, files: 1, fields: 8, parts: 12 },
   });
   // Live voice (FR-30a). The only upgraded connection the API serves; see voice-live.ts for why
   // it is reached directly rather than through the web app's proxy.
@@ -107,7 +114,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   // instance-level and the limiter's is route-level, which settles the order regardless, but the
   // dependency is real and reads better stated.
   await app.register(authPlugin, {
-    resolver: new PrincipalResolver(ctx.db, ctx.crypto, ctx.config.AUTH_SECRET),
+    resolver: new PrincipalResolver(ctx.db, ctx.crypto, ctx.config.AUTH_SECRET, ctx.tenants),
   });
   // Global by default (spec 11): before this, only the participant routes opted in and every
   // staff and operator route was unlimited, so one leaked admin token could hammer the
@@ -122,6 +129,8 @@ export async function buildApp(ctx: AppContext): Promise<App> {
     enableDraftSpec: true,
     keyGenerator: principalKey,
   });
+  // After the limiter, so the guard is ordered behind its hook; before every route, so none escapes.
+  installAccessGuard(app as unknown as FastifyInstance);
   // A path with no route has no route-level hook, so the 404 handler carries the limiter itself:
   // otherwise scanning for endpoints that do not exist is the one thing left without a ceiling.
   // The cast only drops the plugin's pino-specific `Logger` generic for Fastify's own
@@ -162,7 +171,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await analysisRoutes(a, ctx);
       await requirementsRoutes(a, ctx);
       await operatorRoutes(a, ctx);
-      a.get("/openapi.json", async () => a.swagger());
+      a.get("/openapi.json", { ...guard.public() }, async () => a.swagger());
     },
     { prefix: API_PREFIX },
   );

@@ -88,6 +88,28 @@ export class ProviderError extends Error {
   }
 }
 
+/** Upstream error identifiers short and boring enough to repeat: `invalid_api_key`, `rate_limit_exceeded`. */
+const SAFE_CODE = /^[a-z0-9_.-]{1,48}$/i;
+
+/**
+ * The message a ProviderError carries: the status and, when the upstream named one, its
+ * identifier. Never the response body. A provider URL is chosen by a tenant admin, so anything the
+ * server at that URL says is attacker-controlled text; echoing it back through `/test` or `/models`
+ * would turn a blind request into a read of whatever the server could be pointed at (SSRF). The
+ * full body stays on `cause`, for the debug log, where it is redacted of credentials first.
+ */
+export function upstreamMessage(status: number | undefined, code?: string): string {
+  const base = status === undefined ? "Provider request failed" : `Provider returned ${status}`;
+  return code && SAFE_CODE.test(code) ? `${base} (${code})` : base;
+}
+
+/** Truncates an upstream body for the log and removes the credential if the server echoed it. */
+export function redactedBody(text: string, secrets: string[]): string {
+  let out = text.slice(0, 500);
+  for (const secret of secrets) if (secret.length >= 6) out = out.split(secret).join("[redacted]");
+  return out.replace(/Bearer\s+[A-Za-z0-9._~+/=-]{8,}/g, "Bearer [redacted]");
+}
+
 /**
  * The audio is in a container this provider cannot read. Still `unsupported`, so every existing
  * fallback treats it as "this route cannot do it", but a distinct class because the remedy is

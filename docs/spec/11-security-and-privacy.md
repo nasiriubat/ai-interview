@@ -2,13 +2,16 @@
 
 - NFR-02 EU hosting; content goes only to the configured providers and the database. Data residency per tenant can select self-hosted STT and TTS and EU model endpoints.
 - NFR-03 Tenant isolation: scoped client plus Postgres RLS; covered by tests that attempt cross-tenant reads.
+- Staff identity: one tenant per email address, unique and lower-case; the address that signs in resolves to exactly one user (D-84). A suspended tenant's staff are refused with a stated reason and its participants, jobs and outgoing email stop; deletion jobs still run (D-86).
 - FR-01 to FR-04 Roles: platform_operator, admin, member; participants have no accounts; signed links with expiry; email verification for uniqueness; anonymous mode stores only a salted email hash on the campaign.
 - Consent: version and timestamp per session; consent text per tenant.
 - Anonymity in outputs: k-anonymity rule for quotes and breakdowns (`04`).
-- Deletion: participant-initiated deletion removes messages, audio, attachments, facts, and embeddings; aggregated cluster counts remain; confirmed on screen and by email when identified. Retention period per tenant (default 24 months) with automatic deletion jobs.
+- Deletion: participant-initiated deletion removes messages, audio, attachments, facts, embeddings and specification versions, and the participant's identity: the participant record and its token, the invitation address, the email-uniqueness hash and any pending code, and the personal fields of the session. The old participant token stops working at once and the database refuses further writes to the session. Quotes in generated reports are replaced and the analysis is marked stale; aggregated cluster counts remain. A person who deletes their answers on an email-code campaign may start a new interview. Confirmed on screen and by email when identified. Retention period per tenant (default 24 months) with automatic deletion jobs that remove exactly the same things (D-81, D-89).
 - Secrets: provider keys encrypted at rest with a platform key; never returned to the browser; rotation supported.
 - Transport: TLS everywhere; signed URLs for object storage; WebSocket auth by session token.
-- Rate limits per participant, per tenant, per IP; abuse detection on open links.
+- Outbound connections: a tenant-supplied address (provider base URL, headers, SMTP relay) is held to an egress policy checked against the address the socket actually connects to: https and a public DNS name only, no loopback, private, link-local or cloud-metadata address, no redirects, bounded responses. Platform-operator addresses may reach named internal services through an allowlist. Provider test and model-list answers carry a coarse status, never text from the remote server (D-83).
+- Rate limits per participant, per tenant, per IP; abuse detection on open links. The client address is the one the edge proxy wrote, trusted by a stated hop count, with IPv6 bucketed by /64; email-code requests and wrong guesses are capped per address and campaign (D-82). Request bodies are bounded at the proxy, the web app and the API, uploads by the tenant's `files.maxSizeMb` up to a platform maximum of 50 MB (D-87).
 - Audit log of admin actions and settings changes with diffs.
-- Dependency and container scanning in CI; secrets scanning; least-privilege database roles (owner for migrations, app_api for the application).
+- Every route declares who may call it and is guarded before its body is read (D-88).
+- Dependency and container scanning in CI (`pnpm audit --prod` gated by `scripts/audit-gate.mjs`, Dependabot; D-85); secrets scanning; least-privilege database roles (owner for migrations, app_api for the application).
 - GDPR: data processing record per tenant, export of a participant's data on request, sub-processor list generated from configured providers.

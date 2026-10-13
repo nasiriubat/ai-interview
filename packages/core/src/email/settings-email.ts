@@ -1,4 +1,6 @@
+import type { EgressGuard } from "../net/egress.js";
 import type { SettingsService } from "../settings/service.js";
+import type { TenantGate } from "../tenancy/gate.js";
 import type { EmailMessage, EmailPort } from "./port.js";
 import { SmtpEmail } from "./smtp.js";
 
@@ -19,6 +21,10 @@ export interface SettingsEmailDeps {
   fallback: EmailPort;
   /** Builds the transport for a URL; overridable in tests so nothing touches the network. */
   transportFor?: (url: string, from: string) => EmailPort;
+  /** Refuses to send for a suspended tenant (S8). Absent in tests that do not exercise tenancy. */
+  gate?: TenantGate;
+  /** Holds a tenant- or platform-chosen relay to the egress policy (S4). The environment's is exempt. */
+  egress?: EgressGuard;
 }
 
 /**
@@ -58,6 +64,9 @@ export class SettingsEmail implements EmailPort {
   }
 
   async send(message: EmailMessage): Promise<void> {
+    // A suspended tenant sends nothing in its own name: its SMTP credentials, its sender address
+    // and the platform's reputation all stay out of it (S8).
+    if (message.companyId && this.deps.gate) await this.deps.gate.assertActive(message.companyId);
     const config = await this.resolve(message.companyId);
     const out: EmailMessage = {
       ...message,
@@ -73,9 +82,18 @@ export class SettingsEmail implements EmailPort {
    */
   private portFor(config: EmailConfig): EmailPort {
     if (!config.smtpUrl) return this.deps.fallback;
-    const hit = this.transports.get(config.smtpUrl);
+    // Keyed by scope as well as URL: the same string is judged by a different policy per origin.
+    const key = `${config.usedScope}:${config.smtpUrl}`;
+    const hit = this.transports.get(key);
     if (hit) return hit;
-    const build = this.deps.transportFor ?? ((url: string, from: string) => new SmtpEmail(url, from));
+    const { egress } = this.deps;
+    const guard =
+      egress && config.usedScope !== "env"
+        ? { egress, origin: config.usedScope === "tenant" ? ("tenant" as const) : ("platform" as const) }
+        : undefined;
+    const build =
+      this.deps.transportFor ??
+      ((url: string, from: string) => new SmtpEmail(url, from, ...(guard ? [guard] : [])));
     const port = build(config.smtpUrl, config.from);
     if (this.transports.size >= MAX_TRANSPORTS) {
       const oldestUrl = this.transports.keys().next().value;
@@ -85,7 +103,7 @@ export class SettingsEmail implements EmailPort {
         if (oldest instanceof SmtpEmail) oldest.close();
       }
     }
-    this.transports.set(config.smtpUrl, port);
+    this.transports.set(key, port);
     return port;
   }
 }

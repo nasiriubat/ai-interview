@@ -1,8 +1,8 @@
 import { enterSystemTenant, enterTenant } from "@aidp/db";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
-import { forbidden, unauthenticated } from "../lib/errors.js";
-import { bearerFrom, type PrincipalResolver, type Principal, type Role } from "./principal.js";
+import { unauthenticated } from "../lib/errors.js";
+import { bearerFrom, type PrincipalResolver, type Principal } from "./principal.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -37,18 +37,6 @@ export const authPlugin = fp(async (app: FastifyInstance, opts: { resolver: Prin
     if (!operatorAcrossTenants && request.companyId) enterTenant(request.companyId);
   });
 });
-
-export function requireStaff(...roles: Role[]) {
-  return async (request: FastifyRequest): Promise<void> => {
-    const p = request.principal;
-    if (p.kind !== "staff") throw unauthenticated();
-    if (roles.length && !roles.includes(p.role) && p.role !== "platform_operator") throw forbidden();
-  };
-}
-
-export async function requireParticipant(request: FastifyRequest): Promise<void> {
-  if (request.principal.kind !== "participant") throw unauthenticated("Participant token required");
-}
 
 export function staff(request: FastifyRequest): Extract<Principal, { kind: "staff" }> {
   if (request.principal.kind !== "staff") throw unauthenticated();

@@ -2,7 +2,8 @@ import { escapeLike, tenantBatch } from "@aidp/db";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff, staff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
+import { staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
@@ -61,7 +62,7 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
   }: T): Omit<T, "linkTokenHash"> => c;
   app.get(
     "/campaigns",
-    { preHandler: requireStaff(), schema: { querystring: listQuery(CampaignList) } },
+    { ...guard.staff(), schema: { querystring: listQuery(CampaignList) } },
     async (req) => {
       const { campaigns, total } = await svc.list(req.companyId, {
         limit: req.query.limit,
@@ -89,7 +90,7 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
   app.post(
     "/campaigns",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: {
         body: z.object({
           templateId: z.string(),
@@ -120,7 +121,7 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
     },
   );
 
-  app.get("/campaigns/:id", { preHandler: requireStaff(), schema: { params: Id } }, async (req) => {
+  app.get("/campaigns/:id", { ...guard.staff(), schema: { params: Id } }, async (req) => {
     const campaign = await svc.get(req.companyId, req.params.id);
     const [url, stats] = await Promise.all([
       svc.link(req.companyId, campaign.id),
@@ -133,7 +134,7 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
   app.patch(
     "/campaigns/:id",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: {
         params: Id,
         body: z.object({
@@ -162,7 +163,7 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
   for (const status of ["open", "closed"] as const) {
     app.post(
       `/campaigns/:id/${status === "open" ? "open" : "close"}`,
-      { preHandler: requireStaff("admin"), schema: { params: Id } },
+      { ...guard.admin(), schema: { params: Id } },
       async (req) => {
         const campaign = await svc.setStatus(req.companyId, req.params.id, status);
         await audit(ctx.db, {
@@ -180,7 +181,7 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
   app.post(
     "/campaigns/:id/invitations",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: { params: Id, body: z.object({ emails: z.array(z.string()).min(1).max(1000) }) },
     },
     async (req) => {
@@ -198,25 +199,21 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
     },
   );
 
-  app.get(
-    "/campaigns/:id/invitations",
-    { preHandler: requireStaff(), schema: { params: Id } },
-    async (req) => ({
-      invitations: (await svc.invitations(req.companyId, req.params.id)).map((i) => ({
-        id: i.id,
-        email: i.email,
-        status: i.status,
-        sentAt: i.sentAt,
-        openedAt: i.openedAt,
-        expiresAt: i.expiresAt,
-      })),
-    }),
-  );
+  app.get("/campaigns/:id/invitations", { ...guard.staff(), schema: { params: Id } }, async (req) => ({
+    invitations: (await svc.invitations(req.companyId, req.params.id)).map((i) => ({
+      id: i.id,
+      email: i.email,
+      status: i.status,
+      sentAt: i.sentAt,
+      openedAt: i.openedAt,
+      expiresAt: i.expiresAt,
+    })),
+  }));
 
   app.post(
     "/campaigns/:id/invitations/:invId/remind",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: { params: z.object({ id: z.string(), invId: z.string() }) },
     },
     async (req) => {
@@ -228,7 +225,7 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
   app.post(
     "/campaigns/:id/invitations/:invId/revoke",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: { params: z.object({ id: z.string(), invId: z.string() }) },
     },
     async (req) => {
@@ -247,7 +244,7 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
   app.get(
     "/campaigns/:id/sessions",
     {
-      preHandler: requireStaff(),
+      ...guard.staff(),
       schema: { params: Id, querystring: listQuery(CampaignSessionList) },
     },
     async (req) => {

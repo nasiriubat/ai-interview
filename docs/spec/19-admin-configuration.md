@@ -31,7 +31,9 @@ resolve identically, so a message sent from a job looks the same as one sent fro
 
 `POST /settings/email/test` (admin) sends a test message to the calling user's address using
 the configuration that is currently in effect for the scope, and returns
-`{ ok, usedScope: "tenant" | "platform" | "env", error? }`.
+`{ ok, usedScope: "tenant" | "platform" | "env", error? }`. A relay saved at tenant or platform
+scope is checked against the egress policy when it is written (`422 blocked_address`) and on every
+send; the environment's relay is the deployment's own and is exempt.
 
 ## Scope targets
 
@@ -63,13 +65,16 @@ platform-level twins of the tenant routes, operator only, acting on rows with `c
 prices it publishes. The response is now explicit about what happened, so the admin never has
 to type a price that the provider already knows:
 
-`{ models: ModelInfo[], importedPrices: number, fetchedAt, stale: boolean, error?: string }`
+`{ models: ModelInfo[], importedPrices: number, fetchedAt, stale: boolean, status, error? }`
 
 `ModelInfo` is the shared schema in `packages/shared/src/providers.ts`:
 `{ id, name, contextWindow?, inputPerMtok?, cachedInputPerMtok?, outputPerMtok? }`. A provider that
 publishes neither a context window nor prices still appears, with those columns empty.
 When the provider cannot be reached the route answers `200` with the last imported prices,
-`stale: true` and the error text, so the screen degrades instead of failing. A price a provider
+`stale: true`, a `status` and a fixed sentence for it, so the screen degrades instead of failing.
+`status` is one of `ok`, `unauthorized`, `not_found`, `rate_limited`, `provider_error`,
+`unreachable`, `blocked_address`, `tls_error`, `timeout`. A refused and a filtered connection are
+both `unreachable`, and text from the remote server is never returned (D-83). A price a provider
 does not publish stays admin-editable through `PUT /providers/:id/prices`, and an admin override
 is never overwritten by an import (`source: "admin"` wins over `"provider"`).
 
@@ -86,7 +91,15 @@ and every row it writes becomes `source: "admin"`.
 
 `POST /providers/:id/test` takes an optional `{ model? }`. Without one it tests the model of the
 newest route pointing at this provider, then the first model the provider lists, and answers `400`
-when neither exists. The response names the model it used.
+when neither exists. The response names the model it used and carries the same `status` and
+fixed `error` sentence as the model list: `{ ok, model, latencyMs, tokens, costCents, status, error? }`.
+
+A provider's `baseUrl` and `headers` are checked when they are saved and again on every
+connection (D-83). A tenant's base URL must be `https` on a public DNS name and port 443 or 8443;
+its headers may not replace `Authorization`, `Host` or framing headers. A refused value answers
+`422` with code `blocked_address`. Platform providers (operator routes) may use `http`, and may
+reach a private address only for a hostname in `EGRESS_ALLOW_HOSTS`. The same rule applies to a
+tenant's or the platform's `email.smtpUrl`: a public name, port 465, 587 or 2525, TLS required.
 
 ## Pagination
 
@@ -184,6 +197,20 @@ GIN index on every write, which does not pay at thousands of rows per tenant.
   read the native `required` instead.
 - **Paginated tables** show "x to y of n" with previous and next, and keep the page in the URL
   so a reload and a shared link land in the same place.
+
+## Abuse limits and upload ceiling (security M1)
+
+Two catalog keys in the `privacy` category cap the email-code flow per address and campaign:
+`privacy.codeRequestsPerHour` (default 3) and `privacy.codeFailuresPerHour` (default 10). A
+request over the first still answers `ok`, and an address over the second is refused with the same
+"Code expired or invalid" as a wrong code (D-82). `files.maxSizeMb` now has a maximum of 50, the
+platform ceiling every layer shares (D-87).
+
+## Errors added
+
+`403 tenant_suspended` for staff of a suspended tenant (`GET /me` still answers, with
+`company.status`); `422 blocked_address` for an address the egress policy refuses; `409 conflict`
+when a staff email address is already registered (D-84).
 
 ## Live voice (D-77)
 

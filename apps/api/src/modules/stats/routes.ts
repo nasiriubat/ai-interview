@@ -1,11 +1,11 @@
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
 import type { AppContext } from "../../context.js";
 
 /** Dashboard numbers (spec 07). Cheap aggregates only; heavier analytics come with phase 5. */
 export async function statsRoutes(app: App, ctx: AppContext): Promise<void> {
-  app.get("/stats", { preHandler: requireStaff() }, async (req) => {
+  app.get("/stats", { ...guard.staff() }, async (req) => {
     const companyId = req.companyId;
     const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
     const [campaigns, sessionsByStatus, invited, spend, calls, budget] = await Promise.all([
@@ -48,7 +48,7 @@ export async function statsRoutes(app: App, ctx: AppContext): Promise<void> {
   app.get(
     "/spend",
     {
-      preHandler: requireStaff(),
+      ...guard.staff(),
       schema: {
         querystring: z.object({
           from: z.coerce.date().optional(),

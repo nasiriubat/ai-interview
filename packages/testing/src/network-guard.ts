@@ -34,10 +34,33 @@ function databaseHost(): string | undefined {
   }
 }
 
+const ALLOWED = Symbol.for("aidp.testing.allowedHosts");
+
+function extraHosts(): string[] {
+  return ((globalThis as Record<symbol, unknown>)[ALLOWED] as string[] | undefined) ?? [];
+}
+
+/**
+ * For tests of a guard that sits below this one (the egress policy): lets named hosts through
+ * this guard so the lower layer, which answers them from an injected resolver, is the one under
+ * test. An entry starting with a dot allows that suffix only, not the bare name. The set is shared
+ * through `globalThis` because the guard is loaded from a setup file, not from the package entry.
+ * Returns a function that removes what this call added.
+ */
+export function allowNetworkHosts(hosts: string[]): () => void {
+  const g = globalThis as Record<symbol, unknown>;
+  const before = extraHosts();
+  g[ALLOWED] = [...before, ...hosts.map((h) => h.toLowerCase())];
+  return () => {
+    g[ALLOWED] = extraHosts().filter((h) => !hosts.map((x) => x.toLowerCase()).includes(h));
+  };
+}
+
 /** True when a connection to `host` is allowed from a test. */
 export function isHostAllowed(host: string): boolean {
   const h = host.toLowerCase();
-  return LOOPBACK.test(h) || h === databaseHost();
+  if (LOOPBACK.test(h) || h === databaseHost()) return true;
+  return extraHosts().some((e) => (e.startsWith(".") ? h.endsWith(e) : h === e));
 }
 
 function hostFromConnectArgs(rawArgs: unknown[]): string | undefined {

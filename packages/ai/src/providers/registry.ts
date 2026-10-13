@@ -5,10 +5,19 @@ import { LocalWhisperProvider } from "./local-whisper.js";
 import { OpenAICompatibleProvider } from "./openai-compatible.js";
 import type { Provider, RealtimeSocketFactory } from "./types.js";
 
+/**
+ * How adapters reach the network. `fetch` and `socket` are single implementations for every
+ * provider (tests); `fetchFor` and `socketFor` choose per provider, which is how the server applies
+ * an egress policy that depends on who owns the provider (a tenant's base URL is held to a stricter
+ * rule than the operator's). This package knows nothing about the policy itself, only that a
+ * `fetch` and a socket factory arrive.
+ */
 export interface ProviderDeps {
   fetch?: typeof fetch;
+  fetchFor?: (cfg: ProviderConfig) => typeof fetch | undefined;
   /** The socket streaming adapters open; tests hand in a fake server. */
   socket?: RealtimeSocketFactory;
+  socketFor?: (cfg: ProviderConfig) => RealtimeSocketFactory | undefined;
   /** The on-server Whisper runner; defaults to the process-wide one. Tests pass a fake. */
   speech?: SpeechRunner;
 }
@@ -18,12 +27,15 @@ export function createProvider(cfg: ProviderConfig, deps: ProviderDeps = {}): Pr
   if (cfg.kind === "local") {
     return new LocalWhisperProvider({ id: cfg.id, ...(deps.speech ? { runner: deps.speech } : {}) });
   }
+  const fetchImpl = deps.fetchFor?.(cfg) ?? deps.fetch;
+  const socketImpl = deps.socketFor?.(cfg) ?? deps.socket;
   if (cfg.kind === "anthropic") {
     return new AnthropicProvider({
       id: cfg.id,
       apiKey: cfg.apiKey,
       ...(cfg.baseUrl ? { baseUrl: cfg.baseUrl } : {}),
       ...(Object.keys(cfg.headers).length ? { headers: cfg.headers } : {}),
+      ...(fetchImpl ? { fetch: fetchImpl } : {}),
     });
   }
   return new OpenAICompatibleProvider({
@@ -32,8 +44,8 @@ export function createProvider(cfg: ProviderConfig, deps: ProviderDeps = {}): Pr
     apiKey: cfg.apiKey,
     ...(cfg.baseUrl ? { baseUrl: cfg.baseUrl } : {}),
     headers: cfg.headers,
-    ...(deps.fetch ? { fetch: deps.fetch } : {}),
-    ...(deps.socket ? { socket: deps.socket } : {}),
+    ...(fetchImpl ? { fetch: fetchImpl } : {}),
+    ...(socketImpl ? { socket: socketImpl } : {}),
   });
 }
 

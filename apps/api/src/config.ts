@@ -18,6 +18,21 @@ const Env = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
   /**
+   * Outbound-connection policy for tenant-supplied addresses (provider base URLs, SMTP relays).
+   * `strict` is the only mode a production process accepts. See packages/core/src/net/egress.ts.
+   */
+  EGRESS_MODE: z.enum(["strict", "permissive"]).default("strict"),
+  /** Comma-separated hostnames a platform provider may reach on a private address (compose services). */
+  EGRESS_ALLOW_HOSTS: z.string().default(""),
+  /**
+   * Reverse proxies between the internet and this process that set X-Forwarded-For, counted from
+   * this side. Caddy in front of the web app (which forwards the one address Caddy wrote) is one
+   * hop; the live-voice socket reaches the API straight from Caddy, also one. Anything other than
+   * the real topology makes the client address, and so every per-address rate limit, spoofable
+   * (D-82). Zero means "no proxy; trust only the socket".
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
+  /**
    * Where the admin's one-step live voice setup checks an OpenAI key and points the provider it
    * creates (D-77). Unset means OpenAI itself; set it for a regional endpoint or a proxy. The test
    * suite points it at its fake model server so no test reaches the network.

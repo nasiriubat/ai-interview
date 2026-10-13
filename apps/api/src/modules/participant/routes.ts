@@ -2,14 +2,15 @@ import { InviteNotOpenError, RequirementsNotFoundError, toStored } from "@aidp/c
 import { WidgetResponseSchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { participant, requireParticipant } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
+import { participant } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { AppError, notFound } from "../../lib/errors.js";
 import { runTurn } from "../sessions/turn-runner.js";
 import { ParticipantService } from "./service.js";
 
 const Link = z.object({ linkToken: z.string().min(8) });
-const publicLimit = { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } };
+const publicLimit = guard.public({ config: { rateLimit: { max: 30, timeWindow: "1 minute" } } });
 const TurnBody = z.object({
   content: z.string().max(8000).default(""),
   modality: z.enum(["text", "widget", "voice"]).default("text"),
@@ -17,7 +18,16 @@ const TurnBody = z.object({
 });
 
 export async function participantRoutes(app: App, ctx: AppContext): Promise<void> {
-  const svc = new ParticipantService(ctx.db, ctx.crypto, ctx.settings, ctx.email);
+  const svc = new ParticipantService(
+    ctx.db,
+    ctx.crypto,
+    ctx.settings,
+    ctx.email,
+    ctx.tenants,
+    (event, meta) => {
+      ctx.log.warn({ event, ...meta }, "abuse signal");
+    },
+  );
 
   app.get("/p/:linkToken", { ...publicLimit, schema: { params: Link } }, async (req) => {
     const { view } = await svc.resolveLink(req.params.linkToken);
@@ -39,7 +49,7 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
   app.post(
     "/p/:linkToken/verify/request",
     {
-      config: { rateLimit: { max: 5, timeWindow: "10 minutes" } },
+      ...guard.public({ config: { rateLimit: { max: 5, timeWindow: "10 minutes" } } }),
       schema: { params: Link, body: z.object({ email: z.email() }) },
     },
     async (req) => {
@@ -51,7 +61,7 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
   app.post(
     "/p/:linkToken/verify/confirm",
     {
-      config: { rateLimit: { max: 10, timeWindow: "10 minutes" } },
+      ...guard.public({ config: { rateLimit: { max: 10, timeWindow: "10 minutes" } } }),
       schema: { params: Link, body: z.object({ email: z.email(), code: z.string().regex(/^\d{6}$/) }) },
     },
     async (req) => svc.confirmCode(req.params.linkToken, req.body.email, req.body.code),
@@ -86,7 +96,7 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
     inviteErrors(() => ctx.requirements.openInvite(req.params.token)),
   );
 
-  const authed = { preHandler: requireParticipant };
+  const authed = guard.participant();
 
   app.get("/p/session", authed, async (req) => {
     const p = participant(req);
@@ -187,8 +197,7 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
   app.post(
     "/p/session/turns",
     {
-      ...authed,
-      config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
+      ...guard.participant({ config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }),
     },
     async (req, reply) => {
       const p = participant(req);

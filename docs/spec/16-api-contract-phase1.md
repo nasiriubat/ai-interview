@@ -1,7 +1,7 @@
 # 16 API contract, Phase 1
 
 Base URL `/api/v1`. JSON bodies. Errors: `{ error: { code: string, message: string, details?: unknown } }`
-with HTTP 400 validation, 401 unauthenticated, 403 forbidden, 404 not found, 409 conflict, 429 rate limited.
+with HTTP 400 validation, 401 unauthenticated, 403 forbidden (code `forbidden`, or `tenant_suspended` for a suspended tenant), 404 not found, 409 conflict, 413 too large, 422 blocked address (`blocked_address`), 429 rate limited.
 All ids are strings. Times are ISO 8601.
 
 ## Authentication
