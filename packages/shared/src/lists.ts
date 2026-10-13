@@ -84,24 +84,29 @@ export function listQuery<S extends string, F extends z.ZodRawShape>(
  * The envelope of one list: its rows under their own key, then the counters. The key is part of
  * the contract (`users`, `campaigns`, `audit`), which is why it is a parameter and not `items`.
  */
-export type ListEnvelope<K extends string, T> = { [P in K]: T[] } & {
+export type ListEnvelope<K extends string, T> = Record<K, T[]> & {
   total: number;
   limit: number;
   offset: number;
 };
 
+type EnvelopeShape<K extends string, T extends z.ZodType> = Record<K, z.ZodArray<T>> & {
+  total: z.ZodNumber;
+  limit: z.ZodNumber;
+  offset: z.ZodNumber;
+};
+
 export function listEnvelope<K extends string, T extends z.ZodType>(
   key: K,
   item: T,
-): z.ZodType<ListEnvelope<K, z.output<T>>> {
-  const shape: z.ZodRawShape = {
+): z.ZodObject<EnvelopeShape<K, T>> {
+  const shape = {
     [key]: z.array(item),
     total: z.number().int().min(0),
     limit: z.number().int().min(1),
     offset: z.number().int().min(0),
-  };
-  // The computed key is a string at compile time, so the object's type is not the envelope's.
-  return z.object(shape) as unknown as z.ZodType<ListEnvelope<K, z.output<T>>>;
+  } as EnvelopeShape<K, T>;
+  return z.object(shape);
 }
 
 /** Builds the response of a list from its rows, the total and the window the caller asked for. */

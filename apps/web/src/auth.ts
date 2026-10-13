@@ -10,7 +10,7 @@ import { resolveSmtpUrl } from "./lib/auth/smtp";
 const emailProvider = Nodemailer({
   server: resolveSmtpUrl(process.env),
   from: process.env.EMAIL_FROM ?? "no-reply@example.com",
-}) as unknown as Provider;
+}) as Provider;
 
 const nextAuth = NextAuth({
   ...authConfig,
