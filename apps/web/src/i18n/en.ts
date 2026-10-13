@@ -274,6 +274,10 @@ export const en = {
       errorProviderTitle: "The interviewer is temporarily unavailable",
       errorProviderBody: "Nothing was lost. Try again in a moment.",
       errorGenericTitle: "Something went wrong",
+      errorServerTitle: "Something went wrong on our side",
+      errorServerBody:
+        "Nothing you said is lost. Try again; if it keeps happening, open your link again in a few minutes.",
+      errorReference: (id: string): string => `Reference: ${id}`,
       errorExpiredTitle: "This session is no longer available",
       errorExpiredBody:
         "Your link may have expired or the campaign was closed. Ask for a new link if you want to continue.",

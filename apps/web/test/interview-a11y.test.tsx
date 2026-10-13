@@ -2,6 +2,7 @@ import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@te
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import ParticipantError from "@/app/p/error";
 import { Composer } from "@/components/participant/Composer";
 import { InterviewScreen } from "@/components/participant/InterviewScreen";
 import { MessageList } from "@/components/participant/MessageList";
@@ -473,5 +474,18 @@ describe("focus moves to the new heading", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
     const next = await screen.findByRole("heading", { level: 1, name: "Before we start" });
     expect(next).toHaveFocus();
+  });
+});
+
+describe("participant error page", () => {
+  it("says it is our side, that nothing was lost, and gives a reference for support", () => {
+    const reset = vi.fn();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    render(<ParticipantError error={Object.assign(new Error("boom"), { digest: "abc123" })} reset={reset} />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Something went wrong on our side");
+    expect(screen.getByText(/Nothing you said is lost/)).toBeInTheDocument();
+    expect(screen.getByText("Reference: abc123")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(reset).toHaveBeenCalledTimes(1);
   });
 });

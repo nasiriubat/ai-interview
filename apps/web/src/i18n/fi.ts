@@ -276,6 +276,10 @@ export const fi: Strings = {
         "Organisaatiosi käyttöraja tälle haastattelulle täyttyi. Vastauksesi on tallennettu; palaa myöhemmin.",
       errorProviderTitle: "Haastattelija ei ole juuri nyt tavoitettavissa",
       errorProviderBody: "Mitään ei kadonnut. Yritä hetken kuluttua uudelleen.",
+      errorServerTitle: "Jokin meni pieleen meidän päässämme",
+      errorServerBody:
+        "Mitään sanomaasi ei ole menetetty. Yritä uudelleen; jos vika jatkuu, avaa linkkisi uudelleen muutaman minuutin kuluttua.",
+      errorReference: (id: string): string => `Tunniste: ${id}`,
       errorGenericTitle: "Jokin meni pieleen",
       errorExpiredTitle: "Tämä istunto ei ole enää käytettävissä",
       errorExpiredBody:
