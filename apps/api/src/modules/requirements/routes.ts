@@ -111,6 +111,13 @@ export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<v
     { ...guard.staff(), schema: { params: Id, body: z.object({ path: PathSchema }) } },
     async (req) => {
       await wrap(() => svc.setPath(req.companyId, req.params.id, req.body.path, viewerOf(req)));
+      await ctx.services.audit.record(req.companyId, {
+        actorId: staff(req).userId,
+        action: "requirements.path",
+        targetType: "session",
+        targetId: req.params.id,
+        diff: { path: req.body.path },
+      });
       return { ok: true as const };
     },
   );
@@ -145,11 +152,23 @@ export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<v
 
   app.post("/requirements/:id/complete", { ...guard.staff(), schema: { params: Id } }, async (req) => {
     await wrap(() => svc.requestCompletion(req.companyId, req.params.id, viewerOf(req)));
+    await ctx.services.audit.record(req.companyId, {
+      actorId: staff(req).userId,
+      action: "requirements.complete",
+      targetType: "session",
+      targetId: req.params.id,
+    });
     return { ok: true as const };
   });
 
   app.post("/requirements/:id/reopen", { ...guard.staff(), schema: { params: Id } }, async (req) => {
     await wrap(() => svc.reopen(req.companyId, req.params.id, viewerOf(req)));
+    await ctx.services.audit.record(req.companyId, {
+      actorId: staff(req).userId,
+      action: "requirements.reopen",
+      targetType: "session",
+      targetId: req.params.id,
+    });
     return { ok: true as const };
   });
 

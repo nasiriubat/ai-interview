@@ -31,6 +31,9 @@ import type {
   Viewer,
 } from "./types.js";
 
+/** Larger than any campaign or template turn limit, and a valid (non-negative) turn count. */
+export const COMPLETION_REQUESTED_TURN_COUNT = 1_000_000;
+
 /** Creation, the live spec, owner edits and finding outcomes, and template preview. */
 export class RequirementsSessions {
   constructor(private readonly cx: RequirementsContext) {}
@@ -210,7 +213,10 @@ export class RequirementsSessions {
   async requestCompletion(companyId: string, id: string, viewer: Viewer): Promise<void> {
     const row = await this.cx.load(companyId, id, viewer);
     if (row.status === "completed" || row.status === "deleted") return;
-    const state = { ...(row.state as Record<string, unknown>), turnCount: Number.MAX_SAFE_INTEGER >> 1 };
+    // Past any turn limit, so the next turn is the closing one. It was `MAX_SAFE_INTEGER >> 1`, which
+    // is -1 (the shift truncates to 32 bits): the request did nothing, and the stored state failed
+    // its own schema, so reading the spec after "I'm done" answered 500.
+    const state = { ...(row.state as Record<string, unknown>), turnCount: COMPLETION_REQUESTED_TURN_COUNT };
     await this.deps.db.session.update({ where: { id: row.id }, data: { state } });
   }
 

@@ -7,7 +7,10 @@ import { CLOSE_POLICY, MAX_ANSWER_CHARS } from "./protocol.js";
 import type { SpeechOutput } from "./speech.js";
 
 /** What the engine is given as the participant's answer; absent for the opening question. */
-export interface VoiceAnswer { content: string; modality: "voice" }
+export interface VoiceAnswer {
+  content: string;
+  modality: "voice";
+}
 
 /**
  * One exchange at a time: transcribe what was said (utterance mode), take an engine turn on it,

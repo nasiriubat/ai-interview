@@ -35,7 +35,9 @@ import { LiveVoiceSession } from "./session.js";
 export async function participantVoiceLiveRoutes(app: App, ctx: RouteContext): Promise<void> {
   app.get(
     "/p/session/live",
-    { ...guard.participantSocket(), websocket: true, schema: { hide: true } },
+    // No HEAD twin: Fastify would register one that runs this handler without a socket, and answer
+    // 500. A plain request to this path is a 404; only an upgrade reaches the handler.
+    { ...guard.participantSocket(), websocket: true, exposeHeadRoute: false, schema: { hide: true } },
     (socket, req) => {
       // The principal comes from the auth plugin's onRequest hook, exactly as on every HTTP route;
       // an upgraded request goes through the same lifecycle. The check is inline rather than a
