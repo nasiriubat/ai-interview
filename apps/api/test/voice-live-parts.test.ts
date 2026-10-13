@@ -96,7 +96,13 @@ describe("live state", () => {
   it("closes the provider's transcription socket with the call", () => {
     const s = new LiveState();
     let closed = false;
-    s.stt = { events: (async function* () {})(), push: () => undefined, close: () => (closed = true) };
+    s.stt = {
+      events: (async function* (): AsyncGenerator<never> {
+        yield* [];
+      })(),
+      push: () => undefined,
+      close: () => (closed = true),
+    };
     s.close();
     expect(closed).toBe(true);
   });

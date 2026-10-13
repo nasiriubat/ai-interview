@@ -132,11 +132,11 @@ suite("role matrix: every route against every kind of caller", () => {
     });
     real.budget = budget.json<{ budget: { id: string } }>().budget.id;
     const analysis = await db.analysis.create({
-      data: { campaignId: real.campaign!, version: 1, status: "done" },
+      data: { campaignId: real.campaign, version: 1, status: "done" },
     });
     real.analysis = analysis.id;
     real.other = (
-      await db.analysis.create({ data: { campaignId: real.campaign!, version: 2, status: "done" } })
+      await db.analysis.create({ data: { campaignId: real.campaign, version: 2, status: "done" } })
     ).id;
     const opportunity = await db.opportunity.create({
       data: {
@@ -198,16 +198,16 @@ suite("role matrix: every route against every kind of caller", () => {
       };
       if (mode === "missing") return missing[name] ?? "missing";
       const resource = (): string | undefined => {
-        if (/\/operator\/tenants\//.test(url)) return real.tenant;
-        if (/\/users\//.test(url)) return real.user;
-        if (/\/templates\//.test(url)) return real.template;
-        if (/\/providers\//.test(url)) return real.provider;
-        if (/\/budgets\//.test(url)) return real.budget;
-        if (/\/opportunities\//.test(url)) return real.opportunity;
-        if (/\/analyses\//.test(url)) return real.analysis;
-        if (/\/requirements\//.test(url)) return real.requirement;
-        if (/\/sessions\//.test(url)) return real.session;
-        if (/\/campaigns\//.test(url)) return real.campaign;
+        if (url.includes("/operator/tenants/")) return real.tenant;
+        if (url.includes("/users/")) return real.user;
+        if (url.includes("/templates/")) return real.template;
+        if (url.includes("/providers/")) return real.provider;
+        if (url.includes("/budgets/")) return real.budget;
+        if (url.includes("/opportunities/")) return real.opportunity;
+        if (url.includes("/analyses/")) return real.analysis;
+        if (url.includes("/requirements/")) return real.requirement;
+        if (url.includes("/sessions/")) return real.session;
+        if (url.includes("/campaigns/")) return real.campaign;
         return undefined;
       };
       if (name === "id") {
