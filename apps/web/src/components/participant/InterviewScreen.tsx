@@ -18,7 +18,10 @@ import { WidgetRenderer } from "@/components/widgets";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useInterview } from "@/hooks/useInterview";
 import { useLiveVoice } from "@/hooks/useLiveVoice";
+import { useOnline } from "@/hooks/useOnline";
+import { useSpeech } from "@/hooks/useSpeech";
 import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleProvider";
 import { participantClient } from "@/lib/api/browser";
 import { errorMessage } from "@/lib/api/errors";
 import type { ParticipantApi } from "@/lib/api/participant";
@@ -45,6 +48,9 @@ export function InterviewScreen({
     retry,
     clearError,
   } = useInterview(api, initial);
+  // Reading a question aloud needs no server and no key (D-76); the voice follows the page's
+  // language, which the interview's template sets.
+  const speech = useSpeech(useLocale());
   const can = initial.capabilities;
   /** Whether this tenant does spoken answers at all, either way round. */
   const voiceConfigured = can.recordedVoice || can.liveVoice;
@@ -60,6 +66,34 @@ export function InterviewScreen({
   });
   const [typeInstead, setTypeInstead] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
+
+  /**
+   * A failed request is the authority on being offline; `navigator.onLine` only decides whether the
+   * Retry button is worth pressing and when to retry once on its own. The automatic retry happens
+   * only on a real offline-to-online transition after the failure, so a server that is down cannot
+   * make this loop.
+   */
+  const online = useOnline();
+  const networkFailure = state.error?.code === "network_error";
+  const wentOffline = React.useRef(false);
+  const [resending, setResending] = React.useState(false);
+  React.useEffect(() => {
+    if (!networkFailure) {
+      wentOffline.current = false;
+      return;
+    }
+    if (!online) {
+      wentOffline.current = true;
+      return;
+    }
+    if (wentOffline.current) {
+      wentOffline.current = false;
+      setResending(true);
+      void retry().finally(() => {
+        setResending(false);
+      });
+    }
+  }, [networkFailure, online, retry]);
   const [busy, setBusy] = React.useState(false);
 
   /**
@@ -186,15 +220,26 @@ export function InterviewScreen({
   // Only the options mode hides the composer behind a widget; chat and voice always keep it.
   const showComposer = !state.ended && (mode !== "options" || !showWidget || typeInstead);
   const isBudget = state.error?.code === "budget_exceeded";
+  const isOffline = networkFailure;
   const isProvider = state.error?.code === "provider_error";
   const isExpired = state.error?.code === "unauthenticated" || state.error?.code === "not_found";
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col">
-      <header className="bg-background/95 sticky top-0 z-10 border-b backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="flex items-center justify-between gap-2 px-4 py-2">
-          <h1 className="truncate text-base font-semibold">{title ?? t.participant.session.title}</h1>
-          <div className="flex items-center gap-2">
+    <div className="flex min-h-dvh w-full flex-col">
+      <header className="bg-card/90 supports-[backdrop-filter]:bg-card/75 sticky top-0 z-10 border-b backdrop-blur">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="hidden size-7 shrink-0 place-items-center rounded-md bg-brand-gradient text-xs font-bold text-white sm:grid"
+            >
+              D
+            </span>
+            <h1 className="text-foreground truncate text-[15px] font-semibold tracking-tight">
+              {title ?? t.participant.session.title}
+            </h1>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {!state.ended ? (
               <ModeSwitch mode={mode} onChange={changeMode} voiceEnabled={voiceConfigured && spokenAnswers} />
             ) : null}
@@ -202,7 +247,7 @@ export function InterviewScreen({
             <SessionMenu onPause={pause} onDone={done} onDelete={remove} disabled={busy || state.ended} />
           </div>
         </div>
-        <div className="px-4 pb-2">
+        <div className="mx-auto max-w-2xl px-4 pb-2">
           <ProgressAreas
             areas={state.progress.areas}
             disabled={inputDisabled}
@@ -210,14 +255,29 @@ export function InterviewScreen({
             onReturn={back}
           />
         </div>
+        {!online ? (
+          // The failure itself is an alert; this only keeps the state visible while it lasts.
+          <p
+            role="status"
+            className="bg-warning-soft text-warning-soft-foreground px-4 py-1.5 text-center text-xs font-medium"
+          >
+            {t.participant.session.offlineBar}
+          </p>
+        ) : null}
       </header>
 
-      <main id="main" className="flex-1 px-4 py-4">
-        <MessageList messages={state.messages} streaming={state.streaming} pending={state.pending}>
+      <main id="main" className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
+        <MessageList
+          messages={state.messages}
+          streaming={state.streaming}
+          pending={state.pending}
+          announcement={state.lastAnnouncement}
+          speech={speech}
+        >
           {showWidget ? (
             <section
               aria-label={t.participant.session.widgetAnswer}
-              className="bg-card mt-1 rounded-2xl border p-4"
+              className="bg-card shadow-card mt-1 rounded-2xl p-4"
             >
               <WidgetRenderer
                 key={state.messages[state.messages.length - 1]?.id}
@@ -246,29 +306,34 @@ export function InterviewScreen({
             <Alert variant={isBudget ? "warning" : "destructive"} className="mt-2">
               <AlertTriangleIcon />
               <AlertTitle>
-                {isBudget
-                  ? t.participant.session.errorBudgetTitle
-                  : isProvider
-                    ? t.participant.session.errorProviderTitle
-                    : isExpired
-                      ? t.participant.session.errorExpiredTitle
-                      : t.participant.session.errorGenericTitle}
+                {isOffline
+                  ? t.participant.session.offlineTitle
+                  : isBudget
+                    ? t.participant.session.errorBudgetTitle
+                    : isProvider
+                      ? t.participant.session.errorProviderTitle
+                      : isExpired
+                        ? t.participant.session.errorExpiredTitle
+                        : t.participant.session.errorGenericTitle}
               </AlertTitle>
               <AlertDescription>
                 <p>
-                  {isBudget
-                    ? t.participant.session.errorBudgetBody
-                    : isProvider
-                      ? t.participant.session.errorProviderBody
-                      : isExpired
-                        ? t.participant.session.errorExpiredBody
-                        : state.error.message || t.app.unknownError}
+                  {isOffline
+                    ? t.participant.session.offlineBody
+                    : isBudget
+                      ? t.participant.session.errorBudgetBody
+                      : isProvider
+                        ? t.participant.session.errorProviderBody
+                        : isExpired
+                          ? t.participant.session.errorExpiredBody
+                          : state.error.message || t.app.unknownError}
                 </p>
                 {!isBudget && !isExpired ? (
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
+                      disabled={isOffline && !online}
                       onClick={() => {
                         void retry();
                       }}
@@ -282,6 +347,11 @@ export function InterviewScreen({
                 ) : null}
               </AlertDescription>
             </Alert>
+          ) : null}
+          {resending ? (
+            <p role="status" className="text-muted-foreground mt-2 text-sm">
+              {t.participant.session.backOnline}
+            </p>
           ) : null}
           {actionError ? (
             <Alert variant="destructive" className="mt-2">
@@ -299,55 +369,59 @@ export function InterviewScreen({
       </main>
 
       {showComposer ? (
-        <footer className="bg-background sticky bottom-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          {mode === "voice" && liveOffered ? (
-            <LiveVoiceCall live={live} disabled={inputDisabled} onStart={live.start} />
-          ) : null}
-          {gaveUp !== null ? (
-            <p className="text-muted-foreground mb-2 text-sm" role="status">
-              {gaveUp === "text" ? t.participant.session.liveTypeOnly : t.participant.session.liveUnavailable}
-            </p>
-          ) : null}
-          <AttachmentList
-            items={attachments.items}
-            uploading={attachments.uploading}
-            error={attachments.error}
-            onRemove={attachments.remove}
-            fetchBytes={attachments.bytes}
-          />
-          <Composer
-            disabled={inputDisabled}
-            autoFocus={!showWidget}
-            voiceFirst={mode === "voice" && !inCall}
-            onSend={(text) => {
-              setTypeInstead(false);
-              typedTurn(() => {
-                void sendText(text);
-              });
-            }}
-            onVoice={
-              // One microphone at a time: while a live call is up, recording an answer as well
-              // would take a second turn on a session that only allows one. And with no route
-              // that listens, recorded voice transcribes through the same missing thing the call
-              // just failed on, so the button is withdrawn rather than left as a dead end.
-              can.recordedVoice && !inCall && spokenAnswers
-                ? (audio, durationMs) => {
-                    setTypeInstead(false);
-                    // The turn stores the audio server-side, so the list is re-read afterwards
-                    // and the participant can play back what they said.
-                    void sendVoice(audio, durationMs).then(attachments.refresh);
-                  }
-                : undefined
-            }
-            onFile={
-              can.fileUpload
-                ? (file) => {
-                    attachments.upload(file);
-                  }
-                : undefined
-            }
-            accept={attachments.accept}
-          />
+        <footer className="from-background via-background sticky bottom-0 bg-gradient-to-t from-60% to-transparent px-4 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="bg-card shadow-raised mx-auto grid max-w-2xl gap-2 rounded-2xl p-2">
+            {mode === "voice" && liveOffered ? (
+              <LiveVoiceCall live={live} disabled={inputDisabled} onStart={live.start} />
+            ) : null}
+            {gaveUp !== null ? (
+              <p className="text-muted-foreground mb-2 text-sm" role="status">
+                {gaveUp === "text"
+                  ? t.participant.session.liveTypeOnly
+                  : t.participant.session.liveUnavailable}
+              </p>
+            ) : null}
+            <AttachmentList
+              items={attachments.items}
+              uploading={attachments.uploading}
+              error={attachments.error}
+              onRemove={attachments.remove}
+              fetchBytes={attachments.bytes}
+            />
+            <Composer
+              disabled={inputDisabled}
+              autoFocus={!showWidget}
+              voiceFirst={mode === "voice" && !inCall}
+              onSend={(text) => {
+                setTypeInstead(false);
+                live.end();
+                // Resolves false when the turn failed, so the composer can give the text back.
+                return sendText(text);
+              }}
+              onVoice={
+                // One microphone at a time: while a live call is up, recording an answer as well
+                // would take a second turn on a session that only allows one. And with no route
+                // that listens, recorded voice transcribes through the same missing thing the call
+                // just failed on, so the button is withdrawn rather than left as a dead end.
+                can.recordedVoice && !inCall && spokenAnswers
+                  ? (audio, durationMs) => {
+                      setTypeInstead(false);
+                      // The turn stores the audio server-side, so the list is re-read afterwards
+                      // and the participant can play back what they said.
+                      void sendVoice(audio, durationMs).then(attachments.refresh);
+                    }
+                  : undefined
+              }
+              onFile={
+                can.fileUpload
+                  ? (file) => {
+                      attachments.upload(file);
+                    }
+                  : undefined
+              }
+              accept={attachments.accept}
+            />
+          </div>
         </footer>
       ) : state.ended ? (
         <footer className="text-muted-foreground flex items-center justify-center gap-2 px-4 py-3 text-sm">

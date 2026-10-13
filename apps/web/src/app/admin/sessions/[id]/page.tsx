@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
@@ -27,6 +27,7 @@ interface Props {
 }
 
 export default async function SessionPage({ params }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const { id } = await params;
   const api = await staffServer();
@@ -43,6 +44,7 @@ export default async function SessionPage({ params }: Props): Promise<React.JSX.
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: s.title(session.id.slice(0, 8)) }}
         title={s.title(session.id.slice(0, 8))}
         actions={
           <div className="flex items-center gap-2">

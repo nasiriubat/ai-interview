@@ -34,7 +34,7 @@ export function LanguageSwitch({ className }: { className?: string }): React.JSX
 
   return (
     <div className={cn("flex items-center gap-1 print:hidden", className)}>
-      <LanguagesIcon className="text-muted-foreground size-4" aria-hidden="true" />
+      <LanguagesIcon className="text-muted-foreground hidden size-4 sm:block" aria-hidden="true" />
       <label className="sr-only" htmlFor="language-switch">
         {t.app.language}
       </label>
@@ -46,7 +46,7 @@ export function LanguageSwitch({ className }: { className?: string }): React.JSX
         onChange={(e) => {
           change(e.target.value as Locale);
         }}
-        className="border-input bg-background focus-visible:ring-ring/50 h-8 rounded-md border px-2 text-xs outline-none focus-visible:ring-[3px]"
+        className="bg-card text-foreground shadow-control h-8 rounded-md border-0 px-2 text-xs"
       >
         {LOCALES.map((l) => (
           <option key={l} value={l}>

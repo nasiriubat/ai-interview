@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { RequirementsWorkspace } from "@/components/admin/requirements/RequirementsWorkspace";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
@@ -24,6 +24,7 @@ interface Props {
 }
 
 export default async function RequirementsSessionPage({ params }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const { id } = await params;
   const api = await staffServer();
@@ -44,6 +45,7 @@ export default async function RequirementsSessionPage({ params }: Props): Promis
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: detail.session.title || t.admin.common.unnamed }}
         title={detail.session.title || t.admin.common.unnamed}
         subtitle={subtitle || undefined}
         actions={

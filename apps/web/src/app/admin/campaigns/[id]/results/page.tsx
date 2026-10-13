@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { ResultsView } from "@/components/admin/results/ResultsView";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { isWeightsPreset, parseWeights } from "@/lib/analysis/rank";
 import { isApiError } from "@/lib/api/errors";
@@ -25,6 +25,7 @@ interface Props {
 }
 
 export default async function ResultsPage({ params, searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const { id } = await params;
   const sp = await searchParams;
@@ -61,6 +62,7 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: campaign.name }}
         title={`${campaign.name} · ${s.title}`}
         subtitle={s.subtitle}
         actions={

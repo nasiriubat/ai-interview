@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { diffSpecs, generateSpec, mergeFacts, renderLiveSpec, type Logger } from "@aidp/ai";
-import { currentTenant, tenantBatch, tenantTransaction } from "@aidp/db";
+import { containsInsensitive, currentTenant, tenantBatch, tenantTransaction } from "@aidp/db";
 import {
   AgentBundleSchema,
   FindingSchema,
@@ -207,25 +207,39 @@ export class RequirementsService {
     return this.sessionView(row);
   }
 
-  /** One page of requirements sessions, newest first, with the row count beside it (contract 19). */
+  /**
+   * One page of requirements sessions with the row count beside it (contract 19). `q` matches the
+   * title and `status` narrows; both only ever narrow the viewer's own set (D-79). Newest first
+   * unless `orderBy` says otherwise.
+   */
   async list(
     companyId: string,
     viewer: Viewer,
-    page: { limit: number; offset: number } = { limit: 50, offset: 0 },
+    page: {
+      limit: number;
+      offset: number;
+      q?: string | undefined;
+      status?: string | undefined;
+      orderBy?: Prisma.SessionOrderByWithRelationInput[];
+    } = { limit: 50, offset: 0 },
   ): Promise<{ sessions: RequirementsListItem[]; total: number }> {
-    const where = {
+    const where: Prisma.SessionWhereInput = {
       companyId,
       ownerUserId: viewer.role === "member" ? viewer.userId : { not: null },
       template: { key: REQUIREMENTS_TEMPLATE_KEY },
-      status: { not: "deleted" },
       // Template previews are owned sessions too; their participant is the previewing admin.
       OR: [{ participantId: null }, { participant: { userId: null } }],
+      AND: [
+        { status: { not: "deleted" } },
+        ...(page.status ? [{ status: page.status }] : []),
+        ...(page.q ? [{ title: containsInsensitive(page.q) }] : []),
+      ],
     };
     const [rows, total] = await tenantBatch(this.deps.db, [
       this.deps.db.session.findMany({
         where,
         include: { owner: { select: { email: true } }, _count: { select: { specs: true } } },
-        orderBy: { createdAt: "desc" },
+        orderBy: page.orderBy ?? [{ createdAt: "desc" }],
         take: page.limit,
         skip: page.offset,
       }),

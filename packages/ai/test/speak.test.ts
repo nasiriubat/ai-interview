@@ -29,6 +29,7 @@ class SpeakingProvider implements Provider {
     vision: false,
     transcription: true,
     speech: true,
+    streamingTranscription: false,
   };
   lastInput: SpeechInput | undefined;
   aborted = false;
@@ -80,6 +81,7 @@ class MuteProvider extends SpeakingProvider {
     vision: false,
     transcription: true,
     speech: false,
+    streamingTranscription: false,
   };
   override speak = undefined as unknown as SpeakingProvider["speak"];
 }

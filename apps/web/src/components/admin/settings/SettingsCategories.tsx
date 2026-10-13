@@ -1,6 +1,7 @@
 import Link from "next/link";
 import * as React from "react";
 import { CategoryForm } from "./CategoryForm";
+import { LiveVoicePanel } from "./LiveVoicePanel";
 import { t } from "@/i18n";
 import type { SettingsCatalogEntry, SettingsResponse } from "@/lib/api/schemas";
 import { cn, humanize } from "@/lib/utils";
@@ -88,18 +89,22 @@ export function SettingsCategories({
           </Link>
         ))}
       </nav>
-      <CategoryForm
-        key={`${scope}:${scopeId ?? ""}:${selected}`}
-        category={selected}
-        title={categoryLabel(selected)}
-        entries={entries}
-        values={data.values}
-        effective={data.effective ?? data.values}
-        secrets={data.secrets ?? {}}
-        sources={data.sources ?? {}}
-        scope={scope}
-        scopeId={scopeId}
-      />
+      <div className="min-w-0">
+        {/* Live voice is one switch with a readiness check (D-77), and it is always the tenant's own. */}
+        {selected === "voice" && scope === "tenant" && !scopeId ? <LiveVoicePanel /> : null}
+        <CategoryForm
+          key={`${scope}:${scopeId ?? ""}:${selected}`}
+          category={selected}
+          title={categoryLabel(selected)}
+          entries={entries}
+          values={data.values}
+          effective={data.effective ?? data.values}
+          secrets={data.secrets ?? {}}
+          sources={data.sources ?? {}}
+          scope={scope}
+          scopeId={scopeId}
+        />
+      </div>
     </div>
   );
 }

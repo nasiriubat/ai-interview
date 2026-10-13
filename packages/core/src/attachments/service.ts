@@ -342,7 +342,8 @@ export class AttachmentService {
   }
 
   /** The interview's language, so a summary comes back in it. */
-  private async languageFor(sessionId: string): Promise<string | undefined> {
+  /** The interview's language, from its template: what documents are summarized in and speech is expected in. */
+  async languageFor(sessionId: string): Promise<string | undefined> {
     const row = await this.deps.db.session.findUnique({
       where: { id: sessionId },
       select: { template: { select: { language: true } } },

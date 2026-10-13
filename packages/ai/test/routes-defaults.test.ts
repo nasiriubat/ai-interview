@@ -1,4 +1,4 @@
-import { PURPOSES } from "@aidp/shared";
+import { PURPOSES, RouteSchema } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import {
   defaultAnthropicRoutes,
@@ -37,13 +37,28 @@ describe("platform default routes", () => {
       .map((r) => r.purpose)
       .sort();
 
-    expect(openai).toEqual(["embedding", "transcription", "tts"]);
+    expect(openai).toEqual(["embedding", "stt_stream", "transcription", "tts"]);
   });
 
   it("leaves audio and embeddings alone in the conversation providers, which cannot do them", () => {
     const audioAndVectors = new Set(["transcription", "tts", "stt_stream", "realtime_voice", "embedding"]);
     for (const rows of [defaultAnthropicRoutes("p"), defaultOpenRouterRoutes("p")]) {
       for (const r of rows) expect(audioAndVectors.has(r.purpose)).toBe(false);
+    }
+  });
+
+  /**
+   * Every default must survive the schema the route resolver parses with. The audio routes carry
+   * `maxOutputTokens: 0`, which a positive-only schema rejected at resolve time, so the voice the
+   * bootstrap configured failed on its first use.
+   */
+  it("parses as a route the resolver accepts", () => {
+    for (const rows of [
+      defaultAnthropicRoutes("p"),
+      defaultOpenRouterRoutes("p"),
+      defaultOpenAIRoutes("p"),
+    ]) {
+      for (const r of rows) expect(RouteSchema.safeParse(r).success).toBe(true);
     }
   });
 

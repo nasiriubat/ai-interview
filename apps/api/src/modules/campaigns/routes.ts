@@ -1,14 +1,56 @@
-import { tenantBatch } from "@aidp/db";
+import { escapeLike, tenantBatch } from "@aidp/db";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
-import { PageQuery } from "../../lib/pagination.js";
+import { listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
 import { CampaignService } from "./service.js";
 
 const Id = z.object({ id: z.string() });
+
+/** `/campaigns` (D-79): `q` matches the name. */
+export const CampaignList = listSpec({
+  sort: { createdAt: "desc", name: "asc", status: "asc" },
+  defaultSort: "createdAt",
+  filters: { status: z.enum(["draft", "open", "analyzing", "closed"]).optional() },
+});
+
+/**
+ * `/campaigns/:id/sessions` (D-79). `q` matches the session id exactly, and the participant's
+ * `name` or `email` field only where that participant is identified: the campaign is
+ * `identified`, or it is `participant_choice` and the participant has consented (consent is where
+ * they choose). An anonymous participant keeps no email, and even a stray one is never searched,
+ * so a search cannot be used to learn which session an anonymous person wrote.
+ */
+export const CampaignSessionList = listSpec({
+  sort: { createdAt: "desc", startedAt: "desc", lastActivity: "desc", status: "asc" },
+  defaultSort: "createdAt",
+  columns: { lastActivity: "updatedAt" },
+  nullable: ["startedAt"],
+  filters: {
+    status: z.enum(["created", "consented", "active", "paused", "completed", "deleted"]).optional(),
+  },
+});
+
+/** Whether a session's participant may be named on a staff screen or found by a search. */
+function identified(mode: string, consented: boolean): boolean {
+  return mode === "identified" || (mode === "participant_choice" && consented);
+}
+
+/** The identity a staff list may show, under the same rule the search follows. */
+function visibleIdentity(
+  mode: string,
+  consented: boolean,
+  fields: unknown,
+): { participantName: string | null; participantEmail: string | null } {
+  const f = (fields ?? {}) as Record<string, unknown>;
+  const show = identified(mode, consented);
+  const str = (v: unknown) => (show && typeof v === "string" && v ? v : null);
+  return { participantName: str(f.name), participantEmail: str(f.email) };
+}
 
 export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
   const svc = new CampaignService(ctx.db, ctx.crypto, ctx.settings, ctx.email, ctx.config.PUBLIC_WEB_URL);
@@ -18,15 +60,32 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
     linkTokenHash: _hash,
     ...c
   }: T): Omit<T, "linkTokenHash"> => c;
-  app.get("/campaigns", { ...guard.staff(), schema: { querystring: PageQuery } }, async (req) => {
-    const { campaigns, total } = await svc.list(req.companyId, req.query);
-    return {
-      campaigns: campaigns.map(publicCampaign),
-      total,
-      limit: req.query.limit,
-      offset: req.query.offset,
-    };
-  });
+  app.get(
+    "/campaigns",
+    { ...guard.staff(), schema: { querystring: listQuery(CampaignList) } },
+    async (req) => {
+      const { campaigns, total } = await svc.list(req.companyId, {
+        limit: req.query.limit,
+        offset: req.query.offset,
+        q: searchTerm(req.query.q),
+        status: req.query.status,
+        orderBy: listOrder<Prisma.CampaignOrderByWithRelationInput, typeof req.query.sort>(
+          CampaignList,
+          req.query,
+        ),
+      });
+      const stats = await svc.listStats(
+        req.companyId,
+        campaigns.map((c) => c.id),
+      );
+      return {
+        campaigns: campaigns.map((c) => ({ ...publicCampaign(c), stats: stats.get(c.id) })),
+        total,
+        limit: req.query.limit,
+        offset: req.query.offset,
+      };
+    },
+  );
 
   app.post(
     "/campaigns",
@@ -184,14 +243,40 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
 
   app.get(
     "/campaigns/:id/sessions",
-    { ...guard.staff(), schema: { params: Id, querystring: PageQuery } },
+    {
+      ...guard.staff(),
+      schema: { params: Id, querystring: listQuery(CampaignSessionList) },
+    },
     async (req) => {
-      await svc.get(req.companyId, req.params.id);
-      const where = { campaignId: req.params.id, companyId: req.companyId };
+      const campaign = await svc.get(req.companyId, req.params.id);
+      const mode = campaign.participationMode;
+      const q = searchTerm(req.query.q);
+      const fieldMatch = (key: "name" | "email", term: string): Prisma.SessionWhereInput => ({
+        participant: { fields: { path: [key], string_contains: escapeLike(term), mode: "insensitive" } },
+      });
+      // Identity is searchable only where it would be shown (see CampaignSessionList).
+      const identity: Prisma.SessionWhereInput[] =
+        q === undefined || (mode !== "identified" && mode !== "participant_choice")
+          ? []
+          : [
+              {
+                ...(mode === "identified" ? {} : { consentedAt: { not: null } }),
+                OR: [fieldMatch("name", q), fieldMatch("email", q)],
+              },
+            ];
+      const where: Prisma.SessionWhereInput = {
+        campaignId: campaign.id,
+        companyId: req.companyId,
+        ...(req.query.status ? { status: req.query.status } : {}),
+        ...(q === undefined ? {} : { OR: [{ id: q }, ...identity] }),
+      };
       const [sessions, total] = await tenantBatch(ctx.db, [
         ctx.db.session.findMany({
           where,
-          orderBy: { createdAt: "desc" },
+          orderBy: listOrder<Prisma.SessionOrderByWithRelationInput, typeof req.query.sort>(
+            CampaignSessionList,
+            req.query,
+          ),
           take: req.query.limit,
           skip: req.query.offset,
           select: {
@@ -201,16 +286,22 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
             startedAt: true,
             endedAt: true,
             createdAt: true,
+            updatedAt: true,
+            consentedAt: true,
             modePreference: true,
+            participant: { select: { fields: true } },
           },
         }),
         ctx.db.session.count({ where }),
       ]);
-      const costs = await ctx.db.llmCall.groupBy({
-        by: ["sessionId"],
-        where: { campaignId: req.params.id },
-        _sum: { costCents: true },
-      });
+      // Costs for this page only, rather than every session the campaign ever had.
+      const costs = sessions.length
+        ? await ctx.db.llmCall.groupBy({
+            by: ["sessionId"],
+            where: { companyId: req.companyId, sessionId: { in: sessions.map((s) => s.id) } },
+            _sum: { costCents: true },
+          })
+        : [];
       const costOf = new Map(costs.map((c) => [c.sessionId, c._sum.costCents ?? 0]));
       return {
         sessions: sessions.map((s) => {
@@ -225,9 +316,11 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
             areasCovered: covered,
             mode: s.modePreference,
             costCents: costOf.get(s.id) ?? 0,
+            ...visibleIdentity(mode, s.consentedAt !== null, s.participant?.fields),
             startedAt: s.startedAt,
             endedAt: s.endedAt,
             createdAt: s.createdAt,
+            lastActivityAt: s.updatedAt,
           };
         }),
         total,

@@ -4,6 +4,7 @@ import { Loader2Icon } from "lucide-react";
 import * as React from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
@@ -125,7 +126,7 @@ export function VersionDiff({
     (req?.added.length ?? 0) + (req?.removed.length ?? 0) + (req?.changed.length ?? 0) === 0;
 
   return (
-    <section aria-label={s.title} className="grid gap-4 rounded-xl border p-4 print:hidden">
+    <section aria-label={s.title} className="grid gap-4 bg-card shadow-card rounded-lg p-4 print:hidden">
       <div>
         <h2 className="text-base font-semibold">{s.title}</h2>
         <p className="text-muted-foreground mt-1 text-sm">{s.body}</p>
@@ -135,21 +136,24 @@ export function VersionDiff({
       ) : (
         <div className="grid gap-1.5">
           <Label htmlFor="compare-version">{s.title}</Label>
-          <select
+          <Combobox
             id="compare-version"
+            className="max-w-xs"
             value={other}
-            onChange={(e) => {
-              setOther(e.target.value);
+            onChange={setOther}
+            options={[
+              { value: "", label: s.none },
+              ...others.map((v) => ({
+                value: String(v.version),
+                label: t.admin.requirements.versions.versionOption(v.version, v.label),
+              })),
+            ]}
+            labels={{
+              placeholder: s.none,
+              search: t.admin.list.searchPlaceholder,
+              empty: t.admin.list.noMatches,
             }}
-            className="border-input bg-background focus-visible:ring-ring/50 h-9 w-full max-w-xs rounded-md border px-2 text-sm outline-none focus-visible:ring-[3px]"
-          >
-            <option value="">{s.none}</option>
-            {others.map((v) => (
-              <option key={v.id} value={v.version}>
-                {t.admin.requirements.versions.versionOption(v.version, v.label)}
-              </option>
-            ))}
-          </select>
+          />
         </div>
       )}
       {loading ? (

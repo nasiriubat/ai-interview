@@ -18,6 +18,7 @@ class FakeProvider implements Provider {
     vision: false,
     transcription: false,
     speech: false,
+    streamingTranscription: false,
   };
   lastReq?: ChatRequest;
   constructor(readonly id: string) {}

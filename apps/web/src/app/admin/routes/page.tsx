@@ -3,7 +3,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { RoutesForm } from "@/components/admin/providers/RoutesForm";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
 
@@ -12,6 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RoutesPage(): Promise<React.JSX.Element> {
+  await requestLocale();
   const me = await requireMe();
   const api = await staffServer();
   const [routes, providers] = await Promise.all([api.routes.get(), api.providers.list()]);

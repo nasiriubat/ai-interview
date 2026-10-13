@@ -1,9 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import {
+  DEFAULT_LOCAL_WHISPER_MODEL,
   defaultAnthropicRoutes,
   defaultOpenAIRoutes,
   defaultOpenRouterRoutes,
+  LOCAL_WHISPER_MODELS,
   OpenAICompatibleProvider,
   PriceTable,
   SEED_PRICES,
@@ -20,8 +22,10 @@ import { seed } from "./seed.js";
  * - a platform Anthropic provider from ANTHROPIC_API_KEY with seed prices and default routes
  * - a platform OpenRouter provider from OPENROUTER_API_KEY with published prices and default routes
  *   (used only for purposes that have no route yet, so Anthropic wins when both keys are set)
- * - a platform OpenAI provider from OPENAI_API_KEY for the three purposes neither of the others
- *   can serve: transcription, speech and embeddings
+ * - a platform OpenAI provider from OPENAI_API_KEY for the purposes neither of the others can
+ *   serve: transcription, streaming captions, speech and embeddings (D-73, D-80)
+ * - always, a platform `local` provider that transcribes on this server with Whisper, routed to
+ *   transcription when nothing above claimed it (D-75)
  * - the shipped templates
  */
 export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promise<void> {
@@ -167,6 +171,58 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
       }));
     await createMissingRoutes(db, defaultOpenAIRoutes(provider.id));
     providers.push("OpenAI");
+  }
+
+  /**
+   * Speech to text on this server, always (D-75). Recording then works with no key at all, and
+   * the audio never leaves the machine. It runs after OpenAI and only fills a route nobody else
+   * took, so a deployment with OPENAI_API_KEY keeps transcribing through OpenAI and still has this
+   * one in the list to switch to.
+   */
+  const local =
+    (await db.provider.findFirst({ where: { companyId: null, kind: "local" } })) ??
+    (await db.provider.create({
+      data: {
+        companyId: null,
+        kind: "local",
+        name: "On this server (Whisper)",
+        apiKeyEnc: "", // no key: see decryptApiKey
+        headers: {},
+      },
+    }));
+  for (const m of LOCAL_WHISPER_MODELS) {
+    await db.modelPrice.upsert({
+      where: { providerId_model: { providerId: local.id, model: m.id } },
+      create: {
+        providerId: local.id,
+        model: m.id,
+        inputPerMtok: 0,
+        cachedInputPerMtok: 0,
+        outputPerMtok: 0,
+        source: "seed",
+      },
+      update: {},
+    });
+  }
+  await createMissingRoutes(db, [
+    {
+      companyId: null,
+      purpose: "transcription",
+      providerId: local.id,
+      model: DEFAULT_LOCAL_WHISPER_MODEL,
+      effort: "low",
+      maxOutputTokens: 0,
+      batchAllowed: false,
+    },
+  ]);
+  const transcription = await db.route.findFirst({
+    where: { companyId: null, purpose: "transcription" },
+    include: { provider: { select: { name: true } } },
+  });
+  if (transcription) {
+    console.log(
+      `bootstrap: recorded answers are transcribed by ${transcription.provider.name} (${transcription.model})`,
+    );
   }
 
   const seeded = await seed(db);

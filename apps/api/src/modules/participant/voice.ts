@@ -1,4 +1,4 @@
-import { ProviderError } from "@aidp/ai";
+import { ProviderError, speechLanguages, UnsupportedAudioError } from "@aidp/ai";
 import { AttachmentRejected } from "@aidp/core";
 import type { FastifyRequest } from "fastify";
 import type { App } from "../../app.js";
@@ -75,16 +75,30 @@ export async function participantVoiceRoutes(app: App, ctx: AppContext): Promise
       }
 
       const caller = await ctx.callers.forCompany(p.companyId);
+      const languages = speechLanguages(await ctx.attachments.languageFor(p.sessionId));
       let transcript;
       try {
         transcript = await caller.transcribe(
           { companyId: p.companyId, sessionId: p.sessionId, ref: { type: "attachment", id: attachmentId } },
-          { data: new Uint8Array(bytes), mime: file.mimetype, filename: file.filename || "recording.webm" },
+          {
+            data: new Uint8Array(bytes),
+            mime: file.mimetype,
+            filename: file.filename || "recording.webm",
+            languages,
+          },
         );
       } catch (err) {
         // The recording is kept even though the turn failed. The participant can retry, and the
         // audio of what they already said should not be thrown away because a provider was down.
         await markFailed(ctx, attachmentId, err);
+        if (err instanceof UnsupportedAudioError) {
+          // The on-server Whisper reads WAV, and this browser could not convert its recording
+          // (D-75). Recording again will fail the same way, so the honest advice is to type.
+          throw new AppError(
+            "validation",
+            "This browser's recording could not be read here; please type your answer instead",
+          );
+        }
         if (err instanceof ProviderError && err.code === "unsupported") {
           throw new AppError(
             "provider_error",

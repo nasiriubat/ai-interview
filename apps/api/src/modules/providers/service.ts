@@ -1,6 +1,14 @@
-import { costCents, estimateTokens, PriceTable, ProviderError, type ModelPrice } from "@aidp/ai";
+import {
+  costCents,
+  estimateTokens,
+  PriceTable,
+  ProviderError,
+  type ModelPrice,
+  type SpeechRunner,
+} from "@aidp/ai";
 import {
   classifyConnectFailure,
+  decryptApiKey,
   EgressBlockedError,
   loadPrices,
   validateTenantHeaders,
@@ -10,7 +18,7 @@ import {
 } from "@aidp/core";
 import { tenantBatch } from "@aidp/db";
 import { PURPOSES, ProviderConfigSchema, type ModelInfo, type Purpose } from "@aidp/shared";
-import type { PrismaClient, Provider } from "@prisma/client";
+import type { Prisma, PrismaClient, Provider } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
 export interface ProviderInput {
@@ -111,6 +119,7 @@ export class ProviderService {
     private readonly crypto: Crypto,
     private readonly callers: CallerFactory,
     private readonly egress: EgressGuard,
+    private readonly speech?: SpeechRunner,
   ) {}
 
   /**
@@ -148,7 +157,14 @@ export class ProviderService {
   }
 
   async create(companyId: string | null, input: ProviderInput): Promise<Provider> {
-    if (!input.apiKey) throw new AppError("validation", "apiKey is required");
+    const keyless = input.kind === "local";
+    if (keyless && companyId !== null) {
+      // The on-server Whisper spends the server's own CPU and memory, which are the operator's to
+      // allocate. Tenants route to the platform's one; they do not get a second copy (D-75).
+      throw new AppError("forbidden", "The on-server speech model is managed by the platform operator");
+    }
+    if (!keyless && !input.apiKey) throw new AppError("validation", "apiKey is required");
+    const apiKey = keyless ? "" : (input.apiKey ?? "");
     await this.assertEgress(companyId, input);
     ProviderConfigSchema.parse({
       id: "new",
@@ -156,7 +172,7 @@ export class ProviderService {
       kind: input.kind,
       name: input.name,
       baseUrl: input.baseUrl,
-      apiKey: input.apiKey,
+      apiKey,
       headers: input.headers ?? {},
       enabled: input.enabled ?? true,
     });
@@ -166,7 +182,8 @@ export class ProviderService {
         kind: input.kind,
         name: input.name,
         baseUrl: input.baseUrl ?? null,
-        apiKeyEnc: this.crypto.encrypt(input.apiKey),
+        // No secret, so nothing to encrypt: an empty column is how "has no key" is stored.
+        apiKeyEnc: keyless ? "" : this.crypto.encrypt(apiKey),
         headers: input.headers ?? {},
         enabled: input.enabled ?? true,
       },
@@ -185,7 +202,7 @@ export class ProviderService {
         ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
         ...(input.headers !== undefined ? { headers: input.headers } : {}),
         ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
-        ...(input.apiKey ? { apiKeyEnc: this.crypto.encrypt(input.apiKey) } : {}),
+        ...(input.apiKey && p.kind !== "local" ? { apiKeyEnc: this.crypto.encrypt(input.apiKey) } : {}),
       },
     });
     this.callers.invalidateProvider(p.id);
@@ -210,10 +227,11 @@ export class ProviderService {
         kind: p.kind,
         name: p.name,
         ...(p.baseUrl ? { baseUrl: p.baseUrl } : {}),
-        apiKey: this.crypto.decrypt(p.apiKeyEnc),
+        apiKey: decryptApiKey(this.crypto, p.apiKeyEnc),
         headers: p.headers,
         enabled: p.enabled,
       }),
+      this.speech ? { speech: this.speech } : {},
     );
   }
 
@@ -330,6 +348,7 @@ export class ProviderService {
     const p = await this.get(companyId, id);
     const chosen = model ?? (await this.defaultModel(companyId, p));
     const started = Date.now();
+    if (p.kind === "local") return this.testTranscription(p, chosen, started);
     try {
       const events = this.adapter(p).chat(chosen, {
         messages: [{ role: "user", content: "Reply with the single word: ready" }],
@@ -363,6 +382,51 @@ export class ProviderService {
     }
   }
 
+  /**
+   * A provider that only transcribes cannot be asked for a word. It is sent a second of tone
+   * instead, which proves the part that can actually fail: the model downloads, loads and runs on
+   * this server. The first test after a deployment therefore waits for the download (D-75).
+   */
+  private async testTranscription(
+    p: Provider,
+    model: string,
+    started: number,
+  ): Promise<{
+    ok: boolean;
+    model: string;
+    latencyMs: number;
+    tokens: number;
+    costCents: number;
+    status: ProbeStatus;
+    error?: string;
+  }> {
+    try {
+      const adapter = this.adapter(p);
+      if (!adapter.transcribe) throw new AppError("validation", "This provider cannot transcribe audio");
+      await adapter.transcribe(model, {
+        data: testTone(),
+        mime: "audio/wav",
+        filename: "test.wav",
+        language: "en",
+      });
+      return { ok: true, model, latencyMs: Date.now() - started, tokens: 0, costCents: 0, status: "ok" };
+    } catch (err) {
+      // The on-server model's own failures (download, load, decode) are this server's and not
+      // an upstream's, so they are not collapsed to a status; a message from this process is safe
+      // to show, and the operator is the one who needs it.
+      const status = probeStatus(err);
+      return {
+        ok: false,
+        model,
+        latencyMs: Date.now() - started,
+        tokens: 0,
+        costCents: 0,
+        status,
+        error: err instanceof Error ? err.message : PROBE_MESSAGES[status],
+      };
+    }
+  }
+
   prices(providerId: string): Promise<ModelPrice[]> {
     return this.db.modelPrice.findMany({ where: { providerId } }).then((rows) =>
       rows.map((r) => ({
@@ -376,19 +440,28 @@ export class ProviderService {
     );
   }
 
-  /** One page of prices with the row count beside it (contract 19). */
+  /**
+   * One page of prices with the row count beside it (contract 19). `where` narrows within the
+   * provider and can never widen past it; the caller has already checked the provider's scope.
+   */
   async pricesPage(
     providerId: string,
-    page: { limit: number; offset: number },
+    page: {
+      limit: number;
+      offset: number;
+      where?: Omit<Prisma.ModelPriceWhereInput, "providerId" | "provider">;
+      orderBy?: Prisma.ModelPriceOrderByWithRelationInput[];
+    },
   ): Promise<{ prices: ModelPrice[]; total: number }> {
+    const where: Prisma.ModelPriceWhereInput = { ...page.where, providerId };
     const [rows, total] = await tenantBatch(this.db, [
       this.db.modelPrice.findMany({
-        where: { providerId },
-        orderBy: { model: "asc" },
+        where,
+        orderBy: page.orderBy ?? [{ model: "asc" }],
         take: page.limit,
         skip: page.offset,
       }),
-      this.db.modelPrice.count({ where: { providerId } }),
+      this.db.modelPrice.count({ where }),
     ]);
     return {
       prices: rows.map((r) => ({
@@ -500,4 +573,27 @@ export class ProviderService {
       outputTokens: maxOutputTokens,
     });
   }
+}
+
+/** One second of a 440 Hz tone as 16 kHz mono PCM WAV: loud enough not to count as silence. */
+function testTone(): Uint8Array {
+  const rate = 16_000;
+  const samples = rate;
+  const buf = Buffer.alloc(44 + samples * 2);
+  buf.write("RIFF", 0, "ascii");
+  buf.writeUInt32LE(36 + samples * 2, 4);
+  buf.write("WAVEfmt ", 8, "ascii");
+  buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20); // PCM
+  buf.writeUInt16LE(1, 22); // mono
+  buf.writeUInt32LE(rate, 24);
+  buf.writeUInt32LE(rate * 2, 28);
+  buf.writeUInt16LE(2, 32);
+  buf.writeUInt16LE(16, 34);
+  buf.write("data", 36, "ascii");
+  buf.writeUInt32LE(samples * 2, 40);
+  for (let i = 0; i < samples; i++) {
+    buf.writeInt16LE(Math.round(8000 * Math.sin((2 * Math.PI * 440 * i) / rate)), 44 + i * 2);
+  }
+  return new Uint8Array(buf);
 }

@@ -6,7 +6,7 @@ export function Skeleton({ className, ...props }: React.ComponentProps<"div">): 
     <div
       data-slot="skeleton"
       aria-hidden="true"
-      className={cn("bg-accent animate-pulse rounded-md", className)}
+      className={cn("bg-skeleton motion-safe:animate-pulse rounded-md", className)}
       {...props}
     />
   );

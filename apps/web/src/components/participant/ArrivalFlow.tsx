@@ -4,7 +4,9 @@ import type { Path } from "@aidp/shared";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { PathChoice } from "./PathChoice";
+import { CenteredShell } from "@/components/common/CenteredShell";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
+import { PageHeading } from "@/components/common/PageHeading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,21 +26,25 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <header className="flex justify-end px-6 pt-4">
-        <LanguageSwitch />
-      </header>
-      <main id="main" className="flex flex-1 flex-col justify-center gap-6 p-6">
-        {children}
-      </main>
-    </div>
+    <CenteredShell aside={<LanguageSwitch />} className="grid gap-6">
+      {children}
+    </CenteredShell>
   );
 }
 
-function Heading({ title, body }: { title: string; body?: string }): React.JSX.Element {
+function Heading({
+  title,
+  body,
+  focus,
+}: {
+  title: string;
+  body?: string | undefined;
+  /** True once the person has moved between steps; the first screen does not take focus. */
+  focus: boolean;
+}): React.JSX.Element {
   return (
     <div className="grid gap-2">
-      <h1 className="text-2xl font-semibold text-balance">{title}</h1>
+      <PageHeading focusOnMount={focus}>{title}</PageHeading>
       {body ? <p className="text-muted-foreground">{body}</p> : null}
     </div>
   );
@@ -60,7 +66,14 @@ export function ArrivalFlow({
   api?: ParticipantApi;
 }): React.JSX.Element {
   const router = useRouter();
-  const [step, setStep] = React.useState<Step>("arrival");
+  const [step, setStepState] = React.useState<Step>("arrival");
+  // Each step replaces the last in place, so the clicked button is gone: focus moves to the new
+  // heading. The first screen of the page does not take it (that would skip the skip link).
+  const moved = React.useRef(false);
+  const setStep = (next: Step): void => {
+    moved.current = true;
+    setStepState(next);
+  };
   const [email, setEmail] = React.useState("");
   const [code, setCode] = React.useState("");
   const [choice, setChoice] = React.useState<Choice>(
@@ -69,6 +82,26 @@ export function ArrivalFlow({
   const [fields, setFields] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  /**
+   * What is wrong with one field, shown under it and tied to it (`aria-describedby`); the page-level
+   * alert stays for failures that belong to no field (the network, the server). `focus` moves
+   * focus to the first field to fix after the error has rendered.
+   */
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const [focusRequest, setFocusRequest] = React.useState<{ id: string; n: number } | null>(null);
+  const requestFocus = (id: string): void => {
+    setFocusRequest((prev) => ({ id, n: (prev?.n ?? 0) + 1 }));
+  };
+  React.useEffect(() => {
+    if (focusRequest) document.getElementById(focusRequest.id)?.focus();
+  }, [focusRequest]);
+  const clearFieldError = (id: string): void => {
+    setFieldErrors((prev) => {
+      if (!(id in prev)) return prev;
+      const { [id]: _drop, ...rest } = prev;
+      return rest;
+    });
+  };
 
   const needsChoice = campaign.participationMode === "participant_choice";
   const needsDetails = needsChoice || campaign.participantFields.length > 0;
@@ -108,9 +141,12 @@ export function ArrivalFlow({
 
   const sendCode = (): void => {
     if (!EMAIL_RE.test(email)) {
-      setError(t.participant.verify.invalidEmail);
+      setError(null);
+      setFieldErrors({ email: t.participant.verify.invalidEmail });
+      requestFocus("email");
       return;
     }
+    setFieldErrors({});
     void run(async () => {
       await api.requestCode(linkToken, email);
       setStep("code");
@@ -124,11 +160,11 @@ export function ArrivalFlow({
         afterGrant(grant.resume);
       } catch (e) {
         if (isApiError(e) && (e.status === 400 || e.status === 401 || e.status === 403)) {
-          throw new Error(
-            e.code === "domain_not_allowed"
-              ? t.participant.verify.domainNotAllowed
-              : t.participant.verify.invalidCode,
-          );
+          // A wrong code belongs to the code field; a refused domain belongs to the address.
+          if (e.code === "domain_not_allowed") throw new Error(t.participant.verify.domainNotAllowed);
+          setFieldErrors({ code: t.participant.verify.invalidCode });
+          requestFocus("code");
+          return;
         }
         throw e;
       }
@@ -136,11 +172,18 @@ export function ArrivalFlow({
   };
 
   const submitDetails = (): void => {
-    const missing = campaign.participantFields.find((f) => f.required && !(fields[f.key] ?? "").trim());
-    if (missing) {
-      setError(t.participant.details.fieldRequired(missing.label));
+    const missing = campaign.participantFields.filter((f) => f.required && !(fields[f.key] ?? "").trim());
+    if (missing.length > 0) {
+      setError(null);
+      setFieldErrors(
+        Object.fromEntries(
+          missing.map((f) => [`field-${f.key}`, t.participant.details.fieldRequired(f.label)]),
+        ),
+      );
+      requestFocus(`field-${missing[0]?.key ?? ""}`);
       return;
     }
+    setFieldErrors({});
     setError(null);
     setStep("consent");
   };
@@ -183,11 +226,15 @@ export function ArrivalFlow({
   switch (step) {
     case "arrival":
       return (
-        <Shell>
+        <Shell key="arrival">
           <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             {t.participant.arrival.eyebrow}
           </p>
-          <Heading title={t.participant.arrival.welcome(campaign.name)} body={campaign.purpose} />
+          <Heading
+            focus={moved.current}
+            title={t.participant.arrival.welcome(campaign.name)}
+            body={campaign.purpose}
+          />
           <dl className="grid gap-4 text-sm">
             <div>
               <dt className="font-medium">{t.participant.arrival.lengthHeading}</dt>
@@ -205,7 +252,7 @@ export function ArrivalFlow({
             </div>
           </dl>
           {errorBox}
-          <Button size="lg" onClick={start} disabled={busy} className="w-full">
+          <Button size="lg" onClick={start} loading={busy} className="w-full">
             {busy ? t.app.loading : t.participant.arrival.start}
           </Button>
           <p className="text-muted-foreground text-center text-xs">
@@ -217,9 +264,14 @@ export function ArrivalFlow({
 
     case "email":
       return (
-        <Shell>
-          <Heading title={t.participant.verify.title} body={t.participant.verify.body} />
+        <Shell key="email">
+          <Heading
+            focus={moved.current}
+            title={t.participant.verify.title}
+            body={t.participant.verify.body}
+          />
           <form
+            noValidate
             className="grid gap-4"
             onSubmit={(e) => {
               e.preventDefault();
@@ -236,13 +288,21 @@ export function ArrivalFlow({
                 required
                 value={email}
                 placeholder={t.participant.verify.emailPlaceholder}
+                aria-invalid={fieldErrors.email ? true : undefined}
+                aria-describedby={fieldErrors.email ? "email-error" : undefined}
                 onChange={(e) => {
                   setEmail(e.target.value);
+                  clearFieldError("email");
                 }}
               />
+              {fieldErrors.email ? (
+                <p id="email-error" className="text-destructive text-sm">
+                  {fieldErrors.email}
+                </p>
+              ) : null}
             </div>
             {errorBox}
-            <Button type="submit" size="lg" disabled={busy}>
+            <Button type="submit" size="lg" loading={busy}>
               {busy ? t.participant.verify.sending : t.participant.verify.sendCode}
             </Button>
             <Button
@@ -260,9 +320,14 @@ export function ArrivalFlow({
 
     case "code":
       return (
-        <Shell>
-          <Heading title={t.participant.verify.codeTitle} body={t.participant.verify.codeBody(email)} />
+        <Shell key="code">
+          <Heading
+            focus={moved.current}
+            title={t.participant.verify.codeTitle}
+            body={t.participant.verify.codeBody(email)}
+          />
           <form
+            noValidate
             className="grid gap-4"
             onSubmit={(e) => {
               e.preventDefault();
@@ -278,16 +343,23 @@ export function ArrivalFlow({
                 pattern="[0-9]{6}"
                 maxLength={6}
                 required
-                aria-describedby="code-hint"
+                aria-invalid={fieldErrors.code ? true : undefined}
+                aria-describedby={fieldErrors.code ? "code-hint code-error" : "code-hint"}
                 className="text-center text-2xl tracking-[0.5em]"
                 value={code}
                 onChange={(e) => {
                   setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                  clearFieldError("code");
                 }}
               />
               <p id="code-hint" className="text-muted-foreground text-xs">
                 {t.participant.verify.codeHint}
               </p>
+              {fieldErrors.code ? (
+                <p id="code-error" className="text-destructive text-sm">
+                  {fieldErrors.code}
+                </p>
+              ) : null}
             </div>
             {errorBox}
             <Button type="submit" size="lg" disabled={busy || code.length !== 6}>
@@ -314,9 +386,14 @@ export function ArrivalFlow({
 
     case "details":
       return (
-        <Shell>
-          <Heading title={t.participant.details.title} body={t.participant.details.body} />
+        <Shell key="details">
+          <Heading
+            focus={moved.current}
+            title={t.participant.details.title}
+            body={t.participant.details.body}
+          />
           <form
+            noValidate
             className="grid gap-5"
             onSubmit={(e) => {
               e.preventDefault();
@@ -366,10 +443,18 @@ export function ArrivalFlow({
                   id={`field-${f.key}`}
                   required={f.required}
                   value={fields[f.key] ?? ""}
+                  aria-invalid={fieldErrors[`field-${f.key}`] ? true : undefined}
+                  aria-describedby={fieldErrors[`field-${f.key}`] ? `field-${f.key}-error` : undefined}
                   onChange={(e) => {
                     setFields((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    clearFieldError(`field-${f.key}`);
                   }}
                 />
+                {fieldErrors[`field-${f.key}`] ? (
+                  <p id={`field-${f.key}-error`} className="text-destructive text-sm">
+                    {fieldErrors[`field-${f.key}`]}
+                  </p>
+                ) : null}
               </div>
             ))}
             {errorBox}
@@ -382,15 +467,15 @@ export function ArrivalFlow({
 
     case "consent":
       return (
-        <Shell>
-          <Heading title={t.participant.consent.title} />
+        <Shell key="consent">
+          <Heading focus={moved.current} title={t.participant.consent.title} />
           <Card>
             <CardContent className="text-sm leading-relaxed whitespace-pre-wrap">
               {campaign.consentText}
             </CardContent>
           </Card>
           {errorBox}
-          <Button size="lg" onClick={consent} disabled={busy} className="w-full">
+          <Button size="lg" onClick={consent} loading={busy} className="w-full">
             {busy ? t.participant.consent.starting : t.participant.consent.start}
           </Button>
         </Shell>
@@ -398,8 +483,8 @@ export function ArrivalFlow({
 
     case "path":
       return (
-        <Shell>
-          <Heading title={t.participant.path.title} />
+        <Shell key="path">
+          <Heading focus={moved.current} title={t.participant.path.title} />
           <PathChoice disabled={busy} onChoose={choosePath} />
           {errorBox}
         </Shell>

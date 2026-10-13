@@ -7,6 +7,7 @@ import * as React from "react";
 import { providersApiFor, type ProviderScope } from "./ProvidersPanel";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
+import { undoToast } from "@/components/common/undoToast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -153,16 +154,33 @@ export function RoutesForm({
     }, s.saved);
   };
 
+  const draftsRef = React.useRef(drafts);
+  draftsRef.current = drafts;
+
+  /** Clears one override at once and offers Undo, which puts the row back (D-111). */
   const clearOverride = (p: Purpose): void => {
+    const previous = drafts[p];
     const next: Record<Purpose, Draft> = {
       ...drafts,
       [p]: { providerId: "", model: "", effort: "", maxOutputTokens: "", batchAllowed: false },
     };
     setDrafts(next);
-    void action.run(async () => {
-      await put(routesPayload(next));
-      router.refresh();
-    }, s.cleared);
+    void action
+      .run(async () => {
+        await put(routesPayload(next));
+        router.refresh();
+      })
+      .then((ok) => {
+        if (!ok) return;
+        undoToast(s.cleared, async () => {
+          const restored = { ...draftsRef.current, [p]: previous };
+          setDrafts(restored);
+          await action.run(async () => {
+            await put(routesPayload(restored));
+            router.refresh();
+          }, s.clearedRestored);
+        });
+      });
   };
 
   if (providers.length === 0) return <p className="text-muted-foreground text-sm">{s.noProviders}</p>;
@@ -334,7 +352,7 @@ export function RoutesForm({
         </Table>
       </div>
       <div>
-        <Button type="submit" disabled={action.busy}>
+        <Button type="submit" loading={action.busy}>
           {action.busy ? t.app.saving : s.save}
         </Button>
       </div>

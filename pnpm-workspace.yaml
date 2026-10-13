@@ -7,6 +7,12 @@ onlyBuiltDependencies:
   - "@prisma/engines"
   - prisma
   - esbuild
+# Deliberately not run (D-75). onnxruntime-node ships its CPU binaries for linux x64/arm64 and
+# macOS inside the package; its postinstall only downloads the CUDA provider from NuGet on
+# linux/x64, which a CPU-only VPS never uses. sharp needs no script either: its binaries come as
+# prebuilt @img/* optional dependencies.
+ignoredBuiltDependencies:
+  - onnxruntime-node
 # Transitive advisories (pnpm audit --prod) that the direct dependency bumps do not reach. Each
 # override is the lowest patched version; remove it when the parent package ships a fix, and keep
 # `audit-ignore.json` for anything that genuinely cannot be fixed (docs/discovery/decisions.md D-85).

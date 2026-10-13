@@ -3,13 +3,28 @@
 #
 # Production is a separate file, deploy/compose.prod.yml, with the runbook in docs/DEPLOY.md.
 #
-#   docker compose up -d --build          # postgres, mail catcher, migrations + bootstrap, api, worker, web
+#   pnpm stack:up        # build and start: postgres, mail catcher, migrations + bootstrap, api, worker, web
+#   pnpm stack:down      # stop, keeping the database
+#   pnpm stack:clean     # stop and remove this project's images and dangling build layers
 #   docker compose --profile extras up -d # adds MinIO (object storage) and Kroki (diagram rendering)
+#
+# Two images are built, not four: `aidp-server` (migrate, api and worker run it with different
+# commands) and `aidp-web`. See docs/discovery/decisions.md D-74.
 #
 # Secrets and bootstrap identities come from apps/api/.env (copy apps/api/.env.example).
 # Emails (magic links, invitations, verification codes) are caught by Mailpit: http://localhost:8025
+# Logs rotate at 10 MB x 3 per container, as in production. Without this a development stack that
+# stays up for weeks keeps every health-check line it ever wrote.
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
 services:
   postgres:
+    <<: *logging
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: app
@@ -25,6 +40,7 @@ services:
       retries: 20
 
   mailpit:
+    <<: *logging
     image: axllent/mailpit:latest
     ports:
       - "8025:8025"
@@ -33,21 +49,31 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
+  # The one service that builds the server image; api and worker reuse it by name.
   migrate:
-    build: { context: ., dockerfile: apps/api/Dockerfile, target: api }
+    <<: *logging
+    image: aidp-server:latest
+    build: { context: ., dockerfile: apps/api/Dockerfile }
     env_file: apps/api/.env
     environment:
       DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
     command: >
-      sh -c "pnpm --filter @aidp/db exec prisma migrate deploy && pnpm --filter @aidp/db bootstrap"
+      sh -c "pnpm --filter @aidp/db exec prisma migrate deploy && pnpm --filter @aidp/db bootstrap:prod"
+    healthcheck: { disable: true }
     depends_on:
       postgres: { condition: service_healthy }
 
   api:
-    build: { context: ., dockerfile: apps/api/Dockerfile, target: api }
+    <<: *logging
+    image: aidp-server:latest
+    pull_policy: never
     env_file: apps/api/.env
     environment:
       UPLOAD_DIR: /uploads
+      # Recorded answers are transcribed here, by Whisper on this machine (D-75); the model is
+      # downloaded into this volume on first use and kept across rebuilds.
+      MODEL_CACHE_DIR: /models
+      SPEECH_MODEL_IDLE_MINUTES: ${SPEECH_MODEL_IDLE_MINUTES:-10}
       DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
       HOST: 0.0.0.0
       PORT: 4000
@@ -60,13 +86,18 @@ services:
       - "4000:4000"
     volumes:
       - uploads:/uploads
+      - models:/models
     depends_on:
       postgres: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
       mailpit: { condition: service_started }
 
   worker:
-    build: { context: ., dockerfile: apps/api/Dockerfile, target: worker }
+    <<: *logging
+    image: aidp-server:latest
+    pull_policy: never
+    command: ["node", "apps/worker/dist/main.js"]
+    healthcheck: { disable: true }
     env_file: apps/api/.env
     environment:
       UPLOAD_DIR: /uploads
@@ -80,6 +111,8 @@ services:
       migrate: { condition: service_completed_successfully }
 
   web:
+    <<: *logging
+    image: aidp-web:latest
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -101,6 +134,7 @@ services:
       api: { condition: service_healthy }
 
   minio:
+    <<: *logging
     profiles: ["extras"]
     image: minio/minio:latest
     command: server /data --console-address ":9001"
@@ -114,6 +148,7 @@ services:
       - minio:/data
 
   kroki:
+    <<: *logging
     profiles: ["extras"]
     image: yuzutech/kroki:latest
     ports:
@@ -122,4 +157,5 @@ services:
 volumes:
   pgdata:
   uploads:
+  models:
   minio:

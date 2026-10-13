@@ -1,3 +1,4 @@
+import { localSpeechRunner, type SpeechRunner } from "@aidp/ai";
 import {
   AnalysisService,
   AttachmentService,
@@ -43,6 +44,8 @@ export interface AppContext {
   tenants: TenantGate;
   /** What the server may connect to on a tenant's say-so (S4). */
   egress: EgressGuard;
+  /** Whisper on this server (D-75): one runner per process, shared by every `local` provider. */
+  speech: SpeechRunner;
 }
 
 export function buildContext(input: {
@@ -56,8 +59,11 @@ export function buildContext(input: {
   storage?: StoragePort;
   /** Tests pass a guard with a fake resolver; production builds one from the environment. */
   egress?: EgressGuard;
+  /** Tests pass a runner over an in-memory engine, so nothing loads a model. */
+  speech?: SpeechRunner;
 }): AppContext {
   const { config, db, log } = input;
+  const speech = input.speech ?? localSpeechRunner();
   const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
   const settings = new SettingsService(db, crypto, {
     warn: (message, meta) => {
@@ -71,6 +77,8 @@ export function buildContext(input: {
         mode: config.EGRESS_MODE,
         allowHosts: config.EGRESS_ALLOW_HOSTS,
         nodeEnv: config.NODE_ENV,
+        // The admin's one-step voice setup writes this URL onto a tenant's provider (D-77).
+        trustedUrls: [config.OPENAI_BASE_URL],
       }),
     );
   const callers = new CallerFactory({
@@ -78,6 +86,7 @@ export function buildContext(input: {
     crypto,
     settings,
     egress,
+    speech,
     onBudgetWarning: (ctx, warnings) => {
       log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
     },
@@ -130,5 +139,6 @@ export function buildContext(input: {
     attachments,
     tenants,
     egress,
+    speech,
   };
 }

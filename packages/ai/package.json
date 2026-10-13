@@ -19,13 +19,16 @@
   "dependencies": {
     "@aidp/shared": "workspace:*",
     "@anthropic-ai/sdk": "^0.124.0",
+    "@huggingface/transformers": "^4.3.0",
     "exceljs": "^4.4.0",
     "mammoth": "^1.12.3",
     "unpdf": "^1.8.1",
+    "ws": "^8.21.3",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/ws": "^8.18.1",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   }

@@ -147,7 +147,7 @@ export function PromoteDialog({
               >
                 {t.app.cancel}
               </Button>
-              <Button onClick={confirm} disabled={busy} aria-busy={busy}>
+              <Button onClick={confirm} loading={busy}>
                 {busy ? <Loader2Icon className="animate-spin motion-reduce:animate-none" /> : <RocketIcon />}
                 {busy ? s.starting : s.confirm}
               </Button>

@@ -129,7 +129,7 @@ export function GitHubPushDialog({
               >
                 {t.app.cancel}
               </Button>
-              <Button type="submit" disabled={action.busy} aria-busy={action.busy}>
+              <Button type="submit" loading={action.busy}>
                 {action.busy ? (
                   <Loader2Icon className="animate-spin motion-reduce:animate-none" />
                 ) : (

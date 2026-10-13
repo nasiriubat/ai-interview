@@ -115,9 +115,14 @@ export function ProvidersPanel({
                     </TableCell>
                     <TableCell>{p.companyId ? s.tenantLevel : s.platformLevel}</TableCell>
                     <TableCell>
-                      <Badge variant={p.hasKey ? "success" : "warning"}>
-                        {p.hasKey ? s.hasKey : s.noKey}
-                      </Badge>
+                      {p.kind === "local" ? (
+                        // Whisper on this server has no key to set (D-75); "No key" would read as a fault.
+                        <Badge variant="outline">{s.keyNotNeeded}</Badge>
+                      ) : (
+                        <Badge variant={p.hasKey ? "success" : "warning"}>
+                          {p.hasKey ? s.hasKey : s.noKey}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Switch
@@ -232,7 +237,7 @@ function AddProviderDialog({ scope }: { scope: ProviderScope }): React.JSX.Eleme
         kind,
         name: name.trim(),
         ...(baseUrl.trim() ? { baseUrl: baseUrl.trim() } : {}),
-        ...(apiKey ? { apiKey } : {}),
+        ...(apiKey && kind !== "local" ? { apiKey } : {}),
         ...(headers.trim() ? { headers: parseHeaders(headers) } : {}),
         enabled,
       });
@@ -279,14 +284,16 @@ function AddProviderDialog({ scope }: { scope: ProviderScope }): React.JSX.Eleme
             placeholder="https://"
             onChange={setBaseUrl}
           />
-          <TextField
-            id="apiKey"
-            label={s.apiKey}
-            value={apiKey}
-            type="password"
-            hint={s.apiKeyHint}
-            onChange={setApiKey}
-          />
+          {kind === "local" ? null : (
+            <TextField
+              id="apiKey"
+              label={s.apiKey}
+              value={apiKey}
+              type="password"
+              hint={s.apiKeyHint}
+              onChange={setApiKey}
+            />
+          )}
           <TextAreaField id="headers" label={s.headers} value={headers} rows={2} onChange={setHeaders} />
           <SwitchField id="enabled" label={s.enabled} checked={enabled} onChange={setEnabled} />
           <div className="flex justify-end gap-2">

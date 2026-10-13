@@ -9,12 +9,22 @@ import {
   type SpeechInput,
   type SpeechOutput,
   type StopReason,
+  type SttStreamInput,
+  type SttStreamSession,
   type Transcript,
   type TranscriptionInput,
   type Usage,
 } from "@aidp/shared";
 import { z } from "zod";
-import { ProviderError, redactedBody, upstreamMessage, type Provider } from "./types.js";
+import { openRealtimeTranscription } from "./openai-realtime-stt.js";
+import { wsSocketFactory } from "./realtime-socket.js";
+import {
+  ProviderError,
+  redactedBody,
+  upstreamMessage,
+  type Provider,
+  type RealtimeSocketFactory,
+} from "./types.js";
 
 /** What the browser must be told the audio is, per requested format. */
 const SPEECH_MIME: Record<NonNullable<SpeechInput["format"]>, string> = {
@@ -40,7 +50,7 @@ async function* streamBytes(body: ReadableStream<Uint8Array>): AsyncIterable<Uin
   }
 }
 
-export type OpenAICompatibleKind = Exclude<ProviderKind, "anthropic">;
+export type OpenAICompatibleKind = Exclude<ProviderKind, "anthropic" | "local">;
 
 export interface OpenAICompatibleOptions {
   id: string;
@@ -50,6 +60,8 @@ export interface OpenAICompatibleOptions {
   headers?: Record<string, string>;
   /** Test seam. */
   fetch?: typeof fetch;
+  /** Test seam for the streaming transcription socket; defaults to `ws`. */
+  socket?: RealtimeSocketFactory;
 }
 
 const DEFAULT_BASE_URLS: Partial<Record<OpenAICompatibleKind, string>> = {
@@ -70,6 +82,7 @@ export class OpenAICompatibleProvider implements Provider {
   private readonly headers: Record<string, string>;
   private readonly fetchImpl: typeof fetch;
   private readonly apiKey: string;
+  private readonly socketFactory: RealtimeSocketFactory;
 
   constructor(opts: OpenAICompatibleOptions) {
     this.id = opts.id;
@@ -86,6 +99,7 @@ export class OpenAICompatibleProvider implements Provider {
       ...(opts.headers ?? {}),
     };
     this.fetchImpl = opts.fetch ?? fetch;
+    this.socketFactory = opts.socket ?? wsSocketFactory;
     this.capabilities = {
       caching: false, // OpenAI-style providers cache automatically; there is no marker to set
       structuredOutput: true, // json_schema response_format, with a JSON-mode fallback
@@ -95,6 +109,10 @@ export class OpenAICompatibleProvider implements Provider {
       transcription: opts.kind !== "openrouter",
       // Same story as transcription: OpenRouter proxies chat models only.
       speech: opts.kind !== "openrouter",
+      // The Realtime transcription socket. OpenAI speaks it; an OpenAI-compatible server may or may
+      // not, and a route pointing at one that does not fails at the start of a call, where the
+      // live session drops to per-utterance transcription instead (D-77).
+      streamingTranscription: opts.kind !== "openrouter",
     };
   }
 
@@ -275,6 +293,21 @@ export class OpenAICompatibleProvider implements Provider {
     });
     if (!res.body) throw new ProviderError("Speech response had no body", "parse", true);
     return { audio: streamBytes(res.body), mime: SPEECH_MIME[format] };
+  }
+
+  /**
+   * Streaming transcription over the Realtime API (FR-30a, D-77); see `openai-realtime-stt.ts` for
+   * the protocol as documented. Priced per minute of audio, so, like `transcribe`, the ledger gets
+   * whatever usage the provider reports on each completed utterance.
+   */
+  async transcribeStream(model: string, input: SttStreamInput): Promise<SttStreamSession> {
+    if (!this.capabilities.streamingTranscription)
+      throw new ProviderError("Provider does not stream transcription", "unsupported", false);
+    return openRealtimeTranscription(
+      { baseUrl: this.baseUrl, headers: this.headers, socket: this.socketFactory },
+      model,
+      input,
+    );
   }
 
   async embed(model: string, texts: string[]): Promise<{ vectors: number[][]; usage: Usage }> {

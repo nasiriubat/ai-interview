@@ -1,6 +1,8 @@
 import dns from "node:dns";
 import { BlockList, isIP } from "node:net";
+import type { RealtimeSocketFactory } from "@aidp/ai";
 import { Agent, fetch as undiciFetch } from "undici";
+import WebSocket from "ws";
 
 /**
  * Outbound-connection policy: what this server is willing to open a socket to on a tenant's
@@ -173,6 +175,13 @@ export interface EgressConfig {
   mode: EgressMode;
   /** Hostnames a platform provider may reach on a private address (compose service names). */
   allowHosts: readonly string[];
+  /**
+   * Addresses the deployment itself configured (`OPENAI_BASE_URL`). One may end up on a tenant's
+   * provider row, because the admin's one-step voice setup creates that row on the operator's
+   * behalf, so a URL with exactly this origin is judged as the operator's own and not as a
+   * tenant's. The metadata addresses stay refused.
+   */
+  trustedUrls?: readonly string[];
   /** Cap on a response body, in bytes. */
   maxResponseBytes?: number;
   connectTimeoutMs?: number;
@@ -187,6 +196,7 @@ export function egressConfigFromEnv(env: {
   mode: EgressMode;
   allowHosts: string;
   nodeEnv: string;
+  trustedUrls?: readonly (string | undefined)[];
 }): EgressConfig {
   if (env.mode === "permissive" && env.nodeEnv === "production") {
     throw new Error("EGRESS_MODE=permissive is not allowed when NODE_ENV=production");
@@ -197,6 +207,7 @@ export function egressConfigFromEnv(env: {
       .split(",")
       .map((h) => h.trim().toLowerCase())
       .filter((h) => h.length > 0),
+    trustedUrls: (env.trustedUrls ?? []).filter((u): u is string => typeof u === "string" && u !== ""),
   };
 }
 
@@ -283,10 +294,11 @@ export function checkUrl(raw: string, policy: PolicyInput): URL {
   // and private addresses are open so a fake model server on loopback works. What it never
   // opens is the metadata addresses, embedded credentials, or redirects.
   const permissive = config.mode === "permissive";
+  const trusted = isTrustedUrl(url, config);
   if (url.protocol !== "https:" && url.protocol !== "http:") {
     throw new EgressBlockedError("scheme", url.protocol);
   }
-  if (!permissive && origin === "tenant" && url.protocol !== "https:") {
+  if (!permissive && origin === "tenant" && !trusted && url.protocol !== "https:") {
     throw new EgressBlockedError("scheme", url.protocol);
   }
   if (url.username || url.password) throw new EgressBlockedError("credentials");
@@ -297,7 +309,7 @@ export function checkUrl(raw: string, policy: PolicyInput): URL {
   const literal = isIP(host) !== 0;
   const port = url.port === "" ? (url.protocol === "https:" ? 443 : 80) : Number(url.port);
 
-  if (!permissive && origin === "tenant") {
+  if (!permissive && origin === "tenant" && !trusted) {
     if (literal) throw new EgressBlockedError("ip_literal");
     if (isLocalName(host)) throw new EgressBlockedError("local_name", host);
     if (!TENANT_PORTS.has(port)) throw new EgressBlockedError("port", String(port));
@@ -305,16 +317,40 @@ export function checkUrl(raw: string, policy: PolicyInput): URL {
   if (literal) {
     const verdict = classifyAddress(host);
     if (verdict.hard) throw new EgressBlockedError("metadata_address");
-    if (origin === "platform" && verdict.nonPublic && !isAllowedPrivate(host, policy)) {
+    if ((origin === "platform" || trusted) && verdict.nonPublic && !isAllowedPrivate(host, policy)) {
       throw new EgressBlockedError("private_address", host);
     }
   }
   return url;
 }
 
+/** Whether a URL has exactly the origin of an address the deployment configured. */
+function isTrustedUrl(url: URL, config: EgressConfig): boolean {
+  return (config.trustedUrls ?? []).some((u) => {
+    try {
+      return new URL(u).origin === url.origin;
+    } catch {
+      return false;
+    }
+  });
+}
+
+function trustedHosts(config: EgressConfig): Set<string> {
+  const hosts = new Set<string>();
+  for (const u of config.trustedUrls ?? []) {
+    try {
+      hosts.add(bareHost(new URL(u).hostname));
+    } catch {
+      // A malformed configured URL trusts nothing.
+    }
+  }
+  return hosts;
+}
+
 /** Whether a private destination is permitted for this name: permissive mode, or an allowlisted host. */
 function isAllowedPrivate(host: string, policy: PolicyInput): boolean {
   if (policy.config.mode === "permissive") return true;
+  if (trustedHosts(policy.config).has(host)) return true;
   return policy.origin === "platform" && policy.config.allowHosts.map((h) => h.toLowerCase()).includes(host);
 }
 
@@ -567,6 +603,24 @@ export class EgressGuard {
       return capBody(res as unknown as Response, max);
     };
     return guarded;
+  }
+
+  /**
+   * A factory for the streaming-transcription WebSocket (OpenAI Realtime and compatibles), held to
+   * the same policy as the HTTP calls: the URL is judged as the https URL it upgrades from, the
+   * socket's own `lookup` is the guarded one so the address it dials is the one that was checked,
+   * and redirects are not followed.
+   */
+  socketFor(origin: EgressOrigin): RealtimeSocketFactory {
+    return (url, headers) => {
+      this.checkUrl(url.replace(/^ws(s?):/i, "http$1:"), origin);
+      return new WebSocket(url, {
+        headers,
+        handshakeTimeout: this.config.connectTimeoutMs ?? 10_000,
+        followRedirects: false,
+        lookup: this.lookupFor(origin),
+      });
+    };
   }
 
   /** Closes pooled sockets. For tests and shutdown. */

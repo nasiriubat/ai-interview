@@ -1,4 +1,5 @@
 import { tenantBatch } from "@aidp/db";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
@@ -7,7 +8,15 @@ import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { emailTaken, isUniqueViolation, notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
-import { PageQuery } from "../../lib/pagination.js";
+import { contains, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
+
+/** `/users` (D-79): `q` matches email or name. */
+export const UserList = listSpec({
+  sort: { createdAt: "asc", email: "asc", name: "asc", role: "asc" },
+  defaultSort: "createdAt",
+  nullable: ["name"],
+  filters: { role: z.enum(["admin", "member", "platform_operator"]).optional() },
+});
 
 const UserOut = z.object({
   id: z.string(),
@@ -34,7 +43,7 @@ export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
     {
       ...guard.admin(),
       schema: {
-        querystring: PageQuery,
+        querystring: listQuery(UserList),
         response: {
           200: z.object({
             users: z.array(UserOut),
@@ -46,11 +55,16 @@ export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
       },
     },
     async (req) => {
-      const where = { companyId: req.companyId };
+      const q = searchTerm(req.query.q);
+      const where: Prisma.UserWhereInput = {
+        companyId: req.companyId,
+        ...(req.query.role ? { role: req.query.role } : {}),
+        ...(q ? { OR: [{ email: contains(q) }, { name: contains(q) }] } : {}),
+      };
       const [users, total] = await tenantBatch(ctx.db, [
         ctx.db.user.findMany({
           where,
-          orderBy: { createdAt: "asc" },
+          orderBy: listOrder<Prisma.UserOrderByWithRelationInput, typeof req.query.sort>(UserList, req.query),
           take: req.query.limit,
           skip: req.query.offset,
         }),

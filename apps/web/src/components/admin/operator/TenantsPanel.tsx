@@ -8,6 +8,7 @@ import { Flash, useAction } from "@/components/admin/Flash";
 import { NumberField, TextField } from "@/components/admin/forms";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
@@ -23,11 +24,19 @@ export function TenantsPanel({ tenants }: { tenants: Tenant[] }): React.JSX.Elem
   const [name, setName] = React.useState("");
   const [region, setRegion] = React.useState("eu");
   const [budget, setBudget] = React.useState<number | "">("");
+  const [suspending, setSuspending] = React.useState<Tenant | null>(null);
+
+  const setStatus = (tn: Tenant, status: "active" | "suspended"): void => {
+    void action.run(async () => {
+      await staffClient.operator.tenants.update(tn.id, { status });
+      router.refresh();
+    }, s.updated);
+  };
 
   return (
     <div className="grid gap-6">
       <form
-        className="grid gap-3 rounded-xl border p-4 md:grid-cols-[1fr_8rem_12rem_auto] md:items-end"
+        className="grid gap-3 bg-card shadow-card rounded-lg p-4 md:grid-cols-[1fr_8rem_12rem_auto] md:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           void action.run(async () => {
@@ -98,12 +107,9 @@ export function TenantsPanel({ tenants }: { tenants: Tenant[] }): React.JSX.Elem
                           variant={suspended ? "outline" : "ghost"}
                           disabled={action.busy}
                           onClick={() => {
-                            void action.run(async () => {
-                              await staffClient.operator.tenants.update(tn.id, {
-                                status: suspended ? "active" : "suspended",
-                              });
-                              router.refresh();
-                            }, s.updated);
+                            // Locking a company out asks first; letting it back in does not.
+                            if (suspended) setStatus(tn, "active");
+                            else setSuspending(tn);
                           }}
                         />
                       </RowActions>
@@ -115,6 +121,18 @@ export function TenantsPanel({ tenants }: { tenants: Tenant[] }): React.JSX.Elem
           </Table>
         </div>
       )}
+      <ConfirmDialog
+        open={suspending !== null}
+        onOpenChange={(open) => {
+          if (!open) setSuspending(null);
+        }}
+        title={s.suspendTitle(suspending?.name ?? "")}
+        description={<p>{s.suspendBody}</p>}
+        confirmLabel={s.suspendConfirm}
+        onConfirm={() => {
+          if (suspending) setStatus(suspending, "suspended");
+        }}
+      />
     </div>
   );
 }

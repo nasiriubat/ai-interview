@@ -4,6 +4,25 @@ For deploying to a server, see [DEPLOY.md](DEPLOY.md); this file is development 
 
 Prerequisites: Node 22, pnpm 10, Docker.
 
+## The whole stack in Docker
+
+```bash
+cp apps/api/.env.example apps/api/.env   # fill PLATFORM_ENCRYPTION_KEY and AUTH_SECRET
+pnpm stack:up      # build and start everything; web on http://localhost:3000, mail on :8025
+pnpm stack:logs    # follow api, worker and web
+pnpm stack:down    # stop; the database and uploads are kept
+pnpm stack:clean   # stop and delete this project's images and stale layers (volumes are kept)
+```
+
+This builds two images, `aidp-server` and `aidp-web`. The `migrate`, `api` and `worker`
+containers all run `aidp-server` with different commands, so Docker holds one copy of the server
+rather than three (D-74). `stack:up` also prunes the untagged layers each rebuild leaves behind,
+filtered to this project, so the image list does not grow with every build.
+
+## Running on the host
+
+For working on the code with hot reload, run only Postgres in Docker:
+
 ```bash
 docker compose up -d postgres            # Postgres 16 with pgvector on localhost:5432
 pnpm install
