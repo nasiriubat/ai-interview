@@ -1,5 +1,5 @@
 import { tenantBatch } from "@aidp/db";
-import { PurposeSchema } from "@aidp/shared";
+import { RoutablePurposeSchema } from "@aidp/shared";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../../app.js";
@@ -43,7 +43,7 @@ const PricesBody = z.object({
 const TestBody = z.object({ model: z.string().min(1).optional() });
 /** One row per purpose (contract 16). A row without provider or model clears the tenant override. */
 const RouteRow = z.object({
-  purpose: PurposeSchema,
+  purpose: RoutablePurposeSchema,
   providerId: z.string().nullable().optional(),
   model: z.string().nullable().optional(),
   effort: z.enum(["low", "medium", "high", "xhigh", "max"]).nullable().optional(),
@@ -243,7 +243,16 @@ function mountProviderRoutes(
     { preHandler, ...expensiveLimit(ctx.config), schema: { params: Id } },
     async (req) => {
       const body = TestBody.parse(req.body ?? {});
-      return svc.test(scope(req), req.params.id, body.model);
+      const result = await svc.test(scope(req), req.params.id, body.model);
+      await audit(ctx.db, {
+        companyId: auditCompany(req),
+        actorId: staff(req).userId,
+        action: "provider.test",
+        targetType: "provider",
+        targetId: req.params.id,
+        diff: { ok: result.ok, model: result.model },
+      });
+      return result;
     },
   );
 
