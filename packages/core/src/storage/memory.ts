@@ -1,6 +1,7 @@
-import { Readable } from "node:stream";
+import { Readable, pipeline } from "node:stream";
 import {
   assertSafeKey,
+  byteLimit,
   type PrefixInfo,
   ObjectNotFound,
   ObjectTooLarge,
@@ -78,15 +79,8 @@ export class MemoryStorage implements StoragePort {
  */
 export async function collect(body: Readable, maxBytes?: number): Promise<Buffer> {
   const chunks: Buffer[] = [];
-  let total = 0;
-  for await (const chunk of body) {
-    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string);
-    total += buf.byteLength;
-    if (maxBytes !== undefined && total > maxBytes) {
-      body.destroy();
-      throw new ObjectTooLarge(maxBytes, total);
-    }
-    chunks.push(buf);
-  }
+  const limited = pipeline(body, byteLimit(maxBytes), () => undefined);
+  for await (const chunk of limited)
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string));
   return Buffer.concat(chunks);
 }

@@ -5,6 +5,11 @@ import { fakeModelServer, parseSse, testWorld, TURN_MARKER, type TestWorld } fro
 
 const suite = describeDb;
 
+/** The first bytes of a WebM/Matroska container, which is what the upload check looks for. */
+function webm(tail: string): Buffer {
+  return Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.from(tail)]);
+}
+
 /**
  * Attachments and recorded voice through the real HTTP surface (FR-30, FR-31, FR-32).
  *
@@ -238,7 +243,7 @@ suite("attachments and recorded voice", () => {
     });
 
     const body = multipart(
-      { name: "answer.webm", type: "audio/webm;codecs=opus", body: Buffer.from("fake opus bytes") },
+      { name: "answer.webm", type: "audio/webm;codecs=opus", body: webm("fake opus bytes") },
       { durationMs: "6500" },
     );
     const res = await world.app.inject({
@@ -287,7 +292,7 @@ suite("attachments and recorded voice", () => {
     const previous = transcript;
     transcript = { text: "   " };
 
-    const body = multipart({ name: "silence.webm", type: "audio/webm", body: Buffer.from("x") });
+    const body = multipart({ name: "silence.webm", type: "audio/webm", body: webm("x") });
     const res = await world.app.inject({
       method: "POST",
       url: "/api/v1/p/session/voice-turns",
@@ -310,7 +315,7 @@ suite("attachments and recorded voice", () => {
     const previous = transcript;
     transcript = new Error("the transcription host is down");
 
-    const body = multipart({ name: "answer.webm", type: "audio/webm", body: Buffer.from("x") });
+    const body = multipart({ name: "answer.webm", type: "audio/webm", body: webm("x") });
     const res = await world.app.inject({
       method: "POST",
       url: "/api/v1/p/session/voice-turns",
@@ -397,7 +402,7 @@ suite("attachments and recorded voice", () => {
     expect(session.capabilities.recordedVoice).toBe(false);
 
     // And the route refuses too, so a client that ignores the capability still cannot spend money.
-    const body = multipart({ name: "a.webm", type: "audio/webm", body: Buffer.from("x") });
+    const body = multipart({ name: "a.webm", type: "audio/webm", body: webm("x") });
     const blocked = await world.app.inject({
       method: "POST",
       url: "/api/v1/p/session/voice-turns",

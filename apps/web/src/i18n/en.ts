@@ -1831,6 +1831,44 @@ export const en = {
         description:
           "The most one uploaded file may weigh. The platform sets a ceiling this cannot go above.",
       },
+      "files.maxPerSession": {
+        label: "Attachments per interview",
+        description: "The most files and recordings one interview may hold.",
+      },
+      "files.maxSessionMb": {
+        label: "Attachment total per interview (MB)",
+        description: "The most all of one interview's attachments may weigh together.",
+      },
+      "files.tenantQuotaMb": {
+        label: "Attachment storage for the organization (MB)",
+        description:
+          "The most all attachments across the organization may weigh. New uploads are refused beyond it.",
+      },
+      "files.maxExtractedChars": {
+        label: "Text kept per file (characters)",
+        description: "How much text is read from one file. Anything beyond is left out.",
+      },
+      "files.maxPdfPages": {
+        label: "Longest PDF (pages)",
+        description: "A PDF with more pages than this is refused rather than read.",
+      },
+      "files.maxZipRatio": {
+        label: "Packing ratio limit",
+        description:
+          "Word and Excel files are zip containers. A part that unpacks to more than this many times its packed size is refused.",
+      },
+      "files.maxSheetCells": {
+        label: "Largest workbook (cells)",
+        description: "A workbook with more cells than this is refused rather than read.",
+      },
+      "files.maxZipEntries": {
+        label: "Parts per Word or Excel file",
+        description: "A Word or Excel file with more parts than this is refused.",
+      },
+      "files.maxUncompressedMb": {
+        label: "Unpacked size of a Word or Excel file (MB)",
+        description: "A Word or Excel file that unpacks to more than this is refused.",
+      },
       "files.allowedTypes": {
         label: "Accepted file types",
         description: "File types participants may attach, one MIME type per line.",
