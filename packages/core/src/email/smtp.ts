@@ -3,7 +3,7 @@ import type { EmailMessage, EmailPort } from "./port.js";
 
 /** SMTP through nodemailer. `url` is an smtp:// or smtps:// connection string. */
 export class SmtpEmail implements EmailPort {
-  private readonly transport: nodemailer.Transporter;
+  private readonly transport: ReturnType<typeof nodemailer.createTransport>;
   constructor(
     url: string,
     private readonly defaultFrom: string,

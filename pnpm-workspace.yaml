@@ -7,3 +7,14 @@ onlyBuiltDependencies:
   - "@prisma/engines"
   - prisma
   - esbuild
+# Transitive advisories (pnpm audit --prod) that the direct dependency bumps do not reach. Each
+# override is the lowest patched version; remove it when the parent package ships a fix, and keep
+# `audit-ignore.json` for anything that genuinely cannot be fixed (docs/discovery/decisions.md D-85).
+overrides:
+  # next-auth's peer range stops at nodemailer 8; 10.x carries the fixes (D-85).
+  "nodemailer@<10.1.0": "^10.1.0"
+  "sharp@<0.35.5": "^0.35.5"
+  "source-map-js@<1.2.2": "^1.2.2"
+  "brace-expansion@<1.1.20": "^1.1.20"
+  "deepmerge-ts@<8.0.0": "^8.0.0"
+  "@grpc/grpc-js@<1.14.5": "^1.14.5"
