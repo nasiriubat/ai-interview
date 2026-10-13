@@ -73,7 +73,11 @@ const opportunityView = (o: OpportunityRow, weights: Weights) => ({
   risks: o.risks,
   ...(o.whyNotAi ? { whyNotAi: o.whyNotAi } : {}),
   promotedSessionId: o.promotedSessionId,
-  evidence: o.evidence.map((e) => ({ factId: e.factId, snippet: e.snippet, anonymized: e.anonymized })),
+  // A row with no text is how a cluster below k is recorded (it keeps the hand-off's link to the
+  // process facts); it says nothing to a reader and is not returned (D-143).
+  evidence: o.evidence
+    .filter((e) => e.snippet !== "")
+    .map((e) => ({ factId: e.factId, snippet: e.snippet, anonymized: e.anonymized })),
 });
 
 export type OpportunityView = ReturnType<typeof opportunityView>;

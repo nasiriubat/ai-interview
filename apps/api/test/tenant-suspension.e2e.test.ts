@@ -227,7 +227,9 @@ suite("a suspended tenant", () => {
       expect(calls).toEqual([]);
 
       // Deletion obligations do not pause with the account.
-      await world.db.message.create({ data: { sessionId: s.sessionId, seq: 1, role: "user", content: "x" } });
+      await world.db.message.create({
+        data: { companyId: world.companyId, sessionId: s.sessionId, seq: 1, role: "user", content: "x" },
+      });
       await h["privacy.delete-session"]({ sessionId: s.sessionId, companyId: world.companyId });
       expect(await world.db.message.count({ where: { sessionId: s.sessionId } })).toBe(0);
       expect((await world.db.session.findUniqueOrThrow({ where: { id: s.sessionId } })).status).toBe(

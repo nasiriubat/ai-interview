@@ -48,7 +48,16 @@ function buildScoped(base: PrismaClient, companyId: string) {
   });
 }
 
-/** Models that carry companyId directly. Child rows (Message, Fact, ...) are reached through their scoped parent. */
+/**
+ * Models whose `companyId` the scoped client filters and stamps. Since migration 0016 every child
+ * row carries its tenant too (D-140), so the scoped client no longer relies on a row being "reached
+ * through its scoped parent".
+ *
+ * Deliberately absent: `Setting` and `ModelPrice`, whose NULL `companyId` means "platform" and has
+ * to stay visible (like Provider and Route, but those are listed for historical reasons); the
+ * settings service names its scopes explicitly and the database derives the owner (migration 0017).
+ * `Company` is keyed by `id`, and `VerificationToken` is exempt (deploy/rls-exempt.txt).
+ */
 export const SCOPED_MODELS: ReadonlySet<string> = new Set([
   "User",
   "Participant",
@@ -56,6 +65,7 @@ export const SCOPED_MODELS: ReadonlySet<string> = new Set([
   "Campaign",
   "Session",
   "Attachment",
+  "AttachmentChunk",
   "Fact",
   "Provider",
   "Route",
@@ -63,6 +73,15 @@ export const SCOPED_MODELS: ReadonlySet<string> = new Set([
   "LlmCall",
   "AuditLog",
   "SpecVersion",
+  "Message",
+  "SessionEvent",
+  "Analysis",
+  "Opportunity",
+  "OpportunityEvidence",
+  "Report",
+  "Invitation",
+  "CampaignEmailHash",
+  "EmailCode",
 ]);
 
 export type ScopedClient = ReturnType<typeof buildScoped>;

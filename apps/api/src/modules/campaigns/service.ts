@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   emailDomain,
   newToken,
@@ -6,7 +7,7 @@ import {
   type EmailPort,
   type SettingsService,
 } from "@aidp/core";
-import { containsInsensitive, escapeLike, tenantBatch } from "@aidp/db";
+import { containsInsensitive, escapeLike, tenantBatch, tenantTransaction } from "@aidp/db";
 import { toListResponse, type ListEnvelope } from "@aidp/shared";
 import type { Campaign, Invitation, Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
@@ -58,6 +59,20 @@ export interface CampaignSessionRow {
   createdAt: Date;
   lastActivityAt: Date;
 }
+
+/**
+ * What an anonymous campaign's session list may say about time and order (D-142). A timestamp to
+ * the second, or an order that follows creation, can be read against the day an invitation was
+ * opened or the order addresses were invited, which would put a name to a session. So times are a
+ * day wide and the order is a stable one that follows no clock.
+ */
+function toDay(d: Date): Date;
+function toDay(d: Date | null): Date | null;
+function toDay(d: Date | null): Date | null {
+  return d ? new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())) : null;
+}
+const stableKey = (campaignId: string, id: string): string =>
+  createHash("sha256").update(`${campaignId}:${id}`).digest("hex");
 
 /** Whether a session's participant may be named on a staff screen or found by a search. */
 function identified(mode: string, consented: boolean): boolean {
@@ -153,15 +168,23 @@ export class CampaignService {
       ...(query.status ? { status: query.status } : {}),
       ...(q === undefined ? {} : { OR: [{ id: q }, ...identity] }),
     };
-    const [sessions, total] = await tenantBatch(this.db, [
+    // An anonymous campaign is paged in a stable order that follows no clock (see `stableKey`):
+    // the matching ids are ordered here, and the page's rows are read afterwards.
+    const pageIds =
+      mode === "anonymous"
+        ? (await this.db.session.findMany({ where, select: { id: true } }))
+            .map((s) => s.id)
+            .sort((x, y) => stableKey(campaign.id, x).localeCompare(stableKey(campaign.id, y)))
+            .slice(query.offset, query.offset + query.limit)
+        : null;
+    const [sessionRows, total] = await tenantBatch(this.db, [
       this.db.session.findMany({
-        where,
+        where: pageIds ? { ...where, id: { in: pageIds } } : where,
         orderBy: listOrder<Prisma.SessionOrderByWithRelationInput, typeof query.sort>(
           CampaignSessionList,
           query,
         ),
-        take: query.limit,
-        skip: query.offset,
+        ...(pageIds ? {} : { take: query.limit, skip: query.offset }),
         select: {
           id: true,
           status: true,
@@ -177,6 +200,9 @@ export class CampaignService {
       }),
       this.db.session.count({ where }),
     ]);
+    const sessions = pageIds
+      ? [...sessionRows].sort((a, b) => pageIds.indexOf(a.id) - pageIds.indexOf(b.id))
+      : sessionRows;
     // Costs for this page only, rather than every session the campaign ever had.
     const costs = sessions.length
       ? await this.db.llmCall.groupBy({
@@ -199,10 +225,20 @@ export class CampaignService {
         mode: s.modePreference,
         costCents: costOf.get(s.id) ?? 0,
         ...visibleIdentity(mode, s.consentedAt !== null, s.participant?.fields),
-        startedAt: s.startedAt,
-        endedAt: s.endedAt,
-        createdAt: s.createdAt,
-        lastActivityAt: s.updatedAt,
+        // A person who is not named on this screen is not given a time to the second either.
+        ...(identified(mode, s.consentedAt !== null)
+          ? {
+              startedAt: s.startedAt,
+              endedAt: s.endedAt,
+              createdAt: s.createdAt,
+              lastActivityAt: s.updatedAt,
+            }
+          : {
+              startedAt: toDay(s.startedAt),
+              endedAt: toDay(s.endedAt),
+              createdAt: toDay(s.createdAt),
+              lastActivityAt: toDay(s.updatedAt),
+            }),
       };
     });
     return toListResponse("sessions", rows, total, query);
@@ -282,7 +318,40 @@ export class CampaignService {
 
   async setStatus(companyId: string, id: string, status: "open" | "closed"): Promise<Campaign> {
     const c = await this.get(companyId, id);
-    return this.db.campaign.update({ where: { id: c.id }, data: { status } });
+    const updated = await this.db.campaign.update({ where: { id: c.id }, data: { status } });
+    if (status === "closed" && c.participationMode === "anonymous") await this.retireLegacyHashes(c.id);
+    return updated;
+  }
+
+  /**
+   * What a closed anonymous campaign no longer needs, and what must not outlive it (D-142).
+   *
+   * Rows written before the per-campaign salt carry the platform-wide hash of an address, which
+   * matches the same person in every other campaign and tenant. They cannot be re-salted without
+   * the address, so they are upgraded when the person returns, and whatever is still in the old
+   * shape when the campaign closes is removed here: the legacy hash rows, pending codes, any
+   * pointer still on a participant row, and the invitation's link to a session. The one cost is
+   * that a campaign reopened afterwards cannot recognise a respondent whose row was removed.
+   */
+  private async retireLegacyHashes(campaignId: string): Promise<void> {
+    await tenantTransaction(this.db, async (tx) => {
+      await tx.campaignEmailHash.deleteMany({
+        where: { campaignId, NOT: { emailHash: { startsWith: "h2:" } } },
+      });
+      await tx.emailCode.deleteMany({ where: { campaignId } });
+      await tx.$executeRaw`
+        UPDATE "Participant" SET "fields" = "fields" - '_emailHash'
+         WHERE "campaignId" = ${campaignId} AND "fields" ? '_emailHash'`;
+      await tx.$executeRaw`
+        UPDATE "Invitation"
+           SET "sessionId" = NULL,
+               "openedAt" = date_trunc('day', "openedAt"),
+               "emailHash" = CASE
+                 WHEN "emailHash" LIKE 'h2:%' OR "emailHash" LIKE 'closed:%' OR "emailHash" LIKE 'deleted:%'
+                   THEN "emailHash"
+                 ELSE 'closed:' || md5(random()::text || "id") END
+         WHERE "campaignId" = ${campaignId}`;
+    });
   }
 
   async invite(
@@ -304,9 +373,11 @@ export class CampaignService {
         skipped.push(raw);
         continue;
       }
-      const emailHash = this.crypto.hashEmail(email);
-      const exists = await this.db.invitation.findUnique({
-        where: { campaignId_emailHash: { campaignId, emailHash } },
+      // Salted by campaign (D-142); an invitation written before that carries the platform-wide
+      // value, so it is looked for as well and the address is not invited twice.
+      const emailHash = this.crypto.campaignEmailHash(email, campaignId);
+      const exists = await this.db.invitation.findFirst({
+        where: { campaignId, emailHash: { in: [emailHash, this.crypto.hashEmail(email)] } },
       });
       if (exists) {
         skipped.push(raw);
@@ -315,6 +386,7 @@ export class CampaignService {
       const token = newToken(24);
       const inv = await this.db.invitation.create({
         data: {
+          companyId,
           campaignId,
           emailHash,
           email: campaign.participationMode === "anonymous" ? null : email,
@@ -436,7 +508,9 @@ export class CampaignService {
     const productName = await this.settings.get("branding.productName", [
       { scope: "tenant", scopeId: campaign.companyId },
     ]);
-    const link = `${this.linkFor("i")}?invitation=${token}`;
+    // The campaign's own link, with the invitation token as a query. This used `/p/i`, a link token
+    // that resolves to no campaign, so no personal link in an invitation email could be opened.
+    const link = `${await this.link(campaign.companyId, campaign.id)}?invitation=${token}`;
     await this.email.send({
       to: email,
       companyId: campaign.companyId,

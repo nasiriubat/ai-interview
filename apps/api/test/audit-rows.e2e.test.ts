@@ -410,10 +410,11 @@ suite("audit rows: every administrative mutation writes one", () => {
   it("PATCH /opportunities/:id, status, promote", async () => {
     const factor = { score: 3, rationale: "r" };
     const analysis = await world.db.analysis.create({
-      data: { campaignId: s.campaign!, version: 90, status: "done" },
+      data: { companyId: world.companyId, campaignId: s.campaign!, version: 90, status: "done" },
     });
     const opportunity = await world.db.opportunity.create({
       data: {
+        companyId: world.companyId,
         analysisId: analysis.id,
         title: "Audit opportunity",
         summary: "s",

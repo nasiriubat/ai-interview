@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto";
 import type { Logger } from "@aidp/ai";
-import { tenantTransaction, withTenant } from "@aidp/db";
+import { tenantTransaction, withSystemTenant, withTenant } from "@aidp/db";
 import { Prisma, type PrismaClient } from "@prisma/client";
+import type { Crypto } from "../crypto.js";
 import type { SettingsService } from "../settings/service.js";
 import { companyPrefix, sessionPrefix, type StoragePort } from "../storage/index.js";
 
@@ -92,6 +93,8 @@ export interface RetentionSweepDeps {
   log: Logger;
   /** Optional so a caller with no uploads configured still sweeps rows; see deleteSessionBytes. */
   storage?: StoragePort;
+  /** The platform key's tagger: without it an anonymous response's hash row is left in place (D-142). */
+  crypto?: OwnerTagger;
   now?: () => Date;
   batchSize?: number;
   maxBatches?: number;
@@ -105,9 +108,24 @@ export interface RetentionSweepDeps {
 export async function deleteSessionData(
   db: PrismaClient,
   sessionId: string,
-  options: { markEnded?: boolean; storage?: StoragePort; companyId?: string; log?: Logger } = {},
+  options: {
+    markEnded?: boolean;
+    storage?: StoragePort;
+    companyId?: string;
+    log?: Logger;
+    /**
+     * Needed to find the address-hash row of an anonymous response, which no participant row
+     * points at (D-142). Without it only responses with a pointer (identified, or older rows) are
+     * cleared of their hash.
+     */
+    crypto?: OwnerTagger;
+  } = {},
 ): Promise<{ bytesFailed: number }> {
-  await eraseSession(db, sessionId, { markEnded: options.markEnded ?? false, audit: true });
+  await eraseSession(db, sessionId, {
+    markEnded: options.markEnded ?? false,
+    audit: true,
+    ...(options.crypto ? { crypto: options.crypto } : {}),
+  });
   return { bytesFailed: await deleteSessionBytes([sessionId], options) };
 }
 
@@ -223,7 +241,7 @@ const MIN_REDACTABLE_CHARS = 12;
 export async function eraseSession(
   db: PrismaClient,
   sessionId: string,
-  options: { markEnded: boolean; audit: boolean },
+  options: { markEnded: boolean; audit: boolean; crypto?: OwnerTagger },
 ): Promise<boolean> {
   return tenantTransaction(
     db,
@@ -289,6 +307,10 @@ export async function eraseSession(
         sessionIds: [sessionId],
         campaignId: session.campaignId,
         emailHash,
+        ownerTag:
+          options.crypto && session.campaignId && participant
+            ? options.crypto.participantTag(session.campaignId, participant.id)
+            : null,
       });
 
       if (session.campaignId) {
@@ -315,6 +337,9 @@ export async function eraseSession(
   );
 }
 
+/** What erasure needs from the platform key: the tag that finds an anonymous response's hash row. */
+export type OwnerTagger = Pick<Crypto, "participantTag">;
+
 /** The uniqueness pointer a participant row carries (`_emailHash`), if it has one. */
 function hashOf(fields: unknown): string | null {
   const value = (fields as { _emailHash?: unknown } | null | undefined)?._emailHash;
@@ -334,14 +359,32 @@ type Tx = Parameters<Parameters<typeof tenantTransaction>[1]>[0];
  */
 async function forgetAddress(
   tx: Tx,
-  target: { sessionIds: string[]; campaignId: string | null; emailHash: string | null },
+  target: {
+    sessionIds: string[];
+    campaignId: string | null;
+    emailHash: string | null;
+    /** The keyed tag of an anonymous response, which is how its hash row is found (D-142). */
+    ownerTag?: string | null;
+  },
 ): Promise<void> {
-  const { sessionIds, campaignId, emailHash } = target;
+  const { sessionIds, campaignId } = target;
+  // Every value this person's address is stored as in the campaign: the pointer on the participant
+  // row where there is one, and the hash row the owner tag names where there is not.
+  const hashes = new Set<string>();
+  if (target.emailHash) hashes.add(target.emailHash);
+  if (campaignId && target.ownerTag) {
+    const tagged = await tx.campaignEmailHash.findMany({
+      where: { campaignId, ownerTag: target.ownerTag },
+      select: { emailHash: true },
+    });
+    for (const row of tagged) hashes.add(row.emailHash);
+  }
+  const hashList = [...hashes];
   const invitations = await tx.invitation.findMany({
     where: {
       OR: [
         { sessionId: { in: sessionIds } },
-        ...(campaignId && emailHash ? [{ campaignId, emailHash }] : []),
+        ...(campaignId && hashList.length ? [{ campaignId, emailHash: { in: hashList } }] : []),
       ],
     },
     select: { id: true, sentAt: true },
@@ -363,9 +406,9 @@ async function forgetAddress(
       },
     });
   }
-  if (campaignId && emailHash) {
-    await tx.campaignEmailHash.deleteMany({ where: { campaignId, emailHash } });
-    await tx.emailCode.deleteMany({ where: { campaignId, emailHash } });
+  if (campaignId && hashList.length) {
+    await tx.campaignEmailHash.deleteMany({ where: { campaignId, emailHash: { in: hashList } } });
+    await tx.emailCode.deleteMany({ where: { campaignId, emailHash: { in: hashList } } });
   }
 }
 
@@ -445,7 +488,12 @@ export async function runRetentionSweep(deps: RetentionSweepDeps): Promise<Tenan
   const batchSize = deps.batchSize ?? RETENTION_BATCH_SIZE;
   const maxBatches = deps.maxBatches ?? RETENTION_MAX_BATCHES;
 
-  const companies = await db.company.findMany({ select: { id: true }, orderBy: { id: "asc" } });
+  // The only cross-tenant read in the sweep: which tenants exist. Everything after it runs fenced
+  // into one tenant. The Company policy shows a tenant context nobody but itself (D-141), so the
+  // listing steps into the system context and back out.
+  const companies = await withSystemTenant(() =>
+    db.company.findMany({ select: { id: true }, orderBy: { id: "asc" } }),
+  );
   const sweeps: TenantSweep[] = [];
   for (const company of companies) {
     // One tenant at a time, inside that tenant's scope: the job spans companies, its statements
@@ -453,7 +501,13 @@ export async function runRetentionSweep(deps: RetentionSweepDeps): Promise<Tenan
     sweeps.push(
       await withTenant(company.id, () =>
         sweepTenant(
-          { db, settings, log, ...(storage ? { storage } : {}) },
+          {
+            db,
+            settings,
+            log,
+            ...(storage ? { storage } : {}),
+            ...(deps.crypto ? { crypto: deps.crypto } : {}),
+          },
           company.id,
           now,
           batchSize,
@@ -466,13 +520,19 @@ export async function runRetentionSweep(deps: RetentionSweepDeps): Promise<Tenan
 }
 
 async function sweepTenant(
-  deps: { db: PrismaClient; settings: SettingsService; log: Logger; storage?: StoragePort },
+  deps: {
+    db: PrismaClient;
+    settings: SettingsService;
+    log: Logger;
+    storage?: StoragePort;
+    crypto?: OwnerTagger;
+  },
   companyId: string,
   now: Date,
   batchSize: number,
   maxBatches: number,
 ): Promise<TenantSweep> {
-  const { db, settings, log, storage } = deps;
+  const { db, settings, log, storage, crypto } = deps;
   const audio = await sweepAudio({ db, settings, log, ...(storage ? { storage } : {}) }, companyId, now);
   const audioDeleted = audio.deleted;
   let bytesFailed = audio.failed;
@@ -495,14 +555,15 @@ async function sweepTenant(
     // One transaction per session, never one per sweep: a long transaction on a big table blocks
     // vacuum and holds locks for the whole run, and an erase takes a row lock on its session.
     const ids = expired.map((s) => s.id);
-    for (const id of ids) await eraseSession(db, id, { markEnded: false, audit: false });
+    for (const id of ids)
+      await eraseSession(db, id, { markEnded: false, audit: false, ...(crypto ? { crypto } : {}) });
     bytesFailed += await deleteSessionBytes(ids, { ...(storage ? { storage } : {}), companyId, log });
     deleted += expired.length;
     if (expired.length < batchSize) break;
     if (batch === maxBatches - 1) truncated = true;
   }
 
-  const residueRemoved = await sweepResidue(db, companyId, now, maxBatches);
+  const residueRemoved = await sweepResidue(db, companyId, now, maxBatches, crypto);
   // After the row batches, so a directory this very sweep failed to clear is retried next run
   // (it is not an orphan until its session has been anonymized, which it just was).
   let orphansCollected = 0;
@@ -577,6 +638,7 @@ async function sweepResidue(
   companyId: string,
   now: Date,
   maxBatches: number,
+  crypto?: OwnerTagger,
 ): Promise<number> {
   const cutoff = new Date(now.getTime() - RESIDUE_GRACE_DAYS * 24 * 60 * 60 * 1000);
   let removed = 0;
@@ -593,6 +655,7 @@ async function sweepResidue(
           sessionIds: p.sessions.map((x) => x.id),
           campaignId: p.campaignId,
           emailHash: hashOf(p.fields),
+          ownerTag: crypto && p.campaignId ? crypto.participantTag(p.campaignId, p.id) : null,
         });
         await tx.participant.delete({ where: { id: p.id } });
       }

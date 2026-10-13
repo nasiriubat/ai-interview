@@ -100,7 +100,7 @@ $EDITOR deploy/.env
 What step 4 proves, and what to look for if it stops: `preflight` printing exactly
 
 ```
-preflight: ok — connected as app_api, no bypass, 15 tables under RLS, CREATE on database, untenanted reads return nothing
+preflight: ok — connected as app_api, no bypass, 29 tables under RLS, CREATE on database, untenanted reads return nothing
 ```
 
 (`./deploy/dc logs preflight db-grants`; the count is whatever the schema has, and the stack does

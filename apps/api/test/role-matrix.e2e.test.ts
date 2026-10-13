@@ -132,14 +132,17 @@ suite("role matrix: every route against every kind of caller", () => {
     });
     real.budget = budget.json<{ budget: { id: string } }>().budget.id;
     const analysis = await db.analysis.create({
-      data: { campaignId: real.campaign, version: 1, status: "done" },
+      data: { companyId: world.companyId, campaignId: real.campaign, version: 1, status: "done" },
     });
     real.analysis = analysis.id;
     real.other = (
-      await db.analysis.create({ data: { campaignId: real.campaign, version: 2, status: "done" } })
+      await db.analysis.create({
+        data: { companyId: world.companyId, campaignId: real.campaign, version: 2, status: "done" },
+      })
     ).id;
     const opportunity = await db.opportunity.create({
       data: {
+        companyId: world.companyId,
         analysisId: analysis.id,
         title: "Matrix",
         summary: "s",
