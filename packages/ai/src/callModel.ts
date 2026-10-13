@@ -38,6 +38,25 @@ export interface CallRequest {
   effort?: Effort;
   temperature?: number;
   cachePrefix?: boolean;
+  /**
+   * Cancels the call. The adapter is handed the same signal, so the request itself is torn down,
+   * and the ledger row is written with status `aborted`. A call made with a signal that is already
+   * aborted never reaches the provider and writes nothing: no work was done.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * Thrown by `chat` and `complete` when the caller's signal aborted the call. Not a provider
+ * failure: callers that cancelled on purpose (a client disconnected, a lock was lost) recognise it
+ * and stop quietly instead of reporting an error to anyone.
+ */
+export class CallAbortedError extends Error {
+  constructor(cause?: unknown) {
+    super("The model call was aborted");
+    this.name = "CallAbortedError";
+    if (cause !== undefined) this.cause = cause;
+  }
 }
 
 export interface CallContext {
@@ -97,25 +116,55 @@ export class ModelCaller implements ModelCallerPort {
 
   /** Streamed chat. Text events are yielded as they arrive; the final event carries usage. */
   async *chat(purpose: Purpose, ctx: CallContext, req: CallRequest): AsyncIterable<ChatEvent> {
+    if (req.signal?.aborted) throw new CallAbortedError();
     const { route, provider, price } = await this.prepare(purpose, ctx, req);
     const fullReq = this.applyRoute(route, provider, req);
     const started = this.now();
     let usage = emptyUsage();
     let status: LedgerEntry["status"] = "ok";
+    let streamed = "";
+    let finished = false;
     try {
       for await (const ev of provider.chat(route.model, fullReq)) {
+        // An adapter that ignores the signal must not keep a cancelled turn alive.
+        if (req.signal?.aborted) throw new CallAbortedError();
+        if (ev.type === "text") streamed += ev.text;
         if (ev.type === "done") {
+          finished = true;
           usage = ev.usage;
           if (ev.stopReason === "refusal") status = "refused";
         }
         yield ev;
       }
     } catch (e) {
+      if (req.signal?.aborted) {
+        status = "aborted";
+        // The provider reports usage only at the end of a stream, and an aborted stream never
+        // gets there, so what it cost is estimated from what was sent and what arrived. Recording
+        // zero here is how abandoned streams used to look free.
+        usage = this.abortedUsage(req, streamed);
+        throw e instanceof CallAbortedError ? e : new CallAbortedError(e);
+      }
       status = e instanceof ProviderError && e.code === "refusal" ? "refused" : "error";
       throw e;
     } finally {
+      // The consumer abandoning the generator (an early `return`, a barge-in) lands here with the
+      // status still "ok" and no `done` event seen: the same situation as an abort, recorded as one.
+      if (status === "ok" && !finished) {
+        status = "aborted";
+        usage = this.abortedUsage(req, streamed);
+      }
       await this.record(purpose, ctx, route, price, usage, status, started);
     }
+  }
+
+  private abortedUsage(req: CallRequest, streamed: string): Usage {
+    return {
+      inputTokens: estimateTokens((req.system ?? "") + JSON.stringify(req.messages)),
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      outputTokens: estimateTokens(streamed),
+    };
   }
 
   /** Structured output validated against a Zod schema. */
@@ -126,6 +175,7 @@ export class ModelCaller implements ModelCallerPort {
     schema: z.ZodType<T>,
     schemaName?: string,
   ): Promise<T> {
+    if (req.signal?.aborted) throw new CallAbortedError();
     const { route, provider, price } = await this.prepare(purpose, ctx, req);
     const fullReq = this.applyRoute(route, provider, req);
     const started = this.now();
@@ -136,6 +186,11 @@ export class ModelCaller implements ModelCallerPort {
       usage = res.usage;
       return res.value;
     } catch (e) {
+      if (req.signal?.aborted) {
+        status = "aborted";
+        usage = this.abortedUsage(req, "");
+        throw e instanceof CallAbortedError ? e : new CallAbortedError(e);
+      }
       status = e instanceof ProviderError && e.code === "refusal" ? "refused" : "error";
       throw e;
     } finally {
@@ -240,6 +295,7 @@ export class ModelCaller implements ModelCallerPort {
       cachePrefix: provider.capabilities.caching && (req.cachePrefix ?? false),
     };
     if (req.system !== undefined) out.system = req.system;
+    if (req.signal) out.signal = req.signal;
     if (req.temperature !== undefined) out.temperature = req.temperature;
     if (effort && provider.capabilities.effort) out.effort = effort;
     return out;

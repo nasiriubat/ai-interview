@@ -67,6 +67,25 @@ describe("InterviewEngine", () => {
     expect(result.ended).toBe(false);
   });
 
+  it("carries the turn's signal into the model request", async () => {
+    const store = new MemoryStore();
+    const caller = new ScriptedCaller([turn("Hello?", { areaKey: "role" })]);
+    const engine = new InterviewEngine({
+      caller: caller.asCaller(),
+      store,
+      prompts: new ShippedPromptSource(),
+      recall: new LexicalRecall(store, 10),
+      logger,
+    });
+    const ac = new AbortController();
+
+    const gen = engine.nextTurn(snapshot(template()), undefined, settings, { signal: ac.signal });
+    let r = await gen.next();
+    while (!r.done) r = await gen.next();
+
+    expect(caller.requests[0]?.req.signal).toBe(ac.signal);
+  });
+
   it("persists the answer before calling the model, applies deltas, and ends via closing and summary", async () => {
     const store = new MemoryStore();
     const caller = new ScriptedCaller([
