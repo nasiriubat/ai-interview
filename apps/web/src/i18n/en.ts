@@ -1113,6 +1113,8 @@ export const en = {
         requirements: "Requirements",
         exports: "Exports",
         email: "Email",
+        notifications: "Notifications",
+        ops: "Operations alerts",
         other: "Other",
       },
       empty: "The settings catalog is empty.",

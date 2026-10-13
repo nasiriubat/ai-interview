@@ -1,9 +1,25 @@
 import { z } from "zod";
 
-/** Every background job: name, payload schema, retry policy. Shared by publisher (API) and consumers (worker). */
+/**
+ * Every background job: name, payload schema, retry policy and how long one attempt may run.
+ * Shared by publisher (API) and consumers (worker).
+ *
+ * `expireInSeconds` is the time pg-boss lets an attempt stay active before it fails it and retries
+ * (D-92). The library default is 15 minutes, which redelivered a long `analysis.run` while the first
+ * attempt was still working, so the report was built twice and billed twice. Each value is the
+ * job's honest worst case with headroom, and a handler that outlives it is by definition stuck.
+ */
 export const JOBS = {
-  "session.summarize": { schema: z.object({ sessionId: z.string(), companyId: z.string() }), retryLimit: 3 },
-  "session.extract": { schema: z.object({ sessionId: z.string(), companyId: z.string() }), retryLimit: 3 },
+  "session.summarize": {
+    schema: z.object({ sessionId: z.string(), companyId: z.string() }),
+    retryLimit: 3,
+    expireInSeconds: 120,
+  },
+  "session.extract": {
+    schema: z.object({ sessionId: z.string(), companyId: z.string() }),
+    retryLimit: 3,
+    expireInSeconds: 180,
+  },
   "email.send": {
     schema: z.object({
       to: z.string(),
@@ -13,14 +29,16 @@ export const JOBS = {
       companyId: z.string().optional(),
     }),
     retryLimit: 5,
+    expireInSeconds: 60,
   },
   "privacy.delete-session": {
     schema: z.object({ sessionId: z.string(), companyId: z.string() }),
     retryLimit: 5,
+    expireInSeconds: 300,
   },
   /** Sweeps every tenant; the payload is empty so a cron tick needs no arguments (spec 11, retention). */
-  "privacy.retention-sweep": { schema: z.object({}), retryLimit: 2 },
-  "auth.prune-verification-tokens": { schema: z.object({}), retryLimit: 2 },
+  "privacy.retention-sweep": { schema: z.object({}), retryLimit: 2, expireInSeconds: 1800 },
+  "auth.prune-verification-tokens": { schema: z.object({}), retryLimit: 2, expireInSeconds: 120 },
   /**
    * Reads an uploaded file: extraction or a vision call, then a summary, chunks and embeddings
    * (FR-31). Retried twice because the expensive half is two model calls, and a provider that is
@@ -30,10 +48,28 @@ export const JOBS = {
   "attachment.ingest": {
     schema: z.object({ attachmentId: z.string(), companyId: z.string() }),
     retryLimit: 2,
+    expireInSeconds: 600,
   },
-  "analysis.run": { schema: z.object({ analysisId: z.string(), companyId: z.string() }), retryLimit: 2 },
-  "spec.generate": { schema: z.object({ versionId: z.string(), companyId: z.string() }), retryLimit: 2 },
+  "analysis.run": {
+    schema: z.object({ analysisId: z.string(), companyId: z.string() }),
+    retryLimit: 2,
+    expireInSeconds: 3600,
+  },
+  "spec.generate": {
+    schema: z.object({ versionId: z.string(), companyId: z.string() }),
+    retryLimit: 2,
+    expireInSeconds: 1800,
+  },
+  /**
+   * The sweep that makes "nothing fails silently" true (D-92): reads the queue, the backup status
+   * file, the disk and the provider error rate, and raises or resolves the alerts they imply.
+   * One retry only: the next tick is five minutes away and is the better retry.
+   */
+  "ops.health-sweep": { schema: z.object({}), retryLimit: 1, expireInSeconds: 240 },
 } as const;
+
+/** How long a dead-lettered job is kept for the operator to look at before pg-boss drops it. */
+export const DEAD_LETTER_RETENTION_DAYS = 30;
 
 export type JobName = keyof typeof JOBS;
 export type JobPayload<N extends JobName> = z.infer<(typeof JOBS)[N]["schema"]>;
@@ -75,7 +111,17 @@ export const RECURRING_JOBS: {
   // Sign-in tokens expire in minutes; a sweep on sign-in traffic alone leaves rows behind on a
   // quiet week, so they also get their own hour.
   "auth.prune-verification-tokens": { cron: "42 4 * * *", payload: {}, tz: "UTC" },
+  // Every five minutes: the longest a dead disk, a stuck queue or a failed backup waits before the
+  // operator is told. `expireInSeconds` (240) keeps one tick from overlapping the next.
+  "ops.health-sweep": { cron: "*/5 * * * *", payload: {}, tz: "UTC" },
 };
+
+/**
+ * Jobs an operator may start by hand from the jobs page (D-92): the parameterless recurring ones,
+ * where "run it now" is a button instead of a `psql` session. A job that needs ids in its payload
+ * is deliberately not here.
+ */
+export const RUN_NOW_JOBS = Object.keys(RECURRING_JOBS) as JobName[];
 
 /** Collects jobs in memory: tests, and dry runs. */
 export class MemoryJobPublisher implements JobPublisher {

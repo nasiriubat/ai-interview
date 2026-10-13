@@ -70,6 +70,13 @@ export class StaticBudgetLimits implements BudgetLimitSource {
 }
 
 export class BudgetExceededError extends Error {
+  /**
+   * Whether anyone was told that this budget is exhausted: set by the caller that raised the
+   * alert, read by whatever renders the refusal to a participant. It starts false, so a message
+   * built from it can never claim that someone was told when nobody was.
+   */
+  notified = false;
+
   constructor(public readonly check: BudgetCheck) {
     const b = check.blockedBy;
     super(

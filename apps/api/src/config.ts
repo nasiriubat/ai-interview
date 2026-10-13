@@ -15,6 +15,12 @@ const Env = z.object({
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
+  // Operator alerting (D-90). Both are optional fallbacks: the settings catalog (`ops.alertEmail`,
+  // `ops.alertWebhookUrl`) wins when set, and `deploy/ops/notify.sh` reads these two directly
+  // because it has to work when the database does not.
+  ALERT_EMAIL: z.string().optional(),
+  ALERT_WEBHOOK_URL: z.string().optional(),
+  ALERT_WEBHOOK_FORMAT: z.enum(["ntfy", "slack", "generic"]).optional(),
   /**
    * Where the admin's one-step live voice setup checks an OpenAI key and points the provider it
    * creates (D-77). Unset means OpenAI itself; set it for a regional endpoint or a proxy. The test

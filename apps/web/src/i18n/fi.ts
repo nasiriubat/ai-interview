@@ -1127,6 +1127,8 @@ export const fi: Strings = {
         requirements: "Vaatimukset",
         exports: "Viennit",
         email: "Sähköposti",
+        notifications: "Ilmoitukset",
+        ops: "Käytön hälytykset",
         other: "Muut",
       },
       empty: "Asetusluettelo on tyhjä.",

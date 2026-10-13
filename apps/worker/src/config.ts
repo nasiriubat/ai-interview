@@ -10,6 +10,17 @@ const Env = z.object({
   /** Where uploaded audio and documents live. Unset keeps them in memory, which loses them. */
   UPLOAD_DIR: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
+  // Operator alerting (D-90); see apps/api/src/config.ts. Same variables, same fallbacks.
+  ALERT_EMAIL: z.string().optional(),
+  ALERT_WEBHOOK_URL: z.string().optional(),
+  ALERT_WEBHOOK_FORMAT: z.enum(["ntfy", "slack", "generic"]).optional(),
+  /**
+   * The shared `ops_state` volume (D-92): the backup writes `status/backup.json` there and the
+   * worker writes `heartbeat/worker`. Unset in development, where neither check is meaningful.
+   */
+  OPS_STATE_DIR: z.string().optional(),
+  /** The file the container healthcheck reads; defaults under OPS_STATE_DIR. */
+  HEARTBEAT_FILE: z.string().optional(),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
 });
 export type Config = z.infer<typeof Env>;

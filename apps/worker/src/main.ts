@@ -1,19 +1,27 @@
 import {
+  AlertRouter,
   BossJobs,
   CallerFactory,
   createStorage,
   Crypto,
+  HealthSweep,
   MemoryEmail,
+  PgBossJobAdmin,
+  PrismaAlertState,
+  PrismaHealthInputs,
   SettingsEmail,
   SettingsService,
   storageKind,
+  type JobFailure,
   type JobName,
 } from "@aidp/core";
 import { withTenantScope } from "@aidp/db";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
+import { deadLetterAlert } from "./alerts.js";
 import { loadConfig } from "./config.js";
 import { handlers } from "./handlers.js";
+import { Heartbeat } from "./heartbeat.js";
 import { registerSchedules } from "./schedules.js";
 
 async function main(): Promise<void> {
@@ -33,14 +41,6 @@ async function main(): Promise<void> {
       log.warn(meta ?? {}, message);
     },
   });
-  const callers = new CallerFactory({
-    db,
-    crypto,
-    settings,
-    onBudgetWarning: (ctx, warnings) => {
-      log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
-    },
-  });
   // Identical resolution to the API, so a message sent from a job looks like one sent from a request.
   const email = new SettingsEmail({
     settings,
@@ -49,12 +49,70 @@ async function main(): Promise<void> {
       log.info({ to: m.to, subject: m.subject }, "email (console)");
     }),
   });
+  // The same router the API builds: the dedupe state is the table, so a condition both processes
+  // see (an exhausted budget) is one notification (D-90).
+  const alerts = new AlertRouter({
+    db,
+    state: new PrismaAlertState(db),
+    settings,
+    email,
+    publicWebUrl: config.PUBLIC_WEB_URL,
+    env: {
+      alertEmail: config.ALERT_EMAIL,
+      alertWebhookUrl: config.ALERT_WEBHOOK_URL,
+      alertWebhookFormat: config.ALERT_WEBHOOK_FORMAT,
+    },
+    log: {
+      warn: (message, meta) => {
+        log.warn(meta ?? {}, message);
+      },
+    },
+  });
+  const callers = new CallerFactory({
+    db,
+    crypto,
+    settings,
+    alerts,
+    publicWebUrl: config.PUBLIC_WEB_URL,
+  });
   const jobs = new BossJobs(config.DATABASE_URL, {
     onError: (err) => {
       log.error({ err }, "job queue error");
     },
   });
   await jobs.start();
+  const jobAdmin = new PgBossJobAdmin(jobs.boss, db);
+  const health = new HealthSweep({
+    inputs: new PrismaHealthInputs({
+      db,
+      admin: jobAdmin,
+      opsStateDir: config.OPS_STATE_DIR,
+      diskPath: config.UPLOAD_DIR ?? config.OPS_STATE_DIR,
+    }),
+    alerts,
+    thresholds: async () => {
+      const v = await settings.resolveMany(
+        [
+          "ops.diskWarnPercent",
+          "ops.diskCriticalPercent",
+          "ops.providerErrorRateWarn",
+          "ops.backupMaxAgeHours",
+        ],
+        [],
+      );
+      return {
+        diskWarnPercent: Number(v["ops.diskWarnPercent"]),
+        diskCriticalPercent: Number(v["ops.diskCriticalPercent"]),
+        providerErrorRate: Number(v["ops.providerErrorRateWarn"]),
+        backupMaxAgeHours: Number(v["ops.backupMaxAgeHours"]),
+      };
+    },
+    log: {
+      warn: (message, meta) => {
+        log.warn(meta ?? {}, message);
+      },
+    },
+  });
 
   const storage = createStorage(config.UPLOAD_DIR);
   log.info({ storage: storageKind(storage) }, "upload store");
@@ -67,6 +125,7 @@ async function main(): Promise<void> {
     jobs,
     crypto,
     storage,
+    health,
     publicWebUrl: config.PUBLIC_WEB_URL,
     log: {
       info: (m, meta) => {
@@ -77,8 +136,10 @@ async function main(): Promise<void> {
       },
     },
   });
-  const failed = (name: string) => (jobId: string, err: unknown) => {
-    log.error({ err, job: name, jobId }, "job failed");
+  const failed = (name: JobName) => (jobId: string, err: unknown, failure: JobFailure) => {
+    log.error({ err, job: name, jobId, attempt: failure.attempt, final: failure.final }, "job failed");
+    // The last attempt: after this the job sits in `<name>.dead` and nothing else reports it.
+    if (failure.final) void alerts.raise(deadLetterAlert(name, jobId, failure, err));
   };
 
   /**
@@ -127,7 +188,34 @@ async function main(): Promise<void> {
   });
   log.info("worker started");
 
+  // Proof of life for the container healthcheck, and the self-restart when the queue is gone
+  // (D-92). Started last: a healthy file means the consumers above are registered.
+  const heartbeatFile =
+    config.HEARTBEAT_FILE ?? (config.OPS_STATE_DIR ? `${config.OPS_STATE_DIR}/heartbeat/worker` : undefined);
+  const heartbeat = heartbeatFile
+    ? new Heartbeat({
+        file: heartbeatFile,
+        probe: () => jobs.boss.getQueueStats("ops.health-sweep"),
+        onFatal: () => {
+          process.exit(1);
+        },
+        log: {
+          info: (m, meta) => {
+            log.info(meta ?? {}, m);
+          },
+          warn: (m, meta) => {
+            log.warn(meta ?? {}, m);
+          },
+          error: (m, meta) => {
+            log.error(meta ?? {}, m);
+          },
+        },
+      })
+    : undefined;
+  await heartbeat?.start();
+
   const shutdown = async (): Promise<void> => {
+    heartbeat?.stop();
     await jobs.stop();
     await db.$disconnect();
     process.exit(0);

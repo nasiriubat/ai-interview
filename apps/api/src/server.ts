@@ -1,4 +1,4 @@
-import { BossJobs } from "@aidp/core";
+import { BossJobs, PgBossJobAdmin } from "@aidp/core";
 import { withTenantScope } from "@aidp/db";
 import { PrismaClient } from "@prisma/client";
 import { buildApp } from "./app.js";
@@ -22,7 +22,7 @@ async function main(): Promise<void> {
     },
   });
   await jobs.start();
-  const ctx = buildContext({ config, db, log, jobs });
+  const ctx = buildContext({ config, db, log, jobs, jobAdmin: new PgBossJobAdmin(jobs.boss, db) });
   const app = await buildApp(ctx);
 
   const shutdown = async (signal: string): Promise<void> => {
