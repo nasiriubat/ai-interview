@@ -13,9 +13,8 @@ async function main(): Promise<void> {
   const telemetry = await startTelemetry("aidp-api", config.OTEL_EXPORTER_OTLP_ENDPOINT);
   const log = createLogger(config.LOG_LEVEL, config.NODE_ENV === "development");
   // Every query goes through the tenant scope: it pairs the statement with the Postgres setting
-  // the row-level security policies read. The cast keeps the familiar PrismaClient shape at the
-  // ~166 call sites; the extension only adds behaviour (packages/db/src/tenancy.ts).
-  const db = withTenantScope(new PrismaClient()) as unknown as PrismaClient;
+  // the row-level security policies read (packages/db/src/tenancy.ts).
+  const db = withTenantScope(new PrismaClient());
   const jobs = new BossJobs(config.DATABASE_URL, {
     onError: (err) => {
       log.error({ err }, "job queue error");

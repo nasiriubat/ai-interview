@@ -33,7 +33,7 @@ suite("row-level security as app_api", () => {
     await owner.user.create({ data: { companyId: a, email: `rls-a-${Date.now()}@t.io`, role: "admin" } });
     await owner.user.create({ data: { companyId: b, email: `rls-b-${Date.now()}@t.io`, role: "admin" } });
     api = new PrismaClient({ datasources: { db: { url: apiUrl(url ?? "") } } });
-    scoped = withTenantScope(api) as unknown as PrismaClient;
+    scoped = withTenantScope(api);
   });
 
   afterAll(async () => {
