@@ -49,8 +49,9 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
   const platform =
     (await db.company.findFirst({ where: { name: "Platform" } })) ??
     (await db.company.create({ data: { name: "Platform" } }));
+  // One tenant per staff email (D-84): the address is the identity, so it is the key.
   await db.user.upsert({
-    where: { companyId_email: { companyId: platform.id, email: operatorEmail } },
+    where: { email: operatorEmail },
     create: { companyId: platform.id, email: operatorEmail, role: "platform_operator" },
     update: {},
   });
@@ -58,11 +59,21 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
   const tenant =
     (await db.company.findFirst({ where: { name: tenantName } })) ??
     (await db.company.create({ data: { name: tenantName, monthlyBudgetCents: 20_000 } }));
-  await db.user.upsert({
-    where: { companyId_email: { companyId: tenant.id, email: adminEmail } },
-    create: { companyId: tenant.id, email: adminEmail, role: "admin" },
-    update: {},
-  });
+  const existingAdmin = await db.user.findUnique({ where: { email: adminEmail } });
+  if (existingAdmin && existingAdmin.companyId !== tenant.id) {
+    // The same address as the operator's, typically. The operator works inside any tenant
+    // through X-Company-Id, so nothing is lost; say so rather than fail the bootstrap.
+    console.log(
+      "bootstrap: BOOTSTRAP_ADMIN_EMAIL already belongs to another tenant (one tenant per email); " +
+        "that person reaches this tenant as the platform operator",
+    );
+  } else {
+    await db.user.upsert({
+      where: { email: adminEmail },
+      create: { companyId: tenant.id, email: adminEmail, role: "admin" },
+      update: {},
+    });
+  }
   await db.budget.upsert({
     where: { scope_scopeId: { scope: "tenant", scopeId: tenant.id } },
     create: {

@@ -2,7 +2,8 @@ import { InterviewTemplateSchema, PathSchema } from "@aidp/shared";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff, staff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
+import { staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
@@ -41,7 +42,7 @@ export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
 
   app.get(
     "/templates",
-    { preHandler: requireStaff(), schema: { querystring: listQuery(TemplateList) } },
+    { ...guard.staff(), schema: { querystring: listQuery(TemplateList) } },
     async (req) => {
       const sort = req.query.sort;
       const dir = req.query.dir ?? TemplateList.sort[sort];
@@ -63,14 +64,14 @@ export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
       return { templates: templates.map(view), total, limit: req.query.limit, offset: req.query.offset };
     },
   );
-  app.get("/templates/:id", { preHandler: requireStaff(), schema: { params: Id } }, async (req) =>
+  app.get("/templates/:id", { ...guard.staff(), schema: { params: Id } }, async (req) =>
     view(await svc.get(req.companyId, req.params.id)),
   );
 
   app.post(
     "/templates",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: { body: z.union([z.object({ copyFromId: z.string() }), TemplateBody]) },
     },
     async (req, reply) => {
@@ -91,28 +92,24 @@ export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
     },
   );
 
-  app.put(
-    "/templates/:id",
-    { preHandler: requireStaff("admin"), schema: { params: Id, body: TemplateBody } },
-    async (req) => {
-      const actor = staff(req).userId;
-      const t = await svc.update(req.companyId, req.params.id, req.body, actor);
-      await audit(ctx.db, {
-        companyId: req.companyId,
-        actorId: actor,
-        action: "template.update",
-        targetType: "template",
-        targetId: t.id,
-        diff: { version: t.version },
-      });
-      return view(t);
-    },
-  );
+  app.put("/templates/:id", { ...guard.admin(), schema: { params: Id, body: TemplateBody } }, async (req) => {
+    const actor = staff(req).userId;
+    const t = await svc.update(req.companyId, req.params.id, req.body, actor);
+    await audit(ctx.db, {
+      companyId: req.companyId,
+      actorId: actor,
+      action: "template.update",
+      targetType: "template",
+      targetId: t.id,
+      diff: { version: t.version },
+    });
+    return view(t);
+  });
 
   for (const status of ["published", "archived"] as const) {
     app.post(
       `/templates/:id/${status === "published" ? "publish" : "archive"}`,
-      { preHandler: requireStaff("admin"), schema: { params: Id } },
+      { ...guard.admin(), schema: { params: Id } },
       async (req) => {
         const t = await svc.setStatus(req.companyId, req.params.id, status);
         await audit(ctx.db, {
@@ -131,8 +128,7 @@ export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
   app.post(
     "/templates/:id/preview",
     {
-      preHandler: requireStaff("admin"),
-      ...expensiveLimit(ctx.config),
+      ...guard.admin(expensiveLimit(ctx.config)),
       schema: { params: Id, body: z.object({ path: PathSchema.optional() }).default({}) },
     },
     async (req) => {
@@ -151,9 +147,7 @@ export async function templateRoutes(app: App, ctx: AppContext): Promise<void> {
     },
   );
 
-  app.get(
-    "/templates/:id/diff-shipped",
-    { preHandler: requireStaff(), schema: { params: Id } },
-    async (req) => svc.diffShipped(req.companyId, req.params.id),
+  app.get("/templates/:id/diff-shipped", { ...guard.staff(), schema: { params: Id } }, async (req) =>
+    svc.diffShipped(req.companyId, req.params.id),
   );
 }

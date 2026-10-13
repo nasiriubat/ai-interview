@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { SpeechRunner, type LanguageHint, type SpeechResult, type SpeechToTextEngine } from "@aidp/ai";
-import { type Crypto, MemoryEmail, MemoryJobPublisher, MemoryStorage } from "@aidp/core";
+import { type Crypto, type EgressGuard, MemoryEmail, MemoryJobPublisher, MemoryStorage } from "@aidp/core";
 import { shippedTemplates, withTenantScope } from "@aidp/db";
 import { encode } from "@auth/core/jwt";
 import { PrismaClient } from "@prisma/client";
@@ -253,7 +253,12 @@ async function appRoleClient(owner: PrismaClient): Promise<PrismaClient> {
 export const TEST_AUTH_SECRET = "test-secret-test-secret-test-secret";
 
 /** `env` overrides land on top of the defaults, so a suite can pick its own rate-limit ceilings. */
-export async function testWorld(modelUrl: string, env: Record<string, string> = {}): Promise<TestWorld> {
+export async function testWorld(
+  modelUrl: string,
+  env: Record<string, string> = {},
+  /** A guard with a fake resolver, for the suites that exercise the egress policy. */
+  overrides: { egress?: EgressGuard } = {},
+): Promise<TestWorld> {
   const key = randomBytes(32).toString("base64");
   const config = loadConfig({
     ...process.env,
@@ -262,6 +267,10 @@ export async function testWorld(modelUrl: string, env: Record<string, string> = 
     AUTH_SECRET: TEST_AUTH_SECRET,
     DATABASE_URL: process.env.DATABASE_URL ?? "",
     LOG_LEVEL: "silent",
+    // The fake model server lives on loopback over http, which the strict policy would refuse.
+    // Permissive keeps the hard denials (metadata addresses); a suite that is about the policy
+    // opts in with EGRESS_MODE=strict (D-83).
+    EGRESS_MODE: "permissive",
     ...env,
   });
   const db = new PrismaClient();
@@ -283,6 +292,7 @@ export async function testWorld(modelUrl: string, env: Record<string, string> = 
     jobs,
     email,
     storage,
+    ...(overrides.egress ? { egress: overrides.egress } : {}),
     speech: new SpeechRunner(speech),
   });
   const app = await buildApp(ctx);

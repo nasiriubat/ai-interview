@@ -4,13 +4,16 @@ import {
   AttachmentService,
   CallerFactory,
   Crypto,
+  EgressGuard,
   EngineFactory,
   GitHubApi,
   MemoryEmail,
   RequirementsService,
   SettingsEmail,
   SettingsService,
+  TenantGate,
   createStorage,
+  egressConfigFromEnv,
   type EmailPort,
   type GitHubPort,
   type JobPublisher,
@@ -37,6 +40,10 @@ export interface AppContext {
   github: GitHubPort;
   storage: StoragePort;
   attachments: AttachmentService;
+  /** Whether a tenant may act at all (suspension, S8). */
+  tenants: TenantGate;
+  /** What the server may connect to on a tenant's say-so (S4). */
+  egress: EgressGuard;
   /** Whisper on this server (D-75): one runner per process, shared by every `local` provider. */
   speech: SpeechRunner;
   /**
@@ -56,6 +63,8 @@ export function buildContext(input: {
   github?: GitHubPort;
   /** Tests pass a MemoryStorage; production passes nothing and gets one from UPLOAD_DIR. */
   storage?: StoragePort;
+  /** Tests pass a guard with a fake resolver; production builds one from the environment. */
+  egress?: EgressGuard;
   /** Tests pass a runner over an in-memory engine, so nothing loads a model. */
   speech?: SpeechRunner;
 }): AppContext {
@@ -67,16 +76,29 @@ export function buildContext(input: {
       log.warn(meta ?? {}, message);
     },
   });
+  const egress =
+    input.egress ??
+    new EgressGuard(
+      egressConfigFromEnv({
+        mode: config.EGRESS_MODE,
+        allowHosts: config.EGRESS_ALLOW_HOSTS,
+        nodeEnv: config.NODE_ENV,
+        // The admin's one-step voice setup writes this URL onto a tenant's provider (D-77).
+        trustedUrls: [config.OPENAI_BASE_URL],
+      }),
+    );
   const callers = new CallerFactory({
     db,
     crypto,
     settings,
+    egress,
     speech,
     onBudgetWarning: (ctx, warnings) => {
       log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
     },
   });
   const engines = new EngineFactory(db, callers, settings, engineLogger(log));
+  const tenants = new TenantGate(db);
   // Every send resolves its SMTP settings from the tenant, then the platform, then the environment.
   const email =
     input.email ??
@@ -86,6 +108,8 @@ export function buildContext(input: {
       fallback: new MemoryEmail((m) => {
         log.info({ to: m.to, subject: m.subject }, "email (console)");
       }),
+      gate: tenants,
+      egress,
     });
   const analysis = new AnalysisService({ db, callers, settings, jobs: input.jobs, log: engineLogger(log) });
   const github = input.github ?? new GitHubApi();
@@ -119,6 +143,8 @@ export function buildContext(input: {
     github,
     storage,
     attachments,
+    tenants,
+    egress,
     speech,
     shutdown: new AbortController(),
   };

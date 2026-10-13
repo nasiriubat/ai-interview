@@ -14,7 +14,8 @@ import { FindingOutcomeSchema, PathSchema, WidgetResponseSchema } from "@aidp/sh
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff, staff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
+import { staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
@@ -77,7 +78,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
 
   app.get(
     "/requirements",
-    { preHandler: requireStaff(), schema: { querystring: listQuery(RequirementsList) } },
+    { ...guard.staff(), schema: { querystring: listQuery(RequirementsList) } },
     async (req) => {
       const { sessions, total } = await svc.list(req.companyId, viewerOf(req), {
         limit: req.query.limit,
@@ -96,7 +97,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
   app.post(
     "/requirements",
     {
-      preHandler: requireStaff(),
+      ...guard.staff(),
       schema: {
         body: z.object({
           title: z.string().min(1).max(120),
@@ -122,13 +123,13 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
     },
   );
 
-  app.get("/requirements/:id", { preHandler: requireStaff(), schema: { params: Id } }, async (req) =>
+  app.get("/requirements/:id", { ...guard.staff(), schema: { params: Id } }, async (req) =>
     wrap(() => svc.get(req.companyId, req.params.id, viewerOf(req))),
   );
 
   app.post(
     "/requirements/:id/path",
-    { preHandler: requireStaff(), schema: { params: Id, body: z.object({ path: PathSchema }) } },
+    { ...guard.staff(), schema: { params: Id, body: z.object({ path: PathSchema }) } },
     async (req) => {
       await wrap(() => svc.setPath(req.companyId, req.params.id, req.body.path, viewerOf(req)));
       return { ok: true as const };
@@ -138,8 +139,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
   app.post(
     "/requirements/:id/turns",
     {
-      preHandler: requireStaff(),
-      ...expensiveLimit(ctx.config),
+      ...guard.staff(expensiveLimit(ctx.config)),
       schema: { params: Id },
     },
     async (req, reply) => {
@@ -164,28 +164,20 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
     },
   );
 
-  app.post(
-    "/requirements/:id/complete",
-    { preHandler: requireStaff(), schema: { params: Id } },
-    async (req) => {
-      await wrap(() => svc.requestCompletion(req.companyId, req.params.id, viewerOf(req)));
-      return { ok: true as const };
-    },
-  );
+  app.post("/requirements/:id/complete", { ...guard.staff(), schema: { params: Id } }, async (req) => {
+    await wrap(() => svc.requestCompletion(req.companyId, req.params.id, viewerOf(req)));
+    return { ok: true as const };
+  });
 
-  app.post(
-    "/requirements/:id/reopen",
-    { preHandler: requireStaff(), schema: { params: Id } },
-    async (req) => {
-      await wrap(() => svc.reopen(req.companyId, req.params.id, viewerOf(req)));
-      return { ok: true as const };
-    },
-  );
+  app.post("/requirements/:id/reopen", { ...guard.staff(), schema: { params: Id } }, async (req) => {
+    await wrap(() => svc.reopen(req.companyId, req.params.id, viewerOf(req)));
+    return { ok: true as const };
+  });
 
   app.put(
     "/requirements/:id/sections/:key",
     {
-      preHandler: requireStaff(),
+      ...guard.staff(),
       schema: {
         params: z.object({ id: z.string(), key: z.string().min(1).max(64) }),
         body: z.object({ markdown: z.string().max(100000) }),
@@ -218,7 +210,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
   app.post(
     "/requirements/:id/findings/:findingId",
     {
-      preHandler: requireStaff(),
+      ...guard.staff(),
       schema: {
         params: z.object({ id: z.string(), findingId: z.string() }),
         body: z.object({ outcome: FindingOutcomeSchema, note: z.string().max(2000).optional() }),
@@ -254,8 +246,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
   app.post(
     "/requirements/:id/versions",
     {
-      preHandler: requireStaff(),
-      ...expensiveLimit(ctx.config),
+      ...guard.staff(expensiveLimit(ctx.config)),
       schema: { params: Id, body: z.object({ label: z.string().max(120).optional() }).default({}) },
     },
     async (req, reply) => {
@@ -279,24 +270,20 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
     },
   );
 
-  app.get(
-    "/requirements/:id/versions",
-    { preHandler: requireStaff(), schema: { params: Id } },
-    async (req) => ({
-      versions: await wrap(() => svc.listVersions(req.companyId, req.params.id, viewerOf(req))),
-    }),
-  );
+  app.get("/requirements/:id/versions", { ...guard.staff(), schema: { params: Id } }, async (req) => ({
+    versions: await wrap(() => svc.listVersions(req.companyId, req.params.id, viewerOf(req))),
+  }));
 
   app.get(
     "/requirements/:id/versions/:v",
-    { preHandler: requireStaff(), schema: { params: VersionParams } },
+    { ...guard.staff(), schema: { params: VersionParams } },
     async (req) => wrap(() => svc.getVersion(req.companyId, req.params.id, req.params.v, viewerOf(req))),
   );
 
   app.get(
     "/requirements/:id/versions/:v/diff/:other",
     {
-      preHandler: requireStaff(),
+      ...guard.staff(),
       schema: { params: VersionParams.extend({ other: z.coerce.number().int().positive() }) },
     },
     async (req) =>
@@ -308,7 +295,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
   app.get(
     "/requirements/:id/versions/:v/export",
     {
-      preHandler: requireStaff(),
+      ...guard.staff(),
       schema: { params: VersionParams, querystring: z.object({ format: z.enum(["md", "json", "bundle"]) }) },
     },
     async (req, reply) => {
@@ -325,7 +312,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
   app.post(
     "/requirements/:id/versions/:v/github",
     {
-      preHandler: requireStaff(),
+      ...guard.staff(),
       schema: {
         params: VersionParams,
         body: z.object({
@@ -364,7 +351,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
 
   app.post(
     "/requirements/:id/invitations",
-    { preHandler: requireStaff(), schema: { params: Id, body: z.object({ email: z.email() }) } },
+    { ...guard.staff(), schema: { params: Id, body: z.object({ email: z.email() }) } },
     async (req) => {
       const p = staff(req);
       const invitation = await wrap(() =>
@@ -384,7 +371,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
 
   app.post(
     "/requirements/:id/invitations/:invId/revoke",
-    { preHandler: requireStaff(), schema: { params: z.object({ id: z.string(), invId: z.string() }) } },
+    { ...guard.staff(), schema: { params: z.object({ id: z.string(), invId: z.string() }) } },
     async (req) => {
       const p = staff(req);
       await wrap(() => svc.revokeInvitation(req.companyId, req.params.id, req.params.invId, viewerOf(req)));

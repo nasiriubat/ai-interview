@@ -4,7 +4,8 @@ import { OpportunityOverrideSchema, rankScore } from "@aidp/shared";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff, staff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
+import { staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, notFound } from "../../lib/errors.js";
@@ -53,7 +54,7 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
 
   app.post(
     "/campaigns/:id/analyses",
-    { preHandler: requireStaff("admin"), ...expensiveLimit(ctx.config), schema: { params: Id } },
+    { ...guard.admin(expensiveLimit(ctx.config)), schema: { params: Id } },
     async (req, reply) => {
       await campaignOf(req.companyId, req.params.id);
       try {
@@ -78,7 +79,7 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
 
   app.get(
     "/campaigns/:id/analyses",
-    { preHandler: requireStaff(), schema: { params: Id, querystring: listQuery(AnalysisList) } },
+    { ...guard.staff(), schema: { params: Id, querystring: listQuery(AnalysisList) } },
     async (req) => {
       await campaignOf(req.companyId, req.params.id);
       const where: Prisma.AnalysisWhereInput = {
@@ -142,7 +143,7 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
     evidence: o.evidence.map((e) => ({ factId: e.factId, snippet: e.snippet, anonymized: e.anonymized })),
   });
 
-  app.get("/analyses/:id", { preHandler: requireStaff(), schema: { params: Id } }, async (req) => {
+  app.get("/analyses/:id", { ...guard.staff(), schema: { params: Id } }, async (req) => {
     const a = await loadAnalysis(req.companyId, req.params.id);
     if (a.preliminary && staff(req).role === "member") {
       const visible = await ctx.settings.get("analysis.preliminaryVisibleToMembers", [
@@ -172,7 +173,7 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
 
   app.get(
     "/analyses/:id/diff/:otherId",
-    { preHandler: requireStaff(), schema: { params: z.object({ id: z.string(), otherId: z.string() }) } },
+    { ...guard.staff(), schema: { params: z.object({ id: z.string(), otherId: z.string() }) } },
     async (req) => {
       const [a, b] = await Promise.all([
         loadAnalysis(req.companyId, req.params.id),
@@ -222,7 +223,7 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
 
   app.patch(
     "/opportunities/:id",
-    { preHandler: requireStaff("admin"), schema: { params: Id, body: OpportunityOverrideSchema } },
+    { ...guard.admin(), schema: { params: Id, body: OpportunityOverrideSchema } },
     async (req) => {
       await wrapNotFound(() => svc.override(req.companyId, req.params.id, req.body));
       await audit(ctx.db, {
@@ -240,7 +241,7 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
   app.post(
     "/opportunities/:id/status",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: { params: Id, body: z.object({ status: z.enum(["new", "shortlisted", "dismissed"]) }) },
     },
     async (req) => {
@@ -256,23 +257,19 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
     },
   );
 
-  app.post(
-    "/opportunities/:id/promote",
-    { preHandler: requireStaff("admin"), schema: { params: Id } },
-    async (req) => {
-      const p = staff(req);
-      const { sessionId, handoff } = await wrapNotFound(() =>
-        svc.promote(req.companyId, req.params.id, p.userId),
-      );
-      await audit(ctx.db, {
-        companyId: req.companyId,
-        actorId: p.userId,
-        action: "opportunity.promote",
-        targetType: "opportunity",
-        targetId: req.params.id,
-        diff: { sessionId },
-      });
-      return { session: { id: sessionId, templateKey: "requirements_discovery" }, handoff };
-    },
-  );
+  app.post("/opportunities/:id/promote", { ...guard.admin(), schema: { params: Id } }, async (req) => {
+    const p = staff(req);
+    const { sessionId, handoff } = await wrapNotFound(() =>
+      svc.promote(req.companyId, req.params.id, p.userId),
+    );
+    await audit(ctx.db, {
+      companyId: req.companyId,
+      actorId: p.userId,
+      action: "opportunity.promote",
+      targetType: "opportunity",
+      targetId: req.params.id,
+      diff: { sessionId },
+    });
+    return { session: { id: sessionId, templateKey: "requirements_discovery" }, handoff };
+  });
 }

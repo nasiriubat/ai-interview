@@ -2,7 +2,7 @@ import { tenantBatch } from "@aidp/db";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
 import type { AppContext } from "../../context.js";
 import { AppError } from "../../lib/errors.js";
 import { contains, escapeLike, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
@@ -55,70 +55,66 @@ function createdWindow(from?: string, to?: string): Prisma.DateTimeFilter | unde
 }
 
 export async function auditRoutes(app: App, ctx: AppContext): Promise<void> {
-  app.get(
-    "/audit",
-    { preHandler: requireStaff("admin"), schema: { querystring: listQuery(AuditList) } },
-    async (req) => {
-      const q = searchTerm(req.query.q);
-      const action = req.query.action;
-      // The log holds actor ids; a search by address resolves them inside this tenant only.
-      const actorIds = q
-        ? (
-            await ctx.db.user.findMany({
-              where: { companyId: req.companyId, OR: [{ email: contains(q) }, { name: contains(q) }] },
-              select: { id: true },
-              take: 500,
-            })
-          ).map((u) => u.id)
-        : [];
-      const createdAt = createdWindow(req.query.from, req.query.to);
-      const where: Prisma.AuditLogWhereInput = {
-        companyId: req.companyId,
-        ...(createdAt ? { createdAt } : {}),
-        ...(action ? { action: action.endsWith(".") ? { startsWith: escapeLike(action) } : action } : {}),
-        ...(req.query.targetType ? { targetType: req.query.targetType } : {}),
-        ...(q
-          ? {
-              OR: [
-                { action: contains(q) },
-                { targetId: q },
-                ...(actorIds.length ? [{ actorId: { in: actorIds } }] : []),
-              ],
-            }
-          : {}),
-      };
-      const [entries, total] = await tenantBatch(ctx.db, [
-        ctx.db.auditLog.findMany({
-          where,
-          orderBy: listOrder<Prisma.AuditLogOrderByWithRelationInput, typeof req.query.sort>(
-            AuditList,
-            req.query,
-          ),
-          take: req.query.limit,
-          skip: req.query.offset,
-        }),
-        ctx.db.auditLog.count({ where }),
-      ]);
-      // AuditLog holds only the actor's id; the log is unreadable without the address behind it.
-      const ids = [...new Set(entries.map((e) => e.actorId).filter((id): id is string => id !== null))];
-      const actors = ids.length
-        ? await ctx.db.user.findMany({
-            // Scoped like every other tenant-owned read: an operator acting on this tenant stays
-            // an opaque id here rather than exposing an address from another company.
-            where: { id: { in: ids }, companyId: req.companyId },
-            select: { id: true, email: true },
+  app.get("/audit", { ...guard.admin(), schema: { querystring: listQuery(AuditList) } }, async (req) => {
+    const q = searchTerm(req.query.q);
+    const action = req.query.action;
+    // The log holds actor ids; a search by address resolves them inside this tenant only.
+    const actorIds = q
+      ? (
+          await ctx.db.user.findMany({
+            where: { companyId: req.companyId, OR: [{ email: contains(q) }, { name: contains(q) }] },
+            select: { id: true },
+            take: 500,
           })
-        : [];
-      const emailOf = new Map(actors.map((a) => [a.id, a.email]));
-      return {
-        entries: entries.map((e) => ({
-          ...e,
-          actorEmail: e.actorId === null ? null : (emailOf.get(e.actorId) ?? null),
-        })),
-        total,
-        limit: req.query.limit,
-        offset: req.query.offset,
-      };
-    },
-  );
+        ).map((u) => u.id)
+      : [];
+    const createdAt = createdWindow(req.query.from, req.query.to);
+    const where: Prisma.AuditLogWhereInput = {
+      companyId: req.companyId,
+      ...(createdAt ? { createdAt } : {}),
+      ...(action ? { action: action.endsWith(".") ? { startsWith: escapeLike(action) } : action } : {}),
+      ...(req.query.targetType ? { targetType: req.query.targetType } : {}),
+      ...(q
+        ? {
+            OR: [
+              { action: contains(q) },
+              { targetId: q },
+              ...(actorIds.length ? [{ actorId: { in: actorIds } }] : []),
+            ],
+          }
+        : {}),
+    };
+    const [entries, total] = await tenantBatch(ctx.db, [
+      ctx.db.auditLog.findMany({
+        where,
+        orderBy: listOrder<Prisma.AuditLogOrderByWithRelationInput, typeof req.query.sort>(
+          AuditList,
+          req.query,
+        ),
+        take: req.query.limit,
+        skip: req.query.offset,
+      }),
+      ctx.db.auditLog.count({ where }),
+    ]);
+    // AuditLog holds only the actor's id; the log is unreadable without the address behind it.
+    const ids = [...new Set(entries.map((e) => e.actorId).filter((id): id is string => id !== null))];
+    const actors = ids.length
+      ? await ctx.db.user.findMany({
+          // Scoped like every other tenant-owned read: an operator acting on this tenant stays
+          // an opaque id here rather than exposing an address from another company.
+          where: { id: { in: ids }, companyId: req.companyId },
+          select: { id: true, email: true },
+        })
+      : [];
+    const emailOf = new Map(actors.map((a) => [a.id, a.email]));
+    return {
+      entries: entries.map((e) => ({
+        ...e,
+        actorEmail: e.actorId === null ? null : (emailOf.get(e.actorId) ?? null),
+      })),
+      total,
+      limit: req.query.limit,
+      offset: req.query.offset,
+    };
+  });
 }

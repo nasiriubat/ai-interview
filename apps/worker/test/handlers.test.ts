@@ -10,6 +10,7 @@ import {
   type Crypto,
   type JobName,
   type SettingsService,
+  TenantGate,
 } from "@aidp/core";
 import { currentTenant, shippedTemplate, SYSTEM_TENANT } from "@aidp/db";
 import { MemorySessionStore, ScriptedModel } from "@aidp/testing";
@@ -62,6 +63,10 @@ function harness(over: { email?: MemoryEmail } = {}): Harness {
     db: {} as unknown as PrismaClient,
     crypto: {} as unknown as Crypto,
     callers: { forCompany: async () => model } as unknown as HandlerDeps["callers"],
+    // Every tenant is active here; suspension is covered in the API and gate tests.
+    tenants: new TenantGate({
+      company: { findUnique: async () => ({ status: "active" }) },
+    } as unknown as ConstructorParameters<typeof TenantGate>[0]),
     settings: {
       get: async (key: string, chain: unknown) => {
         settingsAsked.push({ key, chain });

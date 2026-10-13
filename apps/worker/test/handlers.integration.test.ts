@@ -9,6 +9,7 @@ import {
   MemoryStorage,
   SettingsService,
   type CallerFactory,
+  TenantGate,
 } from "@aidp/core";
 import { describeDb } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
@@ -38,6 +39,7 @@ describeDb("worker handlers against Postgres", () => {
   const outbox = new MemoryEmailOutbox();
   const h = handlers({
     db,
+    tenants: new TenantGate(db),
     crypto,
     callers: {} as unknown as CallerFactory,
     settings: new SettingsService(db, crypto),

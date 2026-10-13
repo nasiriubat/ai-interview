@@ -1,0 +1,4 @@
+{
+  "$comment": "Advisories carried on purpose. Each entry needs id (GHSA), reason, owner and expires (YYYY-MM-DD); an expired entry fails the gate again. See scripts/audit-gate.mjs.",
+  "ignore": []
+}

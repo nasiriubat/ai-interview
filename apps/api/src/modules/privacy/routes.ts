@@ -1,7 +1,7 @@
 import { retentionStatus } from "@aidp/core";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
 import type { AppContext } from "../../context.js";
 
 const RetentionStatus = z.object({
@@ -20,7 +20,7 @@ const RetentionStatus = z.object({
 export async function privacyRoutes(app: App, ctx: AppContext): Promise<void> {
   app.get(
     "/privacy/retention",
-    { preHandler: requireStaff("admin"), schema: { response: { 200: RetentionStatus } } },
+    { ...guard.admin(), schema: { response: { 200: RetentionStatus } } },
     async (req) => retentionStatus({ db: ctx.db, settings: ctx.settings }, req.companyId),
   );
 }
