@@ -8,6 +8,7 @@ import {
   type Crypto,
   type EmailPort,
   type SettingsService,
+  type TenantGate,
 } from "@aidp/core";
 import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
@@ -28,6 +29,11 @@ export interface LinkView {
   status: "open" | "closed" | "expired";
 }
 
+/** A counted abuse signal. Carries ids only, never an address (D-82). */
+export type AbuseEvent = "abuse.code_request_capped" | "abuse.code_confirm_locked";
+
+const HOUR_MS = 60 * 60_000;
+
 /** The public participant flow: link resolution, uniqueness, session binding (FR-04, FR-10, FR-11, 06). */
 export class ParticipantService {
   constructor(
@@ -35,6 +41,8 @@ export class ParticipantService {
     private readonly crypto: Crypto,
     private readonly settings: SettingsService,
     private readonly email: EmailPort,
+    private readonly tenants: TenantGate,
+    private readonly onAbuse: (event: AbuseEvent, meta: { campaignId: string }) => void = () => undefined,
   ) {}
 
   async resolveLink(
@@ -51,6 +59,9 @@ export class ParticipantService {
     ];
     const values = await this.settings.resolveMany(["branding.productName", "campaign.consentText"], chain);
     const expired = campaign.expiresAt ? campaign.expiresAt.getTime() < Date.now() : false;
+    // A suspended tenant's link answers exactly as a closed campaign does, so nothing about the
+    // link reveals that the organization is suspended (S8).
+    const suspended = !(await this.tenants.isActive(campaign.companyId));
     return {
       campaign,
       view: {
@@ -69,7 +80,7 @@ export class ParticipantService {
           .slice(0, 12)}`,
         participantFields: campaign.template.participantFields,
         pathSelection: campaign.template.pathSelection,
-        status: expired ? "expired" : campaign.status === "open" ? "open" : "closed",
+        status: expired ? "expired" : campaign.status === "open" && !suspended ? "open" : "closed",
       },
     };
   }
@@ -81,8 +92,22 @@ export class ParticipantService {
     const allowed = campaign.allowedEmailDomains as string[];
     if (allowed.length && !allowed.includes(emailDomain(email))) return;
     const emailHash = this.crypto.hashEmail(email);
+    // Per-address cap (D-82): the shared per-IP bucket cannot stop one person mail-bombing a
+    // victim through this endpoint from many addresses, so the address itself is counted. The
+    // count is the EmailCode rows of the last hour, which persist across restarts and replicas.
+    // A refused request still answers "ok": the response must not say whether an address was
+    // already asked for, and the attacker learns nothing by hitting the cap.
+    const { requests } = await this.codeLimits(campaign.companyId);
+    const since = new Date(Date.now() - HOUR_MS);
+    await this.db.emailCode.deleteMany({
+      where: { campaignId: campaign.id, emailHash, createdAt: { lt: since } },
+    });
+    const recent = await this.db.emailCode.count({ where: { campaignId: campaign.id, emailHash } });
+    if (recent >= requests) {
+      this.onAbuse("abuse.code_request_capped", { campaignId: campaign.id });
+      return;
+    }
     const code = newNumericCode();
-    await this.db.emailCode.deleteMany({ where: { campaignId: campaign.id, emailHash } });
     await this.db.emailCode.create({
       data: {
         campaignId: campaign.id,
@@ -108,6 +133,18 @@ export class ParticipantService {
     const { campaign, view } = await this.resolveLink(linkToken);
     if (view.status !== "open") throw new AppError("conflict", "This interview is not open");
     const emailHash = this.crypto.hashEmail(email);
+    // Guessing is bounded per address, not only per code: the six-digit space is small, and a
+    // fresh code resets a per-code counter.
+    const { failures } = await this.codeLimits(campaign.companyId);
+    const since = new Date(Date.now() - HOUR_MS);
+    const spent = await this.db.emailCode.aggregate({
+      where: { campaignId: campaign.id, emailHash, createdAt: { gte: since } },
+      _sum: { attempts: true },
+    });
+    if ((spent._sum.attempts ?? 0) >= failures) {
+      this.onAbuse("abuse.code_confirm_locked", { campaignId: campaign.id });
+      throw new AppError("forbidden", "Code expired or invalid");
+    }
     const row = await this.db.emailCode.findFirst({
       where: { campaignId: campaign.id, emailHash },
       orderBy: { createdAt: "desc" },
@@ -124,6 +161,17 @@ export class ParticipantService {
       emailHash,
       campaign.participationMode === "anonymous" ? null : normalizeEmail(email),
     );
+  }
+
+  private async codeLimits(companyId: string): Promise<{ requests: number; failures: number }> {
+    const v = await this.settings.resolveMany(
+      ["privacy.codeRequestsPerHour", "privacy.codeFailuresPerHour"],
+      [{ scope: "tenant", scopeId: companyId }],
+    );
+    return {
+      requests: v["privacy.codeRequestsPerHour"] as number,
+      failures: v["privacy.codeFailuresPerHour"] as number,
+    };
   }
 
   /** Personal invitation link, or an open link without verification. */

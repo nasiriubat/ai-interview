@@ -7,6 +7,7 @@ import {
 } from "@aidp/shared";
 import type { FastifyRequest } from "fastify";
 import type { App } from "../../app.js";
+import { guard } from "../../auth/access.js";
 import type { AppContext } from "../../context.js";
 import { notFound, unauthenticated } from "../../lib/errors.js";
 import { internalLimit } from "../../lib/rate-limit.js";
@@ -25,14 +26,14 @@ export async function internalAuthRoutes(app: App, ctx: AppContext): Promise<voi
   const base = "/internal/auth/verification-tokens";
 
   /** The whole of the authorization: no principal is consulted, so no session can stand in. */
-  const requireInternalSecret = async (req: FastifyRequest): Promise<void> => {
+  const requireInternalSecret = (req: FastifyRequest): void => {
     const header = req.headers[INTERNAL_AUTH_HEADER];
     const presented = typeof header === "string" ? header : undefined;
     if (!secretMatches(presented, ctx.config.AUTH_SECRET)) {
       throw unauthenticated("Internal secret required");
     }
   };
-  const guarded = { preHandler: requireInternalSecret, ...internalLimit(ctx.config) };
+  const guarded = guard.internal(requireInternalSecret, internalLimit(ctx.config));
 
   app.post(
     base,

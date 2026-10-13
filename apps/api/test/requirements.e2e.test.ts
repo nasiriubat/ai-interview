@@ -253,6 +253,7 @@ suite("requirements interview end to end", () => {
       jobs: world.jobs,
       crypto: world.crypto,
       storage: world.storage,
+      tenants: world.ctx.tenants,
       publicWebUrl: "http://web.test",
       log: {
         info: (m, meta) => {
