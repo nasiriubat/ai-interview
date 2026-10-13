@@ -305,7 +305,7 @@ describe("reversible actions take effect and offer Undo", () => {
     ] as RouteRecord[];
     const user = userEvent.setup();
     render(<RoutesForm routes={routes} providers={[provider]} scope="tenant" companyId="co1" />);
-    await user.click(screen.getByRole("button", { name: /Clear the tenant override: / }));
+    await user.click(screen.getByRole("button", { name: /Use the platform default: / }));
     await waitFor(() => {
       expect(staff.routes.put).toHaveBeenCalledTimes(1);
     });

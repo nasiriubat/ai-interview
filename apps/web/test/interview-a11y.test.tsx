@@ -250,9 +250,9 @@ describe("ModeSwitch", () => {
 
   it("is one group with a name, and every item has an accessible name of its own", () => {
     render(<Harness onChange={vi.fn()} />);
-    const group = screen.getByRole("radiogroup", { name: "Answer mode" });
+    const group = screen.getByRole("radiogroup", { name: "How you answer" });
     const items = within(group).getAllByRole("radio");
-    expect(items.map((i) => i.getAttribute("aria-label"))).toEqual(["Chat", "Options", "Voice"]);
+    expect(items.map((i) => i.getAttribute("aria-label"))).toEqual(["Text", "Options", "Voice"]);
     expect(items[0]).toHaveAttribute("aria-checked", "true");
   });
 
@@ -294,9 +294,9 @@ describe("ModeSwitch", () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
     render(<Harness onChange={onChange} />);
-    await user.click(screen.getByRole("radio", { name: "Chat" }));
+    await user.click(screen.getByRole("radio", { name: "Text" }));
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByRole("radio", { name: "Chat" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Text" })).toHaveAttribute("aria-checked", "true");
   });
 
   it("offers voice only when it is enabled", () => {

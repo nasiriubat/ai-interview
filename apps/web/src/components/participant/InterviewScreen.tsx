@@ -178,7 +178,7 @@ export function InterviewScreen({
   };
   const skip = (area: ProgressArea): void => {
     typedTurn(() => {
-      void sendText(`${t.participant.session.skipMessage} (${area.name})`);
+      void sendText(t.participant.session.skipMessage(area.name));
     });
   };
   const back = (area: ProgressArea): void => {

@@ -505,7 +505,7 @@ describe("the interview screen in a live call", () => {
     expect(screen.queryByRole("button", { name: "End the call" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start a voice call" })).not.toBeInTheDocument();
     expect(screen.queryByRole("radio", { name: "Voice" })).not.toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Chat" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Text" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByLabelText("Your answer")).toBeInTheDocument();
   });
 
@@ -544,6 +544,6 @@ describe("the interview screen in a live call", () => {
       />,
     );
     expect(screen.queryByRole("radio", { name: "Voice" })).not.toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Chat" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Text" })).toHaveAttribute("aria-checked", "true");
   });
 });

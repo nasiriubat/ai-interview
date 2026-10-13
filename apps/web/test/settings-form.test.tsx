@@ -164,7 +164,9 @@ describe("CategoryForm", () => {
     await waitFor(() => {
       expect(emailTest).toHaveBeenCalledWith({ scope: "tenant" });
     });
-    expect(await screen.findByText(/Test email sent using the tenant configuration/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Test email sent using the organization configuration/),
+    ).toBeInTheDocument();
   });
 
   it("reports a failed test email", async () => {
