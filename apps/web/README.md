@@ -87,9 +87,12 @@ src/hooks/useRecorder.ts         MediaRecorder: permission on demand, 5 min cap,
 src/hooks/useLiveVoice.ts        the live call: socket, silence detection, barge-in, playback, fallbacks
 src/hooks/useAttachments.ts      upload, remove, play back, poll a pending attachment until it is read
 src/hooks/useAnalysisPolling.ts  polls the latest analysis every 5 s while queued or running
+src/hooks/useOnline.ts           `navigator.onLine` as external store (gates Retry, never proves reachability)
+src/hooks/useMediaQuery.ts       `useCoarsePointer`, `usePrefersReducedMotion`
 src/hooks/useDebouncedSave.ts    persists a knob a moment after it stops changing
 src/components/ui/*              shadcn-style primitives (phase 2 adds `sheet`, contract 19 `combobox`)
-src/components/common/*          language switch
+src/components/common/*          language switch, `PageHeading` (focus on step change), `ConfirmDialog`,
+                                 `undoToast`, `DirtyGuard` (D-111, D-112)
 src/components/widgets/*         single_choice, multi_choice, scale, ranking, yes_no + renderer
 src/components/participant/*     arrival flow, message list, composer (typing, microphone, paperclip),
                                  attachment list, mode switch, progress, menu, summary,
@@ -103,7 +106,9 @@ test/                            Vitest: widgets, SSE reader, API error wrapper,
                                  locale resolution + `t` proxy, rank/override, Mermaid + sections,
                                  combobox, pagination, icon buttons, settings category form,
                                  paginated list schemas, recording and attachments,
-                                 the live voice call (socket, silence, barge-in, fallbacks)
+                                 the live voice call (socket, silence, barge-in, fallbacks),
+                                 server locale per page, tokens and contrast, announcer and
+                                 mode switch, confirmations and undo, form errors and dirty guard
 ````
 
 Server components load data directly from the API with the cookie token; client
@@ -123,6 +128,13 @@ language in `Accept-Language`, else `en`. The root layout resolves it once per r
 for server components and hands it to `LocaleProvider` for client components. Page titles
 use `generateMetadata` with `getStrings()` because static `metadata` exports are
 evaluated at module load. Dates and numbers format with `Intl` in the active locale.
+
+Rules that keep the Finnish page Finnish (D-118): every server `page.tsx`, `not-found.tsx`
+and `loading.tsx` (and nested layouts) starts with `await requestLocale()`, because the layout
+that fills the store does not run before a page that reads strings; `test/server-locale.test.tsx`
+renders pages without the layout and fails a new page that forgets. A label read at module load
+(`const NAV = [{ label: t.x.y }]`) takes the first importer's locale for ever, so labels are
+built inside a function called during render.
 
 Known limit: on the server, client components share one module-level locale variable
 during SSR; two concurrent requests in different languages could in theory interleave at
@@ -294,6 +306,14 @@ and soft status pairs (`success-soft`, `warning-soft`, `destructive-soft`, `info
 colour clears AA on their own background. Inter is self-hosted by `next/font`, so no page makes a
 request to Google. Components use the semantic tokens only; a dark theme later is a second block.
 
+Non-text contrast and focus (D-110): a form control's boundary is `--input` (`#7f8a99`, 3.5:1 on
+white, 3.3:1 on the canvas; hover `--input-hover`), drawn by `--shadow-control`; buttons are
+identified by text and fill and keep the decorative `--shadow-button`. Focus is the one rule in
+`globals.css` (`:focus-visible`, 2px solid `--ring`, offset 2px); components do not set their own
+rings or `outline-none`. `@media (prefers-reduced-motion: reduce)` shortens every animation and
+transition globally, and spinners are `motion-safe:`. `test/tokens.test.ts` reads the tokens from
+the stylesheet and fails if a pair drops under 3:1 or a component brings back a raw hex value.
+
 Which piece to reach for:
 
 | Need                              | Use                                                                                         |
@@ -309,6 +329,10 @@ Which piece to reach for:
 | A button that starts async work   | `<Button loading={busy}>`; in a server-action form, `SubmitButton`                          |
 | Picking from a list that can grow | `Combobox` (searchable, keyboard-driven); `Select` or a native select for short fixed lists |
 | A page that is one centred card   | `CenteredShell` (sign-in, arrival, status pages)                                            |
+| Asking before an irreversible act | `ConfirmDialog`: title asks, body names the consequence, confirm repeats the verb (D-111)   |
+| A reversible act                  | do it, then `undoToast(text, undo)`; deferred work uses `options.onClose` (D-111)           |
+| A form that validates on submit   | `ValidatedForm` + `FormIssue`s + `SubmitStatus`; `useDirty(id, dirty)` (D-112, D-117)       |
+| A heading that takes focus        | `PageHeading focusOnMount` on a screen that replaces another in place                       |
 
 A table is a card on its own: `globals.css` gives `[data-slot="table-container"]` the card surface
 unless it already sits in a card, so no page wraps tables by hand. `NavigationProgress` (root
@@ -333,10 +357,14 @@ queues sentence-sized pieces because Chrome drops utterances longer than about f
 
 ### Accessibility
 
-Mobile-first layouts, visible focus rings, skip link, labeled controls, `aria-live`
-regions for streaming and status, keyboard-operable widgets (arrow keys on the scale,
-up/down buttons on the ranking), reduced-motion safe typing indicator, dialogs with
-focus management from Radix. In a live voice call the phase (connecting, listening,
+Mobile-first layouts, a solid 2px focus outline, skip link, labeled controls, keyboard-operable
+widgets (arrow keys on the scale, up/down buttons on the ranking), reduced-motion safe typing
+indicator, dialogs with focus management from Radix. The interview announces a turn once, when it
+is complete (D-114): the conversation is an `<ol>`, the streaming bubble is `aria-live="off"`, and
+one `role="status"` region receives the finished text, with the kind of widget under it. The answer
+mode is a toggle group (arrows move focus, Enter chooses; D-115). `Alert` takes `role="alert"` for
+what blocks the person and `role="status"` for the rest. A step or status screen moves focus to its
+`h1`. A failed form submit moves focus to the first invalid field and lists the problems (D-117). In a live voice call the phase (connecting, listening,
 thinking, speaking) is announced through `role="status"`, the level meter is decorative
 (`aria-hidden`, and its bars differ in height as well as colour), the spinner and the meter's
 transition are `motion-safe:` only, and ending the call or switching to typing is always one
@@ -534,3 +562,14 @@ Phase 4 (voice and files, `09-voice-and-files.md`):
     microphone, the voice mode and the call panel all go away and the mode switches to chat. An
     unrecognized `fallback` value is treated as `text`, since typing is the only rung of the chain
     that cannot itself be the thing that is broken.
+44. **Skip, "come back" and "I'm done" still go through `sendText`** and so still appear in the
+    transcript as things the participant said. Making them engine state operations needs
+    `TurnBody.control`, the engine change and a `control` SSE event (ux-design 1.5 item 3); the web
+    side is not started until the contract exists. "I'm done" also still fires without a dialog for
+    the same reason: the dialog is wired to the control, not to the fake utterance.
+45. **The answer-mode change is not recorded as a `mode_switch` session event.** The web posts the
+    existing `PUT /p/session/mode`; the event is written server-side (ux-design 1.5 item 2), and the
+    web sends nothing extra for it.
+46. **Suspending a tenant describes its effect.** The dialog says staff cannot sign in and
+    participants cannot open links, which is what suspension is for; at the time of writing the
+    API stores the status and does not yet enforce it (security M1). Ship the two together.
