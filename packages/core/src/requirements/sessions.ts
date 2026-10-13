@@ -21,6 +21,7 @@ import {
   parseEdits,
   pathOf,
   publicInvitations,
+  reopenedState,
   REQUIREMENTS_TEMPLATE_KEY,
   versionSummary,
 } from "./helpers.js";
@@ -224,13 +225,8 @@ export class RequirementsSessions {
     if (row.status !== "completed") return;
     const state = SessionStateSchema.parse(row.state);
     const turns = await this.deps.db.message.count({ where: { sessionId: row.id, role: "assistant" } });
-    const next: SessionState = {
-      ...state,
-      phase: "areas",
-      closingAsked: false,
-      finalIssueScanDone: false,
-      turnCount: Math.min(state.turnCount, turns),
-    };
+    const maxTurns = (await this.deps.settings.get("engine.maxTurns", this.cx.chain(row))) as number;
+    const next: SessionState = reopenedState(state, turns, maxTurns);
     await this.deps.db.session.update({
       where: { id: row.id },
       data: { status: "active", endedAt: null, state: next as Prisma.InputJsonValue },
