@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 import { agglomerate } from "../../src/analysis/cluster.js";
 import { cosine, LexicalEmbeddings } from "../../src/analysis/embeddings.js";
+import { stableClusterKey } from "../../src/analysis/clustering.js";
 import { clusterStats, reconcile, runAnalysis, type AnalysisFact } from "../../src/analysis/pipeline.js";
 import { processMap, renderReport } from "../../src/analysis/report.js";
 import type { CallRequest, ModelCaller } from "../../src/callModel.js";
@@ -92,22 +93,34 @@ class ScriptedAnalysisModel {
     name?: string,
   ): Promise<T> {
     this.calls.push({ purpose, name });
-    if (name === "clusters") {
+    if (name === "cluster_merges") {
       if (this.failClustering) throw new Error("model down");
+      const content = String(req.messages[0]?.content ?? "");
+      const drafts = [
+        ...content.matchAll(
+          /<untrusted-[0-9a-f]+ kind="draft_cluster" id="(\w+)">\n([\s\S]*?)\n<\/untrusted-/g,
+        ),
+      ].map((m) => ({ id: m[1] as string, text: m[2] as string }));
+      const notes = drafts.filter((d) => /notes/i.test(d.text)).map((d) => d.id);
+      const lab = drafts.filter((d) => /Lab result/i.test(d.text)).map((d) => d.id);
       return schema.parse({
-        clusters: [
-          {
-            key: "double_entry",
-            name: "Double entry of patient notes",
-            summary: "Notes are typed into two systems.",
-            factIds: ["f1", "f2", "f3", "bogus"],
-          },
-          {
-            key: "lab_results",
-            name: "Manual lab result handling",
-            summary: "Results arrive by phone.",
-            factIds: ["f4"],
-          },
+        merges:
+          notes.length >= 2
+            ? [
+                {
+                  ids: [...notes, "bogus"],
+                  name: "Double entry of patient notes",
+                  summary: "Notes are typed twice.",
+                },
+              ]
+            : [],
+        names: [
+          ...(notes.length === 1 && notes[0]
+            ? [{ id: notes[0], name: "Double entry of patient notes", summary: "Notes are typed twice." }]
+            : []),
+          ...(lab[0]
+            ? [{ id: lab[0], name: "Manual lab result handling", summary: "Results arrive by phone." }]
+            : []),
         ],
       });
     }
@@ -218,23 +231,30 @@ describe("runAnalysis", () => {
         now: () => new Date("2026-09-10"),
       },
       input({
-        overrides: {
-          double_entry: {
-            title: "Single source for patient notes",
-            factors: { expected_impact: { score: 5, rationale: "admin: whole ward" } },
+        // Anchored to fact ids from an earlier run, not to a key: it must find the cluster by overlap.
+        anchoredOverrides: [
+          {
+            factIds: ["f1", "f2"],
+            override: {
+              title: "Single source for patient notes",
+              factors: { expected_impact: { score: 5, rationale: "admin: whole ward" } },
+            },
           },
-        },
+        ],
       }),
     );
+    const doubleEntry = stableClusterKey(["f1", "f2", "f3"]);
+    const lab = stableClusterKey(["f4"]);
+    const staffingKey = stableClusterKey(["f5"]);
     expect(r.stats).toMatchObject({ facts: 5, clusters: 3, participants: 4, embedding: "lexical" });
-    expect(r.clusters.map((c) => c.key)).toEqual(["double_entry", "lab_results", "single_f5"]);
+    expect(r.clusters.map((c) => c.key).sort()).toEqual([doubleEntry, lab, staffingKey].sort());
     const top = r.opportunities[0]!;
-    expect(top.clusterKey).toBe("double_entry");
+    expect(top.clusterKey).toBe(doubleEntry);
     expect(top.title).toBe("Single source for patient notes");
     expect(top.factors.expected_impact.score).toBe(5);
     expect(top.stats.quotes).toHaveLength(2);
     expect(top.evidence.every((e) => e.anonymized)).toBe(true);
-    const staffing = r.opportunities.find((o) => o.clusterKey === "single_f5")!;
+    const staffing = r.opportunities.find((o) => o.clusterKey === staffingKey)!;
     expect(staffing.solutionClass).toBe("process");
     expect(staffing.whyNotAi).toContain("rota");
     expect(r.report.markdown).toContain("# Discovery report: Ward interviews");
@@ -244,7 +264,7 @@ describe("runAnalysis", () => {
     expect(r.report.markdown).toContain("Where AI is not the answer");
     expect(r.report.markdown).toContain("Night shift staffing");
     expect(model.calls.filter((c) => c.name === "opportunity")).toHaveLength(3);
-    expect(r.stats.promptVersions).toEqual(["clustering@1", "opportunity@1", "report@1"]);
+    expect(r.stats.promptVersions).toEqual(["clustering@2", "opportunity@2", "report@2"]);
   });
 
   it("draws the process map once enough participants stand behind the cluster", async () => {
