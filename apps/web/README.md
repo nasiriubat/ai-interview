@@ -51,6 +51,8 @@ src/i18n/locale.ts               supported locales, `lang` cookie, Accept-Langua
 src/i18n/index.ts                `t`: a deep proxy resolving each string against the active locale
 src/i18n/server.ts               `requestLocale()` / `getStrings()` for server components and metadata
 src/i18n/LocaleProvider.tsx      publishes the locale to client components
+src/lib/i18n/enums.ts            `label(kind, value)`: names for API and shared-enum identifiers, settings
+                                 keys and the options of enum-valued settings (reads `t.enums`; D-132)
 src/lib/env.ts                   API base URL, cookie names, the live voice socket URL
 src/lib/api/
   errors.ts                      ApiError + `{ error: { code, message } }` unwrapping
@@ -91,7 +93,7 @@ src/hooks/useOnline.ts           `navigator.onLine` as external store (gates Ret
 src/hooks/useMediaQuery.ts       `useCoarsePointer`, `usePrefersReducedMotion`
 src/hooks/useDebouncedSave.ts    persists a knob a moment after it stops changing
 src/components/ui/*              shadcn-style primitives (phase 2 adds `sheet`, contract 19 `combobox`)
-src/components/common/*          language switch, `PageHeading` (focus on step change), `ConfirmDialog`,
+src/components/common/*          language switch, `EnumLabel`, `PageHeading` (focus on step change), `ConfirmDialog`,
                                  `undoToast`, `DirtyGuard` (D-111, D-112)
 src/components/widgets/*         single_choice, multi_choice, scale, ranking, yes_no + renderer
 src/components/participant/*     arrival flow, message list, composer (typing, microphone, paperclip),
@@ -135,6 +137,13 @@ that fills the store does not run before a page that reads strings; `test/server
 renders pages without the layout and fails a new page that forgets. A label read at module load
 (`const NAV = [{ label: t.x.y }]`) takes the first importer's locale for ever, so labels are
 built inside a function called during render.
+
+Content: the voice, the glossary and the error and empty-state rules are in
+`docs/design/content-guide.md` and `docs/design/glossary.md`. An identifier that comes from the
+API or a shared enum is never spelled out by machine: it goes through `label()` and `t.enums`
+(D-132), and a participant never reads an API message but the three-part text that
+`participantErrorFor` picks from the error code and the screen (D-134). `test/enums.test.ts`,
+`copy-length.test.ts`, `copy-truth.test.ts` and `localized-screens.test.tsx` hold this in place.
 
 Known limit: on the server, client components share one module-level locale variable
 during SSR; two concurrent requests in different languages could in theory interleave at
