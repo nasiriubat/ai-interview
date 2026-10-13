@@ -6,6 +6,7 @@ import * as React from "react";
 import { PathChoice } from "./PathChoice";
 import { CenteredShell } from "@/components/common/CenteredShell";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
+import { PageHeading } from "@/components/common/PageHeading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,10 +32,19 @@ function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
   );
 }
 
-function Heading({ title, body }: { title: string; body?: string }): React.JSX.Element {
+function Heading({
+  title,
+  body,
+  focus,
+}: {
+  title: string;
+  body?: string | undefined;
+  /** True once the person has moved between steps; the first screen does not take focus. */
+  focus: boolean;
+}): React.JSX.Element {
   return (
     <div className="grid gap-2">
-      <h1 className="text-foreground text-2xl font-semibold tracking-tight text-balance">{title}</h1>
+      <PageHeading focusOnMount={focus}>{title}</PageHeading>
       {body ? <p className="text-muted-foreground">{body}</p> : null}
     </div>
   );
@@ -56,7 +66,14 @@ export function ArrivalFlow({
   api?: ParticipantApi;
 }): React.JSX.Element {
   const router = useRouter();
-  const [step, setStep] = React.useState<Step>("arrival");
+  const [step, setStepState] = React.useState<Step>("arrival");
+  // Each step replaces the last in place, so the clicked button is gone: focus moves to the new
+  // heading. The first screen of the page does not take it (that would skip the skip link).
+  const moved = React.useRef(false);
+  const setStep = (next: Step): void => {
+    moved.current = true;
+    setStepState(next);
+  };
   const [email, setEmail] = React.useState("");
   const [code, setCode] = React.useState("");
   const [choice, setChoice] = React.useState<Choice>(
@@ -179,11 +196,15 @@ export function ArrivalFlow({
   switch (step) {
     case "arrival":
       return (
-        <Shell>
+        <Shell key="arrival">
           <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             {t.participant.arrival.eyebrow}
           </p>
-          <Heading title={t.participant.arrival.welcome(campaign.name)} body={campaign.purpose} />
+          <Heading
+            focus={moved.current}
+            title={t.participant.arrival.welcome(campaign.name)}
+            body={campaign.purpose}
+          />
           <dl className="grid gap-4 text-sm">
             <div>
               <dt className="font-medium">{t.participant.arrival.lengthHeading}</dt>
@@ -213,8 +234,12 @@ export function ArrivalFlow({
 
     case "email":
       return (
-        <Shell>
-          <Heading title={t.participant.verify.title} body={t.participant.verify.body} />
+        <Shell key="email">
+          <Heading
+            focus={moved.current}
+            title={t.participant.verify.title}
+            body={t.participant.verify.body}
+          />
           <form
             className="grid gap-4"
             onSubmit={(e) => {
@@ -256,8 +281,12 @@ export function ArrivalFlow({
 
     case "code":
       return (
-        <Shell>
-          <Heading title={t.participant.verify.codeTitle} body={t.participant.verify.codeBody(email)} />
+        <Shell key="code">
+          <Heading
+            focus={moved.current}
+            title={t.participant.verify.codeTitle}
+            body={t.participant.verify.codeBody(email)}
+          />
           <form
             className="grid gap-4"
             onSubmit={(e) => {
@@ -310,8 +339,12 @@ export function ArrivalFlow({
 
     case "details":
       return (
-        <Shell>
-          <Heading title={t.participant.details.title} body={t.participant.details.body} />
+        <Shell key="details">
+          <Heading
+            focus={moved.current}
+            title={t.participant.details.title}
+            body={t.participant.details.body}
+          />
           <form
             className="grid gap-5"
             onSubmit={(e) => {
@@ -378,8 +411,8 @@ export function ArrivalFlow({
 
     case "consent":
       return (
-        <Shell>
-          <Heading title={t.participant.consent.title} />
+        <Shell key="consent">
+          <Heading focus={moved.current} title={t.participant.consent.title} />
           <Card>
             <CardContent className="text-sm leading-relaxed whitespace-pre-wrap">
               {campaign.consentText}
@@ -394,8 +427,8 @@ export function ArrivalFlow({
 
     case "path":
       return (
-        <Shell>
-          <Heading title={t.participant.path.title} />
+        <Shell key="path">
+          <Heading focus={moved.current} title={t.participant.path.title} />
           <PathChoice disabled={busy} onChoose={choosePath} />
           {errorBox}
         </Shell>

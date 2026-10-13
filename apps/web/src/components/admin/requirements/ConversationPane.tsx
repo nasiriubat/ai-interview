@@ -209,13 +209,7 @@ export function ConversationPane({
         </footer>
       ) : (
         <footer className="border-t px-4 py-3">
-          <Composer
-            disabled={inputDisabled}
-            autoFocus={false}
-            onSend={(text) => {
-              void sendText(text);
-            }}
-          />
+          <Composer disabled={inputDisabled} autoFocus={false} onSend={(text) => sendText(text)} />
         </footer>
       )}
     </section>

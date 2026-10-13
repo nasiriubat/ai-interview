@@ -1,5 +1,7 @@
 import * as React from "react";
 import { CenteredShell } from "@/components/common/CenteredShell";
+import { LanguageSwitch } from "@/components/common/LanguageSwitch";
+import { PageHeading } from "@/components/common/PageHeading";
 import { cn } from "@/lib/utils";
 
 /** A full-screen state: paused, deleted, closed, expired, error. */
@@ -17,7 +19,7 @@ export function StatusScreen({
   tone?: "neutral" | "warning" | "success";
 }): React.JSX.Element {
   return (
-    <CenteredShell className="flex flex-col items-center gap-4 text-center">
+    <CenteredShell aside={<LanguageSwitch />} className="flex flex-col items-center gap-4 text-center">
       {icon ? (
         <div
           aria-hidden="true"
@@ -31,7 +33,7 @@ export function StatusScreen({
           {icon}
         </div>
       ) : null}
-      <h1 className="text-foreground text-2xl font-semibold tracking-tight text-balance">{title}</h1>
+      <PageHeading focusOnMount>{title}</PageHeading>
       <p className="text-muted-foreground text-balance">{body}</p>
       {children ? <div className="mt-2 flex flex-wrap justify-center gap-2">{children}</div> : null}
     </CenteredShell>

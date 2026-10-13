@@ -148,7 +148,7 @@ export const fi: Strings = {
       interviewer: "Haastattelija",
       you: "Sinä",
       typing: "Haastattelija kirjoittaa",
-      streaming: "Vastaus latautuu",
+      streaming: "Haastattelija vastaa",
       composerLabel: "Vastauksesi",
       composerPlaceholder: "Kirjoita vastauksesi…",
       send: "Lähetä",
@@ -249,6 +249,21 @@ export const fi: Strings = {
       attachFailed: "Tiedoston lähetys ei onnistunut. Yritä uudelleen.",
       recapLabel: "Mihin jäit",
       messagesLabel: "Keskustelu",
+      announceChoice: (n: number): string => `Kysymys, ${n} vaihtoehtoa`,
+      announceMulti: (n: number, max: number | undefined): string =>
+        max === undefined
+          ? `Kysymys, ${n} vaihtoehtoa, valitse sopivat`
+          : `Kysymys, ${n} vaihtoehtoa, valitse enintään ${max}`,
+      announceScale: "Asteikko yhdestä viiteen",
+      announceRanking: (n: number): string => `Järjestä ${n} kohtaa`,
+      announceYesNo: "Kyllä tai ei",
+      offlineTitle: "Yhteys näyttää katkenneen",
+      offlineBody:
+        "Viimeisintä vastaustasi ei lähetetty. Se säilyy tässä, ja yritämme uudelleen, kun yhteys palaa.",
+      offlineBar: "Ei yhteyttä. Vastauksesi säilyy ja lähetetään, kun yhteys palaa.",
+      backOnline: "Yhteys palasi, lähetetään…",
+      composerHint: "Enter lähettää, Shift+Enter aloittaa uuden rivin.",
+      composerHintDismiss: "Piilota vinkki",
       newMessage: "Uusi viesti haastattelijalta",
       errorBudgetTitle: "Haastattelu on tauolla",
       errorBudgetBody:
