@@ -68,10 +68,10 @@ describe("magic-link delivery", () => {
       url,
       expires: new Date(Date.now() + 600_000),
       token: "abc123",
-      provider: { ...provider, ...provider.options } as never,
+      provider: { ...provider, ...provider.options },
       theme: {},
       request: new Request("https://example.test"),
-    } as never);
+    });
     const raw = await smtp.mail;
     expect(raw).toMatch(/^To: person@example\.test/im);
     expect(raw).toMatch(/^From: .*no-reply@example\.test/im);
