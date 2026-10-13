@@ -1,10 +1,10 @@
+import { describeDb } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { forCompany } from "../src/index.js";
 
 /** Runs only when DATABASE_URL points at a migrated database. */
-const url = process.env.DATABASE_URL;
-const suite = url ? describe : describe.skip;
+const suite = describeDb;
 
 suite("tenant-scoped client", () => {
   const db = new PrismaClient();

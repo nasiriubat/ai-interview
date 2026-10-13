@@ -11,20 +11,21 @@ This file is for coding agents and new engineers. It is the short version of
 4. **Every tenant-owned query goes through the scoped client** (`forCompany`) or is filtered by `companyId` explicitly; RLS is the second fence, not the first.
 5. **Ports and adapters** at every external edge, each with an in-memory fake. Tests never hit the network.
 6. **Prompts are versioned files** in `packages/ai/src/engine/prompts/`. A prompt change bumps the version and runs `pnpm --filter @aidp/evals test`.
-7. **Quality gate before every push:** `pnpm check` (build, typecheck, lint, tests). Integration tests need `DATABASE_URL` pointing at a migrated Postgres with pgvector.
+7. **Quality gate before every push:** `pnpm check` (format, build, typecheck, lint, tests). It needs `DATABASE_URL` pointing at a migrated Postgres with pgvector (`pnpm db:up`) and fails without it. `pnpm check --no-db` runs the rest and prints a banner that the result is not the gate. A skipped test with a database present fails the run. Database suites use `describeDb` from `@aidp/testing`, never `describe.skip`.
 
 ## Layout
 
-| Path              | Owns                                                                                                                       |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `packages/shared` | Zod contracts: purposes, providers, chat, widgets, facts, templates, session state, settings catalog                       |
-| `packages/db`     | Prisma schema, migrations, scoped client, shipped templates, seeds and bootstrap                                           |
-| `packages/ai`     | Provider adapters, cost control, the interview engine, extraction, summary, prompts                                        |
-| `packages/core`   | Server infrastructure shared by API and worker: crypto, settings service, Prisma adapters, engine factory, jobs, email     |
-| `apps/api`        | Fastify HTTP and SSE API, one folder per module under `src/modules/` with `service.ts` (logic) and `routes.ts` (transport) |
-| `apps/worker`     | pg-boss consumers                                                                                                          |
-| `apps/web`        | Next.js app: participant flow, admin, requirements workspace                                                               |
-| `evals`           | Deterministic engine replays; model-backed evals later                                                                     |
+| Path               | Owns                                                                                                                       |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared`  | Zod contracts: purposes, providers, chat, widgets, facts, templates, session state, settings catalog                       |
+| `packages/db`      | Prisma schema, migrations, scoped client, shipped templates, seeds and bootstrap                                           |
+| `packages/ai`      | Provider adapters, cost control, the interview engine, extraction, summary, prompts                                        |
+| `packages/core`    | Server infrastructure shared by API and worker: crypto, settings service, Prisma adapters, engine factory, jobs, email     |
+| `apps/api`         | Fastify HTTP and SSE API, one folder per module under `src/modules/` with `service.ts` (logic) and `routes.ts` (transport) |
+| `apps/worker`      | pg-boss consumers                                                                                                          |
+| `apps/web`         | Next.js app: participant flow, admin, requirements workspace                                                               |
+| `packages/testing` | Dev-only fakes and gates: `MemorySessionStore`, `ScriptedModel`, `describeDb`, the network guard                           |
+| `evals`            | Deterministic engine replays; model-backed evals later                                                                     |
 
 ## Conventions
 

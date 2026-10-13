@@ -1,12 +1,13 @@
 import type { Server } from "node:http";
 import { shippedTemplate } from "@aidp/db";
+import { describeDb } from "@aidp/testing";
 import { encode } from "@auth/core/jwt";
 import { pino } from "pino";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { handlers } from "../../worker/src/handlers.js";
 import { fakeModelServer, parseSse, testWorld, TURN_MARKER, type TestWorld } from "./helpers.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 const turnReply = `Who is the main user of this, and what do they do today?\n${TURN_MARKER}\n${JSON.stringify(
   {
