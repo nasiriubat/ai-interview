@@ -118,7 +118,10 @@ export function ConversationPane({
   const lastId = state.messages[state.messages.length - 1]?.id;
 
   return (
-    <section aria-label={s.conversation} className="bg-card flex min-h-[60dvh] flex-col rounded-xl border">
+    <section
+      aria-label={s.conversation}
+      className="bg-card shadow-card flex min-h-[60dvh] flex-col rounded-lg"
+    >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="truncate text-base font-semibold">{title}</h2>

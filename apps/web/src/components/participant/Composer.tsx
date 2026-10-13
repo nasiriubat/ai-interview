@@ -87,7 +87,7 @@ export function Composer({
     <div className="grid gap-1.5">
       {recording ? (
         <div className="flex items-center gap-2">
-          <div className="bg-muted flex min-h-11 flex-1 items-center gap-2 rounded-md px-3">
+          <div className="bg-destructive-soft text-destructive-soft-foreground flex min-h-11 flex-1 items-center gap-2 rounded-xl px-3">
             <span
               aria-hidden="true"
               className="bg-destructive size-2.5 shrink-0 rounded-full motion-safe:animate-pulse"
@@ -165,7 +165,7 @@ export function Composer({
             rows={1}
             autoFocus={autoFocus && !voiceFirst}
             placeholder={s.composerPlaceholder}
-            className="max-h-40 min-h-11 flex-1 resize-none text-base"
+            className="max-h-40 min-h-11 flex-1 resize-none border-0 bg-transparent text-base shadow-none focus-visible:shadow-none focus-visible:ring-0"
             enterKeyHint="send"
             disabled={disabled}
             onChange={(e) => {

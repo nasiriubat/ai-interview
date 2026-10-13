@@ -776,7 +776,7 @@ export function TemplateForm({
       </FormSection>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={action.busy}>
+        <Button type="submit" loading={action.busy}>
           {action.busy ? t.app.saving : templateId ? s.saveVersion : t.app.create}
         </Button>
         <Button

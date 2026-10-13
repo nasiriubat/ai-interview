@@ -47,7 +47,7 @@ export function SpecSectionCard({
   };
 
   return (
-    <section aria-labelledby={headingId} className="grid gap-3 rounded-xl border p-4">
+    <section aria-labelledby={headingId} className="grid gap-3 bg-card shadow-card rounded-lg p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <h3 id={headingId} className="text-sm font-semibold">
@@ -89,7 +89,7 @@ export function SpecSectionCard({
             {s.editorHint}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" size="sm" disabled={action.busy}>
+            <Button type="submit" size="sm" loading={action.busy}>
               {action.busy ? t.app.saving : s.save}
             </Button>
             {section.status === "edited" ? (

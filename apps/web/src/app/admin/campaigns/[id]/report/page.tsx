@@ -58,6 +58,7 @@ export default async function ReportPage({ params, searchParams }: Props): Promi
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: campaign.name }}
         title={`${campaign.name} · ${s.title}`}
         subtitle={s.subtitle}
         actions={

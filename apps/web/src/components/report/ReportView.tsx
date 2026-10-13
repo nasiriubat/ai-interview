@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { ReportMarkdown } from "./ReportMarkdown";
 import { EmptyState } from "@/components/admin/EmptyState";
+import { startNavigationProgress } from "@/components/common/NavigationProgress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { t } from "@/i18n";
@@ -82,22 +84,27 @@ export function ReportView({
           {versions.length > 0 ? (
             <div className="grid gap-1.5">
               <Label htmlFor="report-version">{t.admin.results.version}</Label>
-              <select
+              <Combobox
                 id="report-version"
+                className="min-w-64"
                 value={selected?.id ?? ""}
-                onChange={(e) => {
-                  const params = new URLSearchParams({ version: e.target.value });
+                onChange={(id) => {
+                  const params = new URLSearchParams({ version: id });
+                  startNavigationProgress();
                   router.push(`/admin/campaigns/${campaignId}/report?${params.toString()}`);
                 }}
-                className="border-input bg-background focus-visible:ring-ring/50 h-9 rounded-md border px-2 text-sm outline-none focus-visible:ring-[3px]"
-              >
-                {versions.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {s.generated(a.version, formatDate(a.finishedAt ?? a.createdAt))}
-                    {a.preliminary ? ` · ${t.admin.results.preliminary}` : ""}
-                  </option>
-                ))}
-              </select>
+                options={versions.map((a) => ({
+                  value: a.id,
+                  label: `${s.generated(a.version, formatDate(a.finishedAt ?? a.createdAt))}${
+                    a.preliminary ? ` · ${t.admin.results.preliminary}` : ""
+                  }`,
+                }))}
+                labels={{
+                  placeholder: t.admin.results.version,
+                  search: t.admin.list.searchPlaceholder,
+                  empty: t.admin.list.noMatches,
+                }}
+              />
             </div>
           ) : null}
         </div>
@@ -169,7 +176,7 @@ export function ReportView({
       ) : null}
 
       {report ? (
-        <article className="report-sheet bg-card rounded-xl border p-6 md:p-10 print:rounded-none print:border-0 print:p-0">
+        <article className="report-sheet bg-card bg-card shadow-card rounded-lg p-6 md:p-10 print:rounded-none print:border-0 print:p-0">
           <p className="text-muted-foreground mb-6 text-xs">
             {campaignName} ·{" "}
             {s.generated(report.version, formatDate(report.createdAt ?? selected?.finishedAt))}

@@ -168,6 +168,47 @@ only when `recordedVoice` or `liveVoice` is true, the paperclip only when `fileU
 true, and the picker's `accept`, the type check and the size check follow `allowedTypes` and
 `maxSizeMb`. Nobody learns from a 403 that they should not have spoken.
 
+**Every recording is converted to WAV before upload (D-75).** Chrome and Firefox record
+WebM/Opus and Safari records AAC in MP4, and the server's own Whisper cannot read either without
+ffmpeg. So `useRecorder` hands each finished recording to `toSpeechWav` (`src/lib/audio/wav.ts`):
+`decodeAudioData`, then an `OfflineAudioContext` at 16 kHz mono, then a 16-bit PCM WAV header.
+That is exactly what Whisper listens to, so nothing is lost, and a minute is about 1.9 MB
+(five minutes, the cap, is 9.6 MB — under the default 20 MB `files.maxSizeMb`, so a tenant that
+lowers it below 10 MB shortens the longest answer that fits). When the browser cannot decode its
+own recording the original blob goes up instead: a cloud `transcription` route still reads it,
+and the on-server one answers with a sentence telling the participant to type. The stored WAV
+plays back in every browser.
+
+Out of the box the `transcription` route points at **"On this server (Whisper)"**, a `local`
+provider that bootstrap always creates, so recording needs no API key and the audio never leaves
+the VPS. The API runs Whisper through transformers.js on a worker thread, one recording at a
+time, with the model cached in the `models` volume. Measured on an Apple-silicon laptop with the
+real pipeline (whisper-small, q8, the default):
+
+| What                                               | Result                                    |
+| -------------------------------------------------- | ----------------------------------------- |
+| First load, including the 250 MB download          | 8.6 s on a fast connection                |
+| Load from the cache on a restart                   | 0.9 s                                     |
+| 10 s Finnish answer, language detected             | 1.3–1.8 s, word-perfect but for one split |
+| 10 s Finnish answer, two CPU threads only          | 1.6 s                                     |
+| 35 s Finnish answer                                | 5.0 s                                     |
+| 8 s English answer, 44.1 kHz stereo WAV            | 1.2 s, word-perfect                       |
+| Resident memory of the whole process while it runs | 1.6–2.0 GB (0.9 GB once loaded and idle)  |
+| API event loop during a transcription              | never blocked more than 8 ms              |
+
+A 2-vCPU VPS core is slower than a laptop core; expect roughly three to four times these times,
+still well inside the run timeout (a minute plus the length of the audio). Whisper-base is twice
+as fast in half the memory but made four mistakes in the same Finnish sentence; large-v3-turbo
+is on the list for a server with 4+ GB to spare.
+
+The language is not forced. transformers.js silently assumes English when it is not told, and
+Whisper then _translates_ a Finnish answer into English, so the thread runs Whisper's own
+language identification first, restricted to the interview's language plus Finnish and English
+(`speechLanguages`) so that a one-word answer cannot be heard as Estonian.
+
+Live voice still streams WebM, so with the on-server route it falls back to the record button
+(`reason: "transcription_needs_wav"`), which works; a cloud route keeps it live.
+
 ### Real-time voice (FR-30a)
 
 With `capabilities.liveVoice` on, choosing the voice mode opens a call instead of showing a
@@ -187,11 +228,26 @@ Next.js route handler, so Caddy forwards `/api/v1/p/session/live` to the API and
 development, where the API is on another port; in production the URL is derived from
 `location`.
 
-Hands-free comes from an `AnalyserNode` on the microphone stream, polled every 50 ms: speech
-above an RMS threshold starts a `MediaRecorder`, ~900 ms of quiet afterwards stops it and
-sends `{type:"utterance"}`. One recording per utterance, not one continuous stream, because
-the server treats each utterance as a complete webm file and only the first slice of a stream
-carries the container header. Nothing is sent when the room was never above the threshold.
+The server's `ready` frame names how it hears (D-77). In `mode: "stream"` (the tenant has an
+`stt_stream` route) an AudioWorklet (`lib/voice/pcm-worklet.ts`, loaded from a Blob URL)
+resamples the microphone to 24 kHz mono PCM16 and sends 80 ms binary frames for the whole call.
+The server pipes them to OpenAI's realtime transcription and sends `caption_partial` (the whole
+growing text, not deltas) while the participant talks, `speech_started`/`speech_stopped` from the
+provider's voice detection, and `caption_final` when the utterance is done, which it then answers
+as a turn. The hook shows the partial in `live.partial`; `LiveVoiceCall` renders it with
+`aria-live="off"`, because it changes several times a second, and the final caption is announced
+once by the message list. A `speech_started` while the interviewer is talking is barge-in; its
+`barged` flag says whether the server already cut synthesis, so the browser only sends `barge`
+when it did not. With barge-in off, no frames are sent while the interviewer speaks. A browser
+without AudioWorklet sends `{type:"capture", mode:"utterance"}`, and a server whose streaming socket
+dies sends `{type:"mode", mode:"utterance"}`; either way the call carries on with recordings, and
+the browser acknowledges with `capture` so the server stops discarding PCM still in flight.
+
+In `mode: "utterance"`, hands-free comes from an `AnalyserNode` on the microphone stream, polled
+every 50 ms: speech above an RMS threshold starts a `MediaRecorder`, ~900 ms of quiet afterwards
+stops it and sends `{type:"utterance"}`. One recording per utterance, not one continuous stream,
+because the server treats each utterance as a complete webm file and only the first slice of a
+stream carries the container header. Nothing is sent when the room was never above the threshold.
 Barge-in needs a higher level held for three polls, since the speakers feed the microphone
 (`echoCancellation` is requested for the same reason); the "stop the interviewer" button
 works regardless of the tenant's `voice.bargeIn` setting.
@@ -217,9 +273,53 @@ A socket that closes unexpectedly is reopened once, and a second close falls bac
 those paths, plus end, unmount, a refused permission and the interview ending, runs through
 the same `release`, so the microphone is never left open.
 
+Admins turn live voice on from the **Live voice calls** panel at the top of Settings → Voice
+(tenant scope, `LiveVoicePanel`). It reads `GET /admin/voice/readiness` and shows a checklist of
+speech-to-text, streaming captions and the interviewer's voice with the provider and model in
+force. Switching it on when a required route is missing opens a dialog for an OpenAI key
+(`POST /admin/voice/openai`, a password field, the error shown inline next to it), then turns the
+switch on (`PUT /admin/voice/live`); a `voice_not_ready` answer from a stale page opens the same
+dialog.
+
 Captions are the participant's own words: the server takes the turn with the answer already
 transcribed, so no `turn` frame echoes them. The interviewer's caption repeats the `turn`
 frame that precedes it and is dropped, which is what keeps each exchange in the list once.
+
+### Design system (D-78)
+
+One light theme modelled on Stripe, defined as tokens in `src/app/globals.css` and nowhere else:
+an off-white canvas (`--background`), white cards lifted by `--shadow-card`, navy text
+(`--foreground` for headings, `--body` for copy), one indigo accent (`--primary`, 4.7:1 with white),
+and soft status pairs (`success-soft`, `warning-soft`, `destructive-soft`, `info-soft`) whose text
+colour clears AA on their own background. Inter is self-hosted by `next/font`, so no page makes a
+request to Google. Components use the semantic tokens only; a dark theme later is a second block.
+
+Which piece to reach for:
+
+| Need                              | Use                                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------------------- |
+| Page title, subtitle, actions     | `PageHeader`, with `crumbLabels={{ [id]: name }}` on any page with an id in its URL         |
+| A titled box (table, list, chart) | `Panel`; `Card` for padded free-form content                                                |
+| A headline number                 | `StatTile` (optionally with a lucide icon)                                                  |
+| Ranked magnitudes, a funnel       | `charts/BarList`: one hue, values printed, a `<ul>`, so it needs no separate table          |
+| A value over the last N days      | `charts/DailyColumns`: hover tooltips, and a hidden table for assistive tech                |
+| Nothing to show                   | `EmptyState`                                                                                |
+| Something finished                | a toast: `useAction().run(fn, "Saved")`, or `toast.success` from `components/ui/sonner`     |
+| Something failed                  | inline, next to its form: `<Flash flash={action.flash} />`; never a toast                   |
+| A button that starts async work   | `<Button loading={busy}>`; in a server-action form, `SubmitButton`                          |
+| Picking from a list that can grow | `Combobox` (searchable, keyboard-driven); `Select` or a native select for short fixed lists |
+| A page that is one centred card   | `CenteredShell` (sign-in, arrival, status pages)                                            |
+
+A table is a card on its own: `globals.css` gives `[data-slot="table-container"]` the card surface
+unless it already sits in a card, so no page wraps tables by hand. `NavigationProgress` (root
+layout) draws the top loading bar on internal link clicks and finishes when the URL changes;
+code that navigates with `router.push` calls `startNavigationProgress()` first. Every admin route
+shares one skeleton (`app/admin/loading.tsx`) shaped like a title over a table.
+
+"Listen" under each interviewer message is the browser's own speech synthesis (`useSpeech`,
+`lib/speech.ts`, D-76): free, keyless, nothing leaves the device. It is offered only when the
+browser has a voice for the interview's language, prefers the platform's natural voices, and
+queues sentence-sized pieces because Chrome drops utterances longer than about fifteen seconds.
 
 ### Tokens never reach client JavaScript
 

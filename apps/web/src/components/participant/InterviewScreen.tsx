@@ -18,7 +18,9 @@ import { WidgetRenderer } from "@/components/widgets";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useInterview } from "@/hooks/useInterview";
 import { useLiveVoice } from "@/hooks/useLiveVoice";
+import { useSpeech } from "@/hooks/useSpeech";
 import { t } from "@/i18n";
+import { useLocale } from "@/i18n/LocaleProvider";
 import { participantClient } from "@/lib/api/browser";
 import { errorMessage } from "@/lib/api/errors";
 import type { ParticipantApi } from "@/lib/api/participant";
@@ -45,6 +47,9 @@ export function InterviewScreen({
     retry,
     clearError,
   } = useInterview(api, initial);
+  // Reading a question aloud needs no server and no key (D-76); the voice follows the page's
+  // language, which the interview's template sets.
+  const speech = useSpeech(useLocale());
   const can = initial.capabilities;
   /** Whether this tenant does spoken answers at all, either way round. */
   const voiceConfigured = can.recordedVoice || can.liveVoice;
@@ -190,11 +195,21 @@ export function InterviewScreen({
   const isExpired = state.error?.code === "unauthenticated" || state.error?.code === "not_found";
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col">
-      <header className="bg-background/95 sticky top-0 z-10 border-b backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="flex items-center justify-between gap-2 px-4 py-2">
-          <h1 className="truncate text-base font-semibold">{title ?? t.participant.session.title}</h1>
-          <div className="flex items-center gap-2">
+    <div className="flex min-h-dvh w-full flex-col">
+      <header className="bg-card/90 supports-[backdrop-filter]:bg-card/75 sticky top-0 z-10 border-b backdrop-blur">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="hidden size-7 shrink-0 place-items-center rounded-md bg-[linear-gradient(135deg,#635bff,#00b8d9)] text-xs font-bold text-white sm:grid"
+            >
+              D
+            </span>
+            <h1 className="text-foreground truncate text-[15px] font-semibold tracking-tight">
+              {title ?? t.participant.session.title}
+            </h1>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {!state.ended ? (
               <ModeSwitch mode={mode} onChange={changeMode} voiceEnabled={voiceConfigured && spokenAnswers} />
             ) : null}
@@ -202,7 +217,7 @@ export function InterviewScreen({
             <SessionMenu onPause={pause} onDone={done} onDelete={remove} disabled={busy || state.ended} />
           </div>
         </div>
-        <div className="px-4 pb-2">
+        <div className="mx-auto max-w-2xl px-4 pb-2">
           <ProgressAreas
             areas={state.progress.areas}
             disabled={inputDisabled}
@@ -212,12 +227,17 @@ export function InterviewScreen({
         </div>
       </header>
 
-      <main id="main" className="flex-1 px-4 py-4">
-        <MessageList messages={state.messages} streaming={state.streaming} pending={state.pending}>
+      <main id="main" className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
+        <MessageList
+          messages={state.messages}
+          streaming={state.streaming}
+          pending={state.pending}
+          speech={speech}
+        >
           {showWidget ? (
             <section
               aria-label={t.participant.session.widgetAnswer}
-              className="bg-card mt-1 rounded-2xl border p-4"
+              className="bg-card shadow-card mt-1 rounded-2xl p-4"
             >
               <WidgetRenderer
                 key={state.messages[state.messages.length - 1]?.id}
@@ -299,55 +319,59 @@ export function InterviewScreen({
       </main>
 
       {showComposer ? (
-        <footer className="bg-background sticky bottom-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          {mode === "voice" && liveOffered ? (
-            <LiveVoiceCall live={live} disabled={inputDisabled} onStart={live.start} />
-          ) : null}
-          {gaveUp !== null ? (
-            <p className="text-muted-foreground mb-2 text-sm" role="status">
-              {gaveUp === "text" ? t.participant.session.liveTypeOnly : t.participant.session.liveUnavailable}
-            </p>
-          ) : null}
-          <AttachmentList
-            items={attachments.items}
-            uploading={attachments.uploading}
-            error={attachments.error}
-            onRemove={attachments.remove}
-            fetchBytes={attachments.bytes}
-          />
-          <Composer
-            disabled={inputDisabled}
-            autoFocus={!showWidget}
-            voiceFirst={mode === "voice" && !inCall}
-            onSend={(text) => {
-              setTypeInstead(false);
-              typedTurn(() => {
-                void sendText(text);
-              });
-            }}
-            onVoice={
-              // One microphone at a time: while a live call is up, recording an answer as well
-              // would take a second turn on a session that only allows one. And with no route
-              // that listens, recorded voice transcribes through the same missing thing the call
-              // just failed on, so the button is withdrawn rather than left as a dead end.
-              can.recordedVoice && !inCall && spokenAnswers
-                ? (audio, durationMs) => {
-                    setTypeInstead(false);
-                    // The turn stores the audio server-side, so the list is re-read afterwards
-                    // and the participant can play back what they said.
-                    void sendVoice(audio, durationMs).then(attachments.refresh);
-                  }
-                : undefined
-            }
-            onFile={
-              can.fileUpload
-                ? (file) => {
-                    attachments.upload(file);
-                  }
-                : undefined
-            }
-            accept={attachments.accept}
-          />
+        <footer className="from-background via-background sticky bottom-0 bg-gradient-to-t from-60% to-transparent px-4 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="bg-card shadow-raised mx-auto grid max-w-2xl gap-2 rounded-2xl p-2">
+            {mode === "voice" && liveOffered ? (
+              <LiveVoiceCall live={live} disabled={inputDisabled} onStart={live.start} />
+            ) : null}
+            {gaveUp !== null ? (
+              <p className="text-muted-foreground mb-2 text-sm" role="status">
+                {gaveUp === "text"
+                  ? t.participant.session.liveTypeOnly
+                  : t.participant.session.liveUnavailable}
+              </p>
+            ) : null}
+            <AttachmentList
+              items={attachments.items}
+              uploading={attachments.uploading}
+              error={attachments.error}
+              onRemove={attachments.remove}
+              fetchBytes={attachments.bytes}
+            />
+            <Composer
+              disabled={inputDisabled}
+              autoFocus={!showWidget}
+              voiceFirst={mode === "voice" && !inCall}
+              onSend={(text) => {
+                setTypeInstead(false);
+                typedTurn(() => {
+                  void sendText(text);
+                });
+              }}
+              onVoice={
+                // One microphone at a time: while a live call is up, recording an answer as well
+                // would take a second turn on a session that only allows one. And with no route
+                // that listens, recorded voice transcribes through the same missing thing the call
+                // just failed on, so the button is withdrawn rather than left as a dead end.
+                can.recordedVoice && !inCall && spokenAnswers
+                  ? (audio, durationMs) => {
+                      setTypeInstead(false);
+                      // The turn stores the audio server-side, so the list is re-read afterwards
+                      // and the participant can play back what they said.
+                      void sendVoice(audio, durationMs).then(attachments.refresh);
+                    }
+                  : undefined
+              }
+              onFile={
+                can.fileUpload
+                  ? (file) => {
+                      attachments.upload(file);
+                    }
+                  : undefined
+              }
+              accept={attachments.accept}
+            />
+          </div>
         </footer>
       ) : state.ended ? (
         <footer className="text-muted-foreground flex items-center justify-center gap-2 px-4 py-3 text-sm">

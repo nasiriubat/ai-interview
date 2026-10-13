@@ -34,7 +34,11 @@ export default async function ProviderModelsPage({ params }: Props): Promise<Rea
   const catalogue = settled(catalogueR);
   return (
     <>
-      <PageHeader title={provider.name} subtitle={`${provider.kind} · ${t.admin.providers.models}`} />
+      <PageHeader
+        crumbLabels={{ [id]: provider.name }}
+        title={provider.name}
+        subtitle={`${provider.kind} · ${t.admin.providers.models}`}
+      />
       <ModelsPanel
         providerId={id}
         prices={prices.data?.items ?? []}

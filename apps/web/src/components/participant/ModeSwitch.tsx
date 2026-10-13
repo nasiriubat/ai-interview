@@ -24,10 +24,11 @@ export function ModeSwitch({
       type="button"
       role="radio"
       aria-checked={mode === value}
+      title={label}
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors",
         mode === value
-          ? "bg-background text-foreground shadow-sm"
+          ? "bg-card text-primary shadow-control"
           : "text-muted-foreground hover:text-foreground",
       )}
       onClick={() => {
@@ -35,7 +36,8 @@ export function ModeSwitch({
       }}
     >
       <Icon className="size-3.5" aria-hidden="true" />
-      {label}
+      {/* Icon-only on a phone, where the header has no room for three words; the name stays. */}
+      <span className="sr-only sm:not-sr-only">{label}</span>
     </button>
   );
   return (

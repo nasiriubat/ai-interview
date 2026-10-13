@@ -6,6 +6,8 @@ import * as React from "react";
 import { CampaignActions } from "@/components/admin/campaigns/CampaignActions";
 import { InvitationsPanel } from "@/components/admin/campaigns/InvitationsPanel";
 import { SessionsTable } from "@/components/admin/campaigns/SessionsTable";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { ListToolbar } from "@/components/admin/ListToolbar";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
@@ -17,8 +19,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { t } from "@/i18n";
 import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
-import { pageParams } from "@/lib/admin/pagination";
+import { listParams } from "@/lib/admin/pagination";
+import { isFiltered, statusFilter } from "@/lib/admin/toolbar";
 import { isApiError } from "@/lib/api/errors";
+import { LISTS } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 import { humanize } from "@/lib/utils";
 
@@ -34,12 +38,13 @@ interface Props {
 export default async function CampaignPage({ params, searchParams }: Props): Promise<React.JSX.Element> {
   await requireMe();
   const { id } = await params;
-  const { page, limit, offset } = pageParams(await searchParams);
+  const lp = listParams(await searchParams, LISTS.campaignSessions);
+  const { page, limit } = lp;
   const api = await staffServer();
   const [campaignR, invitationsR, sessionsR] = await Promise.allSettled([
     api.campaigns.get(id),
     api.campaigns.invitations(id),
-    api.campaigns.sessions(id, { limit, offset }),
+    api.campaigns.sessions(id, lp.query),
   ]);
   if (campaignR.status === "rejected") {
     if (isApiError(campaignR.reason) && campaignR.reason.isNotFound) notFound();
@@ -55,6 +60,7 @@ export default async function CampaignPage({ params, searchParams }: Props): Pro
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: campaign.name }}
         title={campaign.name}
         subtitle={[
           campaign.templateKey,
@@ -134,7 +140,16 @@ export default async function CampaignPage({ params, searchParams }: Props): Pro
           <CardContent>
             {sessions.data ? (
               <>
-                <SessionsTable sessions={sessions.data.items} />
+                <ListToolbar
+                  searchLabel={t.admin.list.searchSessions}
+                  filters={[statusFilter(LISTS.campaignSessions)]}
+                  sort={{ list: LISTS.campaignSessions, labels: t.admin.list.fields }}
+                />
+                {sessions.data.items.length === 0 && isFiltered(lp.q, lp.filters) ? (
+                  <EmptyState text={t.admin.list.noMatches} />
+                ) : (
+                  <SessionsTable sessions={sessions.data.items} />
+                )}
                 <Pagination
                   page={page}
                   limit={limit}

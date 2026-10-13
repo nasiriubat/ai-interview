@@ -35,7 +35,7 @@ export function SpecSections({
         <StatTile label={s.stats.openFindings} value={spec.stats.openFindings} />
       </div>
 
-      <div className="grid gap-3 rounded-xl border p-4 text-sm">
+      <div className="grid gap-3 bg-card shadow-card rounded-lg p-4 text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-semibold">{s.mvpTitle}</h3>
           <Badge variant={mvp.done ? "success" : mvp.started ? "warning" : "outline"}>{mvpLabel}</Badge>

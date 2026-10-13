@@ -279,6 +279,7 @@ export const TemplateListItemSchema = z.looseObject({
 });
 export type TemplateListItem = z.infer<typeof TemplateListItemSchema>;
 export const TemplateListSchema = listOf(TemplateListItemSchema, "templates");
+export const TemplatePageSchema = pagedOf(TemplateListItemSchema, "templates");
 export const TemplateEnvelopeSchema = z.preprocess(
   (raw) => (raw && typeof raw === "object" && "template" in raw ? raw.template : raw),
   TemplateRecordSchema,
@@ -345,9 +346,17 @@ export const SessionListItemSchema = z.looseObject({
   costCents: z.number().nullish(),
   turns: z.number().nullish(),
   path: PathSchema.nullish(),
+  /** Only for an identified participant; null for anyone anonymous (D-79). */
   participantEmail: z.string().nullish(),
+  participantName: z.string().nullish(),
+  areasCovered: z.number().nullish(),
+  mode: z.string().nullish(),
+  startedAt: iso.nullish(),
+  endedAt: iso.nullish(),
   createdAt: iso.nullish(),
   updatedAt: iso.nullish(),
+  /** The last write to the session; the `lastActivity` sort. */
+  lastActivityAt: iso.nullish(),
 });
 export type SessionListItem = z.infer<typeof SessionListItemSchema>;
 export const SessionPageSchema = pagedOf(SessionListItemSchema, "sessions");
@@ -413,6 +422,38 @@ export const ScopeTargetSchema = z.looseObject({
 });
 export type ScopeTarget = z.infer<typeof ScopeTargetSchema>;
 export const ScopeTargetListSchema = listOf(ScopeTargetSchema, "targets");
+
+/** One voice purpose in the live voice readiness check (D-77). */
+export const VoicePurposeReadinessSchema = z.looseObject({
+  ready: z.boolean().default(false),
+  providerName: z.string().nullish(),
+  model: z.string().nullish(),
+  scope: z.enum(["tenant", "platform"]).nullish(),
+});
+export type VoicePurposeReadiness = z.infer<typeof VoicePurposeReadinessSchema>;
+
+export const VOICE_PURPOSES = ["transcription", "stt_stream", "tts"] as const;
+export type VoicePurpose = (typeof VOICE_PURPOSES)[number];
+
+/** `GET /admin/voice/readiness` and the answer of both live voice writes (contract 19, "Live voice"). */
+export const VoiceReadinessSchema = z.looseObject({
+  liveVoiceEnabled: z.boolean().default(false),
+  recordedVoiceEnabled: z.boolean().default(false),
+  purposes: z
+    .looseObject({
+      transcription: VoicePurposeReadinessSchema.default({ ready: false }),
+      stt_stream: VoicePurposeReadinessSchema.default({ ready: false }),
+      tts: VoicePurposeReadinessSchema.default({ ready: false }),
+    })
+    .default({
+      transcription: { ready: false },
+      stt_stream: { ready: false },
+      tts: { ready: false },
+    }),
+  canEnableLive: z.boolean().default(false),
+  missing: z.array(z.string()).default([]),
+});
+export type VoiceReadiness = z.infer<typeof VoiceReadinessSchema>;
 
 export const EmailTestSchema = z.looseObject({
   ok: z.boolean().default(false),

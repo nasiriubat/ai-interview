@@ -4,6 +4,7 @@ import Link from "next/link";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
+import { ListToolbar } from "@/components/admin/ListToolbar";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -12,7 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { t } from "@/i18n";
 import { getStrings } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
-import { pageParams } from "@/lib/admin/pagination";
+import { listParams } from "@/lib/admin/pagination";
+import { isFiltered, statusFilter } from "@/lib/admin/toolbar";
+import { LISTS } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
@@ -28,9 +31,11 @@ interface Props {
 
 export default async function RequirementsPage({ searchParams }: Props): Promise<React.JSX.Element> {
   await requireMe();
-  const { page, limit, offset } = pageParams(await searchParams);
+  const lp = listParams(await searchParams, LISTS.requirements);
+  const { page, limit } = lp;
+  const filtered = isFiltered(lp.q, lp.filters);
   const api = await staffServer();
-  const result = await api.requirements.list({ limit, offset });
+  const result = await api.requirements.list(lp.query);
   const sessions = result.items;
   const s = t.admin.requirements;
   return (
@@ -46,7 +51,14 @@ export default async function RequirementsPage({ searchParams }: Props): Promise
           </Button>
         }
       />
-      {sessions.length === 0 ? (
+      <ListToolbar
+        searchLabel={t.admin.list.searchRequirements}
+        filters={[statusFilter(LISTS.requirements)]}
+        sort={{ list: LISTS.requirements, labels: t.admin.list.fields }}
+      />
+      {sessions.length === 0 && filtered ? (
+        <EmptyState text={t.admin.list.noMatches} />
+      ) : sessions.length === 0 ? (
         <EmptyState text={s.empty}>
           <Button asChild variant="outline">
             <Link href="/admin/requirements/new">{s.new}</Link>

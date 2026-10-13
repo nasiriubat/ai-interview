@@ -42,7 +42,7 @@ function FindingCard({
   };
 
   return (
-    <article className="grid gap-3 rounded-xl border p-4 text-sm" aria-label={f.description}>
+    <article className="grid gap-3 bg-card shadow-card rounded-lg p-4 text-sm" aria-label={f.description}>
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary">{s.types[f.type]}</Badge>
         <StatusBadge status={f.status} />

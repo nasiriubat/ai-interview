@@ -1,6 +1,7 @@
 import { SOLUTION_CLASSES, type SolutionClass } from "@aidp/shared";
 import Link from "next/link";
 import * as React from "react";
+import { Panel } from "@/components/admin/Panel";
 import { ClassBadge, RankMeter } from "@/components/admin/results/ClassBadge";
 import { StatTile } from "@/components/admin/StatTile";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,7 +17,7 @@ export function DiscoveryTiles({ discovery }: { discovery: DiscoveryStats }): Re
   const s = t.admin.dashboard;
   return (
     <section aria-label={s.discoveryTitle} className="grid gap-4">
-      <h2 className="text-sm font-medium">{s.discoveryTitle}</h2>
+      <h2 className="text-foreground text-base font-semibold tracking-tight">{s.discoveryTitle}</h2>
       {discovery.byClass ? (
         <div aria-label={s.byClass} className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {SOLUTION_CLASSES.map((c) => (
@@ -25,8 +26,7 @@ export function DiscoveryTiles({ discovery }: { discovery: DiscoveryStats }): Re
         </div>
       ) : null}
       {discovery.top ? (
-        <div className="rounded-lg border">
-          <h3 className="border-b px-3 py-2 text-xs font-medium">{s.topByRank}</h3>
+        <Panel title={s.topByRank} headingLevel={3}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -41,7 +41,7 @@ export function DiscoveryTiles({ discovery }: { discovery: DiscoveryStats }): Re
                 <TableRow key={o.id ?? i}>
                   <TableCell className="font-medium">
                     {o.campaignId ? (
-                      <Link href={`/admin/campaigns/${o.campaignId}/results`} className="hover:underline">
+                      <Link href={`/admin/campaigns/${o.campaignId}/results`} className="hover:text-primary">
                         {o.title}
                       </Link>
                     ) : (
@@ -65,7 +65,7 @@ export function DiscoveryTiles({ discovery }: { discovery: DiscoveryStats }): Re
               ))}
             </TableBody>
           </Table>
-        </div>
+        </Panel>
       ) : null}
     </section>
   );

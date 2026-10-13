@@ -61,6 +61,7 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: campaign.name }}
         title={`${campaign.name} · ${s.title}`}
         subtitle={s.subtitle}
         actions={

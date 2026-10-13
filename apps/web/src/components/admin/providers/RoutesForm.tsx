@@ -334,7 +334,7 @@ export function RoutesForm({
         </Table>
       </div>
       <div>
-        <Button type="submit" disabled={action.busy}>
+        <Button type="submit" loading={action.busy}>
           {action.busy ? t.app.saving : s.save}
         </Button>
       </div>

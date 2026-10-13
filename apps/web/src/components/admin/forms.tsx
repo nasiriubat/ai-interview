@@ -319,7 +319,10 @@ export function FormSection({
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <section className="grid gap-4 rounded-xl border p-4 md:p-5" aria-labelledby={`section-${title}`}>
+    <section
+      className="grid gap-4 bg-card shadow-card rounded-lg p-4 md:p-5"
+      aria-labelledby={`section-${title}`}
+    >
       <h2 id={`section-${title}`} className="text-base font-semibold">
         {title}
       </h2>

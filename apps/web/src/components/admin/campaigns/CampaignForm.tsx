@@ -136,7 +136,7 @@ export function CampaignForm({ templates }: { templates: TemplateListItem[] }): 
         />
       </div>
       <div className="flex gap-2">
-        <Button type="submit" disabled={action.busy}>
+        <Button type="submit" loading={action.busy}>
           {action.busy ? t.app.saving : s.createButton}
         </Button>
         <Button
