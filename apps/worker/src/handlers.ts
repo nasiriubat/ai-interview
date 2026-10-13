@@ -10,6 +10,7 @@ import {
   type CallerFactory,
   type Crypto,
   type EmailPort,
+  type HealthSweep,
   type JobName,
   type JobPayload,
   type JobPublisher,
@@ -30,6 +31,8 @@ export interface HandlerDeps {
   publicWebUrl: string;
   /** Where uploaded audio and documents live; the worker reads what the API wrote. */
   storage: StoragePort;
+  /** The `ops.health-sweep` job (D-92). */
+  health: HealthSweep;
 }
 
 /**
@@ -185,6 +188,15 @@ export function handlers(deps: HandlerDeps): Handlers {
     /** One specification version for a requirements session (spec 05, FR-24). Idempotent per version id. */
     "spec.generate": scoped(async ({ versionId }: JobPayload<"spec.generate">): Promise<void> => {
       await requirements.runGeneration(versionId);
+    }),
+
+    /**
+     * The five-minute look at everything that fails without anyone calling (D-92): stuck jobs,
+     * dead letters, backups, the disk, provider error rates. It reads and alerts; it fixes nothing.
+     */
+    "ops.health-sweep": scoped(async (): Promise<void> => {
+      const r = await deps.health.run();
+      deps.log.info("health sweep finished", { raised: r.raised.length, resolved: r.resolved.length });
     }),
   };
 }

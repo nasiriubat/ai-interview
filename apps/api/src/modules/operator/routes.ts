@@ -8,6 +8,7 @@ import { audit } from "../../lib/audit.js";
 import { notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
 import { contains, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
+import { operatorJobRoutes } from "./jobs.js";
 
 /** `/operator/tenants` (D-79): `q` matches the name, or the id exactly. */
 export const TenantList = listSpec({
@@ -26,6 +27,7 @@ export const TenantList = listSpec({
 /** Platform operator: tenants and global numbers. Platform providers and routes use the provider routes with X-Company-Id unset and companyId null. */
 export async function operatorRoutes(app: App, ctx: AppContext): Promise<void> {
   const op = requireStaff("platform_operator");
+  await operatorJobRoutes(app, ctx);
 
   app.get(
     "/operator/tenants",

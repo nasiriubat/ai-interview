@@ -1,11 +1,23 @@
-import { PgBoss, type Job } from "pg-boss";
+import { PgBoss, type JobWithMetadata } from "pg-boss";
 import {
+  DEAD_LETTER_RETENTION_DAYS,
   JOBS,
   type JobName,
   type JobPayload,
   type JobPublisher,
   type ScheduleOptions,
 } from "./definitions.js";
+
+/** What a consumer learns about a failed attempt, beyond the error itself. */
+export interface JobFailure {
+  /** 1 for the first attempt. */
+  attempt: number;
+  retryLimit: number;
+  /** True when no retry follows: the job is about to be dead-lettered (D-92). */
+  final: boolean;
+  /** The raw payload, which may not have passed validation; read ids defensively. */
+  data: unknown;
+}
 
 /** pg-boss publisher and consumer helpers. One queue per job name, created on start. */
 export class BossJobs implements JobPublisher {
@@ -27,13 +39,20 @@ export class BossJobs implements JobPublisher {
   async start(): Promise<void> {
     await this.boss.start();
     for (const [name, def] of Object.entries(JOBS)) {
-      await this.boss.createQueue(`${name}.dead`);
-      await this.boss.createQueue(name, {
+      // The operator needs time to look at a dead letter, so the retention is long.
+      await this.boss.createQueue(`${name}.dead`, {
+        retentionSeconds: DEAD_LETTER_RETENTION_DAYS * 86_400,
+      });
+      const policy = {
         retryLimit: def.retryLimit,
         retryBackoff: true,
         retryDelay: 5,
-        deadLetter: `${name}.dead`,
-      });
+        expireInSeconds: def.expireInSeconds,
+      };
+      await this.boss.createQueue(name, { ...policy, deadLetter: `${name}.dead` });
+      // createQueue leaves an existing queue as it was. Without this a changed expireInSeconds
+      // only reaches a database created after the change, which is the one nobody is running.
+      await this.boss.updateQueue(name, policy);
     }
   }
 
@@ -47,7 +66,10 @@ export class BossJobs implements JobPublisher {
     options?: { singletonKey?: string },
   ): Promise<void> {
     JOBS[name].schema.parse(payload);
-    await this.boss.send(name, payload, options?.singletonKey ? { singletonKey: options.singletonKey } : {});
+    await this.boss.send(name, payload, {
+      expireInSeconds: JOBS[name].expireInSeconds,
+      ...(options?.singletonKey ? { singletonKey: options.singletonKey } : {}),
+    });
   }
 
   /**
@@ -66,6 +88,7 @@ export class BossJobs implements JobPublisher {
     await this.boss.schedule(name, cron, payload, {
       tz: options?.tz ?? "UTC",
       ...(options?.key ? { key: options.key } : {}),
+      expireInSeconds: JOBS[name].expireInSeconds,
     });
   }
 
@@ -74,25 +97,41 @@ export class BossJobs implements JobPublisher {
     await this.boss.unschedule(name, key);
   }
 
-  /** Registers a typed handler; payloads are validated before the handler runs. */
+  /**
+   * Registers a typed handler; payloads are validated before the handler runs.
+   *
+   * `onError` hears every failed attempt. Its third argument says whether this was the last one:
+   * after it the job is moved to `<name>.dead` and nothing else will ever report it, which is why
+   * the worker raises `job.dead_lettered` from there (D-92). A job that dies by expiry (the
+   * process was killed, the handler hung) never reaches this catch; the health sweep covers that.
+   */
   async consume<N extends JobName>(
     name: N,
     handler: (payload: JobPayload<N>, jobId: string) => Promise<void>,
     concurrency = 2,
-    onError?: (jobId: string, error: unknown) => void,
+    onError?: (jobId: string, error: unknown, failure: JobFailure) => void,
   ): Promise<void> {
-    await this.boss.work<unknown>(name, { batchSize: concurrency }, async (jobs: Job<unknown>[]) => {
-      for (const job of jobs) {
-        try {
-          const payload = JOBS[name].schema.parse(job.data) as JobPayload<N>;
-          await handler(payload, job.id);
-        } catch (err) {
-          // Surface the failure (pg-boss keeps it only in the job row), then let it retry.
-          onError?.(job.id, err);
-          throw err;
+    await this.boss.work<unknown, unknown, { batchSize: number; includeMetadata: true }>(
+      name,
+      { batchSize: concurrency, includeMetadata: true },
+      async (jobs: JobWithMetadata<unknown>[]) => {
+        for (const job of jobs) {
+          try {
+            const payload = JOBS[name].schema.parse(job.data) as JobPayload<N>;
+            await handler(payload, job.id);
+          } catch (err) {
+            // Surface the failure (pg-boss keeps it only in the job row), then let it retry.
+            onError?.(job.id, err, {
+              attempt: job.retryCount + 1,
+              retryLimit: job.retryLimit,
+              final: job.retryCount >= job.retryLimit,
+              data: job.data,
+            });
+            throw err;
+          }
         }
-      }
-    });
+      },
+    );
   }
 
   async queueStats(): Promise<{ name: string; queued: number; active: number; deadLettered: number }[]> {

@@ -19,6 +19,8 @@ const CATEGORY_ORDER = [
   "requirements",
   "exports",
   "email",
+  "notifications",
+  "ops",
   "other",
 ];
 

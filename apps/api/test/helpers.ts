@@ -1,7 +1,14 @@
 import { randomBytes } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { SpeechRunner, type LanguageHint, type SpeechResult, type SpeechToTextEngine } from "@aidp/ai";
-import { type Crypto, MemoryEmail, MemoryJobPublisher, MemoryStorage } from "@aidp/core";
+import {
+  type Crypto,
+  MemoryAlerts,
+  MemoryEmail,
+  MemoryJobAdmin,
+  MemoryJobPublisher,
+  MemoryStorage,
+} from "@aidp/core";
 import { shippedTemplates, withTenantScope } from "@aidp/db";
 import { encode } from "@auth/core/jwt";
 import { PrismaClient } from "@prisma/client";
@@ -222,6 +229,10 @@ export interface TestWorld {
   jobs: MemoryJobPublisher;
   storage: MemoryStorage;
   speech: FakeSpeechEngine;
+  /** What the application raised: budget notices, dead letters (D-90). */
+  alerts: MemoryAlerts;
+  /** The queue's dead letters; seed one with `jobAdmin.addDead` (D-92). */
+  jobAdmin: MemoryJobAdmin;
   crypto: Crypto;
   companyId: string;
   adminToken: string;
@@ -276,6 +287,8 @@ export async function testWorld(modelUrl: string, env: Record<string, string> = 
   // two adapters are held to one contract by packages/core/test/storage.test.ts.
   const storage = new MemoryStorage();
   const speech = new FakeSpeechEngine();
+  const alerts = new MemoryAlerts();
+  const jobAdmin = new MemoryJobAdmin();
   const ctx = buildContext({
     config,
     db: appDb,
@@ -284,6 +297,8 @@ export async function testWorld(modelUrl: string, env: Record<string, string> = 
     email,
     storage,
     speech: new SpeechRunner(speech),
+    alerts,
+    jobAdmin,
   });
   const app = await buildApp(ctx);
   await app.ready();
@@ -376,6 +391,8 @@ export async function testWorld(modelUrl: string, env: Record<string, string> = 
     jobs,
     storage,
     speech,
+    alerts,
+    jobAdmin,
     crypto: ctx.crypto,
     companyId: company.id,
     adminToken: await token(`admin-${suffix}@test.io`),
