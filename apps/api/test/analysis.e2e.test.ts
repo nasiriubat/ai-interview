@@ -246,4 +246,82 @@ suite("analysis end to end", () => {
       removed: [],
     });
   });
+
+  it("returns no quotes, tools or evidence text for a cluster below k, and keeps the report free of them", async () => {
+    const { app, adminToken, db } = world;
+    const h = { authorization: `Bearer ${adminToken}` };
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/campaigns",
+      headers: h,
+      payload: { templateId: world.templateId, name: "Small campaign", verification: "open" },
+    });
+    const { campaign } = created.json<{ campaign: { id: string } }>();
+    // Two participants against a k of three: every cluster they form is below it.
+    for (let i = 0; i < 2; i++) {
+      const participant = await db.participant.create({
+        data: {
+          companyId: world.companyId,
+          campaignId: campaign.id,
+          fields: { role: "Nurse" },
+          tokenHash: `small${i}-${Date.now()}`,
+        },
+      });
+      const session = await db.session.create({
+        data: {
+          companyId: world.companyId,
+          templateId: world.templateId,
+          campaignId: campaign.id,
+          participantId: participant.id,
+          status: "completed",
+        },
+      });
+      await db.fact.create({
+        data: {
+          companyId: world.companyId,
+          sessionId: session.id,
+          kind: "task",
+          extractorVersion: "extraction@1",
+          batchEndSeq: 2,
+          ordinal: 0,
+          payload: {
+            kind: "task",
+            name: `Rekeying orders ${i}`,
+            frequency: "daily",
+            minutesPerOccurrence: 30,
+            tools: ["SecretLabPortal"],
+            painScore: 6,
+            quote: `my private words ${i}`,
+          },
+        },
+      });
+    }
+    const queued = await app.inject({
+      method: "POST",
+      url: `/api/v1/campaigns/${campaign.id}/analyses`,
+      headers: h,
+    });
+    const { analysis } = queued.json<{ analysis: { id: string } }>();
+    await withTenant(world.companyId, () => world.ctx.analysis.run(analysis.id));
+
+    const result = await app.inject({ method: "GET", url: `/api/v1/analyses/${analysis.id}`, headers: h });
+    const body = result.json<{
+      opportunities: {
+        id: string;
+        stats: { participants: number; quotes: string[]; tools: string[]; roles: string[] };
+        evidence: unknown[];
+      }[];
+      report: { markdown: string };
+    }>();
+
+    const opp = body.opportunities[0]!;
+    expect(opp.stats).toMatchObject({ participants: 2, quotes: [], tools: [], roles: [] });
+    expect(opp.evidence).toEqual([]);
+    expect(JSON.stringify(body)).not.toContain("my private words");
+    expect(JSON.stringify(body)).not.toContain("SecretLabPortal");
+    // The rows exist, without text: the hand-off to a requirements session still follows them.
+    const stored = await db.opportunityEvidence.findMany({ where: { opportunityId: opp.id } });
+    expect(stored).toHaveLength(2);
+    expect(stored.every((e) => e.snippet === "")).toBe(true);
+  });
 });

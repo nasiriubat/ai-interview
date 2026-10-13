@@ -16,6 +16,7 @@ import { languageName } from "../util/language.js";
 import { agglomerate } from "./cluster.js";
 import { LEXICAL_THRESHOLD, LexicalEmbeddings, type EmbeddingSource } from "./embeddings.js";
 import { renderReport, type ReportOpportunity } from "./report.js";
+import { sanitizeSnippet } from "./sanitize.js";
 
 export interface AnalysisFact {
   id: string;
@@ -177,9 +178,14 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
       dataNeeded: draft.dataNeeded,
       risks: draft.risks,
       whyNotAi: draft.whyNotAi,
-      evidence: members
-        .slice(0, 12)
-        .map((m) => ({ factId: m.id, snippet: snippet(m.fact), anonymized: true })),
+      // Below k the cluster is one or two people, and a quote from it is attributable by anyone
+      // who knows the team. The rows stay (the hand-off to a requirements session follows them to
+      // the process facts) but carry no text, and the results API does not return them (D-143).
+      evidence: members.slice(0, 12).map((m) => ({
+        factId: m.id,
+        snippet: stats.participants >= input.k ? sanitizeSnippet(snippet(m.fact)) : "",
+        anonymized: true,
+      })),
       override,
     });
   }
@@ -195,7 +201,7 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     factors: o.factors,
     stats: o.stats,
     whyNotAi: o.whyNotAi,
-    processes: c(o.clusterKey, clusters, byId),
+    processes: o.stats.participants >= input.k ? c(o.clusterKey, clusters, byId) : [],
   }));
   const story = await narrative(deps, ctx, input, opportunities, versions);
   const markdown = renderReport({
@@ -256,7 +262,7 @@ async function nameClusters(
           .map((id) => {
             const f = facts.find((x) => x.id === id);
             return f
-              ? `  - [${f.id}] (${f.fact.kind}${f.role ? `, ${f.role}` : ""}) ${factText(f.fact)}`
+              ? `  - [${f.id}] (${f.fact.kind}${f.role ? `, ${f.role}` : ""}) ${factText(f.fact, { quotes: false })}`
               : "";
           })
           .join("\n")}`,
@@ -283,7 +289,7 @@ async function nameClusters(
       const first = facts.find((f) => f.id === d.factIds[0]);
       return {
         key: d.key,
-        name: (first ? factText(first.fact) : d.key).slice(0, 80),
+        name: (first ? factText(first.fact, { quotes: false }) : d.key).slice(0, 80),
         summary: "",
         factIds: d.factIds,
       };
@@ -325,7 +331,7 @@ export function reconcile(clusters: NamedCluster[], facts: AnalysisFact[]): Name
       .replace(/[^a-z0-9]/g, "")}`;
     for (let n = 2; usedKeys.has(key); n++) key = `${key}_${n}`;
     usedKeys.add(key);
-    out.push({ key, name: factText(f.fact).slice(0, 80), summary: "", factIds: [f.id] });
+    out.push({ key, name: factText(f.fact, { quotes: false }).slice(0, 80), summary: "", factIds: [f.id] });
   }
   return out;
 }
@@ -350,7 +356,11 @@ async function opportunityFor(
       : "",
     stats.tools.length ? `Tools: ${stats.tools.join(", ")}` : "",
     "Facts:",
-    ...members.map((m) => `- (${m.fact.kind}) ${factText(m.fact)}`),
+    // A model told a participant's own words will happily repeat them in the summary it writes, so
+    // below k it is not told them (D-143).
+    ...members.map(
+      (m) => `- (${m.fact.kind}) ${factText(m.fact, { quotes: stats.participants >= input.k })}`,
+    ),
   ]
     .filter(Boolean)
     .join("\n");
@@ -412,7 +422,10 @@ export function clusterStats(members: AnalysisFact[], k: number): ClusterStats {
   const participants = new Set(members.map((m) => m.participantKey)).size;
   const roles = uniq(members.map((m) => m.role));
   const departments = uniq(members.map((m) => m.department));
-  const tools = uniq(members.flatMap((m) => ("tools" in m.fact ? m.fact.tools : [])));
+  // Tools name what a person works with, so they are a breakdown like roles and departments: held
+  // back below k, where a cluster of one or two people would otherwise publish them (D-143).
+  const tools =
+    participants >= k ? uniq(members.flatMap((m) => ("tools" in m.fact ? m.fact.tools : []))) : [];
   let minutes = 0;
   for (const m of members) {
     if (m.fact.kind === "task") minutes += m.fact.minutesPerOccurrence * (PER_WEEK[m.fact.frequency] ?? 1);
@@ -439,16 +452,21 @@ function applyFactorOverride(factors: Factors, override: OpportunityOverride | n
   return out;
 }
 
-export function factText(f: Fact): string {
+/**
+ * One line per fact, for embedding, clustering and the opportunity prompt. `quotes: false` leaves out
+ * the participant's verbatim words, for every place a clustering below k could carry them out.
+ */
+export function factText(f: Fact, opts: { quotes?: boolean } = {}): string {
+  const quotes = opts.quotes ?? true;
   switch (f.kind) {
     case "task":
-      return `${f.name} (${f.frequency}, ${f.minutesPerOccurrence} min${f.tools.length ? `, ${f.tools.join(", ")}` : ""}, pain ${f.painScore}/10)${f.quote ? ` "${f.quote}"` : ""}`;
+      return `${f.name} (${f.frequency}, ${f.minutesPerOccurrence} min${f.tools.length ? `, ${f.tools.join(", ")}` : ""}, pain ${f.painScore}/10)${quotes && f.quote ? ` "${f.quote}"` : ""}`;
     case "process":
       return `${f.name}: ${f.steps.join(" > ")}${f.manualSteps.length ? ` (manual: ${f.manualSteps.join(", ")})` : ""}`;
     case "information_flow":
       return `${f.what} from ${f.from} to ${f.to}${f.channel ? ` via ${f.channel}` : ""}${f.waitTime ? `, waiting ${f.waitTime}` : ""}`;
     case "pain_point":
-      return `${f.description}${f.cause ? ` (cause: ${f.cause})` : ""} severity ${f.severity}/10${f.quote ? ` "${f.quote}"` : ""}`;
+      return `${f.description}${f.cause ? ` (cause: ${f.cause})` : ""} severity ${f.severity}/10${quotes && f.quote ? ` "${f.quote}"` : ""}`;
     case "opportunity_candidate":
       return `${f.title}: ${f.description}`;
     case "spec_field":
