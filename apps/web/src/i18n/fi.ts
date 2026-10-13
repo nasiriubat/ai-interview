@@ -1827,6 +1827,44 @@ export const fi: Strings = {
         description:
           "Yksittäisen tiedoston suurin sallittu koko. Alusta asettaa ylärajan, jota tämä ei voi ylittää.",
       },
+      "files.maxPerSession": {
+        label: "Liitteitä per haastattelu",
+        description: "Suurin määrä tiedostoja ja äänityksiä, jonka yksi haastattelu voi sisältää.",
+      },
+      "files.maxSessionMb": {
+        label: "Liitteiden yhteiskoko per haastattelu (Mt)",
+        description: "Yhden haastattelun liitteiden suurin yhteiskoko.",
+      },
+      "files.tenantQuotaMb": {
+        label: "Organisaation liitetila (Mt)",
+        description:
+          "Organisaation kaikkien liitteiden suurin yhteiskoko. Uudet lataukset hylätään, kun raja tulee vastaan.",
+      },
+      "files.maxExtractedChars": {
+        label: "Tiedostosta luettu teksti (merkkiä)",
+        description: "Kuinka paljon tekstiä yhdestä tiedostosta luetaan. Sen ylittävä osa jätetään pois.",
+      },
+      "files.maxPdfPages": {
+        label: "Pisin PDF (sivua)",
+        description: "Tätä pidempi PDF hylätään eikä sitä lueta.",
+      },
+      "files.maxZipRatio": {
+        label: "Pakkaussuhteen raja",
+        description:
+          "Word- ja Excel-tiedostot ovat zip-paketteja. Osa, joka purkautuu tätä suuremmaksi pakattuun kokoonsa nähden, hylätään.",
+      },
+      "files.maxSheetCells": {
+        label: "Suurin työkirja (solua)",
+        description: "Tätä enemmän soluja sisältävä työkirja hylätään eikä sitä lueta.",
+      },
+      "files.maxZipEntries": {
+        label: "Osia per Word- tai Excel-tiedosto",
+        description: "Tätä useampia osia sisältävä Word- tai Excel-tiedosto hylätään.",
+      },
+      "files.maxUncompressedMb": {
+        label: "Word- tai Excel-tiedoston purettu koko (Mt)",
+        description: "Tätä suuremmaksi purkautuva Word- tai Excel-tiedosto hylätään.",
+      },
       "files.allowedTypes": {
         label: "Hyväksytyt tiedostotyypit",
         description: "Tiedostotyypit, joita osallistujat saavat liittää, yksi MIME-tyyppi per rivi.",

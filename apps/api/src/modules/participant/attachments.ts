@@ -38,20 +38,20 @@ export async function participantAttachmentRoutes(app: App, ctx: RouteContext): 
     },
     async (req) => {
       const p = participant(req);
-      // The tenant's limit is resolved before a byte of the body is read, and handed to the
-      // multipart parser, which stops the stream there. A file over it is never buffered whole,
-      // so the cap protects memory as well as storage (S6, D-87).
-      const maxMb = await ctx.settings.get("files.maxSizeMb", [{ scope: "tenant", scopeId: p.companyId }]);
-      const file = await readOneFile(req, Math.min(maxMb, PLATFORM_MAX_UPLOAD_MB) * 1024 * 1024);
+      // The body is never buffered whole (P11, D-160). The multipart parser is bounded by the
+      // platform ceiling, and the service caps the stream at the smallest of the tenant's file
+      // limit and the room left in the interview's and organization's quotas, before reading it,
+      // so a file over any of them is cut off at the limit rather than after the last byte.
+      const file = await readOneFile(req, PLATFORM_MAX_UPLOAD_MB * 1024 * 1024);
       const durationMs = durationFrom(file);
 
       try {
-        const created = await ctx.attachments.create({
+        const created = await ctx.attachments.createFromStream({
           companyId: p.companyId,
           sessionId: p.sessionId,
           filename: file.filename,
           mime: file.mimetype,
-          bytes: await file.toBuffer(),
+          stream: file.file,
           ...(durationMs === undefined ? {} : { durationMs }),
         });
 
@@ -91,12 +91,16 @@ export async function participantAttachmentRoutes(app: App, ctx: RouteContext): 
       const p = participant(req);
       const found = await ctx.attachments.open(p.companyId, p.sessionId, req.params.attachmentId);
       if (!found) throw notFound("Attachment");
-      return reply
-        .header("content-type", found.mime)
-        .header("x-content-type-options", "nosniff")
-        .header("content-disposition", `attachment; filename="${encodeURIComponent(found.filename)}"`)
-        .header("cache-control", "private, no-store")
-        .send(found.stream);
+      return (
+        reply
+          .header("content-type", found.mime)
+          .header("x-content-type-options", "nosniff")
+          .header("content-disposition", `attachment; filename="${encodeURIComponent(found.filename)}"`)
+          // Nothing in these bytes may run, load or embed anything if a browser is ever pointed at them.
+          .header("content-security-policy", "sandbox; default-src 'none'")
+          .header("cache-control", "private, no-store")
+          .send(found.stream)
+      );
     },
   );
 
@@ -144,7 +148,12 @@ function durationFrom(file: MultipartFile): number | undefined {
 /** A rejection the participant caused becomes a 4xx they can act on; anything else is ours. */
 function toHttp(err: unknown): unknown {
   if (err instanceof AttachmentRejected) {
-    const code = err.reason === "size" ? "too_large" : err.reason === "session" ? "not_found" : "validation";
+    const code =
+      err.reason === "size" || err.reason === "quota"
+        ? "too_large"
+        : err.reason === "session"
+          ? "not_found"
+          : "validation";
     return new AppError(code, err.message);
   }
   if (typeof err === "object" && err !== null && "code" in err) {

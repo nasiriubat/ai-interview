@@ -1,4 +1,17 @@
-import { ingestAttachment, kindForMime, type Logger, type ModelCaller, type PromptSource } from "@aidp/ai";
+import { Readable, pipeline } from "node:stream";
+import {
+  DEFAULT_INGEST_LIMITS,
+  extractIsolated,
+  IngestRejected,
+  ingestAttachment,
+  kindForMime,
+  sanitizeImage,
+  UploadInspector,
+  type IngestLimits,
+  type Logger,
+  type ModelCaller,
+  type PromptSource,
+} from "@aidp/ai";
 import { currentTenant, tenantTransaction } from "@aidp/db";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import type { SettingsService } from "../settings/service.js";
@@ -37,6 +50,16 @@ export interface CreateAttachmentInput {
   durationMs?: number;
 }
 
+export interface CreateAttachmentStreamInput {
+  companyId: string;
+  sessionId: string;
+  filename: string;
+  mime: string;
+  /** The upload as it arrives. Never buffered here: it is inspected and written as it flows. */
+  stream: Readable;
+  durationMs?: number;
+}
+
 export interface AttachmentView {
   id: string;
   kind: string;
@@ -53,7 +76,7 @@ export interface AttachmentView {
 /** Thrown when an upload is refused. The message is shown to the participant, so it is plain. */
 export class AttachmentRejected extends Error {
   constructor(
-    readonly reason: "type" | "size" | "disabled" | "session",
+    readonly reason: "type" | "size" | "disabled" | "session" | "quota" | "count",
     message: string,
   ) {
     super(message);
@@ -83,6 +106,15 @@ export function safeFilename(raw: string): string {
   return (cleaned.length > 0 ? cleaned : "file").slice(0, 200);
 }
 
+const MB = 1024 * 1024;
+
+/** @fastify/multipart's own limit error, which reaches the stream as it is cut off. */
+function isRequestTooLarge(err: unknown): boolean {
+  return (
+    typeof err === "object" && err !== null && (err as { code?: string }).code === "FST_REQ_FILE_TOO_LARGE"
+  );
+}
+
 export class AttachmentService {
   private readonly now: () => Date;
   constructor(private readonly deps: AttachmentServiceDeps) {
@@ -90,10 +122,24 @@ export class AttachmentService {
   }
 
   /**
-   * Validates, stores the bytes and records the row. Does not ingest: the caller publishes
-   * `attachment.ingest` after this returns, so the row exists before any job can look for it.
+   * Validates, stores the bytes and records the row, from bytes already in memory. Voice uploads
+   * come through here; the file route uses {@link createFromStream} directly.
    */
   async create(input: CreateAttachmentInput): Promise<AttachmentView> {
+    const { bytes, ...rest } = input;
+    return await this.createFromStream({ ...rest, stream: Readable.from([bytes]) });
+  }
+
+  /**
+   * Validates, stores the bytes and records the row. Does not ingest: the caller publishes
+   * `attachment.ingest` after this returns, so the row exists before any job can look for it.
+   *
+   * The body is a stream and stays one (P11, D-160). Its size is capped before the first byte is
+   * read, at the smallest of the tenant's file limit and what is left of the interview's and the
+   * organization's quotas, and it passes through {@link UploadInspector}, which refuses content
+   * that is not the declared type. A refused upload leaves no object and no row.
+   */
+  async createFromStream(input: CreateAttachmentStreamInput): Promise<AttachmentView> {
     const { db, storage, settings } = this.deps;
     const chain = [{ scope: "tenant" as const, scopeId: input.companyId }];
 
@@ -121,15 +167,31 @@ export class AttachmentService {
       }
     }
 
-    const maxBytes = (await settings.get("files.maxSizeMb", chain)) * 1024 * 1024;
-    if (input.bytes.byteLength > maxBytes) {
-      throw new AttachmentRejected("size", `That file is larger than ${maxBytes / 1024 / 1024} MB`);
+    const perFile = (await settings.get("files.maxSizeMb", chain)) * MB;
+    const quotas = await this.quotaRoom(input.companyId, input.sessionId);
+    const perFileLabel = `That file is larger than ${perFile / MB} MB`;
+    if (quotas.count >= quotas.maxCount) {
+      throw new AttachmentRejected("count", `An interview can hold ${quotas.maxCount} attachments`);
     }
+    if (quotas.sessionRoom <= 0) {
+      throw new AttachmentRejected("quota", "This interview's attachments have reached their size limit");
+    }
+    if (quotas.tenantRoom <= 0) {
+      throw new AttachmentRejected("quota", "This organization's attachment storage is full");
+    }
+    const maxBytes = Math.min(perFile, quotas.sessionRoom, quotas.tenantRoom);
+    const overflow: AttachmentRejected =
+      maxBytes === perFile
+        ? new AttachmentRejected("size", perFileLabel)
+        : maxBytes === quotas.sessionRoom
+          ? new AttachmentRejected("quota", "This interview's attachments have reached their size limit")
+          : new AttachmentRejected("quota", "This organization's attachment storage is full");
 
     const filename = safeFilename(input.filename);
     // The row is created first so the id can name the object. A failure to store then leaves a
-    // row with no bytes, which ingestion marks failed; the reverse would leave bytes no row knows
-    // about, which nothing would ever clean up.
+    // row with no bytes, which is removed below; the reverse would leave bytes no row knows
+    // about, which nothing would ever clean up. Created with size 0 so that a concurrent upload
+    // already counts toward the interview's attachment total.
     const row = await db.attachment.create({
       data: {
         companyId: input.companyId,
@@ -137,7 +199,7 @@ export class AttachmentService {
         kind,
         filename,
         mime: input.mime,
-        sizeBytes: input.bytes.byteLength,
+        sizeBytes: 0,
         storageKey: "",
         status: "pending",
         ...(input.durationMs === undefined ? {} : { durationMs: input.durationMs }),
@@ -145,18 +207,89 @@ export class AttachmentService {
     });
 
     const key = attachmentKey(input.companyId, input.sessionId, row.id);
+    let sizeBytes: number;
     try {
-      await storage.put(key, input.bytes, { contentType: input.mime, maxBytes });
+      const inspected = pipeline(input.stream, new UploadInspector(input.mime), () => undefined);
+      const stored = await storage.put(key, inspected, { contentType: input.mime, maxBytes });
+      sizeBytes = stored.sizeBytes;
     } catch (err) {
       await db.attachment.delete({ where: { id: row.id } }).catch(() => undefined);
-      if (err instanceof ObjectTooLarge) {
-        throw new AttachmentRejected("size", `That file is larger than ${maxBytes / 1024 / 1024} MB`);
-      }
+      if (err instanceof ObjectTooLarge) throw overflow;
+      if (err instanceof IngestRejected) throw new AttachmentRejected("type", err.message);
+      // A sender that disconnects mid-upload and multipart's own size limit both end up here.
+      if (isRequestTooLarge(err)) throw overflow;
       throw err;
     }
 
-    const stored = await db.attachment.update({ where: { id: row.id }, data: { storageKey: key } });
+    const stored = await db.attachment.update({
+      where: { id: row.id },
+      data: { storageKey: key, sizeBytes },
+    });
+
+    // Two uploads can both pass the room check above. The totals are re-read with this row in
+    // them, and whichever one tips over the line is the one that is refused.
+    const after = await this.quotaRoom(input.companyId, input.sessionId);
+    if (after.sessionRoom < 0 || after.tenantRoom < 0) {
+      await this.discard(row.id, key);
+      throw after.sessionRoom < 0
+        ? new AttachmentRejected("quota", "This interview's attachments have reached their size limit")
+        : new AttachmentRejected("quota", "This organization's attachment storage is full");
+    }
     return view(stored);
+  }
+
+  /** How much of each quota is left, and how many attachments the interview already holds. */
+  private async quotaRoom(
+    companyId: string,
+    sessionId: string,
+  ): Promise<{ count: number; maxCount: number; sessionRoom: number; tenantRoom: number }> {
+    const { db, settings } = this.deps;
+    const chain = [{ scope: "tenant" as const, scopeId: companyId }];
+    const [maxCount, maxSessionMb, tenantMb, session, tenant] = await Promise.all([
+      settings.get("files.maxPerSession", chain),
+      settings.get("files.maxSessionMb", chain),
+      settings.get("files.tenantQuotaMb", chain),
+      db.attachment.aggregate({
+        where: { companyId, sessionId },
+        _sum: { sizeBytes: true },
+        _count: { _all: true },
+      }),
+      db.attachment.aggregate({ where: { companyId }, _sum: { sizeBytes: true } }),
+    ]);
+    return {
+      count: session._count._all,
+      maxCount,
+      sessionRoom: maxSessionMb * MB - (session._sum.sizeBytes ?? 0),
+      tenantRoom: tenantMb * MB - (tenant._sum.sizeBytes ?? 0),
+    };
+  }
+
+  private async discard(id: string, key: string): Promise<void> {
+    await this.deps.db.attachment.delete({ where: { id } }).catch(() => undefined);
+    await this.deps.storage.delete(key).catch(() => undefined);
+  }
+
+  /** Limits for reading one file, from the catalog. */
+  async ingestLimits(companyId: string): Promise<IngestLimits> {
+    const chain = [{ scope: "tenant" as const, scopeId: companyId }];
+    const { settings } = this.deps;
+    const [chars, pages, ratio, cells, entries, mb] = await Promise.all([
+      settings.get("files.maxExtractedChars", chain),
+      settings.get("files.maxPdfPages", chain),
+      settings.get("files.maxZipRatio", chain),
+      settings.get("files.maxSheetCells", chain),
+      settings.get("files.maxZipEntries", chain),
+      settings.get("files.maxUncompressedMb", chain),
+    ]);
+    return {
+      ...DEFAULT_INGEST_LIMITS,
+      maxExtractedChars: chars,
+      maxPdfPages: pages,
+      maxZipRatio: ratio,
+      maxSheetCells: cells,
+      maxZipEntries: entries,
+      maxUncompressedBytes: mb * MB,
+    };
   }
 
   /**
@@ -193,10 +326,18 @@ export class AttachmentService {
         return;
       }
 
-      const bytes = await readAll(await storage.get(row.storageKey));
+      let bytes = await readAll(await storage.get(row.storageKey));
+      if (row.kind === "image" && (row.mime === "image/png" || row.mime === "image/jpeg")) {
+        // Metadata (GPS, device, timestamps) is dropped before a model sees the image, and the
+        // stored copy is replaced so that the original is not kept either.
+        bytes = await sanitizeImage(bytes, row.mime);
+        await storage.put(row.storageKey, bytes, { contentType: row.mime });
+        await db.attachment.update({ where: { id: row.id }, data: { sizeBytes: bytes.byteLength } });
+      }
       const language = await this.languageFor(row.sessionId);
+      const limits = await this.ingestLimits(companyId);
       const result = await ingestAttachment(
-        { caller, prompts, logger: log },
+        { caller, prompts, logger: log, extractor: extractIsolated, limits },
         { companyId, sessionId: row.sessionId, ref: { type: "attachment", id: row.id } },
         {
           bytes,
@@ -251,7 +392,12 @@ export class AttachmentService {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      log.warn("attachment ingestion failed", { companyId, attachmentId: row.id, error: message });
+      log.warn("attachment ingestion failed", {
+        companyId,
+        attachmentId: row.id,
+        error: message,
+        ...(err instanceof IngestRejected ? { code: err.code } : {}),
+      });
       await db.attachment.update({
         where: { id: row.id },
         data: { status: "failed", error: message.slice(0, 500), ingestedAt: this.now() },
