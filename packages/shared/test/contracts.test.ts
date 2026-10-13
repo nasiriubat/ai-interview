@@ -57,3 +57,16 @@ describe("settings catalog", () => {
     expect(settingKeysForScope("campaign")).not.toContain("privacy.kAnonymity");
   });
 });
+
+describe("the completion sentinel", () => {
+  it("is a valid turn count, not the -1 a 32-bit shift of MAX_SAFE_INTEGER produces", async () => {
+    const { COMPLETION_REQUESTED_TURN_COUNT, SessionStateSchema } = await import("../src/index.js");
+    expect(COMPLETION_REQUESTED_TURN_COUNT).toBeGreaterThan(1000);
+    expect(Number.isInteger(COMPLETION_REQUESTED_TURN_COUNT)).toBe(true);
+    const parsed = SessionStateSchema.safeParse({ turnCount: COMPLETION_REQUESTED_TURN_COUNT });
+    expect(parsed.success).toBe(true);
+    // The value the code used to write cannot be stored: this is the regression.
+    expect(Number.MAX_SAFE_INTEGER >> 1).toBe(-1);
+    expect(SessionStateSchema.safeParse({ turnCount: Number.MAX_SAFE_INTEGER >> 1 }).success).toBe(false);
+  });
+});
