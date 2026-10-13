@@ -16,7 +16,7 @@ import { t } from "@/i18n";
 import { displaySettingValue, settingInputKind, weightsValue } from "@/lib/admin/settingInput";
 import { staffClient } from "@/lib/api/browser";
 import { SECRET_UNCHANGED, type EmailTest, type SettingsCatalogEntry } from "@/lib/api/schemas";
-import { humanize } from "@/lib/utils";
+import { label as enumLabel, settingText, settingValueLabel } from "@/lib/i18n/enums";
 
 const s = t.admin.settings;
 
@@ -252,7 +252,8 @@ function SettingRow({
 }): React.JSX.Element {
   const id = `setting-${entry.key.replace(/\./g, "-")}`;
   const kind = settingInputKind(entry.key, entry.default, entry.secret);
-  const label = humanize(entry.key.split(".").slice(1).join(" ") || entry.key);
+  const text = settingText(entry.key);
+  const label = text?.label ?? entry.key;
 
   let control: React.ReactNode;
   switch (kind.kind) {
@@ -322,7 +323,7 @@ function SettingRow({
           {kind.keys.map((k) => (
             <div key={k} className="grid gap-1">
               <Label htmlFor={`${id}-${k}`} className="text-xs font-normal">
-                {humanize(k)}
+                {enumLabel("factor", k)}
               </Label>
               <Input
                 id={`${id}-${k}`}
@@ -356,7 +357,7 @@ function SettingRow({
           <SelectContent>
             {kind.values.map((v) => (
               <SelectItem key={v} value={v}>
-                {humanize(v)}
+                {settingValueLabel(entry.key, v)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -448,7 +449,7 @@ function SettingRow({
           {originBadge}
         </Label>
         <p id={`${id}-desc`} className="text-muted-foreground text-xs">
-          {entry.description}
+          {text?.description ?? entry.description}
         </p>
         {entry.secret ? (
           <p className="text-muted-foreground text-xs">{s.secret.hint}</p>

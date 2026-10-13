@@ -7,6 +7,7 @@ import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { StatTile } from "@/components/admin/StatTile";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { EnumLabel } from "@/components/common/EnumLabel";
 import { MessageBubble } from "@/components/participant/MessageList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,7 +88,11 @@ export default async function SessionPage({ params }: Props): Promise<React.JSX.
                         {widgetResponseToText(m.widget, m.widgetResponse)}
                       </p>
                     ) : null}
-                    {m.areaKey ? <p className="text-muted-foreground text-xs">{m.areaKey}</p> : null}
+                    {m.areaKey ? (
+                      <p className="text-muted-foreground text-xs">
+                        <EnumLabel kind="coverageArea" value={m.areaKey} />
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>

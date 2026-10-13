@@ -879,7 +879,7 @@ export const fi: Strings = {
       transcriptHidden: "Keskustelu on piilotettu yksityisyysasetuksen vuoksi.",
       events: "Tapahtumaloki",
       noEvents: "Ei tapahtumia.",
-      eventType: "Tyyppi",
+      eventType: "Tapahtuma",
       eventAt: "Aika",
       eventPayload: "Tiedot",
       cost: "Kustannus",
@@ -1457,6 +1457,11 @@ export const fi: Strings = {
         raised: "Esitetty",
         resolved: "Ratkaistu",
         deferred: "Lykätty",
+        unknown: "Tuntematon",
+        new: "Uusi",
+        shortlisted: "Kärkilistalla",
+        promoted: "Määrittelyssä",
+        dismissed: "Hylätty",
       },
       fields: {
         createdAt: "Luotu",
@@ -1501,6 +1506,466 @@ export const fi: Strings = {
       clearFilters: "Tyhjennä suodattimet",
       rowsPerPage: "Rivejä sivulla",
       page: (n: number): string => `Sivu ${n}`,
+    },
+  },
+  enums: {
+    purpose: {
+      interview_turn: "Haastattelukysymykset",
+      resume_summary: "Kertaus, kun osallistuja palaa",
+      extraction: "Tietojen poiminta vastauksista",
+      clustering: "Samankaltaisten poimintojen ryhmittely",
+      analysis_report: "Organisaation raportti",
+      spec_turn: "Vaatimuskysymykset",
+      issue_detection: "Havaintojen tunnistus",
+      spec_generation: "Määrittelyn kirjoittaminen",
+      transcription: "Tallenteiden litterointi",
+      stt_stream: "Reaaliaikaiset tekstitykset",
+      tts: "Haastattelijan ääni",
+      realtime_voice: "Äänipuhelut",
+      file_ingest: "Liitetiedostojen lukeminen",
+      vision_ingest: "Liitekuvien lukeminen",
+      embedding: "Samankaltaisuushaku",
+      probe: "Yhteystestit",
+    },
+    providerKind: {
+      anthropic: "Anthropic",
+      openai: "OpenAI",
+      openrouter: "OpenRouter",
+      litellm: "LiteLLM-välityspalvelin",
+      openai_compatible: "OpenAI-yhteensopiva rajapinta",
+      stt: "Puheentunnistuspalvelu",
+      tts: "Puhesynteesipalvelu",
+      realtime: "Reaaliaikainen puhepalvelu",
+      local: "Tällä palvelimella (ei avainta, ääni ei poistu palvelimelta)",
+    },
+    effort: {
+      low: "Matala (nopein, halvin)",
+      medium: "Keskitaso",
+      high: "Korkea",
+      xhigh: "Erittäin korkea",
+      max: "Suurin (hitain, kallein)",
+    },
+    aggressiveness: {
+      gentle: "Lempeä: mainitsee, ei vaadi",
+      standard: "Tavallinen: nostaa esiin kerran ja hyväksyy sitten",
+      strict: "Tiukka: vaatii päätöksen",
+      template: "Mallipohjan mukaan",
+    },
+    budgetScope: {
+      tenant: "Koko organisaatio",
+      campaign: "Yksi kampanja",
+      session: "Yksi haastattelu",
+    },
+    budgetPeriod: {
+      month: "Kuukaudessa",
+      total: "Yhteensä",
+    },
+    specScope: {
+      mvp: "Ensimmäinen versio (MVP)",
+      future: "Myöhemmin",
+    },
+    callStatus: {
+      ok: "Onnistui",
+      error: "Epäonnistui",
+      refused: "Malli kieltäytyi",
+      budget_exceeded: "Budjetti pysäytti",
+      aborted: "Peruttu",
+    },
+    coverageArea: {
+      role: "Rooli ja vastuut",
+      daily: "Päivittäiset tehtävät",
+      repetitive: "Toistuvat tehtävät",
+      tools: "Työkalut ja järjestelmät",
+      manual: "Manuaaliset vaiheet",
+      flows: "Tiedonkulku ja siirrot",
+      bottlenecks: "Pullonkaulat ja odottelu",
+      problems: "Yleiset ongelmat",
+      wish: "Mitä muuttaisit ensin",
+      problem: "Tuotteen yleiskuva ja ongelma",
+      users: "Kohdekäyttäjät ja roolit",
+      stories: "Käyttäjätarinat",
+      functional: "Toiminnalliset vaatimukset",
+      rules: "Liiketoimintasäännöt",
+      acceptance: "Hyväksymiskriteerit",
+      technical: "Tekniset vaatimukset",
+      technical_recommended: "Teknisiä suosituksia",
+      data: "Tietovaatimukset",
+      integrations: "Integraatiot",
+      security: "Tietoturva ja yksityisyys",
+      nfr: "Ei-toiminnalliset vaatimukset",
+      admin: "Hallintanäkymä",
+      mvp: "MVP:n laajuus",
+      future: "Tuleva laajuus",
+      phases: "Toteutusvaiheet",
+    },
+    templateField: {
+      name: "Nimi",
+      language: "Kieli",
+      objective: "Tavoite",
+      privacyMode: "Yksityisyystila",
+      participantFields: "Osallistujan kentät",
+      pathSelection: "Tekninen vai ei-tekninen polku",
+      contextBlock: "Taustakysymykset",
+      coverageAreas: "Aihealueet",
+      aiInstructions: "Tekoälyn ohjeet",
+      adaptivity: "Mukautuvuus",
+      widgetPolicy: "Vastausvaihtoehdot",
+      issueDetection: "Havainnot",
+      outputs: "Mitä poimitaan",
+      analysisEnabled: "Mukana kampanjan analyysissä",
+      chainToKey: "Seuraava mallipohja",
+      chainMapping: "Kenttien vastaavuus",
+      closingQuestion: "Lopetuskysymys",
+      endSummary: "Yhteenveto lopussa",
+      maxTurns: "Vuoroja enintään",
+      maxAssistantChars: "Merkkejä haastattelijan vuorossa enintään",
+    },
+    contextKey: {
+      hosting: "Palvelinympäristö",
+      existing_systems: "Nykyiset järjestelmät",
+      builder: "Kuka rakentaa",
+      team_skills: "Tiimin osaaminen",
+      timeline: "Aikataulu",
+      budget: "Budjetti",
+      users_at_launch: "Käyttäjät julkaisuhetkellä",
+      compliance: "Vaatimustenmukaisuus",
+    },
+    statKey: {
+      tenants: "Organisaatiot",
+      sessions: "Haastattelut",
+      campaigns: "Kampanjat",
+      invited: "Kutsutut",
+      spendByTenant: "Kulutus organisaatioittain",
+    },
+    settingValue: {
+      "campaign.verification": {
+        invitation: "Henkilökohtaiset kutsulinkit",
+        email_code: "Jaettu linkki; sähköpostikoodi vaaditaan",
+        open: "Avoin linkki; kuka tahansa voi vastata, myös useasti",
+      },
+      "privacy.rawTranscriptsVisibleTo": {
+        nobody: "Ei kukaan",
+        admins: "Ylläpitäjät",
+        admins_when_identified_and_opted_in: "Ylläpitäjät, kun osallistuja osallistui omalla nimellään",
+      },
+      "ops.alertWebhookFormat": { ntfy: "ntfy", slack: "Slack", generic: "Yleinen JSON" },
+      "ops.alertEmailMinSeverity": { info: "Tiedoksi", warning: "Varoitus", critical: "Kriittinen" },
+      "ops.alertWebhookMinSeverity": { info: "Tiedoksi", warning: "Varoitus", critical: "Kriittinen" },
+      "analysis.weightsPreset": {
+        balanced: "Tasapainoinen",
+        quick_wins: "Nopeat voitot",
+        strategic: "Strateginen",
+        custom: "Mukautettu",
+      },
+      "requirements.aggressivenessTechnical": {
+        template: "Mallipohjan mukaan",
+        gentle: "Lempeä: mainitsee, ei vaadi",
+        standard: "Tavallinen: nostaa esiin kerran ja hyväksyy sitten",
+        strict: "Tiukka: vaatii päätöksen",
+      },
+      "requirements.aggressivenessNontechnical": {
+        template: "Mallipohjan mukaan",
+        gentle: "Lempeä: mainitsee, ei vaadi",
+        standard: "Tavallinen: nostaa esiin kerran ja hyväksyy sitten",
+        strict: "Tiukka: vaatii päätöksen",
+      },
+      "requirements.mvpChallenge": {
+        template: "Mallipohjan mukaan",
+        mandatory: "Pakollinen",
+        optional: "Valinnainen",
+        off: "Pois käytöstä",
+      },
+      "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Yleinen" },
+    },
+    settingKey: {
+      "engine.recentWindowTurns": {
+        label: "Sanasta sanaan säilytettävät viimeisimmät vuorot",
+        description:
+          "Montako viimeisintä vuoroa haastattelija näkee sellaisenaan. Vanhemmat vuorot tiivistetään.",
+      },
+      "engine.inputTokenBudget": {
+        label: "Syötteen enimmäiskoko vuoroa kohti (tokenia)",
+        description:
+          "Kuinka paljon tekstiä haastattelija saa lukea ennen jokaista kysymystä. Suurempi arvo maksaa enemmän.",
+      },
+      "engine.summarizeEveryTurns": {
+        label: "Päivitä jatkuva tiivistelmä N vuoron välein",
+        description: "Kuinka usein tähänastinen keskustelu tiivistetään, jotta haastattelija pysyy langassa.",
+      },
+      "engine.extractEveryTurns": {
+        label: "Poimi tiedot N vuoron välein",
+        description: "Kuinka usein vastauksista poimitaan asioita, kuten tehtäviä ja ongelmakohtia.",
+      },
+      "engine.maxTurns": {
+        label: "Pisin haastattelu vuoroina",
+        description: "Haastattelu päätetään, kun haastattelijan vuoroja on käytetty näin monta.",
+      },
+      "campaign.completionThreshold": {
+        label: "Haastatteluja lopullisiin tuloksiin",
+        description:
+          "Kuinka monta haastattelua on valmistuttava, ennen kuin analyysi katsotaan lopulliseksi.",
+      },
+      "campaign.completionThresholdPercent": {
+        label: "Osuus kutsutuista, joiden on valmistuttava",
+        description:
+          "Kuinka suuren prosenttiosuuden kutsutuista on valmistuttava, ennen kuin analyysi katsotaan lopulliseksi.",
+      },
+      "campaign.linkExpiryDays": {
+        label: "Linkin voimassaolo päivinä",
+        description: "Kuinka kauan kutsu- tai jakolinkki toimii luomisen jälkeen.",
+      },
+      "campaign.verification": {
+        label: "Kuka voi vastata jaetulla linkillä",
+        description: "Miten varmistetaan, että jokainen vastaa vain kerran, kun linkkiä jaetaan.",
+      },
+      "campaign.allowedEmailDomains": {
+        label: "Sallitut sähköpostiverkkotunnukset",
+        description:
+          "Vain näiden verkkotunnusten osoitteilla voi käyttää jaettua linkkiä. Jätä tyhjäksi, jos kaikki saavat vastata. Yksi per rivi.",
+      },
+      "campaign.consentText": {
+        label: "Osallistujille näytettävä suostumusteksti",
+        description: "Näytetään ennen ensimmäistä kysymystä. Kirjoita se haastattelun kielellä.",
+      },
+      "privacy.retentionMonths": {
+        label: "Haastattelutietojen säilytysaika kuukausina",
+        description: "Tämän jälkeen vastaukset, tiedostot ja tallenteet poistetaan automaattisesti.",
+      },
+      "privacy.kAnonymity": {
+        label: "Vähimmäismäärä ihmisiä jokaisen lainauksen tai erittelyn takana",
+        description:
+          "Lainaukset ja osastovertailut pysyvät piilossa, kunnes niiden takana on vähintään näin monta ihmistä.",
+      },
+      "privacy.rawTranscriptsVisibleTo": {
+        label: "Kuka saa lukea kokonaiset keskustelut",
+        description: "Koskee yhden haastattelun koko keskustelua. Yhdistettyihin tuloksiin tämä ei vaikuta.",
+      },
+      "privacy.audioRetentionDays": {
+        label: "Äänitallenteen säilytys päivinä (0 = poista heti litteroinnin jälkeen)",
+        description: "Kirjoitettu vastaus säilyy yllä olevan pidemmän säilytysajan.",
+      },
+      "privacy.codeRequestsPerHour": {
+        label: "Vahvistuskoodeja sähköpostiosoitetta ja tuntia kohti",
+        description: "Kuinka monta koodia yksi sähköpostiosoite saa pyytää tunnissa yhteen kampanjaan.",
+      },
+      "privacy.codeFailuresPerHour": {
+        label: "Väärien koodien määrä tunnissa",
+        description:
+          "Kuinka monta väärää koodia yksi sähköpostiosoite saa syöttää kampanjaa kohti tunnissa, ennen kuin se lukitaan.",
+      },
+      "cost.warnFraction": {
+        label: "Budjetin osuus, jolla varoitus annetaan",
+        description:
+          "Ylläpitäjille ilmoitetaan, kun kulutus saavuttaa tämän osuuden budjetista. 0,8 tarkoittaa 80 prosenttia.",
+      },
+      "cost.probeMaxPerDay": {
+        label: "Yhteystestejä päivässä",
+        description:
+          "Kuinka monta kertaa palveluntarjoajan yhteys saa testata liukuvan vuorokauden aikana. 0 poistaa testipainikkeen käytöstä.",
+      },
+      "cost.defaultMonthlyBudgetCents": {
+        label: "Oletuskuukausibudjetti (senttiä)",
+        description: "Kuukausiraja, jolla uusi organisaatio aloittaa, euron senteissä.",
+      },
+      "files.maxSizeMb": {
+        label: "Suurin tiedostokoko (Mt)",
+        description:
+          "Yksittäisen tiedoston suurin sallittu koko. Alusta asettaa ylärajan, jota tämä ei voi ylittää.",
+      },
+      "files.allowedTypes": {
+        label: "Hyväksytyt tiedostotyypit",
+        description: "Tiedostotyypit, joita osallistujat saavat liittää, yksi MIME-tyyppi per rivi.",
+      },
+      "voice.targetFirstWordMs": {
+        label: "Tavoiteaika ensimmäiseen sanaan (ms)",
+        description: "Kuinka nopeasti haastattelijan tulisi aloittaa puhuminen puhelussa.",
+      },
+      "voice.captions": {
+        label: "Näytä tekstitys puhelun aikana",
+        description: "Näytä puhuttu ja kuultu tekstinä äänipuhelun aikana.",
+      },
+      "voice.voiceName": {
+        label: "Haastattelijan ääni",
+        description: "Mitä puhemallin äänistä haastattelija käyttää.",
+      },
+      "voice.speakingRate": {
+        label: "Puhenopeus",
+        description: "1 on äänen normaali nopeus; suurempi arvo on nopeampi.",
+      },
+      "voice.endOfSpeechMs": {
+        label: "Hiljaisuus, joka päättää vastauksen (ms)",
+        description: "Kuinka pitkä tauon on oltava puhelussa, ennen kuin vastaus lähetetään.",
+      },
+      "voice.bargeIn": {
+        label: "Osallistuja voi keskeyttää haastattelijan",
+        description: "Osallistuja voi alkaa puhua, vaikka haastattelija vielä puhuu.",
+      },
+      "features.optionsView": {
+        label: "Vastausvaihtoehdot",
+        description:
+          "Näytä valinnat, asteikot ja järjestelytehtävät kysymysten yhteydessä, kun mallipohja sallii.",
+      },
+      "features.recordedVoice": {
+        label: "Äänitetyt vastaukset",
+        description: "Osallistujat voivat vastata nauhoittamalla äänensä.",
+      },
+      "features.realtimeVoice": {
+        label: "Äänipuhelut",
+        description:
+          "Osallistujat voivat puhua haastattelijan kanssa puhelussa. Vaatii puhepalveluiden mallivalinnat.",
+      },
+      "features.fileUpload": {
+        label: "Tiedostoliitteet",
+        description: "Osallistujat voivat liittää vastauksiinsa asiakirjoja ja kuvia.",
+      },
+      "features.chaining": {
+        label: "Mallipohjien ketjutus",
+        description: "Mallipohja voi käynnistää toisen sen oppimien tietojen pohjalta.",
+      },
+      "features.collaboration": {
+        label: "Kutsutut yhteistyökumppanit",
+        description: "Vaatimushaastattelun omistaja voi kutsua toisen henkilön vastaamaan.",
+      },
+      "branding.productName": {
+        label: "Osallistujille näytettävä tuotenimi",
+        description: "Näkyy saapumissivulla ja sähköposteissa.",
+      },
+      "branding.primaryColor": {
+        label: "Pääväri",
+        description: "Tallennetaan myöhempää käyttöä varten; osallistujasivut eivät käytä sitä vielä.",
+      },
+      "branding.emailSender": {
+        label: "Lähettäjän osoite (vanhentunut)",
+        description: "Korvattu Sähköposti-luokan lähettäjän osoitteella; käytetään vain, jos se on tyhjä.",
+      },
+      "email.smtpUrl": {
+        label: "SMTP-yhteys",
+        description:
+          "Muoto smtp://käyttäjä:salasana@palvelin:587. Tyhjänä käytetään palvelimen omaa sähköpostiasetusta.",
+      },
+      "email.from": {
+        label: "Lähettäjän osoite",
+        description: "Osoite, josta lähtevät sähköpostit lähetetään.",
+      },
+      "email.replyTo": {
+        label: "Vastausosoite",
+        description: "Valinnainen. Minne lähtevien sähköpostien vastaukset menevät.",
+      },
+      "ops.alertEmail": {
+        label: "Hälytysten sähköpostiosoite",
+        description:
+          "Minne alustan hälytykset lähetetään sähköpostilla. Tyhjänä käytetään ympäristön ALERT_EMAIL-arvoa ja sen jälkeen ensimmäistä alustan ylläpitäjää.",
+      },
+      "ops.alertWebhookUrl": {
+        label: "Hälytysten webhook-osoite",
+        description:
+          "ntfy-aiheen osoite, Slackin saapuva webhook tai yleinen JSON-päätepiste, joka vastaanottaa alustan hälytykset.",
+      },
+      "ops.alertWebhookFormat": {
+        label: "Webhookin muoto",
+        description: "Hälytys-webhookiin lähetettävän sisällön muoto.",
+      },
+      "ops.alertEmailMinSeverity": {
+        label: "Alin sähköpostitettava vakavuus",
+        description: "Tätä alemman tason hälytyksiä ei lähetetä sähköpostilla.",
+      },
+      "ops.alertWebhookMinSeverity": {
+        label: "Alin webhookiin lähetettävä vakavuus",
+        description: "Tätä alemman tason hälytyksiä ei lähetetä webhookiin.",
+      },
+      "ops.alertRepeatMinutes": {
+        label: "Minuutteja ennen hälytyksen toistoa",
+        description:
+          "Kuinka kauan ratkaisematon hälytys odottaa ennen uutta lähetystä. Kun arvo on asetettu, se korvaa jokaisen hälytyksen oman välin.",
+      },
+      "ops.alertMaxPerHour": {
+        label: "Hälytyksiä tunnissa",
+        description: "Tätä useampi hälytys tunnissa pidätetään ja korvataan yhdellä yhteenvetoilmoituksella.",
+      },
+      "ops.diskWarnPercent": {
+        label: "Levyn käyttöaste, joka antaa varoituksen (%)",
+        description: "Varoitus annetaan, kun levy on näin täynnä.",
+      },
+      "ops.diskCriticalPercent": {
+        label: "Levyn käyttöaste, joka antaa kriittisen hälytyksen (%)",
+        description: "Kriittinen hälytys annetaan, kun levy on näin täynnä.",
+      },
+      "ops.providerErrorRateWarn": {
+        label: "Palveluntarjoajan virhesuhde, joka antaa varoituksen",
+        description:
+          "Osuus palveluntarjoajan kutsuista, jotka epäonnistuivat kymmenessä minuutissa (vähintään kymmenen kutsua). 0,25 tarkoittaa 25 prosenttia.",
+      },
+      "ops.backupMaxAgeHours": {
+        label: "Tunteja ilman varmuuskopiota ennen hälytystä",
+        description: "Tätä vanhempi varmuuskopio ilmoitetaan puuttuvaksi.",
+      },
+      "notifications.recipients": {
+        label: "Ilmoitusten vastaanottajat",
+        description:
+          "Sähköpostiosoitteet, jotka saavat organisaation ilmoitukset, yksi per rivi. Tyhjä tarkoittaa kaikkia ylläpitäjiä.",
+      },
+      "notifications.budgetWarnings": {
+        label: "Lähetä budjettivaroitukset sähköpostilla",
+        description: "Lähetä organisaation ylläpitäjille sähköposti, kun budjetti ylittää varoitusosuutensa.",
+      },
+      "analysis.weightsPreset": {
+        label: "Pisteytyksen esiasetus",
+        description:
+          "Miten tekijöitä painotetaan, kun mahdollisuuksille lasketaan pisteet. Valitse Mukautettu asettaaksesi omat painot.",
+      },
+      "analysis.weights": {
+        label: "Mukautetut pisteytyspainot",
+        description:
+          "Käytetään, kun esiasetus on Mukautettu. Suurempi paino tarkoittaa suurempaa merkitystä.",
+      },
+      "analysis.similarityThreshold": {
+        label: "Kuinka samankaltaisia poimintojen on oltava ryhmittelyyn",
+        description:
+          "Poiminnat, joiden samankaltaisuus on vähintään tämä arvo (0–1), ryhmitellään yhdeksi mahdollisuudeksi.",
+      },
+      "analysis.reportSections": {
+        label: "Raportin osiot",
+        description: "Organisaation raporttiin otettavat osiot, yksi avain per rivi.",
+      },
+      "analysis.preliminaryVisibleToMembers": {
+        label: "Jäsenet näkevät alustavat tulokset",
+        description: "Jäsenet saavat nähdä tulokset, ennen kuin riittävän moni haastattelu on valmis.",
+      },
+      "analysis.departmentComparison": {
+        label: "Vertaa osastoja",
+        description: "Näytä osastovertailu, kun jokaisessa osastossa on vähintään vähimmäismäärä ihmisiä.",
+      },
+      "analysis.language": {
+        label: "Raportin kieli",
+        description: "Tuotetun raportin kielikoodi, esimerkiksi en tai fi.",
+      },
+      "requirements.aggressivenessTechnical": {
+        label: "Tiukkuus teknisellä polulla",
+        description:
+          "Kuinka painokkaasti haastattelija puuttuu havaintoihin. ”Mallipohjan mukaan” käyttää mallipohjan omaa arvoa.",
+      },
+      "requirements.aggressivenessNontechnical": {
+        label: "Tiukkuus ei-teknisellä polulla",
+        description:
+          "Kuinka painokkaasti haastattelija puuttuu havaintoihin. ”Mallipohjan mukaan” käyttää mallipohjan omaa arvoa.",
+      },
+      "requirements.mvpChallenge": {
+        label: "Haasta ensimmäinen versio ennen viimeistelyä",
+        description:
+          "Pakollinen: haastetaan aina. Valinnainen: henkilö voi lopettaa haastamisen aikaisin. Pois käytöstä: ei haasteta koskaan.",
+      },
+      "requirements.specSections": {
+        label: "Määrittelyn osiot",
+        description: "Määrittelyn osiot järjestyksessä, yksi avain per rivi.",
+      },
+      "requirements.diagramTypes": {
+        label: "Kaaviotyypit",
+        description: "Määrittelyyn tuotettavat kaaviotyypit, yksi per rivi.",
+      },
+      "exports.bundleFormat": {
+        label: "Agenttipaketin muoto",
+        description: "Mille koodausagentille ladattava paketti valmistellaan.",
+      },
     },
   },
 };

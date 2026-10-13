@@ -2,10 +2,11 @@ import { CoinsIcon, EuroIcon, HashIcon, ZapIcon } from "lucide-react";
 import * as React from "react";
 import { Panel } from "@/components/admin/Panel";
 import { StatTile } from "@/components/admin/StatTile";
+import { EnumLabel } from "@/components/common/EnumLabel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import type { Spend } from "@/lib/api/schemas";
-import { formatCents, formatNumber, humanize } from "@/lib/utils";
+import { formatCents, formatNumber } from "@/lib/utils";
 
 export function SpendPanel({ spend, title }: { spend: Spend; title: string }): React.JSX.Element {
   const limit = spend.budget?.limitCents ?? null;
@@ -75,7 +76,9 @@ export function SpendPanel({ spend, title }: { spend: Spend; title: string }): R
             <TableBody>
               {spend.rows.map((r) => (
                 <TableRow key={r.key}>
-                  <TableCell>{humanize(r.key)}</TableCell>
+                  <TableCell>
+                    <EnumLabel kind="purpose" value={r.key} />
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{formatNumber(r.calls)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatNumber(r.tokens)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatCents(r.costCents)}</TableCell>

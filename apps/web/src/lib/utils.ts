@@ -23,15 +23,6 @@ export function formatDate(iso: string | undefined | null): string {
   return new Intl.DateTimeFormat(currentLocale(), { dateStyle: "medium", timeStyle: "short" }).format(d);
 }
 
-/** Turns `camelCase` or `snake_case` keys into a readable label. */
-export function humanize(key: string): string {
-  const spaced = key
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[_.-]+/g, " ")
-    .trim();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
-}
-
 /** 0.1234 → "12.3 %" in the reader's locale. */
 export function formatPercent(ratio: number | undefined | null, digits = 1): string {
   if (ratio === undefined || ratio === null || !Number.isFinite(ratio)) return "–";

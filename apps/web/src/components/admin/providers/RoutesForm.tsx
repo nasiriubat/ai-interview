@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { ModelPrice, Provider, RouteRecord } from "@/lib/api/schemas";
-import { humanize } from "@/lib/utils";
+import { label as enumLabel } from "@/lib/i18n/enums";
 
 const s = t.admin.routes;
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
@@ -188,7 +188,7 @@ export function RoutesForm({
   const inheritLabel = scope === "platform" ? t.app.none : s.inherit;
   const providerOptions: ComboboxOption[] = [
     { value: INHERIT, label: inheritLabel },
-    ...providers.map((pr) => ({ value: pr.id, label: pr.name, detail: pr.kind })),
+    ...providers.map((pr) => ({ value: pr.id, label: pr.name, detail: enumLabel("providerKind", pr.kind) })),
   ];
 
   const sourceLabel = (src: RouteSource): string =>
@@ -232,14 +232,14 @@ export function RoutesForm({
               }));
               return (
                 <TableRow key={p}>
-                  <TableCell className="font-medium">{humanize(p)}</TableCell>
+                  <TableCell className="font-medium">{enumLabel("purpose", p)}</TableCell>
                   <TableCell>
                     <div className="w-44">
                       <Combobox
                         id={`route-provider-${p}`}
                         size="sm"
                         value={d.providerId || INHERIT}
-                        aria-label={`${s.provider}: ${humanize(p)}`}
+                        aria-label={`${s.provider}: ${enumLabel("purpose", p)}`}
                         options={providerOptions}
                         labels={{
                           placeholder: inheritLabel,
@@ -261,7 +261,7 @@ export function RoutesForm({
                         disabled={!d.providerId}
                         loading={loading}
                         allowCustom
-                        aria-label={`${s.model}: ${humanize(p)}`}
+                        aria-label={`${s.model}: ${enumLabel("purpose", p)}`}
                         options={options}
                         labels={{
                           placeholder: s.modelPlaceholder,
@@ -284,7 +284,7 @@ export function RoutesForm({
                       }}
                     >
                       <SelectTrigger
-                        aria-label={`${s.effort}: ${humanize(p)}`}
+                        aria-label={`${s.effort}: ${enumLabel("purpose", p)}`}
                         className="w-28"
                         size="sm"
                         disabled={!d.providerId}
@@ -295,7 +295,7 @@ export function RoutesForm({
                         <SelectItem value="__none__">{t.app.none}</SelectItem>
                         {EFFORTS.map((e) => (
                           <SelectItem key={e} value={e}>
-                            {e}
+                            {enumLabel("effort", e)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -303,7 +303,7 @@ export function RoutesForm({
                   </TableCell>
                   <TableCell>
                     <Input
-                      aria-label={`${s.maxOutputTokens}: ${humanize(p)}`}
+                      aria-label={`${s.maxOutputTokens}: ${enumLabel("purpose", p)}`}
                       type="number"
                       min={1}
                       className="w-28"
@@ -316,7 +316,7 @@ export function RoutesForm({
                   </TableCell>
                   <TableCell>
                     <Checkbox
-                      aria-label={`${s.batchAllowed}: ${humanize(p)}`}
+                      aria-label={`${s.batchAllowed}: ${enumLabel("purpose", p)}`}
                       checked={d.batchAllowed}
                       disabled={!d.providerId}
                       onCheckedChange={(v) => {
@@ -334,7 +334,7 @@ export function RoutesForm({
                       <RowActions>
                         {sources[p] === "tenant" ? (
                           <IconButton
-                            label={`${s.clearOverride}: ${humanize(p)}`}
+                            label={`${s.clearOverride}: ${enumLabel("purpose", p)}`}
                             icon={<RotateCcwIcon />}
                             disabled={action.busy}
                             onClick={() => {

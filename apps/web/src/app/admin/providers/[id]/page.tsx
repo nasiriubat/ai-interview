@@ -8,6 +8,7 @@ import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { staffServer } from "@/lib/api/server";
+import { label } from "@/lib/i18n/enums";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).admin.providers.models };
@@ -38,7 +39,7 @@ export default async function ProviderModelsPage({ params }: Props): Promise<Rea
       <PageHeader
         crumbLabels={{ [id]: provider.name }}
         title={provider.name}
-        subtitle={`${provider.kind} · ${t.admin.providers.models}`}
+        subtitle={`${label("providerKind", provider.kind)} · ${t.admin.providers.models}`}
       />
       <ModelsPanel
         providerId={id}

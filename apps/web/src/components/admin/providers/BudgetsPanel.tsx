@@ -26,7 +26,8 @@ import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { BudgetRecord } from "@/lib/api/schemas";
 import type { ScopeKind } from "@/lib/api/staff";
-import { formatCents, humanize } from "@/lib/utils";
+import { label } from "@/lib/i18n/enums";
+import { formatCents } from "@/lib/utils";
 
 const s = t.admin.budgets;
 const SCOPES = ["tenant", "campaign", "session"] as const;
@@ -112,7 +113,7 @@ export function BudgetsPanel({
           label={s.scope}
           value={scope}
           required
-          options={SCOPES.map((v) => ({ value: v, label: humanize(v) }))}
+          options={SCOPES.map((v) => ({ value: v, label: label("budgetScope", v) }))}
           onChange={(v) => {
             setScope(v);
             setScopeId(v === "tenant" && companyId ? companyId : "");
@@ -183,7 +184,7 @@ export function BudgetsPanel({
             <TableBody>
               {budgets.map((b, i) => (
                 <TableRow key={b.id ?? `${b.scope}-${b.scopeId}-${String(i)}`}>
-                  <TableCell>{humanize(b.scope)}</TableCell>
+                  <TableCell>{label("budgetScope", b.scope)}</TableCell>
                   <TableCell className="font-mono text-xs">{b.scopeId}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatCents(b.limitCents)}
