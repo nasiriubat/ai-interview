@@ -10,11 +10,45 @@ const Id = z.object({ id: z.string() });
 export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void> {
   const svc = ctx.services.campaigns;
 
-  /** Campaign rows never expose the link token hash. */
-  const publicCampaign = <T extends { linkTokenHash: string }>({
-    linkTokenHash: _hash,
-    ...c
-  }: T): Omit<T, "linkTokenHash"> => c;
+  /**
+   * The campaign as staff see it, field by field (D-144). A row with one column taken off was how
+   * `linkTokenHash` stayed out; a column added to the table would have gone out with it. The share
+   * link is not here: it is an administrator's, and added by the routes that may show it.
+   */
+  const publicCampaign = (c: {
+    id: string;
+    templateId: string;
+    name: string;
+    participationMode: string;
+    verification: string;
+    allowedEmailDomains: unknown;
+    expiresAt: Date | null;
+    maxTurns: number;
+    completionThreshold: number;
+    weights: unknown;
+    status: string;
+    createdById: string;
+    createdAt: Date;
+  }) => ({
+    id: c.id,
+    templateId: c.templateId,
+    name: c.name,
+    participationMode: c.participationMode,
+    verification: c.verification,
+    allowedEmailDomains: c.allowedEmailDomains,
+    expiresAt: c.expiresAt,
+    maxTurns: c.maxTurns,
+    completionThreshold: c.completionThreshold,
+    weights: c.weights,
+    status: c.status,
+    createdById: c.createdById,
+    createdAt: c.createdAt,
+  });
+  /** An administrator, or the platform operator acting for one. */
+  const mayManage = (req: Parameters<typeof staff>[0]): boolean => {
+    const role = staff(req).role;
+    return role === "admin" || role === "platform_operator";
+  };
   app.get("/campaigns", { ...guard.staff(), schema: { querystring: CampaignListQuery } }, async (req) => {
     const { campaigns, total } = await svc.list(req.companyId, req.query);
     const stats = await svc.listStats(
@@ -64,10 +98,11 @@ export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void>
 
   app.get("/campaigns/:id", { ...guard.staff(), schema: { params: Id } }, async (req) => {
     const campaign = await svc.get(req.companyId, req.params.id);
-    const [url, stats] = await Promise.all([
-      svc.link(req.companyId, campaign.id),
-      svc.stats(req.companyId, campaign.id),
-    ]);
+    const stats = await svc.stats(req.companyId, campaign.id);
+    // The share link lets anyone who holds it start an interview, so only administrators are given
+    // it (D-144); a member sees the campaign without it.
+    if (!mayManage(req)) return { campaign: { ...publicCampaign(campaign), stats }, stats };
+    const url = await svc.link(req.companyId, campaign.id);
     // link and stats travel inside the record as well, so a client that unwraps `campaign` keeps them.
     return { campaign: { ...publicCampaign(campaign), link: { url }, stats }, link: { url }, stats };
   });
@@ -96,7 +131,7 @@ export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void>
         targetId: campaign.id,
         diff: req.body,
       });
-      return { campaign };
+      return { campaign: publicCampaign(campaign) };
     },
   );
 
@@ -112,7 +147,7 @@ export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void>
           targetType: "campaign",
           targetId: campaign.id,
         });
-        return { campaign };
+        return { campaign: publicCampaign(campaign) };
       },
     );
   }
@@ -140,7 +175,8 @@ export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void>
   app.get("/campaigns/:id/invitations", { ...guard.staff(), schema: { params: Id } }, async (req) => ({
     invitations: (await svc.invitations(req.companyId, req.params.id)).map((i) => ({
       id: i.id,
-      email: i.email,
+      // Who was invited is an administrator's to know; a member sees the invitations' state (D-144).
+      email: mayManage(req) ? i.email : null,
       status: i.status,
       sentAt: i.sentAt,
       openedAt: i.openedAt,

@@ -82,7 +82,7 @@ export function renderReport(input: ReportInput): string {
       out.push(
         `### ${o.title}`,
         "",
-        `${o.stats.participants} participant${o.stats.participants === 1 ? "" : "s"}${o.stats.minutesPerWeekTotal ? `, about ${Math.round(o.stats.minutesPerWeekTotal / 60)} hours per week in total` : ""}${o.stats.tools.length ? `, tools: ${o.stats.tools.join(", ")}` : ""}.`,
+        `${o.stats.participants} participant${o.stats.participants === 1 ? "" : "s"}${o.stats.minutesPerWeekTotal ? `, about ${Math.round(o.stats.minutesPerWeekTotal / 60)} hours per week in total` : ""}${o.stats.tools.length ? `, tools: ${o.stats.tools.join(", ")}` : ""}.${o.stats.participants < input.k ? ` Fewer than ${input.k} participants described this, so quotes, roles, tools and process maps are withheld.` : ""}`,
         "",
       );
       for (const proc of o.processes.slice(0, 2)) out.push(processMap(proc), "");

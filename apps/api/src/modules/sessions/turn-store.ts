@@ -125,14 +125,14 @@ export class TurnStore {
     payload: Prisma.InputJsonObject,
   ): Promise<void> {
     try {
-      // SessionEvent carries no company of its own, so ownership is checked on the session first.
+      // Ownership is checked on the session first; the event then carries the same tenant.
       const owned = await this.db.session.findFirst({
         where: { id: sessionId, companyId },
         select: { id: true },
       });
       if (!owned) return;
       await this.db.sessionEvent.create({
-        data: { sessionId, seq: Date.now() % 2_147_483_647, type: "voice.live", payload },
+        data: { companyId, sessionId, seq: Date.now() % 2_147_483_647, type: "voice.live", payload },
       });
     } catch {
       // Best effort by design.

@@ -10,6 +10,7 @@ import {
   type SettingsService,
   type TenantGate,
 } from "@aidp/core";
+import { tenantTransaction } from "@aidp/db";
 import { COMPLETION_REQUESTED_TURN_COUNT } from "@aidp/shared";
 import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
@@ -92,7 +93,10 @@ export class ParticipantService {
     if (view.status !== "open" || campaign.verification !== "email_code") return;
     const allowed = campaign.allowedEmailDomains as string[];
     if (allowed.length && !allowed.includes(emailDomain(email))) return;
-    const emailHash = this.crypto.hashEmail(email);
+    // A code row carries the campaign-salted hash. One written by a build that predates the salt
+    // (D-142) is matched by the legacy value below, so a code requested just before an upgrade
+    // still confirms.
+    const { hash: emailHash, legacy } = this.hashes(campaign.id, email);
     // Per-address cap (D-82): the shared per-IP bucket cannot stop one person mail-bombing a
     // victim through this endpoint from many addresses, so the address itself is counted. The
     // count is the EmailCode rows of the last hour, which persist across restarts and replicas.
@@ -100,10 +104,9 @@ export class ParticipantService {
     // already asked for, and the attacker learns nothing by hitting the cap.
     const { requests } = await this.codeLimits(campaign.companyId);
     const since = new Date(Date.now() - HOUR_MS);
-    await this.db.emailCode.deleteMany({
-      where: { campaignId: campaign.id, emailHash, createdAt: { lt: since } },
-    });
-    const recent = await this.db.emailCode.count({ where: { campaignId: campaign.id, emailHash } });
+    const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, legacy] } };
+    await this.db.emailCode.deleteMany({ where: { ...mine, createdAt: { lt: since } } });
+    const recent = await this.db.emailCode.count({ where: mine });
     if (recent >= requests) {
       this.onAbuse("abuse.code_request_capped", { campaignId: campaign.id });
       return;
@@ -111,6 +114,7 @@ export class ParticipantService {
     const code = newNumericCode();
     await this.db.emailCode.create({
       data: {
+        companyId: campaign.companyId,
         campaignId: campaign.id,
         emailHash,
         codeHash: this.crypto.hashToken(code),
@@ -133,23 +137,21 @@ export class ParticipantService {
   ): Promise<{ participantToken: string; sessionId: string; resume: boolean }> {
     const { campaign, view } = await this.resolveLink(linkToken);
     if (view.status !== "open") throw new AppError("conflict", "This interview is not open");
-    const emailHash = this.crypto.hashEmail(email);
+    const { hash: emailHash, legacy } = this.hashes(campaign.id, email);
+    const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, legacy] } };
     // Guessing is bounded per address, not only per code: the six-digit space is small, and a
     // fresh code resets a per-code counter.
     const { failures } = await this.codeLimits(campaign.companyId);
     const since = new Date(Date.now() - HOUR_MS);
     const spent = await this.db.emailCode.aggregate({
-      where: { campaignId: campaign.id, emailHash, createdAt: { gte: since } },
+      where: { ...mine, createdAt: { gte: since } },
       _sum: { attempts: true },
     });
     if ((spent._sum.attempts ?? 0) >= failures) {
       this.onAbuse("abuse.code_confirm_locked", { campaignId: campaign.id });
       throw new AppError("forbidden", "Code expired or invalid");
     }
-    const row = await this.db.emailCode.findFirst({
-      where: { campaignId: campaign.id, emailHash },
-      orderBy: { createdAt: "desc" },
-    });
+    const row = await this.db.emailCode.findFirst({ where: mine, orderBy: { createdAt: "desc" } });
     if (!row || row.expiresAt.getTime() < Date.now() || row.attempts >= 5)
       throw new AppError("forbidden", "Code expired or invalid");
     if (!this.crypto.verifyTokenHash(code, row.codeHash)) {
@@ -157,11 +159,18 @@ export class ParticipantService {
       throw new AppError("forbidden", "Code expired or invalid");
     }
     await this.db.emailCode.delete({ where: { id: row.id } });
-    return this.bindByEmailHash(
-      campaign,
-      emailHash,
-      campaign.participationMode === "anonymous" ? null : normalizeEmail(email),
-    );
+    return this.bind(campaign, {
+      hash: emailHash,
+      legacyHashes: [legacy],
+      // Typing the address again is what opens the pointer to the earlier session.
+      resumeKey: this.crypto.resumeKeyForEmail(email, campaign.id),
+      email: campaign.participationMode === "anonymous" ? null : normalizeEmail(email),
+    });
+  }
+
+  /** The campaign-salted hash of an address, and the platform-wide one older rows carry. */
+  private hashes(campaignId: string, email: string): { hash: string; legacy: string } {
+    return { hash: this.crypto.campaignEmailHash(email, campaignId), legacy: this.crypto.hashEmail(email) };
   }
 
   private async codeLimits(companyId: string): Promise<{ requests: number; failures: number }> {
@@ -188,59 +197,225 @@ export class ParticipantService {
       });
       if (inv?.campaignId !== campaign.id || inv.status === "revoked" || inv.expiresAt.getTime() < Date.now())
         throw new AppError("forbidden", "Invitation is invalid or expired");
-      const bound = await this.bindByEmailHash(campaign, inv.emailHash, inv.email);
+      const bound = await this.bind(campaign, {
+        hash: inv.emailHash,
+        legacyHashes: [],
+        // The invitation token is the secret that only this person holds; the database keeps its
+        // hash, so the pointer to their session cannot be opened from the database alone.
+        resumeKey: this.crypto.resumeKeyForToken(invitationToken, campaign.id),
+        email: inv.email,
+        // A bound invitation whose answers cannot be found again must not start a second interview.
+        alreadyUsed: inv.status === "bound",
+      });
+      // An anonymous campaign keeps no link from the invitation to the session and only the day it
+      // was opened, so the admin's list of who has responded cannot be read against the sessions'
+      // timestamps (D-142). A participant who may still choose anonymity keeps the link until they
+      // do (see `consent`).
+      const anonymous = campaign.participationMode === "anonymous";
       await this.db.invitation.update({
         where: { id: inv.id },
-        data: { status: "bound", openedAt: inv.openedAt ?? new Date(), sessionId: bound.sessionId },
+        data: {
+          status: "bound",
+          openedAt: anonymous ? startOfUtcDay(inv.openedAt ?? new Date()) : (inv.openedAt ?? new Date()),
+          sessionId: anonymous ? null : bound.sessionId,
+        },
       });
       return bound;
     }
     if (campaign.verification !== "open")
       throw new AppError("forbidden", "This interview requires verification");
     // Open links accept duplicates by design: every open creates a new anonymous participant.
-    return this.createParticipantAndSession(campaign, null, null);
+    const created = await this.createParticipantAndSession(this.db, campaign, null);
+    return { participantToken: created.participantToken, sessionId: created.sessionId, resume: false };
   }
 
-  private async bindByEmailHash(
+  /**
+   * Binds a verified person to their one response in a campaign, or finds the response they
+   * already have.
+   *
+   * Anonymous mode is the case that shapes this. The spec says the campaign stores "only a salted
+   * hash ... never on the session", so nothing on the participant row may hold the hash or point
+   * at it, and the hash row may not hold a session id. The way back is therefore sealed: the hash
+   * row carries the participant id encrypted under a key only the returning person can produce
+   * (their address, or their invitation token). A copy of the database joins nothing.
+   */
+  private async bind(
     campaign: Campaign,
-    emailHash: string,
-    email: string | null,
+    who: {
+      hash: string;
+      legacyHashes: string[];
+      resumeKey: Buffer;
+      email: string | null;
+      alreadyUsed?: boolean;
+    },
   ): Promise<{ participantToken: string; sessionId: string; resume: boolean }> {
-    const existing = await this.db.campaignEmailHash.findUnique({
-      where: { campaignId_emailHash: { campaignId: campaign.id, emailHash } },
+    const accepted = [who.hash, ...who.legacyHashes];
+    const existing = await this.db.campaignEmailHash.findFirst({
+      where: { campaignId: campaign.id, emailHash: { in: accepted } },
     });
     if (existing) {
-      // One response per person: find the participant bound to this hash and re-issue its token.
-      const participant = await this.db.participant.findFirst({
-        where: { campaignId: campaign.id, fields: { path: ["_emailHash"], equals: emailHash } },
-        include: { sessions: { take: 1 } },
-      });
-      const session = participant?.sessions[0];
-      if (participant && session) {
-        if (session.status === "deleted")
+      const found = await this.findResponse(campaign, existing, accepted, who.resumeKey);
+      if (found) {
+        if (found.session.status === "deleted")
           throw new AppError("conflict", "Your answers were deleted; this link cannot be reused");
         const token = newToken(24);
         await this.db.participant.update({
-          where: { id: participant.id },
-          data: { tokenHash: this.crypto.hashToken(token) },
+          where: { id: found.participant.id },
+          data: {
+            tokenHash: this.crypto.hashToken(token),
+            // An anonymous participant row never holds the pointer; one written before D-142 is
+            // brought to that shape now that the person is here to seal it.
+            ...(campaign.participationMode === "anonymous"
+              ? { fields: withoutPointer(found.participant.fields) }
+              : {}),
+          },
         });
-        return { participantToken: token, sessionId: session.id, resume: session.status !== "created" };
+        await this.upgradeRow(campaign, existing, found.participant.id, who);
+        return {
+          participantToken: token,
+          sessionId: found.session.id,
+          resume: found.session.status !== "created",
+        };
+      }
+      // The address has been used but its response cannot be reached from here, for instance a
+      // personal link used after the address answered through the share link.
+      throw new AppError("conflict", "This address has already been used for this interview");
+    }
+    if (who.alreadyUsed)
+      throw new AppError("conflict", "This invitation has already been used for this interview");
+
+    // The hash row first: its primary key is the one-response-per-address guard, so two concurrent
+    // verifications cannot both create a response. The row is completed with the sealed pointer in
+    // the same transaction.
+    try {
+      return await this.createResponse(campaign, who);
+    } catch (e) {
+      if ((e as { code?: unknown } | null)?.code === "P2002")
+        throw new AppError("conflict", "This address has already been used for this interview");
+      throw e;
+    }
+  }
+
+  private createResponse(
+    campaign: Campaign,
+    who: { hash: string; resumeKey: Buffer; email: string | null },
+  ): Promise<{ participantToken: string; sessionId: string; resume: boolean }> {
+    return tenantTransaction(this.db, async (tx) => {
+      const anonymous = campaign.participationMode === "anonymous";
+      await tx.campaignEmailHash.create({
+        data: {
+          companyId: campaign.companyId,
+          campaignId: campaign.id,
+          emailHash: who.hash,
+          // Day resolution in anonymous mode: the minute it was written would pair this row with
+          // the session created in the same second.
+          ...(anonymous ? { createdAt: startOfUtcDay(new Date()) } : {}),
+        },
+      });
+      const created = await this.createParticipantAndSession(tx, campaign, who.hash, who.email);
+      await tx.campaignEmailHash.update({
+        where: { campaignId_emailHash: { campaignId: campaign.id, emailHash: who.hash } },
+        data: {
+          resumeSeal: this.crypto.seal(who.resumeKey, created.participantId),
+          ownerTag: this.crypto.participantTag(campaign.id, created.participantId),
+        },
+      });
+      return {
+        participantToken: created.participantToken,
+        sessionId: created.sessionId,
+        resume: false,
+      };
+    });
+  }
+
+  /** The participant and session an address already has, by the seal first and the old pointer second. */
+  private async findResponse(
+    campaign: Campaign,
+    row: { resumeSeal: string | null },
+    accepted: string[],
+    resumeKey: Buffer,
+  ): Promise<{ participant: Participant; session: Session } | null> {
+    const sealed = row.resumeSeal ? this.crypto.unseal(resumeKey, row.resumeSeal) : null;
+    const participant = sealed
+      ? await this.db.participant.findFirst({ where: { id: sealed, campaignId: campaign.id } })
+      : // Rows written before D-142: the pointer was the hash itself, on the participant row.
+        await this.db.participant.findFirst({
+          where: {
+            campaignId: campaign.id,
+            OR: accepted.map((h) => ({ fields: { path: ["_emailHash"], equals: h } })),
+          },
+        });
+    if (!participant) return null;
+    const session = await this.db.session.findFirst({
+      where: { participantId: participant.id, campaignId: campaign.id },
+    });
+    return session ? { participant, session } : null;
+  }
+
+  /**
+   * Brings a hash row written by an earlier build to the current shape, now that the person has
+   * proved who they are: the sealed pointer and owner tag are written, the timestamp is coarsened,
+   * and, when the address was typed, the platform-wide hash is replaced by the campaign-salted one.
+   * Existing rows cannot be re-salted without the address; a row whose person never returns keeps
+   * the old hash until the campaign is closed (see CampaignService.setStatus).
+   */
+  private async upgradeRow(
+    campaign: Campaign,
+    row: { emailHash: string; resumeSeal: string | null; ownerTag: string | null; createdAt: Date },
+    participantId: string,
+    who: { hash: string; resumeKey: Buffer },
+  ): Promise<void> {
+    const anonymous = campaign.participationMode === "anonymous";
+    const rehash = row.emailHash !== who.hash && who.hash.startsWith("h2:");
+    const needsSeal = row.resumeSeal === null || row.ownerTag === null;
+    const day = startOfUtcDay(row.createdAt);
+    const coarsen = anonymous && day.getTime() !== row.createdAt.getTime();
+    if (!rehash && !needsSeal && !coarsen) return;
+    await this.db.campaignEmailHash.update({
+      where: { campaignId_emailHash: { campaignId: campaign.id, emailHash: row.emailHash } },
+      data: {
+        ...(rehash ? { emailHash: who.hash } : {}),
+        ...(needsSeal
+          ? {
+              resumeSeal: this.crypto.seal(who.resumeKey, participantId),
+              ownerTag: this.crypto.participantTag(campaign.id, participantId),
+            }
+          : {}),
+        ...(coarsen ? { createdAt: day } : {}),
+      },
+    });
+    if (rehash) {
+      // The invitation for the same address, and the identified pointer, follow the new value.
+      await this.db.invitation.updateMany({
+        where: { campaignId: campaign.id, emailHash: row.emailHash },
+        data: { emailHash: who.hash },
+      });
+      if (!anonymous) {
+        const p = await this.db.participant.findUnique({ where: { id: participantId } });
+        const fields = (p?.fields ?? {}) as Record<string, unknown>;
+        if (p && fields._emailHash !== undefined)
+          await this.db.participant.update({
+            where: { id: p.id },
+            data: { fields: { ...fields, _emailHash: who.hash } },
+          });
       }
     }
-    await this.db.campaignEmailHash.create({ data: { campaignId: campaign.id, emailHash } });
-    return this.createParticipantAndSession(campaign, emailHash, email);
   }
 
   private async createParticipantAndSession(
+    db: Pick<PrismaClient, "participant" | "session">,
     campaign: Campaign,
     emailHash: string | null,
-    email: string | null,
-  ): Promise<{ participantToken: string; sessionId: string; resume: boolean }> {
+    email: string | null = null,
+  ): Promise<{ participantToken: string; sessionId: string; participantId: string }> {
     const token = newToken(24);
     const fields: Record<string, string> = {};
-    if (emailHash) fields._emailHash = emailHash; // uniqueness pointer; never shown
+    // Only a campaign that is not anonymous keeps a pointer on the participant row: its email is
+    // stored there anyway, and deletion uses the pointer. Anonymous responses are found through the
+    // sealed pointer instead, and removed through the owner tag (D-142).
+    if (emailHash && campaign.participationMode !== "anonymous") fields._emailHash = emailHash;
     if (email && campaign.participationMode !== "anonymous") fields.email = email;
-    const participant = await this.db.participant.create({
+    const participant = await db.participant.create({
       data: {
         companyId: campaign.companyId,
         campaignId: campaign.id,
@@ -248,7 +423,7 @@ export class ParticipantService {
         tokenHash: this.crypto.hashToken(token),
       },
     });
-    const session = await this.db.session.create({
+    const session = await db.session.create({
       data: {
         companyId: campaign.companyId,
         templateId: campaign.templateId,
@@ -259,7 +434,7 @@ export class ParticipantService {
         templateVersion: 1,
       },
     });
-    return { participantToken: token, sessionId: session.id, resume: false };
+    return { participantToken: token, sessionId: session.id, participantId: participant.id };
   }
 
   async consent(
@@ -283,12 +458,24 @@ export class ParticipantService {
       const existing = (session.participant.fields ?? {}) as Record<string, string>;
       const provided = input.participantFields ?? {};
       const fields = anonymous
-        ? {
-            ...(existing._emailHash ? { _emailHash: existing._emailHash } : {}),
-            ...pick(provided, ["role", "department"]),
-          }
+        ? // No pointer to the address hash and no address: the sealed pointer on the campaign's
+          // hash row is how an anonymous response is found again (D-142).
+          pick(provided, ["role", "department"])
         : { ...existing, ...provided };
       await this.db.participant.update({ where: { id: session.participant.id }, data: { fields } });
+    }
+    if (anonymous) {
+      // A participant who chose anonymity after the link was bound: the invitation stops naming
+      // their session and keeps only the day it was opened.
+      const invitation = await this.db.invitation.findUnique({ where: { sessionId } });
+      if (invitation)
+        await this.db.invitation.update({
+          where: { id: invitation.id },
+          data: {
+            sessionId: null,
+            openedAt: invitation.openedAt ? startOfUtcDay(invitation.openedAt) : null,
+          },
+        });
     }
     await this.db.session.update({
       where: { id: sessionId },
@@ -320,7 +507,7 @@ export class ParticipantService {
 
   /** "Delete my data" (FR-13): one definition of deletion, shared with the retention sweep. */
   async deleteData(sessionId: string): Promise<void> {
-    await deleteSessionData(this.db, sessionId, { markEnded: true });
+    await deleteSessionData(this.db, sessionId, { markEnded: true, crypto: this.crypto });
   }
 
   async summary(sessionId: string): Promise<{ summary: string; facts: unknown[] }> {
@@ -359,6 +546,17 @@ export class ParticipantService {
       participant: fields,
     };
   }
+}
+
+/** The start of the UTC day: what a timestamp is coarsened to on an anonymous campaign. */
+function startOfUtcDay(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+/** A participant's fields without the address-hash pointer. */
+function withoutPointer(fields: unknown): Record<string, string> {
+  const { _emailHash: _removed, ...rest } = (fields ?? {}) as Record<string, string>;
+  return rest;
 }
 
 function pick(o: Record<string, string>, keys: string[]): Record<string, string> {

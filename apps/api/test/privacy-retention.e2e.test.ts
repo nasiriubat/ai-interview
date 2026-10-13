@@ -1,5 +1,6 @@
 import type { Server } from "node:http";
 import { RETENTION_SWEEP_ACTION } from "@aidp/core";
+import { withTenant } from "@aidp/db";
 import { describeDb } from "@aidp/testing";
 import { encode } from "@auth/core/jwt";
 import { afterAll, beforeAll, expect, it } from "vitest";
@@ -76,10 +77,8 @@ suite("GET /privacy/retention (spec 11)", () => {
     expect(first.lastSweepAt).toBeNull();
 
     // A stricter tenant window is what the route reports, and moves the count.
-    await world.ctx.settings.set(
-      { scope: "tenant", scopeId: companyId },
-      { "privacy.retentionMonths": 6 },
-      null,
+    await withTenant(companyId, () =>
+      world.ctx.settings.set({ scope: "tenant", scopeId: companyId }, { "privacy.retentionMonths": 6 }, null),
     );
     const stricter = (await get(world.adminToken)).json<RetentionBody>();
     expect(stricter.retentionMonths).toBe(6);

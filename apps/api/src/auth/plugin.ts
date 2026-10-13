@@ -1,4 +1,4 @@
-import { enterSystemTenant, enterTenant } from "@aidp/db";
+import { SYSTEM_TENANT, withSystemTenant, withTenant } from "@aidp/db";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { unauthenticated } from "../lib/errors.js";
@@ -12,31 +12,63 @@ declare module "fastify" {
   }
 }
 
-export const authPlugin = fp(async (app: FastifyInstance, opts: { resolver: PrincipalResolver }) => {
-  app.decorateRequest<Principal | null>("principal", null);
-  app.decorateRequest("companyId", "");
-  app.addHook("onRequest", async (request) => {
-    // Resolving a bearer token has to look across tenants: which tenant it belongs to is the
-    // answer, not the question. Everything after this point is pinned to one company.
-    enterSystemTenant();
-    request.principal = await opts.resolver.fromBearer(
-      bearerFrom(request.headers.authorization, request.cookies),
-    );
-    const p = request.principal;
-    const override = request.headers["x-company-id"];
-    request.companyId =
-      p.kind === "anonymous"
-        ? ""
-        : p.kind === "staff" && p.role === "platform_operator" && typeof override === "string"
-          ? override
-          : p.companyId;
-    // A platform operator without a chosen tenant works across all of them by design; everyone
-    // else is fenced in by Postgres itself from here on (packages/db/src/tenancy.ts).
-    const operatorAcrossTenants =
-      p.kind === "staff" && p.role === "platform_operator" && typeof override !== "string";
-    if (!operatorAcrossTenants && request.companyId) enterTenant(request.companyId);
-  });
-});
+export const authPlugin = fp(
+  async (app: FastifyInstance, opts: { resolver: Pick<PrincipalResolver, "fromBearer"> }) => {
+    app.decorateRequest<Principal | null>("principal", null);
+    app.decorateRequest("companyId", "");
+
+    /**
+     * Resolves who is calling and which tenant the rest of the request is fenced into.
+     *
+     * Resolving a bearer token has to look across tenants (which tenant it belongs to is the answer,
+     * not the question), so it runs in the system context. The result is the tenant context the guards
+     * and the handler then run in: the principal's company, or system for an anonymous caller (the
+     * public participant routes look a campaign up by its link before any tenant is known) and for a
+     * platform operator working across tenants.
+     *
+     * An operator is across tenants on every `/operator/*` route even when it also sent
+     * `X-Company-Id`: those routes are platform-wide by definition, and pinning them to one tenant
+     * hid every other tenant and refused writes to platform rows (D-141).
+     */
+    const resolve = async (request: FastifyRequest): Promise<string> => {
+      request.principal = await withSystemTenant(() =>
+        opts.resolver.fromBearer(bearerFrom(request.headers.authorization, request.cookies)),
+      );
+      const p = request.principal;
+      const override = request.headers["x-company-id"];
+      request.companyId =
+        p.kind === "anonymous"
+          ? ""
+          : p.kind === "staff" && p.role === "platform_operator" && typeof override === "string"
+            ? override
+            : p.companyId;
+      const operator = p.kind === "staff" && p.role === "platform_operator";
+      const operatorRoute = request.routeOptions.config.access === "operator";
+      const acrossTenants = operator && (typeof override !== "string" || operatorRoute);
+      return acrossTenants || !request.companyId ? SYSTEM_TENANT : request.companyId;
+    };
+
+    // Callback style, on purpose. The tenant lives in AsyncLocalStorage, and a context only reaches
+    // the guards and the handler if `done` is called inside the `run` that establishes it. Setting it
+    // with `enterWith` from an async hook (what this did before) changes the context of that hook's
+    // continuation only: the handler kept the system context, so every API query ran with the policies
+    // stood down and the second fence held only for jobs. A test now fails on that (D-140).
+    app.addHook("onRequest", (request, _reply, done) => {
+      resolve(request).then(
+        (tenant) => {
+          const run =
+            tenant === SYSTEM_TENANT ? withSystemTenant : (fn: () => Promise<void>) => withTenant(tenant, fn);
+          void run(async () => {
+            done();
+          });
+        },
+        (err: unknown) => {
+          done(err instanceof Error ? err : new Error(String(err)));
+        },
+      );
+    });
+  },
+);
 
 export function staff(request: FastifyRequest): Extract<Principal, { kind: "staff" }> {
   if (request.principal.kind !== "staff") throw unauthenticated();

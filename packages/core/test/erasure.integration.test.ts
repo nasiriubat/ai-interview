@@ -114,13 +114,13 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
       },
     });
     const message = await db.message.create({
-      data: { sessionId: session.id, seq: 1, role: "user", content: quote },
+      data: { companyId, sessionId: session.id, seq: 1, role: "user", content: quote },
     });
     await db.message.create({
-      data: { sessionId: session.id, seq: 2, role: "assistant", content: `Thanks ${canary}` },
+      data: { companyId, sessionId: session.id, seq: 2, role: "assistant", content: `Thanks ${canary}` },
     });
     await db.sessionEvent.create({
-      data: { sessionId: session.id, seq: 1, type: "state_delta", payload: { who: canary } },
+      data: { companyId, sessionId: session.id, seq: 1, type: "state_delta", payload: { who: canary } },
     });
     const fact = await db.fact.create({
       data: {
@@ -165,10 +165,11 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
 
     // The aggregate that quotes the participant: an analysis, a report and an opportunity.
     const analysis = await db.analysis.create({
-      data: { campaignId: campaign.id, version: 1, status: "done", stats: { sessions: 1 } },
+      data: { companyId, campaignId: campaign.id, version: 1, status: "done", stats: { sessions: 1 } },
     });
     const opportunity = await db.opportunity.create({
       data: {
+        companyId,
         analysisId: analysis.id,
         title: "Fewer handover calls",
         summary: `Several people said "${quote}" in some form`,
@@ -180,10 +181,11 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
       },
     });
     await db.opportunityEvidence.create({
-      data: { opportunityId: opportunity.id, factId: fact.id, snippet: quote },
+      data: { companyId, opportunityId: opportunity.id, factId: fact.id, snippet: quote },
     });
     await db.report.create({
       data: {
+        companyId,
         analysisId: analysis.id,
         version: 1,
         markdown: `# Report\n\n> ${quote}\n\nCounts: 1 participant.`,
@@ -193,6 +195,7 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
 
     const invitation = await db.invitation.create({
       data: {
+        companyId,
         campaignId: campaign.id,
         emailHash,
         email: canary,
@@ -204,9 +207,15 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
         expiresAt: new Date(Date.now() + 86_400_000),
       },
     });
-    await db.campaignEmailHash.create({ data: { campaignId: campaign.id, emailHash } });
+    await db.campaignEmailHash.create({ data: { companyId, campaignId: campaign.id, emailHash } });
     await db.emailCode.create({
-      data: { campaignId: campaign.id, emailHash, codeHash: "x", expiresAt: new Date(Date.now() + 600_000) },
+      data: {
+        companyId,
+        campaignId: campaign.id,
+        emailHash,
+        codeHash: "x",
+        expiresAt: new Date(Date.now() + 600_000),
+      },
     });
     await db.llmCall.create({
       data: {
@@ -412,7 +421,9 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
     await deleteSessionData(db, s.sessionId, { markEnded: true });
 
     await expect(
-      db.message.create({ data: { sessionId: s.sessionId, seq: 9, role: "user", content: "late" } }),
+      db.message.create({
+        data: { companyId, sessionId: s.sessionId, seq: 9, role: "user", content: "late" },
+      }),
     ).rejects.toThrow(/session_deleted/);
     await expect(
       db.fact.create({
@@ -445,7 +456,9 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
 
     // A turn mid-flight: it has inserted a message and has not committed yet.
     const turn = db.$transaction(async (tx) => {
-      await tx.message.create({ data: { sessionId: s.sessionId, seq: 7, role: "user", content: s.canary } });
+      await tx.message.create({
+        data: { companyId, sessionId: s.sessionId, seq: 7, role: "user", content: s.canary },
+      });
       inserted();
       await gate;
     });

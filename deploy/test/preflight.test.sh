@@ -21,8 +21,9 @@ case "$sql" in
 "select 1") echo 1 ;;
 "select current_user") s role app_api ;;
 *rolsuper*) s privs "false false" ;;
-*"string_agg(c.relname"*) s unprotected "" ;;
-*relrowsecurity*) s protected 15 ;;
+*exempt_with_company*) s contradicting "" ;;
+*"as unprotected"*) s unprotected "" ;;
+*"count(*) from pg_class"*) s protected 28 ;;
 *has_database_privilege*) s can_create true ;;
 *"to_regclass('pgboss.version')"*) echo true ;;
 *"from pgboss.version"*) exit 0 ;;
@@ -34,6 +35,9 @@ FAKE
 	export SB PATH="$SB/bin:$PATH"
 	export APP_DATABASE_URL="postgresql://app_api:secret@postgres:5432/ai_discovery"
 	export OPS_STATE_DIR="$SB/ops"
+	# The reviewed list of tables that are deliberately outside row-level security.
+	printf '# comment\n\nVerificationToken  platform-level, no tenant\n_prisma_migrations  bookkeeping\n' >"$SB/exempt.txt"
+	export RLS_EXEMPT_FILE="$SB/exempt.txt"
 }
 
 pre() {
@@ -50,7 +54,7 @@ assert_contains "and says so" "$OUT" "preflight: ok"
 assert_eq "writes no alert" 0 "$(alerts | wc -l | tr -d ' ')"
 rm -rf "$SB"
 
-echo "a table that carries a companyId and has no policy"
+echo "a table with no policy that is not on the exempt list"
 setup
 echo "OpsAlert" >"$SB/state/unprotected"
 pre
@@ -62,6 +66,30 @@ assert_eq "at critical" critical "$(jq -r .severity "$f")"
 assert_contains "naming the table" "$(jq -r .message "$f")" "OpsAlert"
 assert_contains "and the consequence" "$(jq -r .message "$f")" "api and worker did not start"
 assert_eq "leaves no half-written temporary file" 0 "$(find "$SB/ops/alerts" -name '.tmp*' | wc -l | tr -d ' ')"
+rm -rf "$SB"
+
+echo "an exempt table that carries a companyId contradicts itself"
+setup
+echo "VerificationToken" >"$SB/state/contradicting"
+pre
+assert_status "refuses" 1 "$STATUS"
+assert_contains "naming it" "$(jq -r .message "$(alerts | head -n1)")" "on deploy/rls-exempt.txt but carry a companyId: VerificationToken"
+rm -rf "$SB"
+
+echo "an exemption written without a reason is refused"
+setup
+printf 'VerificationToken\n' >"$SB/exempt.txt"
+pre
+assert_status "refuses" 1 "$STATUS"
+assert_contains "and asks for the reason" "$OUT" "has no reason"
+rm -rf "$SB"
+
+echo "the exempt list cannot be read"
+setup
+export RLS_EXEMPT_FILE="$SB/missing.txt"
+pre
+assert_status "refuses" 1 "$STATUS"
+assert_contains "and says where it looked" "$OUT" "cannot read the RLS exempt list"
 rm -rf "$SB"
 
 echo "the role has a bypass: the message carries characters that break naive JSON"
@@ -88,7 +116,7 @@ echo "OpsAlert" >"$SB/state/unprotected"
 rm -rf "$SB/ops"
 pre
 assert_status "still refuses" 1 "$STATUS"
-assert_contains "and says why on the terminal" "$OUT" "no row-level security: OpsAlert"
+assert_contains "and says why on the terminal" "$OUT" "not on deploy/rls-exempt.txt: OpsAlert"
 unset OPS_STATE_DIR
 pre
 assert_status "also with the variable unset" 1 "$STATUS"
