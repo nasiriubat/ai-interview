@@ -41,7 +41,7 @@ suite("alert state and routing against Postgres", () => {
   beforeAll(async () => {
     await owner.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD '${API_PASSWORD}'`);
     api = new PrismaClient({ datasources: { db: { url: apiUrl(process.env.DATABASE_URL ?? "") } } });
-    scoped = withTenantScope(api) as unknown as PrismaClient;
+    scoped = withTenantScope(api);
     tenantA = (await owner.company.create({ data: { name: `Alerts A ${tag}` } })).id;
     tenantB = (await owner.company.create({ data: { name: `Alerts B ${tag}` } })).id;
   });

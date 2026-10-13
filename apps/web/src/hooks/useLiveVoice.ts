@@ -1,23 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { microphoneProblem, recorderOptions, type RecorderProblem } from "./useRecorder";
-import {
-  toServerFrame,
-  type ClientFrame,
-  type HearingMode,
-  type ServerFrame,
-  type TurnFrame,
-  type VoiceFallback,
-} from "@/lib/api/voice-live";
-import { voiceSocketUrl } from "@/lib/env";
-import { PCM_FRAME_MS, PCM_WORKLET_NAME, PCM_WORKLET_SOURCE } from "@/lib/voice/pcm-worklet";
+import { Capture } from "./live-voice/capture";
+import { INITIAL_CALL, reduce, type CallEffect, type CallEvent, type CallState } from "./live-voice/machine";
+import { Player } from "./live-voice/playback";
+import { LiveSocket } from "./live-voice/socket";
+import type { LiveVoiceCallbacks, LiveVoiceController, LiveVoiceProblem } from "./live-voice/types";
+import { INITIAL_VAD, meterStep, METER_STEPS, POLL_MS, vadStep } from "./live-voice/vad";
+import { microphoneProblem } from "./useRecorder";
 
 /**
  * The browser half of the real-time voice cascade (FR-30a).
  *
- * The socket, the microphone, the end-of-utterance detector and playback, behind one state
- * machine. Three decisions shape it.
+ * This hook is the glue. The decisions are in `live-voice/machine.ts` (a pure reducer: what each
+ * server frame, drop or playback event does to the call, and which effects it asks for) and
+ * `live-voice/vad.ts` (a pure function from loudness to "start recording", "stop", "interrupt").
+ * The browser objects are behind three small classes: `Capture` (microphone, analyser, recorder,
+ * PCM worklet), `Player` (the interviewer's voice) and `LiveSocket`. The hook owns one of each,
+ * feeds events to the reducer, and executes the effects it returns.
+ *
+ * Three decisions shape it.
  *
  * **Two ways to hear, and the server picks (D-77).** Its `ready` frame names the mode.
  *
@@ -26,713 +28,319 @@ import { PCM_FRAME_MS, PCM_WORKLET_NAME, PCM_WORKLET_SOURCE } from "@/lib/voice/
  *   talks, the growing text comes back as `caption_partial`, and the provider decides when they
  *   have finished. Nothing here detects the end of speech.
  * - `utterance`: one recording per utterance (D-70). The server treats everything sent since the
- *   last `utterance` frame as a complete `audio/webm` file. A webm stream cut at an arbitrary point
- *   is not a file: only the first piece carries the container header. So the `MediaRecorder` is
- *   started when the participant starts talking and stopped when they stop, and the audio in
- *   between goes out in 250 ms slices.
+ *   last `utterance` frame as a complete `audio/webm` file, so the recorder is started when the
+ *   participant starts talking and stopped when they stop.
  *
- * Either way the analyser runs continuously on the `MediaStream`, for the meter and for barge-in.
- * A server that loses its streaming provider mid-call sends `mode: utterance`, and the call carries
- * on with recordings; a browser without AudioWorklet asks for that itself.
+ * Either way the analyser runs continuously, for the meter and for barge-in. A server that loses
+ * its streaming provider mid-call sends `mode: utterance`, and the call carries on with
+ * recordings; a browser without AudioWorklet asks for that itself.
  *
- * **Playback is buffered, not incremental.** The audio of one `speech_start`/`speech_end` pair is
- * collected into a Blob and played from an object URL, so speech begins when the server has
- * finished synthesizing rather than when the first byte lands. `MediaSource` would start sooner,
- * but it needs codec-exact `SourceBuffer` mime strings, is absent from Safari on iPhone, and a
- * mismatch there fails silently — an interviewer that says nothing at all is a worse bug than an
- * interviewer that starts a moment late. The server measures `first_word` from its own side, so
- * the spec's latency number is still honest; this is the extra the browser adds.
+ * **Playback is buffered, not incremental** (see `Player`).
  *
  * **Every exit releases the microphone.** End, unmount, a fallback, a refused permission, a lost
- * socket: all of them go through `release`. A voice product that leaves the light on is a privacy
- * bug, not a leaked object.
+ * socket: all of them are a `teardown` effect. A voice product that leaves the light on is a
+ * privacy bug, not a leaked object.
  */
 
-/** `WebSocket.OPEN`, spelled out so the hook does not depend on a global that tests replace. */
-const SOCKET_OPEN = 1;
+export { METER_STEPS };
+export type {
+  LiveVoiceCallbacks,
+  LiveVoiceController,
+  LiveVoiceProblem,
+  LiveVoiceStatus,
+} from "./live-voice/types";
 
-/** Small enough that audio is on the wire while the participant is still talking. */
-const CHUNK_MS = 250;
-
-/** How often the analyser is read: fine enough to resolve the silence window, cheap enough to ignore. */
-const POLL_MS = 50;
-
-/** End of utterance: this much quiet after something was actually said. */
-const SILENCE_MS = 900;
-
-/** Root-mean-square above which the microphone is carrying speech rather than room noise. */
-const SPEECH_RMS = 0.045;
-
-/**
- * Interrupting takes a clearer signal than starting to talk into silence, and it has to hold for a
- * few polls: the speakers are feeding the microphone, and a cough must not cut the interviewer off.
- */
-const BARGE_RMS = 0.09;
-const BARGE_POLLS = 3;
-
-/** The loudness that fills the level meter. Normal speech sits well below it. */
-const FULL_SCALE_RMS = 0.3;
-
-/** The meter is drawn in steps, and the level only re-renders when the step changes. */
-export const METER_STEPS = 8;
-
-/** A detector that never sees silence must not record for ever; the server caps the bytes anyway. */
-const MAX_UTTERANCE_MS = 2 * 60 * 1000;
-
-const ANALYSER_FFT = 1024;
-
-export type LiveVoiceStatus = "idle" | "connecting" | "listening" | "thinking" | "speaking" | "unavailable";
-
-/** The recorder's problems plus the one only a live call has: the socket went away for good. */
-export type LiveVoiceProblem = RecorderProblem | "lost";
-
-export interface LiveVoiceCallbacks {
-  /** One interviewer turn — the same payload the SSE stream carries, so it becomes a normal message. */
-  onTurn: (turn: TurnFrame) => void;
-  /**
-   * What the participant was heard to say. This is the only way their own words reach the browser:
-   * the server takes the turn with the answer already transcribed, so no `turn` frame echoes it.
-   */
-  onHeard: (text: string) => void;
-  onEnded: (summaryAvailable: boolean) => void;
-  /** A turn that failed, in the same shape the interview's own error alert takes. */
-  onError: (code: string, message: string) => void;
-  /**
-   * The call is over because the cascade cannot hear, and this is the rung of spec 09's chain that
-   * is still standing: `recorded` when transcription merely failed, `text` when there is no
-   * transcription route at all and the microphone would fail the same way.
-   *
-   * The hook does not decide what to offer instead — it has already released the device and closed
-   * the socket. `reason` is the server's word for why, for logs and for wording.
-   */
-  onUnavailable: (fallback: Exclude<VoiceFallback, "captions">, reason: string) => void;
-}
-
-export interface LiveVoiceController {
-  status: LiveVoiceStatus;
-  /** Microphone loudness, 0 to 1, quantized to the meter's steps. */
-  level: number;
-  /** Whether the server sends captions. When it does not, nothing the participant says is shown. */
-  captions: boolean;
-  /** The server's voice is gone; the call carries on in text (the middle rung of the chain). */
-  textOnly: boolean;
-  /** The last utterance transcribed to nothing, so the participant can be asked to try again. */
-  notHeard: boolean;
-  /**
-   * Stream mode: what the participant has said so far in the utterance in progress. Visual only —
-   * it changes several times a second, so it is never put in a live region; the finished caption
-   * reaches the message list, which announces it once.
-   */
-  partial: string;
-  /** How speech is being captured in this call. */
-  mode: HearingMode;
-  problem: LiveVoiceProblem | null;
-  start: () => void;
-  end: () => void;
-  /** Cuts the interviewer off now: the same thing barge-in does, from a button. */
-  stopSpeaking: () => void;
-  dismissProblem: () => void;
+interface Live {
+  socket: LiveSocket;
+  capture: Capture;
+  player: Player;
+  poll: ReturnType<typeof setInterval> | null;
+  vad: typeof INITIAL_VAD;
+  step: number;
 }
 
 export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController {
   const cb = React.useRef(callbacks);
   cb.current = callbacks;
 
-  const [status, setStatus] = React.useState<LiveVoiceStatus>("idle");
+  // `view` is what renders; `machine` is what the socket handlers and the polling loop read. Both
+  // outlive the render that created them, so reading state there would read whatever it was at
+  // connect time. The reducer runs against the ref, synchronously, and the result is mirrored.
+  const [view, setView] = React.useState<CallState>(INITIAL_CALL);
   const [level, setLevel] = React.useState(0);
-  const [captions, setCaptions] = React.useState(false);
-  const [textOnly, setTextOnly] = React.useState(false);
-  const [notHeard, setNotHeard] = React.useState(false);
-  const [partial, setPartial] = React.useState("");
-  const [mode, setMode] = React.useState<HearingMode>("utterance");
   const [problem, setProblem] = React.useState<LiveVoiceProblem | null>(null);
+  const machine = React.useRef<CallState>(INITIAL_CALL);
+  const liveRef = React.useRef<Live | null>(null);
+  liveRef.current ??= {
+    socket: new LiveSocket(),
+    capture: new Capture(),
+    player: new Player(),
+    poll: null,
+    vad: INITIAL_VAD,
+    step: 0,
+  };
+  const live = liveRef.current;
 
-  // Everything the polling loop and the socket handlers touch lives in a ref: both outlive the
-  // render that created them, so reading state there would read whatever it was at connect time.
-  const statusRef = React.useRef<LiveVoiceStatus>("idle");
-  const socketRef = React.useRef<WebSocket | null>(null);
-  const streamRef = React.useRef<MediaStream | null>(null);
-  const contextRef = React.useRef<AudioContext | null>(null);
-  const analyserRef = React.useRef<AnalyserNode | null>(null);
-  const samplesRef = React.useRef<Uint8Array<ArrayBuffer> | null>(null);
-  const pollRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  const recorderRef = React.useRef<MediaRecorder | null>(null);
-  const startedAtRef = React.useRef(0);
-  const silenceSinceRef = React.useRef<number | null>(null);
-  const loudPollsRef = React.useRef(0);
-  const stepRef = React.useRef(0);
-  const playerRef = React.useRef<HTMLAudioElement | null>(null);
-  const speechRef = React.useRef<{ mime: string; chunks: Blob[] } | null>(null);
-  const objectUrlRef = React.useRef<string | null>(null);
-  const bargeInRef = React.useRef(false);
-  const textOnlyRef = React.useRef(false);
-  const reconnectsRef = React.useRef(0);
-  /** The call was ended on purpose, so a closing socket is not a failure. */
-  const endedRef = React.useRef(false);
-  const fellBackRef = React.useRef(false);
-  const modeRef = React.useRef<HearingMode>("utterance");
-  const sourceRef = React.useRef<MediaStreamAudioSourceNode | null>(null);
-  const workletRef = React.useRef<AudioWorkletNode | null>(null);
-  const sinkRef = React.useRef<GainNode | null>(null);
-
-  const setPhase = (next: LiveVoiceStatus): void => {
-    statusRef.current = next;
-    setStatus(next);
+  const dispatch = (event: CallEvent): void => {
+    const { state, effects } = reduce(machine.current, event);
+    machine.current = state;
+    setView(state);
+    for (const effect of effects) run(effect);
   };
 
-  const send = (frame: ClientFrame): void => {
-    const socket = socketRef.current;
-    if (socket?.readyState === SOCKET_OPEN) socket.send(JSON.stringify(frame));
-  };
-
-  /** Blobs go over the socket as they are, so audio and the frame that closes it keep their order. */
-  const sendAudio = (audio: Blob): void => {
-    const socket = socketRef.current;
-    if (socket?.readyState === SOCKET_OPEN) socket.send(audio);
-  };
-
-  const stopPlayback = (): void => {
-    const player = playerRef.current;
-    if (player) {
-      player.onended = null;
-      player.onerror = null;
-      player.pause();
-      player.removeAttribute("src");
-    }
-    if (objectUrlRef.current !== null) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
-    speechRef.current = null;
-  };
-
-  /** Disconnects the PCM capture. The microphone itself is released by `release`. */
-  const stopStreaming = (): void => {
-    const node = workletRef.current;
-    workletRef.current = null;
-    if (node) {
-      node.port.onmessage = null;
-      node.disconnect();
-    }
-    sinkRef.current?.disconnect();
-    sinkRef.current = null;
-  };
-
+  /** Releases the microphone, the player and the polling loop. */
   const release = (): void => {
-    stopStreaming();
-    sourceRef.current = null;
-    if (pollRef.current !== null) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
+    live.capture.release();
+    live.player.stop();
+    if (live.poll !== null) {
+      clearInterval(live.poll);
+      live.poll = null;
     }
-    const recorder = recorderRef.current;
-    recorderRef.current = null;
-    if (recorder) {
-      recorder.ondataavailable = null;
-      recorder.onstop = null;
-      recorder.onerror = null;
-      if (recorder.state !== "inactive") recorder.stop();
-    }
-    stopPlayback();
-    for (const track of streamRef.current?.getTracks() ?? []) track.stop();
-    streamRef.current = null;
-    analyserRef.current = null;
-    samplesRef.current = null;
-    const context = contextRef.current;
-    contextRef.current = null;
-    context?.close().catch(() => undefined);
-    stepRef.current = 0;
+    live.step = 0;
     setLevel(0);
-    setPartial("");
-  };
-
-  const teardown = (next: LiveVoiceStatus): void => {
-    endedRef.current = true;
-    const socket = socketRef.current;
-    socketRef.current = null;
-    if (socket) {
-      // Silenced first: a socket closed on purpose must not look like one that dropped.
-      socket.onopen = null;
-      socket.onmessage = null;
-      socket.onclose = null;
-      socket.onerror = null;
-      if (socket.readyState === SOCKET_OPEN) socket.send(JSON.stringify({ type: "bye" }));
-      socket.close();
-    }
-    release();
-    setPhase(next);
-  };
-
-  const giveUp = (fallback: Exclude<VoiceFallback, "captions">, reason: string): void => {
-    if (fellBackRef.current) return;
-    fellBackRef.current = true;
-    teardown("unavailable");
-    cb.current.onUnavailable(fallback, reason);
-  };
-
-  const toListening = (): void => {
-    if (statusRef.current === "idle" || statusRef.current === "unavailable") return;
-    silenceSinceRef.current = null;
-    setPhase("listening");
   };
 
   const beginUtterance = (): void => {
-    const stream = streamRef.current;
-    if (recorderRef.current || !stream) return;
-    let recorder: MediaRecorder;
-    try {
-      recorder = new window.MediaRecorder(stream, recorderOptions());
-    } catch {
+    const started = live.capture.beginUtterance({
+      onData: (audio) => {
+        live.socket.sendBytes(audio);
+      },
+      onStop: (durationMs) => {
+        dispatch({ type: "utterance_stopped", durationMs });
+      },
+      onError: () => {
+        dispatch({ type: "recorder_failed" });
+      },
+    });
+    if (started === "busy") return;
+    if (started === "failed") {
       setProblem("failed");
       return;
     }
-    recorderRef.current = recorder;
-    startedAtRef.current = Date.now();
-    silenceSinceRef.current = null;
-    setNotHeard(false);
-    recorder.ondataavailable = (e: BlobEvent): void => {
-      if (e.data.size > 0) sendAudio(e.data);
-    };
-    recorder.onerror = (): void => {
-      recorderRef.current = null;
-      // The audio already on the server is half an answer; better discarded than transcribed.
-      send({ type: "cancel" });
-      setProblem("failed");
-      toListening();
-    };
-    recorder.onstop = (): void => {
-      const durationMs = Date.now() - startedAtRef.current;
-      recorderRef.current = null;
-      send({ type: "utterance", durationMs });
-      // Answering may take a few seconds; say so rather than leaving "listening" on screen.
-      if (statusRef.current === "listening") setPhase("thinking");
-    };
-    recorder.start(CHUNK_MS);
+    live.vad = { ...live.vad, silenceSince: null };
+    dispatch({ type: "utterance_started" });
   };
 
   const endUtterance = (): void => {
-    const recorder = recorderRef.current;
-    if (!recorder) return;
-    silenceSinceRef.current = null;
-    if (recorder.state === "inactive") {
-      recorderRef.current = null;
-      return;
-    }
-    recorder.stop();
-  };
-
-  /** Stops the interviewer talking, locally and on the server. */
-  const interrupt = (keepTalking: boolean): void => {
-    if (statusRef.current !== "speaking") return;
-    stopPlayback();
-    send({ type: "barge" });
-    loudPollsRef.current = 0;
-    setPhase("listening");
-    if (keepTalking) beginUtterance();
-  };
-
-  const play = (): void => {
-    const speech = speechRef.current;
-    speechRef.current = null;
-    if (!speech || speech.chunks.length === 0) {
-      toListening();
-      return;
-    }
-    const player = (playerRef.current ??= new Audio());
-    const url = URL.createObjectURL(new Blob(speech.chunks, { type: speech.mime }));
-    objectUrlRef.current = url;
-    const done = (): void => {
-      if (objectUrlRef.current === url) {
-        URL.revokeObjectURL(url);
-        objectUrlRef.current = null;
-      }
-      toListening();
-    };
-    player.onended = done;
-    player.onerror = done;
-    player.src = url;
-    player.play().catch(() => {
-      // Autoplay refused, or a container this browser cannot decode. The text is already on
-      // screen, so the call carries on without the voice rather than stopping.
-      textOnlyRef.current = true;
-      setTextOnly(true);
-      done();
-    });
-  };
-
-  const measure = (): number => {
-    const analyser = analyserRef.current;
-    const samples = samplesRef.current;
-    if (!analyser || !samples) return 0;
-    analyser.getByteTimeDomainData(samples);
-    let sum = 0;
-    for (const sample of samples) {
-      const centred = (sample - 128) / 128;
-      sum += centred * centred;
-    }
-    return Math.sqrt(sum / samples.length);
-  };
-
-  const tick = (): void => {
-    const rms = measure();
-    // Quantized, and only published when the step changes: a meter that re-renders the whole
-    // interview twenty times a second is a cost nobody asked for.
-    const step = Math.min(METER_STEPS, Math.round((rms / FULL_SCALE_RMS) * METER_STEPS));
-    if (step !== stepRef.current) {
-      stepRef.current = step;
-      setLevel(step / METER_STEPS);
-    }
-
-    const phase = statusRef.current;
-    if (phase === "idle" || phase === "connecting" || phase === "unavailable") return;
-
-    if (phase === "speaking") {
-      if (!bargeInRef.current) return;
-      loudPollsRef.current = rms >= BARGE_RMS ? loudPollsRef.current + 1 : 0;
-      // In stream mode the audio is already on its way; there is no recording to start.
-      if (loudPollsRef.current >= BARGE_POLLS) interrupt(modeRef.current === "utterance");
-      return;
-    }
-
-    // Stream mode: the provider finds the end of each utterance, not this loop.
-    if (modeRef.current === "stream") return;
-
-    // Listening, or thinking: an answer given while the turn is still running is the ordinary
-    // case, not an error, and the server holds it until the turn in flight is done.
-    if (recorderRef.current && Date.now() - startedAtRef.current >= MAX_UTTERANCE_MS) {
-      endUtterance();
-      return;
-    }
-    if (rms >= SPEECH_RMS) {
-      silenceSinceRef.current = null;
-      beginUtterance();
-      return;
-    }
-    // Nothing was ever above the threshold, so there is nothing to send: this is what keeps a
-    // quiet room from asking the interviewer a question every second.
-    if (!recorderRef.current) return;
-    const now = Date.now();
-    silenceSinceRef.current ??= now;
-    if (now - silenceSinceRef.current >= SILENCE_MS) endUtterance();
-  };
-
-  const setHearing = (next: HearingMode): void => {
-    modeRef.current = next;
-    setMode(next);
+    if (!live.capture.recording) return;
+    live.vad = { ...live.vad, silenceSince: null };
+    live.capture.endUtterance();
   };
 
   /**
-   * Stream mode: routes the microphone through the PCM worklet and sends each frame as it is made.
-   *
-   * While the interviewer is talking with barge-in off, frames are not sent: nothing the
-   * participant says then can interrupt, and the speakers leaking into the microphone would
+   * Stream mode. While the interviewer is talking with barge-in off, frames are not sent: nothing
+   * the participant says then can interrupt, and the speakers leaking into the microphone would
    * otherwise be transcribed as their answer. With barge-in on they are sent, because the
    * provider's own speech detection is the second half of barge-in; echo cancellation keeps the
    * interviewer's voice out of them.
    */
   const startStreaming = async (sampleRate: number): Promise<void> => {
-    const context = contextRef.current;
-    const source = sourceRef.current;
-    const cannot = (): void => {
-      // No AudioWorklet (an old browser), or it failed to load: record per utterance instead.
-      stopStreaming();
-      setHearing("utterance");
-      send({ type: "capture", mode: "utterance" });
-    };
-    if (!context || !source || typeof context.audioWorklet === "undefined") {
-      cannot();
-      return;
-    }
-    const url = URL.createObjectURL(new Blob([PCM_WORKLET_SOURCE], { type: "text/javascript" }));
-    try {
-      await context.audioWorklet.addModule(url);
-      if (contextRef.current !== context || modeRef.current !== "stream") return;
-      const node = new AudioWorkletNode(context, PCM_WORKLET_NAME, {
-        numberOfInputs: 1,
-        numberOfOutputs: 1,
-        channelCount: 1,
-        channelCountMode: "explicit",
-        processorOptions: { targetRate: sampleRate, frameMs: PCM_FRAME_MS },
-      });
-      node.port.onmessage = (e: MessageEvent<unknown>): void => {
-        if (!(e.data instanceof ArrayBuffer) || modeRef.current !== "stream") return;
-        const phase = statusRef.current;
-        if (phase === "idle" || phase === "connecting" || phase === "unavailable") return;
-        if (phase === "speaking" && !bargeInRef.current) return;
-        const socket = socketRef.current;
-        if (socket?.readyState === SOCKET_OPEN) socket.send(e.data);
-      };
-      // A worklet nobody pulls from is not guaranteed to run, so it feeds a silent sink.
-      const sink = context.createGain();
-      sink.gain.value = 0;
-      source.connect(node);
-      node.connect(sink);
-      sink.connect(context.destination);
-      workletRef.current = node;
-      sinkRef.current = sink;
-    } catch {
-      cannot();
-    } finally {
-      URL.revokeObjectURL(url);
-    }
+    const ok = await live.capture.startStreaming(
+      sampleRate,
+      (frame) => {
+        const s = machine.current;
+        if (s.mode !== "stream") return;
+        if (s.status === "idle" || s.status === "connecting" || s.status === "unavailable") return;
+        if (s.status === "speaking" && !s.bargeIn) return;
+        live.socket.sendBytes(frame);
+      },
+      () => machine.current.mode === "stream",
+    );
+    // No AudioWorklet (an old browser), or it failed to load: record per utterance instead.
+    if (!ok) dispatch({ type: "capture_unavailable" });
   };
 
-  const onFrame = (frame: ServerFrame): void => {
-    switch (frame.type) {
-      case "ready":
-        reconnectsRef.current = 0;
-        bargeInRef.current = frame.bargeIn;
-        setCaptions(frame.captions);
-        setHearing(frame.mode);
-        if (frame.mode === "stream") void startStreaming(frame.sampleRate);
-        setPhase("listening");
-        // Say the question that is already on screen, so somebody who switches to voice halfway
-        // through hears where they are instead of silence. It takes no turn and stores nothing,
-        // and it opens the interview when nothing has been asked yet, so it is unconditional —
-        // including after a reconnect, where it re-reads the question the drop interrupted.
-        send({ type: "speak_last" });
+  const connect = (): void => {
+    const opened = live.socket.open({
+      onFrame: (frame) => {
+        dispatch({ type: "frame", frame });
+      },
+      onAudio: (data) => {
+        live.player.push(data);
+      },
+      onClose: () => {
+        dispatch({ type: "socket_closed" });
+      },
+    });
+    if (!opened) dispatch({ type: "socket_failed" });
+  };
+
+  const tick = (): void => {
+    const now = Date.now();
+    const rms = live.capture.measure();
+    // Quantized, and only published when the step changes: a meter that re-renders the whole
+    // interview twenty times a second is a cost nobody asked for.
+    const step = meterStep(rms);
+    if (step !== live.step) {
+      live.step = step;
+      setLevel(step / METER_STEPS);
+    }
+    const s = machine.current;
+    const { state, action } = vadStep(live.vad, {
+      rms,
+      now,
+      status: s.status,
+      mode: s.mode,
+      bargeIn: s.bargeIn,
+      recording: live.capture.recording,
+      recordingMs: live.capture.recordingMs(now),
+    });
+    live.vad = state;
+    switch (action.type) {
+      case "begin_utterance":
+        beginUtterance();
         return;
-      case "turn":
-        cb.current.onTurn(frame);
-        // With no voice coming, the turn is over the moment the text arrives.
-        setPhase(textOnlyRef.current ? "listening" : "thinking");
-        return;
-      case "caption":
-        // The interviewer's caption repeats the `turn` frame that came immediately before it;
-        // rendering both would put every exchange in the list twice.
-        if (frame.role === "user") cb.current.onHeard(frame.text);
-        return;
-      case "caption_partial":
-        setPartial(frame.text);
-        return;
-      case "caption_final":
-        setPartial("");
-        cb.current.onHeard(frame.text);
-        // The server is answering it now.
-        if (statusRef.current === "listening") setPhase("thinking");
-        return;
-      case "speech_started":
-        setNotHeard(false);
-        // The provider heard them start talking. Over the interviewer, that is barge-in: the
-        // server already stopped any synthesis still running (`barged`), so only the playback here
-        // is left to stop, and `barge` is sent only when the server did not do it itself.
-        if (statusRef.current === "speaking" && bargeInRef.current) {
-          if (frame.barged) {
-            stopPlayback();
-            loudPollsRef.current = 0;
-            setPhase("listening");
-          } else interrupt(false);
-        }
-        return;
-      case "speech_stopped":
-        return;
-      case "mode":
-        // The server lost its streaming provider (or this browser asked): capture per utterance
-        // from now on, and say so, so the server stops discarding what arrives.
-        stopStreaming();
-        setPartial("");
-        setHearing(frame.mode);
-        send({ type: "capture", mode: frame.mode });
-        return;
-      case "speech_start":
-        // An utterance still open when the interviewer starts talking is closed here rather than
-        // left running: the silence detector is paused while the speakers are on, so it would go
-        // on recording the interviewer's own voice into the participant's next answer. The server
-        // holds what it receives and answers it once this turn is done.
+      case "end_utterance":
         endUtterance();
-        speechRef.current = { mime: frame.mime, chunks: [] };
-        loudPollsRef.current = 0;
-        setPhase("speaking");
         return;
-      case "speech_end":
-        if (frame.interrupted) {
-          speechRef.current = null;
-          toListening();
-          return;
-        }
-        play();
+      case "interrupt":
+        // In stream mode the audio is already on its way; there is no recording to start.
+        dispatch({ type: "interrupt", keepTalking: action.keepTalking });
         return;
-      case "first_word":
-        // The server already folds this into the session's `voice.live` event, which is where the
-        // spec asks for it. Showing a participant their own latency would only make them watch it.
-        return;
-      case "not_heard":
-        setNotHeard(true);
-        setPartial("");
-        toListening();
-        return;
-      case "ended":
-        cb.current.onEnded(frame.summaryAvailable);
-        teardown("idle");
-        return;
-      case "error":
-        cb.current.onError(frame.code, frame.message);
-        // An exhausted budget pauses the session server-side; carrying on listening would only
-        // collect answers nothing will read.
-        if (frame.code === "budget_exceeded") teardown("idle");
-        else toListening();
-        return;
-      case "unavailable":
-        if (frame.fallback === "captions") {
-          textOnlyRef.current = true;
-          setTextOnly(true);
-          stopPlayback();
-          toListening();
-          return;
-        }
-        giveUp(frame.fallback, frame.reason);
+      case "none":
         return;
     }
   };
-
-  const onClose = (): void => {
-    if (endedRef.current || fellBackRef.current) return;
-    socketRef.current = null;
-    stopPlayback();
-    endUtterance();
-    if (reconnectsRef.current === 0) {
-      // One retry. A socket that drops mid-answer is usually a blip, and nothing is lost by
-      // reopening: every turn so far is already persisted. Twice means it is not coming back.
-      reconnectsRef.current = 1;
-      setPhase("connecting");
-      connect();
-      return;
-    }
-    setProblem("lost");
-    // The socket, not the cascade: the transcription route is presumably fine, so the record
-    // button is worth offering.
-    giveUp("recorded", "connection_lost");
-  };
-
-  function connect(): void {
-    let socket: WebSocket;
-    try {
-      socket = new WebSocket(voiceSocketUrl());
-    } catch {
-      giveUp("recorded", "socket_failed");
-      return;
-    }
-    socket.binaryType = "arraybuffer";
-    socketRef.current = socket;
-    socket.onmessage = (e: MessageEvent<unknown>): void => {
-      if (typeof e.data === "string") {
-        const frame = toServerFrame(e.data);
-        if (frame) onFrame(frame);
-        return;
-      }
-      // Binary: audio belonging to the speech currently in flight, and nothing else.
-      const speech = speechRef.current;
-      if (!speech) return;
-      const data = e.data;
-      if (data instanceof Blob) speech.chunks.push(data);
-      else if (data instanceof ArrayBuffer) speech.chunks.push(new Blob([data]));
-      else if (ArrayBuffer.isView(data)) speech.chunks.push(new Blob([data.buffer as ArrayBuffer]));
-    };
-    socket.onclose = (): void => {
-      onClose();
-    };
-    // A socket error is always followed by a close, which is where the retry lives.
-    socket.onerror = (): void => undefined;
-  }
 
   const open = async (): Promise<void> => {
-    const media = typeof navigator === "undefined" ? undefined : navigator.mediaDevices;
-    const capable =
-      media?.getUserMedia &&
-      typeof window.MediaRecorder !== "undefined" &&
-      typeof window.AudioContext !== "undefined" &&
-      typeof window.WebSocket !== "undefined";
-    if (!capable) {
+    if (!Capture.capable()) {
       setProblem("unsupported");
-      setPhase("idle");
+      dispatch({ type: "open_failed" });
       return;
     }
-
     let stream: MediaStream;
     try {
-      // Echo cancellation is not a nicety here: without it the interviewer's own voice comes back
-      // through the microphone and barge-in fires on every sentence it speaks.
-      stream = await media.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      });
+      stream = await Capture.requestMicrophone();
     } catch (e) {
       setProblem(microphoneProblem(e));
-      setPhase("idle");
+      dispatch({ type: "open_failed" });
       return;
     }
-    if (endedRef.current) {
+    if (machine.current.ended) {
       // They gave up while the permission prompt was open. Do not keep the device.
       for (const track of stream.getTracks()) track.stop();
       return;
     }
-    streamRef.current = stream;
-
     try {
-      const context = new window.AudioContext();
-      contextRef.current = context;
-      const analyser = context.createAnalyser();
-      analyser.fftSize = ANALYSER_FFT;
-      const source = context.createMediaStreamSource(stream);
-      source.connect(analyser);
-      sourceRef.current = source;
-      analyserRef.current = analyser;
-      samplesRef.current = new Uint8Array(analyser.fftSize);
+      live.capture.attach(stream);
     } catch {
       release();
       setProblem("failed");
-      setPhase("idle");
+      dispatch({ type: "open_failed" });
       return;
     }
-
-    pollRef.current = setInterval(tick, POLL_MS);
+    live.poll = setInterval(tick, POLL_MS);
     connect();
   };
 
-  const start = (): void => {
-    if (statusRef.current !== "idle" && statusRef.current !== "unavailable") return;
-    endedRef.current = false;
-    fellBackRef.current = false;
-    reconnectsRef.current = 0;
-    textOnlyRef.current = false;
-    setTextOnly(false);
-    setProblem(null);
-    setNotHeard(false);
-    setPartial("");
-    setHearing("utterance");
-    setPhase("connecting");
-    void open();
-  };
+  function run(effect: CallEffect): void {
+    switch (effect.type) {
+      case "send":
+        live.socket.send(effect.frame);
+        return;
+      case "open_devices":
+        void open();
+        return;
+      case "connect":
+        connect();
+        return;
+      case "drop_socket":
+        live.socket.forget();
+        return;
+      case "teardown":
+        live.socket.close();
+        release();
+        return;
+      case "start_streaming":
+        void startStreaming(effect.sampleRate);
+        return;
+      case "stop_streaming":
+        live.capture.stopStreaming();
+        return;
+      case "stop_playback":
+        live.player.stop();
+        return;
+      case "begin_speech":
+        live.player.begin(effect.mime);
+        return;
+      case "discard_speech":
+        live.player.discard();
+        return;
+      case "play_speech":
+        live.player.play(
+          () => {
+            dispatch({ type: "playback_finished" });
+          },
+          () => {
+            dispatch({ type: "playback_refused" });
+          },
+        );
+        return;
+      case "begin_utterance":
+        beginUtterance();
+        return;
+      case "end_utterance":
+        endUtterance();
+        return;
+      case "reset_barge":
+        live.vad = { ...live.vad, loudPolls: 0 };
+        return;
+      case "reset_silence":
+        live.vad = { ...live.vad, silenceSince: null };
+        return;
+      case "clear_problem":
+        setProblem(null);
+        return;
+      case "problem":
+        setProblem(effect.problem);
+        return;
+      case "turn":
+        cb.current.onTurn(effect.frame);
+        return;
+      case "heard":
+        cb.current.onHeard(effect.text);
+        return;
+      case "ended":
+        cb.current.onEnded(effect.summaryAvailable);
+        return;
+      case "error":
+        cb.current.onError(effect.code, effect.message);
+        return;
+      case "unavailable":
+        cb.current.onUnavailable(effect.fallback, effect.reason);
+        return;
+    }
+  }
 
-  const end = (): void => {
-    if (statusRef.current === "idle") return;
-    teardown("idle");
-  };
-
-  // The unmount path has to reach the teardown of the render that is actually live, and an effect
+  // The unmount path has to reach the dispatch of the render that is actually live, and an effect
   // with `[]` would capture the first one.
-  const teardownRef = React.useRef(teardown);
-  teardownRef.current = teardown;
+  const dispatchRef = React.useRef(dispatch);
+  dispatchRef.current = dispatch;
   React.useEffect(() => {
     return () => {
-      teardownRef.current("idle");
+      dispatchRef.current({ type: "unmount" });
     };
   }, []);
 
   return {
-    status,
+    status: view.status,
     level,
-    captions,
-    textOnly,
-    notHeard,
-    partial,
-    mode,
+    captions: view.captions,
+    textOnly: view.textOnly,
+    notHeard: view.notHeard,
+    partial: view.partial,
+    mode: view.mode,
     problem,
-    start,
-    end,
+    start: () => {
+      dispatch({ type: "start" });
+    },
+    end: () => {
+      dispatch({ type: "end" });
+    },
     stopSpeaking: () => {
       // Always available, even where the tenant turned automatic barge-in off: a visible way to
       // stop the interviewer talking is an accessibility requirement, not a voice feature.
-      interrupt(false);
+      dispatch({ type: "interrupt", keepTalking: false });
     },
     dismissProblem: () => {
       setProblem(null);

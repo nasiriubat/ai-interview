@@ -28,11 +28,19 @@ import type { PrismaClient } from "@prisma/client";
 import type { Logger as PinoLogger } from "pino";
 import type { Config } from "./config.js";
 import { engineLogger } from "./lib/logger.js";
+import { buildServices, type Services } from "./services.js";
 
-/** Everything routes need, built once per process. Tests build it with fakes. */
+/**
+ * Everything the process holds, built once. Tests build it with fakes.
+ *
+ * Route files do not receive this: they get `RouteContext`, which has no `db`. Anything that
+ * touches a table lives behind `services` (apps/api/src/services.ts).
+ */
 export interface AppContext {
   config: Config;
+  /** The tenant-fenced client. Only services, the principal resolver and the entry points hold it. */
   db: PrismaClient;
+  services: Services;
   log: PinoLogger;
   crypto: Crypto;
   settings: SettingsService;
@@ -62,6 +70,13 @@ export interface AppContext {
   /** The queue's dead letters and counters, for the operator jobs page (D-92). */
   jobAdmin: JobAdminPort;
 }
+
+/**
+ * What a route file may use: every collaborator except the database client. Passing an
+ * `AppContext` where this is expected is fine (it has everything and more); the other way round
+ * is not, which is the point.
+ */
+export type RouteContext = Omit<AppContext, "db">;
 
 export function buildContext(input: {
   config: Config;
@@ -170,9 +185,24 @@ export function buildContext(input: {
     crypto,
     github,
   });
+  const services = buildServices({
+    db,
+    config,
+    log,
+    crypto,
+    settings,
+    callers,
+    egress,
+    speech,
+    email,
+    tenants,
+    analysis,
+    attachments,
+  });
   return {
     config,
     db,
+    services,
     log,
     crypto,
     settings,

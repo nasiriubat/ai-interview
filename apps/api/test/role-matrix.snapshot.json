@@ -1,0 +1,2030 @@
+{
+  "DELETE /budgets/:id": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "DELETE /operator/providers/:id": {
+    "access": "operator",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "DELETE /p/session": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "DELETE /p/session/attachments/:attachmentId": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 404,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "DELETE /providers/:id": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /admin/voice/readiness": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /analyses/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /analyses/:id/diff/:otherId": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /audit": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /budgets": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /campaigns": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /campaigns/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /campaigns/:id/analyses": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /campaigns/:id/invitations": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /campaigns/:id/sessions": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /health/live": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /health/ready": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /me": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /openapi.json": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /operator/jobs": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/jobs/dead": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 400,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/providers": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/providers/:id/models": {
+    "access": "operator",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/providers/:id/prices": {
+    "access": "operator",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/routes": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/stats": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/tenants": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /p/:linkToken": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 404,
+      "participant": 404,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /p/r/:token": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 404,
+      "participant": 404,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /p/session": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "GET /p/session/attachments": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "GET /p/session/attachments/:attachmentId": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 404,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "GET /p/session/live": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 404,
+      "participant": 404,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /p/session/summary": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "GET /privacy/retention": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /providers": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /providers/:id/models": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /providers/:id/prices": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /requirements": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /requirements/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /requirements/:id/versions": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /requirements/:id/versions/:v": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /requirements/:id/versions/:v/diff/:other": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /requirements/:id/versions/:v/export": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /routes": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /sessions/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /sessions/:id/events": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /settings": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /settings/scopes": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "GET /spend": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /stats": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /templates": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /templates/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /templates/:id/diff-shipped": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /users": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /admin/voice/readiness": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /analyses/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /analyses/:id/diff/:otherId": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /audit": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /budgets": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /campaigns": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /campaigns/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /campaigns/:id/analyses": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /campaigns/:id/invitations": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /campaigns/:id/sessions": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /health/live": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /health/ready": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /me": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /openapi.json": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /operator/jobs": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /operator/jobs/dead": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 400,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /operator/providers": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /operator/providers/:id/models": {
+    "access": "operator",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /operator/providers/:id/prices": {
+    "access": "operator",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /operator/routes": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /operator/stats": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /operator/tenants": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /p/:linkToken": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 404,
+      "participant": 404,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /p/r/:token": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 404,
+      "participant": 404,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /p/session": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "HEAD /p/session/attachments": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "HEAD /p/session/attachments/:attachmentId": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 404,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "HEAD /p/session/summary": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "HEAD /privacy/retention": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /providers": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /providers/:id/models": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /providers/:id/prices": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /requirements": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /requirements/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /requirements/:id/versions": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /requirements/:id/versions/:v": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /requirements/:id/versions/:v/diff/:other": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /requirements/:id/versions/:v/export": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /routes": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /sessions/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /sessions/:id/events": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /settings": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /settings/scopes": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "HEAD /spend": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /templates": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /templates/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /templates/:id/diff-shipped": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /users": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "PATCH /campaigns/:id": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "PATCH /operator/providers/:id": {
+    "access": "operator",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "PATCH /operator/tenants/:id": {
+    "access": "operator",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "PATCH /opportunities/:id": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "PATCH /providers/:id": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "PATCH /users/:id": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /admin/voice/openai": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "POST /budgets": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /campaigns": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "POST /campaigns/:id/analyses": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /campaigns/:id/close": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /campaigns/:id/invitations": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /campaigns/:id/invitations/:invId/remind": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /campaigns/:id/invitations/:invId/revoke": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /campaigns/:id/open": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /internal/auth/verification-tokens": {
+    "access": "internal",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /internal/auth/verification-tokens/consume": {
+    "access": "internal",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /internal/auth/verification-tokens/prune": {
+    "access": "internal",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /operator/jobs/dead/:queue/:id/discard": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "POST /operator/jobs/dead/:queue/:id/retry": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "POST /operator/jobs/run/:name": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 400,
+      "crossTenantAdmin": 403
+    }
+  },
+  "POST /operator/providers": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 400,
+      "crossTenantAdmin": 403
+    }
+  },
+  "POST /operator/providers/:id/test": {
+    "access": "operator",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "POST /operator/tenants": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 400,
+      "crossTenantAdmin": 403
+    }
+  },
+  "POST /opportunities/:id/promote": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /opportunities/:id/status": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /p/:linkToken/open": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 404,
+      "participant": 404,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /p/:linkToken/verify/confirm": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 400,
+      "participant": 400,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "POST /p/:linkToken/verify/request": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 400,
+      "participant": 400,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "POST /p/r/:token/open": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 404,
+      "participant": 404,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /p/session/attachments": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 400,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /p/session/complete": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /p/session/consent": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 400,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /p/session/mode": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 400,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /p/session/path": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 400,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /p/session/pause": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /p/session/turns": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 409,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /p/session/voice-turns": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 400,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "POST /providers": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "POST /providers/:id/test": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /requirements": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "POST /requirements/:id/complete": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /requirements/:id/findings/:findingId": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /requirements/:id/invitations": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /requirements/:id/invitations/:invId/revoke": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /requirements/:id/path": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /requirements/:id/reopen": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /requirements/:id/turns": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /requirements/:id/versions": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /requirements/:id/versions/:v/github": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /settings/email/test": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "POST /templates": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /templates/:id/archive": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /templates/:id/preview": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /templates/:id/publish": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /users": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "PUT /admin/voice/live": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "PUT /operator/providers/:id/prices": {
+    "access": "operator",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 400,
+      "crossTenantAdmin": 403
+    }
+  },
+  "PUT /operator/routes": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 400,
+      "crossTenantAdmin": 403
+    }
+  },
+  "PUT /p/session/summary": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 400,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "PUT /providers/:id/prices": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "PUT /requirements/:id/sections/:key": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "PUT /routes": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "PUT /settings": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "PUT /templates/:id": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  }
+}

@@ -102,7 +102,8 @@ async function extractDocx(bytes: Buffer): Promise<Extracted> {
 async function extractXlsx(bytes: Buffer): Promise<Extracted> {
   const ExcelJS = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(bytes as unknown as ArrayBuffer);
+  // exceljs wants an ArrayBuffer; a Buffer is a view onto a possibly larger pooled one, so copy.
+  await workbook.xlsx.load(new Uint8Array(bytes).buffer);
   const out: string[] = [];
   let sheets = 0;
   workbook.eachSheet((sheet) => {

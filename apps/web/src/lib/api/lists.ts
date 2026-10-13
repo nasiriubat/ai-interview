@@ -10,7 +10,9 @@
  *   value must match, identical to the API's.
  * - `search`: whether `q` means anything on this list.
  */
-export type SortDir = "asc" | "desc";
+import type { PageInput, SortDir } from "@aidp/shared";
+
+export type { SortDir };
 export type FilterKind = readonly string[] | "date" | { pattern: RegExp; max: number };
 
 /** An audit action (`campaign.create`) or, ending in a dot, a family of them (`campaign.`). */
@@ -99,9 +101,7 @@ export type FiltersOf<L extends ListDef> = {
 };
 
 /** Everything a list request can carry: the window, search, sort and the list's filters. */
-export type ListQueryOf<L extends ListDef> = {
-  limit?: number;
-  offset?: number;
+export type ListQueryOf<L extends ListDef> = PageInput & {
   q?: string;
   sort?: SortOf<L>;
   dir?: SortDir;

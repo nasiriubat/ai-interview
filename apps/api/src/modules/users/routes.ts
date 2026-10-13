@@ -1,22 +1,10 @@
-import { tenantBatch } from "@aidp/db";
-import type { Prisma } from "@prisma/client";
+import { listEnvelope } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
-import type { AppContext } from "../../context.js";
-import { audit } from "../../lib/audit.js";
-import { emailTaken, isUniqueViolation, notFound } from "../../lib/errors.js";
-import { defined } from "../../lib/objects.js";
-import { contains, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
-
-/** `/users` (D-79): `q` matches email or name. */
-export const UserList = listSpec({
-  sort: { createdAt: "asc", email: "asc", name: "asc", role: "asc" },
-  defaultSort: "createdAt",
-  nullable: ["name"],
-  filters: { role: z.enum(["admin", "member", "platform_operator"]).optional() },
-});
+import type { RouteContext } from "../../context.js";
+import { UserListQuery } from "./service.js";
 
 const UserOut = z.object({
   id: z.string(),
@@ -27,15 +15,13 @@ const UserOut = z.object({
   createdAt: z.date(),
 });
 
-export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
+export async function userRoutes(app: App, ctx: RouteContext): Promise<void> {
+  const users = ctx.services.users;
+
   // A suspended tenant's staff still get an answer here, so the UI can say why they are locked out.
   app.get("/me", { ...guard.staff({ config: { allowSuspended: true } }) }, async (req) => {
     const p = staff(req);
-    const user = await ctx.db.user.findUniqueOrThrow({ where: { id: p.userId }, include: { company: true } });
-    return {
-      user: { id: user.id, email: user.email, name: user.name, role: user.role, companyId: user.companyId },
-      company: { id: user.company.id, name: user.company.name, status: user.company.status },
-    };
+    return users.me(p.companyId, p.userId);
   });
 
   app.get(
@@ -43,35 +29,11 @@ export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
     {
       ...guard.admin(),
       schema: {
-        querystring: listQuery(UserList),
-        response: {
-          200: z.object({
-            users: z.array(UserOut),
-            total: z.number(),
-            limit: z.number(),
-            offset: z.number(),
-          }),
-        },
+        querystring: UserListQuery,
+        response: { 200: listEnvelope("users", UserOut) },
       },
     },
-    async (req) => {
-      const q = searchTerm(req.query.q);
-      const where: Prisma.UserWhereInput = {
-        companyId: req.companyId,
-        ...(req.query.role ? { role: req.query.role } : {}),
-        ...(q ? { OR: [{ email: contains(q) }, { name: contains(q) }] } : {}),
-      };
-      const [users, total] = await tenantBatch(ctx.db, [
-        ctx.db.user.findMany({
-          where,
-          orderBy: listOrder<Prisma.UserOrderByWithRelationInput, typeof req.query.sort>(UserList, req.query),
-          take: req.query.limit,
-          skip: req.query.offset,
-        }),
-        ctx.db.user.count({ where }),
-      ]);
-      return { users, total, limit: req.query.limit, offset: req.query.offset };
-    },
+    async (req) => users.list(req.companyId, req.query),
   );
 
   app.post(
@@ -84,37 +46,7 @@ export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
       },
     },
     async (req, reply) => {
-      let user;
-      try {
-        user = await ctx.db.user.create({
-          data: {
-            companyId: req.companyId,
-            email: req.body.email.toLowerCase(),
-            name: req.body.name ?? null,
-            role: req.body.role,
-          },
-        });
-      } catch (err) {
-        if (!isUniqueViolation(err)) throw err;
-        // Audited without the address: it belongs to someone in another tenant.
-        await audit(ctx.db, {
-          companyId: req.companyId,
-          actorId: staff(req).userId,
-          action: "user.create_refused",
-          targetType: "user",
-          targetId: "",
-          diff: { reason: "email_taken" },
-        });
-        throw emailTaken();
-      }
-      await audit(ctx.db, {
-        companyId: req.companyId,
-        actorId: staff(req).userId,
-        action: "user.create",
-        targetType: "user",
-        targetId: user.id,
-        diff: { role: user.role },
-      });
+      const user = await users.create(req.companyId, staff(req).userId, req.body);
       return reply.status(201).send({ user });
     },
   );
@@ -128,21 +60,6 @@ export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
         body: z.object({ name: z.string().optional(), role: z.enum(["admin", "member"]).optional() }),
       },
     },
-    async (req) => {
-      const existing = await ctx.db.user.findFirst({
-        where: { id: req.params.id, companyId: req.companyId },
-      });
-      if (!existing) throw notFound("User");
-      const user = await ctx.db.user.update({ where: { id: existing.id }, data: defined(req.body) });
-      await audit(ctx.db, {
-        companyId: req.companyId,
-        actorId: staff(req).userId,
-        action: "user.update",
-        targetType: "user",
-        targetId: user.id,
-        diff: req.body,
-      });
-      return { user };
-    },
+    async (req) => ({ user: await users.update(req.companyId, staff(req).userId, req.params.id, req.body) }),
   );
 }

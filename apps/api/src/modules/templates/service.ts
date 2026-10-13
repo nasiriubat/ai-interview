@@ -1,7 +1,34 @@
 import { containsInsensitive, shippedTemplate, tenantBatch, tenantTransaction } from "@aidp/db";
 import { InterviewTemplateSchema, type InterviewTemplate, type InterviewTemplateInput } from "@aidp/shared";
 import { Prisma, type InterviewTemplate as Template, type PrismaClient } from "@prisma/client";
+import { z } from "zod";
 import { AppError, notFound } from "../../lib/errors.js";
+import { listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
+
+/**
+ * `/templates` (D-79): the tenant's own templates and the platform's, one row per version.
+ * `q` matches the name or the key. Without `status`, archived versions are left out. `updatedAt`
+ * is the version's creation time: a template is edited by writing a new version row.
+ */
+export const TemplateList = listSpec({
+  sort: { key: "asc", name: "asc", updatedAt: "desc" },
+  defaultSort: "key",
+  columns: { updatedAt: "createdAt" },
+  filters: {
+    status: z.enum(["draft", "published", "archived"]).optional(),
+    origin: z.enum(["tenant", "platform"]).optional(),
+  },
+});
+
+export const TemplateListQuery = listQuery(TemplateList);
+export type TemplateListQuery = z.output<typeof TemplateListQuery>;
+
+/** The picker's window: every usable template, since the catalogue is small. */
+export const ALL_TEMPLATES: Pick<TemplateListQuery, "limit" | "offset" | "sort"> = {
+  limit: 200,
+  offset: 0,
+  sort: "key",
+};
 
 /** A template body as accepted by the API: everything but the version, which the service assigns. */
 export type TemplateBodyInput = Omit<InterviewTemplateInput, "version">;
@@ -16,15 +43,10 @@ export class TemplateService {
    */
   async list(
     companyId: string,
-    query: {
-      limit: number;
-      offset: number;
-      q?: string | undefined;
-      status?: "draft" | "published" | "archived" | undefined;
-      origin?: "tenant" | "platform" | undefined;
-      orderBy?: Prisma.InterviewTemplateOrderByWithRelationInput[];
-    } = { limit: 200, offset: 0 },
+    query: Pick<TemplateListQuery, "limit" | "offset" | "sort"> &
+      Partial<Pick<TemplateListQuery, "q" | "status" | "origin" | "dir">> = ALL_TEMPLATES,
   ): Promise<{ templates: Template[]; total: number }> {
+    const q = searchTerm(query.q);
     const owner =
       query.origin === "tenant"
         ? { companyId }
@@ -35,18 +57,20 @@ export class TemplateService {
       AND: [
         owner,
         { status: query.status ?? { not: "archived" } },
-        ...(query.q
-          ? [{ OR: [{ name: containsInsensitive(query.q) }, { key: containsInsensitive(query.q) }] }]
-          : []),
+        ...(q ? [{ OR: [{ name: containsInsensitive(q) }, { key: containsInsensitive(q) }] }] : []),
       ],
     };
+    const dir = query.dir ?? TemplateList.sort[query.sort];
+    // A key sorts its versions newest first, so the current version heads its group.
+    const orderBy: Prisma.InterviewTemplateOrderByWithRelationInput[] =
+      query.sort === "key"
+        ? [{ key: dir }, { version: "desc" }, { id: dir }]
+        : listOrder<Prisma.InterviewTemplateOrderByWithRelationInput, TemplateListQuery["sort"]>(
+            TemplateList,
+            query,
+          );
     const [templates, total] = await tenantBatch(this.db, [
-      this.db.interviewTemplate.findMany({
-        where,
-        orderBy: query.orderBy ?? [{ key: "asc" }, { version: "desc" }],
-        take: query.limit,
-        skip: query.offset,
-      }),
+      this.db.interviewTemplate.findMany({ where, orderBy, take: query.limit, skip: query.offset }),
       this.db.interviewTemplate.count({ where }),
     ]);
     return { templates, total };

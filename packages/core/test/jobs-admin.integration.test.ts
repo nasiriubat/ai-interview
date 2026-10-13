@@ -124,7 +124,7 @@ suite("job administration against a real pg-boss", () => {
     u.password = "test-app-role";
     const api = new PrismaClient({ datasources: { db: { url: u.toString() } } });
     try {
-      const scoped = withTenantScope(api) as unknown as PrismaClient;
+      const scoped = withTenantScope(api);
       const asApi = new PgBossJobAdmin(jobs.boss, scoped);
       // The route handler runs with the operator's tenant in context; the sweep runs as system.
       const listed = await withTenant(companyId, async () => asApi.list());

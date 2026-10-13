@@ -23,7 +23,7 @@ import {
 import { guard, installAccessGuard } from "./auth/access.js";
 import { authPlugin } from "./auth/plugin.js";
 import { PrincipalResolver } from "./auth/principal.js";
-import type { AppContext } from "./context.js";
+import type { AppContext, RouteContext } from "./context.js";
 import { errorHandler } from "./lib/errors.js";
 import { principalKey, RATE_LIMIT_WINDOW } from "./lib/rate-limit.js";
 import { analysisRoutes } from "./modules/analysis/routes.js";
@@ -34,7 +34,7 @@ import { internalAuthRoutes } from "./modules/internal-auth/routes.js";
 import { operatorRoutes } from "./modules/operator/routes.js";
 import { participantAttachmentRoutes } from "./modules/participant/attachments.js";
 import { participantRoutes } from "./modules/participant/routes.js";
-import { participantVoiceLiveRoutes } from "./modules/participant/voice-live.js";
+import { participantVoiceLiveRoutes } from "./modules/participant/voice-live/routes.js";
 import { participantVoiceRoutes } from "./modules/participant/voice.js";
 import { privacyRoutes } from "./modules/privacy/routes.js";
 import { providerRoutes } from "./modules/providers/routes.js";
@@ -149,28 +149,32 @@ export async function buildApp(ctx: AppContext): Promise<App> {
     transform: jsonSchemaTransform,
   });
 
+  // Route files get the context without its database client, at runtime as well as in the type
+  // (AGENTS.md rule 4): reaching a table from a route is not possible, only a service method is.
+  const { db: _db, ...withoutDb } = ctx;
+  const routes: RouteContext = withoutDb;
   await app.register(
     async (api) => {
       const a = api as unknown as App;
-      await healthRoutes(a, ctx);
-      await internalAuthRoutes(a, ctx);
-      await userRoutes(a, ctx);
-      await templateRoutes(a, ctx);
-      await settingsRoutes(a, ctx);
-      await campaignRoutes(a, ctx);
-      await participantRoutes(a, ctx);
-      await participantAttachmentRoutes(a, ctx);
-      await participantVoiceRoutes(a, ctx);
-      await participantVoiceLiveRoutes(a, ctx);
-      await sessionRoutes(a, ctx);
-      await providerRoutes(a, ctx);
-      await voiceAdminRoutes(a, ctx);
-      await statsRoutes(a, ctx);
-      await auditRoutes(a, ctx);
-      await privacyRoutes(a, ctx);
-      await analysisRoutes(a, ctx);
-      await requirementsRoutes(a, ctx);
-      await operatorRoutes(a, ctx);
+      await healthRoutes(a, routes);
+      await internalAuthRoutes(a, routes);
+      await userRoutes(a, routes);
+      await templateRoutes(a, routes);
+      await settingsRoutes(a, routes);
+      await campaignRoutes(a, routes);
+      await participantRoutes(a, routes);
+      await participantAttachmentRoutes(a, routes);
+      await participantVoiceRoutes(a, routes);
+      await participantVoiceLiveRoutes(a, routes);
+      await sessionRoutes(a, routes);
+      await providerRoutes(a, routes);
+      await voiceAdminRoutes(a, routes);
+      await statsRoutes(a, routes);
+      await auditRoutes(a, routes);
+      await privacyRoutes(a, routes);
+      await analysisRoutes(a, routes);
+      await requirementsRoutes(a, routes);
+      await operatorRoutes(a, routes);
       a.get("/openapi.json", { ...guard.public() }, async () => a.swagger());
     },
     { prefix: API_PREFIX },

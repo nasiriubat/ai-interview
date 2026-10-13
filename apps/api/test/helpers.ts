@@ -4,6 +4,7 @@ import { SpeechRunner, type LanguageHint, type SpeechResult, type SpeechToTextEn
 import {
   type Crypto,
   type EgressGuard,
+  type GitHubPort,
   MemoryAlerts,
   MemoryEmail,
   MemoryJobAdmin,
@@ -239,6 +240,7 @@ export interface TestWorld {
   adminToken: string;
   adminEmail: string;
   operatorToken: string;
+  operatorEmail: string;
   templateId: string;
   close: () => Promise<void>;
 }
@@ -256,7 +258,7 @@ async function appRoleClient(owner: PrismaClient): Promise<PrismaClient> {
     asApp.password = APP_ROLE_PASSWORD;
     const client = new PrismaClient({ datasources: { db: { url: asApp.toString() } } });
     await client.$queryRawUnsafe("SELECT 1");
-    return withTenantScope(client) as unknown as PrismaClient;
+    return withTenantScope(client);
   } catch {
     return owner;
   }
@@ -269,7 +271,7 @@ export async function testWorld(
   modelUrl: string,
   env: Record<string, string> = {},
   /** A guard with a fake resolver, for the suites that exercise the egress policy. */
-  overrides: { egress?: EgressGuard } = {},
+  overrides: { egress?: EgressGuard; github?: GitHubPort } = {},
 ): Promise<TestWorld> {
   const key = randomBytes(32).toString("base64");
   const config = loadConfig({
@@ -307,6 +309,7 @@ export async function testWorld(
     email,
     storage,
     ...(overrides.egress ? { egress: overrides.egress } : {}),
+    ...(overrides.github ? { github: overrides.github } : {}),
     speech: new SpeechRunner(speech),
     alerts,
     jobAdmin,
@@ -409,6 +412,7 @@ export async function testWorld(
     adminToken: await token(`admin-${suffix}@test.io`),
     adminEmail: `admin-${suffix}@test.io`,
     operatorToken: await token(`op-${suffix}@test.io`),
+    operatorEmail: `op-${suffix}@test.io`,
     templateId: template.id,
     close: async () => {
       await app.close();

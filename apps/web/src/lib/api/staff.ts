@@ -3,6 +3,7 @@ import type {
   FindingOutcome,
   InterviewTemplateInput,
   OpportunityOverride,
+  PageInput,
   Path,
   Route,
 } from "@aidp/shared";
@@ -132,10 +133,7 @@ export interface SettingsQuery {
 }
 
 /** Contract 19: every staff list that can grow takes `limit` (1..200) and `offset`. */
-export interface PageQuery {
-  limit?: number;
-  offset?: number;
-}
+export type PageQuery = PageInput;
 
 /** D-79: each list's search, sort and filters on top of the window (see `LISTS`). */
 export type CampaignListQuery = ListQueryOf<(typeof LISTS)["campaigns"]>;

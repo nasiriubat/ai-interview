@@ -1,0 +1,206 @@
+import type { SettingsService, TenantGate } from "@aidp/core";
+import { tenantBatch, tenantTransaction, withSystemTenant } from "@aidp/db";
+import { toListResponse, type ListEnvelope } from "@aidp/shared";
+import type { Company, Prisma, PrismaClient } from "@prisma/client";
+import { z } from "zod";
+import { emailTaken, isUniqueViolation, notFound } from "../../lib/errors.js";
+import { defined } from "../../lib/objects.js";
+import { contains, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
+import type { AuditService } from "../audit/service.js";
+
+/**
+ * The platform operator, as a caller. The operator is not a member of the tenants they manage, so
+ * these methods take no `companyId`: they take who is acting, and every one of them is audited
+ * against the tenant it touched. This is the only module that reads across tenants on purpose.
+ */
+export interface OperatorActor {
+  userId: string;
+}
+
+/** `/operator/tenants` (D-79): `q` matches the name, or the id exactly. */
+export const TenantList = listSpec({
+  sort: { createdAt: "asc", name: "asc", status: "asc" },
+  defaultSort: "createdAt",
+  filters: {
+    status: z.enum(["active", "suspended"]).optional(),
+    region: z
+      .string()
+      .regex(/^[a-z0-9-]+$/)
+      .max(20)
+      .optional(),
+  },
+});
+
+export const TenantListQuery = listQuery(TenantList);
+export type TenantListQuery = z.output<typeof TenantListQuery>;
+
+export const TenantCreateBody = z.object({
+  name: z.string().min(1),
+  region: z.string().default("eu"),
+  adminEmail: z.email(),
+  monthlyBudgetCents: z.number().int().min(0).optional(),
+});
+export type TenantCreateBody = z.output<typeof TenantCreateBody>;
+
+export const TenantPatchBody = z.object({
+  name: z.string().min(1).optional(),
+  status: z.enum(["active", "suspended"]).optional(),
+  monthlyBudgetCents: z.number().int().min(0).optional(),
+});
+export type TenantPatchBody = z.output<typeof TenantPatchBody>;
+
+export type TenantRow = Company & { _count: { users: number; campaigns: number; sessions: number } };
+
+export interface PlatformStats {
+  tenants: number;
+  sessions: Record<string, number>;
+  spendByTenant: { companyId: string; costCents: number; calls: number }[];
+}
+
+export class OperatorService {
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly settings: SettingsService,
+    private readonly tenants: TenantGate,
+    private readonly audit: AuditService,
+  ) {}
+
+  async listTenants(
+    _actor: OperatorActor,
+    query: TenantListQuery,
+  ): Promise<ListEnvelope<"tenants", TenantRow>> {
+    const q = searchTerm(query.q);
+    const where: Prisma.CompanyWhereInput = {
+      ...(q ? { OR: [{ name: contains(q) }, { id: q }] } : {}),
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.region ? { region: query.region } : {}),
+    };
+    const [tenants, total] = await tenantBatch(this.db, [
+      this.db.company.findMany({
+        where,
+        orderBy: listOrder<Prisma.CompanyOrderByWithRelationInput, typeof query.sort>(TenantList, query),
+        include: { _count: { select: { users: true, campaigns: true, sessions: true } } },
+        take: query.limit,
+        skip: query.offset,
+      }),
+      this.db.company.count({ where }),
+    ]);
+    return toListResponse("tenants", tenants, total, query);
+  }
+
+  async createTenant(actor: OperatorActor, body: TenantCreateBody): Promise<Company> {
+    const budgetDefault = await this.settings.get("cost.defaultMonthlyBudgetCents", []);
+    const limit = body.monthlyBudgetCents ?? budgetDefault;
+    let company: Company;
+    try {
+      company = await tenantTransaction(this.db, async (tx) => {
+        const c = await tx.company.create({
+          data: { name: body.name, region: body.region, monthlyBudgetCents: limit },
+        });
+        await tx.user.create({
+          data: { companyId: c.id, email: body.adminEmail.toLowerCase(), role: "admin" },
+        });
+        await tx.budget.create({
+          data: { companyId: c.id, scope: "tenant", scopeId: c.id, limitCents: limit, period: "month" },
+        });
+        return c;
+      });
+    } catch (err) {
+      // The company insert rolls back with the user: no tenant is left without an admin.
+      if (isUniqueViolation(err)) throw emailTaken();
+      throw err;
+    }
+    await this.audit.record(company.id, {
+      actorId: actor.userId,
+      action: "tenant.create",
+      targetType: "company",
+      targetId: company.id,
+    });
+    return company;
+  }
+
+  async updateTenant(actor: OperatorActor, id: string, body: TenantPatchBody): Promise<Company> {
+    const existing = await this.db.company.findUnique({ where: { id } });
+    if (!existing) throw notFound("Tenant");
+    const tenant = await this.db.company.update({ where: { id: existing.id }, data: defined(body) });
+    // This process sees the new status at once; the worker and any other replica within the
+    // gate's short cache lifetime (S8).
+    this.tenants.invalidate(tenant.id);
+    if (body.monthlyBudgetCents !== undefined) {
+      await this.db.budget.upsert({
+        where: { scope_scopeId: { scope: "tenant", scopeId: tenant.id } },
+        create: {
+          companyId: tenant.id,
+          scope: "tenant",
+          scopeId: tenant.id,
+          limitCents: body.monthlyBudgetCents,
+          period: "month",
+        },
+        update: { limitCents: body.monthlyBudgetCents },
+      });
+    }
+    await this.audit.record(tenant.id, {
+      actorId: actor.userId,
+      action: "tenant.update",
+      targetType: "company",
+      targetId: tenant.id,
+      diff: body,
+    });
+    return tenant;
+  }
+
+  /** Platform-wide numbers: tenants, sessions by status, this month's spend per tenant. */
+  async stats(_actor: OperatorActor): Promise<PlatformStats> {
+    const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+    const [tenants, sessions, spend] = await Promise.all([
+      this.db.company.count(),
+      this.db.session.groupBy({ by: ["status"], _count: { _all: true } }),
+      this.db.llmCall.groupBy({
+        by: ["companyId"],
+        where: { createdAt: { gte: monthStart } },
+        _sum: { costCents: true },
+        _count: { _all: true },
+      }),
+    ]);
+    return {
+      tenants,
+      sessions: Object.fromEntries(sessions.map((s) => [s.status, s._count._all])),
+      spendByTenant: spend.map((s) => ({
+        companyId: s.companyId,
+        costCents: s._sum.costCents ?? 0,
+        calls: s._count._all,
+      })),
+    };
+  }
+
+  /**
+   * A job's audit row lands on the tenant it belonged to, if that tenant still exists; otherwise
+   * on the operator's own company. A job verb is audited with this.
+   */
+  async auditJob(
+    actor: OperatorActor,
+    entry: {
+      jobCompanyId: string | null;
+      fallbackCompanyId: string;
+      action: string;
+      targetId: string;
+      diff?: unknown;
+    },
+  ): Promise<void> {
+    let companyId = entry.fallbackCompanyId;
+    if (entry.jobCompanyId) {
+      const id = entry.jobCompanyId;
+      const found = await withSystemTenant(async () =>
+        this.db.company.findUnique({ where: { id }, select: { id: true } }),
+      );
+      if (found) companyId = found.id;
+    }
+    await this.audit.record(companyId, {
+      actorId: actor.userId,
+      action: entry.action,
+      targetType: "job",
+      targetId: entry.targetId,
+      ...(entry.diff !== undefined ? { diff: entry.diff } : {}),
+    });
+  }
+}
