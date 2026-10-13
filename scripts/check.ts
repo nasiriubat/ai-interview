@@ -51,6 +51,8 @@ const steps: [string, string[]][] = [
   ["build", ["pnpm", "-r", "build"]],
   ["typecheck", ["pnpm", "-r", "typecheck"]],
   ["lint", ["pnpm", "lint"]],
+  // The fences in eslint-rules/ are only worth something if they are shown to fire (AGENTS.md rules 2 and 4).
+  ["architecture lint rules", ["node", "--test", "scripts/architecture-lint.test.mjs"]],
 ];
 for (const [label, command] of steps) {
   const { code } = await run(label, command);

@@ -47,7 +47,7 @@ let current: { model: string; dtype: string; asr: AsrPipeline } | undefined;
 
 async function transformers(): Promise<Transformers> {
   if (tf) return tf;
-  const mod = (await import("@huggingface/transformers")) as unknown as Transformers;
+  const mod = (await import("@huggingface/transformers")) as Transformers;
   mod.env.cacheDir = cacheDir;
   // Only the cache and the Hugging Face hub: never a path relative to wherever the package sits.
   mod.env.allowLocalModels = false;
