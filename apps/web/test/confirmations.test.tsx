@@ -9,6 +9,7 @@ import { RoutesForm } from "@/components/admin/providers/RoutesForm";
 import { InvitationsSection } from "@/components/admin/requirements/InvitationsSection";
 import { ResultsView } from "@/components/admin/results/ResultsView";
 import { UsersPanel } from "@/components/admin/users/UsersPanel";
+import { SessionMenu } from "@/components/participant/SessionMenu";
 import { useAttachments } from "@/hooks/useAttachments";
 import type { ParticipantApi } from "@/lib/api/participant";
 import {
@@ -423,5 +424,34 @@ describe("removing an attachment is deferred until the Undo offer lapses", () =>
     expect(second.deleteAttachment).not.toHaveBeenCalled();
     second.unmount();
     expect(second.deleteAttachment).toHaveBeenCalledWith("c");
+  });
+});
+
+describe("participant: finishing the interview asks first", () => {
+  it("I'm done opens a question, Cancel changes nothing, Finish ends it", async () => {
+    const onDone = vi.fn();
+    const user = userEvent.setup();
+    render(<SessionMenu onPause={vi.fn()} onDone={onDone} onDelete={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Interview options" }));
+    await user.click(screen.getByRole("button", { name: "I'm done" }));
+    expect(within(dialog()).getByText("Finish the interview?")).toBeInTheDocument();
+    expect(onDone).not.toHaveBeenCalled();
+    await user.click(within(dialog()).getByRole("button", { name: "Cancel" }));
+    expect(onDone).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Interview options" }));
+    await user.click(screen.getByRole("button", { name: "I'm done" }));
+    await user.click(within(dialog()).getByRole("button", { name: "Finish" }));
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it("pausing does not ask, because reopening the link undoes it", async () => {
+    const onPause = vi.fn();
+    const user = userEvent.setup();
+    render(<SessionMenu onPause={onPause} onDone={vi.fn()} onDelete={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Interview options" }));
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(onPause).toHaveBeenCalledTimes(1);
   });
 });

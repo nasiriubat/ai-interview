@@ -177,6 +177,10 @@ export const fi: Strings = {
       pausedBody: "Vastauksesi on tallennettu. Avaa linkkisi uudelleen, kun haluat jatkaa.",
       resumeNow: "Jatka nyt",
       done: "Olen valmis",
+      doneTitle: "Päätetäänkö haastattelu?",
+      doneBody:
+        "Haastattelija esittää vielä yhden päättävän kysymyksen ja näyttää sitten yhteenvedon, jota voit muokata. Voit edelleen poistaa vastauksesi sen jälkeen.",
+      doneConfirm: "Päätä",
       doneMessage: "Olen valmis",
       deleteData: "Poista tietoni",
       deleteTitle: "Poistetaanko vastauksesi?",
