@@ -1,3 +1,4 @@
+import { withSystemTenant, withTenant, withTenantScope } from "@aidp/db";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BossJobs, JOBS, PgBossJobAdmin, type JobFailure } from "../src/index.js";
@@ -114,6 +115,27 @@ suite("job administration against a real pg-boss", () => {
     expect(await admin.discard("session.summarize", dead.id)).toBeNull();
     expect(await admin.retry("session.summarize", "00000000-0000-0000-0000-000000000000")).toBeNull();
     expect(await admin.retry("session.summarize", "not-a-uuid")).toBeNull();
+  });
+
+  it("answers the same through the unprivileged runtime role and the tenant scope, which is how the API and worker run it", async () => {
+    await db.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD 'test-app-role'`);
+    const u = new URL(url ?? "");
+    u.username = "app_api";
+    u.password = "test-app-role";
+    const api = new PrismaClient({ datasources: { db: { url: u.toString() } } });
+    try {
+      const scoped = withTenantScope(api) as unknown as PrismaClient;
+      const asApi = new PgBossJobAdmin(jobs.boss, scoped);
+      // The route handler runs with the operator's tenant in context; the sweep runs as system.
+      const listed = await withTenant(companyId, async () => asApi.list());
+      expect(listed.map((q) => q.name).sort()).toEqual(Object.keys(JOBS).sort());
+      const stuck = await withSystemTenant(async () => asApi.stuck());
+      expect(Array.isArray(stuck)).toBe(true);
+      const dead = await withSystemTenant(async () => asApi.deadLetters("session.summarize", 5));
+      expect(Array.isArray(dead)).toBe(true);
+    } finally {
+      await api.$disconnect();
+    }
   });
 
   it("reports a job that has been active past its expiry plus the grace period", async () => {

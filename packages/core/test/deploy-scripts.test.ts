@@ -219,7 +219,7 @@ describe("compose.prod.yml", () => {
   });
 
   it("mounts the shared ops_state volume where it is written and read", () => {
-    const blocks = compose.split(/\n  (?=[a-z-]+:\n)/);
+    const blocks = compose.split(/\n {2}(?=[a-z-]+:\n)/);
     for (const svc of ["preflight", "worker", "backup", "ops-notify", "ops-state-init"]) {
       const block = blocks.find((b) => b.startsWith(`${svc}:`)) ?? "";
       expect(block, `${svc} should mount ops_state`).toContain("ops_state:/ops-state");
