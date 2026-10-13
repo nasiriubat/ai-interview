@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { DateText } from "@/components/common/DateText";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,9 @@ import { staffClient } from "@/lib/api/browser";
 import type { Invitation } from "@/lib/api/schemas";
 
 const s = t.admin.campaigns;
+
+/** Above this many addresses a send is a mass email and asks first (the policy table, D-111). */
+export const BULK_INVITE_CONFIRM_ABOVE = 50;
 
 export function parseEmails(text: string): string[] {
   const seen = new Set<string>();
@@ -39,6 +43,14 @@ export function InvitationsPanel({
   const rowAction = useAction();
   const [text, setText] = React.useState("");
   const emails = parseEmails(text);
+  const [confirmBulk, setConfirmBulk] = React.useState(false);
+  const [revoking, setRevoking] = React.useState<Invitation | null>(null);
+
+  const requestSend = (): void => {
+    if (emails.length === 0) return;
+    if (emails.length > BULK_INVITE_CONFIRM_ABOVE) setConfirmBulk(true);
+    else send();
+  };
 
   const send = (): void => {
     if (emails.length === 0) return;
@@ -66,7 +78,7 @@ export function InvitationsPanel({
         className="grid gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          send();
+          requestSend();
         }}
       >
         <p className="text-muted-foreground text-sm">{s.invitationsBody}</p>
@@ -153,10 +165,7 @@ export function InvitationsPanel({
                         className="text-destructive hover:text-destructive"
                         disabled={rowAction.busy || inv.status === "revoked"}
                         onClick={() => {
-                          void rowAction.run(async () => {
-                            await staffClient.campaigns.revoke(campaignId, inv.id);
-                            router.refresh();
-                          }, s.revoked);
+                          setRevoking(inv);
                         }}
                       />
                     </RowActions>
@@ -167,6 +176,32 @@ export function InvitationsPanel({
           </Table>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmBulk}
+        onOpenChange={setConfirmBulk}
+        title={s.bulkTitle(emails.length)}
+        description={<p>{s.bulkBody(emails.length)}</p>}
+        confirmLabel={s.bulkConfirm(emails.length)}
+        tone="default"
+        onConfirm={send}
+      />
+      <ConfirmDialog
+        open={revoking !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevoking(null);
+        }}
+        title={s.revokeTitle}
+        description={<p>{s.revokeBody(revoking?.email ?? s.anonymousEmail)}</p>}
+        confirmLabel={s.revokeConfirm}
+        onConfirm={() => {
+          const inv = revoking;
+          if (!inv) return;
+          void rowAction.run(async () => {
+            await staffClient.campaigns.revoke(campaignId, inv.id);
+            router.refresh();
+          }, s.revoked);
+        }}
+      />
     </div>
   );
 }
