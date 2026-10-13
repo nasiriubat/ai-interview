@@ -6,7 +6,7 @@ import {
   type EmailPort,
   type SettingsService,
 } from "@aidp/core";
-import { containsInsensitive, tenantBatch } from "@aidp/db";
+import { containsInsensitive, tenantBatch, tenantTransaction } from "@aidp/db";
 import type { Campaign, Invitation, Prisma, PrismaClient } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
@@ -142,7 +142,40 @@ export class CampaignService {
 
   async setStatus(companyId: string, id: string, status: "open" | "closed"): Promise<Campaign> {
     const c = await this.get(companyId, id);
-    return this.db.campaign.update({ where: { id: c.id }, data: { status } });
+    const updated = await this.db.campaign.update({ where: { id: c.id }, data: { status } });
+    if (status === "closed" && c.participationMode === "anonymous") await this.retireLegacyHashes(c.id);
+    return updated;
+  }
+
+  /**
+   * What a closed anonymous campaign no longer needs, and what must not outlive it (D-142).
+   *
+   * Rows written before the per-campaign salt carry the platform-wide hash of an address, which
+   * matches the same person in every other campaign and tenant. They cannot be re-salted without
+   * the address, so they are upgraded when the person returns, and whatever is still in the old
+   * shape when the campaign closes is removed here: the legacy hash rows, pending codes, any
+   * pointer still on a participant row, and the invitation's link to a session. The one cost is
+   * that a campaign reopened afterwards cannot recognise a respondent whose row was removed.
+   */
+  private async retireLegacyHashes(campaignId: string): Promise<void> {
+    await tenantTransaction(this.db, async (tx) => {
+      await tx.campaignEmailHash.deleteMany({
+        where: { campaignId, NOT: { emailHash: { startsWith: "h2:" } } },
+      });
+      await tx.emailCode.deleteMany({ where: { campaignId } });
+      await tx.$executeRaw`
+        UPDATE "Participant" SET "fields" = "fields" - '_emailHash'
+         WHERE "campaignId" = ${campaignId} AND "fields" ? '_emailHash'`;
+      await tx.$executeRaw`
+        UPDATE "Invitation"
+           SET "sessionId" = NULL,
+               "openedAt" = date_trunc('day', "openedAt"),
+               "emailHash" = CASE
+                 WHEN "emailHash" LIKE 'h2:%' OR "emailHash" LIKE 'closed:%' OR "emailHash" LIKE 'deleted:%'
+                   THEN "emailHash"
+                 ELSE 'closed:' || md5(random()::text || "id") END
+         WHERE "campaignId" = ${campaignId}`;
+    });
   }
 
   async invite(
@@ -164,9 +197,11 @@ export class CampaignService {
         skipped.push(raw);
         continue;
       }
-      const emailHash = this.crypto.hashEmail(email);
-      const exists = await this.db.invitation.findUnique({
-        where: { campaignId_emailHash: { campaignId, emailHash } },
+      // Salted by campaign (D-142); an invitation written before that carries the platform-wide
+      // value, so it is looked for as well and the address is not invited twice.
+      const emailHash = this.crypto.campaignEmailHash(email, campaignId);
+      const exists = await this.db.invitation.findFirst({
+        where: { campaignId, emailHash: { in: [emailHash, this.crypto.hashEmail(email)] } },
       });
       if (exists) {
         skipped.push(raw);
@@ -297,7 +332,9 @@ export class CampaignService {
     const productName = await this.settings.get("branding.productName", [
       { scope: "tenant", scopeId: campaign.companyId },
     ]);
-    const link = `${this.linkFor("i")}?invitation=${token}`;
+    // The campaign's own link, with the invitation token as a query. This used `/p/i`, a link token
+    // that resolves to no campaign, so no personal link in an invitation email could be opened.
+    const link = `${await this.link(campaign.companyId, campaign.id)}?invitation=${token}`;
     await this.email.send({
       to: email,
       companyId: campaign.companyId,

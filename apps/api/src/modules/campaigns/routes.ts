@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { escapeLike, tenantBatch } from "@aidp/db";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -34,6 +35,18 @@ export const CampaignSessionList = listSpec({
     status: z.enum(["created", "consented", "active", "paused", "completed", "deleted"]).optional(),
   },
 });
+
+/**
+ * What an anonymous campaign's session list may say about time and order (D-142). A timestamp to
+ * the second, or an order that follows creation, can be read against the day an invitation was
+ * opened or the order addresses were invited, which would put a name to a session. So times are a
+ * day wide and the order is a stable one that follows no clock.
+ */
+function toDay(d: Date | null): Date | null {
+  return d ? new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())) : null;
+}
+const stableKey = (campaignId: string, id: string): string =>
+  createHash("sha256").update(`${campaignId}:${id}`).digest("hex");
 
 /** Whether a session's participant may be named on a staff screen or found by a search. */
 function identified(mode: string, consented: boolean): boolean {
@@ -270,15 +283,23 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
         ...(req.query.status ? { status: req.query.status } : {}),
         ...(q === undefined ? {} : { OR: [{ id: q }, ...identity] }),
       };
-      const [sessions, total] = await tenantBatch(ctx.db, [
+      // An anonymous campaign is paged in a stable order that follows no clock (see `stableKey`):
+      // the matching ids are ordered here, and the page's rows are read afterwards.
+      const pageIds =
+        mode === "anonymous"
+          ? (await ctx.db.session.findMany({ where, select: { id: true } }))
+              .map((s) => s.id)
+              .sort((x, y) => stableKey(campaign.id, x).localeCompare(stableKey(campaign.id, y)))
+              .slice(req.query.offset, req.query.offset + req.query.limit)
+          : null;
+      const [sessionRows, total] = await tenantBatch(ctx.db, [
         ctx.db.session.findMany({
-          where,
+          where: pageIds ? { ...where, id: { in: pageIds } } : where,
           orderBy: listOrder<Prisma.SessionOrderByWithRelationInput, typeof req.query.sort>(
             CampaignSessionList,
             req.query,
           ),
-          take: req.query.limit,
-          skip: req.query.offset,
+          ...(pageIds ? {} : { take: req.query.limit, skip: req.query.offset }),
           select: {
             id: true,
             status: true,
@@ -294,6 +315,9 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
         }),
         ctx.db.session.count({ where }),
       ]);
+      const sessions = pageIds
+        ? [...sessionRows].sort((a, b) => pageIds.indexOf(a.id) - pageIds.indexOf(b.id))
+        : sessionRows;
       // Costs for this page only, rather than every session the campaign ever had.
       const costs = sessions.length
         ? await ctx.db.llmCall.groupBy({
@@ -317,10 +341,20 @@ export async function campaignRoutes(app: App, ctx: AppContext): Promise<void> {
             mode: s.modePreference,
             costCents: costOf.get(s.id) ?? 0,
             ...visibleIdentity(mode, s.consentedAt !== null, s.participant?.fields),
-            startedAt: s.startedAt,
-            endedAt: s.endedAt,
-            createdAt: s.createdAt,
-            lastActivityAt: s.updatedAt,
+            // A person who is not named on this screen is not given a time to the second either.
+            ...(identified(mode, s.consentedAt !== null)
+              ? {
+                  startedAt: s.startedAt,
+                  endedAt: s.endedAt,
+                  createdAt: s.createdAt,
+                  lastActivityAt: s.updatedAt,
+                }
+              : {
+                  startedAt: toDay(s.startedAt),
+                  endedAt: toDay(s.endedAt),
+                  createdAt: toDay(s.createdAt),
+                  lastActivityAt: toDay(s.updatedAt),
+                }),
           };
         }),
         total,
