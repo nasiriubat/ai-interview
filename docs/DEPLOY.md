@@ -33,6 +33,10 @@ can be read top to bottom and believed.
                   uploads volume ───────────┘  (audio and attached documents)
 ```
 
+Images: `aidp-server` runs `migrate`, `api` and `worker`; `aidp-web` runs `web`; the stock
+`pgvector/pgvector:pg16` runs `postgres` and the three one-shot database helpers (`db-grants`,
+`preflight`, `backup`); `caddy:2-alpine` runs Caddy. Four images for nine services.
+
 **The API is not on the internet.** The browser never calls it: every request goes to a Next.js
 route handler (`apps/web/src/app/api/**`), which attaches the bearer token server-side
 (`apps/web/src/lib/api/proxy.ts`) and streams the response back, SSE included. Publishing the API
@@ -68,7 +72,10 @@ git clone <your-remote> ai-interview && cd ai-interview
 #    a provider with default routes; you can also do it in the admin UI later.)
 $EDITOR deploy/.env          # set EMAIL_SMTP_URL=smtp://user:pass@relay.example.com:587
 
-# 3. Build and start. First build compiles the whole workspace twice (API image, web image).
+# 3. Build and start. Two images are built: aidp-server (migrate, api and worker all run it,
+#    with different commands) and aidp-web. See D-74. The web build downloads the Inter font
+#    from Google Fonts once and serves it from your own origin, so the build host needs outbound
+#    HTTPS; the running site never contacts Google.
 docker compose -f deploy/compose.prod.yml --env-file deploy/.env up -d --build
 
 # 4. Watch it come up. Every service should reach (healthy).
@@ -118,19 +125,53 @@ with no embedding route it falls back to lexical overlap — the run succeeds, t
 produced, and the clusters are simply worse, grouping on shared words rather than shared meaning.
 The pipeline records which path it took, so check it after your first analysis.
 
-**Neither Anthropic nor OpenRouter can transcribe, speak, or embed.** Anthropic has no audio or
-embedding endpoints, and OpenRouter proxies chat models only. Without a third key you get
-interviews that work, clustering that falls back to word overlap, and no voice at all.
+**Recorded voice answers work with no key at all (D-75).** Bootstrap always adds a platform
+provider called "On this server (Whisper)", of kind `local`, and routes `transcription` to it
+unless something else already has that route. The API runs Whisper on its own CPU, so the audio
+never leaves the VPS and transcription costs nothing; the ledger still records each call, at zero.
+
+- **First transcription downloads the model.** whisper-small at q8 is about 250 MB, fetched from
+  Hugging Face into the `models` volume (`MODEL_CACHE_DIR=/models`). The API starts that download
+  in the background as soon as it boots, so normally nobody waits for it. Watch it with
+  `curl -s https://<domain>/api/v1/health/ready`: `speech.state` goes `downloading` (with
+  `progress`) → `ready`. It never makes readiness fail. Offline at boot? The API starts anyway,
+  logs `local speech: model did not load`, and the next recording tries again. After the first
+  download the server needs no network for it.
+- **Memory.** The API process holds the model on a worker thread: measured at about 0.9 GB resident
+  once loaded and 1.6–2.0 GB while transcribing. It is released after
+  `SPEECH_MODEL_IDLE_MINUTES` (default 10) without a recording and reloaded from the volume in
+  about a second when the next one arrives, so an idle server does not hold it; set it to `0` to
+  keep the model loaded permanently. Give the `api` service at least 2.5 GB; on a
+  4 GB VPS that is fine alongside Postgres and the web app, on a 2 GB VPS it is not — route
+  transcription to OpenAI instead (below) and the model is never loaded.
+- **CPU.** One recording at a time, queued. A 10-second answer takes about a second on a laptop
+  core and a few seconds on a 2-vCPU VPS. A recording that waits more than two minutes to start
+  (a backlog, or the first download still running) gets a "try again in a minute", and its audio
+  is kept.
+- **Choosing the model** is the route's model field in Admin → Routing: `onnx-community/whisper-small`
+  (default, good Finnish), `onnx-community/whisper-base` (faster, 80 MB, weaker Finnish) or
+  `onnx-community/whisper-large-v3-turbo` (best, about 1.1 GB and 4+ GB of RAM). Only these three
+  run; anything else is refused, so a tenant's route cannot make the server download arbitrary
+  models. One model is held at a time.
+- **Switching to OpenAI.** Point the `transcription` route at an OpenAI provider (whisper-1) in
+  Admin → Routing, platform-wide or per tenant. The local provider stays in the list to switch back.
+
+**Neither Anthropic nor OpenRouter can speak or embed.** Anthropic has no audio or embedding
+endpoints, and OpenRouter proxies chat models only. Without a third key you get interviews that
+work, recorded answers transcribed on the server, clustering that falls back to word overlap, and
+no spoken interviewer.
 
 Setting `OPENAI_API_KEY` in `deploy/.env` closes all three at once: first boot adds a platform
-OpenAI provider and routes exactly `transcription`, `tts` and `embedding` to it, leaving every
-conversation purpose on whichever provider you chose. Nothing else changes.
+OpenAI provider and routes `transcription`, `stt_stream`, `tts` and `embedding` to it, leaving every
+conversation purpose on whichever provider you chose. Transcription then goes to OpenAI rather
+than the local model; the local provider is still created, so you can switch back.
 
-| Purpose         | Default model            | What it turns on                        |
-| --------------- | ------------------------ | --------------------------------------- |
-| `transcription` | `whisper-1`              | Voice answers, and live voice           |
-| `tts`           | `tts-1`                  | The interviewer's own voice             |
-| `embedding`     | `text-embedding-3-small` | Semantic clustering instead of keywords |
+| Purpose         | Default model            | What it turns on                          |
+| --------------- | ------------------------ | ----------------------------------------- |
+| `transcription` | `whisper-1`              | Voice answers, and live voice             |
+| `stt_stream`    | `gpt-live-transcribe`    | Live captions while the participant talks |
+| `tts`           | `tts-1`                  | The interviewer's own voice               |
+| `embedding`     | `text-embedding-3-small` | Semantic clustering instead of keywords   |
 
 The cheaper models are chosen deliberately: a voice interview pays per second of conversation.
 Change a row in Admin → Routing for a better voice.
@@ -143,17 +184,39 @@ handler cannot upgrade a connection, so `deploy/Caddyfile` forwards exactly
 with the same `aidp_participant` cookie the web app set, so the socket grants nothing an ordinary
 HTTP call would not.
 
-It is off until a tenant turns it on (Admin → Settings → Voice, `features.realtimeVoice`), and it
-needs both a `transcription` and a `tts` route. Without them it degrades rather than breaking, and
-which rung it drops to depends on what is missing:
+It is off until a tenant turns it on, from the **Live voice calls** switch at the top of Admin →
+Settings → Voice. The panel shows whether the three voice purposes have a working route and where
+it comes from. The call needs `transcription` and `tts`; if either is missing, turning the switch
+on asks the admin for an OpenAI API key, checks it with one free request, stores it encrypted as
+the tenant's OpenAI provider and routes the missing purposes to it (audited as
+`voice.openai_connect`), then switches live voice on. With a platform `OPENAI_API_KEY` nobody is
+asked for anything. `OPENAI_BASE_URL` in the API's environment points that key check and provider
+somewhere other than `https://api.openai.com/v1`, for a regional endpoint or a proxy.
+
+With an `stt_stream` route the call streams: the browser sends 24 kHz PCM continuously (about
+48 kB/s per call, so allow for it on a thin uplink), the API holds one outbound WebSocket per call
+to `wss://api.openai.com/v1/realtime?intent=transcription`, and captions grow while the participant
+speaks. The API container needs outbound WebSocket access to OpenAI for that, as it already needs
+HTTPS. If the streaming socket cannot be opened or drops mid-call, the call carries on per
+utterance through `transcription`.
+
+Without the required routes it degrades rather than breaking, and which rung it drops to depends on
+what is missing:
 
 | What is missing             | What the participant gets                                  |
 | --------------------------- | ---------------------------------------------------------- |
+| Streaming captions failing  | Captions per utterance, when the participant stops         |
 | No `tts` route              | The call continues in captions, without the spoken voice   |
 | A transcription that failed | The push-to-record button, worth retrying by hand          |
 | No `transcription` route    | Typing. Nothing that listens can work, so nothing pretends |
+| Transcription on the server | The push-to-record button, which does work (see below)     |
 
 The interview itself is untouched in every case.
+
+The on-server Whisper (the default `transcription` route) reads WAV only. The record button
+converts each recording to WAV in the browser before uploading it; live voice streams WebM
+utterances and does not, so with the default route a live call steps down to the record button on
+the first utterance. For a live call that stays live, route `transcription` to OpenAI.
 
 Costs run per second of conversation rather than per turn, which is worth knowing before opening
 it to a whole department. The per-call figures land in the same cost ledger as everything else.
@@ -179,7 +242,7 @@ The prefix is the compose project name, which defaults to the directory holding 
 (`deploy`). `docker volume ls` shows the real names.
 
 Every container that faces the network runs unprivileged: the API, the worker and the web app all
-run as uid 1000 (`node` in the API image, `app` in the web image) over a root-owned, read-only
+run as uid 1000 (`node`, in both images) over a root-owned, read-only
 application tree. Confirm with `dc exec api id`.
 
 `deploy/.env` is the sixth thing that matters and it is not in a volume. It is mode 600 in the
