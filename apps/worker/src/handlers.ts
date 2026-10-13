@@ -1,14 +1,25 @@
-import { extractFacts, updateRollingSummary, type Logger } from "@aidp/ai";
+import {
+  extractFacts,
+  updateRollingSummary,
+  type Logger,
+  type PromptSource,
+  type SessionSnapshot,
+  type SessionStore,
+} from "@aidp/ai";
 import {
   AnalysisService,
   AttachmentService,
+  EMAIL_OUTBOX_RETENTION_MS,
+  PrismaEmailOutbox,
   PrismaPromptSource,
   PrismaSessionStore,
   RequirementsService,
   deleteSessionData,
   runRetentionSweep,
+  sendOnce,
   type CallerFactory,
   type Crypto,
+  type EmailOutbox,
   type EmailPort,
   type JobName,
   type JobPayload,
@@ -17,7 +28,7 @@ import {
   type StoragePort,
 } from "@aidp/core";
 import { withSystemTenant, withTenant } from "@aidp/db";
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
 export interface HandlerDeps {
   db: PrismaClient;
@@ -30,7 +41,18 @@ export interface HandlerDeps {
   publicWebUrl: string;
   /** Where uploaded audio and documents live; the worker reads what the API wrote. */
   storage: StoragePort;
+  /** What has been sent, by idempotency key. Defaults to the Postgres table; tests pass memory. */
+  outbox?: EmailOutbox;
+  /** Where session state lives. Defaults to Prisma; tests pass `MemorySessionStore`. */
+  sessions?: JobSessionStore;
+  /** Where prompts come from. Defaults to the tenant-aware Prisma source. */
+  prompts?: PromptSource;
 }
+
+/** The session store a job needs: the engine's port plus loading a snapshot with its status. */
+export type JobSessionStore = SessionStore & {
+  snapshot(sessionId: string): Promise<SessionSnapshot & { status: string }>;
+};
 
 /**
  * Job handlers (spec 12, NFR-09). Each is idempotent: the engine records the sequence it
@@ -54,8 +76,9 @@ const scoped = <P>(handler: (payload: P) => Promise<void>) => {
 };
 
 export function handlers(deps: HandlerDeps): Handlers {
-  const store = new PrismaSessionStore(deps.db);
-  const prompts = new PrismaPromptSource(deps.db);
+  const store: JobSessionStore = deps.sessions ?? new PrismaSessionStore(deps.db);
+  const outbox = deps.outbox ?? new PrismaEmailOutbox(deps.db);
+  const prompts = deps.prompts ?? new PrismaPromptSource(deps.db);
   const analysis = new AnalysisService({
     db: deps.db,
     callers: deps.callers,
@@ -95,29 +118,38 @@ export function handlers(deps: HandlerDeps): Handlers {
         const session = await store.snapshot(sessionId);
         if (session.status === "deleted") return;
         const caller = await deps.callers.forCompany(companyId);
+        // The facts, the cursor and the event are committed per batch inside extractFacts. There is
+        // nothing left for this handler to persist, which is the point: a crash here can no longer
+        // leave a cursor that has moved past facts nobody wrote.
         const r = await extractFacts({ caller, store, prompts }, session);
-        for (const f of r.facts) {
-          await deps.db.fact.create({
-            data: {
-              companyId,
-              sessionId,
-              kind: f.kind,
-              payload: f as Prisma.InputJsonValue,
-              extractorVersion: "extraction@1",
-            },
-          });
-        }
-        deps.log.info("facts extracted", { sessionId, count: r.facts.length, upToSeq: r.upToSeq });
+        if (r.stale)
+          deps.log.info("extraction yielded to a concurrent run", { sessionId, upToSeq: r.upToSeq });
+        else deps.log.info("facts extracted", { sessionId, count: r.facts.length, upToSeq: r.upToSeq });
       },
     ),
 
+    /**
+     * Send-once: the queue retries a job whose acknowledgement failed, and without the outbox
+     * that is a second email. A retry that finds the message already sent does nothing; one that
+     * finds another attempt in flight throws, so the queue tries again later. The log carries the
+     * key, never the address.
+     */
     "email.send": scoped(async (m: JobPayload<"email.send">): Promise<void> => {
-      await deps.email.send({
-        to: m.to,
-        subject: m.subject,
-        text: m.text,
-        ...(m.html ? { html: m.html } : {}),
-        ...(m.companyId ? { companyId: m.companyId } : {}),
+      const outcome = await sendOnce(
+        outbox,
+        deps.email,
+        m.idempotencyKey,
+        {
+          to: m.to,
+          subject: m.subject,
+          text: m.text,
+          ...(m.html ? { html: m.html } : {}),
+          ...(m.companyId ? { companyId: m.companyId } : {}),
+        },
+        m.companyId ? { companyId: m.companyId } : {},
+      );
+      deps.log.info(outcome === "sent" ? "email sent" : "email already sent; skipped", {
+        key: m.idempotencyKey,
       });
     }),
 
@@ -142,11 +174,14 @@ export function handlers(deps: HandlerDeps): Handlers {
     /** Second pass of "delete my data": removes anything the request path could not (facts written later, ledger references). */
     "privacy.delete-session": scoped(
       async ({ sessionId, companyId }: JobPayload<"privacy.delete-session">): Promise<void> => {
-        await deleteSessionData(deps.db, sessionId, {
+        const { bytesFailed } = await deleteSessionData(deps.db, sessionId, {
           storage: deps.storage,
           companyId,
           log: deps.log,
         });
+        // The rows are gone and re-running is harmless, so a failed file delete is retried by the
+        // queue (with backoff) instead of waiting for the nightly storage GC to notice it.
+        if (bytesFailed > 0) throw new Error(`could not delete the stored files of session ${sessionId}`);
         deps.log.info("session data deleted", { sessionId });
       },
     ),
@@ -166,7 +201,17 @@ export function handlers(deps: HandlerDeps): Handlers {
         storage: deps.storage,
       });
       const deleted = sweeps.reduce((n, s) => n + s.deleted, 0);
-      deps.log.info("retention sweep finished", { tenants: sweeps.length, deleted });
+      const orphans = sweeps.reduce((n, s) => n + s.orphansCollected, 0);
+      const bytesFailed = sweeps.reduce((n, s) => n + s.bytesFailed, 0);
+      // The send-once rows only need to outlive the queue's retries; a month is generous.
+      const emailsPruned = await outbox.prune(new Date(Date.now() - EMAIL_OUTBOX_RETENTION_MS));
+      deps.log.info("retention sweep finished", {
+        tenants: sweeps.length,
+        deleted,
+        orphans,
+        bytesFailed,
+        emailsPruned,
+      });
     }),
 
     /** Expired Auth.js sign-in tokens (spec 11). Nothing references them once they lapse. */

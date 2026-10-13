@@ -27,6 +27,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@aidp/testing": "workspace:*",
     "@types/node": "^22.0.0",
     "@types/nodemailer": "^6.4.0",
     "typescript": "^5.9.0",

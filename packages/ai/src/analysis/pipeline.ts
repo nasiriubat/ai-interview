@@ -9,7 +9,7 @@ import type {
 } from "@aidp/shared";
 import { ClusteringResultSchema, OpportunityDraftSchema, rankScore } from "@aidp/shared";
 import { z } from "zod";
-import type { ModelCaller } from "../callModel.js";
+import type { CallContext, ModelCallerPort } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";
 import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js";
 import { languageName } from "../util/language.js";
@@ -73,7 +73,7 @@ export interface AnalysisResult {
 }
 
 export interface AnalysisDeps {
-  caller: ModelCaller;
+  caller: ModelCallerPort;
   prompts: PromptSource;
   embeddings?: EmbeddingSource;
   logger: Logger;
@@ -241,7 +241,7 @@ function c(
 
 async function nameClusters(
   deps: AnalysisDeps,
-  ctx: Parameters<ModelCaller["complete"]>[1],
+  ctx: CallContext,
   input: AnalysisInput,
   facts: AnalysisFact[],
   drafts: { key: string; factIds: string[] }[],
@@ -332,7 +332,7 @@ export function reconcile(clusters: NamedCluster[], facts: AnalysisFact[]): Name
 
 async function opportunityFor(
   deps: AnalysisDeps,
-  ctx: Parameters<ModelCaller["complete"]>[1],
+  ctx: CallContext,
   input: AnalysisInput,
   cluster: { key: string; name: string; summary: string; factIds: string[] },
   members: AnalysisFact[],
@@ -369,7 +369,7 @@ async function opportunityFor(
 
 async function narrative(
   deps: AnalysisDeps,
-  ctx: Parameters<ModelCaller["complete"]>[1],
+  ctx: CallContext,
   input: AnalysisInput,
   opportunities: AnalysisOpportunity[],
   versions: string[],

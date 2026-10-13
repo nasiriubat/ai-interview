@@ -4,47 +4,14 @@ import {
   ShippedPromptSource,
   renderLiveSpec,
   type EngineEvent,
-  type NewMessage,
   type SessionSnapshot,
-  type SessionStore,
-  type StoredMessage,
 } from "@aidp/ai";
 import { shippedTemplate } from "@aidp/db";
-import { SessionStateSchema, type Path, type SessionState } from "@aidp/shared";
+import type { Path } from "@aidp/shared";
+import { MemorySessionStore } from "@aidp/testing";
 import { describe, expect, it } from "vitest";
 import fixture from "../fixtures/charting-nontechnical.json" with { type: "json" };
 import { RequirementsScriptedModel } from "./requirements-model.js";
-
-class MemoryStore implements SessionStore {
-  messages: StoredMessage[] = [];
-  state: SessionState = SessionStateSchema.parse({});
-  events: { type: string; payload: unknown }[] = [];
-  async appendMessage(_id: string, m: NewMessage): Promise<StoredMessage> {
-    const s: StoredMessage = {
-      ...m,
-      id: String(this.messages.length + 1),
-      seq: this.messages.length + 1,
-      createdAt: new Date(),
-    };
-    this.messages.push(s);
-    return s;
-  }
-  async recentMessages(_id: string, limit: number) {
-    return this.messages.slice(-limit);
-  }
-  async messagesAfter(_id: string, seq: number) {
-    return this.messages.filter((m) => m.seq > seq);
-  }
-  async saveState(_id: string, state: SessionState) {
-    this.state = state;
-  }
-  async saveSummary(): Promise<void> {
-    // summaries are not exercised by this eval
-  }
-  async appendEvent(_id: string, type: string, payload: unknown): Promise<void> {
-    this.events.push({ type, payload });
-  }
-}
 
 const settings = {
   recentWindowTurns: 10,
@@ -73,10 +40,10 @@ describe(`requirements replay: ${fixture.name}`, () => {
     const template = shippedTemplate(fixture.templateKey);
     expect(template).toBeDefined();
     if (!template) return;
-    const store = new MemoryStore();
+    const store = new MemorySessionStore();
     const model = new RequirementsScriptedModel(template);
     const engine = new InterviewEngine({
-      caller: model.asCaller(),
+      caller: model,
       store,
       prompts: new ShippedPromptSource(),
       recall: new LexicalRecall(store, 10),

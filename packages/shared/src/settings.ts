@@ -170,6 +170,13 @@ export const SETTINGS = {
     category: "cost",
     description: "Pause sessions or downgrade to the cheaper route when a budget is exhausted",
   }),
+  "cost.probeMaxPerDay": def({
+    schema: z.number().int().min(0).max(10000),
+    default: 50,
+    scopes: ["platform", "tenant"],
+    category: "cost",
+    description: "Provider connection tests a tenant may run per rolling day; 0 turns the test button off",
+  }),
   "cost.defaultMonthlyBudgetCents": def({
     schema: z.number().int().min(0),
     default: 20000,

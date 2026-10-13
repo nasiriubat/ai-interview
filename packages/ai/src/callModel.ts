@@ -41,6 +41,25 @@ export interface CallRequest {
   effort?: Effort;
   temperature?: number;
   cachePrefix?: boolean;
+  /**
+   * Cancels the call. The adapter is handed the same signal, so the request itself is torn down,
+   * and the ledger row is written with status `aborted`. A call made with a signal that is already
+   * aborted never reaches the provider and writes nothing: no work was done.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * Thrown by `chat` and `complete` when the caller's signal aborted the call. Not a provider
+ * failure: callers that cancelled on purpose (a client disconnected, a lock was lost) recognise it
+ * and stop quietly instead of reporting an error to anyone.
+ */
+export class CallAbortedError extends Error {
+  constructor(cause?: unknown) {
+    super("The model call was aborted");
+    this.name = "CallAbortedError";
+    if (cause !== undefined) this.cause = cause;
+  }
 }
 
 export interface CallContext {
@@ -51,6 +70,33 @@ export interface CallContext {
   promptVersion?: string;
 }
 
+/** Decides whether a tenant may run another provider probe. Throws `ProbeLimitError` when not. */
+export interface ProbeGuard {
+  check(companyId: string, at: Date): Promise<void>;
+}
+
+export class ProbeLimitError extends Error {
+  constructor(readonly limitPerDay: number) {
+    super(`Provider tests are limited to ${limitPerDay} per day`);
+    this.name = "ProbeLimitError";
+  }
+}
+
+/** What a probe is aimed at. The only call that names its provider instead of resolving a route. */
+export interface ProbeTarget {
+  providerId: string;
+  model: string;
+}
+
+export interface ProbeResult {
+  text: string;
+  usage: Usage;
+  latencyMs: number;
+  costCents: number;
+  /** False for a platform-level probe, which has no tenant to attribute a ledger row to. */
+  ledgered: boolean;
+}
+
 export interface ModelCallerDeps {
   routes: RouteResolver;
   providerConfigs: ProviderConfigSource;
@@ -59,6 +105,8 @@ export interface ModelCallerDeps {
   ledger: LedgerSink;
   budget: BudgetGuard;
   now?: () => Date;
+  /** Caps `probe`. Omitted in tests that do not exercise the limit. */
+  probeGuard?: ProbeGuard;
   onBudgetWarning?: (
     ctx: CallContext,
     warnings: Awaited<ReturnType<BudgetGuard["check"]>>["warnings"],
@@ -66,11 +114,33 @@ export interface ModelCallerDeps {
 }
 
 /**
+ * What the engine, extraction, summary, issue detection, spec generation and analysis need from a
+ * model caller: streamed chat, schema-validated completion and embeddings.
+ *
+ * The class has private fields, so `implements ModelCaller` is not expressible and test doubles
+ * used to be cast (`this as unknown as ModelCaller`), which let a fake drift from the real
+ * signatures without the compiler noticing. Consumers that only chat and complete depend on this
+ * port instead, and the class and every fake are checked against it.
+ */
+export interface ModelCallerPort {
+  chat(purpose: Purpose, ctx: CallContext, req: CallRequest): AsyncIterable<ChatEvent>;
+  complete<T>(
+    purpose: Purpose,
+    ctx: CallContext,
+    req: CallRequest,
+    schema: z.ZodType<T>,
+    schemaName?: string,
+  ): Promise<T>;
+  /** Embeddings, or undefined when no `embedding` route is configured (callers fall back). */
+  embed(ctx: CallContext, texts: string[]): Promise<{ vectors: number[][]; model: string } | undefined>;
+}
+
+/**
  * The single entry point for model calls. Resolves the route for the purpose, checks the
  * budget with a conservative estimate, invokes the adapter, and writes the ledger row
  * whatever happens. No other code may call a provider adapter directly.
  */
-export class ModelCaller {
+export class ModelCaller implements ModelCallerPort {
   private readonly now: () => Date;
   constructor(private readonly deps: ModelCallerDeps) {
     this.now = deps.now ?? (() => new Date());
@@ -78,25 +148,55 @@ export class ModelCaller {
 
   /** Streamed chat. Text events are yielded as they arrive; the final event carries usage. */
   async *chat(purpose: Purpose, ctx: CallContext, req: CallRequest): AsyncIterable<ChatEvent> {
+    if (req.signal?.aborted) throw new CallAbortedError();
     const { route, provider, price } = await this.prepare(purpose, ctx, req);
     const fullReq = this.applyRoute(route, provider, req);
     const started = this.now();
     let usage = emptyUsage();
     let status: LedgerEntry["status"] = "ok";
+    let streamed = "";
+    let finished = false;
     try {
       for await (const ev of provider.chat(route.model, fullReq)) {
+        // An adapter that ignores the signal must not keep a cancelled turn alive.
+        if (req.signal?.aborted) throw new CallAbortedError();
+        if (ev.type === "text") streamed += ev.text;
         if (ev.type === "done") {
+          finished = true;
           usage = ev.usage;
           if (ev.stopReason === "refusal") status = "refused";
         }
         yield ev;
       }
     } catch (e) {
+      if (req.signal?.aborted) {
+        status = "aborted";
+        // The provider reports usage only at the end of a stream, and an aborted stream never
+        // gets there, so what it cost is estimated from what was sent and what arrived. Recording
+        // zero here is how abandoned streams used to look free.
+        usage = this.abortedUsage(req, streamed);
+        throw e instanceof CallAbortedError ? e : new CallAbortedError(e);
+      }
       status = e instanceof ProviderError && e.code === "refusal" ? "refused" : "error";
       throw e;
     } finally {
+      // The consumer abandoning the generator (an early `return`, a barge-in) lands here with the
+      // status still "ok" and no `done` event seen: the same situation as an abort, recorded as one.
+      if (status === "ok" && !finished) {
+        status = "aborted";
+        usage = this.abortedUsage(req, streamed);
+      }
       await this.record(purpose, ctx, route, price, usage, status, started);
     }
+  }
+
+  private abortedUsage(req: CallRequest, streamed: string): Usage {
+    return {
+      inputTokens: estimateTokens((req.system ?? "") + JSON.stringify(req.messages)),
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      outputTokens: estimateTokens(streamed),
+    };
   }
 
   /** Structured output validated against a Zod schema. */
@@ -107,6 +207,7 @@ export class ModelCaller {
     schema: z.ZodType<T>,
     schemaName?: string,
   ): Promise<T> {
+    if (req.signal?.aborted) throw new CallAbortedError();
     const { route, provider, price } = await this.prepare(purpose, ctx, req);
     const fullReq = this.applyRoute(route, provider, req);
     const started = this.now();
@@ -117,10 +218,84 @@ export class ModelCaller {
       usage = res.usage;
       return res.value;
     } catch (e) {
+      if (req.signal?.aborted) {
+        status = "aborted";
+        usage = this.abortedUsage(req, "");
+        throw e instanceof CallAbortedError ? e : new CallAbortedError(e);
+      }
       status = e instanceof ProviderError && e.code === "refusal" ? "refused" : "error";
       throw e;
     } finally {
       await this.record(purpose, ctx, route, price, usage, status, started);
+    }
+  }
+
+  /**
+   * One tiny request to a named provider and model: the admin "test connection" (FR-43).
+   *
+   * Everything else here resolves a route and checks a budget; a probe does neither, because its
+   * whole point is to ask a specific provider that may not be routed yet, and an admin whose
+   * budget is spent still has to be able to find out why their provider is failing. It is bounded
+   * the other way instead: `probeGuard` caps how many a tenant may run per day. The provider must
+   * be one this tenant may use (its own, or platform-level), the key never leaves the config
+   * source, and the call is ledgered under purpose `probe` with the provider as its reference.
+   *
+   * `ctx.companyId` is null for the platform operator testing a platform provider. There is no
+   * tenant to attribute the row to, so that case is not ledgered (`ledgered: false`).
+   */
+  async probe(
+    ctx: { companyId: string | null },
+    target: ProbeTarget,
+    options: { prompt?: string; maxOutputTokens?: number; signal?: AbortSignal } = {},
+  ): Promise<ProbeResult> {
+    const tenant = ctx.companyId;
+    if (tenant !== null) await this.deps.probeGuard?.check(tenant, this.now());
+    const provider = await this.providerFor(tenant ?? "", target.providerId);
+    const price = this.deps.prices.get(target.providerId, target.model);
+    const route: Route = {
+      companyId: tenant,
+      purpose: "probe",
+      providerId: target.providerId,
+      model: target.model,
+      maxOutputTokens: options.maxOutputTokens ?? 16,
+      batchAllowed: false,
+    };
+    const request: ChatRequest = {
+      messages: [{ role: "user", content: options.prompt ?? "Reply with the single word: ready" }],
+      maxOutputTokens: route.maxOutputTokens,
+      cachePrefix: false,
+      ...(options.signal ? { signal: options.signal } : {}),
+    };
+    const started = this.now();
+    let usage = emptyUsage();
+    let text = "";
+    let status: LedgerEntry["status"] = "ok";
+    try {
+      for await (const ev of provider.chat(target.model, request)) {
+        if (ev.type === "text") text += ev.text;
+        if (ev.type === "done") usage = ev.usage;
+      }
+      return {
+        text,
+        usage,
+        latencyMs: Math.max(0, this.now().getTime() - started.getTime()),
+        costCents: price ? costCents(price, usage) : 0,
+        ledgered: tenant !== null,
+      };
+    } catch (e) {
+      status = options.signal?.aborted ? "aborted" : "error";
+      throw e;
+    } finally {
+      if (tenant !== null)
+        await this.record(
+          "probe",
+          { companyId: tenant, ref: { type: "provider", id: target.providerId } },
+          route,
+          price,
+          usage,
+          status,
+          started,
+        );
     }
   }
 
@@ -286,6 +461,7 @@ export class ModelCaller {
       cachePrefix: provider.capabilities.caching && (req.cachePrefix ?? false),
     };
     if (req.system !== undefined) out.system = req.system;
+    if (req.signal) out.signal = req.signal;
     if (req.temperature !== undefined) out.temperature = req.temperature;
     if (effort && provider.capabilities.effort) out.effort = effort;
     return out;

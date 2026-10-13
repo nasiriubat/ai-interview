@@ -67,6 +67,7 @@ services:
     <<: *logging
     image: aidp-server:latest
     pull_policy: never
+    stop_grace_period: 40s
     env_file: apps/api/.env
     environment:
       UPLOAD_DIR: /uploads
@@ -96,6 +97,7 @@ services:
     pull_policy: never
     command: ["node", "apps/worker/dist/main.js"]
     healthcheck: { disable: true }
+    stop_grace_period: 40s
     env_file: apps/api/.env
     environment:
       UPLOAD_DIR: /uploads

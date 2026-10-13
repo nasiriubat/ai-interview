@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { SECRET_SENTINEL } from "@aidp/shared";
+import { describeDb } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { Crypto } from "../src/crypto.js";
 import { SettingsService } from "../src/settings/service.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 suite("SettingsService", () => {
   const db = new PrismaClient();

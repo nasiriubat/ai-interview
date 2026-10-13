@@ -2,7 +2,7 @@ import { z } from "zod";
 import { UsageSchema } from "./chat.js";
 import { PurposeSchema } from "./purposes.js";
 
-export const CallStatusSchema = z.enum(["ok", "error", "refused", "budget_exceeded"]);
+export const CallStatusSchema = z.enum(["ok", "error", "refused", "budget_exceeded", "aborted"]);
 export type CallStatus = z.infer<typeof CallStatusSchema>;
 
 export const LedgerEntrySchema = z.object({

@@ -11,6 +11,12 @@ const Env = z.object({
   UPLOAD_DIR: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
+  /**
+   * How long running jobs may take after SIGTERM before they are aborted and redelivered. Keep it
+   * under the container's stop_grace_period (40 s in the compose files) or the orchestrator kills
+   * the process before it can say what it abandoned.
+   */
+  WORKER_SHUTDOWN_GRACE_SECONDS: z.coerce.number().int().min(1).max(600).default(25),
 });
 export type Config = z.infer<typeof Env>;
 

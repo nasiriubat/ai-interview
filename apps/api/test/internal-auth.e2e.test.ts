@@ -1,9 +1,10 @@
 import type { Server } from "node:http";
 import { INTERNAL_AUTH_HEADER } from "@aidp/shared";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describeDb } from "@aidp/testing";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { fakeModelServer, TEST_AUTH_SECRET, testWorld, type TestWorld } from "./helpers.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 const PATH = "/api/v1/internal/auth/verification-tokens";
 

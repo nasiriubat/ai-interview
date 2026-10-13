@@ -39,6 +39,12 @@ export interface AppContext {
   attachments: AttachmentService;
   /** Whisper on this server (D-75): one runner per process, shared by every `local` provider. */
   speech: SpeechRunner;
+  /**
+   * Aborted when the process is draining and the grace period for running turns is over. Streams
+   * still open at that point end with an `error` event of code `shutting_down`, so the client
+   * retries instead of seeing a reset connection.
+   */
+  shutdown: AbortController;
 }
 
 export function buildContext(input: {
@@ -114,5 +120,6 @@ export function buildContext(input: {
     storage,
     attachments,
     speech,
+    shutdown: new AbortController(),
   };
 }

@@ -15,6 +15,7 @@ import { pino } from "pino";
 import { loadConfig } from "./config.js";
 import { handlers } from "./handlers.js";
 import { registerSchedules } from "./schedules.js";
+import { createShutdown } from "./shutdown.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -127,13 +128,28 @@ async function main(): Promise<void> {
   });
   log.info("worker started");
 
-  const shutdown = async (): Promise<void> => {
-    await jobs.stop();
-    await db.$disconnect();
-    process.exit(0);
-  };
-  process.on("SIGTERM", () => void shutdown());
-  process.on("SIGINT", () => void shutdown());
+  // One sequence for both signals (see shutdown.ts): drain with a deadline, say what was abandoned,
+  // exit non-zero unless everything finished, and exit at once on a second signal.
+  const shutdown = createShutdown({
+    stopJobs: (timeoutMs) => jobs.stop({ timeoutMs }),
+    disconnect: () => db.$disconnect(),
+    inFlight: () => jobs.inFlight(),
+    exit: (code) => process.exit(code),
+    graceMs: config.WORKER_SHUTDOWN_GRACE_SECONDS * 1000,
+    log: {
+      info: (meta, m) => {
+        log.info(meta, m);
+      },
+      warn: (meta, m) => {
+        log.warn(meta, m);
+      },
+      error: (meta, m) => {
+        log.error(meta, m);
+      },
+    },
+  });
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
 main().catch((err: unknown) => {

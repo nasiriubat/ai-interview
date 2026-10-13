@@ -290,11 +290,17 @@ model Fact {
   embedding        Unsupported("vector(1536)")?
   extractorVersion String
   extractedAt      DateTime                    @default(now())
+  /// Highest message sequence of the extraction batch that produced this fact. With `ordinal` it
+  /// is the idempotency key: replaying a batch cannot write its facts twice (D-100).
+  batchEndSeq      Int
+  /// Position within that batch.
+  ordinal          Int
 
   company  Company               @relation(fields: [companyId], references: [id])
   session  Session               @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   evidence OpportunityEvidence[]
 
+  @@unique([sessionId, batchEndSeq, ordinal])
   @@index([companyId, sessionId])
 }
 
@@ -562,7 +568,7 @@ model LlmCall {
   cacheWriteTokens Int      @default(0)
   outputTokens     Int
   latencyMs        Int
-  status           String // ok | error | refused | budget_exceeded
+  status           String // ok | error | refused | budget_exceeded | aborted
   costCents        Float
   sessionId        String?
   campaignId       String?
@@ -592,4 +598,19 @@ model AuditLog {
 
   @@index([companyId, createdAt])
   @@index([companyId, action, createdAt])
+}
+
+/// One row per email the worker has sent or is sending, keyed by the caller's idempotency key, so
+/// a job that is retried after the SMTP send succeeded does not send the message again (D-105).
+model SentEmail {
+  id             String    @id @default(cuid())
+  companyId      String?
+  idempotencyKey String    @unique
+  /// sending | sent. A row left in `sending` past its lease is taken over by the next attempt.
+  state          String    @default("sending")
+  claimedAt      DateTime  @default(now())
+  sentAt         DateTime?
+
+  @@index([state, claimedAt])
+  @@index([sentAt])
 }

@@ -12,6 +12,7 @@ import type { SettingsService } from "../settings/service.js";
 import {
   PrismaBudgetLimits,
   PrismaLedger,
+  PrismaProbeGuard,
   PrismaProviderConfigSource,
   PrismaRouteResolver,
   loadPrices,
@@ -45,7 +46,11 @@ export class CallerFactory {
     const warnFraction = await this.deps.settings.get("cost.warnFraction", [
       { scope: "tenant", scopeId: companyId },
     ]);
+    const probeMaxPerDay = await this.deps.settings.get("cost.probeMaxPerDay", [
+      { scope: "tenant", scopeId: companyId },
+    ]);
     return new ModelCaller({
+      probeGuard: new PrismaProbeGuard(this.deps.db, probeMaxPerDay),
       routes: new PrismaRouteResolver(this.deps.db),
       providerConfigs: new PrismaProviderConfigSource(this.deps.db, this.deps.crypto),
       registry: this.registry,

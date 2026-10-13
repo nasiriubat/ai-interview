@@ -1,9 +1,10 @@
 import type { Server } from "node:http";
 import { SECRET_SENTINEL } from "@aidp/shared";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describeDb } from "@aidp/testing";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { fakeModelServer, testWorld, type TestWorld } from "./helpers.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 suite("admin configuration surface (contract 19)", () => {
   let world: TestWorld;

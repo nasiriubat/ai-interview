@@ -1,5 +1,5 @@
 import { SessionStateSchema } from "@aidp/shared";
-import type { ModelCaller } from "../callModel.js";
+import type { ModelCallerPort } from "../callModel.js";
 import { renderStoredMessage } from "./context.js";
 import type { SessionSnapshot, SessionStore } from "./ports.js";
 import { promptVersionTag, type PromptSource } from "./prompts/index.js";
@@ -9,7 +9,7 @@ import { promptVersionTag, type PromptSource } from "./prompts/index.js";
  * Runs as a job after turns; idempotent because it records the sequence it summarized up to.
  */
 export async function updateRollingSummary(
-  deps: { caller: ModelCaller; store: SessionStore; prompts: PromptSource },
+  deps: { caller: ModelCallerPort; store: SessionStore; prompts: PromptSource },
   session: SessionSnapshot,
   recentWindowTurns: number,
 ): Promise<{ updated: boolean; upToSeq: number }> {
@@ -46,7 +46,6 @@ export async function updateRollingSummary(
     if (ev.type === "text") summary += ev.text;
   }
   const upToSeq = toFold[toFold.length - 1]?.seq ?? state.summaryUpToSeq;
-  await deps.store.saveSummary(session.id, summary.trim());
-  await deps.store.saveState(session.id, { ...state, summaryUpToSeq: upToSeq });
+  await deps.store.commitSummary(session.id, summary.trim(), upToSeq);
   return { updated: true, upToSeq };
 }

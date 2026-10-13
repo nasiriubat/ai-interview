@@ -128,7 +128,11 @@ export class OpenAICompatibleProvider implements Provider {
       stream_options: { include_usage: true },
       ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
     };
-    const res = await this.request("/chat/completions", { method: "POST", body: JSON.stringify(body) });
+    const res = await this.request("/chat/completions", {
+      method: "POST",
+      body: JSON.stringify(body),
+      ...(req.signal ? { signal: req.signal } : {}),
+    });
     if (!res.body) throw new ProviderError("Empty stream body", "server", true);
     let usage = emptyUsage();
     let stop: StopReason = "other";
@@ -173,6 +177,7 @@ export class OpenAICompatibleProvider implements Provider {
         method: "POST",
         body: JSON.stringify({ ...base, response_format: responseFormat }),
         allowStatuses,
+        ...(req.signal ? { signal: req.signal } : {}),
       });
       if (allowStatuses.includes(res.status)) return { status: res.status };
       return { status: res.status, body: (await res.json()) as OpenAICompletion };
@@ -339,7 +344,13 @@ export class OpenAICompatibleProvider implements Provider {
 
   private async request(
     path: string,
-    init: { method: string; body?: BodyInit; headers?: Record<string, string>; allowStatuses?: number[] },
+    init: {
+      method: string;
+      body?: BodyInit;
+      headers?: Record<string, string>;
+      allowStatuses?: number[];
+      signal?: AbortSignal;
+    },
   ): Promise<Response> {
     let res: Response;
     try {
@@ -347,6 +358,7 @@ export class OpenAICompatibleProvider implements Provider {
         method: init.method,
         headers: init.headers ?? this.headers,
         ...(init.body !== undefined ? { body: init.body } : {}),
+        ...(init.signal ? { signal: init.signal } : {}),
       });
     } catch (e) {
       throw new ProviderError(`Network error calling ${path}`, "network", true, e);

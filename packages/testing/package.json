@@ -1,0 +1,30 @@
+{
+  "name": "@aidp/testing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dev-only test doubles and gates shared by the api, worker, core and evals suites.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aidp/ai": "workspace:*",
+    "@aidp/shared": "workspace:*",
+    "vitest": "^3.2.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0"
+  }
+}

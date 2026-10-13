@@ -64,7 +64,7 @@ export class AnthropicProvider implements Provider {
   async *chat(model: string, req: ChatRequest): AsyncIterable<ChatEvent> {
     const params = this.buildParams(model, req);
     try {
-      const stream = this.client.messages.stream(params);
+      const stream = this.client.messages.stream(params, req.signal ? { signal: req.signal } : undefined);
       for await (const event of stream) {
         if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
           yield { type: "text", text: event.delta.text };
@@ -89,10 +89,13 @@ export class AnthropicProvider implements Provider {
   ): Promise<{ value: T; usage: Usage }> {
     const params = this.buildParams(model, req);
     try {
-      const res = await this.client.messages.parse({
-        ...params,
-        output_config: { ...(params.output_config ?? {}), format: zodOutputFormat(schema) },
-      });
+      const res = await this.client.messages.parse(
+        {
+          ...params,
+          output_config: { ...(params.output_config ?? {}), format: zodOutputFormat(schema) },
+        },
+        req.signal ? { signal: req.signal } : undefined,
+      );
       if (res.stop_reason === "refusal") {
         throw new ProviderError("Model refused the request", "refusal", false);
       }
