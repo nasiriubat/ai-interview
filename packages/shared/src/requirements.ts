@@ -239,6 +239,12 @@ export const SpecDocumentSectionSchema = z.object({
   title: z.string(),
   markdown: z.string(),
   source: z.enum(["generated", "edited", "fallback"]),
+  /**
+   * Fingerprint of what the section was written from (the live spec's facts and the owner's edit for
+   * it). The model rewords a section every time it is regenerated, so the version diff compares
+   * this, not the prose: an unchanged basis is an unchanged section (live run bug 6).
+   */
+  basis: z.string().optional(),
 });
 
 export const SpecDocumentSchema = z.object({

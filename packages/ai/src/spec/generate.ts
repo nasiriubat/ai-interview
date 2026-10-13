@@ -14,6 +14,7 @@ import {
   type SpecEdits,
   type SpecVersionStats,
 } from "@aidp/shared";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { ModelCallerPort } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";
@@ -98,6 +99,23 @@ export function requirementsFromState(state: SessionState): SpecDocument["requir
   });
 }
 
+/** The fingerprint a section is written from: the deterministic live rendering of its facts and edit. */
+export function sectionBases(input: SpecGenerationInput): Map<string, string> {
+  const live = renderLiveSpec({
+    title: input.title,
+    path: input.path ?? null,
+    state: input.state,
+    edits: input.edits,
+    sections: input.sections,
+  });
+  return new Map(
+    live.sections.map((s) => [
+      s.key,
+      createHash("sha256").update(`${s.status}\n${s.markdown.trim()}`).digest("hex").slice(0, 16),
+    ]),
+  );
+}
+
 /** The document built without a model: the live spec's sections verbatim, every section marked fallback. */
 export function fallbackDocument(input: SpecGenerationInput, now: Date): SpecDocument {
   const live = renderLiveSpec({
@@ -108,6 +126,7 @@ export function fallbackDocument(input: SpecGenerationInput, now: Date): SpecDoc
     sections: input.sections,
   });
   const requirements = requirementsFromState(input.state);
+  const bases = sectionBases(input);
   return SpecDocumentSchema.parse({
     title: input.title,
     language: input.language,
@@ -121,6 +140,7 @@ export function fallbackDocument(input: SpecGenerationInput, now: Date): SpecDoc
         title: s.title,
         markdown: s.key === "functional" && s.status !== "edited" ? "" : s.markdown,
         source: s.status === "edited" ? "edited" : "fallback",
+        ...(bases.get(s.key) ? { basis: bases.get(s.key) } : {}),
       })),
     requirements,
     mvp: {
@@ -219,12 +239,14 @@ export async function generateSpec(
         promptVersion,
         ref: { type: "session", id: input.sessionId },
       },
-      { system, messages: [{ role: "user", content: user }], maxOutputTokens: 32000 },
+      { system, messages: [{ role: "user", content: user }] },
       SpecGenerationOutputSchema,
       "specification",
     );
     const modelSections = new Map(out.sections.map((s) => [s.key, s.markdown]));
     const requirements = out.requirements.length ? out.requirements : requirementsFromState(input.state);
+    const bases = sectionBases(input);
+    const basisOf = (key: string) => (bases.get(key) ? { basis: bases.get(key) } : {});
     const document = SpecDocumentSchema.parse({
       title: out.title.trim() || input.title,
       language: input.language,
@@ -234,8 +256,20 @@ export async function generateSpec(
       sections: input.sections.map((key) => {
         const edit = input.edits[key];
         if (edit?.markdown.trim())
-          return { key, title: sectionTitle(key), markdown: edit.markdown, source: "edited" };
-        return { key, title: sectionTitle(key), markdown: modelSections.get(key) ?? "", source: "generated" };
+          return {
+            key,
+            title: sectionTitle(key),
+            markdown: edit.markdown,
+            source: "edited",
+            ...basisOf(key),
+          };
+        return {
+          key,
+          title: sectionTitle(key),
+          markdown: modelSections.get(key) ?? "",
+          source: "generated",
+          ...basisOf(key),
+        };
       }),
       requirements,
       phases: out.phases,
