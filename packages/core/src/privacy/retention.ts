@@ -1,6 +1,7 @@
+import { randomBytes } from "node:crypto";
 import type { Logger } from "@aidp/ai";
-import { tenantBatch, withTenant } from "@aidp/db";
-import { type Prisma, type PrismaClient } from "@prisma/client";
+import { tenantTransaction, withTenant } from "@aidp/db";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import type { SettingsService } from "../settings/service.js";
 import { sessionPrefix, type StoragePort } from "../storage/index.js";
 
@@ -9,8 +10,12 @@ import { sessionPrefix, type StoragePort } from "../storage/index.js";
  * deletion jobs"). The consent text promises participants their answers do not live forever, so the
  * promise is kept by a daily sweep rather than by hand.
  *
- * Expired sessions are anonymized, not dropped: the messages, events, facts and attachments go, the
- * session row stays as `status: "deleted"` with empty state and summary. Campaign participation
+ * Expired sessions are anonymized, not dropped. What goes is everything that identifies a person or
+ * holds what they said: messages, events, facts, attachments, specification versions, the
+ * participant row (name, email, role, department, token hash), the invitation address, the
+ * email-uniqueness hash and any pending verification code, and the personal JSON columns of the
+ * session itself. The session row stays as `status: "deleted"` with empty state and summary
+ * (D-81). Campaign participation
  * counts, analyses and the `LlmCall` cost ledger reference sessions, and those aggregates must
  * survive a deletion (spec 11: "aggregated cluster counts remain").
  *
@@ -22,7 +27,7 @@ import { sessionPrefix, type StoragePort } from "../storage/index.js";
  * lost to an earlier partial failure would otherwise strand its bytes permanently.
  *
  * Note on tenancy: the sweep spans every company, but no statement it runs does. It enters each
- * tenant's scope in turn (`withTenant`) and writes through `tenantBatch`, so row-level security
+ * tenant's scope in turn (`withTenant`) and writes through `tenantTransaction`, so row-level security
  * stays engaged rather than being stood down for the job.
  */
 
@@ -37,9 +42,6 @@ export const RETENTION_MAX_BATCHES = 50;
 
 export const RETENTION_SWEEP_ACTION = "privacy.retention_sweep";
 
-/** Anything that can run the four deletes and the anonymizing update. */
-type SessionDeleteClient = Pick<PrismaClient, "message" | "sessionEvent" | "fact" | "attachment" | "session">;
-
 export interface TenantSweep {
   companyId: string;
   /** Voice recordings deleted this run because they passed `privacy.audioRetentionDays`. */
@@ -48,6 +50,8 @@ export interface TenantSweep {
   examined: number;
   /** Sessions anonymized this run. */
   deleted: number;
+  /** Participant rows with no live session removed this run (D-81). */
+  residueRemoved: number;
   retentionMonths: number;
   olderThan: string;
   /** The per-run batch cap was reached; the rest is swept by the next run. */
@@ -75,7 +79,7 @@ export async function deleteSessionData(
   sessionId: string,
   options: { markEnded?: boolean; storage?: StoragePort; companyId?: string; log?: Logger } = {},
 ): Promise<void> {
-  await tenantBatch(db, deleteSessionOps(db, [sessionId], options));
+  await eraseSession(db, sessionId, { markEnded: options.markEnded ?? false, audit: true });
   await deleteSessionBytes([sessionId], options);
 }
 
@@ -107,29 +111,211 @@ async function deleteSessionBytes(
   }
 }
 
-/** The five statements that make a session's content go away, for one id or a whole batch. */
-function deleteSessionOps(
-  db: SessionDeleteClient,
-  sessionIds: string[],
-  options: { markEnded?: boolean } = {},
-): Prisma.PrismaPromise<unknown>[] {
-  const where = { sessionId: { in: sessionIds } };
-  return [
-    db.message.deleteMany({ where }),
-    db.sessionEvent.deleteMany({ where }),
-    db.fact.deleteMany({ where }),
-    db.attachment.deleteMany({ where }),
-    db.session.updateMany({
-      where: { id: { in: sessionIds } },
+/** What replaces a quote that was removed from a generated report. */
+export const REDACTION_MARK = "[removed at participant's request]";
+
+/** Quotes shorter than this are not replaced: a short string would corrupt unrelated text. */
+const MIN_REDACTABLE_CHARS = 12;
+
+/**
+ * Erases one session and everything that identifies its participant, in one transaction.
+ *
+ * The session row is locked first (`FOR UPDATE`), so a turn, an extraction or an upload that is
+ * mid-flight either finishes before the erase and is removed by it, or is refused after it by the
+ * database trigger from migration 0013. There is no window in which content is written for a
+ * session that is already gone.
+ *
+ * Idempotent: a second run finds nothing left to remove. Returns false when the session does not
+ * exist.
+ */
+export async function eraseSession(
+  db: PrismaClient,
+  sessionId: string,
+  options: { markEnded: boolean; audit: boolean },
+): Promise<boolean> {
+  return tenantTransaction(
+    db,
+    async (tx) => {
+      const locked = await tx.$queryRaw<
+        {
+          id: string;
+          companyId: string;
+          campaignId: string | null;
+          participantId: string | null;
+          status: string;
+        }[]
+      >`SELECT "id", "companyId", "campaignId", "participantId", "status" FROM "Session" WHERE "id" = ${sessionId} FOR UPDATE`;
+      const session = locked[0];
+      if (!session) return false;
+
+      // What the participant said, as it appears outside the session: fact quotes and the evidence
+      // snippets built from them. Captured before the facts go so reports can be scrubbed of them.
+      const [facts, evidence] = await Promise.all([
+        tx.fact.findMany({ where: { sessionId }, select: { payload: true } }),
+        tx.opportunityEvidence.findMany({ where: { fact: { sessionId } }, select: { snippet: true } }),
+      ]);
+      const quotes = new Set<string>();
+      for (const f of facts) {
+        const quote = (f.payload as { quote?: unknown } | null)?.quote;
+        if (typeof quote === "string") quotes.add(quote);
+      }
+      for (const e of evidence) quotes.add(e.snippet);
+
+      const participant = session.participantId
+        ? await tx.participant.findUnique({
+            where: { id: session.participantId },
+            select: { id: true, fields: true },
+          })
+        : null;
+      const emailHash = hashOf(participant?.fields);
+
+      await tx.message.deleteMany({ where: { sessionId } });
+      await tx.sessionEvent.deleteMany({ where: { sessionId } });
+      await tx.fact.deleteMany({ where: { sessionId } });
+      await tx.attachment.deleteMany({ where: { sessionId } });
+      await tx.specVersion.deleteMany({ where: { sessionId } });
+
+      await tx.session.update({
+        where: { id: sessionId },
+        data: {
+          status: "deleted",
+          state: {},
+          summary: "",
+          handoff: Prisma.DbNull,
+          title: "",
+          specEdits: {},
+          invitations: [],
+          participantId: null,
+          turnLockedAt: null,
+          // The sweep leaves `endedAt` alone: it is what the expiry is measured from.
+          ...(options.markEnded ? { endedAt: new Date() } : {}),
+        },
+      });
+      if (participant) await tx.participant.delete({ where: { id: participant.id } });
+
+      await forgetAddress(tx, {
+        sessionIds: [sessionId],
+        campaignId: session.campaignId,
+        emailHash,
+      });
+
+      if (session.campaignId) {
+        await redactReports(tx, session.campaignId, [...quotes]);
+      }
+
+      if (options.audit && session.status !== "deleted") {
+        // No participant data: the session id is the only thing recorded, and it is already in the
+        // retained session row.
+        await tx.auditLog.create({
+          data: {
+            companyId: session.companyId,
+            actorId: null,
+            action: "privacy.session_deleted",
+            targetType: "session",
+            targetId: sessionId,
+            diff: {},
+          },
+        });
+      }
+      return true;
+    },
+    { timeout: 30_000, maxWait: 10_000 },
+  );
+}
+
+/** The uniqueness pointer a participant row carries (`_emailHash`), if it has one. */
+function hashOf(fields: unknown): string | null {
+  const value = (fields as { _emailHash?: unknown } | null | undefined)?._emailHash;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+type Tx = Parameters<Parameters<typeof tenantTransaction>[1]>[0];
+
+/**
+ * Removes every trace of an email address from a campaign's own tables.
+ *
+ * The invitation row is kept (send counts, status history) but loses the address, the link and
+ * the hash that would match a re-invitation. The uniqueness hash and any pending code are
+ * deleted: a retained HMAC of an address is still personal data for whoever holds the key, so
+ * erasure outranks the "one response per person" guarantee (D-81). The consequence is stated in
+ * the privacy notice: an open email-code link accepts the same person again.
+ */
+async function forgetAddress(
+  tx: Tx,
+  target: { sessionIds: string[]; campaignId: string | null; emailHash: string | null },
+): Promise<void> {
+  const { sessionIds, campaignId, emailHash } = target;
+  const invitations = await tx.invitation.findMany({
+    where: {
+      OR: [
+        { sessionId: { in: sessionIds } },
+        ...(campaignId && emailHash ? [{ campaignId, emailHash }] : []),
+      ],
+    },
+    select: { id: true, sentAt: true },
+  });
+  for (const inv of invitations) {
+    await tx.invitation.update({
+      where: { id: inv.id },
       data: {
-        status: "deleted",
-        state: {},
-        summary: "",
-        // The sweep leaves `endedAt` alone: it is what the expiry is measured from.
-        ...(options.markEnded ? { endedAt: new Date() } : {}),
+        email: null,
+        emailHash: `deleted:${randomBytes(12).toString("hex")}`,
+        tokenHash: `deleted:${randomBytes(24).toString("hex")}`,
+        status: "revoked",
+        sessionId: null,
+        openedAt: null,
+        // Day resolution is enough for a send count and no longer pairs with a session's timing.
+        sentAt: inv.sentAt
+          ? new Date(Date.UTC(inv.sentAt.getUTCFullYear(), inv.sentAt.getUTCMonth(), inv.sentAt.getUTCDate()))
+          : null,
       },
-    }),
-  ];
+    });
+  }
+  if (campaignId && emailHash) {
+    await tx.campaignEmailHash.deleteMany({ where: { campaignId, emailHash } });
+    await tx.emailCode.deleteMany({ where: { campaignId, emailHash } });
+  }
+}
+
+/**
+ * Replaces verbatim quotes in a campaign's generated reports and opportunities.
+ *
+ * Aggregates (cluster counts, scores) are untouched, as spec 11 says they remain. The report text
+ * is the one place a participant's own words survive outside their session, so an exact match of
+ * what was quoted is replaced with a fixed marker, and the analysis is flagged stale so an admin
+ * knows to rerun it. An exact-match replace will not catch a quote that was paraphrased or
+ * reflowed; that residue is why the flag exists and why the privacy notice does not promise more
+ * than "answers, recordings and files".
+ */
+async function redactReports(tx: Tx, campaignId: string, quotes: string[]): Promise<void> {
+  const redactable = quotes.filter((q) => q.length >= MIN_REDACTABLE_CHARS);
+  for (const quote of redactable) {
+    // The same text inside a JSON document is escaped; match that spelling as well.
+    const escaped = JSON.stringify(quote).slice(1, -1);
+    await tx.$executeRaw`
+      UPDATE "Report"
+         SET "markdown" = replace("markdown", ${quote}::text, ${REDACTION_MARK}::text),
+             "sections" = replace("sections"::text, ${escaped}::text, ${REDACTION_MARK}::text)::jsonb
+       WHERE "analysisId" IN (SELECT "id" FROM "Analysis" WHERE "campaignId" = ${campaignId})
+         AND (position(${quote}::text in "markdown") > 0 OR position(${escaped}::text in "sections"::text) > 0)`;
+    await tx.$executeRaw`
+      UPDATE "Opportunity"
+         SET "summary" = replace("summary", ${quote}::text, ${REDACTION_MARK}::text),
+             "rationale" = replace("rationale", ${quote}::text, ${REDACTION_MARK}::text),
+             "whyNotAi" = replace("whyNotAi", ${quote}::text, ${REDACTION_MARK}::text),
+             "factors" = replace("factors"::text, ${escaped}::text, ${REDACTION_MARK}::text)::jsonb
+       WHERE "analysisId" IN (SELECT "id" FROM "Analysis" WHERE "campaignId" = ${campaignId})
+         AND (position(${quote}::text in "summary") > 0
+              OR position(${quote}::text in "rationale") > 0
+              OR position(${quote}::text in coalesce("whyNotAi", '')) > 0
+              OR position(${escaped}::text in "factors"::text) > 0)`;
+  }
+  // Flag every analysis of the campaign, not only those a quote was found in: each was computed
+  // from data that has since changed.
+  await tx.$executeRaw`
+    UPDATE "Analysis"
+       SET "stats" = COALESCE("stats", '{}'::jsonb) || '{"stale": true}'::jsonb
+     WHERE "campaignId" = ${campaignId}`;
 }
 
 /** `now` minus `months`, in UTC. */
@@ -216,20 +402,23 @@ async function sweepTenant(
     });
     if (expired.length === 0) break;
     examined += expired.length;
-    // One transaction per batch, never one per sweep: a long transaction on a big table blocks
-    // vacuum and holds locks for the whole run.
+    // One transaction per session, never one per sweep: a long transaction on a big table blocks
+    // vacuum and holds locks for the whole run, and an erase takes a row lock on its session.
     const ids = expired.map((s) => s.id);
-    await tenantBatch(db, deleteSessionOps(db, ids));
+    for (const id of ids) await eraseSession(db, id, { markEnded: false, audit: false });
     await deleteSessionBytes(ids, { ...(storage ? { storage } : {}), companyId, log });
     deleted += expired.length;
     if (expired.length < batchSize) break;
     if (batch === maxBatches - 1) truncated = true;
   }
 
+  const residueRemoved = await sweepResidue(db, companyId, now, maxBatches);
+
   const result: TenantSweep = {
     companyId,
     examined,
     deleted,
+    residueRemoved,
     audioDeleted,
     retentionMonths,
     olderThan: cutoff.toISOString(),
@@ -237,7 +426,7 @@ async function sweepTenant(
   };
   // Structured, and free of participant identifiers: counts and the policy only.
   log.info("retention sweep", { ...result });
-  if (deleted > 0) {
+  if (deleted > 0 || residueRemoved > 0) {
     await db.auditLog.create({
       data: {
         companyId,
@@ -245,11 +434,57 @@ async function sweepTenant(
         action: RETENTION_SWEEP_ACTION,
         targetType: "company",
         targetId: companyId,
-        diff: { deleted, retentionMonths, olderThan: result.olderThan } satisfies Prisma.InputJsonValue,
+        diff: {
+          deleted,
+          residueRemoved,
+          retentionMonths,
+          olderThan: result.olderThan,
+        } satisfies Prisma.InputJsonValue,
       },
     });
   }
   return result;
+}
+
+/** A participant row this old with no live session is residue, not a person mid-interview. */
+const RESIDUE_GRACE_DAYS = 7;
+
+/**
+ * Removes participant rows that no live session needs: those left by deletions made before the
+ * participant was erased with the session, and those a failed session create orphaned. Their
+ * address hash, pending codes and invitation address go with them, by the same rules as an erase.
+ * A tenant's requirements invitee with an open session is untouched: it has a live session.
+ */
+async function sweepResidue(
+  db: PrismaClient,
+  companyId: string,
+  now: Date,
+  maxBatches: number,
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - RESIDUE_GRACE_DAYS * 24 * 60 * 60 * 1000);
+  let removed = 0;
+  for (let batch = 0; batch < maxBatches; batch++) {
+    const n = await tenantTransaction(db, async (tx) => {
+      const candidates = await tx.participant.findMany({
+        where: { companyId, createdAt: { lt: cutoff }, sessions: { none: { status: { not: "deleted" } } } },
+        select: { id: true, campaignId: true, fields: true, sessions: { select: { id: true } } },
+        orderBy: { createdAt: "asc" },
+        take: RETENTION_BATCH_SIZE,
+      });
+      for (const p of candidates) {
+        await forgetAddress(tx, {
+          sessionIds: p.sessions.map((x) => x.id),
+          campaignId: p.campaignId,
+          emailHash: hashOf(p.fields),
+        });
+        await tx.participant.delete({ where: { id: p.id } });
+      }
+      return candidates.length;
+    });
+    removed += n;
+    if (n < RETENTION_BATCH_SIZE) break;
+  }
+  return removed;
 }
 
 /** Recordings deleted per statement; a bounded sweep must not sit on the table. */
