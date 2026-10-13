@@ -6,6 +6,7 @@ import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { SelectField, TextField } from "@/components/admin/forms";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,6 +23,7 @@ export function UsersPanel({ users, canEdit }: { users: User[]; canEdit: boolean
   const [email, setEmail] = React.useState("");
   const [name, setName] = React.useState("");
   const [role, setRole] = React.useState<(typeof ROLES)[number]>("member");
+  const [changing, setChanging] = React.useState<{ user: User; role: (typeof ROLES)[number] } | null>(null);
 
   return (
     <div className="grid gap-6">
@@ -86,10 +88,10 @@ export function UsersPanel({ users, canEdit }: { users: User[]; canEdit: boolean
                     <Select
                       value={u.role}
                       onValueChange={(v) => {
-                        void action.run(async () => {
-                          await staffClient.users.update(u.id, { role: v });
-                          router.refresh();
-                        }, s.updated);
+                        // The select stays on the saved role until the change is confirmed: a role
+                        // is a security decision, never a stray click on a dropdown.
+                        const next = ROLES.find((r) => r === v);
+                        if (next && next !== u.role) setChanging({ user: u, role: next });
                       }}
                     >
                       <SelectTrigger size="sm" className="w-36" aria-label={`${s.role}: ${u.email}`}>
@@ -112,6 +114,24 @@ export function UsersPanel({ users, canEdit }: { users: User[]; canEdit: boolean
           </TableBody>
         </Table>
       )}
+      <ConfirmDialog
+        open={changing !== null}
+        onOpenChange={(open) => {
+          if (!open) setChanging(null);
+        }}
+        title={s.roleTitle(changing?.user.email ?? "")}
+        description={<p>{changing?.role === "admin" ? s.roleBodyGrant : s.roleBodyRevoke}</p>}
+        confirmLabel={s.roleConfirm(changing ? t.admin.nav.role[changing.role] : "")}
+        tone="default"
+        onConfirm={() => {
+          const c = changing;
+          if (!c) return;
+          void action.run(async () => {
+            await staffClient.users.update(c.user.id, { role: c.role });
+            router.refresh();
+          }, s.updated);
+        }}
+      />
     </div>
   );
 }
