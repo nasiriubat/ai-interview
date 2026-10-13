@@ -11,17 +11,32 @@ import {
   type Viewer,
 } from "@aidp/core";
 import { FindingOutcomeSchema, PathSchema, WidgetResponseSchema } from "@aidp/shared";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
-import { PageQuery } from "../../lib/pagination.js";
+import { listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
 import { runTurn } from "../sessions/turn-runner.js";
 
 const Id = z.object({ id: z.string() });
+
+/**
+ * `/requirements` (D-79): `q` matches the title. A member sees their own sessions and an admin
+ * sees every owned session; search and filters narrow that set, never widen it. Deleted
+ * sessions are never listed, so `deleted` is not a status filter.
+ */
+export const RequirementsList = listSpec({
+  sort: { createdAt: "desc", title: "asc", status: "asc", lastActivity: "desc" },
+  defaultSort: "createdAt",
+  columns: { lastActivity: "updatedAt" },
+  filters: {
+    status: z.enum(["created", "consented", "active", "paused", "completed"]).optional(),
+  },
+});
 const VersionParams = z.object({ id: z.string(), v: z.coerce.number().int().positive() });
 const TurnBody = z.object({
   content: z.string().max(8000).default(""),
@@ -62,9 +77,18 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
 
   app.get(
     "/requirements",
-    { preHandler: requireStaff(), schema: { querystring: PageQuery } },
+    { preHandler: requireStaff(), schema: { querystring: listQuery(RequirementsList) } },
     async (req) => {
-      const { sessions, total } = await svc.list(req.companyId, viewerOf(req), req.query);
+      const { sessions, total } = await svc.list(req.companyId, viewerOf(req), {
+        limit: req.query.limit,
+        offset: req.query.offset,
+        q: searchTerm(req.query.q),
+        status: req.query.status,
+        orderBy: listOrder<Prisma.SessionOrderByWithRelationInput, typeof req.query.sort>(
+          RequirementsList,
+          req.query,
+        ),
+      });
       return { sessions, total, limit: req.query.limit, offset: req.query.offset };
     },
   );

@@ -1,4 +1,5 @@
 import { tenantBatch, tenantTransaction } from "@aidp/db";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
@@ -6,24 +7,52 @@ import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
-import { PageQuery } from "../../lib/pagination.js";
+import { contains, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
+
+/** `/operator/tenants` (D-79): `q` matches the name, or the id exactly. */
+export const TenantList = listSpec({
+  sort: { createdAt: "asc", name: "asc", status: "asc" },
+  defaultSort: "createdAt",
+  filters: {
+    status: z.enum(["active", "suspended"]).optional(),
+    region: z
+      .string()
+      .regex(/^[a-z0-9-]+$/)
+      .max(20)
+      .optional(),
+  },
+});
 
 /** Platform operator: tenants and global numbers. Platform providers and routes use the provider routes with X-Company-Id unset and companyId null. */
 export async function operatorRoutes(app: App, ctx: AppContext): Promise<void> {
   const op = requireStaff("platform_operator");
 
-  app.get("/operator/tenants", { preHandler: op, schema: { querystring: PageQuery } }, async (req) => {
-    const [tenants, total] = await tenantBatch(ctx.db, [
-      ctx.db.company.findMany({
-        orderBy: { createdAt: "asc" },
-        include: { _count: { select: { users: true, campaigns: true, sessions: true } } },
-        take: req.query.limit,
-        skip: req.query.offset,
-      }),
-      ctx.db.company.count(),
-    ]);
-    return { tenants, total, limit: req.query.limit, offset: req.query.offset };
-  });
+  app.get(
+    "/operator/tenants",
+    { preHandler: op, schema: { querystring: listQuery(TenantList) } },
+    async (req) => {
+      const q = searchTerm(req.query.q);
+      const where: Prisma.CompanyWhereInput = {
+        ...(q ? { OR: [{ name: contains(q) }, { id: q }] } : {}),
+        ...(req.query.status ? { status: req.query.status } : {}),
+        ...(req.query.region ? { region: req.query.region } : {}),
+      };
+      const [tenants, total] = await tenantBatch(ctx.db, [
+        ctx.db.company.findMany({
+          where,
+          orderBy: listOrder<Prisma.CompanyOrderByWithRelationInput, typeof req.query.sort>(
+            TenantList,
+            req.query,
+          ),
+          include: { _count: { select: { users: true, campaigns: true, sessions: true } } },
+          take: req.query.limit,
+          skip: req.query.offset,
+        }),
+        ctx.db.company.count({ where }),
+      ]);
+      return { tenants, total, limit: req.query.limit, offset: req.query.offset };
+    },
+  );
 
   app.post(
     "/operator/tenants",

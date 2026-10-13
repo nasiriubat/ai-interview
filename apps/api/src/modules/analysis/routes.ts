@@ -1,16 +1,24 @@
 import { AnalysisInProgressError, OpportunityNotFoundError } from "@aidp/core";
 import { tenantBatch } from "@aidp/db";
 import { OpportunityOverrideSchema, rankScore } from "@aidp/shared";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { requireStaff, staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, notFound } from "../../lib/errors.js";
-import { PageQuery } from "../../lib/pagination.js";
+import { listOrder, listQuery, listSpec } from "../../lib/pagination.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
 
 const Id = z.object({ id: z.string() });
+
+/** `/campaigns/:id/analyses` (D-79): runs are numbered, so there is nothing to search. */
+export const AnalysisList = listSpec({
+  sort: { version: "desc", createdAt: "desc" },
+  defaultSort: "version",
+  filters: { status: z.enum(["queued", "running", "done", "failed"]).optional() },
+});
 
 /** Analysis runs, opportunities, and the report (contract 17). */
 export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
@@ -70,14 +78,20 @@ export async function analysisRoutes(app: App, ctx: AppContext): Promise<void> {
 
   app.get(
     "/campaigns/:id/analyses",
-    { preHandler: requireStaff(), schema: { params: Id, querystring: PageQuery } },
+    { preHandler: requireStaff(), schema: { params: Id, querystring: listQuery(AnalysisList) } },
     async (req) => {
       await campaignOf(req.companyId, req.params.id);
-      const where = { campaignId: req.params.id };
+      const where: Prisma.AnalysisWhereInput = {
+        campaignId: req.params.id,
+        ...(req.query.status ? { status: req.query.status } : {}),
+      };
       const [analyses, total] = await tenantBatch(ctx.db, [
         ctx.db.analysis.findMany({
           where,
-          orderBy: { version: "desc" },
+          orderBy: listOrder<Prisma.AnalysisOrderByWithRelationInput, typeof req.query.sort>(
+            AnalysisList,
+            req.query,
+          ),
           take: req.query.limit,
           skip: req.query.offset,
         }),
