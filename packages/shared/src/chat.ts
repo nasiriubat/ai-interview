@@ -25,13 +25,39 @@ export const ChatRequestSchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   /** Mark the system prompt as a stable, cacheable prefix on providers that support it. */
   cachePrefix: z.boolean().default(false),
+  /**
+   * "off" asks the provider not to spend hidden reasoning tokens on this call. Set by ModelCaller
+   * for every purpose whose route does not ask for high effort; an adapter that has no such
+   * control ignores it (live run 2026-10-14: a reasoning-capable model burned the output cap on
+   * thoughts and returned truncated JSON in 74% of extraction calls).
+   */
+  reasoning: z.enum(["off"]).optional(),
 });
 /**
  * What an adapter receives. `signal` is not part of the wire contract (it cannot be validated or
  * serialized); `ModelCaller` sets it from the caller's own signal so that a client that leaves
  * stops the request instead of being billed for an answer nobody reads.
  */
-export type ChatRequest = z.infer<typeof ChatRequestSchema> & { signal?: AbortSignal };
+export type ChatRequest = z.infer<typeof ChatRequestSchema> & {
+  signal?: AbortSignal;
+  /**
+   * Called by an adapter once per HTTP attempt of a structured call, with what the provider
+   * reported (or nothing, when the attempt was rejected before any work). ModelCaller turns each
+   * report into its own ledger row, so a rejected strict-schema first attempt and a failed
+   * validation are booked, not lost (live run 2026-10-14, bug 7).
+   */
+  onAttempt?: (attempt: AttemptReport) => void;
+};
+
+export interface AttemptReport {
+  /** What the provider billed for this attempt; empty when it refused the request outright. */
+  usage: Usage;
+  /** True when the attempt produced the value that was returned. */
+  ok: boolean;
+  /** Why an attempt did not count, for the ledger's reader. */
+  note?: "rejected" | "invalid" | "truncated";
+  latencyMs: number;
+}
 
 export const UsageSchema = z.object({
   inputTokens: z.number().int().nonnegative(),
