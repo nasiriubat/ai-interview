@@ -185,7 +185,7 @@ export function LiveVoicePanel(): React.JSX.Element {
           {readiness.liveVoiceEnabled && !readiness.canEnableLive ? (
             // Switched on earlier, and a route has gone since (or never existed): calls still work,
             // but degrade to captions or recording, which nobody would guess from a green switch.
-            <Alert variant="warning" className="mt-1">
+            <Alert variant="warning" role="status" className="mt-1">
               <TriangleAlertIcon aria-hidden="true" />
               <AlertDescription>{s.onButNotReady}</AlertDescription>
             </Alert>

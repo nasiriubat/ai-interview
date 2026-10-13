@@ -135,7 +135,7 @@ describe("Button loading", () => {
     const b = screen.getByRole("button", { name: "Save" });
     expect(b).toBeDisabled();
     expect(b).toHaveAttribute("aria-busy", "true");
-    expect(b.querySelector(".animate-spin")).not.toBeNull();
+    expect(b.querySelector(".spinner")).not.toBeNull();
   });
 
   it("is an ordinary button otherwise", () => {

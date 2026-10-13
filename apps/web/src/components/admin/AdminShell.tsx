@@ -158,7 +158,7 @@ function Brand(): React.JSX.Element {
     <Link href="/admin" className="flex items-center gap-2.5 px-2.5 text-[15px] font-semibold tracking-tight">
       <span
         aria-hidden="true"
-        className="grid size-7 place-items-center rounded-md bg-[linear-gradient(135deg,#635bff,#00b8d9)] text-xs font-bold text-white shadow-sm"
+        className="grid size-7 place-items-center rounded-md bg-brand-gradient text-xs font-bold text-white shadow-sm"
       >
         D
       </span>

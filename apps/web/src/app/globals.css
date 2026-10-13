@@ -39,8 +39,21 @@
   --info-soft: #e8f1fd;
   --info-soft-foreground: #0b5cad;
   --border: #e3e8ef;
-  --input: #d5dce6;
+  /*
+   * Non-text contrast (WCAG 1.4.11, D-110): the boundary of a form control must reach 3:1 against
+   * the surface it sits on. #7f8a99 is 3.5:1 on white cards and 3.3:1 on the canvas; hover goes
+   * darker (the muted foreground, 4.6:1), never lighter.
+   */
+  --input: #7f8a99;
+  --input-hover: #5b6b82;
+  --switch-track: var(--input);
+  /* Focus is a solid 2px outline in this colour (4.7:1 on white), offset by a 2px gap. */
   --ring: #635bff;
+  --secondary-hover: #e5eaf1;
+  --skeleton: #e8edf3;
+  --overlay: rgb(10 37 64 / 0.4);
+  --brand-gradient: linear-gradient(135deg, var(--primary), var(--chart-2));
+  --brand-band: linear-gradient(115deg, #635bff 0%, #7a6bff 30%, #4f8dfd 60%, #00b8d9 100%);
   --chart-1: #635bff;
   --chart-2: #00b8d9;
   --chart-3: #0e8a55;
@@ -58,7 +71,10 @@
     0 0 0 1px rgb(10 37 64 / 0.05), 0 1px 2px rgb(10 37 64 / 0.06), 0 3px 8px -2px rgb(10 37 64 / 0.06);
   --shadow-raised:
     0 0 0 1px rgb(10 37 64 / 0.06), 0 13px 27px -5px rgb(50 50 93 / 0.18), 0 8px 16px -8px rgb(0 0 0 / 0.14);
-  --shadow-control: 0 1px 1px rgb(10 37 64 / 0.06), 0 0 0 1px rgb(10 37 64 / 0.1);
+  /* Form controls: the 1px boundary is the 3:1 `--input` token (D-110). */
+  --shadow-control: 0 0 0 1px var(--input), 0 1px 1px rgb(10 37 64 / 0.06);
+  /* Buttons are identified by their text and fill, so they keep the soft decorative edge. */
+  --shadow-button: 0 1px 1px rgb(10 37 64 / 0.06), 0 0 0 1px rgb(10 37 64 / 0.1);
 }
 
 @theme inline {
@@ -96,6 +112,14 @@
   --shadow-card: var(--shadow-card);
   --shadow-raised: var(--shadow-raised);
   --shadow-control: var(--shadow-control);
+  --shadow-button: var(--shadow-button);
+  --color-input-hover: var(--input-hover);
+  --color-switch-track: var(--switch-track);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-skeleton: var(--skeleton);
+  --color-overlay: var(--overlay);
+  --background-image-brand-gradient: var(--brand-gradient);
+  --background-image-brand-band: var(--brand-band);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -119,7 +143,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-body font-sans text-sm antialiased;
@@ -137,10 +161,19 @@
   }
 }
 
-/* Reduced motion: keep the typing indicator readable without animation. */
+/*
+ * Reduced motion (WCAG 2.3.3, D-110): one rule that also neutralises the enter and exit animations
+ * of every Radix surface (dialog, sheet, popover, select, tooltip) without each file opting in.
+ * Durations are near zero rather than `none` so `animationend` handlers still fire.
+ */
 @media (prefers-reduced-motion: reduce) {
-  .motion-safe-bounce {
-    animation: none !important;
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

@@ -79,7 +79,7 @@ export function Pagination({
             onChange={(e) => {
               setSize(Number(e.target.value));
             }}
-            className="bg-card text-foreground shadow-control focus-visible:ring-ring/40 h-8 rounded-md border-0 px-2 text-[13px] outline-none focus-visible:ring-[3px]"
+            className="bg-card text-foreground shadow-control h-8 rounded-md border-0 px-2 text-[13px]"
           >
             {(PAGE_SIZES as readonly number[]).includes(limit) ? null : (
               <option value={limit}>{limit}</option>
@@ -117,7 +117,7 @@ export function Pagination({
                       "grid h-8 min-w-8 place-items-center rounded-md px-2 text-[13px] font-medium tabular-nums transition-colors",
                       p === page
                         ? "bg-primary text-primary-foreground"
-                        : "text-body hover:bg-card hover:shadow-control",
+                        : "text-body hover:bg-card hover:shadow-button",
                     )}
                   >
                     {p}

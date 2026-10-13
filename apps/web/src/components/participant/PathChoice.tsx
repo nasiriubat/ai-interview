@@ -36,7 +36,7 @@ export function PathChoice({
             disabled={disabled}
             aria-pressed={value !== undefined ? selected : undefined}
             className={cn(
-              "hover:bg-accent focus-visible:ring-ring/50 flex items-start gap-4 rounded-xl border p-4 text-left transition-colors focus-visible:ring-[3px] disabled:opacity-50",
+              "hover:bg-accent flex items-start gap-4 rounded-xl border p-4 text-left transition-colors disabled:opacity-50",
               selected && "border-primary bg-accent",
             )}
             onClick={() => {

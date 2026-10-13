@@ -5,15 +5,14 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,box-shadow] duration-150 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-ring/40 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 cursor-pointer",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,box-shadow] duration-150 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 aria-invalid:ring-destructive/20 cursor-pointer",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-control hover:bg-primary-hover",
-        destructive:
-          "bg-destructive text-white shadow-control hover:bg-destructive/90 focus-visible:ring-destructive/30",
-        outline: "bg-card text-foreground shadow-control hover:bg-muted",
-        secondary: "bg-secondary text-foreground hover:bg-[#e5eaf1]",
+        default: "bg-primary text-primary-foreground shadow-button hover:bg-primary-hover",
+        destructive: "bg-destructive text-white shadow-button hover:bg-destructive/90",
+        outline: "bg-card text-foreground shadow-button hover:bg-muted",
+        secondary: "bg-secondary text-foreground hover:bg-secondary-hover",
         ghost: "text-body hover:bg-muted hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
@@ -65,7 +64,12 @@ export function Button({
       aria-busy={loading || undefined}
       {...props}
     >
-      {loading ? <Loader2Icon className="spinner animate-spin" aria-hidden="true" /> : null}
+      {loading ? (
+        <Loader2Icon
+          className="spinner motion-safe:animate-spin motion-reduce:opacity-60"
+          aria-hidden="true"
+        />
+      ) : null}
       {children}
     </Comp>
   );

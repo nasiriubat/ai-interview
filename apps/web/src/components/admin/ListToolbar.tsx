@@ -123,7 +123,7 @@ export function ListToolbar({
             onClick={() => {
               setQuery("");
             }}
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/40 absolute top-1/2 right-2 grid size-5 -translate-y-1/2 place-items-center rounded outline-none focus-visible:ring-2"
+            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 grid size-5 -translate-y-1/2 place-items-center rounded"
           >
             <XIcon className="size-3.5" aria-hidden="true" />
           </button>

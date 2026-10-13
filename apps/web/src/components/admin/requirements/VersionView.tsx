@@ -60,7 +60,7 @@ export function VersionView({
           <AlertDescription>{s.failed(v.error ?? t.app.unknownError)}</AlertDescription>
         </Alert>
       ) : v.error ? (
-        <Alert variant="warning">
+        <Alert variant="warning" role="status">
           <AlertTriangleIcon />
           <AlertDescription>{s.fallbackNote(v.error)}</AlertDescription>
         </Alert>
