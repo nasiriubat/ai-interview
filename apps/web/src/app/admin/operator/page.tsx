@@ -6,7 +6,7 @@ import { TenantsPanel } from "@/components/admin/operator/TenantsPanel";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { statusFilter } from "@/lib/admin/toolbar";
@@ -22,6 +22,7 @@ interface Props {
 }
 
 export default async function TenantsPage({ searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const lp = listParams(await searchParams, LISTS.tenants);
   const { page, limit } = lp;

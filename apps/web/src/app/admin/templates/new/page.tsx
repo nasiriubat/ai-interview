@@ -3,7 +3,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { emptyTemplate, TemplateForm } from "@/components/admin/templates/TemplateForm";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { toTemplateInput } from "@/lib/admin/template";
 import { staffServer } from "@/lib/api/server";
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export default async function NewTemplatePage({ searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const sp = await searchParams;
   const copyFrom = typeof sp.copyFrom === "string" ? sp.copyFrom : undefined;

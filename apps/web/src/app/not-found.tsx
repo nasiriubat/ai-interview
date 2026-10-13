@@ -2,8 +2,10 @@ import Link from "next/link";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
+import { requestLocale } from "@/i18n/server";
 
-export default function NotFound(): React.JSX.Element {
+export default async function NotFound(): Promise<React.JSX.Element> {
+  await requestLocale();
   return (
     <main
       id="main"

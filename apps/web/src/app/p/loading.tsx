@@ -1,8 +1,10 @@
 import * as React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { t } from "@/i18n";
+import { requestLocale } from "@/i18n/server";
 
-export default function ParticipantLoading(): React.JSX.Element {
+export default async function ParticipantLoading(): Promise<React.JSX.Element> {
+  await requestLocale();
   return (
     <main
       id="main"

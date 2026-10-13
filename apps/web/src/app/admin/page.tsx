@@ -11,7 +11,7 @@ import { Panel } from "@/components/admin/Panel";
 import { StatTile } from "@/components/admin/StatTile";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { dailySeries, dashboardNumbers } from "@/lib/admin/dashboard";
 import { extractDiscoveryStats } from "@/lib/admin/discoveryStats";
 import { requireMe } from "@/lib/admin/me";
@@ -50,6 +50,7 @@ function shortDay(iso: string): string {
 }
 
 export default async function DashboardPage(): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const api = await staffServer();
   const r = ranges();

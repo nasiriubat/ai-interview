@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { ScopePicker } from "@/components/admin/settings/ScopePicker";
 import { SettingsCategories } from "@/components/admin/settings/SettingsCategories";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import type { SettingsResponse } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
@@ -19,6 +19,7 @@ interface Props {
 }
 
 export default async function SettingsPage({ searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   const me = await requireMe();
   const sp = await searchParams;
   const scope = typeof sp.scope === "string" ? sp.scope : "tenant";

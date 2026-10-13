@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { isFiltered } from "@/lib/admin/toolbar";
@@ -45,6 +45,7 @@ function targetOf(e: AuditEntry): string {
 }
 
 export default async function AuditPage({ searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   await requireMe();
   const sp = await searchParams;
   const to = typeof sp.to === "string" && sp.to ? sp.to : new Date().toISOString().slice(0, 10);

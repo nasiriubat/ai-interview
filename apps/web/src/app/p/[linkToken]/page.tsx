@@ -4,7 +4,7 @@ import * as React from "react";
 import { ArrivalFlow } from "@/components/participant/ArrivalFlow";
 import { StatusScreen } from "@/components/participant/StatusScreen";
 import { t } from "@/i18n";
-import { getStrings } from "@/i18n/server";
+import { getStrings, requestLocale } from "@/i18n/server";
 import { isApiError } from "@/lib/api/errors";
 import { participantApi } from "@/lib/api/participant";
 import { publicTransport } from "@/lib/api/server";
@@ -21,6 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ArrivalPage({ params, searchParams }: Props): Promise<React.JSX.Element> {
+  await requestLocale();
   const { linkToken } = await params;
   const sp = await searchParams;
   const invitationToken = typeof sp.invitation === "string" ? sp.invitation : undefined;
