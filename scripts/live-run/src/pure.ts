@@ -86,7 +86,7 @@ export interface MessageFlags {
 }
 
 const SOLUTION_PATTERNS: RegExp[] = [
-  /\byou (could|should|might want to|may want to)\b/i,
+  /\byou (could|should|might want to|may want to) (try|use|build|automate|consider|get|set up|ask|switch|look into)\b/i,
   /\b(have you|did you) (ever )?(considered|tried|thought about)\b/i,
   /\b(we|I) (could|can|would) (build|automate|create|set up|suggest|recommend)\b/i,
   /\bI (suggest|recommend)\b/i,
