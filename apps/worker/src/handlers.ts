@@ -136,11 +136,14 @@ export function handlers(deps: HandlerDeps): Handlers {
     /** Second pass of "delete my data": removes anything the request path could not (facts written later, ledger references). */
     "privacy.delete-session": scoped(
       async ({ sessionId, companyId }: JobPayload<"privacy.delete-session">): Promise<void> => {
-        await deleteSessionData(deps.db, sessionId, {
+        const { bytesFailed } = await deleteSessionData(deps.db, sessionId, {
           storage: deps.storage,
           companyId,
           log: deps.log,
         });
+        // The rows are gone and re-running is harmless, so a failed file delete is retried by the
+        // queue (with backoff) instead of waiting for the nightly storage GC to notice it.
+        if (bytesFailed > 0) throw new Error(`could not delete the stored files of session ${sessionId}`);
         deps.log.info("session data deleted", { sessionId });
       },
     ),
