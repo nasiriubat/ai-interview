@@ -55,6 +55,32 @@ describe("OpenAICompatibleProvider", () => {
     });
   });
 
+  it("passes the caller's signal to the request, for chat and for structured output", async () => {
+    const seen: (AbortSignal | null | undefined)[] = [];
+    const fetchMock: typeof fetch = async (_url, init) => {
+      seen.push(init?.signal);
+      const body = JSON.parse(String(init?.body)) as { stream?: boolean };
+      if (body.stream) return sseResponse([JSON.stringify({ choices: [{ delta: { content: "x" } }] })]);
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"ok":true}' } }] }), {
+        status: 200,
+      });
+    };
+    const p = new OpenAICompatibleProvider({ id: "oa", kind: "openai", apiKey: "k", fetch: fetchMock });
+    const ac = new AbortController();
+    const req = {
+      messages: [{ role: "user" as const, content: "hi" }],
+      maxOutputTokens: 10,
+      cachePrefix: false,
+      signal: ac.signal,
+    };
+
+    for await (const _ of p.chat("m", req));
+    await p.complete("m", req, z.object({ ok: z.boolean() }));
+
+    expect(seen.length).toBeGreaterThanOrEqual(2);
+    for (const s of seen) expect(s).toBe(ac.signal);
+  });
+
   it("falls back to JSON mode when the server rejects json_schema, and validates locally", async () => {
     let n = 0;
     const fetchMock: typeof fetch = async (_url, init) => {

@@ -26,7 +26,12 @@ export const ChatRequestSchema = z.object({
   /** Mark the system prompt as a stable, cacheable prefix on providers that support it. */
   cachePrefix: z.boolean().default(false),
 });
-export type ChatRequest = z.infer<typeof ChatRequestSchema>;
+/**
+ * What an adapter receives. `signal` is not part of the wire contract (it cannot be validated or
+ * serialized); `ModelCaller` sets it from the caller's own signal so that a client that leaves
+ * stops the request instead of being billed for an answer nobody reads.
+ */
+export type ChatRequest = z.infer<typeof ChatRequestSchema> & { signal?: AbortSignal };
 
 export const UsageSchema = z.object({
   inputTokens: z.number().int().nonnegative(),

@@ -563,7 +563,7 @@ model LlmCall {
   cacheWriteTokens Int      @default(0)
   outputTokens     Int
   latencyMs        Int
-  status           String // ok | error | refused | budget_exceeded
+  status           String // ok | error | refused | budget_exceeded | aborted
   costCents        Float
   sessionId        String?
   campaignId       String?

@@ -1,7 +1,7 @@
 import type { Capabilities, ChatEvent, ChatRequest, ProviderConfig, Route } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { ModelCaller } from "../src/callModel.js";
+import { CallAbortedError, ModelCaller } from "../src/callModel.js";
 import { BudgetExceededError, BudgetGuard, StaticBudgetLimits } from "../src/cost/budget.js";
 import { InMemoryLedger } from "../src/cost/ledger.js";
 import { PriceTable } from "../src/cost/pricing.js";
@@ -137,5 +137,131 @@ describe("ModelCaller", () => {
       z.object({ ok: z.boolean() }),
     );
     expect(warnings).toHaveLength(1);
+  });
+});
+
+describe("ModelCaller cancellation (D-104)", () => {
+  const request = (signal: AbortSignal) => ({
+    messages: [{ role: "user" as const, content: "hello there" }],
+    signal,
+  });
+
+  /** A provider that streams one chunk and then waits for the caller's signal, as a long answer does. */
+  const blockUntilAborted = (
+    provider: { chat: Provider["chat"] },
+    sawSignal: { value?: AbortSignal | undefined },
+  ) => {
+    provider.chat = async function* (_model: string, req: ChatRequest) {
+      sawSignal.value = req.signal;
+      yield { type: "text" as const, text: "Once upon a time, " };
+      await new Promise<void>((_resolve, reject) => {
+        // Like fetch: rejects at once when already aborted, and later when it aborts.
+        if (req.signal?.aborted) reject(new Error("fetch aborted"));
+        req.signal?.addEventListener("abort", () => {
+          reject(new Error("fetch aborted"));
+        });
+      });
+    };
+  };
+
+  it("hands the caller's signal to the adapter and ledgers an aborted call with estimated usage", async () => {
+    const { caller, ledger, provider } = setup(10_000);
+    const seen: { value?: AbortSignal | undefined } = {};
+    blockUntilAborted(provider, seen);
+    const ac = new AbortController();
+
+    const run = (async () => {
+      for await (const ev of caller.chat(
+        "interview_turn",
+        { companyId: "c1", sessionId: "s1" },
+        request(ac.signal),
+      )) {
+        if (ev.type === "text") ac.abort();
+      }
+    })();
+
+    await expect(run).rejects.toBeInstanceOf(CallAbortedError);
+    expect(seen.value).toBe(ac.signal);
+    expect(ledger.entries).toHaveLength(1);
+    expect(ledger.entries[0]).toMatchObject({ status: "aborted", sessionId: "s1" });
+    // Not free: the prompt was sent and some of the answer arrived.
+    expect(ledger.entries[0]!.usage.inputTokens).toBeGreaterThan(0);
+    expect(ledger.entries[0]!.usage.outputTokens).toBeGreaterThan(0);
+    expect(ledger.entries[0]!.costCents).toBeGreaterThan(0);
+  });
+
+  it("stops an adapter that ignores the signal at the next event", async () => {
+    const { caller, ledger } = setup(10_000);
+    const ac = new AbortController();
+    const seen: string[] = [];
+
+    const run = (async () => {
+      // The fake provider emits "ok" then "done" without looking at the signal.
+      for await (const ev of caller.chat("interview_turn", { companyId: "c1" }, request(ac.signal))) {
+        seen.push(ev.type);
+        ac.abort();
+      }
+    })();
+
+    await expect(run).rejects.toBeInstanceOf(CallAbortedError);
+    expect(seen).toEqual(["text"]);
+    expect(ledger.entries[0]).toMatchObject({ status: "aborted" });
+  });
+
+  it("does not call the provider or write a ledger row for a signal that is already aborted", async () => {
+    const { caller, ledger, provider } = setup(10_000);
+    const ac = new AbortController();
+    ac.abort();
+
+    await expect(
+      caller.complete(
+        "interview_turn",
+        { companyId: "c1" },
+        request(ac.signal),
+        z.object({ ok: z.boolean() }),
+      ),
+    ).rejects.toBeInstanceOf(CallAbortedError);
+    await expect(
+      caller.chat("interview_turn", { companyId: "c1" }, request(ac.signal))[Symbol.asyncIterator]().next(),
+    ).rejects.toBeInstanceOf(CallAbortedError);
+
+    expect(provider.lastReq).toBeUndefined();
+    expect(ledger.entries).toHaveLength(0);
+  });
+
+  it("records a consumer that walks away mid-stream as aborted rather than as a free ok call", async () => {
+    const { caller, ledger } = setup(10_000);
+
+    for await (const ev of caller.chat(
+      "interview_turn",
+      { companyId: "c1" },
+      { messages: [{ role: "user", content: "hi" }] },
+    )) {
+      if (ev.type === "text") break;
+    }
+
+    expect(ledger.entries).toHaveLength(1);
+    expect(ledger.entries[0]).toMatchObject({ status: "aborted" });
+  });
+
+  it("aborts a structured call and records it", async () => {
+    const { caller, ledger, provider } = setup(10_000);
+    const ac = new AbortController();
+    provider.complete = async (_m: string, req: ChatRequest): Promise<never> => {
+      ac.abort();
+      if (req.signal?.aborted) throw new Error("fetch aborted");
+      throw new Error("signal was not passed");
+    };
+
+    await expect(
+      caller.complete(
+        "interview_turn",
+        { companyId: "c1" },
+        request(ac.signal),
+        z.object({ ok: z.boolean() }),
+      ),
+    ).rejects.toBeInstanceOf(CallAbortedError);
+
+    expect(ledger.entries[0]).toMatchObject({ status: "aborted" });
   });
 });

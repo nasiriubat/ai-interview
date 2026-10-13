@@ -103,6 +103,11 @@ class LiveVoiceSession {
    */
   private pending: Buffer | undefined;
   private closed = false;
+  /**
+   * Aborted when the socket closes or errors, and handed to the turn: a participant who hangs up
+   * mid-turn must stop the model call in flight, not leave it to run to completion and be billed.
+   */
+  private readonly gone = new AbortController();
   /** Aborts the synthesis in flight. Replaced on every turn, called on barge-in. */
   private speaking: AbortController | undefined;
   private interruptions = 0;
@@ -143,11 +148,13 @@ class LiveVoiceSession {
     });
     this.socket.on("close", () => {
       this.closed = true;
+      this.gone.abort();
       this.speaking?.abort();
       void this.scoped(() => this.recordMetrics());
     });
     this.socket.on("error", () => {
       this.closed = true;
+      this.gone.abort();
       this.speaking?.abort();
     });
   }
@@ -301,7 +308,9 @@ class LiveVoiceSession {
     }
     const askedAt = Date.now();
     try {
-      for await (const item of streamTurn(this.ctx, this.scope.sessionId, answer)) {
+      for await (const item of streamTurn(this.ctx, this.scope.sessionId, answer, {
+        signal: this.gone.signal,
+      })) {
         if (this.closed) return;
         if (item.event === "turn") {
           const data = item.data as {

@@ -111,6 +111,8 @@ export async function detectIssues(
     path?: Path;
     policy: RequirementsPolicy;
     reason: ScanReason;
+    /** The turn's cancellation signal; an abort propagates instead of being read as "no findings". */
+    signal?: AbortSignal;
   },
 ): Promise<Finding[]> {
   try {
@@ -134,6 +136,7 @@ export async function detectIssues(
           },
         ],
         maxOutputTokens: 4000,
+        ...(input.signal ? { signal: input.signal } : {}),
       },
       IssueDetectionResultSchema,
       "findings",
@@ -146,6 +149,7 @@ export async function detectIssues(
       input.state.turnCount,
     );
   } catch (e) {
+    if (input.signal?.aborted) throw e;
     deps.logger.warn("issue detection failed; continuing without findings", {
       sessionId: input.sessionId,
       error: e instanceof Error ? e.message : String(e),

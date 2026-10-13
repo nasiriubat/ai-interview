@@ -79,10 +79,18 @@ export async function tenantTransaction<T>(
   ) => Promise<T>,
 ): Promise<T> {
   const tenant = currentTenant();
-  return db.$transaction(async (tx) => {
-    if (tenant !== null) await setTenant(tx, tenant);
-    return runInContext({ companyId: tenant, inTransaction: true }, () => fn(tx));
-  });
+  return db.$transaction(async (tx) =>
+    // The context flips to "in a transaction" before the setting is sent, not after. `tx` is the
+    // extended client, so with the old order the extension saw a plain request, ran `set_config`
+    // as its own statement on another pooled connection, and left the transaction's connection
+    // with no tenant. Row-level security then fails closed: every read inside the transaction
+    // found nothing and every update of a tenant table "did not exist". It went unnoticed while
+    // the only transactions on tenant tables ran against tables without a policy.
+    runInContext({ companyId: tenant, inTransaction: true }, async () => {
+      if (tenant !== null) await setTenant(tx, tenant);
+      return fn(tx);
+    }),
+  );
 }
 
 /**

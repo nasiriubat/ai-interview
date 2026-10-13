@@ -1,6 +1,7 @@
+import { describeDb } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { withSystemTenant, withTenant, withTenantScope } from "../src/index.js";
+import { afterAll, beforeAll, expect, it } from "vitest";
+import { tenantTransaction, withSystemTenant, withTenant, withTenantScope } from "../src/index.js";
 
 /**
  * Proves the second fence actually holds: connected as `app_api`, Postgres itself refuses another
@@ -8,7 +9,7 @@ import { withSystemTenant, withTenant, withTenantScope } from "../src/index.js";
  * database whose owner can create a login role.
  */
 const url = process.env.DATABASE_URL;
-const suite = url ? describe : describe.skip;
+const suite = describeDb;
 
 const API_PASSWORD = "rls-test-password";
 const apiUrl = (owner: string): string => {
@@ -92,6 +93,28 @@ suite("row-level security as app_api", () => {
         expect((await scoped.user.findMany()).map((u) => u.companyId)).toEqual([b]);
       });
       expect((await scoped.user.findMany()).map((u) => u.companyId)).toEqual([a]);
+    });
+  });
+
+  /**
+   * `tenantTransaction` on the extended client. Its tenant setting used to go out through the
+   * extension as a statement of its own, on a different pooled connection from the transaction,
+   * so every query inside saw no tenant: reads found nothing and updates of tenant rows reported
+   * "record not found". The transactions that existed only touched tables without a policy.
+   */
+  it("carries the tenant into an interactive transaction", async () => {
+    await withTenant(a, async () => {
+      await tenantTransaction(scoped, async (tx) => {
+        const setting = await tx.$queryRaw<
+          { c: string | null }[]
+        >`SELECT current_setting('app.company_id', true) AS c`;
+        expect(setting[0]?.c).toBe(a);
+        expect((await tx.user.findMany()).map((u) => u.companyId)).toEqual([a]);
+        // A write to a policy-protected row works, and still cannot reach another tenant's.
+        const mine = await tx.user.findFirstOrThrow();
+        await tx.user.update({ where: { id: mine.id }, data: { name: "renamed in a transaction" } });
+        expect(await tx.user.count({ where: { companyId: b } })).toBe(0);
+      });
     });
   });
 

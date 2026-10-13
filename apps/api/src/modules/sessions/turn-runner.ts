@@ -1,4 +1,4 @@
-import type { EngineEvent, UserAnswer } from "@aidp/ai";
+import { CallAbortedError, type EngineEvent, type UserAnswer } from "@aidp/ai";
 import type { SessionState } from "@aidp/shared";
 import type { FastifyReply } from "fastify";
 import type { AppContext } from "../../context.js";
@@ -22,6 +22,14 @@ export interface RunTurnOptions {
    * the interviewer reply to something they cannot see themselves having said, until a reload.
    */
   prelude?: { event: string; data: unknown }[];
+  /**
+   * Cancels the turn: the SSE transport sets it when the client disconnects, the live voice
+   * session when its socket closes or the participant barges in. It reaches the model request, so
+   * the call stops and is recorded as aborted instead of being billed in full.
+   */
+  signal?: AbortSignal;
+  /** How often the turn lock is renewed while the turn runs. A test seam; production uses the default. */
+  heartbeatMs?: number;
 }
 
 /** One thing to send the client. The transport decides how. */
@@ -53,132 +61,191 @@ export async function* streamTurn(
     throw new AppError("conflict", `Session is ${row.status}`);
   if (row.status === "created") throw new AppError("conflict", "Consent is required before the first turn");
 
-  // One turn at a time per session (double taps, retries, dev double-mounts). Stale locks expire.
-  const lockedAt = new Date();
+  // One turn at a time per session (double taps, retries, dev double-mounts). A lock that has not
+  // been renewed within the TTL belongs to a process that died, and is taken over.
+  const firstLockedAt = new Date();
   const locked = await ctx.db.session.updateMany({
     where: {
       id: sessionId,
-      OR: [{ turnLockedAt: null }, { turnLockedAt: { lt: new Date(lockedAt.getTime() - TURN_LOCK_TTL_MS) } }],
+      OR: [
+        { turnLockedAt: null },
+        { turnLockedAt: { lt: new Date(firstLockedAt.getTime() - TURN_LOCK_TTL_MS) } },
+      ],
     },
-    data: { turnLockedAt: lockedAt },
+    data: { turnLockedAt: firstLockedAt },
   });
   if (locked.count === 0) throw new AppError("conflict", "A turn is already in progress for this session");
 
-  const chain = [
-    ...(row.campaignId ? [{ scope: "campaign" as const, scopeId: row.campaignId }] : []),
-    { scope: "template" as const, scopeId: row.templateId },
-    { scope: "tenant" as const, scopeId: row.companyId },
-  ];
-  const bundle = await ctx.engines.forSession(row.companyId, chain, sessionId);
-  const snapshot = await bundle.store.snapshot(sessionId);
-  if (row.campaignId) {
-    const campaign = await ctx.db.campaign.findUniqueOrThrow({
-      where: { id: row.campaignId },
-      select: { maxTurns: true },
-    });
-    bundle.settings.maxTurns = Math.min(bundle.settings.maxTurns, campaign.maxTurns);
-  }
-  if (row.status !== "active")
-    await ctx.db.session.update({
-      where: { id: sessionId },
-      data: { status: "active", startedAt: row.startedAt ?? new Date() },
-    });
-
-  const progress = (state: { coverage: Record<string, { status: string }> }): ProgressArea[] =>
-    snapshot.template.coverageAreas.map((a) => ({
-      key: a.key,
-      name: a.name,
-      status: state.coverage[a.key]?.status ?? "untouched",
-    }));
+  // From here the lock is ours and must be released on every path out, including a failure while
+  // loading what the turn needs; so the heartbeat starts now and everything else is inside try.
+  const lock = { token: firstLockedAt, lost: false };
+  const abort = new AbortController();
+  const signal = options?.signal ? AbortSignal.any([options.signal, abort.signal]) : abort.signal;
+  let beating: Promise<void> | undefined;
+  const beat = async (): Promise<void> => {
+    const next = new Date();
+    try {
+      const renewed = await ctx.db.session.updateMany({
+        where: { id: sessionId, turnLockedAt: lock.token },
+        data: { turnLockedAt: next },
+      });
+      if (renewed.count === 0) {
+        // Someone else holds the session now (the lock was taken over, or the row was reset).
+        // Carrying on would run two turns at once, so this one stops.
+        lock.lost = true;
+        abort.abort();
+        return;
+      }
+      lock.token = next;
+    } catch (err) {
+      // A database blip must not kill a healthy turn; the next beat tries again, and the lock has
+      // two missed beats of slack before anyone may take it.
+      ctx.log.warn({ err, sessionId }, "turn lock heartbeat failed");
+    }
+  };
+  const heartbeat = setInterval(() => {
+    beating = beat();
+  }, options?.heartbeatMs ?? TURN_LOCK_HEARTBEAT_MS);
+  heartbeat.unref();
 
   try {
-    for (const item of options?.prelude ?? []) yield item;
-
-    const gen = bundle.engine.nextTurn(snapshot, answer, bundle.settings);
-    let next = await gen.next();
-    let ended = false;
-    while (!next.done) {
-      const ev: EngineEvent = next.value;
-      if (ev.type === "text") yield { event: "text", data: { delta: ev.text } };
-      else if (ev.type === "turn") {
-        ended = ev.turn.endInterview;
-        yield {
-          event: "turn",
-          data: {
-            message: ev.message,
-            ended,
-            progress: { areas: progress(ev.state) },
-            // The live voice session speaks this; a text client ignores it. Carried on the turn
-            // rather than fetched afterwards so speech can start before the next event arrives.
-            ...(ev.turn.voiceShortForm ? { voiceShortForm: ev.turn.voiceShortForm } : {}),
-            ...(ev.turn.widget ? { widget: ev.turn.widget } : {}),
-          },
-        };
-        if (options?.afterTurn) {
-          try {
-            for (const extra of await options.afterTurn(ev.state)) yield extra;
-          } catch (err) {
-            ctx.log.warn({ err, sessionId }, "after-turn events failed");
-          }
-        }
-      } else {
-        ended = true;
-      }
-      next = await gen.next();
+    const chain = [
+      ...(row.campaignId ? [{ scope: "campaign" as const, scopeId: row.campaignId }] : []),
+      { scope: "template" as const, scopeId: row.templateId },
+      { scope: "tenant" as const, scopeId: row.companyId },
+    ];
+    const bundle = await ctx.engines.forSession(row.companyId, chain, sessionId);
+    const snapshot = await bundle.store.snapshot(sessionId);
+    if (row.campaignId) {
+      const campaign = await ctx.db.campaign.findUniqueOrThrow({
+        where: { id: row.campaignId },
+        select: { maxTurns: true },
+      });
+      bundle.settings.maxTurns = Math.min(bundle.settings.maxTurns, campaign.maxTurns);
     }
-    const result = next.value;
-    if (result.ended) {
+    if (row.status !== "active")
       await ctx.db.session.update({
         where: { id: sessionId },
-        data: { status: "completed", endedAt: new Date() },
+        data: { status: "active", startedAt: row.startedAt ?? new Date() },
       });
-      yield { event: "ended", data: { summaryAvailable: snapshot.template.endSummary } };
-      if (row.campaignId && snapshot.template.analysisEnabled) {
-        await ctx.analysis.maybeQueueForCampaign(row.companyId, row.campaignId).catch((err: unknown) => {
-          ctx.log.warn({ err, sessionId }, "could not queue analysis");
-        });
+
+    const progress = (state: { coverage: Record<string, { status: string }> }): ProgressArea[] =>
+      snapshot.template.coverageAreas.map((a) => ({
+        key: a.key,
+        name: a.name,
+        status: state.coverage[a.key]?.status ?? "untouched",
+      }));
+
+    try {
+      for (const item of options?.prelude ?? []) yield item;
+
+      const gen = bundle.engine.nextTurn(snapshot, answer, bundle.settings, { signal });
+      let next = await gen.next();
+      let ended = false;
+      while (!next.done) {
+        const ev: EngineEvent = next.value;
+        if (ev.type === "text") yield { event: "text", data: { delta: ev.text } };
+        else if (ev.type === "turn") {
+          ended = ev.turn.endInterview;
+          yield {
+            event: "turn",
+            data: {
+              message: ev.message,
+              ended,
+              progress: { areas: progress(ev.state) },
+              // The live voice session speaks this; a text client ignores it. Carried on the turn
+              // rather than fetched afterwards so speech can start before the next event arrives.
+              ...(ev.turn.voiceShortForm ? { voiceShortForm: ev.turn.voiceShortForm } : {}),
+              ...(ev.turn.widget ? { widget: ev.turn.widget } : {}),
+            },
+          };
+          if (options?.afterTurn) {
+            try {
+              for (const extra of await options.afterTurn(ev.state)) yield extra;
+            } catch (err) {
+              ctx.log.warn({ err, sessionId }, "after-turn events failed");
+            }
+          }
+        } else {
+          ended = true;
+        }
+        next = await gen.next();
       }
+      const result = next.value;
+      if (result.ended) {
+        await ctx.db.session.update({
+          where: { id: sessionId },
+          data: { status: "completed", endedAt: new Date() },
+        });
+        yield { event: "ended", data: { summaryAvailable: snapshot.template.endSummary } };
+        if (row.campaignId && snapshot.template.analysisEnabled) {
+          await ctx.analysis.maybeQueueForCampaign(row.companyId, row.campaignId).catch((err: unknown) => {
+            ctx.log.warn({ err, sessionId }, "could not queue analysis");
+          });
+        }
+      }
+      // Outside the error path on purpose. By now the turn is persisted and the client has been told
+      // so (`turn`, and `ended` when it was the last). A queue that is briefly unreachable must not
+      // turn that into an `error` event after the fact, which would contradict the stream. The jobs
+      // are idempotent and the next turn's follow-up trigger schedules them again.
+      for (const [name, due] of [
+        ["session.summarize", result.followUps.summarize],
+        ["session.extract", result.followUps.extract],
+      ] as const) {
+        if (!due) continue;
+        try {
+          await ctx.jobs.publish(
+            name,
+            { sessionId, companyId: row.companyId },
+            { singletonKey: `${name === "session.summarize" ? "summarize" : "extract"}:${sessionId}` },
+          );
+        } catch (err) {
+          ctx.log.error({ err, sessionId, job: name }, "could not queue a follow-up job");
+        }
+      }
+    } catch (err) {
+      // The caller left (client disconnect, socket closed, barge-in) or the lock was lost: nobody
+      // is listening, so there is nothing to tell. The participant's own message is already stored;
+      // the lock is released below.
+      if (signal.aborted || err instanceof CallAbortedError) {
+        ctx.log.info(
+          { sessionId, reason: lock.lost ? "turn_lock_lost" : "caller_gone" },
+          "turn aborted before it finished",
+        );
+        return;
+      }
+      const e = err as { code?: string; message?: string; name?: string };
+      const code =
+        e.name === "BudgetExceededError"
+          ? "budget_exceeded"
+          : e.name === "ProviderError"
+            ? "provider_error"
+            : "internal";
+      ctx.log.error({ err, sessionId }, "turn failed");
+      if (code === "budget_exceeded")
+        await ctx.db.session.update({ where: { id: sessionId }, data: { status: "paused" } });
+      yield {
+        event: "error",
+        data: {
+          code,
+          message:
+            code === "budget_exceeded"
+              ? "This interview is paused because the budget is exhausted. The organizer has been notified."
+              : code === "provider_error"
+                ? "The assistant is temporarily unavailable. Your answer is saved; try again in a moment."
+                : "Something went wrong. Your answer is saved.",
+        },
+      };
     }
-    if (result.followUps.summarize)
-      await ctx.jobs.publish(
-        "session.summarize",
-        { sessionId, companyId: row.companyId },
-        { singletonKey: `summarize:${sessionId}` },
-      );
-    if (result.followUps.extract)
-      await ctx.jobs.publish(
-        "session.extract",
-        { sessionId, companyId: row.companyId },
-        { singletonKey: `extract:${sessionId}` },
-      );
-  } catch (err) {
-    const e = err as { code?: string; message?: string; name?: string };
-    const code =
-      e.name === "BudgetExceededError"
-        ? "budget_exceeded"
-        : e.name === "ProviderError"
-          ? "provider_error"
-          : "internal";
-    ctx.log.error({ err, sessionId }, "turn failed");
-    if (code === "budget_exceeded")
-      await ctx.db.session.update({ where: { id: sessionId }, data: { status: "paused" } });
-    yield {
-      event: "error",
-      data: {
-        code,
-        message:
-          code === "budget_exceeded"
-            ? "This interview is paused because the budget is exhausted. The organizer has been notified."
-            : code === "provider_error"
-              ? "The assistant is temporarily unavailable. Your answer is saved; try again in a moment."
-              : "Something went wrong. Your answer is saved.",
-      },
-    };
   } finally {
     // Runs when the consumer stops early too: a voice client that disconnects mid-turn must not
-    // leave the session locked for two minutes.
+    // leave the session locked for the whole TTL. The in-flight beat settles first, so it cannot
+    // renew the lock after it has been released.
+    clearInterval(heartbeat);
+    await beating;
+    abort.abort();
     await ctx.db.session.updateMany({
-      where: { id: sessionId, turnLockedAt: lockedAt },
+      where: { id: sessionId, turnLockedAt: lock.token },
       data: { turnLockedAt: null },
     });
   }
@@ -198,8 +265,22 @@ export async function runTurn(
   // is thrown here and rendered as JSON by the error handler. Writing the SSE head first would
   // turn every such refusal into a 200 with an error event, which a client cannot distinguish
   // from a turn that started and then failed.
-  const stream = streamTurn(ctx, sessionId, answer, options);
-  const first = await stream.next();
+  // A client that goes away must stop the turn, not just stop reading it: the model call would
+  // otherwise run to completion and be paid for.
+  const gone = new AbortController();
+  const onClose = (): void => {
+    if (!reply.raw.writableEnded) gone.abort();
+  };
+  reply.raw.on("close", onClose);
+  const signal = options?.signal ? AbortSignal.any([options.signal, gone.signal]) : gone.signal;
+  const stream = streamTurn(ctx, sessionId, answer, { ...options, signal });
+  let first: IteratorResult<TurnEvent, void>;
+  try {
+    first = await stream.next();
+  } catch (err) {
+    reply.raw.off("close", onClose);
+    throw err;
+  }
 
   reply.raw.writeHead(200, {
     "content-type": "text/event-stream",
@@ -216,9 +297,38 @@ export async function runTurn(
       send(first.value);
       for await (const item of stream) send(item);
     }
+  } catch (err) {
+    // The generator reports its own failures as an `error` event. What reaches here is the
+    // transport failing (a write to a socket that just closed, a payload that will not
+    // serialize): log it, and tell the client if there is still anyone to tell. Leaving the
+    // for-await closes the generator, which releases the turn lock.
+    ctx.log.error({ err, sessionId }, "turn stream failed while writing");
+    if (!reply.raw.destroyed && !reply.raw.writableEnded) {
+      try {
+        send({
+          event: "error",
+          data: { code: "internal", message: "Something went wrong. Your answer is saved." },
+        });
+      } catch {
+        // The connection is gone; nothing more can be said.
+      }
+    }
   } finally {
+    reply.raw.off("close", onClose);
+    // Reading may have stopped before the generator finished (a write failed on the first event,
+    // before any `for await` was entered). Closing it here is what runs its `finally` and releases
+    // the turn lock; without it the session stayed locked until the TTL.
+    await stream.return(undefined).catch((err: unknown) => {
+      ctx.log.warn({ err, sessionId }, "could not close the turn stream");
+    });
     reply.raw.end();
   }
 }
 
-const TURN_LOCK_TTL_MS = 120_000;
+/**
+ * The turn lock is renewed every 30 s and expires after 90 s, three missed beats. A turn that runs
+ * long (a slow model, retries) keeps its lock; a process that died frees the session in 90 s
+ * rather than the 120 s a fixed lock took, and a live turn can no longer be overtaken by a second.
+ */
+export const TURN_LOCK_HEARTBEAT_MS = 30_000;
+export const TURN_LOCK_TTL_MS = 90_000;
