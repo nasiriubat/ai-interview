@@ -1,6 +1,10 @@
 {
   "clustering@1": {
-    "sha256": "8c7ddd44daa55c09b2fcc97869776894f8356ab04fb57ca590f2f718d5b2e98d"
+    "sha256": "8c7ddd44daa55c09b2fcc97869776894f8356ab04fb57ca590f2f718d5b2e98d",
+    "retired": true
+  },
+  "clustering@2": {
+    "sha256": "5894c152ca0d442eeb45d93adfe0326b0d28ab2f0eb0bb7152f21ca6c710bc62"
   },
   "extraction@1": {
     "sha256": "bdef863f517a348d9d21060ffe7b81aecfac9a4aa6930e4f4a4d77dae60822a5"
@@ -18,10 +22,18 @@
     "sha256": "e4431e8aa06b088a08a5bb800cac7539fdecd03aa9442cd5cd7521c94c333ad1"
   },
   "opportunity@1": {
-    "sha256": "8adfb37c55b298c610a359e7e32054fb05fcc8d219dee3c28e1e6880b5f61df3"
+    "sha256": "8adfb37c55b298c610a359e7e32054fb05fcc8d219dee3c28e1e6880b5f61df3",
+    "retired": true
+  },
+  "opportunity@2": {
+    "sha256": "460352f1741b604c176046b8d3937d2059728f40fdd1490e3683fd264f0c4acb"
   },
   "report@1": {
-    "sha256": "83be2c1796df71fa261de9c7a2b73663655ddc7c65fbd66fed7f5b2a5f542afa"
+    "sha256": "83be2c1796df71fa261de9c7a2b73663655ddc7c65fbd66fed7f5b2a5f542afa",
+    "retired": true
+  },
+  "report@2": {
+    "sha256": "07a85f0f5f20ee0dde75b39b2ddb50537568a862e5b4e1c92de62e43f9da127d"
   },
   "spec@1": {
     "sha256": "95d169c722fd76fff431e9aefff84e3661a3ee16e37aa43948b94875afc5f792"

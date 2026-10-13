@@ -77,6 +77,34 @@ export const ClusterDraftSchema = z.object({
 export const ClusteringResultSchema = z.object({ clusters: z.array(ClusterDraftSchema) });
 export type ClusterDraft = z.infer<typeof ClusterDraftSchema>;
 
+/**
+ * Output of the merge pass (clustering prompt v2). The model sees draft clusters under short ids
+ * and answers only with what it changes: groups of draft ids that are one thing, and names for
+ * drafts worth naming. Nothing echoes a fact id, so the answer is a few tokens per merge however
+ * many facts the campaign holds.
+ */
+export const ClusterMergeResultSchema = z.object({
+  merges: z
+    .array(
+      z.object({
+        ids: z.array(z.string()).min(2),
+        name: z.string().min(1).max(120),
+        summary: z.string().max(600).default(""),
+      }),
+    )
+    .default([]),
+  names: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string().min(1).max(120),
+        summary: z.string().max(600).default(""),
+      }),
+    )
+    .default([]),
+});
+export type ClusterMergeResult = z.infer<typeof ClusterMergeResultSchema>;
+
 /** Output of the opportunity pass for one cluster. */
 export const OpportunityDraftSchema = z.object({
   title: z.string().min(1).max(160),
