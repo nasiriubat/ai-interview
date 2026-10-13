@@ -34,7 +34,7 @@ import { internalAuthRoutes } from "./modules/internal-auth/routes.js";
 import { operatorRoutes } from "./modules/operator/routes.js";
 import { participantAttachmentRoutes } from "./modules/participant/attachments.js";
 import { participantRoutes } from "./modules/participant/routes.js";
-import { participantVoiceLiveRoutes } from "./modules/participant/voice-live.js";
+import { participantVoiceLiveRoutes } from "./modules/participant/voice-live/routes.js";
 import { participantVoiceRoutes } from "./modules/participant/voice.js";
 import { privacyRoutes } from "./modules/privacy/routes.js";
 import { providerRoutes } from "./modules/providers/routes.js";
