@@ -1,13 +1,12 @@
-import { InviteNotOpenError, RequirementsNotFoundError, toStored } from "@aidp/core";
+import { InviteNotOpenError, RequirementsNotFoundError } from "@aidp/core";
 import { WidgetResponseSchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { participant } from "../../auth/plugin.js";
-import type { AppContext } from "../../context.js";
+import type { RouteContext } from "../../context.js";
 import { AppError, notFound } from "../../lib/errors.js";
 import { runTurn } from "../sessions/turn-runner.js";
-import { ParticipantService } from "./service.js";
 
 const Link = z.object({ linkToken: z.string().min(8) });
 const publicLimit = guard.public({ config: { rateLimit: { max: 30, timeWindow: "1 minute" } } });
@@ -17,17 +16,8 @@ const TurnBody = z.object({
   widgetResponse: WidgetResponseSchema.optional(),
 });
 
-export async function participantRoutes(app: App, ctx: AppContext): Promise<void> {
-  const svc = new ParticipantService(
-    ctx.db,
-    ctx.crypto,
-    ctx.settings,
-    ctx.email,
-    ctx.tenants,
-    (event, meta) => {
-      ctx.log.warn({ event, ...meta }, "abuse signal");
-    },
-  );
+export async function participantRoutes(app: App, ctx: RouteContext): Promise<void> {
+  const svc = ctx.services.participant;
 
   app.get("/p/:linkToken", { ...publicLimit, schema: { params: Link } }, async (req) => {
     const { view } = await svc.resolveLink(req.params.linkToken);
@@ -100,62 +90,7 @@ export async function participantRoutes(app: App, ctx: AppContext): Promise<void
 
   app.get("/p/session", authed, async (req) => {
     const p = participant(req);
-    const session = await ctx.db.session.findUniqueOrThrow({
-      where: { id: p.sessionId },
-      include: { participant: true, template: true },
-    });
-    const messages =
-      session.status === "deleted"
-        ? []
-        : await ctx.db.message.findMany({ where: { sessionId: session.id }, orderBy: { seq: "asc" } });
-    const state = session.state as { coverage?: Record<string, { status: string }> };
-    const areas = (session.template.coverageAreas as { key: string; name: string }[]).map((a) => ({
-      key: a.key,
-      name: a.name,
-      status: state.coverage?.[a.key]?.status ?? "untouched",
-    }));
-    // What the browser is allowed to do, resolved from the tenant's settings.
-    //
-    // Without this the client has to guess: it would offer a microphone to a tenant that turned
-    // voice off and only find out from a 403 after someone had spoken, and it would pre-check
-    // uploads against the shipped defaults rather than the limits actually in force, refusing a
-    // file the server would have accepted. Both are worse errors than the ones they replace.
-    const chain = [
-      { scope: "template" as const, scopeId: session.templateId },
-      { scope: "tenant" as const, scopeId: p.companyId },
-    ];
-    const values = await ctx.settings.resolveMany(
-      [
-        "features.recordedVoice",
-        "features.realtimeVoice",
-        "features.fileUpload",
-        "files.maxSizeMb",
-        "files.allowedTypes",
-        "voice.captions",
-      ],
-      chain,
-    );
-    const attachments =
-      session.status === "deleted" ? [] : await ctx.attachments.list(p.companyId, session.id);
-
-    return {
-      session: {
-        ...svc.sessionView(session, session.participant),
-        progress: { areas },
-        messages: messages.map(toStored),
-        attachments,
-        capabilities: {
-          recordedVoice: values["features.recordedVoice"] as boolean,
-          // Live voice ships off: it costs money per second of conversation and needs both a
-          // transcription and a speech route, which most tenants will not have on day one.
-          liveVoice: values["features.realtimeVoice"] as boolean,
-          captions: values["voice.captions"] as boolean,
-          fileUpload: values["features.fileUpload"] as boolean,
-          maxSizeMb: values["files.maxSizeMb"] as number,
-          allowedTypes: values["files.allowedTypes"] as string[],
-        },
-      },
-    };
+    return ctx.services.participantSession.view(p.companyId, p.sessionId);
   });
 
   app.post(

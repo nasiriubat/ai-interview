@@ -11,33 +11,18 @@ import {
   type Viewer,
 } from "@aidp/core";
 import { FindingOutcomeSchema, PathSchema, WidgetResponseSchema } from "@aidp/shared";
-import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
-import type { AppContext } from "../../context.js";
-import { audit } from "../../lib/audit.js";
+import type { RouteContext } from "../../context.js";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
-import { listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
 import { runTurn } from "../sessions/turn-runner.js";
+import { RequirementsListQuery, requirementsListArgs } from "./service.js";
 
 const Id = z.object({ id: z.string() });
 
-/**
- * `/requirements` (D-79): `q` matches the title. A member sees their own sessions and an admin
- * sees every owned session; search and filters narrow that set, never widen it. Deleted
- * sessions are never listed, so `deleted` is not a status filter.
- */
-export const RequirementsList = listSpec({
-  sort: { createdAt: "desc", title: "asc", status: "asc", lastActivity: "desc" },
-  defaultSort: "createdAt",
-  columns: { lastActivity: "updatedAt" },
-  filters: {
-    status: z.enum(["created", "consented", "active", "paused", "completed"]).optional(),
-  },
-});
 const VersionParams = z.object({ id: z.string(), v: z.coerce.number().int().positive() });
 const TurnBody = z.object({
   content: z.string().max(8000).default(""),
@@ -46,7 +31,7 @@ const TurnBody = z.object({
 });
 
 /** Requirements sessions, versions and exports, external invitations (contract 18). */
-export async function requirementsRoutes(app: App, ctx: AppContext): Promise<void> {
+export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<void> {
   const svc = ctx.requirements;
   const viewerOf = (req: Parameters<typeof staff>[0]): Viewer => {
     const p = staff(req);
@@ -78,18 +63,13 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
 
   app.get(
     "/requirements",
-    { ...guard.staff(), schema: { querystring: listQuery(RequirementsList) } },
+    { ...guard.staff(), schema: { querystring: RequirementsListQuery } },
     async (req) => {
-      const { sessions, total } = await svc.list(req.companyId, viewerOf(req), {
-        limit: req.query.limit,
-        offset: req.query.offset,
-        q: searchTerm(req.query.q),
-        status: req.query.status,
-        orderBy: listOrder<Prisma.SessionOrderByWithRelationInput, typeof req.query.sort>(
-          RequirementsList,
-          req.query,
-        ),
-      });
+      const { sessions, total } = await svc.list(
+        req.companyId,
+        viewerOf(req),
+        requirementsListArgs(req.query),
+      );
       return { sessions, total, limit: req.query.limit, offset: req.query.offset };
     },
   );
@@ -111,8 +91,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
     async (req, reply) => {
       const p = staff(req);
       const session = await wrap(() => svc.create(req.companyId, p.userId, req.body));
-      await audit(ctx.db, {
-        companyId: req.companyId,
+      await ctx.services.audit.record(req.companyId, {
         actorId: p.userId,
         action: "requirements.create",
         targetType: "session",
@@ -132,6 +111,13 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
     { ...guard.staff(), schema: { params: Id, body: z.object({ path: PathSchema }) } },
     async (req) => {
       await wrap(() => svc.setPath(req.companyId, req.params.id, req.body.path, viewerOf(req)));
+      await ctx.services.audit.record(req.companyId, {
+        actorId: staff(req).userId,
+        action: "requirements.path",
+        targetType: "session",
+        targetId: req.params.id,
+        diff: { path: req.body.path },
+      });
       return { ok: true as const };
     },
   );
@@ -166,11 +152,23 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
 
   app.post("/requirements/:id/complete", { ...guard.staff(), schema: { params: Id } }, async (req) => {
     await wrap(() => svc.requestCompletion(req.companyId, req.params.id, viewerOf(req)));
+    await ctx.services.audit.record(req.companyId, {
+      actorId: staff(req).userId,
+      action: "requirements.complete",
+      targetType: "session",
+      targetId: req.params.id,
+    });
     return { ok: true as const };
   });
 
   app.post("/requirements/:id/reopen", { ...guard.staff(), schema: { params: Id } }, async (req) => {
     await wrap(() => svc.reopen(req.companyId, req.params.id, viewerOf(req)));
+    await ctx.services.audit.record(req.companyId, {
+      actorId: staff(req).userId,
+      action: "requirements.reopen",
+      targetType: "session",
+      targetId: req.params.id,
+    });
     return { ok: true as const };
   });
 
@@ -195,8 +193,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
           viewerOf(req),
         ),
       );
-      await audit(ctx.db, {
-        companyId: req.companyId,
+      await ctx.services.audit.record(req.companyId, {
         actorId: p.userId,
         action: "requirements.section_edit",
         targetType: "session",
@@ -229,8 +226,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
           viewerOf(req),
         ),
       );
-      await audit(ctx.db, {
-        companyId: req.companyId,
+      await ctx.services.audit.record(req.companyId, {
         actorId: p.userId,
         action: "requirements.finding",
         targetType: "session",
@@ -254,8 +250,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
       const version = await wrap(() =>
         svc.queueVersion(req.companyId, req.params.id, p.userId, req.body.label, viewerOf(req)),
       );
-      await audit(ctx.db, {
-        companyId: req.companyId,
+      await ctx.services.audit.record(req.companyId, {
         actorId: p.userId,
         action: "requirements.version",
         targetType: "session",
@@ -330,8 +325,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
       const result = await wrap(() =>
         svc.pushToGitHub(req.companyId, req.params.id, req.params.v, req.body, viewerOf(req)),
       );
-      await audit(ctx.db, {
-        companyId: req.companyId,
+      await ctx.services.audit.record(req.companyId, {
         actorId: p.userId,
         action: "requirements.github_push",
         targetType: "session",
@@ -357,8 +351,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
       const invitation = await wrap(() =>
         svc.invite(req.companyId, req.params.id, req.body.email, p.userId, viewerOf(req)),
       );
-      await audit(ctx.db, {
-        companyId: req.companyId,
+      await ctx.services.audit.record(req.companyId, {
         actorId: p.userId,
         action: "requirements.invite",
         targetType: "session",
@@ -375,8 +368,7 @@ export async function requirementsRoutes(app: App, ctx: AppContext): Promise<voi
     async (req) => {
       const p = staff(req);
       await wrap(() => svc.revokeInvitation(req.companyId, req.params.id, req.params.invId, viewerOf(req)));
-      await audit(ctx.db, {
-        companyId: req.companyId,
+      await ctx.services.audit.record(req.companyId, {
         actorId: p.userId,
         action: "requirements.revoke",
         targetType: "session",

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { MessageSchema, ProgressSchema } from "./schemas";
 
 /*
- * The frames of the live voice cascade (FR-30a), as `apps/api/src/modules/participant/voice-live.ts`
+ * The frames of the live voice cascade (FR-30a), as `apps/api/src/modules/participant/voice-live/`
  * writes them. Text frames are JSON; binary frames are audio and never reach this file.
  *
  * Parsed with zod for the same reason the SSE events are: the socket is the one API surface the

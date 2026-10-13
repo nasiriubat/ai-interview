@@ -1,0 +1,56 @@
+{
+  "$comment": "Files that still break an architecture fence. Only ever shrinks: scripts/architecture-lint.test.mjs fails when it grows past its ceiling, when an entry stops being needed, or when a file is gone. Fix the file and delete the entry; do not add one.",
+  "exemptions": [
+    {
+      "file": "apps/api/src/modules/voice/service.ts",
+      "category": "adapters",
+      "reason": "The one-step voice setup checks a pasted OpenAI key with one authenticated call built from createProvider. It should become a `probe` purpose through ModelCaller (plan 1.4) once the key has a provider row to route through."
+    },
+    {
+      "file": "packages/core/src/alerts/webhook-alerts.ts",
+      "category": "fetch",
+      "reason": "Falls back to the global fetch when no fetch is injected. Every production caller injects egress.fetchFor(\"platform\"); the default only serves tests and should become a required option."
+    },
+    {
+      "file": "packages/core/src/requirements/github.ts",
+      "category": "fetch",
+      "reason": "The GitHub client defaults to the global fetch. The API does not yet pass egress.fetchFor(\"platform\"); that belongs with the GitHub egress allow-list work."
+    },
+    {
+      "file": "packages/core/src/email/smtp.ts",
+      "category": "network",
+      "reason": "The SMTP transport adapter. It is the mail edge (rule 5) and should move under packages/core/src/net with the egress-checked relay."
+    },
+    {
+      "file": "packages/core/src/jobs/pg-boss.ts",
+      "category": "network",
+      "reason": "The queue adapter (BossJobs). The queue is Postgres, not an outbound network client; the fence names it so a second adapter cannot appear unnoticed."
+    },
+    {
+      "file": "packages/core/src/jobs/admin.ts",
+      "category": "network",
+      "reason": "Type-only use of PgBoss for the operator job page (D-92), next to the queue adapter above."
+    }
+  ],
+  "casts": {
+    "$comment": "`as unknown as X` and `as PrismaClient` in application source. A double cast tells the compiler to stop checking, so each file here says why it has to. `testCeiling` counts them in tests and fakes and may only be lowered.",
+    "testCeiling": 45,
+    "exemptions": [
+      {
+        "file": "packages/db/src/tenancy.ts",
+        "max": 1,
+        "reason": "withTenantScope hands the $extends result back as TenantPrismaClient. Prisma's inferred extension type is too deep to name and the extension adds no model or method, so this is the one place the shape is restored."
+      },
+      {
+        "file": "packages/core/src/net/egress.ts",
+        "max": 1,
+        "reason": "undici's Response and the DOM Response are structurally the same object; capBody is written against the DOM type that every consumer sees."
+      },
+      {
+        "file": "apps/api/src/app.ts",
+        "max": 3,
+        "reason": "Fastify threads the logger and the Zod type provider through generics that register() callbacks and the access-guard installer do not carry; the three casts re-attach App in one function."
+      }
+    ]
+  }
+}

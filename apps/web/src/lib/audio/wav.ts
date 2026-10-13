@@ -91,12 +91,12 @@ type OfflineCtor = new (channels: number, length: number, rate: number) => Offli
 /** The browser's own decoder and resampler, or null where there is no Web Audio at all. */
 export function browserAudioDecoding(): AudioDecoding | null {
   if (typeof window === "undefined") return null;
-  const w = window as unknown as {
-    AudioContext?: AudioContextCtor;
-    webkitAudioContext?: AudioContextCtor;
-    OfflineAudioContext?: OfflineCtor;
-    webkitOfflineAudioContext?: OfflineCtor;
-  };
+  // Safari still ships the prefixed constructors; the DOM typings know only the standard ones.
+  const w: Window &
+    typeof globalThis & {
+      webkitAudioContext?: AudioContextCtor;
+      webkitOfflineAudioContext?: OfflineCtor;
+    } = window;
   const Ctx = w.AudioContext ?? w.webkitAudioContext;
   if (!Ctx) return null;
   const Offline = w.OfflineAudioContext ?? w.webkitOfflineAudioContext;

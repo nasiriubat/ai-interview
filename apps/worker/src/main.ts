@@ -36,9 +36,8 @@ async function main(): Promise<void> {
     redact: ["*.apiKey", "*.password", "*.smtpUrl", "*.apiKeyEnc"],
   });
   // Every query goes through the tenant scope: it pairs the statement with the Postgres setting
-  // the row-level security policies read. The cast keeps the familiar PrismaClient shape at the
-  // ~166 call sites; the extension only adds behaviour (packages/db/src/tenancy.ts).
-  const db = withTenantScope(new PrismaClient()) as unknown as PrismaClient;
+  // the row-level security policies read (packages/db/src/tenancy.ts).
+  const db = withTenantScope(new PrismaClient());
   const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
   const settings = new SettingsService(db, crypto, {
     warn: (message, meta) => {

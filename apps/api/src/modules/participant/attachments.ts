@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { participant } from "../../auth/plugin.js";
-import type { AppContext } from "../../context.js";
+import type { RouteContext } from "../../context.js";
 import { AppError, notFound } from "../../lib/errors.js";
 
 /**
@@ -23,7 +23,7 @@ import { AppError, notFound } from "../../lib/errors.js";
 
 const AttachmentParams = z.object({ attachmentId: z.string().min(1) });
 
-export async function participantAttachmentRoutes(app: App, ctx: AppContext): Promise<void> {
+export async function participantAttachmentRoutes(app: App, ctx: RouteContext): Promise<void> {
   const authed = guard.participant();
 
   /**

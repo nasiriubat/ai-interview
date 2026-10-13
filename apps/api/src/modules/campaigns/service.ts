@@ -6,10 +6,75 @@ import {
   type EmailPort,
   type SettingsService,
 } from "@aidp/core";
-import { containsInsensitive, tenantBatch } from "@aidp/db";
+import { containsInsensitive, escapeLike, tenantBatch } from "@aidp/db";
+import { toListResponse, type ListEnvelope } from "@aidp/shared";
 import type { Campaign, Invitation, Prisma, PrismaClient } from "@prisma/client";
+import { z } from "zod";
 import { AppError, notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
+import { listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
+
+/** `/campaigns` (D-79): `q` matches the name. */
+export const CampaignList = listSpec({
+  sort: { createdAt: "desc", name: "asc", status: "asc" },
+  defaultSort: "createdAt",
+  filters: { status: z.enum(["draft", "open", "analyzing", "closed"]).optional() },
+});
+
+export const CampaignListQuery = listQuery(CampaignList);
+export type CampaignListQuery = z.output<typeof CampaignListQuery>;
+
+/**
+ * `/campaigns/:id/sessions` (D-79). `q` matches the session id exactly, and the participant's
+ * `name` or `email` field only where that participant is identified: the campaign is
+ * `identified`, or it is `participant_choice` and the participant has consented (consent is where
+ * they choose). An anonymous participant keeps no email, and even a stray one is never searched,
+ * so a search cannot be used to learn which session an anonymous person wrote.
+ */
+export const CampaignSessionList = listSpec({
+  sort: { createdAt: "desc", startedAt: "desc", lastActivity: "desc", status: "asc" },
+  defaultSort: "createdAt",
+  columns: { lastActivity: "updatedAt" },
+  nullable: ["startedAt"],
+  filters: {
+    status: z.enum(["created", "consented", "active", "paused", "completed", "deleted"]).optional(),
+  },
+});
+
+export const CampaignSessionListQuery = listQuery(CampaignSessionList);
+export type CampaignSessionListQuery = z.output<typeof CampaignSessionListQuery>;
+
+export interface CampaignSessionRow {
+  id: string;
+  status: string;
+  turns: number;
+  areasCovered: number;
+  mode: string;
+  costCents: number;
+  participantName: string | null;
+  participantEmail: string | null;
+  startedAt: Date | null;
+  endedAt: Date | null;
+  createdAt: Date;
+  lastActivityAt: Date;
+}
+
+/** Whether a session's participant may be named on a staff screen or found by a search. */
+function identified(mode: string, consented: boolean): boolean {
+  return mode === "identified" || (mode === "participant_choice" && consented);
+}
+
+/** The identity a staff list may show, under the same rule the search follows. */
+function visibleIdentity(
+  mode: string,
+  consented: boolean,
+  fields: unknown,
+): { participantName: string | null; participantEmail: string | null } {
+  const f = (fields ?? {}) as Record<string, unknown>;
+  const show = identified(mode, consented);
+  const str = (v: unknown): string | null => (show && typeof v === "string" && v ? v : null);
+  return { participantName: str(f.name), participantEmail: str(f.email) };
+}
 
 export interface CampaignCreate {
   templateId: string;
@@ -41,31 +106,106 @@ export class CampaignService {
   ) {}
 
   /** One page of campaigns with the row count beside it; `total` counts the filtered set (D-79). */
-  async list(
-    companyId: string,
-    query: {
-      limit: number;
-      offset: number;
-      q?: string | undefined;
-      status?: string | undefined;
-      orderBy: Prisma.CampaignOrderByWithRelationInput[];
-    },
-  ): Promise<{ campaigns: Campaign[]; total: number }> {
+  async list(companyId: string, query: CampaignListQuery): Promise<{ campaigns: Campaign[]; total: number }> {
+    const q = searchTerm(query.q);
     const where: Prisma.CampaignWhereInput = {
       companyId,
-      ...(query.q ? { name: containsInsensitive(query.q) } : {}),
+      ...(q ? { name: containsInsensitive(q) } : {}),
       ...(query.status ? { status: query.status } : {}),
     };
     const [campaigns, total] = await tenantBatch(this.db, [
       this.db.campaign.findMany({
         where,
-        orderBy: query.orderBy,
+        orderBy: listOrder<Prisma.CampaignOrderByWithRelationInput, typeof query.sort>(CampaignList, query),
         take: query.limit,
         skip: query.offset,
       }),
       this.db.campaign.count({ where }),
     ]);
     return { campaigns, total };
+  }
+
+  /** One page of a campaign's sessions, with this page's spend and only the identity staff may see. */
+  async sessionsPage(
+    companyId: string,
+    campaignId: string,
+    query: CampaignSessionListQuery,
+  ): Promise<ListEnvelope<"sessions", CampaignSessionRow>> {
+    const campaign = await this.get(companyId, campaignId);
+    const mode = campaign.participationMode;
+    const q = searchTerm(query.q);
+    const fieldMatch = (key: "name" | "email", term: string): Prisma.SessionWhereInput => ({
+      participant: { fields: { path: [key], string_contains: escapeLike(term), mode: "insensitive" } },
+    });
+    // Identity is searchable only where it would be shown (see CampaignSessionList).
+    const identity: Prisma.SessionWhereInput[] =
+      q === undefined || (mode !== "identified" && mode !== "participant_choice")
+        ? []
+        : [
+            {
+              ...(mode === "identified" ? {} : { consentedAt: { not: null } }),
+              OR: [fieldMatch("name", q), fieldMatch("email", q)],
+            },
+          ];
+    const where: Prisma.SessionWhereInput = {
+      campaignId: campaign.id,
+      companyId,
+      ...(query.status ? { status: query.status } : {}),
+      ...(q === undefined ? {} : { OR: [{ id: q }, ...identity] }),
+    };
+    const [sessions, total] = await tenantBatch(this.db, [
+      this.db.session.findMany({
+        where,
+        orderBy: listOrder<Prisma.SessionOrderByWithRelationInput, typeof query.sort>(
+          CampaignSessionList,
+          query,
+        ),
+        take: query.limit,
+        skip: query.offset,
+        select: {
+          id: true,
+          status: true,
+          state: true,
+          startedAt: true,
+          endedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          consentedAt: true,
+          modePreference: true,
+          participant: { select: { fields: true } },
+        },
+      }),
+      this.db.session.count({ where }),
+    ]);
+    // Costs for this page only, rather than every session the campaign ever had.
+    const costs = sessions.length
+      ? await this.db.llmCall.groupBy({
+          by: ["sessionId"],
+          where: { companyId, sessionId: { in: sessions.map((s) => s.id) } },
+          _sum: { costCents: true },
+        })
+      : [];
+    const costOf = new Map(costs.map((c) => [c.sessionId, c._sum.costCents ?? 0]));
+    const rows = sessions.map((s) => {
+      const st = s.state as { turnCount?: number; coverage?: Record<string, { status: string }> };
+      const covered = Object.values(st.coverage ?? {}).filter(
+        (c) => c.status === "covered" || c.status === "skipped",
+      ).length;
+      return {
+        id: s.id,
+        status: s.status,
+        turns: st.turnCount ?? 0,
+        areasCovered: covered,
+        mode: s.modePreference,
+        costCents: costOf.get(s.id) ?? 0,
+        ...visibleIdentity(mode, s.consentedAt !== null, s.participant?.fields),
+        startedAt: s.startedAt,
+        endedAt: s.endedAt,
+        createdAt: s.createdAt,
+        lastActivityAt: s.updatedAt,
+      };
+    });
+    return toListResponse("sessions", rows, total, query);
   }
 
   async get(companyId: string, id: string): Promise<Campaign & { linkToken?: undefined }> {

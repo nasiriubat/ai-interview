@@ -28,10 +28,10 @@ function enumValues(schema: z.ZodType): string[] | undefined {
 }
 
 function numberBounds(schema: z.ZodType): { min?: number; max?: number; integer: boolean } {
-  const def = (schema as unknown as { def?: { checks?: { _zod?: { def?: Record<string, unknown> } }[] } })
-    .def;
+  const def: unknown = schema.def;
+  const checks: unknown = typeof def === "object" && def !== null && "checks" in def ? def.checks : [];
   const out: { min?: number; max?: number; integer: boolean } = { integer: false };
-  for (const c of def?.checks ?? []) {
+  for (const c of Array.isArray(checks) ? (checks as { _zod?: { def?: Record<string, unknown> } }[]) : []) {
     const d = c._zod?.def ?? {};
     if (d.check === "greater_than" && typeof d.value === "number") out.min = d.value;
     if (d.check === "less_than" && typeof d.value === "number") out.max = d.value;

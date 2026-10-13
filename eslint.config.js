@@ -3,6 +3,7 @@ import js from "@eslint/js";
 import prettier from "eslint-config-prettier";
 import importX from "eslint-plugin-import-x";
 import tseslint from "typescript-eslint";
+import { architectureBlocks } from "./eslint-rules/architecture.mjs";
 
 export default tseslint.config(
   {
@@ -67,6 +68,9 @@ export default tseslint.config(
       ],
     },
   },
+  // AGENTS.md rules 2 and 4 (engineering plan 2.5b). Placed after the prompt-version block because
+  // it carries that selector too: flat config does not merge `no-restricted-syntax` options.
+  ...architectureBlocks(),
   {
     files: ["**/test/**", "**/*.test.ts", "**/seeds/**", "**/evals/**"],
     rules: {
