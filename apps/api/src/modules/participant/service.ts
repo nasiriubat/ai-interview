@@ -10,6 +10,7 @@ import {
   type SettingsService,
   type TenantGate,
 } from "@aidp/core";
+import { COMPLETION_REQUESTED_TURN_COUNT } from "@aidp/shared";
 import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
@@ -313,7 +314,7 @@ export class ParticipantService {
   /** "I'm done": the next turn asks the closing question. */
   async requestCompletion(sessionId: string): Promise<void> {
     const s = await this.db.session.findUniqueOrThrow({ where: { id: sessionId } });
-    const state = { ...(s.state as Record<string, unknown>), turnCount: Number.MAX_SAFE_INTEGER >> 1 };
+    const state = { ...(s.state as Record<string, unknown>), turnCount: COMPLETION_REQUESTED_TURN_COUNT };
     await this.db.session.update({ where: { id: sessionId }, data: { state } });
   }
 

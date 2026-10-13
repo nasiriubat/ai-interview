@@ -4,6 +4,15 @@ import { PathSchema } from "./template.js";
 import { WidgetSchema } from "./widgets.js";
 
 /** A finding raised by issue detection in a requirements session (spec 05, FR-21b). Lives in state. */
+/**
+ * What "the participant asked to finish" writes into `turnCount`, so the engine's turn cap is
+ * already reached and the next turn closes the interview. It used to be written as
+ * `Number.MAX_SAFE_INTEGER >> 1`, which JavaScript evaluates as a 32-bit shift to -1: the stored
+ * state then failed its own `nonnegative()` check and the session answered 500 from then on.
+ * Any value above every template's `maxTurns` works; a small constant keeps it a valid int32.
+ */
+export const COMPLETION_REQUESTED_TURN_COUNT = 1_000_000;
+
 export const FindingSchema = z.object({
   id: z.string(),
   type: z.enum(["ambiguity", "contradiction", "missing_decision", "over_complexity"]),

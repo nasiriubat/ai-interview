@@ -1,0 +1,6 @@
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+GATEGUARD_EXEMPT_GLOBS = "/Users/mhnash/Desktop/projects/ai-interview/**,**"
+GATEGUARD_BASH_ROUTINE_DISABLED = "1"

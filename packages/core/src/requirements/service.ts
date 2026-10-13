@@ -25,6 +25,7 @@ import {
   type SpecDocument,
   type SpecEdits,
   type SpecVersionStats,
+  COMPLETION_REQUESTED_TURN_COUNT,
 } from "@aidp/shared";
 import type {
   InterviewTemplate as TemplateRow,
@@ -318,7 +319,7 @@ export class RequirementsService {
   async requestCompletion(companyId: string, id: string, viewer: Viewer): Promise<void> {
     const row = await this.load(companyId, id, viewer);
     if (row.status === "completed" || row.status === "deleted") return;
-    const state = { ...(row.state as Record<string, unknown>), turnCount: Number.MAX_SAFE_INTEGER >> 1 };
+    const state = { ...(row.state as Record<string, unknown>), turnCount: COMPLETION_REQUESTED_TURN_COUNT };
     await this.deps.db.session.update({ where: { id: row.id }, data: { state } });
   }
 
