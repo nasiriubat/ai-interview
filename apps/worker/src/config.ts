@@ -10,6 +10,13 @@ const Env = z.object({
   /** Where uploaded audio and documents live. Unset keeps them in memory, which loses them. */
   UPLOAD_DIR: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
+  /**
+   * Outbound-connection policy for tenant-supplied addresses (provider base URLs, SMTP relays).
+   * `strict` is the only mode a production process accepts. See packages/core/src/net/egress.ts.
+   */
+  EGRESS_MODE: z.enum(["strict", "permissive"]).default("strict"),
+  /** Comma-separated hostnames a platform provider may reach on a private address (compose services). */
+  EGRESS_ALLOW_HOSTS: z.string().default(""),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
 });
 export type Config = z.infer<typeof Env>;

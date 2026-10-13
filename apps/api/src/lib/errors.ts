@@ -9,6 +9,8 @@ export type ErrorCode =
   | "forbidden"
   | "not_found"
   | "conflict"
+  | "tenant_suspended"
+  | "blocked_address"
   | "too_large"
   | "rate_limited"
   | "budget_exceeded"
@@ -21,6 +23,10 @@ const STATUS: Record<ErrorCode, number> = {
   forbidden: 403,
   not_found: 404,
   conflict: 409,
+  // The organization is suspended: staff are told why instead of being shown a sign-in loop (S8).
+  tenant_suspended: 403,
+  // A provider or relay address that resolves somewhere the server must not connect (S4).
+  blocked_address: 422,
   // An upload over the tenant's files.maxSizeMb, or over the hard ceiling above it.
   too_large: 413,
   rate_limited: 429,
@@ -44,8 +50,26 @@ export class AppError extends Error {
 
 export const notFound = (what: string): AppError => new AppError("not_found", `${what} not found`);
 export const forbidden = (message = "Forbidden"): AppError => new AppError("forbidden", message);
+export const tenantSuspended = (): AppError =>
+  new AppError("tenant_suspended", "This organization is suspended. Contact the platform operator.");
 export const unauthenticated = (message = "Authentication required"): AppError =>
   new AppError("unauthenticated", message);
+
+/** A Prisma unique-constraint violation (P2002), however the client wrapped it. */
+export function isUniqueViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === "P2002";
+}
+
+/**
+ * What a staff address that is already taken answers.
+ *
+ * One tenant per email (D-84) makes this a small cross-tenant existence oracle: an admin can learn
+ * that an address is registered somewhere. It is accepted, because the alternative is silently
+ * resolving a second identity, and bounded: the routes that can produce it are limited to 20 a
+ * hour per admin and every refusal is audited.
+ */
+export const emailTaken = (): AppError =>
+  new AppError("conflict", "That email address is already registered");
 
 /** One shape for every error the API returns (contract 16). Never leaks internals in production. */
 export function errorHandler(

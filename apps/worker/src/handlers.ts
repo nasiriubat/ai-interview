@@ -15,6 +15,7 @@ import {
   type JobPublisher,
   type SettingsService,
   type StoragePort,
+  type TenantGate,
 } from "@aidp/core";
 import { withSystemTenant, withTenant } from "@aidp/db";
 import type { Prisma, PrismaClient } from "@prisma/client";
@@ -30,6 +31,8 @@ export interface HandlerDeps {
   publicWebUrl: string;
   /** Where uploaded audio and documents live; the worker reads what the API wrote. */
   storage: StoragePort;
+  /** A suspended tenant's jobs are acknowledged and skipped (S8); deletion jobs still run. */
+  tenants: TenantGate;
 }
 
 /**
@@ -54,6 +57,25 @@ const scoped = <P>(handler: (payload: P) => Promise<void>) => {
 };
 
 export function handlers(deps: HandlerDeps): Handlers {
+  /**
+   * `scoped`, and refused for a suspended tenant (S8). The job is acknowledged rather than failed:
+   * retrying a job for a tenant that is suspended on purpose would only fill the dead-letter queue.
+   * Work skipped here is not lost to the data; it is simply not started, and an admin re-runs
+   * what they need once the tenant is active again. Privacy jobs do not use this wrapper:
+   * a deletion obligation does not pause with the account.
+   */
+  const active = <P extends { companyId?: string | undefined }>(
+    name: string,
+    handler: (payload: P) => Promise<void>,
+  ) =>
+    scoped(async (payload: P): Promise<void> => {
+      if (payload.companyId && !(await deps.tenants.isActive(payload.companyId))) {
+        deps.log.warn("job skipped: tenant suspended", { job: name, companyId: payload.companyId });
+        return;
+      }
+      await handler(payload);
+    });
+
   const store = new PrismaSessionStore(deps.db);
   const prompts = new PrismaPromptSource(deps.db);
   const analysis = new AnalysisService({
@@ -76,7 +98,8 @@ export function handlers(deps: HandlerDeps): Handlers {
   });
 
   return {
-    "session.summarize": scoped(
+    "session.summarize": active(
+      "session.summarize",
       async ({ sessionId, companyId }: JobPayload<"session.summarize">): Promise<void> => {
         const session = await store.snapshot(sessionId);
         if (session.status === "deleted") return;
@@ -90,7 +113,8 @@ export function handlers(deps: HandlerDeps): Handlers {
       },
     ),
 
-    "session.extract": scoped(
+    "session.extract": active(
+      "session.extract",
       async ({ sessionId, companyId }: JobPayload<"session.extract">): Promise<void> => {
         const session = await store.snapshot(sessionId);
         if (session.status === "deleted") return;
@@ -111,7 +135,7 @@ export function handlers(deps: HandlerDeps): Handlers {
       },
     ),
 
-    "email.send": scoped(async (m: JobPayload<"email.send">): Promise<void> => {
+    "email.send": active("email.send", async (m: JobPayload<"email.send">): Promise<void> => {
       await deps.email.send({
         to: m.to,
         subject: m.subject,
@@ -125,7 +149,8 @@ export function handlers(deps: HandlerDeps): Handlers {
      * Reads an uploaded file once, so every later turn is cheap (FR-31). The caller is built per
      * tenant, because routing, prices and budgets are the tenant's.
      */
-    "attachment.ingest": scoped(
+    "attachment.ingest": active(
+      "attachment.ingest",
       async ({ attachmentId, companyId }: JobPayload<"attachment.ingest">): Promise<void> => {
         const caller = await deps.callers.forCompany(companyId);
         await new AttachmentService({
@@ -178,13 +203,19 @@ export function handlers(deps: HandlerDeps): Handlers {
     }),
 
     /** Collective analysis for a campaign (spec 04). Idempotent per analysis id. */
-    "analysis.run": scoped(async ({ analysisId }: JobPayload<"analysis.run">): Promise<void> => {
-      await analysis.run(analysisId);
-    }),
+    "analysis.run": active(
+      "analysis.run",
+      async ({ analysisId }: JobPayload<"analysis.run">): Promise<void> => {
+        await analysis.run(analysisId);
+      },
+    ),
 
     /** One specification version for a requirements session (spec 05, FR-24). Idempotent per version id. */
-    "spec.generate": scoped(async ({ versionId }: JobPayload<"spec.generate">): Promise<void> => {
-      await requirements.runGeneration(versionId);
-    }),
+    "spec.generate": active(
+      "spec.generate",
+      async ({ versionId }: JobPayload<"spec.generate">): Promise<void> => {
+        await requirements.runGeneration(versionId);
+      },
+    ),
   };
 }

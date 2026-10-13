@@ -4,6 +4,7 @@ import type { Widget } from "@aidp/shared";
 import type { WebSocket } from "@fastify/websocket";
 import { z } from "zod";
 import type { App } from "../../app.js";
+import { guard } from "../../auth/access.js";
 import type { AppContext } from "../../context.js";
 import { streamTurn } from "../sessions/turn-runner.js";
 
@@ -60,22 +61,26 @@ const CLOSE_POLICY = 1008;
 const CLOSE_TOO_BIG = 1009;
 
 export async function participantVoiceLiveRoutes(app: App, ctx: AppContext): Promise<void> {
-  app.get("/p/session/live", { websocket: true, schema: { hide: true } }, (socket, req) => {
-    // The principal comes from the auth plugin's onRequest hook, exactly as on every HTTP route;
-    // an upgraded request goes through the same lifecycle. The check is inline rather than the
-    // usual `requireParticipant` preHandler because a refused socket has to be closed with a
-    // status code, and a thrown AppError would try to write a JSON body to a connection the
-    // browser is expecting to upgrade.
-    const principal = req.principal;
-    if (principal.kind !== "participant") {
-      socket.close(CLOSE_POLICY, "participant session required");
-      return;
-    }
-    void new LiveVoiceSession(ctx, socket, {
-      companyId: principal.companyId,
-      sessionId: principal.sessionId,
-    }).run();
-  });
+  app.get(
+    "/p/session/live",
+    { ...guard.participantSocket(), websocket: true, schema: { hide: true } },
+    (socket, req) => {
+      // The principal comes from the auth plugin's onRequest hook, exactly as on every HTTP route;
+      // an upgraded request goes through the same lifecycle. The check is inline rather than a
+      // guard hook because a refused socket has to be closed with a status code, and a thrown
+      // AppError would try to write a JSON body to a connection the browser is expecting to
+      // upgrade. The principal is anonymous for a deleted session and for a suspended tenant too.
+      const principal = req.principal;
+      if (principal.kind !== "participant") {
+        socket.close(CLOSE_POLICY, "participant session required");
+        return;
+      }
+      void new LiveVoiceSession(ctx, socket, {
+        companyId: principal.companyId,
+        sessionId: principal.sessionId,
+      }).run();
+    },
+  );
 }
 
 interface Scope {
@@ -165,6 +170,9 @@ class LiveVoiceSession {
     const parsed = ClientFrame.safeParse(safeJson(data.toString("utf8")));
     if (!parsed.success) return;
     const frame = parsed.data;
+    // The token was valid when the socket opened; the session may have been deleted, or the
+    // organization suspended, since. Re-checked on every control frame, which is every utterance.
+    if (!(await this.stillAllowed())) return;
 
     switch (frame.type) {
       case "start":
@@ -197,6 +205,24 @@ class LiveVoiceSession {
    * Reads the most recent interviewer question aloud. No engine turn, so nothing is stored and the
    * turn lock is never taken: this is a replay of something the participant can already see.
    */
+  /**
+   * False, and the socket closed, once the session is deleted or its tenant suspended (S3, S8).
+   * The door was checked when the connection opened; a conversation can outlive that decision.
+   */
+  private async stillAllowed(): Promise<boolean> {
+    const session = await this.ctx.db.session.findUnique({
+      where: { id: this.scope.sessionId },
+      select: { status: true },
+    });
+    const active = await this.ctx.tenants.isActive(this.scope.companyId);
+    if (session && session.status !== "deleted" && active) return true;
+    this.closed = true;
+    this.speaking?.abort();
+    this.send({ type: "unavailable", reason: "disabled", fallback: "recorded" });
+    this.socket.close(CLOSE_POLICY, "session no longer available");
+    return false;
+  }
+
   private async speakLast(opts: { captions: boolean; voice: string; speed: number }): Promise<void> {
     if (this.busy) return;
     this.busy = true;

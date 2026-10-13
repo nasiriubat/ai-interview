@@ -1,6 +1,7 @@
 import { storageKind } from "@aidp/core";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { guard } from "../../auth/access.js";
 import type { AppContext } from "../../context.js";
 import { noLimit } from "../../lib/rate-limit.js";
 
@@ -8,7 +9,7 @@ import { noLimit } from "../../lib/rate-limit.js";
 export async function healthRoutes(app: FastifyInstance, ctx: AppContext): Promise<void> {
   app.get(
     "/health/live",
-    { ...noLimit, schema: { response: { 200: z.object({ ok: z.literal(true) }) } } },
+    { ...guard.public(noLimit), schema: { response: { 200: z.object({ ok: z.literal(true) }) } } },
     async () => ({ ok: true as const }),
   );
   /**
@@ -23,7 +24,7 @@ export async function healthRoutes(app: FastifyInstance, ctx: AppContext): Promi
   });
   app.get(
     "/health/ready",
-    { ...noLimit, schema: { response: { 200: Ready, 503: Ready } } },
+    { ...guard.public(noLimit), schema: { response: { 200: Ready, 503: Ready } } },
     async (_req, reply) => {
       let database = false;
       try {

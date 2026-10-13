@@ -1,8 +1,9 @@
-import { SettingsService } from "@aidp/core";
-import { maskSecretSettings, type SettingKey } from "@aidp/shared";
+import { EgressBlockedError, SettingsService } from "@aidp/core";
+import { isSmtpUrl, maskSecretSettings, SECRET_SENTINEL, type SettingKey } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff, staff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
+import { staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
@@ -65,7 +66,7 @@ export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
     return { scope: q.scope, scopeId: q.scopeId };
   };
 
-  app.get("/settings", { preHandler: requireStaff("admin"), schema: { querystring: Scope } }, async (req) => {
+  app.get("/settings", { ...guard.admin(), schema: { querystring: Scope } }, async (req) => {
     const r = await ref(req, req.query, "read");
     const chain = r.scope === "platform" ? [] : [r, { scope: "tenant" as const, scopeId: req.companyId }];
     const catalog = SettingsService.catalog().filter((c) => c.scopes.includes(r.scope));
@@ -84,15 +85,37 @@ export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
     };
   });
 
+  /**
+   * A relay a tenant types is a destination the server will connect to, so it meets the egress
+   * policy when it is saved (S4). The sentinel and a clear are not new addresses. The connect-time
+   * check in the transport is the authoritative one; this gives the admin the answer at the form.
+   */
+  const assertRelayAllowed = async (scope: string, value: unknown): Promise<void> => {
+    if (typeof value !== "string" || value === "" || value === SECRET_SENTINEL) return;
+    // Not an SMTP URL at all is the settings catalog's 400 to give, not a policy refusal.
+    if (!isSmtpUrl(value)) return;
+    try {
+      await ctx.egress.validateSmtpUrl(value, scope === "platform" ? "platform" : "tenant");
+    } catch (err) {
+      if (err instanceof EgressBlockedError) {
+        throw new AppError("blocked_address", "That mail server address is not allowed", {
+          reason: err.reason,
+        });
+      }
+      throw err;
+    }
+  };
+
   app.put(
     "/settings",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: { querystring: Scope, body: z.object({ values: z.record(z.string(), z.unknown()) }) },
     },
     async (req) => {
       const r = await ref(req, req.query, "write");
       const actor = staff(req).userId;
+      await assertRelayAllowed(r.scope, req.body.values["email.smtpUrl"]);
       const written = await ctx.settings.set(r, req.body.values, actor);
       const at = await ctx.settings.describeAt(r);
       // The audit diff names the keys that were submitted and never carries a value with it.
@@ -109,38 +132,34 @@ export async function settingsRoutes(app: App, ctx: AppContext): Promise<void> {
   );
 
   /** Names for the scope pickers, so nobody types an id by hand (contract 19). */
-  app.get(
-    "/settings/scopes",
-    { preHandler: requireStaff("admin"), schema: { querystring: TargetScope } },
-    async (req) => {
-      if (req.query.scope === "template") {
-        const rows = await ctx.db.interviewTemplate.findMany({
-          where: { companyId: req.companyId },
-          orderBy: { createdAt: "desc" },
-          select: { id: true, name: true, key: true, version: true },
-        });
-        return { targets: rows.map((t) => ({ id: t.id, name: t.name, detail: `${t.key} v${t.version}` })) };
-      }
-      if (req.query.scope === "campaign") {
-        const rows = await ctx.db.campaign.findMany({
-          where: { companyId: req.companyId },
-          orderBy: { createdAt: "desc" },
-          select: { id: true, name: true, status: true },
-        });
-        return { targets: rows.map((c) => ({ id: c.id, name: c.name, detail: c.status })) };
-      }
-      const operator = staff(req).role === "platform_operator";
-      const rows = await ctx.db.company.findMany({
-        where: operator ? {} : { id: req.companyId },
+  app.get("/settings/scopes", { ...guard.admin(), schema: { querystring: TargetScope } }, async (req) => {
+    if (req.query.scope === "template") {
+      const rows = await ctx.db.interviewTemplate.findMany({
+        where: { companyId: req.companyId },
         orderBy: { createdAt: "desc" },
-        select: { id: true, name: true, region: true },
+        select: { id: true, name: true, key: true, version: true },
       });
-      return { targets: rows.map((c) => ({ id: c.id, name: c.name, detail: c.region })) };
-    },
-  );
+      return { targets: rows.map((t) => ({ id: t.id, name: t.name, detail: `${t.key} v${t.version}` })) };
+    }
+    if (req.query.scope === "campaign") {
+      const rows = await ctx.db.campaign.findMany({
+        where: { companyId: req.companyId },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, name: true, status: true },
+      });
+      return { targets: rows.map((c) => ({ id: c.id, name: c.name, detail: c.status })) };
+    }
+    const operator = staff(req).role === "platform_operator";
+    const rows = await ctx.db.company.findMany({
+      where: operator ? {} : { id: req.companyId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, region: true },
+    });
+    return { targets: rows.map((c) => ({ id: c.id, name: c.name, detail: c.region })) };
+  });
 
   /** Sends one message to the caller with the configuration in effect, and says which scope won. */
-  app.post("/settings/email/test", { preHandler: requireStaff("admin") }, async (req) => {
+  app.post("/settings/email/test", { ...guard.admin() }, async (req) => {
     // The body is optional, so it is parsed here rather than by the route schema.
     const body = EmailTestBody.parse(req.body ?? {});
     const p = staff(req);

@@ -1,5 +1,13 @@
-import { createProvider, costCents, estimateTokens, PriceTable, type ModelPrice } from "@aidp/ai";
-import { loadPrices, type CallerFactory, type Crypto } from "@aidp/core";
+import { costCents, estimateTokens, PriceTable, ProviderError, type ModelPrice } from "@aidp/ai";
+import {
+  classifyConnectFailure,
+  EgressBlockedError,
+  loadPrices,
+  validateTenantHeaders,
+  type CallerFactory,
+  type Crypto,
+  type EgressGuard,
+} from "@aidp/core";
 import { tenantBatch } from "@aidp/db";
 import { PURPOSES, ProviderConfigSchema, type ModelInfo, type Purpose } from "@aidp/shared";
 import type { PrismaClient, Provider } from "@prisma/client";
@@ -26,12 +34,64 @@ export interface RouteRowOut {
   inherited: boolean;
 }
 
+/**
+ * What a connection test or a model listing can say about the provider. Deliberately coarse: the
+ * address a tenant admin typed is untrusted, so the answer must not be a probe of what is behind
+ * it. "Connection refused" and "filtered" are both `unreachable`; an upstream's own words are
+ * never returned (S4, D-83).
+ */
+export type ProbeStatus =
+  | "ok"
+  | "unauthorized"
+  | "not_found"
+  | "rate_limited"
+  | "provider_error"
+  | "unreachable"
+  | "blocked_address"
+  | "tls_error"
+  | "timeout";
+
+const PROBE_MESSAGES: Record<Exclude<ProbeStatus, "ok">, string> = {
+  unauthorized: "The provider rejected the API key",
+  not_found: "The provider does not have that endpoint or model",
+  rate_limited: "The provider is rate limiting this key",
+  provider_error: "The provider returned an error",
+  unreachable: "Could not reach the provider",
+  blocked_address: "That address is not allowed for this provider",
+  tls_error: "The provider's TLS certificate could not be verified",
+  timeout: "The provider did not answer in time",
+};
+
+/** Reduces any failure from an adapter to a ProbeStatus. */
+export function probeStatus(err: unknown): Exclude<ProbeStatus, "ok"> {
+  const connect = classifyConnectFailure(err);
+  if (connect === "blocked_address" || connect === "tls_error" || connect === "timeout") return connect;
+  if (err instanceof ProviderError) {
+    switch (err.code) {
+      case "auth":
+        return "unauthorized";
+      case "not_found":
+        return "not_found";
+      case "rate_limit":
+        return "rate_limited";
+      case "network":
+        return "unreachable";
+      default:
+        return "provider_error";
+    }
+  }
+  return "unreachable";
+}
+
 export interface ModelsResult {
   models: ModelInfo[];
   importedPrices: number;
   /** When the catalogue was read; the newest stored price when the answer is stale, null when nothing is stored. */
   fetchedAt: Date | null;
   stale: boolean;
+  /** Why the live list could not be read, when it could not; one of a fixed set. */
+  status: ProbeStatus;
+  /** A fixed sentence for `status`, never text from the provider. */
   error?: string;
 }
 
@@ -50,7 +110,29 @@ export class ProviderService {
     private readonly db: PrismaClient,
     private readonly crypto: Crypto,
     private readonly callers: CallerFactory,
+    private readonly egress: EgressGuard,
   ) {}
+
+  /**
+   * Refuses a base URL or header map that the egress policy would never let a connection use. It
+   * runs on save so the admin gets an answer at the form rather than a failure at interview
+   * time; the connect-time check in the transport is the authoritative one.
+   */
+  private async assertEgress(
+    companyId: string | null,
+    input: { baseUrl?: string | undefined; headers?: Record<string, string> | undefined },
+  ): Promise<void> {
+    try {
+      if (companyId !== null && input.headers) validateTenantHeaders(input.headers);
+      if (input.baseUrl)
+        await this.egress.validateUrl(input.baseUrl, companyId === null ? "platform" : "tenant");
+    } catch (err) {
+      if (err instanceof EgressBlockedError) {
+        throw new AppError("blocked_address", PROBE_MESSAGES.blocked_address, { reason: err.reason });
+      }
+      throw err;
+    }
+  }
 
   list(companyId: string | null): Promise<Provider[]> {
     return this.db.provider.findMany({
@@ -67,6 +149,7 @@ export class ProviderService {
 
   async create(companyId: string | null, input: ProviderInput): Promise<Provider> {
     if (!input.apiKey) throw new AppError("validation", "apiKey is required");
+    await this.assertEgress(companyId, input);
     ProviderConfigSchema.parse({
       id: "new",
       companyId,
@@ -94,6 +177,7 @@ export class ProviderService {
     const p = await this.get(companyId, id);
     if (p.companyId !== companyId)
       throw new AppError("forbidden", "Platform providers are managed by the platform operator");
+    await this.assertEgress(companyId, input);
     const updated = await this.db.provider.update({
       where: { id: p.id },
       data: {
@@ -119,7 +203,7 @@ export class ProviderService {
   }
 
   private adapter(p: Provider) {
-    return createProvider(
+    return this.callers.adapterFor(
       ProviderConfigSchema.parse({
         id: p.id,
         companyId: p.companyId,
@@ -144,7 +228,7 @@ export class ProviderService {
     try {
       models = await this.adapter(p).listModels();
     } catch (err) {
-      return this.storedModels(p.id, err instanceof Error ? err.message : String(err));
+      return this.storedModels(p.id, probeStatus(err));
     }
     const table = new PriceTable();
     table.importFromModels(p.id, models);
@@ -175,11 +259,11 @@ export class ProviderService {
       });
       importedPrices++;
     }
-    return { models, importedPrices, fetchedAt: new Date(), stale: false };
+    return { models, importedPrices, fetchedAt: new Date(), stale: false, status: "ok" };
   }
 
   /** The catalogue rebuilt from stored prices, for when the provider is unreachable. */
-  private async storedModels(providerId: string, error: string): Promise<ModelsResult> {
+  private async storedModels(providerId: string, status: Exclude<ProbeStatus, "ok">): Promise<ModelsResult> {
     const rows = await this.db.modelPrice.findMany({
       where: { providerId },
       orderBy: { model: "asc" },
@@ -199,7 +283,8 @@ export class ProviderService {
       importedPrices: 0,
       fetchedAt: newest,
       stale: true,
-      error,
+      status,
+      error: PROBE_MESSAGES[status],
     };
   }
 
@@ -239,6 +324,7 @@ export class ProviderService {
     latencyMs: number;
     tokens: number;
     costCents: number;
+    status: ProbeStatus;
     error?: string;
   }> {
     const p = await this.get(companyId, id);
@@ -261,15 +347,18 @@ export class ProviderService {
         latencyMs: Date.now() - started,
         tokens: usage.inputTokens + usage.outputTokens,
         costCents: price ? costCents(price, usage) : 0,
+        status: "ok",
       };
     } catch (err) {
+      const status = probeStatus(err);
       return {
         ok: false,
         model: chosen,
         latencyMs: Date.now() - started,
         tokens: 0,
         costCents: 0,
-        error: err instanceof Error ? err.message : String(err),
+        status,
+        error: PROBE_MESSAGES[status],
       };
     }
   }

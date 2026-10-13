@@ -1,10 +1,11 @@
 import { tenantBatch } from "@aidp/db";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff, staff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
+import { staff } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { audit } from "../../lib/audit.js";
-import { notFound } from "../../lib/errors.js";
+import { emailTaken, isUniqueViolation, notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
 import { PageQuery } from "../../lib/pagination.js";
 
@@ -18,19 +19,20 @@ const UserOut = z.object({
 });
 
 export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
-  app.get("/me", { preHandler: requireStaff() }, async (req) => {
+  // A suspended tenant's staff still get an answer here, so the UI can say why they are locked out.
+  app.get("/me", { ...guard.staff({ config: { allowSuspended: true } }) }, async (req) => {
     const p = staff(req);
     const user = await ctx.db.user.findUniqueOrThrow({ where: { id: p.userId }, include: { company: true } });
     return {
       user: { id: user.id, email: user.email, name: user.name, role: user.role, companyId: user.companyId },
-      company: { id: user.company.id, name: user.company.name },
+      company: { id: user.company.id, name: user.company.name, status: user.company.status },
     };
   });
 
   app.get(
     "/users",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: {
         querystring: PageQuery,
         response: {
@@ -61,20 +63,36 @@ export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
   app.post(
     "/users",
     {
-      preHandler: requireStaff("admin"),
+      // 20 an hour per admin: a refused address reveals that it is registered somewhere (D-84).
+      ...guard.admin({ config: { rateLimit: { max: 20, timeWindow: "1 hour" } } }),
       schema: {
         body: z.object({ email: z.email(), name: z.string().optional(), role: z.enum(["admin", "member"]) }),
       },
     },
     async (req, reply) => {
-      const user = await ctx.db.user.create({
-        data: {
+      let user;
+      try {
+        user = await ctx.db.user.create({
+          data: {
+            companyId: req.companyId,
+            email: req.body.email.toLowerCase(),
+            name: req.body.name ?? null,
+            role: req.body.role,
+          },
+        });
+      } catch (err) {
+        if (!isUniqueViolation(err)) throw err;
+        // Audited without the address: it belongs to someone in another tenant.
+        await audit(ctx.db, {
           companyId: req.companyId,
-          email: req.body.email.toLowerCase(),
-          name: req.body.name ?? null,
-          role: req.body.role,
-        },
-      });
+          actorId: staff(req).userId,
+          action: "user.create_refused",
+          targetType: "user",
+          targetId: "",
+          diff: { reason: "email_taken" },
+        });
+        throw emailTaken();
+      }
       await audit(ctx.db, {
         companyId: req.companyId,
         actorId: staff(req).userId,
@@ -90,7 +108,7 @@ export async function userRoutes(app: App, ctx: AppContext): Promise<void> {
   app.patch(
     "/users/:id",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: {
         params: z.object({ id: z.string() }),
         body: z.object({ name: z.string().optional(), role: z.enum(["admin", "member"]).optional() }),

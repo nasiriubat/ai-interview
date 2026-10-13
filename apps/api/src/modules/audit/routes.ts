@@ -1,7 +1,7 @@
 import { tenantBatch } from "@aidp/db";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { requireStaff } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
 import type { AppContext } from "../../context.js";
 import { PageQuery } from "../../lib/pagination.js";
 
@@ -9,7 +9,7 @@ export async function auditRoutes(app: App, ctx: AppContext): Promise<void> {
   app.get(
     "/audit",
     {
-      preHandler: requireStaff("admin"),
+      ...guard.admin(),
       schema: {
         querystring: PageQuery.extend({
           from: z.coerce.date().optional(),

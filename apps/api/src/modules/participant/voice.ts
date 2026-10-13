@@ -2,7 +2,8 @@ import { ProviderError } from "@aidp/ai";
 import { AttachmentRejected } from "@aidp/core";
 import type { FastifyRequest } from "fastify";
 import type { App } from "../../app.js";
-import { participant, requireParticipant } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
+import { participant } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { AppError } from "../../lib/errors.js";
 import { runTurn } from "../sessions/turn-runner.js";
@@ -36,15 +37,12 @@ const AUDIO_MIMES = new Set([
 ]);
 
 export async function participantVoiceRoutes(app: App, ctx: AppContext): Promise<void> {
-  const authed = { preHandler: requireParticipant };
-
   app.post(
     "/p/session/voice-turns",
     {
-      ...authed,
       // Tighter than the typed-turn limit: every one of these is an upload plus a paid
       // transcription, so a loop here costs money rather than only cycles.
-      config: { rateLimit: { max: 12, timeWindow: "1 minute" } },
+      ...guard.participant({ config: { rateLimit: { max: 12, timeWindow: "1 minute" } } }),
       schema: { hide: true },
     },
     async (req, reply) => {

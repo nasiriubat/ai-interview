@@ -1,9 +1,11 @@
 import { AttachmentRejected, type AttachmentView } from "@aidp/core";
+import { PLATFORM_MAX_UPLOAD_MB } from "@aidp/shared";
 import type { MultipartFile } from "@fastify/multipart";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../../app.js";
-import { participant, requireParticipant } from "../../auth/plugin.js";
+import { guard } from "../../auth/access.js";
+import { participant } from "../../auth/plugin.js";
 import type { AppContext } from "../../context.js";
 import { AppError, notFound } from "../../lib/errors.js";
 
@@ -19,13 +21,10 @@ import { AppError, notFound } from "../../lib/errors.js";
  * rate limit.
  */
 
-/** A file may not exceed this regardless of settings: the ceiling the setting is capped at. */
-const HARD_MAX_BYTES = 200 * 1024 * 1024;
-
 const AttachmentParams = z.object({ attachmentId: z.string().min(1) });
 
 export async function participantAttachmentRoutes(app: App, ctx: AppContext): Promise<void> {
-  const authed = { preHandler: requireParticipant };
+  const authed = guard.participant();
 
   /**
    * Uploads one file. The response is the attachment row, not the ingested result: reading it is
@@ -33,10 +32,17 @@ export async function participantAttachmentRoutes(app: App, ctx: AppContext): Pr
    */
   app.post(
     "/p/session/attachments",
-    { ...authed, config: { rateLimit: { max: 20, timeWindow: "5 minutes" } }, schema: { hide: true } },
+    {
+      ...guard.participant({ config: { rateLimit: { max: 20, timeWindow: "5 minutes" } } }),
+      schema: { hide: true },
+    },
     async (req) => {
       const p = participant(req);
-      const file = await readOneFile(req);
+      // The tenant's limit is resolved before a byte of the body is read, and handed to the
+      // multipart parser, which stops the stream there. A file over it is never buffered whole,
+      // so the cap protects memory as well as storage (S6, D-87).
+      const maxMb = await ctx.settings.get("files.maxSizeMb", [{ scope: "tenant", scopeId: p.companyId }]);
+      const file = await readOneFile(req, Math.min(maxMb, PLATFORM_MAX_UPLOAD_MB) * 1024 * 1024);
       const durationMs = durationFrom(file);
 
       try {
@@ -113,9 +119,9 @@ export async function participantAttachmentRoutes(app: App, ctx: AppContext): Pr
  * hanging. Requiring a single file and refusing the rest keeps that simple, and matches the
  * interface: one upload, one attachment, one thing to retry when it fails.
  */
-async function readOneFile(req: FastifyRequest): Promise<MultipartFile> {
+async function readOneFile(req: FastifyRequest, maxBytes: number): Promise<MultipartFile> {
   if (!req.isMultipart()) throw new AppError("validation", "Expected a multipart upload");
-  const file = await req.file({ limits: { fileSize: HARD_MAX_BYTES, files: 1 } });
+  const file = await req.file({ limits: { fileSize: maxBytes, files: 1 } });
   if (!file) throw new AppError("validation", "No file in the upload");
   return file;
 }

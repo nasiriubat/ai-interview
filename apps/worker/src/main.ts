@@ -3,10 +3,13 @@ import {
   CallerFactory,
   createStorage,
   Crypto,
+  EgressGuard,
+  egressConfigFromEnv,
   MemoryEmail,
   SettingsEmail,
   SettingsService,
   storageKind,
+  TenantGate,
   type JobName,
 } from "@aidp/core";
 import { withTenantScope } from "@aidp/db";
@@ -33,10 +36,19 @@ async function main(): Promise<void> {
       log.warn(meta ?? {}, message);
     },
   });
+  const tenants = new TenantGate(db);
+  const egress = new EgressGuard(
+    egressConfigFromEnv({
+      mode: config.EGRESS_MODE,
+      allowHosts: config.EGRESS_ALLOW_HOSTS,
+      nodeEnv: config.NODE_ENV,
+    }),
+  );
   const callers = new CallerFactory({
     db,
     crypto,
     settings,
+    egress,
     onBudgetWarning: (ctx, warnings) => {
       log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
     },
@@ -48,6 +60,8 @@ async function main(): Promise<void> {
     fallback: new MemoryEmail((m) => {
       log.info({ to: m.to, subject: m.subject }, "email (console)");
     }),
+    gate: tenants,
+    egress,
   });
   const jobs = new BossJobs(config.DATABASE_URL, {
     onError: (err) => {
@@ -67,6 +81,7 @@ async function main(): Promise<void> {
     jobs,
     crypto,
     storage,
+    tenants,
     publicWebUrl: config.PUBLIC_WEB_URL,
     log: {
       info: (m, meta) => {
