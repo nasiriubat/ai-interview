@@ -143,6 +143,59 @@ export const en = {
         "We stay in plain language. Where a technical choice is needed, the interviewer recommends one and says why.",
       choose: "Continue",
     },
+    /**
+     * What a participant is told when a request fails, in three parts: what happened, what to do,
+     * what was kept. API messages are never shown to participants: the code picks the words, and
+     * `kept` depends on where the person was.
+     */
+    errors: {
+      network: {
+        what: "We could not reach the server.",
+        next: "Check your connection and try again.",
+      },
+      rateLimited: {
+        what: "There have been too many attempts.",
+        next: "Wait a minute and try again.",
+      },
+      forbidden: {
+        what: "This link does not allow that.",
+        next: "Open your invitation link again, or ask the person who invited you.",
+      },
+      expired: {
+        what: "This link is no longer valid.",
+        next: "Ask the person who invited you for a new link.",
+      },
+      tooLarge: {
+        what: "That file is larger than this interview accepts.",
+        next: "Try a smaller file.",
+      },
+      conflict: {
+        what: "Something else was happening at the same moment.",
+        next: "Try again in a moment.",
+      },
+      validation: {
+        what: "That could not be accepted.",
+        next: "Check what you entered and try again.",
+      },
+      provider: {
+        what: "The interviewer is temporarily unavailable.",
+        next: "Try again in a moment.",
+      },
+      budget: {
+        what: "Your organization's AI usage limit has been reached for now.",
+        next: "Come back later with this same link, or tell the person who invited you.",
+      },
+      server: {
+        what: "Something went wrong on our side.",
+        next: "Try again; if it keeps happening, open your link again in a few minutes.",
+      },
+      kept: {
+        arrival: "What you entered is still here.",
+        interview: "Your answers are saved.",
+        summary: "Your edits are still on this page.",
+        none: "",
+      },
+    },
     session: {
       listen: "Read aloud",
       stopListening: "Stop reading",
@@ -616,7 +669,7 @@ export const en = {
       invited: "Invited",
       started: "Started",
       completed: "Completed",
-      empty: "No campaigns yet.",
+      empty: "No campaigns yet. Create one to get a link you can share with participants.",
       createTitle: "New campaign",
       createBody:
         "Choose a template and name the campaign. Everything else starts from your settings and can be changed later.",
@@ -671,7 +724,7 @@ export const en = {
         `This sends an email to ${n} people. Check the list first: emails that have been sent cannot be recalled.`,
       bulkConfirm: (n: number): string => `Send ${n} invitations`,
       anonymousEmail: "Hidden (anonymous)",
-      noInvitations: "No invitations yet.",
+      noInvitations: "No invitations yet. Add email addresses above to send personal links.",
       sessionsTitle: "Interviews",
       sessionId: "Interview",
       sessionStatus: "Status",
@@ -706,8 +759,9 @@ export const en = {
       noAnalyses:
         "No analysis yet. Choose “Analyze now” once enough interviews are complete; an earlier run is marked preliminary.",
       noResultsYet: "This analysis has not finished yet. Results appear here when it is done.",
-      empty: "This analysis produced no opportunities.",
-      noMatches: "No opportunities match the current filters.",
+      empty:
+        "This analysis produced no opportunities. Check that enough interviews are complete, then run it again.",
+      noMatches: "No opportunities match the current filters. Clear them to see every opportunity.",
       stats: {
         title: "Run statistics",
         sessions: "Interviews",
@@ -871,7 +925,7 @@ export const en = {
       transcript: "Transcript",
       transcriptHidden: "Transcript hidden by the privacy setting.",
       events: "Event log",
-      noEvents: "No events.",
+      noEvents: "No events recorded for this interview yet.",
       eventType: "Event",
       eventAt: "At",
       eventPayload: "Details",
@@ -1042,7 +1096,7 @@ export const en = {
         revokeBody: (who: string): string =>
           `${who} will no longer be able to use this invitation. You can send a new one later.`,
         revokeConfirm: "Revoke invitation",
-        empty: "No invitations yet.",
+        empty: "No invitations yet. Invite someone above to answer in your place.",
         status: "Status",
         sentAt: "Sent",
         expiresAt: "Expires",
@@ -1072,7 +1126,7 @@ export const en = {
         downloadJson: "Download spec.json",
         downloadBundle: "Download agent bundle (zip)",
         document: "Specification",
-        noDocument: "No document yet.",
+        noDocument: "No document yet. It appears when the version has been generated.",
         bundle: "Agent bundle",
         bundleFormat: (format: string): string => `Format: ${format}`,
         bundleFormats: { claude_code: "Claude Code", codex: "Codex", generic: "Generic" },
@@ -1122,7 +1176,7 @@ export const en = {
       scopeId: "ID",
       scopeTarget: "Target",
       scopeTargetPlaceholder: "Choose a target…",
-      noTargets: "No targets in this scope.",
+      noTargets: "Nothing to choose at this level yet. Create a template or a campaign first.",
       scopes: { platform: "Platform", tenant: "Organization", template: "Template", campaign: "Campaign" },
       default: (value: string): string => `Default: ${value}`,
       usingDefault: "Using default",
@@ -1265,7 +1319,7 @@ export const en = {
       deleted: "Provider deleted",
       created: "Provider added",
       updated: "Provider updated",
-      empty: "No providers yet.",
+      empty: "No providers yet. Add a provider and its key so the interviewer can run.",
       headers: "Extra headers (one per line, name: value)",
     },
     routes: {
@@ -1290,7 +1344,7 @@ export const en = {
       cleared: "Override cleared; the platform default is used again.",
       clearedRestored: "Override restored.",
       modelPlaceholder: "Choose a model…",
-      noModels: "No models from this provider yet.",
+      noModels: "No models from this provider yet. Open the provider and refresh its catalogue.",
     },
     budgets: {
       title: "Budgets",
@@ -1301,7 +1355,8 @@ export const en = {
       scopeIdHint: "The campaign or interview this cap applies to.",
       target: "Target",
       targetPlaceholder: "Choose a target…",
-      noTargets: "No targets in this scope.",
+      noTargets:
+        "Nothing to choose at this level yet. Budgets can be set once a campaign or interview exists.",
       deleteConfirm: "Delete this budget? Spending it covered is no longer capped.",
       limit: "Limit",
       period: "Period",
@@ -1310,7 +1365,7 @@ export const en = {
       added: "Budget added",
       delete: "Delete",
       deleted: "Budget deleted",
-      empty: "No budgets yet.",
+      empty: "No budgets yet. Add one to cap what the AI services may spend.",
       spentSoFar: (spent: string, limit: string): string => `${spent} spent of ${limit}`,
     },
     audit: {
@@ -1324,7 +1379,7 @@ export const en = {
       action: "Action",
       target: "Target",
       details: "Details",
-      empty: "No audit entries in this range.",
+      empty: "No audit entries in this range. Try a wider range or clear the filters.",
     },
     users: {
       title: "Users",
@@ -1335,7 +1390,7 @@ export const en = {
       add: "Add user",
       added: "User added",
       updated: "User updated",
-      empty: "No users yet.",
+      empty: "No users yet. Add one to let a colleague sign in to the admin.",
       roleTitle: (email: string): string => `Change the role of ${email}?`,
       roleBodyGrant: "Admins can change settings, providers, budgets and users in your organization.",
       roleBodyRevoke: "They will lose access to settings, providers, budgets and user management.",
@@ -1359,14 +1414,15 @@ export const en = {
       suspendBody:
         "Staff cannot sign in and participants cannot open links until you activate it again. Nothing is deleted.",
       suspendConfirm: "Suspend tenant",
-      empty: "No tenants yet.",
+      empty: "No tenants yet. Create the first one to give an organization its own settings and users.",
       statsTitle: "Platform statistics",
       actAs: "Manage this tenant",
       jobs: {
         title: "Background jobs",
         subtitle:
           "Every queue, the jobs that failed their last attempt, and the jobs you can run by hand. A dead letter waits here for 30 days.",
-        empty: "No queues are registered.",
+        empty:
+          "No queues are registered. They are created when the background worker starts, so check that it is running.",
         queue: "Queue",
         queued: "Queued",
         active: "Running",

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { t } from "@/i18n";
 
 export const ApiErrorBodySchema = z.object({
   error: z.object({ code: z.string(), message: z.string(), details: z.unknown().optional() }),
@@ -74,4 +75,50 @@ export function codeForStatus(status: number): string {
 export function errorMessage(e: unknown, fallback: string): string {
   if (e instanceof Error && e.message) return e.message;
   return fallback;
+}
+
+export type ErrorContext = "arrival" | "interview" | "summary" | "none";
+
+/**
+ * What a participant reads for a failed request: what happened, what to do, what was kept, in
+ * that order. The API's own message is never shown: it is English, written for a log, and may
+ * name things a participant should not see. The code decides the words.
+ */
+export function participantErrorFor(code: string, context: ErrorContext): string {
+  const p = t.participant.errors;
+  const parts = ((): { what: string; next: string } => {
+    switch (code) {
+      case "domain_not_allowed":
+        return { what: t.participant.verify.domainNotAllowed, next: "" };
+      case "network_error":
+        return p.network;
+      case "rate_limited":
+        return p.rateLimited;
+      case "forbidden":
+      case "tenant_suspended":
+        return p.forbidden;
+      case "unauthenticated":
+      case "not_found":
+        return p.expired;
+      case "too_large":
+        return p.tooLarge;
+      case "conflict":
+        return p.conflict;
+      case "provider_error":
+        return p.provider;
+      case "budget_exceeded":
+        return p.budget;
+      case "validation":
+        return p.validation;
+      default:
+        return p.server;
+    }
+  })();
+  return [parts.what, parts.next, p.kept[context]].filter((s) => s !== "").join(" ");
+}
+
+/** `participantErrorFor` for a thrown value: a transport failure is a `TypeError` from `fetch`. */
+export function participantErrorText(e: unknown, context: ErrorContext): string {
+  if (e instanceof ApiError) return participantErrorFor(e.code, context);
+  return participantErrorFor(e instanceof TypeError ? "network_error" : "internal", context);
 }

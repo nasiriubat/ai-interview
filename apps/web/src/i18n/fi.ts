@@ -144,6 +144,54 @@ export const fi: Strings = {
         "Pysymme yleiskielessä. Kun tekninen valinta on tarpeen, haastattelija suosittelee yhtä ja perustelee sen.",
       choose: "Jatka",
     },
+    errors: {
+      network: {
+        what: "Palvelimeen ei saatu yhteyttä.",
+        next: "Tarkista yhteytesi ja yritä uudelleen.",
+      },
+      rateLimited: {
+        what: "Yrityksiä on ollut liian monta.",
+        next: "Odota hetki ja yritä uudelleen.",
+      },
+      forbidden: {
+        what: "Tämä linkki ei salli sitä.",
+        next: "Avaa kutsulinkkisi uudelleen tai kysy kutsujalta.",
+      },
+      expired: {
+        what: "Tämä linkki ei ole enää voimassa.",
+        next: "Pyydä kutsujalta uusi linkki.",
+      },
+      tooLarge: {
+        what: "Tiedosto on suurempi kuin tähän haastatteluun voi liittää.",
+        next: "Kokeile pienempää tiedostoa.",
+      },
+      conflict: {
+        what: "Samaan aikaan tapahtui jotain muuta.",
+        next: "Yritä hetken kuluttua uudelleen.",
+      },
+      validation: {
+        what: "Tätä ei voitu hyväksyä.",
+        next: "Tarkista syöttämäsi tiedot ja yritä uudelleen.",
+      },
+      provider: {
+        what: "Haastattelija ei ole juuri nyt tavoitettavissa.",
+        next: "Yritä hetken kuluttua uudelleen.",
+      },
+      budget: {
+        what: "Organisaatiosi tekoälyn käyttöraja on toistaiseksi täynnä.",
+        next: "Palaa myöhemmin samalla linkillä tai kerro asiasta kutsujalle.",
+      },
+      server: {
+        what: "Jokin meni pieleen meidän päässämme.",
+        next: "Yritä uudelleen; jos vika jatkuu, avaa linkkisi uudelleen muutaman minuutin kuluttua.",
+      },
+      kept: {
+        arrival: "Syöttämäsi tiedot ovat yhä tällä sivulla.",
+        interview: "Vastauksesi ovat tallessa.",
+        summary: "Muokkauksesi ovat yhä tällä sivulla.",
+        none: "",
+      },
+    },
     session: {
       listen: "Lue ääneen",
       stopListening: "Lopeta lukeminen",
@@ -618,7 +666,7 @@ export const fi: Strings = {
       invited: "Kutsuttu",
       started: "Aloittanut",
       completed: "Valmis",
-      empty: "Ei vielä kampanjoita.",
+      empty: "Ei vielä kampanjoita. Luo kampanja, niin saat linkin, jonka voit jakaa osallistujille.",
       createTitle: "Uusi kampanja",
       createBody:
         "Valitse mallipohja ja anna kampanjalle nimi. Kaikki muu tulee asetuksista, ja sitä voi muuttaa myöhemmin.",
@@ -673,7 +721,8 @@ export const fi: Strings = {
         `Tämä lähettää sähköpostin ${n} henkilölle. Tarkista lista ensin: lähetettyjä viestejä ei voi perua.`,
       bulkConfirm: (n: number): string => `Lähetä ${n} kutsua`,
       anonymousEmail: "Piilotettu (anonyymi)",
-      noInvitations: "Ei vielä kutsuja.",
+      noInvitations:
+        "Ei vielä kutsuja. Lisää sähköpostiosoitteita yllä, niin lähetät henkilökohtaiset linkit.",
       sessionsTitle: "Haastattelut",
       sessionId: "Haastattelu",
       sessionStatus: "Tila",
@@ -708,8 +757,10 @@ export const fi: Strings = {
       noAnalyses:
         "Ei vielä analyysiä. Valitse ”Analysoi nyt”, kun riittävän moni haastattelu on valmis; aiempi ajo merkitään alustavaksi.",
       noResultsYet: "Tämä analyysi ei ole vielä valmis. Tulokset näkyvät tässä, kun se on valmis.",
-      empty: "Tämä analyysi ei tuottanut mahdollisuuksia.",
-      noMatches: "Yksikään mahdollisuus ei vastaa suodattimia.",
+      empty:
+        "Tämä analyysi ei tuottanut mahdollisuuksia. Tarkista, että riittävän moni haastattelu on valmis, ja aja se uudelleen.",
+      noMatches:
+        "Mikään mahdollisuus ei vastaa nykyisiä suodattimia. Tyhjennä suodattimet nähdäksesi kaikki mahdollisuudet.",
       stats: {
         title: "Ajon tilastot",
         sessions: "Haastattelut",
@@ -878,7 +929,7 @@ export const fi: Strings = {
       transcript: "Keskustelu",
       transcriptHidden: "Keskustelu on piilotettu yksityisyysasetuksen vuoksi.",
       events: "Tapahtumaloki",
-      noEvents: "Ei tapahtumia.",
+      noEvents: "Tästä haastattelusta ei ole vielä tallennettu tapahtumia.",
       eventType: "Tapahtuma",
       eventAt: "Aika",
       eventPayload: "Tiedot",
@@ -1049,7 +1100,7 @@ export const fi: Strings = {
         revokeBody: (who: string): string =>
           `${who} ei voi enää käyttää tätä kutsua. Voit lähettää uuden myöhemmin.`,
         revokeConfirm: "Peru kutsu",
-        empty: "Ei vielä kutsuja.",
+        empty: "Ei vielä kutsuja. Kutsu joku yllä vastaamaan puolestasi.",
         status: "Tila",
         sentAt: "Lähetetty",
         expiresAt: "Vanhenee",
@@ -1079,7 +1130,7 @@ export const fi: Strings = {
         downloadJson: "Lataa spec.json",
         downloadBundle: "Lataa agenttipaketti (zip)",
         document: "Määrittely",
-        noDocument: "Ei vielä dokumenttia.",
+        noDocument: "Ei vielä asiakirjaa. Se ilmestyy, kun versio on luotu.",
         bundle: "Agenttipaketti",
         bundleFormat: (format: string): string => `Muoto: ${format}`,
         bundleFormats: { claude_code: "Claude Code", codex: "Codex", generic: "Yleinen" },
@@ -1128,7 +1179,7 @@ export const fi: Strings = {
       scopeId: "Tunniste",
       scopeTarget: "Kohde",
       scopeTargetPlaceholder: "Valitse kohde…",
-      noTargets: "Tällä tasolla ei ole kohteita.",
+      noTargets: "Tällä tasolla ei ole vielä valittavaa. Luo ensin mallipohja tai kampanja.",
       scopes: { platform: "Alusta", tenant: "Organisaatio", template: "Mallipohja", campaign: "Kampanja" },
       default: (value: string): string => `Oletus: ${value}`,
       usingDefault: "Oletus käytössä",
@@ -1272,7 +1323,8 @@ export const fi: Strings = {
       deleted: "Palveluntarjoaja poistettu",
       created: "Palveluntarjoaja lisätty",
       updated: "Palveluntarjoaja päivitetty",
-      empty: "Ei vielä palveluntarjoajia.",
+      empty:
+        "Ei vielä palveluntarjoajia. Lisää palveluntarjoaja ja sen avain, jotta haastattelija voi toimia.",
       headers: "Lisäotsakkeet (yksi per rivi, nimi: arvo)",
     },
     routes: {
@@ -1297,7 +1349,8 @@ export const fi: Strings = {
       cleared: "Asetus poistettu; alustan oletus on taas käytössä.",
       clearedRestored: "Asetus palautettu.",
       modelPlaceholder: "Valitse malli…",
-      noModels: "Tältä tarjoajalta ei löytynyt malleja.",
+      noModels:
+        "Tältä palveluntarjoajalta ei ole vielä malleja. Avaa palveluntarjoaja ja päivitä sen katalogi.",
     },
     budgets: {
       title: "Budjetit",
@@ -1308,7 +1361,8 @@ export const fi: Strings = {
       scopeIdHint: "Kampanja tai haastattelu, jota katto koskee.",
       target: "Kohde",
       targetPlaceholder: "Valitse kohde…",
-      noTargets: "Tällä tasolla ei ole kohteita.",
+      noTargets:
+        "Tällä tasolla ei ole vielä valittavaa. Budjetin voi asettaa, kun kampanja tai haastattelu on olemassa.",
       deleteConfirm: "Poistetaanko tämä budjetti? Sen kattamaa kulutusta ei enää rajoiteta.",
       limit: "Raja",
       period: "Jakso",
@@ -1317,7 +1371,7 @@ export const fi: Strings = {
       added: "Budjetti lisätty",
       delete: "Poista",
       deleted: "Budjetti poistettu",
-      empty: "Ei vielä budjetteja.",
+      empty: "Ei vielä budjetteja. Lisää budjetti rajaamaan, paljonko tekoälypalvelut saavat kuluttaa.",
       spentSoFar: (spent: string, limit: string): string => `${spent} käytetty / ${limit}`,
     },
     audit: {
@@ -1331,7 +1385,7 @@ export const fi: Strings = {
       action: "Toimenpide",
       target: "Kohde",
       details: "Tiedot",
-      empty: "Ei tapahtumia tällä aikavälillä.",
+      empty: "Ei lokimerkintöjä tällä aikavälillä. Kokeile laajempaa aikaväliä tai tyhjennä suodattimet.",
     },
     users: {
       title: "Käyttäjät",
@@ -1342,7 +1396,7 @@ export const fi: Strings = {
       add: "Lisää käyttäjä",
       added: "Käyttäjä lisätty",
       updated: "Käyttäjä päivitetty",
-      empty: "Ei vielä käyttäjiä.",
+      empty: "Ei vielä käyttäjiä. Lisää käyttäjä, niin työtoverisi voi kirjautua hallintaan.",
       roleTitle: (email: string): string => `Vaihdetaanko käyttäjän ${email} rooli?`,
       roleBodyGrant:
         "Ylläpitäjät voivat muuttaa organisaatiosi asetuksia, tarjoajia, budjetteja ja käyttäjiä.",
@@ -1367,14 +1421,15 @@ export const fi: Strings = {
       suspendBody:
         "Henkilökunta ei voi kirjautua eikä osallistujat voi avata linkkejä, ennen kuin aktivoit asiakkaan uudelleen. Mitään ei poisteta.",
       suspendConfirm: "Jäädytä asiakas",
-      empty: "Ei vielä asiakkaita.",
+      empty: "Ei vielä asiakkaita. Luo ensimmäinen, niin organisaatio saa omat asetukset ja käyttäjät.",
       statsTitle: "Alustan tilastot",
       actAs: "Hallitse asiakasta",
       jobs: {
         title: "Taustatyöt",
         subtitle:
           "Kaikki jonot, työt joiden viimeinen yritys epäonnistui, sekä työt, jotka voit ajaa käsin. Kuollut työ säilyy täällä 30 päivää.",
-        empty: "Yhtään jonoa ei ole rekisteröity.",
+        empty:
+          "Jonoja ei ole rekisteröity. Ne luodaan, kun taustatyöt käynnistyvät, joten tarkista, että ne ovat käynnissä.",
         queue: "Jono",
         queued: "Jonossa",
         active: "Käynnissä",

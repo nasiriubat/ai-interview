@@ -5,10 +5,15 @@ import { EnumLabel } from "@/components/common/EnumLabel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import type { Stats } from "@/lib/api/schemas";
-import { label } from "@/lib/i18n/enums";
+import { hasLabel, label } from "@/lib/i18n/enums";
 import { formatNumber } from "@/lib/utils";
 
 const GROUP_LABELS: Record<string, string> = t.admin.dashboard.group;
+
+/** A statistics key has a name of its own, or is a status (the API groups counts by status). */
+function keyLabel(key: string): string {
+  return hasLabel("statKey", key) ? label("statKey", key) : label("status", key);
+}
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -45,26 +50,26 @@ export function StatsGroups({ stats }: { stats: Stats }): React.JSX.Element {
         return (
           <section
             key={name || "root"}
-            aria-label={name ? (GROUP_LABELS[name] ?? label("statKey", name)) : undefined}
+            aria-label={name ? (GROUP_LABELS[name] ?? keyLabel(name)) : undefined}
           >
             {name ? (
               <h2 className="text-foreground mb-3 text-base font-semibold tracking-tight">
-                {GROUP_LABELS[name] ?? label("statKey", name)}
+                {GROUP_LABELS[name] ?? keyLabel(name)}
               </h2>
             ) : null}
             {tiles.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {tiles.map(([k, v]) => (
-                  <StatTile key={k} label={label("statKey", k)} value={formatValue(v)} />
+                  <StatTile key={k} label={keyLabel(k)} value={formatValue(v)} />
                 ))}
               </div>
             ) : null}
             {tables.map(([k, v]) => (
-              <Panel key={k} title={label("statKey", k)} headingLevel={3} className="mt-3">
+              <Panel key={k} title={keyLabel(k)} headingLevel={3} className="mt-3">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{label("statKey", k)}</TableHead>
+                      <TableHead>{keyLabel(k)}</TableHead>
                       <TableHead className="text-right">{t.admin.common.status}</TableHead>
                     </TableRow>
                   </TableHeader>
