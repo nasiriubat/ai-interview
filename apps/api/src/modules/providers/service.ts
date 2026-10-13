@@ -11,6 +11,9 @@ import {
   classifyConnectFailure,
   decryptApiKey,
   EgressBlockedError,
+  HEADER_KEEP,
+  openHeaders,
+  sealHeaders,
   validateTenantHeaders,
   type CallerFactory,
   type Crypto,
@@ -151,7 +154,9 @@ export class ProviderService {
     input: { baseUrl?: string | undefined; headers?: Record<string, string> | undefined },
   ): Promise<void> {
     try {
-      if (companyId !== null && input.headers) validateTenantHeaders(input.headers);
+      // Names are checked for the platform too: a header map that rewrites `Host` or `Authorization`
+      // is never what an operator needs either, and one rule is easier to hold than two (D-147).
+      if (input.headers) validateTenantHeaders(input.headers);
       if (input.baseUrl)
         await this.egress.validateUrl(input.baseUrl, companyId === null ? "platform" : "tenant");
     } catch (err) {
@@ -169,6 +174,43 @@ export class ProviderService {
     });
   }
 
+  /**
+   * The names of a provider's custom headers, never the values (D-147). The values are credentials:
+   * they are opened where a connection is made and nowhere that answers a browser.
+   */
+  headerNames(p: Provider): string[] {
+    try {
+      return Object.keys(openHeaders(this.crypto, p.headersEnc, p.headers)).sort();
+    } catch {
+      // A value sealed under a key that has since changed. The screen should still load.
+      return [];
+    }
+  }
+
+  /**
+   * The full header map a save results in. The client sends names with new values, or `__keep__` for
+   * a header it leaves alone (the browser was never given the values); anything it does not send is
+   * removed.
+   */
+  private resolveHeaders(existing: Provider | null, sent: Record<string, string>): Record<string, string> {
+    const current = existing ? openHeaders(this.crypto, existing.headersEnc, existing.headers) : {};
+    const byLowerName = new Map(Object.entries(current).map(([k, v]) => [k.toLowerCase(), v]));
+    const out: Record<string, string> = {};
+    for (const [name, value] of Object.entries(sent)) {
+      if (value !== HEADER_KEEP) {
+        out[name] = value;
+        continue;
+      }
+      const kept = byLowerName.get(name.toLowerCase());
+      if (kept === undefined)
+        throw new AppError("validation", `Header '${name}' has no stored value to keep`, {
+          field: "headers",
+        });
+      out[name] = kept;
+    }
+    return out;
+  }
+
   async get(companyId: string | null, id: string): Promise<Provider> {
     const p = await this.db.provider.findFirst({ where: { id, OR: [{ companyId }, { companyId: null }] } });
     if (!p) throw notFound("Provider");
@@ -184,7 +226,8 @@ export class ProviderService {
     }
     if (!keyless && !input.apiKey) throw new AppError("validation", "apiKey is required");
     const apiKey = keyless ? "" : (input.apiKey ?? "");
-    await this.assertEgress(companyId, input);
+    const headers = this.resolveHeaders(null, input.headers ?? {});
+    await this.assertEgress(companyId, { ...input, headers });
     ProviderConfigSchema.parse({
       id: "new",
       companyId,
@@ -192,7 +235,7 @@ export class ProviderService {
       name: input.name,
       baseUrl: input.baseUrl,
       apiKey,
-      headers: input.headers ?? {},
+      headers,
       enabled: input.enabled ?? true,
     });
     return this.db.provider.create({
@@ -203,7 +246,8 @@ export class ProviderService {
         baseUrl: input.baseUrl ?? null,
         // No secret, so nothing to encrypt: an empty column is how "has no key" is stored.
         apiKeyEnc: keyless ? "" : this.crypto.encrypt(apiKey),
-        headers: input.headers ?? {},
+        headers: {},
+        headersEnc: sealHeaders(this.crypto, headers),
         enabled: input.enabled ?? true,
       },
     });
@@ -213,13 +257,14 @@ export class ProviderService {
     const p = await this.get(companyId, id);
     if (p.companyId !== companyId)
       throw new AppError("forbidden", "Platform providers are managed by the platform operator");
-    await this.assertEgress(companyId, input);
+    const headers = input.headers !== undefined ? this.resolveHeaders(p, input.headers) : undefined;
+    await this.assertEgress(companyId, { ...input, ...(headers !== undefined ? { headers } : {}) });
     const updated = await this.db.provider.update({
       where: { id: p.id },
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
-        ...(input.headers !== undefined ? { headers: input.headers } : {}),
+        ...(headers !== undefined ? { headersEnc: sealHeaders(this.crypto, headers), headers: {} } : {}),
         ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
         ...(input.apiKey && p.kind !== "local" ? { apiKeyEnc: this.crypto.encrypt(input.apiKey) } : {}),
       },
@@ -255,7 +300,7 @@ export class ProviderService {
         name: p.name,
         ...(p.baseUrl ? { baseUrl: p.baseUrl } : {}),
         apiKey: decryptApiKey(this.crypto, p.apiKeyEnc),
-        headers: p.headers,
+        headers: openHeaders(this.crypto, p.headersEnc, p.headers),
         enabled: p.enabled,
       }),
       this.speech ? { speech: this.speech } : {},
@@ -275,6 +320,11 @@ export class ProviderService {
     } catch (err) {
       return this.storedModels(p.id, probeStatus(err));
     }
+    // A platform provider's prices are the operator's to set (see `setPrices`), and the database now
+    // refuses a tenant's write to a platform row: a tenant admin listing a platform provider's
+    // models sees them, and nothing is imported (D-141).
+    if (p.companyId !== companyId)
+      return { models, importedPrices: 0, fetchedAt: new Date(), stale: false, status: "ok" };
     const table = new PriceTable();
     table.importFromModels(p.id, models);
     let importedPrices = 0;

@@ -230,6 +230,9 @@ const FORBIDDEN_TENANT_HEADERS = new Set([
   "host",
   "authorization",
   "proxy-authorization",
+  // A provider call carries no browser session, and a cookie header is how one would be smuggled.
+  "cookie",
+  "set-cookie",
   "content-length",
   "transfer-encoding",
   "connection",

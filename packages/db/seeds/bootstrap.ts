@@ -10,7 +10,7 @@ import {
   PriceTable,
   SEED_PRICES,
 } from "@aidp/ai";
-import { Crypto } from "@aidp/core";
+import { Crypto, encryptLegacyProviderHeaders } from "@aidp/core";
 import type { Route } from "@aidp/shared";
 import { PrismaClient } from "@prisma/client";
 import { seed } from "./seed.js";
@@ -224,6 +224,10 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
       `bootstrap: recorded answers are transcribed by ${transcription.provider.name} (${transcription.model})`,
     );
   }
+
+  // Custom headers are credentials and were stored as plain JSON; encrypt what an earlier build wrote.
+  const sealed = await encryptLegacyProviderHeaders(db, crypto);
+  if (sealed > 0) console.log(`bootstrap: encrypted the custom headers of ${sealed} provider(s)`);
 
   const seeded = await seed(db);
   console.log(

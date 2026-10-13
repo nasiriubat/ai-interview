@@ -64,25 +64,58 @@ role=$(q "select current_user")
 privs=$(q "select rolsuper::text || ' ' || rolbypassrls::text from pg_roles where rolname = current_user")
 [ "$privs" = "false false" ] || fail "app_api has rolsuper/rolbypassrls = $privs, expected 'false false'"
 
-# 4. Every table that holds tenant data has RLS switched on.
+# 4. Every public table is under row-level security, or is on the reviewed exempt list.
 #
-# Asked as "which tables have a companyId and no policy", not as "are there at least N protected
-# tables". A count with a floor only rises when somebody remembers to raise it, so it cannot catch
-# the mistake it exists for: a new tenant-owned table whose migration forgot its policy. That is
-# invisible in normal use, because the application filters by companyId anyway — right up until
-# the one query that does not. This phrasing catches it on the next boot after the migration.
-unprotected=$(q "select coalesce(string_agg(c.relname, ', ' order by c.relname), '')
+# The question is inverted on purpose. It used to be "which tables have a companyId and no
+# policy", and that cannot see a table that reaches its tenant through a parent: nine of them had
+# no companyId, so they had no policy and no check noticed (D-140). Now the default is "must be
+# protected", and a table escapes only by being named, with a reason, in deploy/rls-exempt.txt.
+# A new table whose migration forgot its policy therefore stops the stack on the next boot.
+#
+# A table counts as protected when RLS is on AND it has a `tenant_isolation` policy for app_api
+# whose USING and WITH CHECK both read `app.company_id`. A policy of `USING (true)` is a table with
+# no fence that looks like one, and does not pass.
+EXEMPT_FILE="${RLS_EXEMPT_FILE:-$(cd "$(dirname "$0")" && pwd)/rls-exempt.txt}"
+[ -r "$EXEMPT_FILE" ] || fail "cannot read the RLS exempt list at $EXEMPT_FILE"
+exempt=""
+while IFS= read -r line; do
+	case "$line" in "" | "#"*) continue ;; esac
+	name=${line%%[[:space:]]*}
+	reason=${line#"$name"}
+	reason=${reason#"${reason%%[![:space:]]*}"}
+	[[ "$name" =~ ^[A-Za-z0-9_]+$ ]] || fail "rls-exempt.txt: '$name' is not a table name"
+	[ -n "$reason" ] || fail "rls-exempt.txt: '$name' has no reason; an exemption is a decision, so write why"
+	exempt="${exempt:+$exempt,}$name"
+done <"$EXEMPT_FILE"
+
+unprotected=$(q "select coalesce(string_agg(c.relname, ', ' order by c.relname), '') as unprotected
                    from pg_class c
                    join pg_namespace n on n.oid = c.relnamespace
-                   join pg_attribute a on a.attrelid = c.oid and a.attname = 'companyId' and a.attnum > 0
-                  where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity")
+                  where n.nspname = 'public' and c.relkind in ('r', 'p')
+                    and c.relname <> all (string_to_array('$exempt', ','))
+                    and (not c.relrowsecurity
+                         or not exists (
+                              select 1 from pg_policies p
+                               where p.schemaname = 'public' and p.tablename = c.relname
+                                 and p.policyname = 'tenant_isolation' and 'app_api' = any (p.roles)
+                                 and p.qual like '%app.company_id%'
+                                 and p.with_check like '%app.company_id%'))")
 [ -z "$unprotected" ] ||
-	fail "these tables carry a companyId but have no row-level security: $unprotected"
+	fail "these tables have no tenant_isolation row-level security and are not on deploy/rls-exempt.txt: $unprotected"
+
+# An exempt table that carries a companyId contradicts itself: the column says it is tenant data.
+contradicting=$(q "select coalesce(string_agg(c.relname, ', ' order by c.relname), '') as exempt_with_company
+                     from pg_class c
+                     join pg_namespace n on n.oid = c.relnamespace
+                     join pg_attribute a on a.attrelid = c.oid and a.attname = 'companyId' and a.attnum > 0
+                    where n.nspname = 'public' and c.relkind in ('r', 'p')
+                      and c.relname = any (string_to_array('$exempt', ','))")
+[ -z "$contradicting" ] ||
+	fail "these tables are on deploy/rls-exempt.txt but carry a companyId: $contradicting"
 
 protected=$(q "select count(*) from pg_class c
                  join pg_namespace n on n.oid = c.relnamespace
-                where n.nspname = 'public' and c.relrowsecurity")
-[ "$protected" -ge 13 ] || fail "only $protected tables have row-level security enabled, expected at least 13"
+                where n.nspname = 'public' and c.relkind in ('r', 'p') and c.relrowsecurity")
 
 # 5. pg-boss runs `CREATE SCHEMA IF NOT EXISTS pgboss` on every start and PostgreSQL checks
 #    CREATE on the database before it looks at IF NOT EXISTS, so without this the API and worker
