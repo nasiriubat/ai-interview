@@ -36,6 +36,22 @@
 {$PUBLIC_HOSTNAME} {
 	encode zstd gzip
 
+	# Maintenance (D-96). deploy/upgrade.sh creates /maintenance/on in the caddy_maint volume
+	# before it switches versions and removes it once the post-switch checks pass, so for the ten
+	# seconds or so while api and web restart, a participant sees a page that says so and a
+	# Retry-After, not a proxy error. The flag is a file, not configuration, so toggling it is not
+	# a Caddy reload and cannot itself break the site.
+	@maintenance file {
+		root /maintenance
+		try_files /on
+	}
+	handle @maintenance {
+		header Retry-After "30"
+		header Cache-Control "no-store"
+		header Content-Type "text/html; charset=utf-8"
+		respond `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Back in a minute</title><body style="font-family:system-ui,sans-serif;max-width:32rem;margin:20vh auto;padding:0 1rem;line-height:1.5"><h1>Back in a minute</h1><p>We are updating the service. Your answers so far are saved; please reload this page in a minute.</p><p lang="fi">Päivitämme palvelua. Antamasi vastaukset on tallennettu; lataa sivu uudelleen minuutin kuluttua.</p></body></html>` 503
+	}
+
 	# Live voice (FR-30a) is the one path that reaches the API directly.
 	#
 	# Everything else goes through the Next.js proxy, which is what keeps the API off the internet.

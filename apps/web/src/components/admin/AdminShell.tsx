@@ -8,6 +8,7 @@ import {
   CoinsIcon,
   FileTextIcon,
   LayoutDashboardIcon,
+  ListChecksIcon,
   MegaphoneIcon,
   MenuIcon,
   RouteIcon,
@@ -79,6 +80,7 @@ function operatorNav(): NavItem[] {
     { href: "/admin/operator/providers", label: t.admin.nav.platformProviders, icon: ServerIcon },
     { href: "/admin/operator/routes", label: t.admin.nav.platformRoutes, icon: RouteIcon },
     { href: "/admin/operator/stats", label: t.admin.nav.platformStats, icon: ActivityIcon },
+    { href: "/admin/operator/jobs", label: t.admin.nav.platformJobs, icon: ListChecksIcon },
   ];
 }
 

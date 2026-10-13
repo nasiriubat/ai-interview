@@ -48,6 +48,22 @@ export function isSmtpUrl(value: string): boolean {
  */
 export const PLATFORM_MAX_UPLOAD_MB = 50;
 
+/** A deliberately plain address check: one @, no spaces, a dot in the domain. Delivery is the real test. */
+export function isEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+/** An http or https URL with a host; the operator's alert endpoint, not a participant-supplied one. */
+export function isHttpUrl(value: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return (url.protocol === "http:" || url.protocol === "https:") && url.hostname !== "";
+}
+
 export const SETTINGS = {
   // Engine
   "engine.recentWindowTurns": def({
@@ -186,13 +202,10 @@ export const SETTINGS = {
     category: "cost",
     description: "Fraction of a budget at which admins are warned",
   }),
-  "cost.onBudgetExceeded": def({
-    schema: z.enum(["pause", "downgrade"]),
-    default: "pause",
-    scopes: ["platform", "tenant"],
-    category: "cost",
-    description: "Pause sessions or downgrade to the cheaper route when a budget is exhausted",
-  }),
+  // There is deliberately no "what to do at 100 percent" knob (D-91). A budget is a promise about
+  // money, so an exhausted one pauses the interview and tells the tenant's admins and the
+  // operator; spending on a cheaper model after the limit would still be spending nobody
+  // authorised. The only honest variant is a second, lower budget line, which already exists.
   "cost.probeMaxPerDay": def({
     schema: z.number().int().min(0).max(10000),
     default: 50,
@@ -368,6 +381,105 @@ export const SETTINGS = {
     scopes: ["platform", "tenant"],
     category: "email",
     description: "Optional reply-to address",
+  }),
+  // Operations (D-90). Platform only: these decide who the operator is told, how loudly, and how
+  // often. `deploy/ops/notify.sh` cannot read this catalog (it has to work when the database does
+  // not), so ALERT_EMAIL and ALERT_WEBHOOK_URL in deploy/.env are its copy and the fallback here.
+  "ops.alertEmail": def({
+    schema: z.string().refine((v) => v === "" || isEmailAddress(v), { message: "Must be an email address" }),
+    default: "",
+    scopes: ["platform"],
+    category: "ops",
+    description:
+      "Where operator alerts are emailed; empty falls back to ALERT_EMAIL, then the bootstrap operator",
+  }),
+  "ops.alertWebhookUrl": def({
+    schema: z.string().refine((v) => v === "" || isHttpUrl(v), { message: "Must be an http(s) URL" }),
+    default: "",
+    scopes: ["platform"],
+    category: "ops",
+    description: "ntfy topic URL, Slack incoming webhook or generic JSON endpoint for operator alerts",
+    secret: true,
+  }),
+  "ops.alertWebhookFormat": def({
+    schema: z.enum(["ntfy", "slack", "generic"]),
+    default: "ntfy",
+    scopes: ["platform"],
+    category: "ops",
+    description: "Body shape sent to the alert webhook",
+  }),
+  "ops.alertEmailMinSeverity": def({
+    schema: z.enum(["info", "warning", "critical"]),
+    default: "warning",
+    scopes: ["platform"],
+    category: "ops",
+    description: "Lowest severity emailed to the operator",
+  }),
+  "ops.alertWebhookMinSeverity": def({
+    schema: z.enum(["info", "warning", "critical"]),
+    default: "info",
+    scopes: ["platform"],
+    category: "ops",
+    description: "Lowest severity posted to the alert webhook",
+  }),
+  "ops.alertRepeatMinutes": def({
+    schema: z.number().int().min(1).max(10080),
+    default: 60,
+    scopes: ["platform"],
+    category: "ops",
+    description:
+      "Minutes before an unresolved alert is sent again; when set, it replaces every kind's own window",
+  }),
+  "ops.alertMaxPerHour": def({
+    schema: z.number().int().min(1).max(1000),
+    default: 30,
+    scopes: ["platform"],
+    category: "ops",
+    description: "Alerts sent per audience per hour before the rest are suppressed behind one storm notice",
+  }),
+  "ops.diskWarnPercent": def({
+    schema: z.number().int().min(10).max(99),
+    default: 80,
+    scopes: ["platform"],
+    category: "ops",
+    description: "Disk use at which a warning is raised",
+  }),
+  "ops.diskCriticalPercent": def({
+    schema: z.number().int().min(11).max(100),
+    default: 90,
+    scopes: ["platform"],
+    category: "ops",
+    description: "Disk use at which a critical alert is raised",
+  }),
+  "ops.providerErrorRateWarn": def({
+    schema: z.number().min(0.05).max(1),
+    default: 0.25,
+    scopes: ["platform"],
+    category: "ops",
+    description:
+      "Share of a provider's calls that failed in ten minutes, at least ten calls, that raises a warning",
+  }),
+  "ops.backupMaxAgeHours": def({
+    schema: z.number().int().min(1).max(720),
+    default: 26,
+    scopes: ["platform"],
+    category: "ops",
+    description: "Hours without a successful backup before it is reported missing",
+  }),
+  // Notifications to a tenant's own people (spec 07: warn before a budget is gone, never silent).
+  "notifications.recipients": def({
+    schema: z.array(z.string().refine(isEmailAddress, { message: "Must be an email address" })).max(20),
+    default: [],
+    scopes: ["platform", "tenant"],
+    category: "notifications",
+    description: "Who receives this tenant's notices; empty means every admin of the tenant",
+  }),
+  "notifications.budgetWarnings": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["platform", "tenant"],
+    category: "notifications",
+    description: "Email the tenant's admins when a budget passes its warning threshold",
   }),
   // Analysis
   "analysis.weightsPreset": def({

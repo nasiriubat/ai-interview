@@ -3,8 +3,12 @@
 #
 #   deploy/restore.sh                                  # list what is in the backups volume
 #   deploy/restore.sh --latest                         # restore the newest dump over ai_discovery
-#   deploy/restore.sh ai_discovery-20260914T032000Z.dump
+#   deploy/restore.sh ai_discovery-20260914T032000Z.dump.age
 #   deploy/restore.sh --latest --into ai_discovery_check   # verify a dump without touching live data
+#
+# Dumps ending in .age are encrypted (D-95) and are decrypted inside the backup container with
+# BACKUP_AGE_IDENTITY from deploy/.env; the plaintext exists only in the pipe between the
+# containers. Older plain .dump files restore as before.
 #
 # Flags:
 #   --force   restore over a database that still has rows (otherwise refused)
@@ -26,7 +30,16 @@ live_db=ai_discovery
 [ -f "$compose_file" ] || { echo "restore: no compose file at $compose_file" >&2; exit 1; }
 [ -f "$env_file" ] || { echo "restore: no env file at $env_file" >&2; exit 1; }
 
-dc() { docker compose -f "$compose_file" --env-file "$env_file" "$@"; }
+versions_file="${VERSIONS_FILE_PATH:-$here/versions.env}"
+
+# The same invocation deploy/dc makes: versions.env carries the image tag compose substitutes.
+dc() {
+	if [ -f "$versions_file" ]; then
+		docker compose -f "$compose_file" --env-file "$env_file" --env-file "$versions_file" "$@"
+	else
+		docker compose -f "$compose_file" --env-file "$env_file" "$@"
+	fi
+}
 psql_owner() { dc exec -T postgres psql -v ON_ERROR_STOP=1 -tAX -U app "$@"; }
 
 envval() { grep -E "^$1=" "$env_file" | head -n1 | cut -d= -f2-; }
@@ -50,11 +63,26 @@ while [ $# -gt 0 ]; do
 done
 
 list_dumps() {
-	dc exec -T backup sh -c 'ls -lh /backups/*.dump 2>/dev/null || echo "(no dumps yet)"'
+	dc exec -T backup sh -c 'ls -lh /backups/ai_discovery-*.dump /backups/ai_discovery-*.dump.age 2>/dev/null || echo "(no dumps yet)"'
+}
+
+# Streams a file out of the backups volume as plaintext: decrypted when it is an .age file.
+# Runs in the backup container, which holds the identity; nothing is written to disk.
+read_backup_file() {
+	case "$1" in
+	*.age)
+		dc exec -T backup sh -c '
+			[ -n "${BACKUP_AGE_IDENTITY:-}" ] || { echo "restore: BACKUP_AGE_IDENTITY is not set in deploy/.env, so an encrypted backup cannot be read" >&2; exit 3; }
+			f=$(mktemp); trap "rm -f $f" EXIT
+			printf "%s\n" "$BACKUP_AGE_IDENTITY" >"$f"
+			age -d -i "$f" <"$1"' sh "$1"
+		;;
+	*) dc exec -T backup cat "$1" ;;
+	esac
 }
 
 if [ $latest -eq 1 ]; then
-	dump=$(dc exec -T backup sh -c 'ls -1t /backups/*.dump 2>/dev/null | head -n1' | tr -d '\r')
+	dump=$(dc exec -T backup sh -c 'ls -1t /backups/ai_discovery-*.dump.age /backups/ai_discovery-*.dump 2>/dev/null | head -n1' | tr -d '\r')
 	dump=$(basename "${dump:-}")
 	[ -n "$dump" ] && [ "$dump" != "." ] || { echo "restore: the backups volume holds no dumps" >&2; exit 1; }
 fi
@@ -105,6 +133,17 @@ if [ $assume_yes -eq 0 ]; then
 	[ "$answer" = "$into" ] || { echo "restore: aborted"; exit 1; }
 fi
 
+# Prove the dump can be read BEFORE anything is stopped or dropped. A missing identity, a wrong
+# key or a truncated file must stop the restore while the live database is still intact: the
+# drop below cannot be undone, and a restore that fails after it has made things worse.
+if [ "$(read_backup_file "$dump_path" 2>/dev/null | head -c 5)" != "PGDMP" ]; then
+	echo "restore: $dump_path could not be read as a pg_dump archive; nothing was changed." >&2
+	case "$dump_path" in
+	*.age) echo "         It is encrypted: BACKUP_AGE_IDENTITY in $env_file must be the private key for the recipient it was written to." >&2 ;;
+	esac
+	exit 1
+fi
+
 started=$(date +%s)
 if [ "$into" = "$live_db" ]; then
 	echo "restore: stopping api and worker"
@@ -131,9 +170,13 @@ psql_owner -d postgres -c "create database \"$into\" owner app" >/dev/null
 # scratch database must not overwrite the real uploads volume.
 restore_uploads() {
 	[ "$into" = "$live_db" ] || { echo "restore: into a scratch database, leaving uploads alone"; return 0; }
-	stamp=$(basename "$dump_path" | sed -n 's/^ai_discovery-\(.*\)\.dump$/\1/p')
-	archive="/backups/uploads-$stamp.tar.gz"
-	if ! dc exec -T backup test -f "$archive" 2>/dev/null; then
+	stamp=$(basename "$dump_path" | sed -n 's/^ai_discovery-\(.*\)\.dump\(\.age\)\{0,1\}$/\1/p')
+	archive=""
+	for candidate in "/backups/uploads-$stamp.tar.gz.age" "/backups/uploads-$stamp.tar.gz"; do
+		if dc exec -T backup test -f "$candidate" 2>/dev/null; then archive=$candidate; break; fi
+	done
+	if [ -z "$archive" ]; then
+		archive="/backups/uploads-$stamp.tar.gz.age"
 		echo "restore: no $archive beside this dump; uploaded files NOT restored" >&2
 		echo "         Attachment rows will point at bytes that are missing." >&2
 		return 0
@@ -145,14 +188,14 @@ restore_uploads() {
 	#
 	# Replace rather than merge: a half-old, half-new uploads directory is harder to reason about
 	# than either alone, and the archive is a complete picture of one moment.
-	dc exec -T backup cat "$archive" |
+	read_backup_file "$archive" |
 		dc run --rm --no-deps -T --entrypoint sh api -c 'rm -rf /uploads/* 2>/dev/null; tar -xzf - -C /uploads'
 	echo "restore: uploaded files restored"
 }
 
 echo "restore: pg_restore running"
 # The dump lives in the backups volume, which only the backup container mounts; stream it across.
-dc exec -T backup cat "$dump_path" |
+read_backup_file "$dump_path" |
 	dc exec -T postgres pg_restore --no-owner --role=app --dbname="postgresql://app:$(envval POSTGRES_PASSWORD)@127.0.0.1:5432/$into"
 
 restore_uploads

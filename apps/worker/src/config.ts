@@ -17,6 +17,21 @@ const Env = z.object({
   EGRESS_MODE: z.enum(["strict", "permissive"]).default("strict"),
   /** Comma-separated hostnames a platform provider may reach on a private address (compose services). */
   EGRESS_ALLOW_HOSTS: z.string().default(""),
+  // Operator alerting (D-90); see apps/api/src/config.ts. Same variables, same fallbacks.
+  ALERT_EMAIL: z.string().optional(),
+  ALERT_WEBHOOK_URL: z.string().optional(),
+  // Compose passes an unset variable through as the empty string, which is "not set" here.
+  ALERT_WEBHOOK_FORMAT: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.enum(["ntfy", "slack", "generic"]).optional(),
+  ),
+  /**
+   * The shared `ops_state` volume (D-92): the backup writes `status/backup.json` there and the
+   * worker writes `heartbeat/worker`. Unset in development, where neither check is meaningful.
+   */
+  OPS_STATE_DIR: z.string().optional(),
+  /** The file the container healthcheck reads; defaults under OPS_STATE_DIR. */
+  HEARTBEAT_FILE: z.string().optional(),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
   /**
    * How long running jobs may take after SIGTERM before they are aborted and redelivered. Keep it

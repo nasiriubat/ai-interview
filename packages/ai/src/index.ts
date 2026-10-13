@@ -1,4 +1,13 @@
 export * from "./providers/types.js";
+export {
+  DEFAULT_TIMEOUTS,
+  backoffMs,
+  guardStream,
+  retryAfterMs,
+  timeoutError,
+  timeoutsFromEnv,
+  type ProviderTimeouts,
+} from "./providers/resilience.js";
 export { AnthropicProvider } from "./providers/anthropic.js";
 export { OpenAICompatibleProvider, parseSse } from "./providers/openai-compatible.js";
 export {

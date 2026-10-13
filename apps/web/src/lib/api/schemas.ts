@@ -607,6 +607,35 @@ export const TenantEnvelopeSchema = z.preprocess(
   TenantSchema,
 );
 
+/** One background queue as `GET /operator/jobs` reports it (D-92). */
+export const QueueSummarySchema = z.looseObject({
+  name: z.string(),
+  queued: z.number(),
+  active: z.number(),
+  deadLettered: z.number(),
+  oldestQueuedAt: iso.nullish(),
+  expireInSeconds: z.number(),
+  retryLimit: z.number(),
+  lastFailure: z.looseObject({ at: iso, jobId: z.string() }).nullish(),
+  runNow: z.boolean(),
+});
+export type QueueSummary = z.infer<typeof QueueSummarySchema>;
+export const QueueListSchema = z.looseObject({ queues: z.array(QueueSummarySchema) });
+
+/** A dead-lettered job: identifiers and the last error, never the payload's text. */
+export const DeadJobSchema = z.looseObject({
+  id: z.string(),
+  queue: z.string(),
+  createdAt: iso,
+  sourceId: z.string().nullish(),
+  retryCount: z.number(),
+  companyId: z.string().nullish(),
+  data: z.record(z.string(), z.string()),
+  error: z.string(),
+});
+export type DeadJob = z.infer<typeof DeadJobSchema>;
+export const DeadJobListSchema = z.looseObject({ queue: z.string(), jobs: z.array(DeadJobSchema) });
+
 export const HealthSchema = z.looseObject({ ok: z.boolean().optional(), status: z.string().optional() });
 
 // Phase 2: analysis and report (docs/spec/17)

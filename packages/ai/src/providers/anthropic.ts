@@ -10,6 +10,7 @@ import type {
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
+import { guardStream, timeoutError, timeoutsFromEnv, type ProviderTimeouts } from "./resilience.js";
 import { ProviderError, upstreamMessage, type Provider } from "./types.js";
 
 export interface AnthropicProviderOptions {
@@ -21,6 +22,8 @@ export interface AnthropicProviderOptions {
   client?: Anthropic;
   /** The transport the SDK uses; the server passes one that enforces the egress policy. */
   fetch?: typeof fetch;
+  /** Deadlines and retries (D-93); the process environment's `PROVIDER_*` values when absent. */
+  timeouts?: ProviderTimeouts;
 }
 
 /** Anthropic direct, through the official SDK. Caching, structured output and effort are exposed. */
@@ -39,13 +42,21 @@ export class AnthropicProvider implements Provider {
     streamingTranscription: false,
   };
   private readonly client: Anthropic;
+  private readonly timeouts: ProviderTimeouts;
 
   constructor(opts: AnthropicProviderOptions) {
     this.id = opts.id;
+    this.timeouts = opts.timeouts ?? timeoutsFromEnv();
     this.client =
       opts.client ??
       new Anthropic({
         apiKey: opts.apiKey,
+        // Explicit, because the SDK's own defaults are a ten-minute timeout and two hidden
+        // retries: a stalled provider held a turn for ten minutes (D-93). The retries are the
+        // same bounded number the OpenAI-compatible adapter uses; the SDK backs off between them
+        // and honours Retry-After.
+        timeout: this.timeouts.totalMs,
+        maxRetries: this.timeouts.maxRetries,
         ...(opts.baseUrl ? { baseURL: opts.baseUrl } : {}),
         ...(opts.headers ? { defaultHeaders: opts.headers } : {}),
         ...(opts.fetch ? { fetch: opts.fetch } : {}),
@@ -67,19 +78,38 @@ export class AnthropicProvider implements Provider {
   async *chat(model: string, req: ChatRequest): AsyncIterable<ChatEvent> {
     const params = this.buildParams(model, req);
     try {
-      const stream = this.client.messages.stream(params, req.signal ? { signal: req.signal } : undefined);
-      for await (const event of stream) {
-        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-          yield { type: "text", text: event.delta.text };
+      const began = Date.now();
+      const { signal, deadline } = this.signalFor(req);
+      const stream = this.client.messages.stream(params, { signal });
+      // The SDK has no first-token deadline: its timeout covers a request that never answers, not
+      // one that answers and then goes quiet. This is that deadline, and an idle one. The total
+      // ceiling is the `deadline` signal, so a stream that trickles forever is also cut off.
+      const events = guardStream(stream, {
+        firstMs: this.timeouts.firstTokenMs,
+        idleMs: this.timeouts.idleMs,
+        since: began,
+        isOutput: (e) => e.type === "content_block_delta",
+        abort: () => {
+          stream.abort();
+        },
+        label: "Model stream",
+      });
+      try {
+        for await (const event of events) {
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            yield { type: "text", text: event.delta.text };
+          }
         }
+        const final = await stream.finalMessage();
+        yield {
+          type: "done",
+          usage: toUsage(final.usage),
+          stopReason: toStopReason(final.stop_reason),
+          model: final.model,
+        };
+      } catch (e) {
+        throw this.deadlineError(e, deadline, req.signal);
       }
-      const final = await stream.finalMessage();
-      yield {
-        type: "done",
-        usage: toUsage(final.usage),
-        stopReason: toStopReason(final.stop_reason),
-        model: final.model,
-      };
     } catch (e) {
       throw mapError(e);
     }
@@ -91,13 +121,14 @@ export class AnthropicProvider implements Provider {
     schema: z.ZodType<T>,
   ): Promise<{ value: T; usage: Usage }> {
     const params = this.buildParams(model, req);
+    const { signal, deadline } = this.signalFor(req);
     try {
       const res = await this.client.messages.parse(
         {
           ...params,
           output_config: { ...(params.output_config ?? {}), format: zodOutputFormat(schema) },
         },
-        req.signal ? { signal: req.signal } : undefined,
+        { signal },
       );
       if (res.stop_reason === "refusal") {
         throw new ProviderError("Model refused the request", "refusal", false);
@@ -107,8 +138,29 @@ export class AnthropicProvider implements Provider {
       }
       return { value: res.parsed_output, usage: toUsage(res.usage) };
     } catch (e) {
-      throw mapError(e);
+      throw this.deadlineError(e, deadline, req.signal);
     }
+  }
+
+  /**
+   * The signal for one request: the caller's (a barge-in, a lost turn lock, a shutdown) combined
+   * with the total deadline, so whichever comes first ends the call. The SDK's own `timeout`
+   * bounds one attempt, and its retries are not extended past this ceiling.
+   */
+  private signalFor(req: ChatRequest): { signal: AbortSignal; deadline: AbortSignal } {
+    const deadline = AbortSignal.timeout(this.timeouts.totalMs);
+    return { signal: req.signal ? AbortSignal.any([req.signal, deadline]) : deadline, deadline };
+  }
+
+  /**
+   * A call ended by the deadline is a retryable `timeout`; one ended by the caller is left as the
+   * SDK reports it (the model caller turns it into `CallAbortedError`), and is never retried here.
+   */
+  private deadlineError(e: unknown, deadline: AbortSignal, caller: AbortSignal | undefined): ProviderError {
+    if (!caller?.aborted && deadline.aborted && !(e instanceof ProviderError)) {
+      return timeoutError("Model call", this.timeouts.totalMs, e);
+    }
+    return mapError(e);
   }
 
   // Anthropic has no transcription endpoint; route `transcription` to another provider.
@@ -172,6 +224,9 @@ export function mapError(e: unknown): ProviderError {
     return new ProviderError(sdkMessage(e), "bad_request", false, e);
   if (e instanceof Anthropic.RateLimitError) return new ProviderError(sdkMessage(e), "rate_limit", true, e);
   if (e instanceof Anthropic.InternalServerError) return new ProviderError(sdkMessage(e), "server", true, e);
+  // A timeout is a subclass of APIConnectionError, so it is checked before it (D-93).
+  if (e instanceof Anthropic.APIConnectionTimeoutError)
+    return new ProviderError("The provider did not answer in time", "timeout", true, e);
   // APIConnectionError is a subclass of APIError in the TS SDK: check it first.
   if (e instanceof Anthropic.APIConnectionError) {
     return new ProviderError("Network error calling the provider", "network", true, e);

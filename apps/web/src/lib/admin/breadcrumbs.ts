@@ -23,6 +23,7 @@ function sectionLabels(): Record<string, string> {
     "/admin/operator/providers": n.platformProviders,
     "/admin/operator/routes": n.platformRoutes,
     "/admin/operator/stats": n.platformStats,
+    "/admin/operator/jobs": n.platformJobs,
   };
 }
 
