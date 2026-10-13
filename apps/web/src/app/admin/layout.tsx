@@ -25,7 +25,7 @@ export default async function AdminLayout({
         </Alert>
       ) : null}
       {!r.ok && r.reason === "unavailable" ? (
-        <Alert variant="warning" className="mb-4">
+        <Alert variant="warning" role="status" className="mb-4">
           <AlertTitle>{t.admin.common.loadFailed}</AlertTitle>
           <AlertDescription>{t.admin.dashboard.statsUnavailable}</AlertDescription>
         </Alert>

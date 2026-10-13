@@ -18,7 +18,7 @@ export function TypingIndicator(): React.JSX.Element {
         <span
           key={i}
           aria-hidden="true"
-          className="motion-safe-bounce bg-primary/50 size-2 animate-bounce rounded-full"
+          className="bg-primary/50 size-2 rounded-full motion-safe:animate-bounce"
           style={{ animationDelay: `${i * 120}ms` }}
         />
       ))}
@@ -65,7 +65,7 @@ export function MessageBubble({
             else if (message.id !== undefined) speech.speak(message.id, message.content);
           }}
           className={cn(
-            "focus-visible:ring-ring/40 mt-1 ml-1 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium outline-none focus-visible:ring-[3px]",
+            "mt-1 ml-1 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium",
             speaking
               ? "bg-accent text-accent-foreground"
               : "text-muted-foreground hover:text-foreground hover:bg-muted",

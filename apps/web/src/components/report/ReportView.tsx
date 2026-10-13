@@ -170,7 +170,7 @@ export function ReportView({
       </fieldset>
 
       {selected && !selected.stats.thresholdMet ? (
-        <Alert variant="warning">
+        <Alert variant="warning" role="status">
           <AlertDescription>{s.preliminaryNote}</AlertDescription>
         </Alert>
       ) : null}

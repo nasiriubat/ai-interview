@@ -21,13 +21,22 @@ const alertVariants = cva(
   },
 );
 
+/**
+ * `alert` interrupts the screen reader and is for what blocks the person right now (a failed save, a
+ * refused upload). `status` is announced politely and is for everything that is true but not urgent
+ * (a degraded service, a note about the data). Overusing `alert` makes the urgent ones unheard.
+ */
+export type AlertRole = "alert" | "status";
+
 export function Alert({
   className,
   variant,
+  role = "alert",
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>): React.JSX.Element {
+}: Omit<React.ComponentProps<"div">, "role"> &
+  VariantProps<typeof alertVariants> & { role?: AlertRole }): React.JSX.Element {
   return (
-    <div data-slot="alert" role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
+    <div data-slot="alert" role={role} className={cn(alertVariants({ variant }), className)} {...props} />
   );
 }
 

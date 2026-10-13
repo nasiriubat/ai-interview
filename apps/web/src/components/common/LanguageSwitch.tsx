@@ -46,7 +46,7 @@ export function LanguageSwitch({ className }: { className?: string }): React.JSX
         onChange={(e) => {
           change(e.target.value as Locale);
         }}
-        className="bg-card text-foreground shadow-control focus-visible:ring-ring/40 h-8 rounded-md border-0 px-2 text-xs outline-none focus-visible:ring-[3px]"
+        className="bg-card text-foreground shadow-control h-8 rounded-md border-0 px-2 text-xs"
       >
         {LOCALES.map((l) => (
           <option key={l} value={l}>

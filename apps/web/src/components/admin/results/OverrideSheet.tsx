@@ -119,7 +119,7 @@ export function OverrideSheet({
                           score: e.target.value === GENERATED ? null : Number(e.target.value),
                         });
                       }}
-                      className="bg-card text-foreground shadow-control focus-visible:ring-ring/40 h-8 rounded-md border-0 px-2 text-xs outline-none focus-visible:ring-[3px]"
+                      className="bg-card text-foreground shadow-control h-8 rounded-md border-0 px-2 text-xs"
                     >
                       <option value={GENERATED}>{s.override.generated(`${generated.score}/5`)}</option>
                       {[1, 2, 3, 4, 5].map((n) => (

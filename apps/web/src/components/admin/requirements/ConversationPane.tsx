@@ -37,7 +37,7 @@ function PathSwitch({
           disabled={disabled}
           aria-pressed={value === p}
           className={cn(
-            "focus-visible:ring-ring/50 rounded-md px-2.5 py-1 text-xs font-medium transition-colors focus-visible:ring-[3px] disabled:opacity-50",
+            "rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
             value === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
           )}
           onClick={() => {

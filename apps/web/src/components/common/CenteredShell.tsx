@@ -25,7 +25,7 @@ export function CenteredShell({
     <div className="bg-background relative flex min-h-dvh flex-col overflow-hidden">
       <div
         aria-hidden="true"
-        className="absolute inset-x-0 -top-40 h-[26rem] origin-top-left -skew-y-6 bg-[linear-gradient(115deg,#635bff_0%,#7a6bff_30%,#4f8dfd_60%,#00b8d9_100%)] print:hidden"
+        className="absolute inset-x-0 -top-40 h-[26rem] origin-top-left -skew-y-6 bg-brand-band print:hidden"
       />
       <header className="relative flex items-center justify-between gap-3 px-5 py-4 sm:px-8">
         <span className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-white">
