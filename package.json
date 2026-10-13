@@ -9,10 +9,11 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r build && pnpm -r typecheck",
     "test": "pnpm -r build && pnpm -r test",
-    "lint": "eslint packages apps evals",
+    "lint": "eslint packages apps evals scripts",
     "check": "pnpm -r build && pnpm -r typecheck && pnpm lint && pnpm format:check && pnpm -r test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "live:run": "pnpm --filter @aidp/live-run live:run"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
