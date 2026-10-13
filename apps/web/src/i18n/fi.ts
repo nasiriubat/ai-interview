@@ -33,7 +33,9 @@ export const fi: Strings = {
     optional: "valinnainen",
     required: "pakollinen",
     unknownError: "Jokin meni pieleen. Yritä uudelleen.",
-    notFound: "Sivua ei löytynyt.",
+    notFoundTitle: "Tätä sivua ei ole",
+    notFoundBody: "Jos sinut on kutsuttu haastatteluun, avaa linkki kutsusähköpostistasi.",
+    notFoundDashboard: "Siirry hallintaan",
     errorTitle: "Jokin meni pieleen",
     errorBody: "Sivun lataamisessa tapahtui odottamaton virhe.",
     signOut: "Kirjaudu ulos",
@@ -73,15 +75,16 @@ export const fi: Strings = {
       minutes: (n: number): string => `Noin ${n} minuuttia`,
       storedHeading: "Mitä tallennetaan",
       storedIdentified:
-        "Vastauksesi ja, koska osallistut omalla nimelläsi, sähköpostiosoitteesi. Mitään ei jaeta organisaatiosi ulkopuolelle.",
+        "Vastauksesi sekä nimesi ja sähköpostiosoitteesi. Organisaatiosi ylläpitäjät voivat lukea ne, ja organisaatiosi käyttämät tekoälypalvelut käsittelevät niitä haastattelun aikana. Tiedot poistetaan automaattisesti organisaatiosi säilytysajan jälkeen.",
       storedAnonymous:
-        "Vain vastauksesi. Sähköpostiosoitettasi ei tallenneta niiden yhteyteen; sitä käytetään kerran varmistamaan, että jokainen vastaa vain kerran.",
-      storedChoice: "Vastauksesi. Valitset seuraavalla näytöllä, liitetäänkö nimesi niihin.",
-      deleteHeading: "Tietojesi poistaminen",
+        "Vastauksesi ilman nimeäsi. Sähköpostiosoitettasi käytetään kerran sen varmistamiseen, että jokainen vastaa vain kerran; siitä säilytetään vain tunnistamaton tiiviste, jota ei yhdistetä vastauksiisi. Organisaatiosi käyttämät tekoälypalvelut käsittelevät vastauksiasi haastattelun aikana, ja ne poistetaan automaattisesti organisaatiosi säilytysajan jälkeen.",
+      storedChoice:
+        "Vastauksesi. Valitset seuraavalla näytöllä, säilytetäänkö nimesi niiden kanssa. Organisaatiosi ylläpitäjät voivat lukea säilytettävät tiedot, ja organisaatiosi käyttämät tekoälypalvelut käsittelevät niitä haastattelun aikana. Tiedot poistetaan automaattisesti organisaatiosi säilytysajan jälkeen.",
+      deleteHeading: "Vastaustesi poistaminen",
       deletePromise:
-        "Voit keskeyttää, lopettaa tai poistaa kaiken sanomasi milloin tahansa haastattelunäytöltä. Poisto tapahtuu heti.",
+        "Voit keskeyttää, lopettaa tai poistaa vastauksesi milloin tahansa haastattelun valikosta. Poisto hävittää vastauksesi, tallenteesi ja tiedostosi heti.",
       noAccount: "Tiliä ei tarvita.",
-      start: "Aloita",
+      start: "Jatka",
       resume: "Jatka siitä, mihin jäit",
       closedTitle: "Tämä haastattelu on suljettu",
       closedBody: "Kampanja on päättynyt eikä ota enää vastaan vastauksia. Kiitos kiinnostuksestasi.",
@@ -89,7 +92,7 @@ export const fi: Strings = {
       expiredBody: "Pyydä uusi linkki henkilöltä, joka kutsui sinut.",
       invalidTitle: "Tämä linkki ei ole kelvollinen",
       invalidBody: "Tarkista osoite tai pyydä uusi linkki henkilöltä, joka kutsui sinut.",
-      poweredBy: (product: string): string => `Haastattelun toteuttaa ${product}`,
+      poweredBy: (product: string): string => `Alusta: ${product}`,
     },
     verify: {
       title: "Vahvista sähköpostiosoitteesi",
@@ -117,10 +120,10 @@ export const fi: Strings = {
       choiceTitle: "Miten haluat osallistua?",
       identified: "Omalla nimelläni",
       identifiedHint:
-        "Vastauksesi liitetään sähköpostiosoitteeseesi. Ylläpitäjät voivat ottaa sinuun yhteyttä.",
+        "Nimesi ja sähköpostiosoitteesi säilytetään vastaustesi kanssa. Organisaatiosi ylläpitäjät voivat lukea ne ja ottaa sinuun yhteyttä.",
       anonymous: "Anonyymisti",
       anonymousHint:
-        "Vastauksesi tallennetaan ilman henkilöllisyyttäsi. Ne näkyvät vain kootuissa tuloksissa.",
+        "Vastauksesi säilytetään ilman nimeäsi ja sähköpostiosoitettasi. Ne näkyvät vain yhdistetyissä tuloksissa, eivät koskaan erillisinä.",
       fieldRequired: (label: string): string => `${label} on pakollinen.`,
     },
     consent: {
@@ -175,13 +178,13 @@ export const fi: Strings = {
       done: "Olen valmis",
       doneMessage: "Olen valmis",
       deleteData: "Poista tietoni",
-      deleteTitle: "Poistetaanko kaikki sanomasi?",
+      deleteTitle: "Poistetaanko vastauksesi?",
       deleteBody:
-        "Tämä poistaa heti kaikki vastauksesi, niistä poimitut tiedot ja mahdolliset liitteet. Toimintoa ei voi perua.",
+        "Tämä poistaa heti vastauksesi, tallenteesi, tiedostosi ja kaiken niistä kirjatun. Poistoa ei voi perua.",
       deleteConfirm: "Kyllä, poista tietoni",
-      deletedTitle: "Tietosi on poistettu",
+      deletedTitle: "Vastauksesi on poistettu",
       deletedBody:
-        "Kaikki tässä haastattelussa sanomasi on poistettu. Jos osallistuit omalla nimelläsi, vahvistus on matkalla sähköpostiisi.",
+        "Vastauksesi, tallenteesi ja tiedostosi tästä haastattelusta on poistettu. Muiden vastauksiin jo yhdistetyt lukumäärät säilyvät, mutta niitä ei voi yhdistää sinuun.",
       widgetAnswer: "Vastaa vaihtoehdoilla",
       widgetSubmit: "Lähetä vastaus",
       widgetOther: "Muu",
@@ -260,18 +263,18 @@ export const fi: Strings = {
       notConsentedBody: "Avaa kutsulinkki uudelleen antaaksesi suostumuksen ja aloittaaksesi haastattelun.",
       completedTitle: "Haastattelu on valmis",
       loadingSummary: "Yhteenvetoa valmistellaan…",
-      sessionMenuHint: "Keskeytä, lopeta tai poista tietosi milloin tahansa.",
+      sessionMenuHint: "Keskeytä, lopeta tai poista vastauksesi milloin tahansa.",
     },
     summary: {
       title: "Kiitos",
-      body: "Tässä on se, mitä poimimme. Voit muokata sitä ennen tallennusta.",
+      body: "Tässä on, mitä haastattelija kirjasi keskustelusta. Korjaa, jos jokin on väärin tai puuttuu; se tallentuu sellaisena kuin jätät sen.",
       summaryLabel: "Yhteenvetosi",
       save: "Tallenna yhteenveto",
       saved: "Yhteenveto tallennettu",
       factsTitle: "Mitä kirjasimme",
       whatNext: "Mitä seuraavaksi",
       whatNextBody:
-        "Vastauksesi yhdistetään kollegoidesi vastauksiin. Mitään ei yhdistetä sinuun ilman suostumustasi, ja voit yhä poistaa tietosi tältä sivulta.",
+        "Vastauksesi yhdistetään kollegoidesi vastauksiin kuvaksi siitä, miten työ täällä tehdään. Lainauksia näytetään vain, kun riittävän moni on sanonut samaa, eikä mitään näytetä nimelläsi, ellet valinnut osallistua omalla nimelläsi. Voit yhä poistaa vastauksesi tältä sivulta.",
       close: "Voit nyt sulkea tämän sivun.",
     },
     invite: {
@@ -280,7 +283,7 @@ export const fi: Strings = {
       purposeHeading: "Miksi",
       storedHeading: "Mitä tallennetaan",
       stored:
-        "Vastauksesi tallennetaan kutsujan istuntoon, ja niistä kirjoitetaan määrittely. Mitään ei jaeta kutsujan organisaation ulkopuolelle.",
+        "Vastauksesi tallennetaan kutsujan haastatteluun, ja niistä kirjoitetaan määrittely. Kutsujan organisaation ylläpitäjät voivat lukea ne, ja organisaation käyttämät tekoälypalvelut käsittelevät niitä.",
       lengthHeading: "Miten se toimii",
       lengthBody:
         "Keskustelu, yksi kysymys kerrallaan. Voit pitää tauon ja jatkaa avaamalla linkin uudelleen.",

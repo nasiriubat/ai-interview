@@ -31,7 +31,9 @@ export const en = {
     optional: "optional",
     required: "required",
     unknownError: "Something went wrong. Please try again.",
-    notFound: "We could not find that page.",
+    notFoundTitle: "This page does not exist",
+    notFoundBody: "If you were invited to an interview, open the link from your invitation email.",
+    notFoundDashboard: "Go to the dashboard",
     errorTitle: "Something went wrong",
     errorBody: "An unexpected error happened while loading this page.",
     signOut: "Sign out",
@@ -71,15 +73,16 @@ export const en = {
       minutes: (n: number): string => `About ${n} minutes`,
       storedHeading: "What is stored",
       storedIdentified:
-        "Your answers and, because you are identified, your email. Nothing is shared outside your organization.",
+        "Your answers, with your name and email. Your organization's admins can read them, and the AI services your organization uses process them to run the interview. They are deleted automatically after your organization's retention period.",
       storedAnonymous:
-        "Your answers only. Your email is never stored with them; it is used once to make sure each person answers once.",
-      storedChoice: "Your answers. You choose on the next screen whether your name is attached to them.",
-      deleteHeading: "Deleting your data",
+        "Your answers, without your name. Your email is used once to check that each person answers once; only a scrambled version is kept, and it is never linked to your answers. The AI services your organization uses process your answers to run the interview, and they are deleted automatically after your organization's retention period.",
+      storedChoice:
+        "Your answers. On the next screen you choose whether your name is kept with them. Your organization's admins can read what is kept, and the AI services your organization uses process it to run the interview. It is deleted automatically after your organization's retention period.",
+      deleteHeading: "Deleting your answers",
       deletePromise:
-        "You can pause, stop, or delete everything you said at any time from the interview screen. Deletion is immediate.",
+        "You can pause, stop or delete your answers at any time from the interview menu. Deleting removes your answers, recordings and files right away.",
       noAccount: "No account needed.",
-      start: "Get started",
+      start: "Continue",
       resume: "Continue where you left off",
       closedTitle: "This interview is closed",
       closedBody: "The campaign has ended and no longer accepts answers. Thank you for your interest.",
@@ -87,7 +90,7 @@ export const en = {
       expiredBody: "Ask the person who invited you for a new link.",
       invalidTitle: "This link is not valid",
       invalidBody: "Check the address or ask the person who invited you for a new link.",
-      poweredBy: (product: string): string => `Interview run with ${product}`,
+      poweredBy: (product: string): string => `Runs on ${product}`,
     },
     verify: {
       title: "Confirm your email",
@@ -114,9 +117,11 @@ export const en = {
       body: "These help your organization read the results in context.",
       choiceTitle: "How would you like to take part?",
       identified: "With my name",
-      identifiedHint: "Your answers are attached to your email. Admins can follow up with you.",
+      identifiedHint:
+        "Your name and email are kept with your answers. Your organization's admins may read them and may contact you about them.",
       anonymous: "Anonymously",
-      anonymousHint: "Your answers are stored without your identity. Only aggregated results carry them.",
+      anonymousHint:
+        "Your answers are kept without your name or email. They appear only in combined results, never on their own.",
       fieldRequired: (label: string): string => `${label} is required.`,
     },
     consent: {
@@ -171,13 +176,13 @@ export const en = {
       done: "I'm done",
       doneMessage: "I'm done",
       deleteData: "Delete my data",
-      deleteTitle: "Delete everything you said?",
+      deleteTitle: "Delete your answers?",
       deleteBody:
-        "This removes all your answers, extracted facts and any attachments right away. It cannot be undone.",
+        "This removes your answers, recordings, files and everything noted from them right away. It cannot be undone.",
       deleteConfirm: "Yes, delete my data",
-      deletedTitle: "Your data was deleted",
+      deletedTitle: "Your answers were deleted",
       deletedBody:
-        "Everything you said in this interview is gone. If you were identified, a confirmation email is on its way.",
+        "Your answers, recordings and files from this interview are gone. Totals already combined with other people's answers remain, but nothing in them can be traced to you.",
       widgetAnswer: "Answer with the options",
       widgetSubmit: "Send answer",
       widgetOther: "Other",
@@ -255,18 +260,18 @@ export const en = {
       notConsentedBody: "Open the invitation link again to give consent and start the interview.",
       completedTitle: "This interview is complete",
       loadingSummary: "Preparing your summary…",
-      sessionMenuHint: "Pause, finish, or delete your data at any time.",
+      sessionMenuHint: "Pause, finish, or delete your answers at any time.",
     },
     summary: {
       title: "Thank you",
-      body: "Here is what we captured. You can edit it before it is stored.",
+      body: "Here is what the interviewer took from the conversation. Correct anything that is wrong or missing; it is saved as you leave it.",
       summaryLabel: "Your summary",
       save: "Save summary",
       saved: "Summary saved",
       factsTitle: "What we noted",
       whatNext: "What happens next",
       whatNextBody:
-        "Your answers are combined with those of your colleagues. Nothing is attributed to you without your consent, and you can still delete your data from this page.",
+        "Your answers are combined with your colleagues' into a picture of how work gets done here. Quotes appear only when enough people said something similar, and nothing is shown with your name unless you chose to take part with it. You can still delete your answers from this page.",
       close: "You can close this page now.",
     },
     invite: {
@@ -275,7 +280,7 @@ export const en = {
       purposeHeading: "Why",
       storedHeading: "What is stored",
       stored:
-        "Your answers are stored in the session of the person who invited you and are used to write the specification. Nothing is shared outside their organization.",
+        "Your answers are saved to the interview of the person who invited you and are used to write the specification. Their organization's admins can read them, and the AI services that organization uses process them.",
       lengthHeading: "How it works",
       lengthBody: "A conversation, one question at a time. You can pause and reopen the link to continue.",
       start: "Get started",
