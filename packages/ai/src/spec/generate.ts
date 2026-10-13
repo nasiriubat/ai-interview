@@ -15,7 +15,7 @@ import {
   type SpecVersionStats,
 } from "@aidp/shared";
 import { z } from "zod";
-import type { ModelCaller } from "../callModel.js";
+import type { ModelCallerPort } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";
 import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js";
 import { languageName } from "../util/language.js";
@@ -51,7 +51,7 @@ export const SpecGenerationOutputSchema = z.object({
 });
 
 export interface SpecGenerationDeps {
-  caller: ModelCaller;
+  caller: ModelCallerPort;
   prompts: PromptSource;
   logger: Logger;
   now?: () => Date;

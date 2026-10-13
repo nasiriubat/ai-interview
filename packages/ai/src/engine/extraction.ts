@@ -1,5 +1,5 @@
 import { ExtractionResultSchema, SessionStateSchema, type Fact } from "@aidp/shared";
-import type { ModelCaller } from "../callModel.js";
+import type { ModelCallerPort } from "../callModel.js";
 import { renderStoredMessage } from "./context.js";
 import type { SessionSnapshot, SessionStore } from "./ports.js";
 import { promptVersionTag, type PromptSource } from "./prompts/index.js";
@@ -9,13 +9,19 @@ export const EXTRACTION_BATCH_MESSAGES = 24;
 
 /**
  * Continuous fact extraction into layer 2 (FR-14). Processes messages after the last
- * extracted sequence in batches, filters to the template's expected kinds, appends to
- * state after every batch so a failure never loses the batches before it.
+ * extracted sequence in batches and filters to the template's expected kinds.
+ *
+ * Each batch is committed as one unit through `SessionStore.commitExtraction`: the fact rows, the
+ * state's facts and cursor, and the event. A crash or a failure on a later batch therefore never
+ * leaves a cursor that has moved past facts nobody wrote, which is how facts used to be lost for
+ * good (the cursor advanced, the rows were written by the caller afterwards, and a retry saw
+ * nothing pending). A `stale` commit means another run got there first; this run stops, since
+ * that run owns the cursor and is itself retried if it fails.
  */
 export async function extractFacts(
-  deps: { caller: ModelCaller; store: SessionStore; prompts: PromptSource },
+  deps: { caller: ModelCallerPort; store: SessionStore; prompts: PromptSource },
   session: SessionSnapshot,
-): Promise<{ facts: Fact[]; upToSeq: number }> {
+): Promise<{ facts: Fact[]; upToSeq: number; stale: boolean }> {
   let state = SessionStateSchema.parse(session.state);
   const all: Fact[] = [];
   for (;;) {
@@ -23,21 +29,24 @@ export async function extractFacts(
     if (pending.length === 0) break;
     const fresh = pending.slice(0, EXTRACTION_BATCH_MESSAGES);
     const { facts, upToSeq, promptVersion } = await extractBatch(deps, session, state, fresh);
-    state = { ...state, facts: [...state.facts, ...facts], lastExtractedSeq: upToSeq };
-    await deps.store.saveState(session.id, state);
-    await deps.store.appendEvent(session.id, "facts_extracted", {
-      count: facts.length,
-      upToSeq,
-      promptVersion,
+    const outcome = await deps.store.commitExtraction(session.id, {
+      companyId: session.companyId,
+      fromSeq: state.lastExtractedSeq,
+      toSeq: upToSeq,
+      facts,
+      extractorVersion: promptVersion,
+      event: { count: facts.length, upToSeq, promptVersion },
     });
+    if (outcome === "stale") return { facts: all, upToSeq: state.lastExtractedSeq, stale: true };
+    state = { ...state, facts: [...state.facts, ...facts], lastExtractedSeq: upToSeq };
     all.push(...facts);
     if (pending.length <= EXTRACTION_BATCH_MESSAGES) break;
   }
-  return { facts: all, upToSeq: state.lastExtractedSeq };
+  return { facts: all, upToSeq: state.lastExtractedSeq, stale: false };
 }
 
 async function extractBatch(
-  deps: { caller: ModelCaller; store: SessionStore; prompts: PromptSource },
+  deps: { caller: ModelCallerPort; store: SessionStore; prompts: PromptSource },
   session: SessionSnapshot,
   state: ReturnType<typeof SessionStateSchema.parse>,
   fresh: Awaited<ReturnType<SessionStore["messagesAfter"]>>,

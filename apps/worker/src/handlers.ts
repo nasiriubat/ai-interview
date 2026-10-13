@@ -17,7 +17,7 @@ import {
   type StoragePort,
 } from "@aidp/core";
 import { withSystemTenant, withTenant } from "@aidp/db";
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
 export interface HandlerDeps {
   db: PrismaClient;
@@ -95,19 +95,13 @@ export function handlers(deps: HandlerDeps): Handlers {
         const session = await store.snapshot(sessionId);
         if (session.status === "deleted") return;
         const caller = await deps.callers.forCompany(companyId);
+        // The facts, the cursor and the event are committed per batch inside extractFacts. There is
+        // nothing left for this handler to persist, which is the point: a crash here can no longer
+        // leave a cursor that has moved past facts nobody wrote.
         const r = await extractFacts({ caller, store, prompts }, session);
-        for (const f of r.facts) {
-          await deps.db.fact.create({
-            data: {
-              companyId,
-              sessionId,
-              kind: f.kind,
-              payload: f as Prisma.InputJsonValue,
-              extractorVersion: "extraction@1",
-            },
-          });
-        }
-        deps.log.info("facts extracted", { sessionId, count: r.facts.length, upToSeq: r.upToSeq });
+        if (r.stale)
+          deps.log.info("extraction yielded to a concurrent run", { sessionId, upToSeq: r.upToSeq });
+        else deps.log.info("facts extracted", { sessionId, count: r.facts.length, upToSeq: r.upToSeq });
       },
     ),
 

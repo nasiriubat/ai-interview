@@ -1,6 +1,6 @@
 import type { Modality, SessionState, TurnObject, WidgetResponse } from "@aidp/shared";
 import { SessionStateSchema, TurnObjectSchema } from "@aidp/shared";
-import type { ModelCaller } from "../callModel.js";
+import type { ModelCallerPort } from "../callModel.js";
 import { detectIssues, shouldScanIssues } from "../spec/issues.js";
 import { nextMvpItem } from "../spec/live.js";
 import { resolvePolicy } from "../spec/policy.js";
@@ -59,7 +59,7 @@ export interface TurnResult {
 }
 
 export interface EngineDeps {
-  caller: ModelCaller;
+  caller: ModelCallerPort;
   store: SessionStore;
   prompts: PromptSource;
   recall: RecallSource;

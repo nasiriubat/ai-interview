@@ -237,3 +237,30 @@ function mergeDefined<T extends object>(base: T, patch: object): T {
   for (const [k, v] of Object.entries(patch)) if (v !== undefined) out[k] = v;
   return out as T;
 }
+
+/**
+ * What a whole-state write must not undo.
+ *
+ * Three writers share one state document: the turn (coverage, counters, spec facts), the summary
+ * job (`summaryUpToSeq`) and the extraction job (`facts`, `lastExtractedSeq`). The jobs are
+ * published by the same turn and run while the participant is already answering the next
+ * question, so a turn that started from an older snapshot routinely finishes after a job has
+ * committed. Writing its stale state back would move both cursors backwards, which re-runs
+ * extraction over messages already extracted and duplicates their facts.
+ *
+ * Both cursors only ever grow, so the larger value is always the right one. When the stored
+ * extraction cursor is ahead, the incoming document is also missing the facts that run added, so
+ * they are kept alongside whatever the incoming document added itself.
+ */
+export function reconcileBackgroundProgress(stored: SessionState, incoming: SessionState): SessionState {
+  const summaryUpToSeq = Math.max(stored.summaryUpToSeq, incoming.summaryUpToSeq);
+  if (stored.lastExtractedSeq <= incoming.lastExtractedSeq) return { ...incoming, summaryUpToSeq };
+  const known = new Set(stored.facts.map((f) => JSON.stringify(f)));
+  const added = incoming.facts.filter((f) => !known.has(JSON.stringify(f)));
+  return {
+    ...incoming,
+    summaryUpToSeq,
+    lastExtractedSeq: stored.lastExtractedSeq,
+    facts: [...stored.facts, ...added],
+  };
+}
