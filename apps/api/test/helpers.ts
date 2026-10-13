@@ -256,7 +256,7 @@ async function appRoleClient(owner: PrismaClient): Promise<PrismaClient> {
     asApp.password = APP_ROLE_PASSWORD;
     const client = new PrismaClient({ datasources: { db: { url: asApp.toString() } } });
     await client.$queryRawUnsafe("SELECT 1");
-    return withTenantScope(client) as unknown as PrismaClient;
+    return withTenantScope(client);
   } catch {
     return owner;
   }

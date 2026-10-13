@@ -10,6 +10,7 @@ import {
   FindingSchema,
   HandoffSchema,
   InterviewTemplateSchema,
+  listEnvelope,
   LiveSectionSchema as SharedLiveSectionSchema,
   ModalitySchema,
   ModelInfoSchema,
@@ -67,11 +68,25 @@ export interface Paged<T> {
   offset: number | null;
 }
 
+/**
+ * The contract 19 envelope is declared once, in `@aidp/shared` (`listEnvelope`), and is what the
+ * API answers with. This function only adds the tolerance an older API needs: a bare array, or a
+ * generic `items`/`rows`/`data` key, or counters it did not send.
+ */
 function pageEnvelope(raw: unknown, key?: string): unknown {
   const empty = { total: null, limit: null, offset: null };
   if (Array.isArray(raw)) return { items: raw, ...empty };
   if (raw && typeof raw === "object") {
     const obj = raw as Record<string, unknown>;
+    if (key) {
+      // Rows are checked by the caller's item schema afterwards; parsing them here too would run
+      // a schema with transforms twice.
+      const strict = listEnvelope(key, z.unknown()).safeParse(raw);
+      if (strict.success) {
+        const { total, limit, offset } = strict.data;
+        return { items: obj[key], total, limit, offset };
+      }
+    }
     for (const k of [key, "items", "rows", "entries", "data"]) {
       const candidate = k ? obj[k] : undefined;
       if (Array.isArray(candidate)) {

@@ -129,8 +129,8 @@ async function setTenant(client: RawCapable, companyId: string): Promise<void> {
  * Pairs every query with the tenant setting, in one transaction so they share a connection.
  * Applied once where the client is constructed; call sites are unchanged.
  */
-export function withTenantScope(base: PrismaClient): TenantScopedClient {
-  return base.$extends({
+export function withTenantScope(base: PrismaClient): TenantPrismaClient {
+  const scoped = base.$extends({
     query: {
       async $allOperations({ args, query }): Promise<unknown> {
         const store = storage.getStore();
@@ -145,6 +145,17 @@ export function withTenantScope(base: PrismaClient): TenantScopedClient {
       },
     },
   });
+  // The one place the extended client is given back its familiar shape. The extension only wraps
+  // `query`; it adds no model, no method and no result field, so every call site type-checks
+  // against `PrismaClient` exactly as before. Inference of `$extends` is too deep to name, which
+  // is why this is a double cast, and why it is allow-listed (scripts/cast-allowlist.json).
+  return scoped as unknown as TenantPrismaClient;
 }
 
-export type TenantScopedClient = ReturnType<PrismaClient["$extends"]>;
+/**
+ * The client every application process holds: a `PrismaClient` whose statements are paired with
+ * the tenant setting that row-level security reads (see `withTenantScope`). Obtain one only from
+ * `withTenantScope`; production entry points (API, worker) and integration tests do, so no
+ * `as PrismaClient` is needed at the edges. Per-company filtering on top is `forCompany`.
+ */
+export type TenantPrismaClient = PrismaClient;
