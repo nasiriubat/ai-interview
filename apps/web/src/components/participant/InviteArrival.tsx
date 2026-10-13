@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { t } from "@/i18n";
 import { participantClient } from "@/lib/api/browser";
-import { errorMessage } from "@/lib/api/errors";
+import { participantErrorText } from "@/lib/api/errors";
 import type { ParticipantApi } from "@/lib/api/participant";
 import type { InviteArrival as InviteInfo } from "@/lib/api/schemas";
 
@@ -62,7 +62,7 @@ export function InviteArrival({
     try {
       await fn();
     } catch (e) {
-      setError(errorMessage(e, t.app.unknownError));
+      setError(participantErrorText(e, "arrival"));
     } finally {
       setBusy(false);
     }

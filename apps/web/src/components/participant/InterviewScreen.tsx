@@ -23,7 +23,7 @@ import { useSpeech } from "@/hooks/useSpeech";
 import { t } from "@/i18n";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { participantClient } from "@/lib/api/browser";
-import { errorMessage } from "@/lib/api/errors";
+import { participantErrorFor, participantErrorText } from "@/lib/api/errors";
 import type { ParticipantApi } from "@/lib/api/participant";
 import type { ModePreference, ParticipantSession, ProgressArea } from "@/lib/api/schemas";
 
@@ -152,7 +152,7 @@ export function InterviewScreen({
     try {
       await fn();
     } catch (e) {
-      setActionError(errorMessage(e, t.app.unknownError));
+      setActionError(participantErrorText(e, "interview"));
     } finally {
       setBusy(false);
     }
@@ -326,7 +326,7 @@ export function InterviewScreen({
                         ? t.participant.session.errorProviderBody
                         : isExpired
                           ? t.participant.session.errorExpiredBody
-                          : state.error.message || t.app.unknownError}
+                          : participantErrorFor(state.error.code, "interview")}
                 </p>
                 {!isBudget && !isExpired ? (
                   <div className="flex gap-2">

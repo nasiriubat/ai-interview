@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { t } from "@/i18n";
 import { participantClient } from "@/lib/api/browser";
-import { errorMessage, isApiError } from "@/lib/api/errors";
+import { isApiError, participantErrorText } from "@/lib/api/errors";
 import type { ParticipantApi } from "@/lib/api/participant";
 import type { PublicCampaign } from "@/lib/api/schemas";
 
@@ -114,7 +114,7 @@ export function ArrivalFlow({
     try {
       await fn();
     } catch (e) {
-      setError(errorMessage(e, t.app.unknownError));
+      setError(participantErrorText(e, "arrival"));
     } finally {
       setBusy(false);
     }
@@ -161,7 +161,7 @@ export function ArrivalFlow({
       } catch (e) {
         if (isApiError(e) && (e.status === 400 || e.status === 401 || e.status === 403)) {
           // A wrong code belongs to the code field; a refused domain belongs to the address.
-          if (e.code === "domain_not_allowed") throw new Error(t.participant.verify.domainNotAllowed);
+          if (e.code === "domain_not_allowed") throw e;
           setFieldErrors({ code: t.participant.verify.invalidCode });
           requestFocus("code");
           return;

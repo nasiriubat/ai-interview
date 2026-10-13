@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
-import { errorMessage } from "@/lib/api/errors";
+import { participantErrorText } from "@/lib/api/errors";
 import type { ParticipantApi } from "@/lib/api/participant";
 
 function factLine(f: Fact): string {
@@ -76,7 +76,7 @@ export function SummaryView({
       await api.putSummary(summary);
       setSaved(true);
     } catch (e) {
-      setError(errorMessage(e, t.app.unknownError));
+      setError(participantErrorText(e, "summary"));
     } finally {
       setSaving(false);
     }
