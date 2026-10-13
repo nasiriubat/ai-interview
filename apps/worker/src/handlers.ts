@@ -1,14 +1,25 @@
-import { extractFacts, updateRollingSummary, type Logger } from "@aidp/ai";
+import {
+  extractFacts,
+  updateRollingSummary,
+  type Logger,
+  type PromptSource,
+  type SessionSnapshot,
+  type SessionStore,
+} from "@aidp/ai";
 import {
   AnalysisService,
   AttachmentService,
+  EMAIL_OUTBOX_RETENTION_MS,
+  PrismaEmailOutbox,
   PrismaPromptSource,
   PrismaSessionStore,
   RequirementsService,
   deleteSessionData,
   runRetentionSweep,
+  sendOnce,
   type CallerFactory,
   type Crypto,
+  type EmailOutbox,
   type EmailPort,
   type JobName,
   type JobPayload,
@@ -30,7 +41,18 @@ export interface HandlerDeps {
   publicWebUrl: string;
   /** Where uploaded audio and documents live; the worker reads what the API wrote. */
   storage: StoragePort;
+  /** What has been sent, by idempotency key. Defaults to the Postgres table; tests pass memory. */
+  outbox?: EmailOutbox;
+  /** Where session state lives. Defaults to Prisma; tests pass `MemorySessionStore`. */
+  sessions?: JobSessionStore;
+  /** Where prompts come from. Defaults to the tenant-aware Prisma source. */
+  prompts?: PromptSource;
 }
+
+/** The session store a job needs: the engine's port plus loading a snapshot with its status. */
+export type JobSessionStore = SessionStore & {
+  snapshot(sessionId: string): Promise<SessionSnapshot & { status: string }>;
+};
 
 /**
  * Job handlers (spec 12, NFR-09). Each is idempotent: the engine records the sequence it
@@ -54,8 +76,9 @@ const scoped = <P>(handler: (payload: P) => Promise<void>) => {
 };
 
 export function handlers(deps: HandlerDeps): Handlers {
-  const store = new PrismaSessionStore(deps.db);
-  const prompts = new PrismaPromptSource(deps.db);
+  const store: JobSessionStore = deps.sessions ?? new PrismaSessionStore(deps.db);
+  const outbox = deps.outbox ?? new PrismaEmailOutbox(deps.db);
+  const prompts = deps.prompts ?? new PrismaPromptSource(deps.db);
   const analysis = new AnalysisService({
     db: deps.db,
     callers: deps.callers,
@@ -105,13 +128,28 @@ export function handlers(deps: HandlerDeps): Handlers {
       },
     ),
 
+    /**
+     * Send-once: the queue retries a job whose acknowledgement failed, and without the outbox
+     * that is a second email. A retry that finds the message already sent does nothing; one that
+     * finds another attempt in flight throws, so the queue tries again later. The log carries the
+     * key, never the address.
+     */
     "email.send": scoped(async (m: JobPayload<"email.send">): Promise<void> => {
-      await deps.email.send({
-        to: m.to,
-        subject: m.subject,
-        text: m.text,
-        ...(m.html ? { html: m.html } : {}),
-        ...(m.companyId ? { companyId: m.companyId } : {}),
+      const outcome = await sendOnce(
+        outbox,
+        deps.email,
+        m.idempotencyKey,
+        {
+          to: m.to,
+          subject: m.subject,
+          text: m.text,
+          ...(m.html ? { html: m.html } : {}),
+          ...(m.companyId ? { companyId: m.companyId } : {}),
+        },
+        m.companyId ? { companyId: m.companyId } : {},
+      );
+      deps.log.info(outcome === "sent" ? "email sent" : "email already sent; skipped", {
+        key: m.idempotencyKey,
       });
     }),
 
@@ -163,7 +201,17 @@ export function handlers(deps: HandlerDeps): Handlers {
         storage: deps.storage,
       });
       const deleted = sweeps.reduce((n, s) => n + s.deleted, 0);
-      deps.log.info("retention sweep finished", { tenants: sweeps.length, deleted });
+      const orphans = sweeps.reduce((n, s) => n + s.orphansCollected, 0);
+      const bytesFailed = sweeps.reduce((n, s) => n + s.bytesFailed, 0);
+      // The send-once rows only need to outlive the queue's retries; a month is generous.
+      const emailsPruned = await outbox.prune(new Date(Date.now() - EMAIL_OUTBOX_RETENTION_MS));
+      deps.log.info("retention sweep finished", {
+        tenants: sweeps.length,
+        deleted,
+        orphans,
+        bytesFailed,
+        emailsPruned,
+      });
     }),
 
     /** Expired Auth.js sign-in tokens (spec 11). Nothing references them once they lapse. */

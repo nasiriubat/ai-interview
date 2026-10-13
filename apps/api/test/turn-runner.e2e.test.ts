@@ -306,4 +306,23 @@ describeDb("turn runner: errors, disconnect, lock heartbeat", () => {
     await run(sessionId, fastifyReply);
     expect(parseSse(raw.chunks.join("")).at(-1)?.event).toBe("turn");
   });
+
+  // Last on purpose: the shutdown signal is one-way for the life of the context.
+  it("tells a turn still streaming when the process drains to retry, with a shutting_down error", async () => {
+    const sessionId = await newSession();
+    model.next = [{ kind: "hold" }];
+    const seen = arrival();
+    const { reply: fastifyReply, raw } = fakeReply();
+
+    const done = run(sessionId, fastifyReply);
+    await seen;
+    world.ctx.shutdown.abort();
+    await done;
+
+    const events = parseSse(raw.chunks.join(""));
+    expect(events.map((e) => e.event)).toEqual(["error"]);
+    expect(events[0]?.data).toMatchObject({ code: "shutting_down" });
+    await until(() => model.closedByClient === 1);
+    expect(await lockOf(sessionId)).toBeNull();
+  });
 });

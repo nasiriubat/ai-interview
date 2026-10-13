@@ -31,12 +31,14 @@ async function backlog(store: MemorySessionStore): Promise<void> {
   }
 }
 
-const run = (store: MemorySessionStore, model: ScriptedModel) =>
-  extractFacts({ caller: model, store, prompts: new ShippedPromptSource() }, store.snapshot(template));
+const newStore = () => new MemorySessionStore({ template });
+
+const run = async (store: MemorySessionStore, model: ScriptedModel) =>
+  extractFacts({ caller: model, store, prompts: new ShippedPromptSource() }, await store.snapshot());
 
 describe("session.extract commits per batch (D-100)", () => {
   it("writes state, rows and event together and stamps the prompt's own version", async () => {
-    const store = new MemorySessionStore();
+    const store = newStore();
     await backlog(store);
     const model = new ScriptedModel([reply("a", "b"), reply("c"), reply("d")]);
 
@@ -59,7 +61,7 @@ describe("session.extract commits per batch (D-100)", () => {
   });
 
   it("a rerun after success adds nothing: no duplicate rows, no duplicate facts", async () => {
-    const store = new MemorySessionStore();
+    const store = newStore();
     await backlog(store);
     await run(store, new ScriptedModel([reply("a"), reply("b"), reply("c")]));
     const again = new ScriptedModel([reply("a"), reply("b"), reply("c")]);
@@ -72,7 +74,7 @@ describe("session.extract commits per batch (D-100)", () => {
   });
 
   it("a failure injected between the state write and the row write rolls both back, and the retry loses nothing", async () => {
-    const store = new MemorySessionStore();
+    const store = newStore();
     await backlog(store);
     store.failAt = "after_state";
 
@@ -90,7 +92,7 @@ describe("session.extract commits per batch (D-100)", () => {
   });
 
   it("a model failure on batch 2 of 3 leaves batch 1 durable and the retry resumes at batch 2", async () => {
-    const store = new MemorySessionStore();
+    const store = newStore();
     await backlog(store);
     const failing = new ScriptedModel([reply("a"), new Error("provider down")]);
 
@@ -107,10 +109,10 @@ describe("session.extract commits per batch (D-100)", () => {
   });
 
   it("an overlapping run that lost the race writes nothing and says so", async () => {
-    const store = new MemorySessionStore();
+    const store = newStore();
     await backlog(store);
     // Two runs read the same snapshot; the first commits, the second's compare-and-set fails.
-    const snap = store.snapshot(template);
+    const snap = await store.snapshot();
     const first = new ScriptedModel([reply("a"), reply("b"), reply("c")]);
     await extractFacts({ caller: first, store, prompts: new ShippedPromptSource() }, snap);
     const second = await extractFacts(
@@ -124,7 +126,7 @@ describe("session.extract commits per batch (D-100)", () => {
   });
 
   it("a session deleted mid-run is not resurrected", async () => {
-    const store = new MemorySessionStore();
+    const store = newStore();
     await backlog(store);
     store.status = "deleted";
 
@@ -138,7 +140,7 @@ describe("session.extract commits per batch (D-100)", () => {
     "property: a failure at %s in any batch never leaves state facts and rows disagreeing",
     async (point) => {
       for (const failingBatch of [0, 1, 2]) {
-        const store = new MemorySessionStore();
+        const store = newStore();
         await backlog(store);
         // Fail the commit of batch `failingBatch` by arming the hook when that batch is reached.
         const armed = new ScriptedModel([reply("a"), reply("b"), reply("c")]);

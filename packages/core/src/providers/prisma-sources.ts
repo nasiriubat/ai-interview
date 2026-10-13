@@ -120,7 +120,9 @@ export class PrismaProbeGuard implements ProbeGuard {
 
   async check(companyId: string, at: Date): Promise<void> {
     const since = new Date(at.getTime() - 24 * 60 * 60 * 1000);
-    const used = await this.db.llmCall.count({ where: { companyId, purpose: "probe", createdAt: { gte: since } } });
+    const used = await this.db.llmCall.count({
+      where: { companyId, purpose: "probe", createdAt: { gte: since } },
+    });
     if (used >= this.limitPerDay) throw new ProbeLimitError(this.limitPerDay);
   }
 }

@@ -21,11 +21,26 @@ async function main(): Promise<void> {
     },
   });
   await jobs.start();
-  const app = await buildApp(buildContext({ config, db, log, jobs }));
+  const ctx = buildContext({ config, db, log, jobs });
+  const app = await buildApp(ctx);
 
+  let stopping = false;
   const shutdown = async (signal: string): Promise<void> => {
-    log.info({ signal }, "shutting down");
+    if (stopping) {
+      log.warn({ signal }, "second signal during shutdown; exiting now");
+      process.exit(1);
+    }
+    stopping = true;
+    log.info({ signal, drainSeconds: config.API_SHUTDOWN_DRAIN_SECONDS }, "shutting down");
+    // `app.close()` stops accepting and waits for open responses, which includes turns that are
+    // still streaming. They get the drain period to finish; after it the stragglers are aborted
+    // and told to retry, so close() can complete inside the container's stop grace period.
+    const drain = setTimeout(() => {
+      ctx.shutdown.abort();
+    }, config.API_SHUTDOWN_DRAIN_SECONDS * 1000);
+    drain.unref();
     await app.close();
+    clearTimeout(drain);
     await jobs.stop();
     await db.$disconnect();
     await telemetry?.shutdown();

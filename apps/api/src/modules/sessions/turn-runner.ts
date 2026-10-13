@@ -272,7 +272,11 @@ export async function runTurn(
     if (!reply.raw.writableEnded) gone.abort();
   };
   reply.raw.on("close", onClose);
-  const signal = options?.signal ? AbortSignal.any([options.signal, gone.signal]) : gone.signal;
+  const signal = AbortSignal.any([
+    gone.signal,
+    ctx.shutdown.signal,
+    ...(options?.signal ? [options.signal] : []),
+  ]);
   const stream = streamTurn(ctx, sessionId, answer, { ...options, signal });
   let first: IteratorResult<TurnEvent, void>;
   try {
@@ -292,10 +296,26 @@ export async function runTurn(
     reply.raw.write(`event: ${item.event}\ndata: ${JSON.stringify(item.data)}\n\n`);
   };
 
+  // Whether the client has been told how this turn ended. A turn aborted by the process draining
+  // has not, and must be told to retry rather than left with a stream that just stops.
+  let concluded = false;
+  const sendTracked = (item: TurnEvent): void => {
+    send(item);
+    if (item.event === "turn" || item.event === "ended" || item.event === "error") concluded = true;
+  };
   try {
     if (!first.done) {
-      send(first.value);
-      for await (const item of stream) send(item);
+      sendTracked(first.value);
+      for await (const item of stream) sendTracked(item);
+    }
+    if (!concluded && ctx.shutdown.signal.aborted && !gone.signal.aborted) {
+      send({
+        event: "error",
+        data: {
+          code: "shutting_down",
+          message: "The service is restarting. Your answer is saved; try again in a moment.",
+        },
+      });
     }
   } catch (err) {
     // The generator reports its own failures as an `error` event. What reaches here is the
