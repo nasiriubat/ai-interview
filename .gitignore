@@ -10,3 +10,6 @@ coverage/
 
 # Browser-tool snapshots
 .playwright-mcp/
+
+# Written by `pnpm check`: whether the last run had a database
+.check-state.json

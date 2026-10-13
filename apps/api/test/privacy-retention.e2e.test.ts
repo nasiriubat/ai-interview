@@ -1,10 +1,11 @@
 import type { Server } from "node:http";
 import { RETENTION_SWEEP_ACTION } from "@aidp/core";
+import { describeDb } from "@aidp/testing";
 import { encode } from "@auth/core/jwt";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { fakeModelServer, testWorld, type TestWorld } from "./helpers.js";
 
-const suite = process.env.DATABASE_URL ? describe : describe.skip;
+const suite = describeDb;
 
 const monthsAgo = (n: number): Date => {
   const d = new Date();

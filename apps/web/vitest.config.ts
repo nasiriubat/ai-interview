@@ -15,7 +15,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["test/**/*.test.{ts,tsx}"],
-    setupFiles: ["./vitest.setup.ts"],
+    setupFiles: ["./vitest.setup.ts", "../../packages/testing/src/network-guard.ts"],
     css: false,
   },
 });
