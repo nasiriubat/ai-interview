@@ -170,6 +170,16 @@ describe("participant errors in Finnish, in three parts", () => {
     );
   });
 
+  it("tells a participant a full server disk is not their fault, in both languages (D-283)", () => {
+    expect(participantErrorFor("storage_full", "interview")).toBe(
+      "Palvelu ei voi juuri nyt tallentaa tiedostoja. Vastaa toistaiseksi kirjoittamalla tai yritä tiedostoa myöhemmin uudelleen. Vastauksesi ovat tallessa.",
+    );
+    setClientLocale("en");
+    expect(participantErrorFor("storage_full", "interview")).toMatch(
+      /cannot store files right now.*Answer in writing/,
+    );
+  });
+
   it("falls back to the server wording for a code it does not know", () => {
     expect(participantErrorFor("something_new", "interview")).toMatch(/meidän päässämme/);
   });

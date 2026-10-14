@@ -40,6 +40,8 @@ function uploadMessage(e: unknown): string {
   switch (e.code) {
     case "too_large":
       return s.attachTooLarge;
+    case "storage_full":
+      return s.attachStorageFull;
     case "forbidden":
       return s.attachForbidden;
     case "validation":

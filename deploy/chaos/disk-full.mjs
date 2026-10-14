@@ -80,6 +80,12 @@ await scenario("disk-full", async () => {
       body.slice(0, 120),
     );
 
+    check(
+      "and the code says what happened: storage_full (507), which the web app words in en and fi (D-283)",
+      res.status === 507 && /"code"\s*:\s*"storage_full"/.test(body),
+      `${res.status}`,
+    );
+
     const next = await turn(p, "I could not attach the file, so I will describe it: we keep a paper board.");
     check("the interview itself carries on in text", !next.error && next.message, next.error?.code);
     const view = await transcript(p);

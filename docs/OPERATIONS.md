@@ -314,7 +314,9 @@ the previous backups as good until a drill has passed against one of them.
 
 **Symptom** The disk holding the database, the uploads and the backups is above 80 percent
 (warning) or 90 (critical). At 100 Postgres stops accepting writes and the API returns 500s while
-every container still looks fine.
+every container still looks fine. An upload that does not fit is answered `507 storage_full`, which
+the participant sees as "the service cannot store files right now" (en and fi) with their answers
+kept; the interview carries on in writing. This alert is how you learn of it.
 
 **Look at** `df -h /`, `docker system df`, `deploy/dc exec -T backup du -sh /backups`.
 
