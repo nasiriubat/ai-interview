@@ -1,6 +1,6 @@
 import { SessionStateSchema } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
-import { BudgetExceededError } from "../../src/callModel.js";
+import { BudgetExceededError } from "../../src/cost/budget.js";
 import { ShippedPromptSource } from "../../src/engine/prompts/index.js";
 import { fallbackRecap, generateRecap, recapFacts, recapIsCurrent } from "../../src/engine/recap.js";
 import { ScriptedCaller, settings, snapshot, template } from "./helpers.js";
