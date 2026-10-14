@@ -92,9 +92,14 @@ const schema = z.object({
 
 export function UiGallery(): React.JSX.Element {
   const [confirm, setConfirm] = React.useState<"plain" | "typed" | null>(null);
+  const initial: { name: string; days: number | ""; notes: string } = {
+    name: "Ward round",
+    days: 30,
+    notes: "",
+  };
   const form = useForm({
     id: "gallery",
-    initial: { name: "Ward round", days: 30, notes: "" },
+    initial,
     schema,
     labels: { name: "Name", days: "Retention", notes: "Notes" },
     onSubmit: async () => {

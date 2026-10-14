@@ -33,9 +33,10 @@ function Demo({
 }: {
   onSubmit: (v: { name: string; days: number | "" }) => Promise<void>;
 }): React.JSX.Element {
+  const initial: { name: string; days: number | "" } = { name: "Ward", days: 30 };
   const form = useForm({
     id: "demo",
-    initial: { name: "Ward", days: 30 },
+    initial,
     schema,
     labels: { name: "Name", days: "Days" },
     onSubmit,
