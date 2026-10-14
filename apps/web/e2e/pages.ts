@@ -71,9 +71,15 @@ const click = async (page: Page, name: RegExp | string): Promise<void> => {
   await page.getByRole("button", { name }).first().click();
 };
 
-/** The third item of the mode switch is Voice (chat, options, voice); the last when options is off. */
-async function openVoiceMode(page: Page): Promise<void> {
-  await page.locator("[data-mode-switch] > *").last().click();
+/** Starts the live call with the composer's Talk button (D-421: there is no mode to switch). */
+async function startCall(page: Page): Promise<void> {
+  await page.getByRole("button", { name: /^(Talk|Puhu)$/ }).click();
+}
+
+/** Records with the composer's microphone and leaves the recorder open. */
+async function startRecording(page: Page): Promise<void> {
+  await page.getByRole("button", { name: /record your answer|nauhoita vastauksesi/i }).click();
+  await page.getByRole("timer").waitFor();
 }
 
 /** Microphone permission granted; the browser's fake device supplies the audio. */
@@ -155,7 +161,7 @@ export const PAGES: Entry[] = [
   },
   publicPage("arrival", `/p/${LINK_TOKEN}`, "app/p/[linkToken]/page.tsx"),
   publicPage("arrival-details", `/p/${LINK_TOKEN}`, "app/p/[linkToken]/page.tsx", async (page) => {
-    await click(page, /./);
+    await click(page, /^(continue|jatka)/i);
     await page.getByRole("heading", { level: 1 }).waitFor();
   }),
   publicPage("invited-arrival", "/p/r/invite-token", "app/p/r/[token]/page.tsx"),
@@ -187,7 +193,16 @@ export const PAGES: Entry[] = [
     route: "app/p/session/page.tsx",
     auth: "participant",
     before: allowMicrophone,
-    prepare: openVoiceMode,
+    prepare: startRecording,
+  },
+  // The owner's report (D-423): eight spoken answers in a long interview. Nothing may stack up
+  // above the composer.
+  {
+    id: "interview-voices",
+    path: "/p/session",
+    route: "app/p/session/page.tsx",
+    auth: "participant",
+    token: "voices",
   },
   {
     id: "interview-voice-denied",
@@ -198,7 +213,6 @@ export const PAGES: Entry[] = [
       await refuseMicrophone(page);
     },
     prepare: async (page: Page): Promise<void> => {
-      await openVoiceMode(page);
       await page.getByRole("button", { name: /record your answer|nauhoita vastauksesi/i }).click();
       await page
         .getByText(/Microphone access was blocked|Mikrofonin käyttö estettiin/)
@@ -217,7 +231,7 @@ export const PAGES: Entry[] = [
       await standInCallSocket(page);
     },
     prepare: async (page: Page): Promise<void> => {
-      await openVoiceMode(page);
+      await startCall(page);
       // The call is up when the mute control of a call exists.
       await page
         .getByRole("button", { name: /mute microphone|mykistä mikrofoni/i })

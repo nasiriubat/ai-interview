@@ -4,7 +4,7 @@
  *
  *   BASE=http://localhost:3470 OUT=/tmp/shots pnpm exec tsx scripts/review-shots.ts
  *
- * Optional: ONLY=regex on the state name, WIDTHS=360,390,768,1280,1920, THEMES=light,dark,
+ * Optional: ONLY=regex on the state name, WIDTHS=390,768,1024,1440,1920,2560, THEMES=light,dark,
  * LOCALES=en,fi. The target must be a server pointed at the fake API (`e2e/fake-api.ts`), which
  * picks the interview variant from a word in the participant token.
  */
@@ -16,7 +16,7 @@ import { encode } from "next-auth/jwt";
 const BASE = process.env.BASE ?? "http://localhost:3470";
 const OUT = process.env.OUT ?? "/tmp/shots";
 const SECRET = process.env.AUTH_SECRET ?? "e2e-auth-secret-e2e-auth-secret-0123456789";
-const WIDTHS = (process.env.WIDTHS ?? "360,768,1280").split(",").map(Number);
+const WIDTHS = (process.env.WIDTHS ?? "390,768,1024,1440,1920,2560").split(",").map(Number);
 const THEMES = (process.env.THEMES ?? "light,dark").split(",");
 const LOCALES = (process.env.LOCALES ?? "en").split(",");
 const ONLY = process.env.ONLY ? new RegExp(process.env.ONLY) : null;
@@ -33,6 +33,14 @@ interface State {
 
 const LINK = "e2e-link-token-open";
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+/** Phones are tall and narrow; the rest follow the screens people actually have. */
+const HEIGHTS: Record<number, number> = { 390: 844, 768: 1024, 1024: 768, 1440: 900, 1920: 1080, 2560: 1440 };
+/** Starts the live call: the Talk button, or the old mode switch on a build that still has it. */
+const startLive = async (page: Page): Promise<void> => {
+  const talk = page.getByRole("button", { name: /^(Talk|Puhu)$/ });
+  if (await talk.count()) await talk.first().click();
+  else await page.locator("[data-mode-switch] > *").last().click();
+};
 const clickName = async (page: Page, name: RegExp): Promise<void> => {
   await page.getByRole("button", { name }).first().click();
 };
@@ -43,7 +51,7 @@ const STATES: State[] = [
     name: "arrival-details",
     path: `/p/${LINK}`,
     prepare: async (p) => {
-      await clickName(p, /./);
+      await clickName(p, /^(continue|jatka)/i);
       await sleep(300);
     },
   },
@@ -53,7 +61,75 @@ const STATES: State[] = [
   { name: "link-missing", path: "/p/missing-link" },
   { name: "no-session", path: "/p/session" },
   { name: "chat", path: "/p/session", auth: "participant" },
-  { name: "chat-long", path: "/p/session", auth: "participant", token: "long", full: true },
+  { name: "chat-long", path: "/p/session", auth: "participant", token: "long" },
+  { name: "chat-voices", path: "/p/session", auth: "participant", token: "voices" },
+  {
+    name: "chat-voices-scrolled",
+    path: "/p/session",
+    auth: "participant",
+    token: "voices",
+    prepare: async (p) => {
+      await p.locator("[data-chat-scroller]").evaluate((el) => {
+        el.scrollTop = 0;
+      });
+      await sleep(400);
+    },
+  },
+  {
+    name: "chat-streaming",
+    path: "/p/session",
+    auth: "participant",
+    before: async (p) => {
+      // A reply that has begun and not finished: text arrives and the stream stays open.
+      await p.addInitScript(() => {
+        const real = window.fetch.bind(window);
+        window.fetch = (input, init) => {
+          const url =
+            typeof input === "string" ? input : input instanceof Request ? input.url : String(input);
+          if (init?.method === "POST" && url.includes("/session/turns")) {
+            const enc = new TextEncoder();
+            return Promise.resolve(
+              new Response(
+                new ReadableStream({
+                  start(c) {
+                    c.enqueue(
+                      enc.encode(
+                        'event: text\ndata: {"delta":"Thanks, that helps. When the records disagree, who is the first person to notice, and what do they usually do next?"}\n\n',
+                      ),
+                    );
+                  },
+                }),
+                { headers: { "content-type": "text/event-stream" } },
+              ),
+            );
+          }
+          return real(input, init);
+        };
+      });
+    },
+    prepare: async (p) => {
+      await p.getByRole("textbox").first().fill("Mostly handover and charting, to be honest.");
+      await p.keyboard.press("Enter");
+      await sleep(900);
+    },
+  },
+  {
+    name: "consent",
+    path: `/p/${LINK}`,
+    prepare: async (p) => {
+      await clickName(p, /continue|jatka|start|aloita/i);
+      await sleep(500);
+      await p.getByRole("textbox").first().fill("Ward nurse");
+      await clickName(p, /continue|jatka/i);
+      await sleep(500);
+    },
+  },
+  {
+    name: "chat-live",
+    path: "/p/session",
+    auth: "participant",
+    token: "live",
+  },
   {
     name: "chat-menu",
     path: "/p/session",
@@ -150,8 +226,8 @@ const STATES: State[] = [
       await c.grantPermissions(["microphone"]);
     },
     prepare: async (p) => {
-      await p.locator("[data-mode-switch] > *").last().click();
-      await sleep(400);
+      await clickName(p, /record your answer|nauhoita vastauksesi/i);
+      await sleep(900);
     },
   },
   {
@@ -166,7 +242,6 @@ const STATES: State[] = [
       });
     },
     prepare: async (p) => {
-      await p.locator("[data-mode-switch] > *").last().click();
       await clickName(p, /record your answer|nauhoita vastauksesi/i);
       await sleep(600);
     },
@@ -192,7 +267,7 @@ const STATES: State[] = [
       });
     },
     prepare: async (p) => {
-      await p.locator("[data-mode-switch] > *").last().click();
+      await startLive(p);
       await sleep(1500);
     },
   },
@@ -260,7 +335,7 @@ for (const locale of LOCALES) {
       for (const s of STATES) {
         if (ONLY && !ONLY.test(s.name)) continue;
         const context = await browser.newContext({
-          viewport: { width, height: width < 600 ? 780 : 900 },
+          viewport: { width, height: HEIGHTS[width] ?? 900 },
           locale: locale === "fi" ? "fi-FI" : "en-GB",
           colorScheme: theme === "dark" ? "dark" : "light",
         });

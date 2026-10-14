@@ -32,6 +32,7 @@
     ".next/types/**/*.ts",
     "e2e",
     "scripts",
+    "demo",
     "playwright.config.ts"
   ],
   "exclude": ["node_modules"]

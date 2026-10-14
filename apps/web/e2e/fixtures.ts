@@ -433,6 +433,7 @@ export const participantSession = {
     allowedTypes: ["application/pdf"],
   },
   attachments: [],
+  about: { name: "Ward round, Q4", purpose: "We want to understand how work really happens on your ward." },
   summary: null,
   recap: { text: "You covered your role. Next is a normal day.", source: "fallback" },
 };
