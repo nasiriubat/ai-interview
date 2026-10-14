@@ -15,7 +15,11 @@
     "retired": true
   },
   "extraction@3": {
-    "sha256": "49b33a48b6175281f4b8f8f54e34f50856b838588a453ef21da118e2d28ee15f"
+    "sha256": "49b33a48b6175281f4b8f8f54e34f50856b838588a453ef21da118e2d28ee15f",
+    "retired": true
+  },
+  "extraction@4": {
+    "sha256": "e8cc1c20f1099b79f2998681bc9a4556a1cbdf2b5f8455850ebf7e698d4e8abf"
   },
   "file_summary@1": {
     "sha256": "b3cdcbd9a5d30268a756882fb41c08a996e9b24b875a88c2e072ba448a031b57",
@@ -40,7 +44,11 @@
     "retired": true
   },
   "interviewer@6": {
-    "sha256": "30c43ecc652e7ecb271eb89a85e842b699da4ba54596e43a73b2751bee219298"
+    "sha256": "30c43ecc652e7ecb271eb89a85e842b699da4ba54596e43a73b2751bee219298",
+    "retired": true
+  },
+  "interviewer@7": {
+    "sha256": "63a3d409758d75c6446bf664f97cf26bd179a7e25b1cc95ab6baafe9bbfc336d"
   },
   "issues@2": {
     "sha256": "e4431e8aa06b088a08a5bb800cac7539fdecd03aa9442cd5cd7521c94c333ad1",
@@ -66,12 +74,19 @@
   "report@2": {
     "sha256": "07a85f0f5f20ee0dde75b39b2ddb50537568a862e5b4e1c92de62e43f9da127d"
   },
+  "requirement_merge@1": {
+    "sha256": "5c6487de45cd26af69a9cebeb757ffb7ed4359ffde452c0bfb1478b5c3dcddd4"
+  },
   "spec@1": {
     "sha256": "95d169c722fd76fff431e9aefff84e3661a3ee16e37aa43948b94875afc5f792",
     "retired": true
   },
   "spec@2": {
-    "sha256": "e429e5bb9310a881a8b89fb052e0850f2d281129f83b7029080711fc5e943b1d"
+    "sha256": "e429e5bb9310a881a8b89fb052e0850f2d281129f83b7029080711fc5e943b1d",
+    "retired": true
+  },
+  "spec@3": {
+    "sha256": "6e0169da1c8069f0d988f67d812d1dd02a2c7479ba171bb6fc20d6e1b0299ac8"
   },
   "summary@1": {
     "sha256": "3fcc36565737b993499ee82d412c4e28fc79b80c728b7c25a9aec87d4544fbd8",
@@ -85,6 +100,10 @@
     "retired": true
   },
   "turn_meta_repair@2": {
-    "sha256": "114623e0cf57775efa1203536d99ac6b20020a8ea591cb13a08faadfffca2e8b"
+    "sha256": "114623e0cf57775efa1203536d99ac6b20020a8ea591cb13a08faadfffca2e8b",
+    "retired": true
+  },
+  "turn_meta_repair@3": {
+    "sha256": "6f992da75bc6ce5a8ce11cdd2dd5e7f6f797cc4db5f15c302e46ae5e66f54e5f"
   }
 }

@@ -241,6 +241,12 @@ export const SpecRequirementSchema = z.object({
   acceptance: z.array(z.string()).default([]),
   reason: z.string().optional(),
   tracedTo: z.string().optional(),
+  /** The participant's own words this requirement rests on (D-240); absent when none was recorded. */
+  evidence: z.string().optional(),
+  /** True when no verified quote of the participant backs it: the owner is asked to confirm (D-243). */
+  needsConfirmation: z.boolean().optional(),
+  /** Ids of the near-duplicate requirements folded into this one (D-241). */
+  mergedFrom: z.array(z.string()).optional(),
 });
 export type SpecRequirement = z.infer<typeof SpecRequirementSchema>;
 

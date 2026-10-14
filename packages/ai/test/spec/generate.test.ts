@@ -142,7 +142,7 @@ describe("generateSpec", () => {
       future: 1,
       phases: 2,
       openFindings: 1,
-      promptVersions: ["spec@2"],
+      promptVersions: ["spec@3"],
       generated: "model",
     });
 

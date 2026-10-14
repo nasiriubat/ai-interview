@@ -144,12 +144,15 @@ describe("requirements interview (spec 05)", () => {
           facts: [fr("FR-1", "Single entry", "mvp", "core problem")],
         },
       }),
-      // turn 7: closing
-      turn("Is there anything else a developer would need?", {
-        areaKey: "closing",
+      // turn 7: the list is read back (D-244), through the finding flow
+      turn("Here is the list: 1. Single entry 2. Excel export. Is anything wrong or missing?", {
+        areaKey: "finding",
+        // The answer to the MVP question is filed on the turn that follows it.
         stateDelta: { facts: [fr("FR-2", "Excel export", "future", "nice to have")] },
       }),
-      // turn 8: summary
+      // turn 8: closing
+      turn("Is there anything else a developer would need?", { areaKey: "closing" }),
+      // turn 9: summary
       turn("Thanks, here is what we captured.", { areaKey: "summary", endInterview: true }),
     ]);
     const engine = new InterviewEngine({
@@ -219,6 +222,12 @@ describe("requirements interview (spec 05)", () => {
 
     s = { ...s, state: r.result.state };
     r = await run(engine, s, { content: "Nothing, that can wait", modality: "text" }, settings);
+    expect(r.focus).toMatchObject({ mode: "finding", pushBack: false });
+    expect(r.result.state.requirementsConfirmAsked).toBe(true);
+    expect(r.result.state.findings.at(-1)?.description).toContain("1. Single entry");
+
+    s = { ...s, state: r.result.state };
+    r = await run(engine, s, { content: "That list is right", modality: "text" }, settings);
     expect(r.focus).toEqual({ mode: "closing" });
     expect(r.result.state.mvpChallenge.done).toBe(true);
     const fr2 = r.result.state.facts.find((f) => f.kind === "spec_field" && f.path === "FR-2");
@@ -234,8 +243,11 @@ describe("requirements interview (spec 05)", () => {
     const kinds = store.events
       .filter((e) => e.type === "finding")
       .map((e) => (e.payload as { kind: string }).kind);
-    expect(kinds).toEqual(["detected", "raised", "outcome", "pushed_back", "outcome"]);
-    // Only one issue-detection call: no scan while a finding is in play, and the final scan runs once.
+    expect(kinds).toEqual(["detected", "raised", "outcome", "pushed_back", "outcome", "detected", "raised"]);
+    // The confirmation had no reported outcome: it is accepted as is, and never blocks the closing.
+    expect(r.result.state.findings.at(-1)).toMatchObject({ status: "accepted" });
+    // Only one issue-detection call: no scan while a finding is in play, and the final scan runs once
+    // (the confirmation is deterministic and makes no call).
     expect(caller.requests.filter((q) => q.purpose === "issue_detection")).toHaveLength(1);
     // The stable prefix never changed.
     expect(
