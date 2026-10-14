@@ -188,6 +188,7 @@ export class OpenAICompatibleProvider implements Provider {
         body: JSON.stringify(bodyFor(reasoning)),
         ...(req.signal ? { signal: req.signal } : {}),
         controller,
+        headersWithinMs: this.timeouts.firstTokenMs,
       });
     const reasoning = this.reasoningFields(model, req);
     let res: Response;
@@ -524,6 +525,14 @@ export class OpenAICompatibleProvider implements Provider {
       signal?: AbortSignal;
       /** Lets a stream guard cancel the connection it is watching. */
       controller?: AbortController;
+      /**
+       * How long the response HEADERS may take, when that is shorter than the ceiling: a stream's
+       * first-token deadline. The stream guard that enforces `firstTokenMs` only starts once the
+       * response exists, so a provider that accepts the request and says nothing was held to the
+       * two-minute ceiling instead of 20 s (found by the full-stack drill's provider-hang chaos
+       * script). The timer is cleared the moment the headers arrive, so it never cuts a body.
+       */
+      headersWithinMs?: number;
     },
   ): Promise<Response> {
     const { totalMs, maxRetries } = this.timeouts;
@@ -531,6 +540,16 @@ export class OpenAICompatibleProvider implements Provider {
       const signals = [AbortSignal.timeout(totalMs)];
       if (init.signal) signals.push(init.signal);
       if (init.controller) signals.push(init.controller.signal);
+      const headerWait = new AbortController();
+      let headerTimer: NodeJS.Timeout | undefined;
+      let headersTimedOut = false;
+      if (init.headersWithinMs !== undefined && init.headersWithinMs < totalMs) {
+        signals.push(headerWait.signal);
+        headerTimer = setTimeout(() => {
+          headersTimedOut = true;
+          headerWait.abort(new DOMException("no response headers in time", "TimeoutError"));
+        }, init.headersWithinMs);
+      }
       const signal = AbortSignal.any(signals);
       const retriesLeft = attempt <= maxRetries;
       let res: Response;
@@ -541,9 +560,13 @@ export class OpenAICompatibleProvider implements Provider {
           ...(init.body !== undefined ? { body: init.body } : {}),
           signal,
         });
+        if (headerTimer) clearTimeout(headerTimer);
       } catch (e) {
+        if (headerTimer) clearTimeout(headerTimer);
         if (init.signal?.aborted)
           throw new ProviderError(`Network error calling ${path}`, "network", true, e);
+        if (headersTimedOut && init.headersWithinMs !== undefined)
+          throw timeoutError("Model stream (first output)", init.headersWithinMs, e);
         // A call that has already used its whole ceiling is not run again inside this request:
         // that would turn a two-minute limit into six, in the middle of an interview turn. The
         // error is retryable, so the layer that owns retries (the job queue, the participant's

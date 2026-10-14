@@ -55,6 +55,9 @@ for (const [name, runs] of Object.entries(runsBy)) {
     startOffsetS: +((r.from - started) / 1000).toFixed(1),
     durationS: +((r.until - r.from) / 1000).toFixed(1),
   }));
-  out[name] = { runs: summary, outsideMaintenance: summary.filter((r) => r.code !== "200" && r.code !== "503-maintenance") };
+  out[name] = {
+    runs: summary,
+    outsideMaintenance: summary.filter((r) => r.code !== "200" && r.code !== "503-maintenance"),
+  };
 }
 console.log(JSON.stringify({ total, ...out }, null, 1));

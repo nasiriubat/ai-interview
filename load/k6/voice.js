@@ -23,7 +23,7 @@ const UTTERANCE_MS = Number(__ENV.VOICE_UTTERANCE_MS || 1200);
 function frame() {
   const buf = new ArrayBuffer(4800);
   const view = new DataView(buf);
-  for (let s = 0; s < 2400; s++) view.setInt16(s * 2, Math.round(Math.sin(s / 24 * Math.PI) * 800), true);
+  for (let s = 0; s < 2400; s++) view.setInt16(s * 2, Math.round(Math.sin((s / 24) * Math.PI) * 800), true);
   return buf;
 }
 
@@ -32,9 +32,13 @@ export function voiceSession() {
     voiceSessionErrors.add(1);
     return;
   }
-  http.post(`${BASE}/api/participant/p/session/mode`, JSON.stringify({ mode: "voice", reason: "participant" }), {
-    headers: { "Content-Type": "application/json" },
-  });
+  http.post(
+    `${BASE}/api/participant/p/session/mode`,
+    JSON.stringify({ mode: "voice", reason: "participant" }),
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
   const cookies = http.cookieJar().cookiesForURL(BASE);
   const cookie = Object.keys(cookies)
     .map((k) => `${k}=${cookies[k][0]}`)
