@@ -15,7 +15,7 @@ import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { enumFilter, isFiltered, statusFilter } from "@/lib/admin/toolbar";
-import { LISTS } from "@/lib/api/lists";
+import { LISTS, sortOf } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
@@ -60,7 +60,7 @@ export default async function TemplatesPage({ searchParams }: Props): Promise<Re
             (v) => t.admin.list.origins[v] ?? v,
           ),
         ]}
-        sort={{ list: LISTS.templates, labels: t.admin.list.fields }}
+        sort={{ list: sortOf(LISTS.templates), labels: t.admin.list.fields }}
       />
       {templates.length === 0 ? (
         <EmptyState text={isFiltered(lp.q, lp.filters) ? t.admin.list.noMatches : s.empty} />

@@ -1,0 +1,17 @@
+# Review ownership for the files that decide what the security claims are worth. Branch
+# protection with "require review from Code Owners" is what makes this bite.
+#
+# OWNER ACTION: the handle below is taken from the repository's commit author and is a guess.
+# Replace it with the GitHub user or team that reviews security changes.
+/docs/SECURITY.md                                 @nasiriubat
+/apps/api/test/role-matrix.snapshot.json          @nasiriubat
+/apps/api/src/auth/                               @nasiriubat
+/packages/db/prisma/migrations/                   @nasiriubat
+/deploy/rls-exempt.txt                            @nasiriubat
+/deploy/preflight.sh                              @nasiriubat
+/eslint-rules/                                    @nasiriubat
+/.github/                                         @nasiriubat
+/.gitleaks.toml                                   @nasiriubat
+/.trivyignore.yaml                                @nasiriubat
+/audit-ignore.json                                @nasiriubat
+/apps/web/public/.well-known/security.txt         @nasiriubat

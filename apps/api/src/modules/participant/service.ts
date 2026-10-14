@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import {
   deleteSessionData,
+  HOUR_MS,
+  MemoryAlerts,
+  MemoryUsageCounters,
+  type AlertPort,
+  type UsageCounters,
   emailDomain,
   newNumericCode,
   newToken,
@@ -47,9 +52,26 @@ export interface DeletionNotice {
 }
 
 /** A counted abuse signal. Carries ids only, never an address (D-82). */
-export type AbuseEvent = "abuse.code_request_capped" | "abuse.code_confirm_locked";
+export type AbuseEvent = "abuse.code_request_capped" | "abuse.code_confirm_locked" | "abuse.limit_hit";
 
-const HOUR_MS = 60 * 60_000;
+/**
+ * Which limit an `abuse.limit_hit` is about (D-261). `campaign_hour`, `campaign_total` and
+ * `tenant_hour` refuse a new interview; `address_emails` swallows a code request;
+ * `code_locked` is an address that used up its wrong codes.
+ */
+export type AbuseLimit =
+  "campaign_hour" | "campaign_total" | "tenant_hour" | "address_emails" | "code_locked";
+
+export interface AbuseMeta {
+  campaignId: string;
+  limit?: AbuseLimit;
+}
+
+/** What the participant flow needs to count and to tell someone (D-261). Optional: tools omit it. */
+export interface AbuseControls {
+  counters: UsageCounters;
+  alerts: AlertPort;
+}
 
 /**
  * The version a participant consents to: a hash of the exact words shown. Changing the words
@@ -69,9 +91,17 @@ export class ParticipantService {
     private readonly settings: SettingsService,
     private readonly email: EmailPort,
     private readonly tenants: TenantGate,
-    private readonly onAbuse: (event: AbuseEvent, meta: { campaignId: string }) => void = () => undefined,
+    private readonly onAbuse: (event: AbuseEvent, meta: AbuseMeta) => void = () => undefined,
     /** Refuses a new interview past `ceiling.maxSessionsPerMonth` (D-188). */
     private readonly ceilings?: TenantCeilings,
+    /**
+     * The counters and the alert (D-261). The default is in memory, per process: enough for a tool
+     * that builds the service without a database client of its own, never what a server runs with.
+     */
+    private readonly abuse: AbuseControls = {
+      counters: new MemoryUsageCounters(),
+      alerts: new MemoryAlerts(),
+    },
   ) {}
 
   async resolveLink(
@@ -122,7 +152,7 @@ export class ParticipantService {
   }
 
   /** Email-code verification, step 1. Always succeeds from the caller's point of view. */
-  async requestCode(linkToken: string, email: string): Promise<void> {
+  async requestCode(linkToken: string, email: string, clientAddress?: string): Promise<void> {
     const { campaign, view } = await this.resolveLink(linkToken);
     if (view.status !== "open" || campaign.verification !== "email_code") return;
     const allowed = campaign.allowedEmailDomains as string[];
@@ -133,18 +163,28 @@ export class ParticipantService {
     const { hash: emailHash, legacy } = this.hashes(campaign.id, email);
     // Per-address cap (D-82): the shared per-IP bucket cannot stop one person mail-bombing a
     // victim through this endpoint from many addresses, so the address itself is counted. The
-    // count is the EmailCode rows of the last hour, which persist across restarts and replicas.
-    // A refused request still answers "ok": the response must not say whether an address was
-    // already asked for, and the attacker learns nothing by hitting the cap.
+    // request is counted with one atomic increment *before* anything is sent (D-269): counting the
+    // rows that exist, as this did, let forty parallel requests all see "none yet" and send forty
+    // mails. A refused request still answers "ok": the response must not say whether an address
+    // was already asked for, and the attacker learns nothing by hitting the cap.
     const { requests } = await this.codeLimits(campaign.companyId);
     const since = new Date(Date.now() - HOUR_MS);
-    const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, ...legacy] } };
-    await this.db.emailCode.deleteMany({ where: { ...mine, createdAt: { lt: since } } });
-    const recent = await this.db.emailCode.count({ where: mine });
-    if (recent >= requests) {
+    await this.db.emailCode.deleteMany({
+      where: { campaignId: campaign.id, emailHash: { in: [emailHash, ...legacy] }, createdAt: { lt: since } },
+    });
+    const asked = await this.abuse.counters.hit(
+      campaign.companyId,
+      `code:request:${campaign.id}:${emailHash}`,
+      HOUR_MS,
+    );
+    if (asked > requests) {
       this.onAbuse("abuse.code_request_capped", { campaignId: campaign.id });
       return;
     }
+    // One client address asking codes for many different addresses is mail-bombing or enumerating
+    // through this link: it is capped by distinct addresses, not by requests, because a victim
+    // list is what the attacker needs, and answers "ok" like every other cap (D-261).
+    if (clientAddress && (await this.tooManyAddresses(campaign, emailHash, clientAddress))) return;
     const code = newNumericCode();
     await this.db.emailCode.create({
       data: {
@@ -174,25 +214,35 @@ export class ParticipantService {
     const { hash: emailHash, legacy } = this.hashes(campaign.id, email);
     const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, ...legacy] } };
     // Guessing is bounded per address, not only per code: the six-digit space is small, and a
-    // fresh code resets a per-code counter.
+    // fresh code resets a per-code counter. Both bounds are taken by an atomic increment before
+    // the code is compared (D-269); reading the count and then writing it let sixty parallel
+    // guesses all see "none yet" and all be tried against one code.
     const { failures } = await this.codeLimits(campaign.companyId);
-    const since = new Date(Date.now() - HOUR_MS);
-    const spent = await this.db.emailCode.aggregate({
-      where: { ...mine, createdAt: { gte: since } },
-      _sum: { attempts: true },
-    });
-    if ((spent._sum.attempts ?? 0) >= failures) {
+    const tries = await this.abuse.counters.hit(
+      campaign.companyId,
+      `code:try:${campaign.id}:${emailHash}`,
+      HOUR_MS,
+    );
+    if (tries > failures) {
       this.onAbuse("abuse.code_confirm_locked", { campaignId: campaign.id });
+      this.tell(campaign, "code_locked");
       throw new AppError("forbidden", "Code expired or invalid");
     }
     const row = await this.db.emailCode.findFirst({ where: mine, orderBy: { createdAt: "desc" } });
-    if (!row || row.expiresAt.getTime() < Date.now() || row.attempts >= 5)
+    if (!row || row.expiresAt.getTime() < Date.now())
       throw new AppError("forbidden", "Code expired or invalid");
-    if (!this.crypto.verifyTokenHash(code, row.codeHash)) {
-      await this.db.emailCode.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
+    // One of this code's five tries, taken only if one is left: a conditional write that either
+    // claims a try or does not, so no two requests share the last one.
+    const claimed = await this.db.emailCode.updateMany({
+      where: { id: row.id, attempts: { lt: 5 } },
+      data: { attempts: { increment: 1 } },
+    });
+    if (claimed.count !== 1) throw new AppError("forbidden", "Code expired or invalid");
+    if (!this.crypto.verifyTokenHash(code, row.codeHash))
       throw new AppError("forbidden", "Code expired or invalid");
-    }
-    await this.db.emailCode.delete({ where: { id: row.id } });
+    // Single use: of two requests presenting the right code at once, one deletes the row.
+    const used = await this.db.emailCode.deleteMany({ where: { id: row.id } });
+    if (used.count !== 1) throw new AppError("forbidden", "Code expired or invalid");
     return this.bind(campaign, {
       hash: emailHash,
       legacyHashes: legacy,
@@ -264,7 +314,10 @@ export class ParticipantService {
     }
     if (campaign.verification !== "open")
       throw new AppError("forbidden", "This interview requires verification");
-    // Open links accept duplicates by design: every open creates a new anonymous participant.
+    // Open links accept duplicates by design: every open creates a new anonymous participant. That
+    // is exactly what a script can do a thousand times a minute, so the new interview is counted
+    // against the campaign and the tenant first (D-261).
+    await this.assertRoomForSession(campaign);
     const created = await this.createParticipantAndSession(this.db, campaign, null);
     return { participantToken: created.participantToken, sessionId: created.sessionId, resume: false };
   }
@@ -329,6 +382,7 @@ export class ParticipantService {
     // The hash row first: its primary key is the one-response-per-address guard, so two concurrent
     // verifications cannot both create a response. The row is completed with the sealed pointer in
     // the same transaction.
+    await this.assertRoomForSession(campaign);
     try {
       return await this.createResponse(campaign, who);
     } catch (e) {
@@ -445,6 +499,82 @@ export class ParticipantService {
           });
       }
     }
+  }
+
+  /**
+   * Refuses a new interview past the campaign's or tenant's hourly bucket or the campaign's total
+   * (D-261). The total is a count of the sessions that exist; the hourly buckets are counters. A
+   * refusal is a 429 with a message that says nothing about which limit, and raises
+   * `abuse.limit_hit` for the tenant's admins and the operator.
+   */
+  private async assertRoomForSession(campaign: Campaign): Promise<void> {
+    const abuse = this.abuse;
+    const v = await this.settings.resolveMany(
+      ["abuse.campaignSessionsPerHour", "abuse.campaignSessionsTotal", "abuse.tenantSessionsPerHour"],
+      [
+        { scope: "campaign", scopeId: campaign.id },
+        { scope: "tenant", scopeId: campaign.companyId },
+      ],
+    );
+    const perHour = v["abuse.campaignSessionsPerHour"] as number;
+    const total = v["abuse.campaignSessionsTotal"] as number;
+    const tenantPerHour = v["abuse.tenantSessionsPerHour"] as number;
+
+    const existing = await this.db.session.count({
+      where: { campaignId: campaign.id, companyId: campaign.companyId },
+    });
+    if (existing >= total) this.refuse(campaign, "campaign_total");
+    const campaignHits = await abuse.counters.hit(
+      campaign.companyId,
+      `session:campaign:${campaign.id}`,
+      HOUR_MS,
+    );
+    if (campaignHits > perHour) this.refuse(campaign, "campaign_hour");
+    const tenantHits = await abuse.counters.hit(campaign.companyId, "session:tenant", HOUR_MS);
+    if (tenantHits > tenantPerHour) this.refuse(campaign, "tenant_hour");
+  }
+
+  private refuse(campaign: Campaign, limit: AbuseLimit): never {
+    this.onAbuse("abuse.limit_hit", { campaignId: campaign.id, limit });
+    this.tell(campaign, limit);
+    throw new AppError(
+      "rate_limited",
+      "This interview is receiving a lot of visitors. Please try again later.",
+    );
+  }
+
+  /** Whether this client address has asked codes for more different addresses than the limit allows. */
+  private async tooManyAddresses(
+    campaign: Campaign,
+    emailHash: string,
+    clientAddress: string,
+  ): Promise<boolean> {
+    const abuse = this.abuse;
+    const limit = await this.settings.get("abuse.distinctEmailsPerAddressPerHour", [
+      { scope: "tenant", scopeId: campaign.companyId },
+    ]);
+    const who = this.crypto.abuseSubject("ip", clientAddress);
+    const prefix = `ipmail:${campaign.id}:${who}:`;
+    await abuse.counters.hit(campaign.companyId, `${prefix}${emailHash}`, HOUR_MS);
+    const distinct = await abuse.counters.distinct(campaign.companyId, prefix, HOUR_MS);
+    if (distinct <= limit) return false;
+    this.onAbuse("abuse.limit_hit", { campaignId: campaign.id, limit: "address_emails" });
+    this.tell(campaign, "address_emails");
+    return true;
+  }
+
+  /** Raises the alert without making the participant wait for it. Ids only; never throws. */
+  private tell(campaign: Campaign, limit: AbuseLimit): void {
+    void this.abuse.alerts.raise({
+      kind: "abuse.limit_hit",
+      key: `abuse.limit_hit:${campaign.id}:${limit}`,
+      companyId: campaign.companyId,
+      title: `Interview link hit an abuse limit: ${limit}`,
+      message:
+        `A campaign's interview link reached the "${limit}" limit and is refusing new interviews or ` +
+        "codes. See the runbook for what each limit means and what to do.",
+      context: { campaignId: campaign.id, limit },
+    });
   }
 
   private async createParticipantAndSession(

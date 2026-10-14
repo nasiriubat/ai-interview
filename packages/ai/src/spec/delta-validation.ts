@@ -1,5 +1,7 @@
 import { normalizeSectionKey, type Fact, type SessionState } from "@aidp/shared";
+import { quoteIsVerbatim } from "../engine/quotes.js";
 import { asObject, scopeOf, titleOf } from "./live.js";
+import { classifyRequirement, sectionForClass } from "./quality.js";
 
 /**
  * Validation of the spec_field facts in a state delta against the specification's own schema
@@ -25,7 +27,14 @@ export interface FactRejection {
 }
 
 export interface FactRepair {
-  kind: "section_normalized" | "moved_to_functional" | "renumbered" | "coerced" | "deduplicated";
+  kind:
+    | "section_normalized"
+    | "moved_to_functional"
+    | "renumbered"
+    | "coerced"
+    | "deduplicated"
+    | "rerouted"
+    | "ungrounded";
   section: string;
   path: string;
   detail: string;
@@ -107,12 +116,20 @@ function coerceRequirement(value: unknown): Record<string, unknown> | undefined 
   if (typeof v.description === "string" && v.description.trim() && v.description.trim() !== title)
     out.description = v.description.trim();
   if (typeof v.reason === "string" && v.reason.trim()) out.reason = v.reason.trim();
+  if (typeof v.evidence === "string" && v.evidence.trim()) out.evidence = v.evidence.trim();
+  if (v.withdrawn === true) out.withdrawn = true;
   return out;
 }
 
 export interface CheckOptions {
   /** Whether the template produces a specification at all; other facts pass through untouched. */
   producesSpec: boolean;
+  /**
+   * The participant's own words available to this delta (D-243). When given, a functional
+   * requirement must carry an evidence quote found in them, or it is marked needsConfirmation
+   * (unless the owner accepted a default). Absent: grounding is not checked.
+   */
+  spoken?: readonly string[];
 }
 
 /**
@@ -129,9 +146,12 @@ export function checkSpecFacts(
 
   const existingFr = new Map<string, string>(); // normalized title -> id
   const existingIds = new Set<string>();
+  const existingEvidence = new Map<string, string>(); // id -> a quote already verified
   for (const f of state.facts) {
     if (!isFunctionalRequirement(f)) continue;
     existingIds.add(f.path.toUpperCase());
+    const ev = asObject(f.value).evidence;
+    if (typeof ev === "string" && ev) existingEvidence.set(f.path.toUpperCase(), ev);
     const t = titleOf(f.value, "");
     if (t) existingFr.set(normalizeTitle(t), f.path.toUpperCase());
   }
@@ -275,6 +295,36 @@ export function checkSpecFacts(
         detail: "plain text recorded as a requirement",
       });
     const title = String(value.title);
+    // A decision, a constraint or a question is not a functional requirement (D-242): it is filed
+    // where it belongs instead of becoming FR-n.
+    const klass = classifyRequirement({ title });
+    if (klass === "withdrawn") {
+      // "Removed" and "Merged into FR-2" are how a model deletes what it can only re-record: the
+      // requirement it points at is withdrawn properly, and nothing new is filed.
+      const key = path.toUpperCase();
+      const prior = state.facts.find((x) => isFunctionalRequirement(x) && x.path.toUpperCase() === key);
+      if (prior?.kind === "spec_field") {
+        file({ ...prior, value: { ...asObject(prior.value), withdrawn: true } }, "functional");
+        out.repaired.push({
+          kind: "coerced",
+          section: "functional",
+          path,
+          detail: `"${title.slice(0, 40)}" withdrew ${key}`,
+        });
+      }
+      continue;
+    }
+    if (klass !== "capability") {
+      const target = sectionForClass(klass);
+      out.repaired.push({
+        kind: "rerouted",
+        section: "functional",
+        path,
+        detail: `"${title.slice(0, 60)}" is a ${klass}, filed under ${target}`,
+      });
+      file({ ...f, section: target, path: title.replace(/\s+/g, " ").slice(0, 80), value: title }, target);
+      continue;
+    }
     let id = path.toUpperCase();
     const n = requirementNumber(path);
     const known = existingIds.has(id) || assigned.has(id);
@@ -309,6 +359,23 @@ export function checkSpecFacts(
       if (num >= next) next = num + 1;
     }
     existingFr.set(normalizeTitle(title), id);
+    if (options.spoken) {
+      const quote = typeof value.evidence === "string" ? value.evidence : "";
+      if (!(quote && quoteIsVerbatim(quote, options.spoken))) {
+        delete value.evidence;
+        const earlier = existingEvidence.get(id);
+        if (earlier) value.evidence = earlier;
+        else if (f.source !== "default_accepted" && f.source !== "handoff") {
+          value.needsConfirmation = true;
+          out.repaired.push({
+            kind: "ungrounded",
+            section: "functional",
+            path: id,
+            detail: quote ? "the quote is not in the participant's words" : "no quote of the participant",
+          });
+        }
+      }
+    }
     // A replacement inside one delta (same id twice) keeps the later one.
     const dup = out.facts.findIndex(
       (x) => x.kind === "spec_field" && x.section === "functional" && x.path === id,

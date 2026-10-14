@@ -15,6 +15,7 @@ import {
   PlatformHealthService,
   PdfExporter,
   PrismaAlertState,
+  PrismaUsageCounters,
   PrismaHealthInputs,
   RequirementsService,
   SettingsEmail,
@@ -311,6 +312,7 @@ export function buildContext(input: {
     exporter,
     tenantExporter,
     jobAdmin,
+    abuse: { counters: new PrismaUsageCounters(db), alerts },
   });
   return {
     config,

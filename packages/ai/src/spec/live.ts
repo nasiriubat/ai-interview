@@ -27,14 +27,23 @@ export interface MvpItem {
   value: Record<string, unknown>;
 }
 
-/** Functional requirements: object-valued fields in the functional section (a plain note is not a requirement). */
+/** A requirement the owner took back during the confirmation (`withdrawn: true`, D-244). */
+export function isWithdrawn(value: unknown): boolean {
+  return asObject(value).withdrawn === true;
+}
+
+/**
+ * Functional requirements: object-valued fields in the functional section (a plain note is not a
+ * requirement), without those the owner withdrew.
+ */
 export function requirementFacts(state: SessionState): (SpecFieldFact & { sectionKey: string })[] {
   return specFacts(state).filter(
     (f) =>
       f.sectionKey === "functional" &&
       f.value !== null &&
       typeof f.value === "object" &&
-      !Array.isArray(f.value),
+      !Array.isArray(f.value) &&
+      !isWithdrawn(f.value),
   );
 }
 
@@ -147,7 +156,7 @@ export function renderLiveSpec(input: LiveSpecInput): LiveSpec {
 
   const sections: LiveSection[] = order.map((key) => {
     const fields = facts
-      .filter((f) => f.sectionKey === key)
+      .filter((f) => f.sectionKey === key && !(key === "functional" && isWithdrawn(f.value)))
       .map((f) => ({ path: f.path, value: f.value, source: f.source }));
     const edit = input.edits[key];
     if (edit?.markdown.trim()) {

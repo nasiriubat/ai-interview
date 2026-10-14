@@ -15,7 +15,7 @@ import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { isFiltered, statusFilter } from "@/lib/admin/toolbar";
-import { LISTS } from "@/lib/api/lists";
+import { LISTS, sortOf } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
@@ -55,7 +55,7 @@ export default async function RequirementsPage({ searchParams }: Props): Promise
       <ListToolbar
         searchLabel={t.admin.list.searchRequirements}
         filters={[statusFilter(LISTS.requirements)]}
-        sort={{ list: LISTS.requirements, labels: t.admin.list.fields }}
+        sort={{ list: sortOf(LISTS.requirements), labels: t.admin.list.fields }}
       />
       {sessions.length === 0 && filtered ? (
         <EmptyState text={t.admin.list.noMatches} />

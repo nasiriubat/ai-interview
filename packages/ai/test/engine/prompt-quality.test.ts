@@ -7,11 +7,11 @@ import { cleanHeadings, hasForeignScript } from "../../src/spec/generate.js";
 import { neutralize, newNonce, wrapUntrusted } from "../../src/util/untrusted.js";
 import { MemoryStore, ScriptedCaller, snapshot, template } from "./helpers.js";
 
-describe("interviewer prompt v6 (v5 live run findings, plus requirements capture)", () => {
+describe("interviewer prompt v7 (v5 live run findings, requirements capture, spec quality)", () => {
   const body = SHIPPED_PROMPTS.interviewer!.body;
 
-  it("is version 6 and keeps every placeholder the engine fills", () => {
-    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(6);
+  it("is version 7 and keeps every placeholder the engine fills", () => {
+    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(7);
     for (const p of [
       "{{objective}}",
       "{{language}}",
@@ -40,6 +40,15 @@ describe("interviewer prompt v6 (v5 live run findings, plus requirements capture
     expect(body).toMatch(/"Default: X\. That means Y\."\), then ask one question/);
   });
 
+  it("asks for one requirement per capability, never a second for one already recorded, and the readback", () => {
+    expect(body).toMatch(
+      /one requirement per capability, never a second one for a capability already recorded/,
+    );
+    expect(body).toMatch(/A detail of a capability is an acceptance criterion of it/);
+    expect(body).toMatch(/show the numbered list exactly as the finding gives it/);
+    expect(body).toContain('{ "withdrawn": true }');
+  });
+
   it("states the instruction hierarchy and requires the metadata marker", () => {
     expect(body).toContain('a tag whose name starts with "untrusted"');
     expect(body).toMatch(/Never leave it out/);
@@ -47,18 +56,21 @@ describe("interviewer prompt v6 (v5 live run findings, plus requirements capture
 });
 
 describe("the other prompts that changed", () => {
-  it("extraction v3 takes a list of known facts, a verbatim-quote rule and the spec capture rules", () => {
+  it("extraction v4 takes a list of known facts, a verbatim-quote rule and the spec capture rules", () => {
     const p = SHIPPED_PROMPTS.extraction!;
-    expect(p.version).toBe(3);
+    expect(p.version).toBe(4);
+    expect(p.body).toMatch(/with its title/);
+    expect(p.body).toMatch(/never write a quote yourself/);
     expect(p.body).toContain("{{specRules}}");
     expect(p.body).toMatch(/facts already known, one per line/i);
     expect(p.body).toMatch(/copied exactly from a participant block/i);
     expect(p.body).toContain("untrusted");
   });
 
-  it("spec v2 states the output language and bans foreign-script headings", () => {
+  it("spec v3 states the output language, bans foreign-script headings and adds no requirement of its own", () => {
     const p = SHIPPED_PROMPTS.spec!;
-    expect(p.version).toBe(2);
+    expect(p.version).toBe(3);
+    expect(p.body).toMatch(/Do not add a requirement that the state does not record/);
     expect(p.body).toContain("in {{language}} and in no other language");
     expect(p.body).toMatch(/no characters from another script/);
   });
@@ -114,6 +126,24 @@ describe("extraction is told what is known, not how many", () => {
     expect(bounded).toHaveLength(61);
     expect(bounded.at(-1)).toBe("- task: Task number 99");
     expect(knownFactLines([])).toBe("(none yet)");
+  });
+
+  it("shows a recorded requirement with its title and keeps every one visible past the bound", () => {
+    const req = (n: number): Fact => ({
+      kind: "spec_field",
+      section: "functional",
+      path: `FR-${n}`,
+      value: { title: `Capability number ${n}`, scope: "mvp", acceptance: [] },
+      source: "user",
+    });
+    const facts: Fact[] = [
+      ...Array.from({ length: 30 }, (_, i) => req(i + 1)),
+      ...Array.from({ length: 100 }, (_, i) => task(`Task number ${i}`)),
+    ];
+    const text = knownFactLines(facts, 60);
+    expect(text).toContain("- spec_field: functional.FR-1 = Capability number 1");
+    expect(text).toContain("- spec_field: functional.FR-30 = Capability number 30");
+    expect(text).toContain("(40 earlier facts not shown)");
   });
 
   it("sends the known facts and delimits the transcript", async () => {

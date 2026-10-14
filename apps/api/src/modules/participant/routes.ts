@@ -6,6 +6,7 @@ import { guard } from "../../auth/access.js";
 import { participant } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
 import { AppError, notFound } from "../../lib/errors.js";
+import { addressBucket } from "../../lib/rate-limit.js";
 import { answerFromBody, parseTurnBody } from "../sessions/turn-body.js";
 import { runTurn } from "../sessions/turn-runner.js";
 
@@ -39,7 +40,7 @@ export async function participantRoutes(app: App, ctx: RouteContext): Promise<vo
       schema: { params: Link, body: z.object({ email: z.email() }) },
     },
     async (req) => {
-      await svc.requestCode(req.params.linkToken, req.body.email);
+      await svc.requestCode(req.params.linkToken, req.body.email, addressBucket(req.ip));
       return { ok: true as const };
     },
   );

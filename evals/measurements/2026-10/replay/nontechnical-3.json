@@ -1,0 +1,1375 @@
+{
+  "persona": "nontechnical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Before we get into the features, one quick question about where this would run. Hosting affects the architecture, the running cost, and the compliance defaults, so it's worth settling early. If you're not sure yet, \"Nothing yet\" is a fine answer.\n\nDo you already have somewhere this would run?"
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks, a cloud account it is. Since the notes are clinical, I'll treat privacy and access control as important from the start."
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "Yes, we’ll need strict access controls—only nurses on the same ward and their team leaders can view or edit notes. All data must be encrypted at rest and in transit, and we’ll comply with HIPAA and the hospital group’s data governance policy. I don’t know the exact cloud provider yet, but I’ll go with AWS since it’s the one our IT team already uses for other systems."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "Noted: strict ward-based access, encryption everywhere, HIPAA and your governance policy, and AWS. Next, which systems does this need to connect to? The patient system and the spreadsheet are the obvious ones. Integrations shape the data requirements and the build effort. If you're not sure, the default is none, and we can revisit."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "The tool needs to connect to our current electronic patient record (EPR) system, called Epic, and the ward’s daily handover spreadsheet, which is stored in a shared SharePoint folder. I don’t know how the EPR provides data, but I’ll assume it has a way to send patient identifiers and current status updates. We’ll need to pull the patient’s name, MRN, and current bed number from Epic, and push the final note into the SharePoint file once a day."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "Thanks for the integration detail. Epic and SharePoint are both substantial connections, so I'll record them as integrations to confirm later.\n\nOne quick question about who will build this. It shapes how the spec and plan are written. If you're unsure, \"A coding agent\" is the default."
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "I’d like to go with a small team of developers from our hospital’s IT innovation unit—they’ve built similar tools before, like the medication reconciliation form. They’ll work closely with nurses to design the interface and test it in real wards. I don’t know their exact skill set, but I’ll ask them to use low-code tools if possible to speed up delivery."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "Thanks, that answers who will build it: the hospital's IT innovation unit, a small in-house team. I'll write the spec and plan for them.\n\nNext, the handover file. Each day the final notes go into a shared SharePoint spreadsheet. Should the tool add rows to that file, or replace the file each day? Default: add rows, so earlier entries are kept."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "Got it, new rows will be added each day. Next, what does your IT team usually build with? Knowing their tools matters because a stack the team already knows beats a slightly better one they'd have to learn. If you're not sure, we'll record it as unknown."
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": "They usually build using Power Apps and Power Automate, with some custom .NET services for heavier tasks. I’ve seen them use Power BI for reporting too. Since the team is already familiar with Power Apps, I’d prefer to go with that as the main development platform—it’ll let us build the note entry form quickly and connect to both Epic and SharePoint without needing deep coding skills."
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "Thanks, Power Apps for the entry form and Power Automate for the connections fits what your team already knows. I've recorded that. Next, the note itself: what does a nurse type into a note? Free text only, or structured fields such as vitals, medications or observations? Default: free text, with the patient selected from the Epic list."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "I’d prefer structured fields—nurses already enter vitals, medications, and key observations in the handover sheet, so we should capture those consistently. The form will include fields for blood pressure, heart rate, temperature, pain score, and any new medications, with dropdowns or numeric inputs where possible. Nurses can still add free text at the end for context, but the core data must be structured so it can be reviewed and analyzed later."
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "Thanks, structured fields for vitals, medications and observations, with free text at the end, is clear. Next, timing: when does version one need to be in use on a ward? It matters because it decides how much goes into the first release. If you don't have a date, \"No fixed date\" works."
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "We need version one on a pilot ward by the end of next quarter—around September 30. That gives us about eight weeks to design, test, and train nurses, which is tight but doable. I’ll make sure the IT team starts right after the planning meeting, and we’ll prioritize the core fields and EPR integration first."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "Thanks, the pilot target of September 30 is clear. I've noted it, and it will guide the scope of version one."
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": "Great, thanks for the clarity. I’ll make sure the pilot ward has a dedicated rollout plan, including training sessions and a support contact available during the first week. We’ll also collect feedback daily during the pilot to catch issues early and adjust quickly."
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Thanks for the rollout plan, a training session and daily feedback will help the pilot go smoothly.\n\nNext, budget. It shapes whether we lean toward the platforms you already license or look at new purchases. If you don't know yet, \"Not decided\" is fine.\n\nIs there a budget range for this project?"
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "Not decided yet, but I’ll aim for under £20,000 to keep it within the innovation unit’s annual allocation. If we stay within Power Apps and Power Automate, and reuse existing templates, we should be able to stay under that. I’ll ask the finance team for a quick estimate before we start development."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "Thanks, the budget is noted as under £20,000, with a finance estimate to follow."
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": "I’ll make sure the team tracks every hour spent and any additional costs, like training materials or support time, so we can stay within budget. If we hit 80% of the limit, I’ll flag it immediately and review what’s essential for the pilot."
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "Thanks for the budget tracking plan; flagging at 80% is a sensible safeguard.\n\nNext, roughly how many people will use the tool at launch? This decides how much capacity the hosting needs. Default: under 100, which is typical for one ward pilot."
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "About 15 nurses and two ward managers will use it on the pilot ward—so 17 users at launch. That’s well under 100, so the current AWS plan should handle it without any scaling issues. I’ll confirm with the ward manager that everyone is trained and ready before go-live."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "Thanks, 17 users at launch is clear, and it's well within what the AWS plan can handle."
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "I’ll make sure the tool is tested with at least 10 real users during the final week of development to catch any usability issues before the pilot starts. We’ll also set up a simple feedback button in the app so nurses can report problems instantly during the first week."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "Thanks for the testing and feedback plan, that will catch usability problems early.\n\nNext, compliance. This is a patient data tool, and the rules it must follow change where data can live, how it is secured, and what the hosting needs. Default: personal data under GDPR, alongside the hospital's own data governance policy. Do you need anything beyond that?"
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "No, GDPR and our hospital’s data governance policy are sufficient—I don’t need anything extra. But I do want to make sure the tool logs every time a note is created or edited, and who did it, so we can audit access later. That’s a requirement I’ve seen the compliance team ask for on similar tools."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "Thanks, the audit logging is a clear requirement. I'll record it as a functional requirement, with GDPR and the hospital policy as the compliance basis."
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": "I’ll also make sure the audit logs are stored separately from the note data, in a secure, read-only folder within AWS, so they can’t be altered after creation. The logs will include the nurse’s ID, timestamp, and action type—like “created” or “edited”—and will be retained for at least seven years, as per our records policy."
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Thanks for the audit log detail: read-only storage in AWS, seven-year retention, and nurse ID, timestamp and action type are now part of the requirement.\n\nOne gap to close: we haven't yet decided how the tool will connect to Epic. Default: we leave it for your IT team to specify. That means the Epic connection details (how Epic shares name, MRN and bed, and how the team signs in) are confirmed before build starts. Should we keep that default?"
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": "Yes, let’s keep the default—my IT team will confirm the connection method before we start building. They’ll check whether Epic offers a secure API for patient data, or if we need to use a pre-existing connector like the one they’ve used for the medication system. I’ll make sure they bring the details to the kickoff meeting so we don’t waste time on assumptions."
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "Thanks, the Epic connection will be confirmed by your IT team before build starts, and we'll note it as an open item.\n\nNow let's go back to the start. Who is affected by the double typing, and roughly how much time does it cost them each shift?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": "The double typing affects all 15 nurses on the pilot ward—each one spends about 5 minutes per shift entering the same note into both the EPR and the handover spreadsheet. That’s 75 minutes per shift, or over 20 hours a week across the ward. It adds up, especially during busy times when nurses are already stretched. I’ve seen them complain about it during handover meetings, so it feels like a real pain point worth fixing."
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "Thanks, that quantifies the problem well: about 75 minutes per shift across the ward.\n\nCan you walk me through one recent shift? Which steps do nurses take to enter a note twice, and what tools do they open?"
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": "Sure—on a typical evening shift, a nurse starts by opening Epic to check the patient list and update vital signs. After the last patient round, they go to the EPR, open the ward notes section, and type in the key observations, medications, and concerns—about 80% of the note. Then they close Epic, open a browser, go to SharePoint, find the day’s handover spreadsheet, and manually retype the same information into the designated row for their shift. It’s the same data, but they have to retype it—sometimes with slight changes in wording or formatting, which causes confusion later. They often do it straight from their tablet or mobile device, which makes it slower and more error-prone."
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "That walkthrough is useful, especially the wording differences that cause confusion later.\n\nWhen a nurse retypes a note, what is the most common mistake or confusion that gets caught at handover?"
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "The most common issue is a mismatch in medication dosages—sometimes a nurse types “5mg morphine” in Epic but writes “5mcg” in the spreadsheet. Other times, a new medication is listed in the EPR but omitted in the handover file because the nurse skipped that section while retyping. Then, during handover, another nurse notices the gap and double-checks the EPR, which causes delays. One time, a patient’s pain score was 8 in Epic but 4 in the spreadsheet, and it took five minutes to figure out which one was correct—by which point the shift had already ended."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "Those examples are clear: dosage mismatches, omitted medications, and conflicting pain scores all cost time at handover.\n\nHow often does a mismatch like this turn up in a typical week on the ward?"
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "We catch at least two mismatches per week on average—sometimes more during busy periods like the end of a month or when there are staff shortages. I’ve seen the handover team flag one in every three shifts during a recent audit. One week, they found four discrepancies across just three patients. It’s not rare—it’s a regular headache, especially when handover is rushed."
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Thanks for the frequency figures; at least two mismatches a week is a clear case for fixing this.\n\nI also found a conflict in the requirements. FR-2 and FR-3 both describe the audit log, but with different details. Default: keep FR-3 as the single audit log requirement, and remove FR-2. That means every note creation and edit is logged once, with nurse ID, timestamp and action type, stored read-only for seven years.\n\nShould we keep that default?"
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "Good, FR-3 stands as the single audit log requirement and FR-2 is removed.\n\nNow let's look at who uses the tool. Apart from the nurses, who else on the ward will open it, and what is the first thing each of them does?"
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": "The ward manager will use it once per shift to review the notes before handover—they’ll open the tool, check the list of completed notes, and look for any gaps or inconsistencies. A senior nurse might open it to double-check a patient’s status if they’re covering a shift or stepping in. Both users will just scan the note entries and the timestamps to make sure everything is up to date. They don’t need to edit—just confirm."
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Thanks, that's clear that the ward manager and senior nurse mainly review and confirm, without editing.\n\nBefore I record their roles, I want to check one thing: when a senior nurse covers a shift, do they also write notes, or only read them?"
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": "Only read them—when a senior nurse covers a shift, they’re there to support, not to enter new data. They’ll use the tool to check what’s already been documented, but they won’t create or edit notes. That keeps the data consistent and avoids duplication. The actual note entry is always done by the nurse on duty."
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "Thanks, that confirms senior nurses only read notes on cover shifts.\n\nNext, the nurses are the main users, so I need their goal. What does a nurse most want to get done in the tool at the start of a shift?"
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "At the start of a shift, a nurse wants to quickly select the patient they’re responsible for from the list pulled from Epic, then enter the key observations and medications in one go—without having to switch between systems. Their main goal is to get the note done and verified as fast as possible so they can focus on patient care, not paperwork. They don’t want to waste time retyping or checking for errors after the fact."
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "Thanks, that gives me the nurse's goal: pick a patient from the Epic list and enter observations and medications in one place, without switching systems.\n\nLet's check the detail with one example. When a nurse adds a medication, what do they need to see before saving: the dose, the unit, and the time given, or something else?"
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": "They need to see the dose, the unit (like mg or mL), and the time the medication was given—those three details are critical. The tool should show them a dropdown with the approved medications from the hospital’s formulary, so they can’t type free text and risk errors. If they enter a new medication, it should be flagged for review by the ward manager the next day. They also need to confirm the patient’s bed number and MRN are correct before saving—those are auto-filled from Epic but must be visible for double-checking."
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "Thanks, those medication details are useful: dose, unit and time must be visible, the medication comes from a formulary dropdown, and new entries get flagged for ward manager review.\n\nI also need to revisit the audit log. Three requirements (FR-3, FR-4 and FR-5) describe it in slightly different ways, which could lead to conflicting builds. Default: keep FR-3 as the one audit log requirement and merge the other two into it. That means every note creation and edit is logged once, with nurse ID, timestamp and action type, stored read-only for seven years.\n\nShould we keep that default?"
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "Thanks, the audit log is now one requirement (FR-3), logged once per note creation or edit and kept read-only for seven years.\n\nLet's move on to user stories. Starting with the nurse, what is the first thing they do when they begin a shift in the tool?"
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": "The first thing a nurse does when they start a shift is open the tool from their tablet, log in with their NHS smartcard, and see a list of patients on their ward pulled directly from Epic. They select the patient they’re responsible for—usually by tapping their name or MRN—and the tool auto-populates the patient’s bed number and current status. Then they begin entering the observations and medications."
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "That's a clear start-of-shift sequence: log in, pick the patient from the Epic list, then enter observations.\n\nShould the nurse's start-of-shift steps be recorded as their first user story, US-2?"
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": "Yes, US-2 should be the first user story—“As a nurse, I want to log in and select my patient from the live list in Epic so I can start entering the note without switching systems.” That captures the core of the workflow and the time-saving goal. I’ll make sure the team includes the auto-filled bed number and status in the UI so it’s clear it’s coming from Epic."
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "Thanks, I'll record that as US-2. One gap remains in the stories: we have the nurse's stories, but not yet the ward manager's or senior nurse's. Which of those should we capture next, the ward manager reviewing notes before handover?"
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": "Yes, let’s capture the ward manager’s story next—US-3: “As a ward manager, I want to view all completed notes for the shift before handover so I can check for gaps or inconsistencies.” That’s their main task, and it aligns with the audit log and the need to spot mismatches early. I’ll make sure the tool shows a clear list of who entered what and when, so they can quickly scan for missing entries or unusual edits."
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "Thanks, I'll record that as US-3. The ward manager's view will list each completed note with who entered it and when, so gaps and unusual edits stand out.\n\nShould the ward manager be able to see the medication flags for new entries in the same list, so they can review them the next day?"
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "Thanks, the ward manager's list will include medication flags for new entries, so they can review them the next day.\n\nNext, the functional requirements. Which of these should the tool do first: letting nurses enter observations such as blood pressure, heart rate, temperature and pain score, or letting nurses add medications?"
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": "Letting nurses enter observations first—those are the most frequent and time-sensitive updates, especially blood pressure and heart rate, which need to be recorded at the start of each shift. The pain score is also critical for patient care and often missed during retyping. Medications come next, but only after the core observations are captured—this keeps the first version focused and usable. I’ll make sure the form includes clear fields for each observation, with dropdowns or numeric inputs to reduce errors."
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "Thanks, observations first makes sense, with blood pressure, heart rate, temperature and pain score as the core fields.\n\nNext, the observation entry needs a boundary. If a nurse types a heart rate that is clearly impossible, such as 400, should the tool block the save or allow it with a warning?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "Thanks, so impossible values will show a warning but can still be saved. I'll record that as a validation requirement for observation values.\n\nNext, what should happen when the nurse saves a note while a required observation, such as pain score, is still blank: should the save be blocked, or should it be allowed with a warning like the impossible-value case?"
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": "I’d say block the save—this is a critical field that affects patient care, and we can’t risk it being skipped. The system should show a clear message: “Pain score is missing—please enter a value before saving.” It’s better to stop the save than to risk a note going through with an omission. I’ve seen nurses skip it when they’re rushed, but that’s exactly why we need the tool to enforce it."
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "Thanks, I'll record that a blank required observation blocks the save, with the message \"Pain score is missing—please enter a value before saving.\"\n\nNext, the medication entry: when a nurse picks a medication from the formulary dropdown, what should happen if they choose a dose that is outside the normal range for that drug, such as a dose ten times the usual amount?"
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "I’d say show a warning, not block it—some medications have variable dosing based on weight or condition, and a high dose might be correct for a specific patient. But the warning should be clear: “This dose is 10 times the usual amount—please confirm with a senior nurse or pharmacist.” That gives the nurse a chance to double-check without stopping the workflow. I don’t want to block valid but high doses, but I do want to flag potential errors."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "Thanks, so high doses will trigger a warning but can still be saved, and the nurse is asked to confirm with a senior nurse or pharmacist. I'll record that as a medication validation requirement.\n\nNow the business rules. Who should be able to approve a new medication that a nurse has added, if it isn't on the formulary yet: the ward manager, or someone outside the ward such as pharmacy?"
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Thanks, the ward manager will approve new medications, and I'll record that.\n\nOne gap remains on the SharePoint side. We haven't yet pinned down how the tool connects to the daily handover spreadsheet: the web address, the format of each row, or how the tool logs in. Default: the IT team confirms all three before the build starts. That means nothing is built against an assumed connection.\n\nShould we keep that default?"
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": "Yes, let’s keep the default—my IT team will confirm the SharePoint URL, the exact row format (including column names and order), and how the tool logs in using the ward’s shared credentials before any development starts. I’ll make sure they bring the details to the first planning meeting so we don’t build on assumptions."
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "Thanks, I've recorded that the IT team will confirm the SharePoint details before development starts.\n\nStaying on the business rules: when a nurse adds a medication, what must be visible before they save it, so that the dose, unit and time given are clear?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": "Before saving, the nurse must see the dose, unit (like mg or mL), and time given clearly displayed in the form—each in its own labeled field, not hidden in a note. The time should default to the current time, but they should be able to edit it if it’s wrong. The unit must be selected from a dropdown, not typed free text, to prevent errors like “mcg” vs “mg”. I want them to see all three details at a glance so they can confirm accuracy before clicking save."
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Thanks, the dose, unit and time will each sit in their own labelled field, with the time defaulting to now and the unit chosen from a dropdown.\n\nNext, the notes need a retention rule. How long should completed patient notes be kept before they can be deleted?"
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": "They should be kept for at least seven years—our hospital’s records policy requires that all clinical notes be retained for that period, including handover entries. I don’t want the tool to allow deletion before that, even if a nurse tries. The system should auto-archive the notes after 7 years and keep them in a read-only format. I’ll check with the records team to confirm the exact date for retention start, but it should be from the time the note was saved."
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "Thanks, I'll record seven-year retention from the time each note is saved, with deletion blocked and automatic archiving to read-only after that period. Your records team will confirm the exact start date.\n\nNext, a concrete case: if a nurse saves a note in error and then corrects it within the same shift, should the original version stay in the audit trail alongside the correction, or should only the final version be kept?"
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": "The original version must stay in the audit trail—every edit should be preserved so we can see the full history. The tool should show both the first save and the correction, with timestamps and who made each change. That way, if a discrepancy shows up later, we can trace how it evolved. I’ve seen this happen before—someone changed a pain score from 8 to 4, and we needed to know why. The audit log must keep the full record, not just the final version."
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "Thanks, the audit trail will keep every version of a note with its timestamp and author, so the history of a change like 8 to 4 can always be traced.\n\nNow for acceptance: how will we know version one is working on the pilot ward? Would you like a simple test, such as the nurses completing a full shift's notes in the tool with no double entry, or should we start from the time saved per shift?"
+    },
+    {
+      "seq": 80,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 81,
+      "role": "assistant",
+      "content": "Thanks, so the pass test is one full shift on the pilot ward with every note entered once, in the tool, with no retyping into SharePoint.\n\nNext, how many of those shifts should run before we call version one working: one clean shift, or a run of several in a row?"
+    },
+    {
+      "seq": 82,
+      "role": "user",
+      "content": "We’ll need three clean shifts in a row—no double entry, no major errors, and all notes successfully saved and visible in the handover file. That gives us confidence it’s stable and usable under real pressure. I’ll also ask the ward manager to confirm each time that the notes match what they see in the EPR and the spreadsheet. If all three shifts pass, we’ll call version one working."
+    },
+    {
+      "seq": 83,
+      "role": "assistant",
+      "content": "Thanks, three clean shifts in a row, with the ward manager checking notes against Epic and the handover file, is a clear pass bar.\n\nNext, the \"no major errors\" part needs a number. What counts as a major error during those shifts: any mismatch between Epic and the handover file, or only mismatches that delay handover?"
+    },
+    {
+      "seq": 84,
+      "role": "user",
+      "content": "Only mismatches that delay handover count as major errors—like a medication dose that’s wrong and causes a nurse to stop and verify it, or a missing pain score that leads to a patient being reassessed. If the tool has a typo in a name or a unit that’s slightly off but doesn’t cause confusion, it’s not a major error. But if it leads to a nurse double-checking, or a patient being rechecked, then it’s a major issue. I’ll define that in the test plan so the team knows what to watch for."
+    },
+    {
+      "seq": 85,
+      "role": "assistant",
+      "content": "Thanks, that gives us a usable definition: a major error is any mismatch that makes a nurse stop to verify or prompts a patient reassessment.\n\nNext, a concrete check on the pass bar: if a nurse has to re-enter a note because the tool closed mid-entry, does that count as a double entry under the pass test, or is it a separate failure?"
+    },
+    {
+      "seq": 86,
+      "role": "user",
+      "content": "Yes, if a nurse has to re-enter a note because the tool crashed or closed unexpectedly, it counts as a double entry and fails the pass test. The tool must hold the note in progress—either by auto-saving every few minutes or by prompting the nurse to confirm before closing. We can’t allow the system to lose work, especially during a pilot where reliability is key. If that happens even once, we’ll need to fix it before counting the shift as clean."
+    },
+    {
+      "seq": 87,
+      "role": "assistant",
+      "content": "Thanks, so an unexpected close or crash that forces a re-entry fails the pass test, and the tool must auto-save in-progress notes.\n\nNext, the technical side. Based on your team's skills, I recommend building on Power Apps and Power Automate, with the heavier logic in a small .NET service, all hosted on AWS. Does that match what you expect your IT team to build?"
+    },
+    {
+      "seq": 88,
+      "role": "user",
+      "content": "Yes, that matches what they’ve built before—Power Apps for the form, Power Automate for the connections to Epic and SharePoint, and a small .NET service for any complex logic, like validation or flagging new medications. I don’t know how the .NET service will connect to AWS, but I’ll ask them to use a secure API gateway. I’m happy with that setup—it’s within their skills and keeps the costs low."
+    },
+    {
+      "seq": 89,
+      "role": "assistant",
+      "content": "Thanks, that's a sensible split. Your team can use a secure API gateway between the .NET service and AWS, which keeps the connection controlled.\n\nOne detail to settle: which AWS region should the tool run in? Default: a UK region, so patient data stays in the UK, which fits GDPR and your data governance policy.\n\nDo you accept that default?"
+    },
+    {
+      "seq": 90,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 91,
+      "role": "assistant",
+      "content": "Thanks, the UK region is recorded.\n\nOne gap remains in the observation rules. We haven't defined what counts as an impossible value, such as a heart rate that cannot be real. Default: flag heart rates above 200 beats per minute as impossible, and set similar limits for the other observations. That means the tool warns the nurse before saving but still lets them proceed, as agreed earlier.\n\nDo you want to keep that default for heart rate?"
+    },
+    {
+      "seq": 92,
+      "role": "user",
+      "content": "Yes, keep the default—heart rates above 200 should trigger a warning, as they’re extremely rare and likely a typo. I’ll also set a limit for temperature: anything above 45°C or below 30°C should show a warning. For blood pressure, systolic above 250 or below 80, and diastolic above 150 or below 50, should be flagged. These values are well outside normal ranges, and a warning will help catch input errors without stopping the nurse."
+    },
+    {
+      "seq": 93,
+      "role": "assistant",
+      "content": "Thanks, those limits are recorded: heart rate above 200, temperature outside 30 to 45°C, systolic outside 80 to 250, and diastolic outside 50 to 150 will trigger a warning without blocking the save.\n\nNext, the .NET service will handle validation and new-medication flagging. Does your IT team plan to host that service inside AWS alongside the rest, or do they expect it to run in the hospital's own environment?"
+    },
+    {
+      "seq": 94,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 95,
+      "role": "assistant",
+      "content": "Thanks, the .NET service will run inside AWS, behind the secure API gateway.\n\nNext, the Epic connection: the IT team still needs to confirm how the patient list and final notes will flow between Epic and the tool. Does your IT team already have an approved interface to Epic, or will this need a new connection set up?"
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "AWS cloud account",
+        "reason": "Already used by the IT team for other systems",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "access",
+      "value": "Only nurses on the same ward and their team leaders can view or edit notes",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "encryption",
+      "value": "All data encrypted at rest and in transit",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": "GDPR and hospital data governance policy",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epic",
+      "value": {
+        "direction": "inbound",
+        "data": ["patient name", "MRN", "current bed number", "current status"],
+        "auth": "to be confirmed"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sharepoint",
+      "value": {
+        "direction": "outbound",
+        "data": ["final daily note"],
+        "frequency": "once per day",
+        "auth": "to be confirmed"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sharepoint_write",
+      "value": {
+        "direction": "outbound",
+        "data": "final note per patient",
+        "mode": "append rows",
+        "frequency": "daily"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": "Power Apps and Power Automate with custom .NET services, hosted on AWS",
+        "reason": "Matches the innovation unit's existing skills and the Power BI reporting plan.",
+        "status": "recommended"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sharepoint_write_mode",
+      "value": "Add a new row to the daily handover file each day",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "timeline",
+      "value": "Version one on a pilot ward by about September 30; core fields and Epic integration prioritized first.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "Structured fields for vitals, medications, and observations",
+        "scope": "mvp",
+        "acceptance": [
+          "Fields for blood pressure, heart rate, temperature, pain score, and new medications are present",
+          "Dropdowns or numeric inputs are used where possible",
+          "Free text field is available for additional context"
+        ],
+        "description": "Include blood pressure, heart rate, temperature, pain score, and new medications with dropdowns or numeric inputs. Allow free text for additional context.",
+        "reason": "To capture core data consistently for review and analysis"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "pilot_rollout",
+      "value": {
+        "dedicated_rollout_plan": true,
+        "training_sessions": true,
+        "support_contact": "available during the first week",
+        "feedback_collection": "daily during the pilot"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "budget",
+      "value": {
+        "limit": "under £20,000",
+        "source": "innovation unit",
+        "tracking": "hourly and additional costs",
+        "alert": "80% of limit"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "users",
+      "value": 17,
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "Removed",
+        "scope": "future",
+        "acceptance": [],
+        "description": "Duplicate of FR-3 and removed.",
+        "reason": "Duplicate requirement."
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "Audit logging of note creation and edits",
+        "scope": "mvp",
+        "acceptance": [
+          "Each create or edit writes exactly one audit entry",
+          "Entry contains nurse ID, timestamp and action type",
+          "Audit entries cannot be edited or deleted"
+        ],
+        "description": "Every note creation and edit is logged once with nurse ID, timestamp and action type, stored read-only for seven years."
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "audit_logs",
+      "value": "Stored separately from note data in a secure, read-only AWS location; retained at least seven years.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "users",
+      "value": "17 users at launch (about 15 nurses and two ward managers), within the current AWS plan.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "Removed",
+        "scope": "mvp",
+        "acceptance": [],
+        "reason": "Merged into FR-3"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epic_connection_method",
+      "value": "Open: IT team to confirm Epic endpoint, payload shape, authentication and whether a secure API or existing connector is used; details due at kickoff",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem",
+      "value": "Nurses on the pilot ward enter each note twice, into the EPR and a handover spreadsheet. About 5 minutes per nurse per shift, 75 minutes per shift across 15 nurses, over 20 hours a week. Nurses have raised it in handover meetings.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem_steps",
+      "value": "Nurses open Epic for the patient list and vitals, enter notes in the EPR ward notes section, then retype about 80% of the same note into the SharePoint handover spreadsheet, often on a tablet or mobile device.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem_errors",
+      "value": "Retyping causes wording and formatting differences that lead to confusion at handover.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem_errors_examples",
+      "value": "Dosage unit mismatch (mg in Epic, mcg in spreadsheet), omitted new medication in handover file, pain score conflict (8 vs 4) causing delay at handover.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "Removed",
+        "scope": "mvp",
+        "acceptance": [],
+        "reason": "Merged into FR-3"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_manager",
+      "value": {
+        "role": "Ward manager",
+        "needs": "Reviews completed notes once per shift before handover, checking for gaps and inconsistencies. Read only."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "senior_nurse",
+      "value": {
+        "role": "Senior nurse on cover shifts",
+        "needs": "Reads existing notes to check patient status. Read only; never creates or edits notes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "nurse",
+      "value": {
+        "role": "Nurse on duty",
+        "needs": "Select their patient from the Epic list, enter observations and medications in one place, and verify the note quickly without retyping."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a nurse, I want to pick my patient from the Epic list and enter observations and medications in one place so that I can finish and verify the note quickly without switching systems.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "Medication entry form",
+        "scope": "mvp",
+        "acceptance": [
+          "Medication chosen only from formulary dropdown",
+          "Dose, unit and time are required before saving",
+          "Bed number and MRN shown for confirmation before saving"
+        ],
+        "description": "Nurse selects medication from the hospital formulary dropdown and enters dose, unit and time given; bed number and MRN auto-filled from Epic and visible before saving."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "new-medication-review",
+      "value": "A medication entered outside the formulary dropdown is flagged for ward manager review the next day.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "NHS smartcard login",
+        "scope": "mvp",
+        "acceptance": [
+          "A nurse can log in with a smartcard on a tablet",
+          "Access is limited to ward nurses and team leaders"
+        ],
+        "description": "Nurses log in with their NHS smartcard on the tablet."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-8",
+      "value": {
+        "title": "Patient list from Epic",
+        "scope": "mvp",
+        "acceptance": [
+          "The patient list matches the Epic ward list",
+          "Selecting a patient auto-fills bed number and current status"
+        ],
+        "description": "The tool shows the ward patient list pulled from Epic; the nurse selects a patient by name or MRN."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "Medication details",
+        "scope": "mvp",
+        "acceptance": [
+          "The tool shows the dose, unit, and time of the medication.",
+          "The medication comes from a dropdown with the approved medications from the hospital’s formulary.",
+          "New medications are flagged for review by the ward manager the next day.",
+          "The patient’s bed number and MRN are auto-filled from Epic and visible for double-checking."
+        ],
+        "description": "The tool should show the dose, unit (like mg or mL), and the time the medication was given. The medication should come from a dropdown with the approved medications from the hospital’s formulary. New medications should be flagged for review by the ward manager the next day. The patient’s bed number and MRN should be auto-filled from Epic and visible for double-checking."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-10",
+      "value": {
+        "title": "Audit log",
+        "scope": "mvp",
+        "acceptance": [
+          "Every note creation and edit is logged once.",
+          "The log includes nurse ID, timestamp, and action type.",
+          "The log is stored read-only for seven years."
+        ],
+        "description": "Every note creation and edit is logged once, with nurse ID, timestamp and action type, stored read-only for seven years."
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-2",
+      "value": "As a nurse, I want to log in and select my patient from the live list in Epic so I can start entering the note without switching systems.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-3",
+      "value": "As a ward manager, I want to view all completed notes for the shift before handover so I can check for gaps or inconsistencies.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-11",
+      "value": {
+        "title": "Ward manager medication flag review",
+        "scope": "mvp",
+        "acceptance": [
+          "Ward manager sees flagged new medication entries in the completed-notes list the next day."
+        ],
+        "description": "Ward manager's completed-notes list shows medication flags for new entries so they can review them the next day."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-12",
+      "value": {
+        "title": "Observation entry priority",
+        "scope": "mvp",
+        "acceptance": [
+          "Blood pressure, heart rate, temperature and pain score can be entered before any medication entry",
+          "Fields use dropdowns or numeric inputs"
+        ],
+        "description": "Core observations (blood pressure, heart rate, temperature, pain score) are captured first; medications follow in a later step."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-13",
+      "value": {
+        "title": "Validation warning for impossible observation values",
+        "scope": "mvp",
+        "acceptance": [
+          "Heart rate above 200 shows a warning",
+          "Temperature outside 30-45 C shows a warning",
+          "Blood pressure outside systolic 80-250 or diastolic 50-150 shows a warning",
+          "Save is still allowed after the warning"
+        ],
+        "description": "Warn the nurse when a value is outside the impossible range, without blocking save."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-14",
+      "value": {
+        "title": "Block save on blank required observation",
+        "scope": "mvp",
+        "acceptance": ["Saving with a blank pain score is blocked", "The message names the missing field"],
+        "description": "A save is blocked when a required observation such as pain score is blank, with the message 'Pain score is missing—please enter a value before saving.'"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-15",
+      "value": {
+        "title": "Observation entry form",
+        "scope": "mvp",
+        "acceptance": ["The form has clear fields for each observation"],
+        "description": "The observation entry form should include clear fields for each observation, with dropdowns or numeric inputs to reduce errors.",
+        "reason": "To reduce errors and ensure accurate data entry"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-16",
+      "value": {
+        "title": "Validation for impossible observation values",
+        "scope": "mvp",
+        "acceptance": ["The tool shows a warning for impossible values but allows saving"],
+        "description": "The tool should warn but allow saving of impossible observation values, such as a heart rate of 400.",
+        "reason": "To balance data accuracy with user flexibility"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-17",
+      "value": {
+        "title": "Blocking save for missing required observations",
+        "scope": "mvp",
+        "acceptance": [
+          "The save is blocked when a required observation is blank",
+          "A clear message is shown: 'Pain score is missing—please enter a value before saving.'"
+        ],
+        "description": "The tool should block saving if a required observation, such as pain score, is blank, and show a clear message: 'Pain score is missing—please enter a value before saving.'",
+        "reason": "To ensure critical fields are not skipped, especially in rushed situations"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-18",
+      "value": {
+        "title": "Medication dose range warning",
+        "scope": "mvp",
+        "acceptance": [
+          "A dose ten times the usual amount shows the warning 'This dose is 10 times the usual amount—please confirm with a senior nurse or pharmacist.'",
+          "The nurse can still save after the warning is shown"
+        ],
+        "description": "When a dose is outside the normal range for the selected medication, show a warning and allow the save."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "high-dose-warning",
+      "value": "High doses trigger a warning, not a block, because some medications are dosed by weight or condition.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "new-medication-approval",
+      "value": "Ward manager approves new medications not on the formulary",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sharepoint_connection_method",
+      "value": "IT team confirms endpoint, payload and authentication before build",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "medication-high-dose-warning",
+      "value": "When a nurse enters a medication dose that is 10 times the usual amount, the system must show a warning: “This dose is 10 times the usual amount—please confirm with a senior nurse or pharmacist.”",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sharepoint_details",
+      "value": "The IT team will confirm the SharePoint URL, the exact row format (including column names and order), and how the tool logs in using the ward’s shared credentials before any development starts.",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "medication-display-before-save",
+      "value": "Before saving, dose, unit (dropdown: mg, mL, etc.) and time given are each shown in a labelled field; time defaults to the current time and is editable.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note-retention",
+      "value": "Notes kept at least seven years from save time; deletion blocked; auto-archived to read-only after seven years.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "retention-start-date",
+      "value": "Records team to confirm the exact retention start date.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "audit-corrections",
+      "value": "Every save and correction is kept in the audit trail with timestamp and author; the original version is never overwritten.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-19",
+      "value": {
+        "title": "Display dose, unit, and time in separate labeled fields",
+        "scope": "mvp",
+        "acceptance": [
+          "The form displays dose, unit, and time in separate labeled fields",
+          "The time defaults to the current time and can be edited",
+          "The unit is selected from a dropdown"
+        ],
+        "description": "Before saving, the nurse must see the dose, unit (like mg or mL), and time given clearly displayed in the form—each in its own labeled field, not hidden in a note. The time should default to the current time, but they should be able to edit it if it’s wrong. The unit must be selected from a dropdown, not typed free text, to prevent errors like “mcg” vs “mg”.",
+        "reason": "To prevent errors and ensure accuracy before saving"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "pilot-pass-test",
+      "value": "Pass test: three clean shifts in a row on the pilot ward. Each shift has no double entry, no major errors, all notes saved and visible in the handover file, and the ward manager confirms notes match Epic and the spreadsheet.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "major-error-definition",
+      "value": "A mismatch that makes a nurse stop to verify or prompts patient reassessment; re-entry after a crash counts as a double entry and fails the pass test.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "pass-test",
+      "value": "One full shift with every note entered once in the tool and no retyping into SharePoint; three clean shifts in a row with no major errors, all notes saved and visible in the handover file, and ward manager confirming notes match Epic and the spreadsheet.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-20",
+      "value": {
+        "title": "Auto-save in-progress notes",
+        "scope": "mvp",
+        "acceptance": [
+          "Notes in progress are saved automatically every few minutes",
+          "A nurse is prompted before the tool closes with unsaved work",
+          "No note is lost after a crash or unexpected close"
+        ],
+        "description": "Hold notes in progress by auto-saving every few minutes and prompting the nurse to confirm before the tool closes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "api",
+      "value": {
+        "choice": "Secure API gateway between the .NET service and AWS",
+        "reason": "Keeps the connection controlled and within the team's skills.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting_region",
+      "value": {
+        "choice": "AWS UK region",
+        "reason": "Keeps patient data in the UK for GDPR and data governance.",
+        "status": "specified"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-21",
+      "value": {
+        "title": "Auto-save in-progress notes",
+        "scope": "mvp",
+        "acceptance": [
+          "The tool auto-saves notes every few minutes or prompts the nurse to confirm before closing."
+        ],
+        "description": "The tool must auto-save or prompt to save in-progress notes to prevent data loss on unexpected close or crash.",
+        "reason": "To prevent data loss and ensure reliability during the pilot."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "observation-flagging",
+      "value": "Flag heart rates above 200 beats per minute as impossible and warn the nurse before saving.",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "impossible-value-thresholds",
+      "value": "Heart rate above 200; temperature below 30 or above 45 C; systolic below 80 or above 250; diastolic below 50 or above 150. Warn and allow save.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "dotnet_service_hosting",
+      "value": {
+        "choice": "Inside AWS, behind secure API gateway",
+        "reason": "Keeps validation and medication flagging within the same cloud environment as the rest of the tool.",
+        "status": "specified"
+      },
+      "source": "user"
+    }
+  ],
+  "summary": "The tool will run on AWS, with strict access controls (ward-based, encrypted, HIPAA-compliant, and adhering to the hospital group’s data governance policy). It will connect to the Epic EPR system (to pull patient names, MRNs, and bed numbers, and push final notes) and a SharePoint spreadsheet (to add rows daily). The hospital's IT innovation unit will build it using Power Apps and Power Automate, with potential custom .NET services. The team will work closely with nurses to design and test the interface. The note will include structured fields for vitals (blood pressure, heart rate, temperature, pain score), medications, and key observations, with dropdowns or numeric inputs, followed by free text for context. The patient will be selected from the Epic list.\n\nVersion one needs to be in use on a pilot ward by September 30, with a dedicated rollout plan including training sessions, a support contact during the first week, and daily feedback collection. The budget is under £20,000, with tracking to flag at 80% of the limit. About 15 nurses and two ward managers (17 users) will use the tool at launch, well within the AWS plan’s capacity.\n\nThe tool will be tested with at least 10 real users during the final week of development, and a simple feedback button will be included in the app for nurses to report problems instantly during the first week. The compliance basis is GDPR and the hospital’s data governance policy. The tool must log every time a note is created or edited, including the nurse’s ID, timestamp, and action type, with logs stored separately in a secure, read-only folder within AWS and retained for at least seven years. The Epic connection details will be confirmed by the IT team before build starts.\n\nThe double typing affects all 15 nurses on the pilot ward, costing about 5 minutes per shift per nurse, totaling 75 minutes per shift or over 20 hours a week across the ward. During a typical evening shift, nurses enter a note twice: first in the EPR system (Epic) and then in a SharePoint spreadsheet. The most common mistake or confusion caught at handover is due to slight changes in wording or formatting when retyping the note. The most common issue is a mismatch in medication dosages—sometimes a nurse types “5mg morphine” in Epic but writes “5mcg” in the spreadsheet. Other times, a new medication is listed in the EPR but omitted in the handover file because the nurse skipped that section while retyping. Then, during handover, another nurse notices the gap and double-checks the EPR, which causes delays. One time, a patient’s pain score was 8 in Epic but 4 in the spreadsheet, and it took five minutes to figure out which one was correct—by which point the shift had already ended. Mismatches like these occur at least twice a week on average, sometimes more during busy periods. The ward manager will use the tool once per shift to review the notes before handover—they’ll open the tool, check the list of completed notes, and look for any gaps or inconsistencies. A senior nurse might open it to double-check a patient’s status if they’re covering a shift or stepping in. Both users will just scan the note entries and the timestamps to make sure everything is up to date. They don’t need to edit—just confirm. A senior nurse covering a shift only reads notes, without creating or editing them. At the start of a shift, a nurse wants to quickly select the patient they’re responsible for from the list pulled from Epic, then enter the key observations and medications in one go—without having to switch between systems. Their main goal is to get the note done and verified as fast as possible so they can focus on patient care, not paperwork. When a nurse adds a medication, they need to see the dose, the unit, and the time given before saving. The medication comes from a formulary dropdown, and new entries get flagged for ward manager review. They also need to confirm the patient’s bed number and MRN are correct before saving—those are auto-filled from Epic but must be visible for double-checking.\n\nThe audit log is now one requirement (FR-3), logged once per note creation or edit and kept read-only for seven years.\n\nThe nurse's first user story (US-2) is “As a nurse, I want to log in and select my patient from the live list in Epic so I can start entering the note without switching systems.” The ward manager's user story (US-3) is “As a ward manager, I want to view all completed notes for the shift before handover so I can check for gaps or inconsistencies.” The ward manager's list will include medication flags for new entries, so they can review them the next day.\n\nThe tool will prioritize observations first, with blood pressure, heart rate, temperature, and pain score as the core fields. Impossible observation values (e.g., heart rate of 400) will show a warning but can still be saved. Blank required observations (e.g., pain score) will block the save, with the message “Pain score is missing—please enter a value before saving.” High medication doses will trigger a warning but can still be saved, with the nurse asked to confirm with a senior nurse or pharmacist. The ward manager will approve new medications not on the formulary. The IT team will confirm the SharePoint URL, row format, and login credentials before development starts.",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "Nurse can enter structured fields for vitals, medications, and observations",
+      "scope": "mvp",
+      "acceptance": [
+        "Fields for blood pressure, heart rate, temperature, pain score, and new medications are present",
+        "Dropdowns or numeric inputs are used where possible",
+        "Free text field is available for additional context"
+      ],
+      "reason": "To capture core data consistently for review and analysis"
+    },
+    {
+      "id": "FR-3",
+      "title": "The system logs every note creation and edit once with nurse ID, timestamp, and action type",
+      "scope": "mvp",
+      "acceptance": [
+        "Each create or edit writes exactly one audit entry",
+        "Entry contains nurse ID, timestamp and action type",
+        "Audit entries cannot be edited or deleted"
+      ]
+    },
+    {
+      "id": "FR-6",
+      "title": "Nurse can enter medication with selection from formulary and dose details",
+      "scope": "mvp",
+      "acceptance": [
+        "Medication chosen only from formulary dropdown",
+        "Dose, unit and time are required before saving",
+        "Bed number and MRN shown for confirmation before saving"
+      ]
+    },
+    {
+      "id": "FR-7",
+      "title": "Nurses log in with NHS smartcard on tablet",
+      "scope": "mvp",
+      "acceptance": [
+        "A nurse can log in with a smartcard on a tablet",
+        "Access is limited to ward nurses and team leaders"
+      ]
+    },
+    {
+      "id": "FR-8",
+      "title": "The tool shows the ward patient list pulled from Epic",
+      "scope": "mvp",
+      "acceptance": [
+        "The patient list matches the Epic ward list",
+        "Selecting a patient auto-fills bed number and current status"
+      ]
+    },
+    {
+      "id": "FR-9",
+      "title": "The tool shows medication dose, unit, and time from formulary; flags new medications",
+      "scope": "mvp",
+      "acceptance": [
+        "The tool shows the dose, unit, and time of the medication.",
+        "The medication comes from a dropdown with the approved medications from the hospital’s formulary.",
+        "New medications are flagged for review by the ward manager the next day.",
+        "The patient’s bed number and MRN are auto-filled from Epic and visible for double-checking."
+      ]
+    },
+    {
+      "id": "FR-10",
+      "title": "Every note creation and edit is logged once in a read-only audit log stored seven years",
+      "scope": "mvp",
+      "acceptance": [
+        "Every note creation and edit is logged once.",
+        "The log includes nurse ID, timestamp, and action type.",
+        "The log is stored read-only for seven years."
+      ]
+    },
+    {
+      "id": "FR-11",
+      "title": "Ward manager sees medication flags for new entries in completed-notes list",
+      "scope": "mvp",
+      "acceptance": [
+        "Ward manager sees flagged new medication entries in the completed-notes list the next day."
+      ]
+    },
+    {
+      "id": "FR-12",
+      "title": "Core observations entered before medications",
+      "scope": "mvp",
+      "acceptance": [
+        "Blood pressure, heart rate, temperature and pain score can be entered before any medication entry",
+        "Fields use dropdowns or numeric inputs"
+      ]
+    },
+    {
+      "id": "FR-13",
+      "title": "The tool warns on impossible observation values but allows save",
+      "scope": "mvp",
+      "acceptance": [
+        "Heart rate above 200 shows a warning",
+        "Temperature outside 30-45 C shows a warning",
+        "Blood pressure outside systolic 80-250 or diastolic 50-150 shows a warning",
+        "Save is still allowed after the warning",
+        "The tool shows a warning for impossible values but allows saving"
+      ],
+      "reason": "To balance data accuracy with user flexibility"
+    },
+    {
+      "id": "FR-14",
+      "title": "Save is blocked when required observation (pain score) is blank with a clear message",
+      "scope": "mvp",
+      "acceptance": [
+        "Saving with a blank pain score is blocked",
+        "The message names the missing field",
+        "The save is blocked when a required observation is blank",
+        "A clear message is shown: 'Pain score is missing—please enter a value before saving.'"
+      ],
+      "reason": "To ensure critical fields are not skipped, especially in rushed situations"
+    },
+    {
+      "id": "FR-15",
+      "title": "Observation entry form uses clear fields with dropdowns or numeric inputs",
+      "scope": "mvp",
+      "acceptance": ["The form has clear fields for each observation"],
+      "reason": "To reduce errors and ensure accurate data entry"
+    },
+    {
+      "id": "FR-18",
+      "title": "Medication dose out of range warns but permits saving",
+      "scope": "mvp",
+      "acceptance": [
+        "A dose ten times the usual amount shows the warning 'This dose is 10 times the usual amount—please confirm with a senior nurse or pharmacist.'",
+        "The nurse can still save after the warning is shown"
+      ]
+    },
+    {
+      "id": "FR-19",
+      "title": "Dose, unit, and time shown in separate labeled fields before saving",
+      "scope": "mvp",
+      "acceptance": [
+        "The form displays dose, unit, and time in separate labeled fields",
+        "The time defaults to the current time and can be edited",
+        "The unit is selected from a dropdown"
+      ],
+      "reason": "To prevent errors and ensure accuracy before saving"
+    },
+    {
+      "id": "FR-20",
+      "title": "The tool auto-saves notes in progress regularly and prompts before closing",
+      "scope": "mvp",
+      "acceptance": [
+        "Notes in progress are saved automatically every few minutes",
+        "A nurse is prompted before the tool closes with unsaved work",
+        "No note is lost after a crash or unexpected close",
+        "The tool auto-saves notes every few minutes or prompts the nurse to confirm before closing."
+      ],
+      "reason": "To prevent data loss and ensure reliability during the pilot."
+    },
+    {
+      "id": "pilot-pass-test",
+      "title": "Pilot pass test of three clean shifts without double entry or major errors",
+      "scope": "mvp",
+      "acceptance": [
+        "Three clean shifts in a row on the pilot ward with no double entry",
+        "No major errors identified",
+        "All notes saved and visible in the handover file",
+        "Ward manager confirms notes match Epic and the spreadsheet"
+      ],
+      "needsConfirmation": true
+    },
+    {
+      "id": "major-error-definition",
+      "title": "Definition of major error",
+      "scope": "mvp",
+      "acceptance": [
+        "Major error is a mismatch causing nurse to verify or prompting patient reassessment",
+        "Re-entry after a crash counts as a double entry and fails the pass test"
+      ],
+      "needsConfirmation": true
+    },
+    {
+      "id": "pass-test",
+      "title": "Pass test of one full shift with notes entered once and no retyping",
+      "scope": "mvp",
+      "acceptance": [
+        "One full shift with every note entered once in the tool with no retyping to SharePoint",
+        "Three clean shifts in a row with no major errors",
+        "All notes saved and visible in the handover file",
+        "Ward manager confirms notes match Epic and the spreadsheet"
+      ],
+      "needsConfirmation": true
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: nontechnical · Generated: 2026-10-14T07:17:55.486Z\n\n## Product overview and problem\n\n### Product overview and problem\n\nNurses on the ward currently enter patient notes twice: once into the Epic EPR system and once into a SharePoint handover spreadsheet. This duplication takes about 5 minutes per nurse per shift, adding up to over 20 hours a week across 15 nurses. Retyping leads to errors like dosage mismatches and omitted information, causing confusion and delays at handover.\n\nThis tool aims to eliminate double entry by allowing nurses to enter notes once, integrating with Epic and producing the handover spreadsheet automatically. The budget is under £20,000.\n\n### Users\n\n- 15 nurses on duty\n- 2 ward managers\n- Senior nurses who occasionally read notes\n\n## Target users and roles\n\n### Target users and roles\n\n- **Ward manager:** Reviews completed notes once per shift before handover. Read-only access.\n- **Senior nurse:** Reads existing notes during cover shifts. Read-only, no editing.\n- **Nurse:** Selects patients from Epic list, enters observations and medications in one place, verifies notes without retyping. Full access to create and edit notes.\n\n## User stories\n\n### User stories\n\n- **US-1:** As a nurse, I want to pick my patient from the Epic list and enter observations and medications in one place so that I can finish and verify the note quickly without switching systems.\n- **US-2:** As a nurse, I want to log in and select my patient from the live list in Epic so I can start entering the note without switching systems.\n- **US-3:** As a ward manager, I want to view all completed notes for the shift before handover so I can check for gaps or inconsistencies.\n\n## Functional requirements\n\nThis section lists the functional requirements for the Ward notes tool. Each requirement is specified with acceptance criteria for testing.\n\n### MVP\n\n- **FR-1** Nurse can enter structured fields for vitals, medications, and observations\n  - Acceptance: Fields for blood pressure, heart rate, temperature, pain score, and new medications are present\n  - Acceptance: Dropdowns or numeric inputs are used where possible\n  - Acceptance: Free text field is available for additional context\n  - Reason: To capture core data consistently for review and analysis\n- **FR-3** The system logs every note creation and edit once with nurse ID, timestamp, and action type\n  - Acceptance: Each create or edit writes exactly one audit entry\n  - Acceptance: Entry contains nurse ID, timestamp and action type\n  - Acceptance: Audit entries cannot be edited or deleted\n- **FR-6** Nurse can enter medication with selection from formulary and dose details\n  - Acceptance: Medication chosen only from formulary dropdown\n  - Acceptance: Dose, unit and time are required before saving\n  - Acceptance: Bed number and MRN shown for confirmation before saving\n- **FR-7** Nurses log in with NHS smartcard on tablet\n  - Acceptance: A nurse can log in with a smartcard on a tablet\n  - Acceptance: Access is limited to ward nurses and team leaders\n- **FR-8** The tool shows the ward patient list pulled from Epic\n  - Acceptance: The patient list matches the Epic ward list\n  - Acceptance: Selecting a patient auto-fills bed number and current status\n- **FR-9** The tool shows medication dose, unit, and time from formulary; flags new medications\n  - Acceptance: The tool shows the dose, unit, and time of the medication.\n  - Acceptance: The medication comes from a dropdown with the approved medications from the hospital’s formulary.\n  - Acceptance: New medications are flagged for review by the ward manager the next day.\n  - Acceptance: The patient’s bed number and MRN are auto-filled from Epic and visible for double-checking.\n- **FR-10** Every note creation and edit is logged once in a read-only audit log stored seven years\n  - Acceptance: Every note creation and edit is logged once.\n  - Acceptance: The log includes nurse ID, timestamp, and action type.\n  - Acceptance: The log is stored read-only for seven years.\n- **FR-11** Ward manager sees medication flags for new entries in completed-notes list\n  - Acceptance: Ward manager sees flagged new medication entries in the completed-notes list the next day.\n- **FR-12** Core observations entered before medications\n  - Acceptance: Blood pressure, heart rate, temperature and pain score can be entered before any medication entry\n  - Acceptance: Fields use dropdowns or numeric inputs\n- **FR-13** The tool warns on impossible observation values but allows save\n  - Acceptance: Heart rate above 200 shows a warning\n  - Acceptance: Temperature outside 30-45 C shows a warning\n  - Acceptance: Blood pressure outside systolic 80-250 or diastolic 50-150 shows a warning\n  - Acceptance: Save is still allowed after the warning\n  - Acceptance: The tool shows a warning for impossible values but allows saving\n  - Reason: To balance data accuracy with user flexibility\n- **FR-14** Save is blocked when required observation (pain score) is blank with a clear message\n  - Acceptance: Saving with a blank pain score is blocked\n  - Acceptance: The message names the missing field\n  - Acceptance: The save is blocked when a required observation is blank\n  - Acceptance: A clear message is shown: 'Pain score is missing—please enter a value before saving.'\n  - Reason: To ensure critical fields are not skipped, especially in rushed situations\n- **FR-15** Observation entry form uses clear fields with dropdowns or numeric inputs\n  - Acceptance: The form has clear fields for each observation\n  - Reason: To reduce errors and ensure accurate data entry\n- **FR-18** Medication dose out of range warns but permits saving\n  - Acceptance: A dose ten times the usual amount shows the warning 'This dose is 10 times the usual amount—please confirm with a senior nurse or pharmacist.'\n  - Acceptance: The nurse can still save after the warning is shown\n- **FR-19** Dose, unit, and time shown in separate labeled fields before saving\n  - Acceptance: The form displays dose, unit, and time in separate labeled fields\n  - Acceptance: The time defaults to the current time and can be edited\n  - Acceptance: The unit is selected from a dropdown\n  - Reason: To prevent errors and ensure accuracy before saving\n- **FR-20** The tool auto-saves notes in progress regularly and prompts before closing\n  - Acceptance: Notes in progress are saved automatically every few minutes\n  - Acceptance: A nurse is prompted before the tool closes with unsaved work\n  - Acceptance: No note is lost after a crash or unexpected close\n  - Acceptance: The tool auto-saves notes every few minutes or prompts the nurse to confirm before closing.\n  - Reason: To prevent data loss and ensure reliability during the pilot.\n- **pilot-pass-test** Pilot pass test of three clean shifts without double entry or major errors\n  - Acceptance: Three clean shifts in a row on the pilot ward with no double entry\n  - Acceptance: No major errors identified\n  - Acceptance: All notes saved and visible in the handover file\n  - Acceptance: Ward manager confirms notes match Epic and the spreadsheet\n- **major-error-definition** Definition of major error\n  - Acceptance: Major error is a mismatch causing nurse to verify or prompting patient reassessment\n  - Acceptance: Re-entry after a crash counts as a double entry and fails the pass test\n- **pass-test** Pass test of one full shift with notes entered once and no retyping\n  - Acceptance: One full shift with every note entered once in the tool with no retyping to SharePoint\n  - Acceptance: Three clean shifts in a row with no major errors\n  - Acceptance: All notes saved and visible in the handover file\n  - Acceptance: Ward manager confirms notes match Epic and the spreadsheet\n\n## Business rules\n\n### Business rules\n\n1. A medication entered outside the formulary dropdown is flagged for ward manager review the next day.\n2. High doses trigger a warning, not a block, because some medications are dosed by weight or condition.\n3. Ward manager approves new medications not on the formulary.\n4. When a nurse enters a medication dose that is 10 times the usual amount, the system shows a warning: “This dose is 10 times the usual amount—please confirm with a senior nurse or pharmacist.”\n5. Before saving, dose, unit (dropdown: mg, mL, etc.) and time given are each shown in labeled fields; time defaults to current time and is editable.\n6. Notes are kept for at least seven years from save time; deletion is blocked; auto-archived to read-only after seven years.\n7. Every save and correction is kept in the audit trail with timestamp and author; the original version is never overwritten.\n8. Heart rates above 200 beats per minute are flagged as impossible and warned before saving.\n9. Impossible value thresholds triggering warnings but allowing save:\n   - Heart rate above 200\n   - Temperature below 30 or above 45 °C\n   - Systolic blood pressure below 80 or above 250\n   - Diastolic blood pressure below 50 or above 150\n\n## Technical requirements\n\n### Technical requirements\n\n- Hosting on AWS cloud account as already used by the IT team.\n- Tech stack includes Power Apps and Power Automate with custom .NET services, deployed on AWS.\n- A secure API gateway mediates communication between .NET services and AWS.\n- Hosting region is AWS UK region to keep patient data in the UK for GDPR compliance.\n- .NET services are hosted inside AWS behind the secure API gateway to keep validation and medication flagging within the same environment.\n\n## Data requirements\n\n### Data requirements\n\n- Patient data: Name, MRN, current bed number, current status pulled live from Epic.\n- Ward notes include structured fields for blood pressure, heart rate, temperature, pain score, new medications, and free text.\n- Medication data includes name (from formulary dropdown), dose, unit, time given.\n- Audit log records actions with nurse ID, timestamp, action type.\n- Notes and audit logs archived and retained as per retention policies.\n\n## Integrations\n\n### Integrations\n\n- Inbound integration with Epic to pull patient name, MRN, bed number, and status.\n- Outbound integration with SharePoint to append daily notes to the handover spreadsheet.\n- The IT team will confirm endpoints, payloads, and authentication methods for both Epic and SharePoint before development.\n- Authentication details for Epic and SharePoint use are pending confirmation.\n\n## Security and privacy\n\n### Security and privacy\n\n- Access limited to nurses on the ward and their team leaders.\n- All data encrypted at rest and in transit.\n- Complies with GDPR and hospital data governance policies.\n- Audit logs stored separately in a secure, read-only AWS location, retained for at least seven years.\n\n## Non-functional requirements\n\n### Non-functional requirements\n\n- Target rollout on a pilot ward by September 30.\n- Core fields and Epic integration prioritized in the initial version.\n- Dedicated rollout plan with training sessions.\n- Support contact available during the first week post-launch.\n- Daily feedback collection during the pilot.\n- User base at launch: approximately 17 (15 nurses and 2 ward managers).\n- All within the current AWS capacity and budget limit.\n\n## Administrative surface\n\n### Administrative surface\n\n- Ward manager screen to review completed notes with medication flags for new entries.\n- Read-only views for senior nurses and ward managers.\n- Login controls for nurse and team leader roles using NHS smartcard.\n\n## MVP scope\n\nThe MVP includes all core structured fields for observations and medications with validations, audit logging, Epic patient list integration, NHS smartcard login, medication flagging for new entries, auto-save of notes in progress, and a daily export to SharePoint. The ward manager can review completed notes including medication flags. The tool supports warnings for impossible or high-dose values but allows saving except when required fields are blank.\n\nIn version one:\n- FR-1\n- FR-3\n- FR-6\n- FR-7\n- FR-8\n- FR-9\n- FR-10\n- FR-11\n- FR-12\n- FR-13\n- FR-14\n- FR-15\n- FR-18\n- FR-19\n- pilot-pass-test\n- major-error-definition\n- pass-test\n- FR-20\n\n## Future scope\n\n## Implementation phases\n\nThis section describes the implementation phases, with goals, tasks, dependencies, and acceptance criteria for each phase.\n\n### Phase 1: Core MVP Delivery\n\nGoals:\n- Deliver the core note entry functionality with structured observation and medication forms.\n- Implement Epic patient list integration and NHS smartcard login.\n- Establish audit logging and medication flagging.\n- Integrate with SharePoint for daily handover export.\n- Enable auto-save for in-progress notes.\n\nTasks:\n- Build structured observation entry form with required fields and validation warnings\n  - Acceptance: Blood pressure, heart rate, temperature and pain score entry fields are present\n  - Acceptance: Validation warnings appear for impossible values but allow saving\n  - Acceptance: Save is blocked if pain score is blank with appropriate message\n- Build medication entry form with formulary dropdown, dose, unit, time, and new medication flagging\n  - Acceptance: Medication dropdown enforces formulary choices\n  - Acceptance: Dose, unit, and time fields are separate and labeled\n  - Acceptance: Dose warnings display for abnormal values with save allowed\n  - Acceptance: New medications flagged for review\n- Implement NHS smartcard login restricted to ward nurses and team leaders\n  - Acceptance: Nurses can log in with smartcard on tablets\n  - Acceptance: Access limited to authorized roles\n- Integrate patient list from Epic and autofill bed number and status\n  - Acceptance: Patient list matches Epic ward list\n  - Acceptance: Selecting patient autofills bed number and status\n- Implement audit logging for all note creations and edits with required fields\n  - Acceptance: Audit logs include nurse ID, timestamp, and action type\n  - Acceptance: Logs are immutable and retained securely for seven years\n- Automate daily export of finalized notes to SharePoint spreadsheet\n  - Acceptance: Daily append rows to SharePoint with final notes\n  - Acceptance: Export includes all necessary fields and formats\n- Implement auto-save for notes in progress with close warnings\n  - Acceptance: Notes are auto-saved every few minutes\n  - Acceptance: Nurse is prompted before closing with unsaved data\n  - Acceptance: No data loss occurs on crashes or unexpected closes\n\nPhase acceptance:\n- All core observation and medication fields function as specified\n- Epic and SharePoint integrations operate correctly\n- Audit logging meets requirements\n- Auto-save functions without data loss\n- NHS smartcard login operates correctly\n- Pilot pass test is achievable with this functionality\n\n### Phase 2: Pilot Rollout and Monitoring\n\nGoals:\n- Deploy the tool on the pilot ward.\n- Conduct user training and provide support.\n- Collect daily feedback and monitor usage.\n- Monitor for errors and user issues.\n\nTasks:\n- Deploy MVP to pilot ward with 17 users\n  - Acceptance: Tool is accessible to all nurses and managers on the ward\n- Run training sessions and establish support contact\n  - Acceptance: At least one training session completed before pilot start\n  - Acceptance: Support contact available during first week\n- Collect and analyze daily user feedback\n  - Acceptance: Feedback button active and feedback collected daily\n- Monitor for major errors and double entry occurrences\n  - Acceptance: No major errors reported during pilot\n  - Acceptance: No double entry occurs during shifts\n\nDepends on: phase1\n\nPhase acceptance:\n- Pilot ward uses the tool for all notes without double entry\n- Issues are logged and addressed promptly\n- Ward manager confirms patient notes accuracy\n\n### Phase 3: Post-Pilot Stabilization and Improvement\n\nGoals:\n- Fix issues found in pilot.\n- Stabilize the system for routine use.\n- Prepare for wider rollout.\n\nTasks:\n- Implement fixes and improvements based on pilot feedback\n  - Acceptance: All pilot-reported bugs are addressed\n  - Acceptance: User satisfaction improved per feedback\n- Optimize system performance and reliability\n  - Acceptance: System meets availability and latency targets\n- Document operational procedures and training materials\n  - Acceptance: Training materials updated\n  - Acceptance: Support procedures documented\n\nDepends on: phase2\n\nPhase acceptance:\n- Tool is stable and reliable for daily use\n- Users report improved efficiency and reduced errors\n\n## Open questions\n\n### Open questions\n\n- What is the exact retention start date for the notes according to the records team? (Default taken: retention starts from save time)\n\n- What exact retention start date should be used for notes according to the records team? _Default taken: Retention starts from the note save time_\n",
+  "curation": {
+    "merged": [
+      {
+        "into": "FR-13",
+        "from": ["FR-16"],
+        "via": "exact"
+      },
+      {
+        "into": "FR-20",
+        "from": ["FR-21"],
+        "via": "exact"
+      },
+      {
+        "into": "FR-14",
+        "from": ["FR-17"],
+        "via": "model"
+      }
+    ],
+    "rerouted": [],
+    "withdrawn": ["FR-2", "FR-4", "FR-5"],
+    "renumbered": [],
+    "folded": [],
+    "candidates": []
+  }
+}

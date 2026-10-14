@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import * as React from "react";
 import { NavigationProgress } from "@/components/common/NavigationProgress";
-import { Toaster } from "@/components/ui/sonner";
+import { ToasterHost } from "@/components/common/ToasterHost";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { getStrings, requestLocale } from "@/i18n/server";
@@ -44,6 +44,15 @@ export default async function RootLayout({
     <html lang={locale} className={inter.variable} suppressHydrationWarning>
       <head>
         {nonce ? <meta name="csp-nonce" content={nonce} /> : null}
+        {/* react-style-singleton, under Radix dialogs and popovers, creates a <style> element and
+            gives it the nonce it finds in this global. Without it every dialog is a style-src
+            violation (found by the Playwright CSP assertion, D-264). */}
+        {nonce ? (
+          <script
+            nonce={nonce}
+            dangerouslySetInnerHTML={{ __html: `window.__webpack_nonce__=${JSON.stringify(nonce)};` }}
+          />
+        ) : null}
         <script nonce={nonce || undefined} dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-dvh">
@@ -58,7 +67,7 @@ export default async function RootLayout({
             {t.app.skipToContent}
           </a>
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
-          <Toaster />
+          <ToasterHost />
         </LocaleProvider>
       </body>
     </html>

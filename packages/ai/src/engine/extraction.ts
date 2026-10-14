@@ -2,12 +2,16 @@ import { ExtractionResultSchema, normalizeSectionKey, SessionStateSchema, type F
 import type { ModelCallerPort } from "../callModel.js";
 import { checkSpecFacts, salvageRejected } from "../spec/delta-validation.js";
 import { titleOf } from "../spec/live.js";
+import { DEFAULT_DUPLICATE_THRESHOLDS, reqViewOf, requirementSimilarity } from "../spec/quality.js";
 import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { renderStoredMessage } from "./context.js";
 import type { SessionSnapshot, SessionStore } from "./ports.js";
 import { promptVersionTag, type PromptSource } from "./prompts/index.js";
-import { SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v6.js";
+import { SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v7.js";
 import { verifyQuotes } from "./quotes.js";
+
+/** Requirements listed to the extractor, with titles, however many other facts there are. */
+const REQUIREMENT_LINES = 60;
 
 /** Messages per extraction call. A backlog (retries, a long session) is worked off in passes, each persisted. */
 export const EXTRACTION_BATCH_MESSAGES = 24;
@@ -65,13 +69,27 @@ export function knownFactLines(facts: Fact[], limit = 60, lineChars = 110): stri
         return `pain_point: ${f.description}`;
       case "opportunity_candidate":
         return `opportunity_candidate: ${f.title}`;
-      case "spec_field":
-        return `spec_field: ${f.section}.${f.path}`;
+      case "spec_field": {
+        // A requirement is shown with its title: an extractor that sees only "FR-3" files the same
+        // capability again (the duplicates of the 2026-10 measurement, D-240).
+        const functional = (normalizeSectionKey(f.section) ?? f.section) === "functional";
+        return functional
+          ? `spec_field: functional.${f.path} = ${titleOf(f.value, "")}`
+          : `spec_field: ${f.section}.${f.path}`;
+      }
     }
   };
-  const shown = facts.slice(-limit);
+  // Every recorded requirement stays visible however long the interview runs; the other facts are
+  // the most recent ones.
+  const isReq = (f: Fact): boolean =>
+    f.kind === "spec_field" && (normalizeSectionKey(f.section) ?? f.section) === "functional";
+  const reqs = facts.filter(isReq).slice(-REQUIREMENT_LINES);
+  const rest = facts.filter((f) => !isReq(f));
+  const restShown = rest.slice(-limit);
+  const shown = [...restShown, ...reqs];
   const lines = shown.map((f) => `- ${line(f).replace(/\s+/g, " ").slice(0, lineChars)}`);
-  if (facts.length > shown.length) lines.unshift(`(${facts.length - shown.length} earlier facts not shown)`);
+  if (rest.length > restShown.length)
+    lines.unshift(`(${rest.length - restShown.length} earlier facts not shown)`);
   return lines.length ? lines.join("\n") : "(none yet)";
 }
 
@@ -119,10 +137,15 @@ async function extractBatch(
   const spoken = fresh.filter((m) => m.role === "user").map((m) => renderStoredMessage(m));
   const verified = verifyQuotes(wanted, spoken);
   const { dropped } = verified;
-  const facts = kinds.includes("spec_field") ? fileSpecFacts(verified.facts, state.facts) : verified.facts;
+  const facts = kinds.includes("spec_field")
+    ? fileSpecFacts(verified.facts, state.facts, spoken)
+    : verified.facts;
   const upToSeq = fresh[fresh.length - 1]?.seq ?? state.lastExtractedSeq;
   return { facts, upToSeq, promptVersion: promptVersionTag(prompt), quotesDropped: dropped };
 }
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  v !== null && typeof v === "object" && !Array.isArray(v);
 
 /**
  * Spec facts from extraction are filed like the interviewer's own (D-190): canonical sections,
@@ -131,7 +154,7 @@ async function extractBatch(
  * rather than appended as a second copy (this job commits by appending). What cannot be filed goes
  * to open_questions instead of being lost.
  */
-function fileSpecFacts(facts: Fact[], known: Fact[]): Fact[] {
+function fileSpecFacts(facts: Fact[], known: Fact[], spoken: readonly string[]): Fact[] {
   // An extractor numbers from 1 without seeing the interview's ids: a requirement whose id is
   // already taken by another one is treated as new (renumbered, or matched to an identical title).
   const titleAt = new Map(
@@ -146,15 +169,29 @@ function fileSpecFacts(facts: Fact[], known: Fact[]): Fact[] {
     const existing = titleAt.get(f.path.trim().toUpperCase());
     return existing !== undefined && existing !== titleOf(f.value, "") ? { ...f, path: `extracted-${i}` } : f;
   });
-  const checked = checkSpecFacts(relabelled, { facts: known });
+  const checked = checkSpecFacts(relabelled, { facts: known }, { producesSpec: true, spoken });
   const taken = new Set(known.flatMap((f) => (f.kind === "spec_field" ? [`${f.section}/${f.path}`] : [])));
   const seen = new Set<string>();
   const out: Fact[] = [];
+  // A requirement that is the same capability as one already recorded (or earlier in this batch)
+  // under another id is dropped here rather than appended as a second copy (D-241); a likely
+  // rewording that words alone cannot settle is kept for the merge pass at generation.
+  const sameAs: ReturnType<typeof reqViewOf>[] = known.flatMap((f) =>
+    f.kind === "spec_field" && normalizeSectionKey(f.section) === "functional" && isRecord(f.value)
+      ? [reqViewOf(f)]
+      : [],
+  );
   for (const f of [...checked.facts, ...salvageRejected(checked.heldBack)]) {
     if (f.kind === "spec_field") {
       const key = `${f.section}/${f.path}`;
       if (taken.has(key) || seen.has(key)) continue;
       seen.add(key);
+      if (normalizeSectionKey(f.section) === "functional" && isRecord(f.value)) {
+        const view = reqViewOf(f);
+        const twin = sameAs.some((o) => requirementSimilarity(o, view) >= DEFAULT_DUPLICATE_THRESHOLDS.auto);
+        if (twin) continue;
+        sameAs.push(view);
+      }
     }
     out.push(f);
   }

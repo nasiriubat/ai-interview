@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { forwardToApi, jsonError } from "@/lib/api/proxy";
 import { TokenGrantSchema } from "@/lib/api/schemas";
 import { participantTokenFromCookies } from "@/lib/api/server";
-import { PARTICIPANT_COOKIE } from "@/lib/env";
+import { PARTICIPANT_COOKIE, PARTICIPANT_COOKIE_LEGACY } from "@/lib/env";
 
 interface Ctx {
   params: Promise<{ path: string[] }>;
@@ -40,19 +40,23 @@ async function handle(req: NextRequest, ctx: Ctx): Promise<Response> {
     const parsed = TokenGrantSchema.safeParse(await upstream.json());
     if (!parsed.success) return jsonError(502, "invalid_response", "Unexpected token response");
     const { participantToken, ...rest } = parsed.data;
-    return new Response(JSON.stringify(rest), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-        "cache-control": "no-store",
-        "set-cookie": `${PARTICIPANT_COOKIE}=${encodeURIComponent(participantToken)}; ${cookieAttributes(COOKIE_MAX_AGE)}`,
-      },
-    });
+    const headers = new Headers({ "content-type": "application/json", "cache-control": "no-store" });
+    headers.append(
+      "set-cookie",
+      `${PARTICIPANT_COOKIE}=${encodeURIComponent(participantToken)}; ${cookieAttributes(COOKIE_MAX_AGE)}`,
+    );
+    // The bare-name cookie of an earlier release would otherwise shadow nothing but linger for 30
+    // days next to the `__Host-` one; the new credential replaces it (D-263).
+    if (PARTICIPANT_COOKIE !== PARTICIPANT_COOKIE_LEGACY)
+      headers.append("set-cookie", `${PARTICIPANT_COOKIE_LEGACY}=; ${cookieAttributes(0)}`);
+    return new Response(JSON.stringify(rest), { status: 200, headers });
   }
 
   if (isSession && path.length === 2 && req.method === "DELETE" && upstream.ok) {
     const headers = new Headers(upstream.headers);
     headers.set("set-cookie", `${PARTICIPANT_COOKIE}=; ${cookieAttributes(0)}`);
+    if (PARTICIPANT_COOKIE !== PARTICIPANT_COOKIE_LEGACY)
+      headers.append("set-cookie", `${PARTICIPANT_COOKIE_LEGACY}=; ${cookieAttributes(0)}`);
     return new Response(upstream.body, { status: upstream.status, headers });
   }
 

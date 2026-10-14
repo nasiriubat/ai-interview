@@ -1,0 +1,28 @@
+diff --git a/dist/index.js b/dist/index.js
+index 394dbc2272f43b84642b0f9d5cc7eb1eacb0ffb3..c4b68fe148ff241fd18a8d661e004d8e669798cb 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1,6 +1,8 @@
+ 'use client';
+ function __insertCSS(code) {
+-  if (!code || typeof document == 'undefined') return
++  // Patched (D-264): the stylesheet is imported from sonner/dist/styles.css by the app. Injecting
++  // a <style> element at runtime cannot carry a Content-Security-Policy nonce and is blocked.
++  return
+   let head = document.head || document.getElementsByTagName('head')[0]
+   let style = document.createElement('style')
+   style.type = 'text/css'
+diff --git a/dist/index.mjs b/dist/index.mjs
+index c124f821a68f7070647a5a04441d0caa53689662..1cd781342ba7554126ab16c492977a8a2e384e1e 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -1,6 +1,8 @@
+ 'use client';
+ function __insertCSS(code) {
+-  if (!code || typeof document == 'undefined') return
++  // Patched (D-264): the stylesheet is imported from sonner/dist/styles.css by the app. Injecting
++  // a <style> element at runtime cannot carry a Content-Security-Policy nonce and is blocked.
++  return
+   let head = document.head || document.getElementsByTagName('head')[0]
+   let style = document.createElement('style')
+   style.type = 'text/css'

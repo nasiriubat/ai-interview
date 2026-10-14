@@ -474,6 +474,30 @@ that no longer exists and is released by its TTL, 90 s; until then every retry i
 `conflict` (82 s in the rehearsal). Nothing to do; it is the cost of not releasing a lock on a
 guess. A graceful stop (`deploy/dc restart api`, an upgrade) drains turns first and releases them.
 
+### abuse.limit_hit
+
+**Symptom** An interview link refused new interviews or verification codes because it reached an
+abuse limit. The message names the limit: `campaign_hour` (`abuse.campaignSessionsPerHour`),
+`campaign_total` (`abuse.campaignSessionsTotal`), `tenant_hour` (`abuse.tenantSessionsPerHour`) or
+`address_emails` (`abuse.distinctEmailsPerAddressPerHour`, one internet address asking codes for
+many different email addresses). Participants over the limit see "busy, try again later" (429);
+the email-code endpoints keep answering "ok" and send nothing, so an attacker learns nothing. The
+tenant's admins and you are told, once an hour per campaign and limit.
+
+**Look at** Is it real demand or an attack? A campaign that invited 3000 people and hit
+`campaign_total` is demand; a link posted somewhere public and `campaign_hour` hit at 03:00 is not.
+`deploy/dc exec -T postgres psql -U app -d ai_discovery -c "select \"key\", \"count\", \"windowStart\" from \"UsageCounter\" where \"windowStart\" > now() - interval '3 hours' order by \"count\" desc limit 20"`
+(the keys name campaigns and keyed address hashes, never addresses). The API log lines
+`abuse signal` carry the campaign id and the limit. Interviews already created are not removed.
+
+**Do** Demand: raise the limit (Settings, category Privacy, at the campaign or tenant scope).
+Attack: close the campaign (`Admin → Campaigns → Close`) and issue a new link or switch it to
+`email_code` verification with an allowed domain; if one address is the source, block it at the host
+firewall (`ufw deny from <address>`). Check the model spend of the tenant
+(`Admin → Budgets`): the tenant ceiling `ceiling.maxSessionsPerMonth` is the last fence.
+
+**Fixed when** The hourly windows pass, or the limit is raised; the next hit is a new alert.
+
 ### alerts.storm
 
 **Symptom** The hourly ceiling (30 per audience by default) was reached and the rest were
@@ -920,6 +944,98 @@ if a segment does not authenticate.
 is not in the database and not in the backups. A database restored from before it brings the tenant
 back; the worker reads the file at start and queues the purge again for anything it finds, so the
 tenant does not stay restored. Participant-requested deletions are recorded the same way.
+
+## Security incidents
+
+For the day something is wrong that is not a failed job: a stolen laptop, a leaked key, a tenant
+admin who reports that a stranger signed in, a vulnerability report. The threat model and what is
+and is not defended is [`SECURITY.md`](SECURITY.md); this is what to do.
+
+### Incident response
+
+You are the processor of your tenants' data and, to them, the platform. Three clocks run, and only
+one is yours: you tell the **controller (the tenant) without undue delay** that personal data was
+or may have been exposed; the controller then has 72 hours to notify the authority (GDPR Art. 33).
+So the order is: stop the bleeding, preserve what you have, find out what was reachable, tell the
+tenants, then fix and write it down.
+
+**1. Contain (minutes).**
+
+- One account: Admin → Users → **Disable** the user. Their sessions end at once (D-161), including
+  the 8-hour ones already issued. For a tenant: Operator → Tenants → **Suspend**; staff, participant
+  tokens, jobs and mail stop (D-86), and `privacy.*` deletion jobs still run.
+- An interview link being abused: close the campaign (Admin → Campaigns → Close). The link then
+  answers as closed.
+- The whole site: `deploy/dc stop caddy` takes it off the internet and leaves the data alone.
+  `deploy/dc start caddy` brings it back.
+- Do **not** run `deploy/dc down -v`, restart containers "to clear it" before you have taken the
+  logs below, or delete anything.
+
+**2. Preserve (before you change anything else).**
+
+```bash
+mkdir -p ~/incident-$(date +%F) && cd ~/incident-$(date +%F)
+deploy/dc logs --since 72h --no-color api web worker caddy > logs.txt   # tokens are already redacted (D-223)
+deploy/dc exec -T backup /usr/local/bin/backup.sh once                  # a dump of the state as it is now
+deploy/dc exec -T postgres psql -U app -d ai_discovery -c "select * from audit_chain_verify();" > chain.txt
+```
+
+An empty `chain.txt` means no audit row was altered. A row listed there is itself an incident
+(see [audit.chain_broken](#auditchain_broken)).
+
+**3. Scope: what could they reach?** Read the tenant's audit log (Admin → Audit, or the table) for
+the window. Three actions answer most of it: `operator.access` (the platform looked inside the
+tenant: it should only ever be you), `session.read` and `session.list_read` (who read transcripts and
+the list of who took part), `campaign.sessions_export`, `report.export`, `spec.export`, and
+`provider.*` / `settings.update` (what was changed). The `UsageCounter` table shows abuse of an open
+link (`select key, count, "windowStart" from "UsageCounter" order by "windowStart" desc limit 50`).
+A compromised **staff** account reaches that tenant only; a compromised **platform operator**
+account reaches every tenant; the **host** reaches everything.
+
+**4. Tell.** The tenant's admins, in writing, without waiting for certainty: what happened, what
+data of theirs was or may have been reachable, since when, what you did, what they should do.
+Keep it factual. Say what you do not know yet and when you will. If a tenant asks for the audit
+rows for the window, export them from the audit log; they hold actors, actions and targets, never
+content.
+
+**5. Fix, then record.** Rotate whatever the section below says; patch; then add what happened,
+what you changed and what you will watch to your own notes, and open a decision row if a control
+changed.
+
+### Key compromise: which secret leaked
+
+Each secret opens something different. Rotate the one that leaked first, then judge from the
+incident whether the ones next to it were exposed too. After any rotation, look at
+[Platform health](#looking-at-the-platform): nothing red.
+
+| What leaked                               | What it opens                                                       | Rotate                                                                                                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET`                             | Forging any staff session, including the operator's                 | New `AUTH_SECRET` in `deploy/.env`, `deploy/dc up -d --force-recreate api web`. Everyone is signed out. No data moves                              |
+| The internal header (`x-internal-auth`)   | The magic-link token store (D-260)                                  | Same as `AUTH_SECRET`: it is derived from it. A leak of only the derived value does not give the session key                                       |
+| `PLATFORM_ENCRYPTION_KEY`                 | Stored provider keys, SMTP passwords, GitHub tokens, export sealing | The [crypto.rekey](#cryptorekey) drill, **and** rotate the provider keys at the providers: the ciphertext was exposed                              |
+| A provider API key                        | Spend at that provider                                              | Rotate at the provider, then Admin → Providers (or Operator → Providers) to store the new one                                                      |
+| SMTP credentials                          | Sending mail as the platform                                        | New credentials at the relay; Settings → email (tenant) or `EMAIL_SMTP_URL` (platform), then `deploy/dc up -d`                                     |
+| `BACKUP_AGE_IDENTITY`                     | Reading every backup and offsite copy                               | New key pair (`deploy/ensure-backup-key.sh`), a fresh backup, keep the old identity until old backups age out; consider the offsite bucket exposed |
+| Offsite bucket credentials                | The bucket's contents (encrypted dumps)                             | Rotate at the storage provider, update `deploy/.env`, `deploy/dc up -d backup`                                                                     |
+| `POSTGRES_PASSWORD` / `APP_DB_PASSWORD`   | The database                                                        | See [DEPLOY.md](DEPLOY.md#secrets-you-cannot-casually-rotate): change, recreate; assume the data was readable                                      |
+| The host (root, or `deploy/.env`)         | Everything above                                                    | Rebuild the host from the repository, restore from a backup taken **before** the incident, rotate every secret in this table, tell every tenant    |
+| A tenant admin's GitHub token (spec push) | That repository, with their scope                                   | It is never stored by the platform; the admin revokes it at GitHub                                                                                 |
+
+**A leaked secret you have not rotated is a standing incident.** If you cannot rotate now
+(`PLATFORM_ENCRYPTION_KEY` with a campaign open: see the dedupe note in
+[crypto.rekey](#cryptorekey)), suspend what depends on it and write down the date you decided to
+carry the risk.
+
+**Checking that the old secret is dead.** `AUTH_SECRET`: a session cookie from before the change
+answers 401 on `GET /api/v1/me`. `PLATFORM_ENCRYPTION_KEY`: `GET /operator/crypto/status` lists one
+key and `pending: 0`. Provider key: the provider's own usage page shows no calls with the old one.
+
+### Reporting a vulnerability to you
+
+The address is in `apps/web/public/.well-known/security.txt` and `SECURITY.md`. Acknowledge within
+three working days, reproduce it on a copy (never on a tenant's data), and treat anything that
+reads across tenants or exposes a secret as an incident from step 1 above. Keep the reporter
+informed; the disclosure policy is 90 days, coordinated.
 
 ## What lives outside the box
 
