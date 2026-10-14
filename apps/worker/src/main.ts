@@ -138,8 +138,19 @@ async function main(): Promise<void> {
       log.error({ err }, "job queue error");
     },
     metrics,
+    recoveryLog: {
+      info: (m, meta) => {
+        log.info(meta ?? {}, m);
+      },
+      warn: (m, meta) => {
+        log.warn(meta ?? {}, m);
+      },
+    },
   });
   await jobs.start();
+  // Who runs which job, so jobs left `active` by a worker that died are failed and retried at
+  // once, not when their time limit passes (D-281). Before the consumers, which claim their jobs.
+  await jobs.recovery.start();
   const jobAdmin = new PgBossJobAdmin(jobs.boss, db);
   const health = new HealthSweep({
     inputs: new PrismaHealthInputs({
@@ -255,7 +266,9 @@ async function main(): Promise<void> {
       log.info(meta ?? {}, m);
     },
   });
-  log.info("worker started");
+  // The first pass reclaims what a previous process left behind; then every few seconds.
+  jobs.recovery.startLoop();
+  log.info({ workerId: jobs.recovery.workerId }, "worker started");
 
   // A restored database may hold what was erased after its backup was taken. The erasure file is
   // outside the backup, so compare it to the database and queue the erasures again (D-226).
@@ -297,7 +310,7 @@ async function main(): Promise<void> {
   const shutdown = createShutdown({
     stopJobs: (timeoutMs) => {
       heartbeat?.stop();
-      return jobs.stop({ timeoutMs });
+      return jobs.stop({ timeoutMs }).finally(() => jobs.recovery.stop());
     },
     disconnect: async () => {
       await db.$disconnect();

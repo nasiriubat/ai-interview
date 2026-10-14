@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { PgBoss, type JobResult, type JobWithMetadata } from "pg-boss";
 import { runWithLogBindings } from "../telemetry/log-scope.js";
 import type { Metrics } from "../telemetry/metrics.js";
@@ -11,6 +12,7 @@ import {
   type PublishOptions,
   type ScheduleOptions,
 } from "./definitions.js";
+import { JobRecovery, type RecoveryLog } from "./recovery.js";
 
 /** The slice of a pg-boss job that batch settlement reads. */
 export interface BatchJob {
@@ -170,13 +172,24 @@ export class BossJobs implements JobPublisher {
   private readonly running = new Set<string>();
 
   private readonly metrics: Metrics | undefined;
+  /**
+   * Who owns the jobs this process runs, so a restarted worker can tell which `active` jobs were
+   * left by one that is gone (D-281). Prepared and looped by the worker only (`startRecovery`).
+   */
+  readonly recovery: JobRecovery;
 
   constructor(
     connectionString: string,
-    options: { onError?: (error: unknown) => void; metrics?: Metrics } = {},
+    options: {
+      onError?: (error: unknown) => void;
+      metrics?: Metrics;
+      workerId?: string;
+      recoveryLog?: RecoveryLog;
+    } = {},
   ) {
     this.metrics = options.metrics;
     this.boss = new PgBoss({ connectionString, schema: "pgboss" });
+    this.recovery = new JobRecovery(this.boss, options.workerId ?? randomUUID(), options.recoveryLog);
     // pg-boss reports fetch and maintenance failures (a dropped connection, a timeout) as
     // `error` events; without a listener Node treats them as fatal and the process dies.
     this.boss.on(
@@ -286,8 +299,14 @@ export class BossJobs implements JobPublisher {
       (jobs: JobWithMetadata<unknown>[]) =>
         runBatch(name, jobs, handler, {
           onError,
-          onStart: (id) => this.running.add(`${name}:${id}`),
-          onSettle: (id) => this.running.delete(`${name}:${id}`),
+          onStart: (id) => {
+            this.running.add(`${name}:${id}`);
+            void this.recovery.claim(name, id);
+          },
+          onSettle: (id) => {
+            this.running.delete(`${name}:${id}`);
+            void this.recovery.release(id);
+          },
           onResult: (r) => {
             this.metrics?.job(name, r.ok ? "ok" : "error", r.durationMs, r.final);
           },
