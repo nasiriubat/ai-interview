@@ -1,0 +1,834 @@
+{
+  "id": "opportunity_discovery/terse",
+  "version": 1,
+  "templateKey": "opportunity_discovery",
+  "persona": "terse",
+  "locale": "en",
+  "turns": [
+    {
+      "n": 1,
+      "text": "Nurse, surgical ward.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 2,
+      "text": "Rounds, charting.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 3,
+      "text": "Password resets, 15 a week.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T1"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 4,
+      "text": "Laptop setup, an afternoon.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T2"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 5,
+      "text": "Monthly patching by hand.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T3"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 6,
+      "text": "License reconciliation.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T4"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 7,
+      "text": "Morning backup check.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T5"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 8,
+      "text": "Yearly access review.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T6"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 9,
+      "text": "new hire details by email.",
+      "labels": {
+        "requirements": [],
+        "facts": ["I1"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 10,
+      "text": "access requests in chat.",
+      "labels": {
+        "requirements": [],
+        "facts": ["I2"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 11,
+      "text": "Mistakes, waiting.",
+      "labels": {
+        "requirements": [],
+        "facts": ["P1"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 12,
+      "text": "Mistakes, waiting.",
+      "labels": {
+        "requirements": [],
+        "facts": ["P2"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 13,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 14,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 15,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 16,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 17,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 18,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 19,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 20,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 21,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 22,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 23,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 24,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 25,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 26,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 27,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 28,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 29,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 30,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 31,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 32,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 33,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 34,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 35,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 36,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 37,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 38,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 39,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 40,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 41,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 42,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 43,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 44,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 45,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 46,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 47,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 48,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 49,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 50,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 51,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 52,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 53,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 54,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 55,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 56,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 57,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 58,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 59,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 60,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    }
+  ],
+  "goldRequirements": [],
+  "goldFacts": [
+    {
+      "id": "T1",
+      "kind": "task",
+      "terms": ["password"],
+      "introducedAtTurn": 3,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Resetting passwords",
+        "frequency": "daily",
+        "minutesPerOccurrence": 10,
+        "tools": ["directory"],
+        "painScore": 6
+      }
+    },
+    {
+      "id": "T2",
+      "kind": "task",
+      "terms": ["laptop"],
+      "introducedAtTurn": 4,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Onboarding laptops",
+        "frequency": "weekly",
+        "minutesPerOccurrence": 180,
+        "tools": ["checklist"],
+        "painScore": 7
+      }
+    },
+    {
+      "id": "T3",
+      "kind": "task",
+      "terms": ["patching"],
+      "introducedAtTurn": 5,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Patching servers",
+        "frequency": "monthly",
+        "minutesPerOccurrence": 240,
+        "tools": ["ssh"],
+        "painScore": 5
+      }
+    },
+    {
+      "id": "T4",
+      "kind": "task",
+      "terms": ["license"],
+      "introducedAtTurn": 6,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "License true up",
+        "frequency": "rarely",
+        "minutesPerOccurrence": 120,
+        "tools": ["spreadsheets"],
+        "painScore": 4
+      }
+    },
+    {
+      "id": "T5",
+      "kind": "task",
+      "terms": ["backup"],
+      "introducedAtTurn": 7,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Backup checks",
+        "frequency": "daily",
+        "minutesPerOccurrence": 15,
+        "tools": ["backup console"],
+        "painScore": 3
+      }
+    },
+    {
+      "id": "T6",
+      "kind": "task",
+      "terms": ["access"],
+      "introducedAtTurn": 8,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Access reviews",
+        "frequency": "rarely",
+        "minutesPerOccurrence": 300,
+        "tools": ["spreadsheets"],
+        "painScore": 6
+      }
+    },
+    {
+      "id": "I1",
+      "kind": "information_flow",
+      "terms": ["hr", "email"],
+      "introducedAtTurn": 9,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "information_flow",
+        "from": "hr",
+        "to": "it",
+        "what": "new hire details by email"
+      }
+    },
+    {
+      "id": "I2",
+      "kind": "information_flow",
+      "terms": ["chat"],
+      "introducedAtTurn": 10,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "information_flow",
+        "from": "managers",
+        "to": "it",
+        "what": "access requests in chat"
+      }
+    },
+    {
+      "id": "P1",
+      "kind": "pain_point",
+      "terms": ["lost"],
+      "introducedAtTurn": 11,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "pain_point",
+        "description": "Requests get lost in chat and tickets are created late",
+        "severity": 7
+      }
+    },
+    {
+      "id": "P2",
+      "kind": "pain_point",
+      "terms": ["depends"],
+      "introducedAtTurn": 12,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "pain_point",
+        "description": "Everything depends on one person",
+        "severity": 8
+      }
+    }
+  ],
+  "goldFindings": [],
+  "modelBehavior": {
+    "flaws": {
+      "3": "marker_missing",
+      "9": "malformed_json",
+      "14": "truncated"
+    },
+    "scans": []
+  },
+  "expect": {
+    "coverage": [
+      {
+        "afterTurn": 12,
+        "covered": 2
+      },
+      {
+        "afterTurn": 24,
+        "covered": 4
+      }
+    ],
+    "endedWithin": 60
+  }
+}

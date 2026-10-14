@@ -2057,6 +2057,7 @@ export const en = {
       adaptivity: "Adaptivity",
       widgetPolicy: "Answer options",
       issueDetection: "Findings",
+      completeness: "Completeness",
       outputs: "What to extract",
       analysisEnabled: "Include in campaign analysis",
       chainToKey: "Next template",

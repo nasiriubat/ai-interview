@@ -13,7 +13,7 @@ import type { z } from "zod";
 export class RequirementsScriptedModel implements ModelCallerPort {
   readonly requests: { purpose: string; req: CallRequest }[] = [];
   readonly issueScans: string[] = [];
-  private lastFocus: { mode: string; key?: string } = { mode: "none" };
+  private lastFocus: { mode: string; key?: string; text?: string } = { mode: "none" };
 
   constructor(private readonly template: InterviewTemplate) {}
 
@@ -28,6 +28,22 @@ export class RequirementsScriptedModel implements ModelCallerPort {
     const prev = this.lastFocus;
     const answered = /has just answered finding \[([^\]]+)\]/.exec(last)?.[1];
     if (answered) delta.findingOutcomes = [{ id: answered, outcome: "resolved", note: "scripted" }];
+    // A completeness finding (D-191) asks for more requirements: an attentive model records one.
+    if (
+      prev.mode === "finding" &&
+      /Only \d+ functional requirements? (is|are) recorded/.test(prev.text ?? "")
+    )
+      facts.push({
+        kind: "spec_field",
+        section: "functional",
+        path: "FR-3",
+        value: {
+          title: "Offline mode",
+          scope: "future",
+          acceptance: ["notes sync when the network returns"],
+        },
+        source: "user",
+      });
     if (prev.mode === "mvp_challenge" && prev.key) {
       facts.push({
         kind: "spec_field",
@@ -64,7 +80,7 @@ export class RequirementsScriptedModel implements ModelCallerPort {
     } else if (finding) {
       meta.areaKey = "finding";
       text = `One thing to settle: finding ${finding}. The default is fine?`;
-      this.lastFocus = { mode: "finding", key: finding };
+      this.lastFocus = { mode: "finding", key: finding, text: last };
     } else if (mvp) {
       meta.areaKey = "mvp_challenge";
       text = `If version one shipped without ${mvp}, what breaks?`;

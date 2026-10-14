@@ -32,6 +32,7 @@ const policy = (over: Partial<RequirementsPolicy> = {}): RequirementsPolicy => (
 
 const reqTemplate = template({
   outputs: ["spec_field"],
+  completeness: { minRequirements: 0, requiredSections: [], requireAcceptance: false },
   issueDetection: { enabled: true, everyTurns: 5, aggressiveness: "standard", mvpChallenge: true },
 });
 
