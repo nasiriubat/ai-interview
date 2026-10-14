@@ -10,11 +10,10 @@ import {
   type SessionInvitation,
   type SessionState,
   type SpecEdits,
-  COMPLETION_REQUESTED_TURN_COUNT,
 } from "@aidp/shared";
 import type { Prisma } from "@prisma/client";
 import { newToken } from "../crypto.js";
-import { templateFromRow, toStored } from "../sessions/prisma-store.js";
+import { requestFinish, templateFromRow, toStored } from "../sessions/prisma-store.js";
 import type { RequirementsContext } from "./context.js";
 import { InvalidSectionError, PathRequiredError, RequirementsNotFoundError } from "./errors.js";
 import {
@@ -211,11 +210,9 @@ export class RequirementsSessions {
   async requestCompletion(companyId: string, id: string, viewer: Viewer): Promise<void> {
     const row = await this.cx.load(companyId, id, viewer);
     if (row.status === "completed" || row.status === "deleted") return;
-    // Past any turn limit, so the next turn is the closing one. It was `MAX_SAFE_INTEGER >> 1`, which
-    // is -1 (the shift truncates to 32 bits): the request did nothing, and the stored state failed
-    // its own schema, so reading the spec after "I'm done" answered 500.
-    const state = { ...(row.state as Record<string, unknown>), turnCount: COMPLETION_REQUESTED_TURN_COUNT };
-    await this.deps.db.session.update({ where: { id: row.id }, data: { state } });
+    // A flag, not a turn-count sentinel (D-170): `chooseFocus` closes on it, and the turn count stays
+    // the number of turns that were taken.
+    await requestFinish(this.deps.db, row.id);
   }
 
   /** A completed session becomes active again; the engine continues from the areas (FR-26). */
