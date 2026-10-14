@@ -13,6 +13,16 @@
 # The scratch env file those scripts generate points EMAIL_SMTP_URL at mailpit, ALERT_WEBHOOK_URL at
 # the fake provider's sink and EGRESS_ALLOW_HOSTS at both, so no application code changes: the
 # platform reaches the fake the way it reaches any model gateway on a private network.
+networks:
+  # A fixed subnet for the renderer's network. A developer machine that has run many compose
+  # projects can have used up Docker's default address pools ("all predefined address pools have
+  # been fully subnetted"), and then no further network can be created at all. Test-only: a VPS
+  # runs this stack alone and takes its subnets from the pool.
+  diagrams:
+    ipam:
+      config:
+        - subnet: ${DRILL_DIAGRAMS_SUBNET:-10.231.77.0/24}
+
 services:
   fake-provider:
     image: aidp-fake-provider:${AIDP_VERSION:?}
