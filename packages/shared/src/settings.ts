@@ -284,6 +284,7 @@ export const SETTINGS = {
     default: 10,
     scopes: ["platform", "tenant"],
     category: "files",
+    since: "2026.10",
     description: "Attachments one interview may hold",
   }),
   "files.maxSessionMb": def({
@@ -291,6 +292,7 @@ export const SETTINGS = {
     default: 100,
     scopes: ["platform", "tenant"],
     category: "files",
+    since: "2026.10",
     description: "Total size of one interview's attachments (MB)",
   }),
   "files.tenantQuotaMb": def({
@@ -298,6 +300,7 @@ export const SETTINGS = {
     default: 5120,
     scopes: ["platform", "tenant"],
     category: "files",
+    since: "2026.10",
     description: "Total size of all of an organization's attachments (MB)",
   }),
   "files.maxExtractedChars": def({
@@ -305,6 +308,7 @@ export const SETTINGS = {
     default: 500000,
     scopes: ["platform", "tenant"],
     category: "files",
+    since: "2026.10",
     description: "Text kept from one file",
   }),
   "files.maxPdfPages": def({
@@ -312,6 +316,7 @@ export const SETTINGS = {
     default: 200,
     scopes: ["platform", "tenant"],
     category: "files",
+    since: "2026.10",
     description: "Longest PDF that is read, in pages",
   }),
   "files.maxZipRatio": def({
@@ -319,6 +324,7 @@ export const SETTINGS = {
     default: 100,
     scopes: ["platform", "tenant"],
     category: "files",
+    since: "2026.10",
     description: "Largest unpacked-to-packed ratio for a part of a Word or Excel file",
   }),
   "files.maxSheetCells": def({
@@ -326,6 +332,7 @@ export const SETTINGS = {
     default: 1000000,
     scopes: ["platform", "tenant"],
     category: "files",
+    since: "2026.10",
     description: "Most cells read from a workbook",
   }),
   "files.maxZipEntries": def({
@@ -333,6 +340,7 @@ export const SETTINGS = {
     default: 2000,
     scopes: ["platform", "tenant"],
     category: "files",
+    since: "2026.10",
     description: "Most parts a Word or Excel file may contain",
   }),
   "files.maxUncompressedMb": def({
@@ -340,6 +348,7 @@ export const SETTINGS = {
     default: 100,
     scopes: ["platform", "tenant"],
     category: "files",
+    since: "2026.10",
     description: "Most a Word or Excel file may unpack to (MB)",
   }),
   "voice.targetFirstWordMs": def({
