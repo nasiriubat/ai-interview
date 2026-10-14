@@ -1,6 +1,8 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { pathToFileURL } from "node:url";
+import { decode } from "next-auth/jwt";
 import * as f from "./fixtures";
+import { scenarioRead } from "./review-data";
 
 /**
  * A tiny stand-in for the API (docs/spec/16 and 17), for the accessibility pass and nothing else.
@@ -392,7 +394,54 @@ const READS: [RegExp, Handler][] = [
   [/^\/p\/[^/]+$/, () => ({ body: f.linkInfo("open") })],
 ];
 
+/**
+ * The review scenario (D-370): `POST /__scenario {name, role}` switches what the fake answers so
+ * the screenshot script can reach the states a plain load does not (empty, error, withheld, long
+ * text). The default scenario is what the accessibility pass has always seen.
+ */
+export const scenario: { name: string; role: string | null } = { name: "default", role: null };
+
+/**
+ * What the request's own session token says (D-370): a test mints the Auth.js cookie with `role`
+ * and `scenario` claims, so each browser context gets its own role and its own state without
+ * touching what other workers are looking at. The global above is the fallback for a person
+ * driving the fake by hand.
+ */
+interface Claims {
+  role?: string;
+  scenario?: string;
+}
+let claims: Claims = {};
+const claimCache = new Map<string, Claims>();
+async function claimsOf(req: IncomingMessage): Promise<Claims> {
+  const auth = req.headers.authorization ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || token.startsWith("pt.")) return {};
+  const hit = claimCache.get(token);
+  if (hit) return hit;
+  let out: Claims = {};
+  try {
+    const decoded = await decode({
+      token,
+      secret: process.env.AUTH_SECRET ?? "e2e-auth-secret-e2e-auth-secret-0123456789",
+      salt: "authjs.session-token",
+    });
+    if (decoded) {
+      out = {
+        ...(typeof decoded.role === "string" ? { role: decoded.role } : {}),
+        ...(typeof decoded.scenario === "string" ? { scenario: decoded.scenario } : {}),
+      };
+    }
+  } catch {
+    // Not a token this secret made: no claims.
+  }
+  claimCache.set(token, out);
+  return out;
+}
+
 function roleOf(req: IncomingMessage): "admin" | "member" | "platform_operator" {
+  const forced = claims.role ?? scenario.role;
+  if (forced === "member" || forced === "platform_operator" || forced === "admin") return forced;
   const v = req.headers["x-e2e-role"];
   return v === "member" || v === "platform_operator" ? v : "admin";
 }
@@ -423,10 +472,27 @@ function send(res: ServerResponse, status: number, body: unknown): void {
 export function startFakeApi(port: number): Promise<FakeApi> {
   const misses: string[] = [];
   const server = createServer((req, res) => {
+    void claimsOf(req).then((c) => {
+      claims = c;
+      handle(req, res);
+    });
+  });
+  const handle = (req: IncomingMessage, res: ServerResponse): void => {
     const url = new URL(req.url ?? "/", "http://fake");
     const path = url.pathname.replace(/^\/api\/v1/, "");
     if (path === "/__misses") {
       send(res, 200, { misses });
+      return;
+    }
+    if (path === "/__scenario" && req.method === "POST") {
+      let raw = "";
+      req.on("data", (c: Buffer) => (raw += c.toString()));
+      req.on("end", () => {
+        const b = JSON.parse(raw || "{}") as { name?: string; role?: string | null };
+        scenario.name = b.name ?? "default";
+        scenario.role = b.role ?? null;
+        send(res, 200, scenario);
+      });
       return;
     }
     if (path === "/__health") {
@@ -435,6 +501,11 @@ export function startFakeApi(port: number): Promise<FakeApi> {
     }
     const method = req.method ?? "GET";
     if (method === "GET" || method === "HEAD") {
+      const scripted = scenarioRead(claims.scenario ?? scenario.name, path);
+      if (scripted) {
+        send(res, scripted.status ?? 200, scripted.body);
+        return;
+      }
       for (const [pattern, handler] of READS) {
         if (!pattern.test(path)) continue;
         const out = handler(url, req);
@@ -458,7 +529,7 @@ export function startFakeApi(port: number): Promise<FakeApi> {
       }
       send(res, 200, { ok: true, emailSent: false });
     });
-  });
+  };
   return new Promise((resolve) => {
     server.listen(port, "127.0.0.1", () => {
       resolve({

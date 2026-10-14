@@ -133,3 +133,74 @@ there is no motion the shell needs that a transition does not do, and it would c
 `pnpm --filter @aidp/web exec tsx scripts/screenshots.ts` writes screenshots of any pages at any
 widths, themes and languages (see the header of the script); `scripts/overflow.ts` names what sticks
 out past the viewport.
+
+## Results and operator pages (D-370 to D-379)
+
+What was added to the kit for the analysis workspace and the configuration and operator pages, and
+how to review them.
+
+### Charts (`components/admin/charts/`)
+
+- `ChartPanel`: a `Panel` with a Chart or Table switch over the same numbers. Give it `chart` and a
+  `table`; omit `table` for a chart that is already a table. Print shows the chart.
+- `StackedBar`: one proportional bar and its legend (name, count, share). The legend is the text
+  equivalent; the bar is an `img` with a label that lists the numbers.
+- `HeatMatrix`: a `<table>` whose cells are tinted by magnitude and print their number; a cell can
+  be `withheld`. The first column sticks and the rest scrolls inside the card on a phone.
+- `BarList` (existing): ranked bars with the value printed at the end of each.
+- `Withheld`: the mark for a value the anonymity rule keeps back. Use it instead of an empty cell or
+  a zero. Pass the reason; it is read by assistive technology and is the tooltip.
+- `palette.ts`: `CLASS_COLOR`, one token per solution class. Colour never carries the class alone.
+
+`QuoteBlock` (`components/admin/`) is a `figure` with a `blockquote` and a caption that says it is
+an interview excerpt, whether it was anonymised, and the fact it came from. Never a name.
+
+`DownloadButton` (`components/data/`) downloads one file from the staff proxy with the toast
+sequence of `ExportMenu`; icon-only in a row, labelled with `text`.
+
+### The results workspace
+
+`app/admin/campaigns/[id]/results/page.tsx` loads; `components/admin/results/ResultsView.tsx` is the
+client. Sections are in `?tab=` (`lib/analysis/tabs.ts`). `OpportunityRow` is one row;
+`OpportunityPanel` is the side panel (a `Sheet`); `WeightsPanel` is a sheet. The filter bar sticks
+at `top-14` (`lg:top-[4.25rem]`) under the top bar: keep it a direct child of the tab content.
+
+A server page can hand the client a table: the versions list is a `DataTable` element passed as
+`versions`.
+
+### Reviewing a state
+
+States that a plain load does not reach are scenarios of the fake API (`e2e/review-data.ts`). The
+scenario and the role are claims of the session token (`e2e/fake-api.ts`), so a spec mints its own:
+
+```ts
+const value = await encode({
+  token: { email, sub: "u1", role: "platform_operator", scenario: "withheld" },
+  secret,
+  salt,
+});
+```
+
+`e2e/pages.ts` takes `scenario` on an entry (`adminIn`, or the fourth argument of `operator`), so
+axe and the CSP check run on the empty, withheld, long, running and error versions of a page.
+
+The review matrix:
+
+```
+BASE=http://localhost:3641 OUT=/tmp/review SHOTS='^results-' WIDTHS=390,1280 THEMES=light,dark \
+  LOCALES=en,fi pnpm exec tsx scripts/review-shots.ts
+```
+
+`scripts/overflow.ts` names what makes a page scroll sideways. It skips what a scroller clips, but
+not an absolutely positioned child of a scroller that is not its containing block, which is how a
+`sr-only` header cell once did (the scroller is now `relative`).
+`e2e/workspace.spec.ts` asserts the geometry: nothing scrolls sideways, the filter bar sticks, the
+side panel stays on screen, withheld values are marked, the paper is a page wide, a row action
+names itself, offboarding needs the name typed.
+
+### Statements, exports and offboarding
+
+`/admin/budgets/statements[/yyyy-mm]`, `/admin/operator/statements` and
+`/admin/operator/tenants/:id`. A statement is frozen: it is never recalculated, and estimated cost is
+marked as an estimate (`includes estimate`). Offboarding follows D-226: the tenant must be suspended,
+its name is typed, and the person is told the date.

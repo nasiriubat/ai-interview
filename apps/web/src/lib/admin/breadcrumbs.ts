@@ -27,6 +27,8 @@ function sectionLabels(): Record<string, string> {
     "/admin/operator/stats": n.platformStats,
     "/admin/operator/jobs": n.platformJobs,
     "/admin/operator/health": n.platformHealth,
+    "/admin/operator/statements": t.ws.statements.title,
+    "/admin/budgets/statements": t.ws.statements.title,
   };
 }
 
@@ -63,6 +65,9 @@ export function buildCrumbs(pathname: string, labels: Record<string, string> = {
     if (i === 0) continue;
     const previous = segments[i - 1];
     path += `/${segment}`;
+    // `/admin/operator/tenants/:id` has no page at `/admin/operator/tenants`: the list is the
+    // operator root, already in the trail, so the segment adds nothing but a second "Tenants".
+    if (segment === "tenants" && previous === "operator") continue;
     const section = sections[path];
     const fixed = fixedSegment(segment);
     let crumb: Crumb;

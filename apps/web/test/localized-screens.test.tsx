@@ -100,8 +100,7 @@ describe("model assignment in Finnish", () => {
       },
     ] as RouteRecord[];
     render(<RoutesForm routes={routes} providers={[provider]} scope="tenant" companyId="co1" />);
-    expect(screen.getByRole("columnheader", { name: "Tehtävä" })).toBeInTheDocument();
-    expect(screen.getByText("Haastattelukysymykset")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Haastattelukysymykset" })).toBeInTheDocument();
     expect(screen.getByText("Tietojen poiminta vastauksista")).toBeInTheDocument();
     expect(screen.queryByText("Interview turn")).not.toBeInTheDocument();
     expect(screen.queryByText("interview_turn")).not.toBeInTheDocument();

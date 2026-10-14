@@ -135,6 +135,11 @@ import {
   TenantCreatedSchema,
   TenantEnvelopeSchema,
   TenantPageSchema,
+  StatementEnvelopeSchema,
+  StatementListSchema,
+  OperatorStatementsSchema,
+  TenantExportListSchema,
+  OffboardResultSchema,
   OnboardingSchema,
   SettingsHistorySchema,
   TemplateVersionsSchema,
@@ -143,6 +148,9 @@ import {
   type SettingsHistory,
   type TemplateVersion,
   type TenantCreated,
+  type Statement,
+  type TenantExport,
+  type OffboardResult,
   type Tenant,
   UserPageSchema,
   type User,
@@ -606,6 +614,17 @@ export function staffApi(transport: Transport): StaffApi {
     },
 
     spend: (q) => request(transport, { path: "/spend", query: { ...q }, schema: SpendSchema }),
+    statements: {
+      list: () =>
+        request(transport, { path: "/spend/statements", schema: StatementListSchema }).then(
+          (r) => r.statements,
+        ),
+      get: (month) =>
+        request(transport, {
+          path: `/spend/statements/${encodeURIComponent(month)}`,
+          schema: StatementEnvelopeSchema,
+        }).then((r) => r.statement),
+    },
     stats: () => request(transport, { path: "/stats", schema: StatsSchema }),
     statsSegments: {
       participation: (q) =>
@@ -745,7 +764,31 @@ export function staffApi(transport: Transport): StaffApi {
             body: input,
             schema: envelope(TenantEnvelopeSchema),
           }),
+        exports: (id) =>
+          request(transport, {
+            path: `/operator/tenants/${encodeURIComponent(id)}/exports`,
+            schema: TenantExportListSchema,
+          }).then((r) => r.exports),
+        requestExport: (id) =>
+          ok(
+            request(transport, {
+              method: "POST",
+              path: `/operator/tenants/${encodeURIComponent(id)}/export`,
+            }),
+          ),
+        offboard: (id, body) =>
+          request(transport, {
+            method: "POST",
+            path: `/operator/tenants/${encodeURIComponent(id)}/offboard`,
+            body,
+            schema: OffboardResultSchema,
+          }),
       },
+      statements: (month) =>
+        request(transport, {
+          path: `/operator/statements/${encodeURIComponent(month)}`,
+          schema: OperatorStatementsSchema,
+        }),
       providers: {
         list: () => request(transport, { path: "/operator/providers", schema: ProviderListSchema }),
         create: (input) =>
@@ -998,6 +1041,11 @@ export interface StaffApi {
     remove(id: string): Promise<void>;
   };
   spend(q: SpendQuery): Promise<Spend>;
+  /** Monthly statements, frozen on the 1st (D-224); administrators only. */
+  statements: {
+    list(): Promise<Statement[]>;
+    get(month: string): Promise<Statement>;
+  };
   stats(): Promise<Stats>;
   /** Dashboard segments (spec 07); each is parsed with the contract the API serves. */
   statsSegments: {
@@ -1015,7 +1063,13 @@ export interface StaffApi {
       list(q?: TenantListQuery): Promise<Paged<Tenant>>;
       create(input: TenantInput): Promise<TenantCreated>;
       update(id: string, input: Partial<TenantInput>): Promise<Tenant>;
+      /** The sealed archives taken of a tenant, newest first (D-225). */
+      exports(id: string): Promise<TenantExport[]>;
+      requestExport(id: string): Promise<void>;
+      offboard(id: string, body: { confirmName: string; immediate: boolean }): Promise<OffboardResult>;
     };
+    /** Every tenant's frozen statement for one month, for invoicing (D-224). */
+    statements(month: string): Promise<{ month: string; statements: Statement[] }>;
     providers: ProvidersApi;
     routes: RoutesApi;
     stats(): Promise<Stats>;

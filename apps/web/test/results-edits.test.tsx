@@ -96,6 +96,7 @@ function renderResults(
       initialPreset="balanced"
       initialWeights={{} as never}
       canEdit
+      initialTab="opportunities"
       {...over}
     />,
   );
@@ -191,6 +192,7 @@ describe("merge", () => {
         initialPreset="balanced"
         initialWeights={{} as never}
         canEdit
+        initialTab="opportunities"
       />,
     );
     const user = userEvent.setup();
@@ -206,8 +208,9 @@ describe("rename", () => {
     staff.opportunities.override.mockResolvedValue(opp("o1", "Notes once", "automation", 80));
     const user = userEvent.setup();
     renderResults();
-    const card = screen.getByRole("heading", { name: "Single entry of notes" }).closest("[data-status]")!;
-    await user.click(within(card as HTMLElement).getByRole("button", { name: "Rename" }));
+    // The detail opens in a side panel (D-372); the rename is a field in its header.
+    await user.click(screen.getByRole("button", { name: "Open details: Single entry of notes" }));
+    await user.click(await screen.findByRole("button", { name: "Rename: Single entry of notes" }));
     const input = screen.getByLabelText("New title");
     await user.clear(input);
     await user.type(input, "Notes once");
@@ -334,7 +337,9 @@ describe("department comparison", () => {
     expect(within(ward as HTMLElement).getByText("67%")).toBeInTheDocument();
     expect(within(ward as HTMLElement).getAllByText("Withheld").length).toBeGreaterThan(0);
     expect(within(list).getByRole("heading", { name: "Other departments" })).toBeInTheDocument();
-    expect(ward).toHaveTextContent("Described by many: Single entry of notes (50%)");
+    expect(ward).toHaveTextContent("Described by many");
+    expect(ward).toHaveTextContent("Single entry of notes");
+    expect(ward).toHaveTextContent("50%");
     expect(screen.getByText("2 departments with fewer than 3 people are not shown.")).toBeInTheDocument();
   });
 

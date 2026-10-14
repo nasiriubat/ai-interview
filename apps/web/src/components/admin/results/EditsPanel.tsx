@@ -2,9 +2,9 @@
 
 import { Undo2Icon } from "lucide-react";
 import * as React from "react";
+import { IconButton } from "@/components/admin/IconButton";
 import { Panel } from "@/components/admin/Panel";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import type { ClusterEdit } from "@/lib/api/schemas";
 import { formatDate } from "@/lib/utils";
@@ -50,17 +50,14 @@ export function EditsPanel({
                 {e.revokedAt ? (
                   <Badge variant="outline">{s.undone}</Badge>
                 ) : (
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                  <IconButton
+                    label={s.undoLabel(describe(e))}
+                    icon={<Undo2Icon />}
                     disabled={!canUndo || busy}
-                    aria-label={s.undoLabel(describe(e))}
                     onClick={() => {
                       onUndo(e);
                     }}
-                  >
-                    <Undo2Icon /> {s.undo}
-                  </Button>
+                  />
                 )}
               </li>
             ))}

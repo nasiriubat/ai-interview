@@ -41,7 +41,9 @@ vi.mock("@/lib/api/browser", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh, push, back: vi.fn() }),
+  useRouter: () => ({ refresh, push, back: vi.fn(), replace: vi.fn() }),
+  usePathname: () => "/admin/operator",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 beforeEach(() => {
@@ -356,7 +358,7 @@ describe("creating a tenant (D-189)", () => {
     createTenant.mockResolvedValue({ tenant, invitation: { to: "boss@uusi.fi", language: "fi" } });
     render(<TenantsPanel tenants={[]} />);
     // The form is a dialog, so the table of tenants is the first thing on the page.
-    await user.click(screen.getByRole("button", { name: "New tenant" }));
+    await user.click(screen.getAllByRole("button", { name: "New tenant" })[0]!);
 
     await user.type(screen.getByLabelText(/^Name/), "Uusi Oy");
     await user.type(screen.getByLabelText(/First admin's email/), "boss@uusi.fi");

@@ -23,7 +23,9 @@ vi.mock("@/lib/api/browser", () => ({
   participantClient: {},
 }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh, push: vi.fn(), back: vi.fn() }),
+  useRouter: () => ({ refresh, push: vi.fn(), back: vi.fn(), replace: vi.fn() }),
+  usePathname: () => "/admin/operator/jobs",
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() }, Toaster: () => null }));
 
@@ -141,7 +143,10 @@ describe("JobsPanel", () => {
   it("says so when the chosen queue has nothing dead, and when none is chosen", () => {
     const { rerender } = render(<JobsPanel queues={[queue()]} selected="analysis.run" dead={[]} />);
     expect(screen.getByText(/Nothing is dead-lettered/)).toBeInTheDocument();
-    rerender(<JobsPanel queues={[queue()]} selected={undefined} dead={[]} />);
+    rerender(<JobsPanel queues={[queue({ deadLettered: 1 })]} selected={undefined} dead={[]} />);
     expect(screen.getByText(/Choose a queue with dead letters/)).toBeInTheDocument();
+    // With no dead letter anywhere the page says so, rather than asking for a choice there is none of.
+    rerender(<JobsPanel queues={[queue()]} selected={undefined} dead={[]} />);
+    expect(screen.getByText(/No queue has a dead letter/)).toBeInTheDocument();
   });
 });

@@ -9,7 +9,15 @@ import {
   type SolutionClass,
   type Weights,
 } from "@aidp/shared";
-import { AlertTriangleIcon, InfoIcon, Loader2Icon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  BarChart3Icon,
+  BuildingIcon,
+  HistoryIcon,
+  InfoIcon,
+  ListOrderedIcon,
+  Loader2Icon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -19,21 +27,27 @@ import { DepartmentsPanel } from "./DepartmentsPanel";
 import { EditsPanel } from "./EditsPanel";
 import { MergeBar } from "./MergeBar";
 import { MergeDialog } from "./MergeDialog";
-import { OpportunityCard } from "./OpportunityCard";
+import { OpportunityPanel } from "./OpportunityPanel";
+import { OpportunityRow } from "./OpportunityRow";
 import { DEFAULT_FILTERS, type Filters, OpportunityFilters } from "./OpportunityFilters";
+import { OverviewTab } from "./OverviewTab";
 import { OverrideSheet } from "./OverrideSheet";
 import { PromoteDialog } from "./PromoteDialog";
 import { SplitDialog } from "./SplitDialog";
 import { WeightsPanel } from "./WeightsPanel";
+import { CLASS_COLOR } from "@/components/admin/charts/palette";
 import { EmptyState } from "@/components/admin/EmptyState";
+import { SectionTitle } from "@/components/admin/Panel";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { undoToast } from "@/components/common/undoToast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAnalysisPolling } from "@/hooks/useAnalysisPolling";
 import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { t } from "@/i18n";
 import { editErrorText } from "@/lib/analysis/edit-errors";
+import type { ResultsTab } from "@/lib/analysis/tabs";
 import {
   effectiveClass,
   effectiveTitle,
@@ -45,6 +59,7 @@ import { staffClient } from "@/lib/api/browser";
 import { isApiError } from "@/lib/api/errors";
 import type { Analysis, AnalysisDetail, ClusterEdit, Opportunity } from "@/lib/api/schemas";
 import type { OpportunityStatusInput } from "@/lib/api/staff";
+import { formatDate } from "@/lib/utils";
 
 export interface ResultsViewProps {
   campaignId: string;
@@ -64,6 +79,9 @@ export interface ResultsViewProps {
   departmentsFailed?: boolean;
   /** The campaign's merges and splits, newest first. */
   edits?: ClusterEdit[];
+  /** The versions table, rendered by the server page (it is a paginated list). */
+  versions?: React.ReactNode;
+  initialTab?: ResultsTab;
 }
 
 /** The classes shown as groups of their own, in order; the rest form the "not the answer" section. */
@@ -83,6 +101,8 @@ export function ResultsView({
   departments = null,
   departmentsFailed = false,
   edits = [],
+  versions = null,
+  initialTab = "overview",
 }: ResultsViewProps): React.JSX.Element {
   const s = t.admin.results;
   const router = useRouter();
@@ -100,6 +120,18 @@ export function ResultsView({
   const [analyzing, setAnalyzing] = React.useState(false);
   const [picked, setPicked] = React.useState<ReadonlySet<string>>(new Set());
   const [mergeOpen, setMergeOpen] = React.useState(false);
+  const [tab, setTabState] = React.useState<ResultsTab>(initialTab);
+  const [openId, setOpenId] = React.useState<string | null>(null);
+  const [weightsOpen, setWeightsOpen] = React.useState(false);
+
+  const setTab = (next: ResultsTab): void => {
+    setTabState(next);
+    // The tab is part of the address so a reload or a shared link lands on it (D-372); the data
+    // does not depend on it, so the URL is rewritten in place without asking the server again.
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", next);
+    window.history.replaceState(null, "", url);
+  };
 
   const weights = effectiveWeights(preset, custom);
   const ranked = React.useMemo(() => rerank(opps, weights), [opps, weights]);
@@ -234,11 +266,13 @@ export function ResultsView({
     }
   };
 
+  const q = filters.query.trim().toLowerCase();
   const visible = ranked.filter(
     (o) =>
       (filters.solutionClass === "all" || effectiveClass(o) === filters.solutionClass) &&
       (filters.status === "all" || o.status === filters.status) &&
-      o.rankScore >= filters.minRank,
+      o.rankScore >= filters.minRank &&
+      (q === "" || effectiveTitle(o).toLowerCase().includes(q) || o.summary.toLowerCase().includes(q)),
   );
   const groups = TECHNICAL_CLASSES.map((cls) => ({
     cls,
@@ -247,21 +281,20 @@ export function ResultsView({
   // The one predicate the report and the dashboard use (FR-16a), so the three never disagree.
   const notAi = visible.filter((o) => isNotAi(effectiveClass(o)));
 
-  const card = (o: Opportunity, inNotAi: boolean): React.JSX.Element => (
-    <OpportunityCard
+  const opened = openId ? (opps.find((o) => o.id === openId) ?? null) : null;
+
+  const row = (o: Opportunity, inNotAi: boolean): React.JSX.Element => (
+    <OpportunityRow
       key={o.id}
       opportunity={o}
       busy={action.busy}
+      active={openId === o.id}
       whyNotAiFirst={inNotAi}
+      onOpen={() => {
+        setOpenId(o.id);
+      }}
       onStatus={(st) => {
         setStatus(o, st);
-      }}
-      onEdit={() => {
-        setEditing(o);
-      }}
-      canPromote={canPromote}
-      onPromote={() => {
-        setPromoting(o);
       }}
       merge={
         editable
@@ -274,14 +307,6 @@ export function ResultsView({
             }
           : undefined
       }
-      onSplit={
-        editable && o.status !== "promoted"
-          ? () => {
-              setSplitting(o);
-            }
-          : undefined
-      }
-      onRename={editable ? (title) => rename(o, title) : undefined}
     />
   );
 
@@ -289,9 +314,10 @@ export function ResultsView({
     ? (selected.stats.orphanedEdits as unknown[]).length
     : 0;
   const unassigned = typeof selected?.stats.unassignedNew === "number" ? selected.stats.unassignedNew : 0;
+  const w = t.ws.tabs;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       <AnalysisHeader
         campaignId={campaignId}
         analyses={analyses}
@@ -334,10 +360,16 @@ export function ResultsView({
           </Alert>
         ) : null}
         {selected?.status === "done" && selected.preliminary ? (
-          <Alert>
+          <Alert variant="warning">
             <InfoIcon aria-hidden="true" />
             <AlertTitle>{s.preliminaryTitle}</AlertTitle>
             <AlertDescription>{s.preliminaryHint}</AlertDescription>
+          </Alert>
+        ) : null}
+        {latest?.status === "queued" && latest.stats.trigger === "auto" && latest.stats.autoStartAt ? (
+          <Alert>
+            <InfoIcon aria-hidden="true" />
+            <AlertDescription>{s.autoWaiting(formatDate(latest.stats.autoStartAt))}</AlertDescription>
           </Alert>
         ) : null}
         {canEdit && selected?.status === "done" && !onNewest && !newerReady ? (
@@ -350,35 +382,100 @@ export function ResultsView({
       ) : !selected || selected.status === "queued" || selected.status === "running" ? (
         <EmptyState text={s.noResultsYet} />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="grid gap-4">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v as ResultsTab);
+          }}
+          className="min-w-0 gap-5 [&>*]:min-w-0"
+        >
+          <TabsList aria-label={t.ws.tabs.label} className="w-full max-w-full overflow-x-auto">
+            <TabsTrigger value="overview">
+              <BarChart3Icon aria-hidden="true" /> {w.overview}
+            </TabsTrigger>
+            <TabsTrigger value="opportunities">
+              <ListOrderedIcon aria-hidden="true" /> {w.opportunities}
+              <span className="bg-muted text-muted-foreground rounded-full px-1.5 text-xs tabular-nums">
+                {ranked.length}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="departments">
+              <BuildingIcon aria-hidden="true" /> {w.departments}
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              <HistoryIcon aria-hidden="true" /> {w.history}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <OverviewTab
+              analysis={selected}
+              opportunities={ranked}
+              onShowOpportunities={() => {
+                setTab("opportunities");
+              }}
+              onOpen={(id) => {
+                setOpenId(id);
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="opportunities" className="grid grid-cols-[minmax(0,1fr)] gap-5">
             <OpportunityFilters
               filters={filters}
               onChange={setFilters}
               shown={visible.length}
               total={ranked.length}
+              onOpenWeights={() => {
+                setWeightsOpen(true);
+              }}
             />
             {ranked.length === 0 ? (
               <EmptyState text={s.empty} />
             ) : visible.length === 0 ? (
-              <EmptyState text={s.noMatches} />
+              <EmptyState text={s.noMatches}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setFilters(DEFAULT_FILTERS);
+                  }}
+                >
+                  {t.ws.filters.clear}
+                </Button>
+              </EmptyState>
             ) : (
               <>
                 {groups.map((g) => (
-                  <section key={g.cls} aria-labelledby={`class-${g.cls}`} className="grid gap-3">
-                    <h2 id={`class-${g.cls}`} className="flex items-baseline gap-2 text-base font-semibold">
+                  <section
+                    key={g.cls}
+                    aria-labelledby={`class-${g.cls}`}
+                    className="bg-card shadow-card overflow-hidden rounded-lg"
+                  >
+                    <h2
+                      id={`class-${g.cls}`}
+                      className="flex items-baseline gap-2 border-b px-4 py-3 text-[15px] font-semibold"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="size-2.5 self-center rounded-[3px]"
+                        style={{ backgroundColor: CLASS_COLOR[g.cls] }}
+                      />
                       {s.classes[g.cls]}
                       <span className="text-muted-foreground text-xs font-normal">
                         {s.classCount(g.items.length)}
                       </span>
                     </h2>
-                    {g.items.map((o) => card(o, false))}
+                    <ul>{g.items.map((o) => row(o, false))}</ul>
                   </section>
                 ))}
                 {notAi.length > 0 ? (
-                  <section aria-labelledby="class-not-ai" className="grid gap-3">
-                    <div>
-                      <h2 id="class-not-ai" className="flex items-baseline gap-2 text-base font-semibold">
+                  <section
+                    aria-labelledby="class-not-ai"
+                    className="bg-card shadow-card overflow-hidden rounded-lg"
+                  >
+                    <div className="bg-warning-soft/50 border-b px-4 py-3">
+                      <h2 id="class-not-ai" className="flex items-baseline gap-2 text-[15px] font-semibold">
                         {s.notAi.title}
                         <span className="text-muted-foreground text-xs font-normal">
                           {s.classCount(notAi.length)}
@@ -386,7 +483,7 @@ export function ResultsView({
                       </h2>
                       <p className="text-muted-foreground mt-0.5 text-[13px]">{s.notAi.body}</p>
                     </div>
-                    {notAi.map((o) => card(o, true))}
+                    <ul>{notAi.map((o) => row(o, true))}</ul>
                   </section>
                 ) : null}
               </>
@@ -401,36 +498,48 @@ export function ResultsView({
                 setPicked(new Set());
               }}
             />
-          </div>
-          <aside className="grid content-start gap-6">
-            <WeightsPanel
-              preset={preset}
-              weights={weights}
-              onPresetChange={(p) => {
-                if (p === "custom") setCustom(weights);
-                setPreset(p);
-              }}
-              onWeightChange={changeWeight}
-              saveState={saveState}
-            />
+          </TabsContent>
+
+          <TabsContent value="departments">
             <DepartmentsPanel comparison={departments} error={departmentsFailed} />
-            {canEdit ? (
-              <EditsPanel
-                edits={edits}
-                orphaned={orphaned}
-                unassigned={unassigned}
-                canUndo={editable}
-                busy={action.busy}
-                onUndo={(e) => {
-                  undoEdit(e.id);
-                }}
-              />
-            ) : null}
-            <CompareVersions current={selected} analyses={analyses} />
-          </aside>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="grid grid-cols-[minmax(0,1fr)] gap-5">
+            <section aria-labelledby="versions-title" className="grid gap-3">
+              <SectionTitle id="versions-title">{t.ws.history.title}</SectionTitle>
+              {versions}
+            </section>
+            <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 xl:grid-cols-2">
+              {canEdit ? (
+                <EditsPanel
+                  edits={edits}
+                  orphaned={orphaned}
+                  unassigned={unassigned}
+                  canUndo={editable}
+                  busy={action.busy}
+                  onUndo={(e) => {
+                    undoEdit(e.id);
+                  }}
+                />
+              ) : null}
+              <CompareVersions current={selected} analyses={analyses} />
+            </div>
+          </TabsContent>
+        </Tabs>
       )}
 
+      <WeightsPanel
+        open={weightsOpen}
+        onOpenChange={setWeightsOpen}
+        preset={preset}
+        weights={weights}
+        onPresetChange={(p) => {
+          if (p === "custom") setCustom(weights);
+          setPreset(p);
+        }}
+        onWeightChange={changeWeight}
+        saveState={saveState}
+      />
       <MergeDialog
         open={mergeOpen}
         onOpenChange={setMergeOpen}
@@ -438,6 +547,36 @@ export function ResultsView({
         defaultTitle={mergeDefaultTitle}
         onConfirm={merge}
       />
+      {opened && !editing && !promoting && !splitting ? (
+        <OpportunityPanel
+          key={opened.id}
+          opportunity={opened}
+          open
+          busy={action.busy}
+          canPromote={canPromote}
+          k={k}
+          onOpenChange={(open) => {
+            if (!open) setOpenId(null);
+          }}
+          onStatus={(st) => {
+            setStatus(opened, st);
+          }}
+          onEdit={() => {
+            setEditing(opened);
+          }}
+          onPromote={() => {
+            setPromoting(opened);
+          }}
+          onSplit={
+            editable && opened.status !== "promoted"
+              ? () => {
+                  setSplitting(opened);
+                }
+              : undefined
+          }
+          onRename={editable ? (title) => rename(opened, title) : undefined}
+        />
+      ) : null}
       {splitting ? (
         <SplitDialog
           key={splitting.id}
@@ -448,6 +587,7 @@ export function ResultsView({
             if (!open) setSplitting(null);
           }}
           onSplit={(editId) => {
+            setOpenId(null);
             router.refresh();
             offerUndo(s.split.undone(effectiveTitle(splitting)), editId);
           }}
@@ -474,6 +614,7 @@ export function ResultsView({
           }}
           onPromoted={() => {
             replace({ ...promoting, status: "promoted" });
+            setOpenId(null);
           }}
         />
       ) : null}

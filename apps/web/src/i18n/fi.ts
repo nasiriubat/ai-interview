@@ -1,5 +1,6 @@
 import type { Strings } from "./en";
 import { kitFi } from "./kit.fi";
+import { wsFi } from "./ws.fi";
 import { landingFi } from "./landing.fi";
 
 /**
@@ -434,6 +435,7 @@ export const fi: Strings = {
   },
   landing: landingFi,
   kit: kitFi,
+  ws: wsFi,
   admin: {
     nav: {
       dashboard: "Yleiskatsaus",
@@ -1298,6 +1300,11 @@ export const fi: Strings = {
       backToResults: "Takaisin tuloksiin",
       download: "Lataa Markdown",
       print: "Tulosta tai tallenna PDF:nä",
+      optionsLabel: "Raportin asetukset",
+      optionsTitle: "Raportti",
+      pdfHint: "Muodostetaan palvelimella, sivutettuna",
+      markdownHint: "Näkyvät osiot tekstinä",
+      paperHint: "Esikatselu tulostetusta sivusta. Tulostus ja PDF käyttävät samoja osioita ja tekstityyliä.",
       sections: "Osiot",
       sectionsHint: "Piilotetut osiot jätetään pois myös seuraavasta tuotettavasta raportista.",
       sectionsSaved: "Osiot tallennettu",

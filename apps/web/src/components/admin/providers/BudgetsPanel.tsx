@@ -1,28 +1,19 @@
 "use client";
 
 import type { BudgetScope } from "@aidp/shared";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { CoinsIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { ComboboxField, NumberField, SelectField, TextField } from "@/components/admin/forms";
-import { IconTooltip, RowActions } from "@/components/admin/IconButton";
+import { IconButton, RowActions } from "@/components/admin/IconButton";
+import { Panel } from "@/components/admin/Panel";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { useDirty } from "@/components/common/DirtyGuard";
+import { DataTable, type FilterDef, type SortSpec } from "@/components/data/DataTable";
 import { MeterBar } from "@/components/admin/MeterBar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { ComboboxOption } from "@/components/ui/combobox";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { BudgetRecord } from "@/lib/api/schemas";
@@ -40,12 +31,30 @@ function targetScope(scope: BudgetScope): ScopeKind | null {
   return scope === "tenant" || scope === "campaign" ? scope : null;
 }
 
+export interface BudgetsPanelPage {
+  page: number;
+  limit: number;
+  count: number;
+  total: number | null;
+}
+
 export function BudgetsPanel({
   budgets,
   companyId,
+  page,
+  filters = [],
+  sort,
+  error,
+  campaignNames = {},
 }: {
   budgets: BudgetRecord[];
   companyId: string | null;
+  page?: BudgetsPanelPage;
+  filters?: FilterDef[];
+  sort?: SortSpec;
+  error?: string | undefined;
+  /** Campaign ids to names, so a campaign budget is not an identifier. */
+  campaignNames?: Record<string, string>;
 }): React.JSX.Element {
   const router = useRouter();
   const action = useAction();
@@ -55,7 +64,10 @@ export function BudgetsPanel({
   const [period, setPeriod] = React.useState<(typeof PERIODS)[number]>("month");
   const [targets, setTargets] = React.useState<ComboboxOption[]>([]);
   const [loadingTargets, setLoadingTargets] = React.useState(false);
+  const [deleting, setDeleting] = React.useState<BudgetRecord | null>(null);
   const named = targetScope(scope);
+  const dirty = limit !== "" || (scope !== "tenant" && scopeId !== "");
+  useDirty("budget-new", dirty);
 
   React.useEffect(() => {
     if (!named) {
@@ -101,173 +113,170 @@ export function BudgetsPanel({
     }, s.added);
   };
 
-  return (
-    <div className="grid gap-6">
-      <form
-        className="grid gap-3 bg-card shadow-card rounded-lg p-4 md:grid-cols-[10rem_1fr_8rem_8rem_auto] md:items-end"
-        onSubmit={(e) => {
-          e.preventDefault();
-          add();
-        }}
-      >
-        <SelectField
-          id="budget-scope"
-          label={s.scope}
-          value={scope}
-          required
-          options={SCOPES.map((v) => ({ value: v, label: label("budgetScope", v) }))}
-          onChange={(v) => {
-            setScope(v);
-            setScopeId(v === "tenant" && companyId ? companyId : "");
-          }}
-        />
-        {named ? (
-          <ComboboxField
-            id="budget-target"
-            label={s.target}
-            value={scopeId}
-            required
-            loading={loadingTargets}
-            options={targets}
-            labels={{
-              placeholder: s.targetPlaceholder,
-              search: t.admin.combobox.search,
-              empty: s.noTargets,
-              loading: t.admin.combobox.loading,
-            }}
-            onChange={setScopeId}
-          />
-        ) : (
-          <TextField
-            id="budget-scopeId"
-            label={s.scopeId}
-            value={scopeId}
-            required
-            hint={s.scopeIdHint}
-            onChange={setScopeId}
-          />
-        )}
-        <NumberField
-          id="budget-limit"
-          label={`${s.limit} (${currentCurrency()})`}
-          value={limit}
-          min={0}
-          step={1}
-          required
-          onChange={setLimit}
-        />
-        <SelectField
-          id="budget-period"
-          label={s.period}
-          value={period}
-          required
-          options={PERIODS.map((v) => ({ value: v, label: s.periods[v] }))}
-          onChange={setPeriod}
-        />
-        <Button type="submit" disabled={action.busy || limit === "" || !scopeId.trim()}>
-          <PlusIcon /> {s.add}
-        </Button>
-      </form>
-      <Flash flash={action.flash} />
-      {budgets.length === 0 ? (
-        <EmptyState text={s.empty} />
-      ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{s.scope}</TableHead>
-                <TableHead>{s.scopeId}</TableHead>
-                <TableHead className="text-right">{s.limit}</TableHead>
-                <TableHead>{s.period}</TableHead>
-                <TableHead className="text-right">{t.admin.common.actions}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {budgets.map((b, i) => (
-                <TableRow key={b.id ?? `${b.scope}-${b.scopeId}-${String(i)}`}>
-                  <TableCell>{label("budgetScope", b.scope)}</TableCell>
-                  <TableCell className="font-mono text-xs">{b.scopeId}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatCents(b.limitCents)}
-                    {typeof b.spentCents === "number" ? (
-                      <div className="mt-1 grid min-w-40 gap-1">
-                        <span className="text-muted-foreground block text-xs">
-                          {s.spentSoFar(formatCents(b.spentCents), formatCents(b.limitCents))}
-                        </span>
-                        {b.limitCents > 0 ? (
-                          <MeterBar
-                            tone="spend"
-                            value={b.spentCents}
-                            max={b.limitCents}
-                            label={`${label("budgetScope", b.scope)}: ${b.scopeId}`}
-                            valueText={s.spentSoFar(formatCents(b.spentCents), formatCents(b.limitCents))}
-                          />
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>{s.periods[b.period]}</TableCell>
-                  <TableCell className="text-right">
-                    <RowActions>
-                      {b.id ? <DeleteBudget id={b.id} label={b.scopeId} action={action} /> : null}
-                    </RowActions>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </div>
-  );
-}
+  const nameOf = (b: BudgetRecord): string =>
+    b.scope === "tenant" ? t.ws.budgets.wholeOrganization : (campaignNames[b.scopeId] ?? b.scopeId);
 
-function DeleteBudget({
-  id,
-  label,
-  action,
-}: {
-  id: string;
-  label: string;
-  action: ReturnType<typeof useAction>;
-}): React.JSX.Element {
-  const router = useRouter();
   return (
-    <AlertDialog>
-      <IconTooltip label={`${s.delete}: ${label}`}>
-        <AlertDialogTrigger asChild>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            className="text-destructive hover:text-destructive"
-            aria-label={`${s.delete}: ${label}`}
-            disabled={action.busy}
-          >
-            <Trash2Icon aria-hidden="true" />
-          </Button>
-        </AlertDialogTrigger>
-      </IconTooltip>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{s.delete}</AlertDialogTitle>
-          <AlertDialogDescription>{s.deleteConfirm}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t.app.cancel}</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => {
-              void action.run(async () => {
-                await staffClient.budgets.remove(id);
-                router.refresh();
-              }, s.deleted);
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
+      <Panel title={t.ws.budgets.newTitle} description={t.ws.budgets.newBody} headingLevel={2}>
+        <form
+          className="grid gap-3 px-5 py-4 md:grid-cols-[13rem_minmax(0,1fr)_9rem_9rem_auto] md:items-end"
+          onSubmit={(e) => {
+            e.preventDefault();
+            add();
+          }}
+        >
+          <SelectField
+            id="budget-scope"
+            label={s.scope}
+            value={scope}
+            required
+            options={SCOPES.map((v) => ({ value: v, label: label("budgetScope", v) }))}
+            onChange={(v) => {
+              setScope(v);
+              setScopeId(v === "tenant" && companyId ? companyId : "");
             }}
-          >
-            {t.app.delete}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          />
+          {named ? (
+            <ComboboxField
+              id="budget-target"
+              label={s.target}
+              value={scopeId}
+              required
+              loading={loadingTargets}
+              options={targets}
+              labels={{
+                placeholder: s.targetPlaceholder,
+                search: t.admin.combobox.search,
+                empty: s.noTargets,
+                loading: t.admin.combobox.loading,
+              }}
+              onChange={setScopeId}
+            />
+          ) : (
+            <TextField
+              id="budget-scopeId"
+              label={s.scopeId}
+              value={scopeId}
+              required
+              hint={s.scopeIdHint}
+              onChange={setScopeId}
+            />
+          )}
+          <NumberField
+            id="budget-limit"
+            label={`${s.limit} (${currentCurrency()})`}
+            value={limit}
+            min={0}
+            step={1}
+            required
+            onChange={setLimit}
+          />
+          <SelectField
+            id="budget-period"
+            label={s.period}
+            value={period}
+            required
+            options={PERIODS.map((v) => ({ value: v, label: s.periods[v] }))}
+            onChange={setPeriod}
+          />
+          <Button type="submit" loading={action.busy} disabled={limit === "" || !scopeId.trim()}>
+            <PlusIcon /> {s.add}
+          </Button>
+        </form>
+      </Panel>
+      <Flash flash={action.flash} />
+      <DataTable
+        id="budgets"
+        label={s.title}
+        searchLabel={t.admin.list.searchBudgets}
+        filters={filters}
+        {...(sort ? { sort } : {})}
+        {...(error ? { error } : {})}
+        columns={[
+          { id: "target", header: s.target, primary: true, locked: true },
+          { id: "scope", header: s.scope, sortKey: "scope" },
+          { id: "limit", header: s.limit, sortKey: "limitCents", align: "end" },
+          { id: "spend", header: t.ws.budgets.spent },
+          { id: "period", header: s.period },
+        ]}
+        rows={budgets.map((b, i) => {
+          const spent = typeof b.spentCents === "number" ? b.spentCents : null;
+          return {
+            id: b.id ?? `${b.scope}-${b.scopeId}-${String(i)}`,
+            label: nameOf(b),
+            cells: {
+              target: (
+                <span className="min-w-0">
+                  <span className="text-foreground font-medium break-words">{nameOf(b)}</span>
+                  {b.scope !== "tenant" ? (
+                    <span className="text-muted-foreground block font-mono text-xs break-all">
+                      {b.scopeId}
+                    </span>
+                  ) : null}
+                </span>
+              ),
+              scope: label("budgetScope", b.scope),
+              limit: formatCents(b.limitCents),
+              spend:
+                spent !== null && b.limitCents > 0 ? (
+                  <div className="grid min-w-44 gap-1">
+                    <span className="text-xs tabular-nums">
+                      {t.ws.budgets.percentUsed(Math.round((spent / b.limitCents) * 100), formatCents(spent))}
+                    </span>
+                    <MeterBar
+                      tone="spend"
+                      value={spent}
+                      max={b.limitCents}
+                      label={`${nameOf(b)}`}
+                      valueText={s.spentSoFar(formatCents(spent), formatCents(b.limitCents))}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">{t.admin.common.dash}</span>
+                ),
+              period: s.periods[b.period],
+            },
+            actions: b.id ? (
+              <RowActions>
+                <IconButton
+                  label={`${s.delete}: ${nameOf(b)}`}
+                  icon={<Trash2Icon />}
+                  className="text-destructive hover:text-destructive"
+                  disabled={action.busy}
+                  onClick={() => {
+                    setDeleting(b);
+                  }}
+                />
+              </RowActions>
+            ) : undefined,
+          };
+        })}
+        page={page ?? { page: 1, limit: 50, count: budgets.length, total: budgets.length }}
+        empty={{
+          icon: <CoinsIcon className="size-5" aria-hidden="true" />,
+          title: t.ws.budgets.emptyTitle,
+          description: s.empty,
+        }}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title={t.ws.budgets.deleteTitle(deleting ? nameOf(deleting) : "")}
+        description={<p>{s.deleteConfirm}</p>}
+        confirmLabel={t.app.delete}
+        onConfirm={() => {
+          const b = deleting;
+          if (!b?.id) return;
+          const id = b.id;
+          void action.run(async () => {
+            await staffClient.budgets.remove(id);
+            router.refresh();
+          }, s.deleted);
+        }}
+      />
+    </div>
   );
 }

@@ -3,14 +3,15 @@
 import { AlertTriangleIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SquarePenIcon } from "lucide-react";
 import * as React from "react";
 import { providersApiFor, type ProviderScope } from "./ProvidersPanel";
-import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
+import { useDirty } from "@/components/common/DirtyGuard";
+import { DataTable } from "@/components/data/DataTable";
+import { SaveBarView } from "@/components/form/Form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import type { ModelCatalogue, ModelPriceInput, ModelPriceRow, PriceSource } from "@/lib/api/schemas";
 import { formatDate, formatNumber } from "@/lib/utils";
@@ -183,35 +184,36 @@ export function ModelsPanel({
   };
 
   const dirty = Object.keys(drafts).length > 0;
+  useDirty(`prices-${providerId}`, dirty);
+
+  const priceInput = (
+    label: string,
+    model: string,
+    key: "input" | "cached" | "output",
+    v: Num,
+  ): React.ReactNode => (
+    <Input
+      aria-label={label}
+      type="number"
+      step="any"
+      min={0}
+      className="ml-auto w-24 text-right tabular-nums"
+      value={v}
+      onChange={(e) => {
+        updateDraft(model, { [key]: e.target.value === "" ? "" : Number(e.target.value) });
+      }}
+    />
+  );
 
   return (
     <form
-      className="grid gap-4"
+      className="grid grid-cols-[minmax(0,1fr)] gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         save();
       }}
     >
-      <p className="text-muted-foreground text-sm">{s.catalogueBody}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" loading={action.busy} onClick={refresh}>
-          <RefreshCwIcon /> {s.refresh}
-        </Button>
-        <Button type="button" variant="outline" onClick={addRow}>
-          <PlusIcon /> {s.addModelRow}
-        </Button>
-        <Button type="submit" disabled={action.busy || !dirty}>
-          {action.busy ? t.app.saving : s.savePrices}
-        </Button>
-        {catalogue ? (
-          <span className="text-muted-foreground text-xs">
-            {catalogue.fetchedAt ? s.fetchedAt(formatDate(catalogue.fetchedAt)) : s.neverFetched}
-          </span>
-        ) : null}
-        {typeof catalogue?.importedPrices === "number" ? (
-          <span className="text-muted-foreground text-xs">{s.importedPrices(catalogue.importedPrices)}</span>
-        ) : null}
-      </div>
+      <p className="text-muted-foreground max-w-prose text-sm">{s.catalogueBody}</p>
       {catalogue?.stale || catalogueError ? (
         <Alert variant="destructive">
           <AlertTriangleIcon />
@@ -220,138 +222,109 @@ export function ModelsPanel({
         </Alert>
       ) : null}
       <Flash flash={action.flash} />
-      {rows.length === 0 ? (
-        <EmptyState text={s.noModels} />
-      ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{s.modelId}</TableHead>
-                <TableHead>{s.name}</TableHead>
-                <TableHead className="text-right">{s.contextWindow}</TableHead>
-                <TableHead className="text-right">{s.inputPrice}</TableHead>
-                <TableHead className="text-right">{s.cachedPrice}</TableHead>
-                <TableHead className="text-right">{s.outputPrice}</TableHead>
-                <TableHead>{s.priceSource}</TableHead>
-                <TableHead className="text-right">{t.admin.common.actions}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row, i) => {
-                const draft = drafts[row.model];
-                const shown = draft ?? effective(row);
-                const isEditing = row.manual === true || editing(row.model);
-                return (
-                  <TableRow key={`${row.model}-${String(i)}`}>
-                    <TableCell className="font-mono text-xs">
-                      {row.manual ? (
-                        <Input
-                          aria-label={`${s.modelId} ${String(i + 1)}`}
-                          className="min-w-44 font-mono text-xs"
-                          value={row.model}
-                          onChange={(e) => {
-                            const next = e.target.value;
-                            setRows((prev) => prev.map((r, k) => (k === i ? { ...r, model: next } : r)));
-                          }}
-                        />
-                      ) : (
-                        row.model
-                      )}
-                    </TableCell>
-                    <TableCell>{row.name || t.admin.common.dash}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {row.contextLength === null ? t.admin.common.dash : formatNumber(row.contextLength)}
-                    </TableCell>
-                    <PriceCell
-                      label={`${s.inputPrice} ${row.model === "" ? String(i + 1) : row.model}`}
-                      editing={isEditing}
-                      value={shown.input}
-                      onChange={(v) => {
-                        updateDraft(row.model, { input: v });
-                      }}
-                    />
-                    <PriceCell
-                      label={`${s.cachedPrice} ${row.model === "" ? String(i + 1) : row.model}`}
-                      editing={isEditing}
-                      value={shown.cached}
-                      onChange={(v) => {
-                        updateDraft(row.model, { cached: v });
-                      }}
-                    />
-                    <PriceCell
-                      label={`${s.outputPrice} ${row.model === "" ? String(i + 1) : row.model}`}
-                      editing={isEditing}
-                      value={shown.output}
-                      onChange={(v) => {
-                        updateDraft(row.model, { output: v });
-                      }}
-                    />
-                    <TableCell>
-                      <Badge variant={row.source === "admin" ? "secondary" : "outline"}>
-                        {row.source === "admin" ? s.sourceAdmin : s.sourceProvider}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <RowActions>
-                        {row.manual ? null : editing(row.model) ? (
-                          <IconButton
-                            label={s.clearOverride}
-                            icon={<RotateCcwIcon />}
-                            onClick={() => {
-                              stopEdit(row.model);
-                            }}
-                          />
-                        ) : (
-                          <IconButton
-                            label={s.overridePrice}
-                            icon={<SquarePenIcon />}
-                            onClick={() => {
-                              startEdit(row);
-                            }}
-                          />
-                        )}
-                      </RowActions>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <DataTable
+        id={`models-${providerId}`}
+        label={s.models}
+        toolbarActions={
+          <>
+            <Button type="button" variant="outline" loading={action.busy} onClick={refresh}>
+              <RefreshCwIcon /> <span className="max-sm:sr-only">{s.refresh}</span>
+            </Button>
+            <Button type="button" variant="outline" onClick={addRow}>
+              <PlusIcon /> <span className="max-sm:sr-only">{s.addModelRow}</span>
+            </Button>
+          </>
+        }
+        columns={[
+          { id: "model", header: s.modelId, primary: true, locked: true },
+          { id: "name", header: s.name },
+          { id: "context", header: s.contextWindow, align: "end" },
+          { id: "input", header: s.inputPrice, align: "end" },
+          { id: "cached", header: s.cachedPrice, align: "end" },
+          { id: "output", header: s.outputPrice, align: "end" },
+          { id: "source", header: s.priceSource },
+        ]}
+        rows={rows.map((row, i) => {
+          const draft = drafts[row.model];
+          const shown = draft ?? effective(row);
+          const isEditing = row.manual === true || editing(row.model);
+          const key = row.model === "" ? String(i + 1) : row.model;
+          return {
+            id: `${row.model}-${String(i)}`,
+            label: row.model || String(i + 1),
+            cells: {
+              model: row.manual ? (
+                <Input
+                  aria-label={`${s.modelId} ${String(i + 1)}`}
+                  className="min-w-44 font-mono text-xs"
+                  value={row.model}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setRows((prev) => prev.map((r, k) => (k === i ? { ...r, model: next } : r)));
+                  }}
+                />
+              ) : (
+                <span className="text-foreground font-mono text-xs break-all">{row.model}</span>
+              ),
+              name: row.name || t.admin.common.dash,
+              context: row.contextLength === null ? t.admin.common.dash : formatNumber(row.contextLength),
+              input: isEditing
+                ? priceInput(`${s.inputPrice} ${key}`, row.model, "input", shown.input)
+                : price(shown.input),
+              cached: isEditing
+                ? priceInput(`${s.cachedPrice} ${key}`, row.model, "cached", shown.cached)
+                : price(shown.cached),
+              output: isEditing
+                ? priceInput(`${s.outputPrice} ${key}`, row.model, "output", shown.output)
+                : price(shown.output),
+              source: (
+                <Badge variant={row.source === "admin" ? "secondary" : "outline"}>
+                  {row.source === "admin" ? s.sourceAdmin : s.sourceProvider}
+                </Badge>
+              ),
+            },
+            actions: row.manual ? undefined : (
+              <RowActions>
+                {editing(row.model) ? (
+                  <IconButton
+                    label={`${s.clearOverride}: ${row.model}`}
+                    icon={<RotateCcwIcon />}
+                    onClick={() => {
+                      stopEdit(row.model);
+                    }}
+                  />
+                ) : (
+                  <IconButton
+                    label={`${s.overridePrice}: ${row.model}`}
+                    icon={<SquarePenIcon />}
+                    onClick={() => {
+                      startEdit(row);
+                    }}
+                  />
+                )}
+              </RowActions>
+            ),
+          };
+        })}
+        page={{ page: 1, limit: 500, count: rows.length, total: rows.length }}
+        empty={{ title: s.noModels }}
+      />
+      <p className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        {catalogue ? (
+          <span>{catalogue.fetchedAt ? s.fetchedAt(formatDate(catalogue.fetchedAt)) : s.neverFetched}</span>
+        ) : null}
+        {typeof catalogue?.importedPrices === "number" ? (
+          <span>{s.importedPrices(catalogue.importedPrices)}</span>
+        ) : null}
+      </p>
+      <SaveBarView
+        dirty={dirty}
+        submitting={action.busy}
+        onDiscard={() => {
+          setDrafts({});
+        }}
+        saveLabel={s.savePrices}
+      />
     </form>
-  );
-}
-
-function PriceCell({
-  label,
-  editing,
-  value,
-  onChange,
-}: {
-  label: string;
-  editing: boolean;
-  value: Num;
-  onChange: (v: Num) => void;
-}): React.JSX.Element {
-  return (
-    <TableCell className="text-right tabular-nums">
-      {editing ? (
-        <Input
-          aria-label={label}
-          type="number"
-          step="any"
-          min={0}
-          className="w-24"
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value === "" ? "" : Number(e.target.value));
-          }}
-        />
-      ) : (
-        price(value)
-      )}
-    </TableCell>
   );
 }

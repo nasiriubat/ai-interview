@@ -473,7 +473,7 @@ export function DataTable({
               }}
             />
           ) : (
-            <div className="overflow-x-auto" tabIndex={0} aria-label={k.region(label)} role="region">
+            <div className="relative overflow-x-auto" tabIndex={0} aria-label={k.region(label)} role="region">
               <table role="table" className="w-full text-sm tabular-nums max-md:block">
                 <thead role="rowgroup" className="max-md:sr-only">
                   <tr role="row" className="bg-muted/50 border-b">

@@ -155,7 +155,7 @@ export function Combobox({
           aria-describedby={aria["aria-describedby"]}
           aria-invalid={aria["aria-invalid"]}
           className={cn(
-            "w-full justify-between font-normal",
+            "w-full min-w-0 justify-between font-normal",
             !selected && !value && "text-muted-foreground",
             className,
           )}

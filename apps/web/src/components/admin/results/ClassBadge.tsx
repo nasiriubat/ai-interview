@@ -22,7 +22,7 @@ export function RankMeter({
   score: number;
   compact?: boolean;
 }): React.JSX.Element {
-  const pct = Math.max(0, Math.min(100, score));
+  const pct = Math.max(0, Math.min(100, Math.round(score)));
   return (
     <div
       role="meter"
