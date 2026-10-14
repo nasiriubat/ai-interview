@@ -18,6 +18,31 @@ export async function sessionRoutes(app: App, ctx: RouteContext): Promise<void> 
     },
   );
 
+  app.post(
+    "/sessions/:id/flag/ack",
+    {
+      ...guard.admin(),
+      schema: { params: Id, body: z.object({ note: z.string().max(1000).optional() }).default({}) },
+    },
+    async (req) => {
+      const who = staff(req);
+      const out = await ctx.services.sessions.acknowledgeFlag(
+        req.companyId,
+        { userId: who.userId, role: who.role },
+        req.params.id,
+        req.body.note,
+      );
+      // Only that it happened: the note is a session event, and no transcript text is repeated here.
+      await ctx.services.audit.record(req.companyId, {
+        actorId: who.userId,
+        action: "session.flag.ack",
+        targetType: "session",
+        targetId: req.params.id,
+      });
+      return { ok: true as const, ...out };
+    },
+  );
+
   app.get("/sessions/:id/events", { ...guard.admin(), schema: { params: Id } }, async (req) => {
     const who = staff(req);
     return ctx.services.sessions.events(req.companyId, { userId: who.userId, role: who.role }, req.params.id);

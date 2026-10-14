@@ -20,6 +20,9 @@
   "opportunity@1": {
     "sha256": "8adfb37c55b298c610a359e7e32054fb05fcc8d219dee3c28e1e6880b5f61df3"
   },
+  "recap@1": {
+    "sha256": "03e2f9c6538c3805e6b5efd7873b03b9dc9ffc69cec41e1f057f4d7b497f130b"
+  },
   "report@1": {
     "sha256": "83be2c1796df71fa261de9c7a2b73663655ddc7c65fbd66fed7f5b2a5f542afa"
   },

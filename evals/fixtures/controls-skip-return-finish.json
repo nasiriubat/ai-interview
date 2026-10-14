@@ -1,0 +1,19 @@
+{
+  "name": "Skip a tool question, come back to it, then finish early",
+  "templateKey": "opportunity_discovery",
+  "steps": [
+    { "answer": "I am a nurse on the surgical ward, eight patients per shift." },
+    { "answer": "Mornings are rounds and medication, then charting in two systems." },
+    { "control": { "type": "skip_area", "areaKey": "tools" } },
+    { "answer": "Charting is the same every day, about 45 minutes." },
+    { "control": { "type": "return_area", "areaKey": "tools" } },
+    { "answer": "The patient system, a ward Excel file and WhatsApp." },
+    { "control": { "type": "finish" } }
+  ],
+  "expect": {
+    "skippedArea": "tools",
+    "returnedArea": "tools",
+    "userMessages": 4,
+    "lastFocus": "closing"
+  }
+}

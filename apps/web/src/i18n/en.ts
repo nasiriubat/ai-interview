@@ -224,15 +224,20 @@ export const en = {
       areaActions: (name: string): string => `Options for ${name}`,
       skipArea: "Skip this for now",
       returnToArea: "Come back to this",
-      skipMessage: (name: string): string => `Let's skip "${name}" for now`,
-      returnMessage: (name: string): string => `Let's come back to ${name}`,
+      // What the conversation shows after a control (D-170). Quiet chips, not participant bubbles.
+      controlSkipped: (name: string): string => `You skipped ${name}`,
+      controlReturned: (name: string): string => `Back to ${name}`,
+      controlFinished: "You asked to finish",
+      /** The Undo offer after skipping, for six seconds (D-111). */
+      skippedToast: (name: string): string => `Skipped ${name}.`,
+      recapContinue: "Continue",
+      recapDismiss: "Hide this note",
       menu: "Interview options",
       pause: "Pause",
       pausedTitle: "Interview paused",
       pausedBody: "Your answers are saved. Reopen your link whenever you want to continue.",
       resumeNow: "Resume now",
       done: "I'm done",
-      doneMessage: "I'm done",
       doneTitle: "Finish the interview?",
       doneBody:
         "The interviewer asks one closing question, then shows you a summary you can edit. You can still delete your answers afterwards.",
@@ -245,6 +250,8 @@ export const en = {
       deletedTitle: "Your answers were deleted",
       deletedBody:
         "Your answers, recordings and files from this interview are gone. Totals already combined with other people's answers remain, but nothing in them can be traced to you.",
+      /** Shown only when the API reports `emailSent`: an identified participant whose notice is queued. */
+      deletedEmailNote: "A confirmation email is on its way to the address you used.",
       widgetAnswer: "Answer with the options",
       widgetSubmit: "Send answer",
       widgetOther: "Other",
@@ -733,6 +740,12 @@ export const en = {
       sessionUpdated: "Last activity",
       noSessions: "No interviews yet. They appear here as soon as someone opens the link.",
       viewSession: "View",
+      flagFilterLabel: "Attention",
+      flagFilterAll: "All interviews",
+      flagFilterOn: "Needs attention",
+      flagFilterOff: "Not flagged",
+      flagBadge: "Needs attention",
+      flagBadgeAcked: "Looked at",
       areasCovered: (done: number, total: number): string => `${done} of ${total} areas`,
       results: "Results",
       report: "Report",
@@ -933,6 +946,14 @@ export const en = {
       status: "Status",
       backToCampaign: "Back to campaign",
       openRequirements: "Open requirements workspace",
+      flagTitle: "This interview was flagged",
+      flagBody:
+        "The interviewer noticed hostility or distress. Take a look and decide whether anyone should follow up.",
+      flagReasonLabel: "What the interviewer noticed",
+      flagReasonHidden: "The reason is hidden because transcripts are hidden by the privacy setting.",
+      flagAck: "Mark as looked at",
+      flagAcked: (date: string): string => `Looked at ${date}`,
+      flagAckFailed: "That could not be saved. Try again.",
     },
     requirements: {
       title: "Requirements",
@@ -1759,6 +1780,16 @@ export const en = {
       "engine.maxTurns": {
         label: "Longest interview, in turns",
         description: "The interview is wrapped up when this many interviewer turns have been used.",
+      },
+      "engine.resumeRecap": {
+        label: "Recap when someone comes back",
+        description:
+          "Show a two-sentence reminder of where the interview left off when a participant returns.",
+      },
+      "engine.recapAfterMinutes": {
+        label: "Show the recap after being away (minutes)",
+        description:
+          "How many minutes a participant must have been away before the recap is shown. 0 always shows it.",
       },
       "campaign.completionThreshold": {
         label: "Interviews needed for final results",

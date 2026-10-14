@@ -38,7 +38,11 @@ export const LISTS = {
     sort: { createdAt: "desc", startedAt: "desc", lastActivity: "desc", status: "asc" },
     defaultSort: "createdAt",
     search: true,
-    filters: { status: ["created", "consented", "active", "paused", "completed", "deleted"] },
+    filters: {
+      status: ["created", "consented", "active", "paused", "completed", "deleted"],
+      /** `true` lists the interviews the engine flagged for hostility or distress (D-173). */
+      flagged: ["true", "false"],
+    },
   },
   analyses: {
     sort: { version: "desc", createdAt: "desc" },

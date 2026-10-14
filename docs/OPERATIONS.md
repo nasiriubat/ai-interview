@@ -61,7 +61,8 @@ unresolved alert is sent again, the hourly ceiling, and the disk, provider and b
 
 ### What a tenant is sent
 
-Only budget notices, and only to that tenant's own admins (or the list in
+Budget notices, and the notice that an interview was flagged for hostility or distress
+(`session.flagged`, ids only), and only to that tenant's own admins (or the list in
 `notifications.recipients`): at 80 and 90 percent of a budget, and when it is used up. A tenant can
 switch its warnings off (`notifications.budgetWarnings`) and cannot switch off the exhaustion
 notice. Nothing else is ever mailed to a tenant admin, and an alert for one tenant is never sent to
@@ -105,6 +106,23 @@ deliberately no "fall back to a cheaper model" (D-91): the money is the tenant's
 
 **Fixed when** The participant's next turn succeeds. The alert resolves itself when a new month
 starts a new key.
+
+### session.flagged
+
+**Symptom** The interviewer flagged an interview for hostility or distress. Sent only to the
+tenant's own admins (or `notifications.recipients`), never to the operator and never with what was
+said: the notice carries a session id and a campaign id. The interview itself carries on gently.
+
+**Look at** The campaign's interviews list, filtered on flagged (Admin, Campaigns, the campaign,
+Interviews). The reason is on the interview page and is shown only to someone who may read
+transcripts (`privacy.rawTranscriptsVisibleTo`).
+
+**Do** Nothing on the platform side. The tenant's admin reads it, decides whether anyone needs a
+call, and presses Acknowledge, which is audited (`session.flag.ack`). If a tenant says they never
+got one, check that the address is an admin of that tenant or listed in `notifications.recipients`.
+
+**Fixed when** An admin acknowledges the interview. The notice repeats at most once a day per
+interview.
 
 ### job.dead_lettered
 

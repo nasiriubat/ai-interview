@@ -220,8 +220,14 @@ export const fi: Strings = {
       areaActions: (name: string): string => `Vaihtoehdot aiheelle ${name}`,
       skipArea: "Ohita tämä toistaiseksi",
       returnToArea: "Palaa tähän",
-      skipMessage: (name: string): string => `Ohitetaan aihe ${name} toistaiseksi`,
-      returnMessage: (name: string): string => `Palataan aiheeseen ${name}`,
+      // What the conversation shows after a control (D-170). Quiet chips, not participant bubbles.
+      controlSkipped: (name: string): string => `Ohitit aiheen ${name}`,
+      controlReturned: (name: string): string => `Takaisin aiheeseen ${name}`,
+      controlFinished: "Pyysit lopettamaan",
+      /** The Undo offer after skipping, for six seconds (D-111). */
+      skippedToast: (name: string): string => `Aihe ${name} ohitettu.`,
+      recapContinue: "Jatka",
+      recapDismiss: "Piilota tämä muistutus",
       menu: "Haastattelun valinnat",
       pause: "Keskeytä",
       pausedTitle: "Haastattelu on keskeytetty",
@@ -232,7 +238,6 @@ export const fi: Strings = {
       doneBody:
         "Haastattelija esittää vielä yhden päättävän kysymyksen ja näyttää sitten yhteenvedon, jota voit muokata. Voit edelleen poistaa vastauksesi sen jälkeen.",
       doneConfirm: "Päätä",
-      doneMessage: "Olen valmis",
       deleteData: "Poista tietoni",
       deleteTitle: "Poistetaanko vastauksesi?",
       deleteBody:
@@ -241,6 +246,8 @@ export const fi: Strings = {
       deletedTitle: "Vastauksesi on poistettu",
       deletedBody:
         "Vastauksesi, tallenteesi ja tiedostosi tästä haastattelusta on poistettu. Muiden vastauksiin jo yhdistetyt lukumäärät säilyvät, mutta niitä ei voi yhdistää sinuun.",
+      /** Shown only when the API reports `emailSent`: an identified participant whose notice is queued. */
+      deletedEmailNote: "Vahvistus on matkalla käyttämääsi sähköpostiosoitteeseen.",
       widgetAnswer: "Vastaa vaihtoehdoilla",
       widgetSubmit: "Lähetä vastaus",
       widgetOther: "Muu",
@@ -731,6 +738,12 @@ export const fi: Strings = {
       sessionUpdated: "Viimeisin toiminta",
       noSessions: "Ei vielä haastatteluja. Ne ilmestyvät tähän, kun joku avaa linkin.",
       viewSession: "Näytä",
+      flagFilterLabel: "Huomio",
+      flagFilterAll: "Kaikki haastattelut",
+      flagFilterOn: "Vaatii huomiota",
+      flagFilterOff: "Ei merkitty",
+      flagBadge: "Vaatii huomiota",
+      flagBadgeAcked: "Tarkistettu",
       areasCovered: (done: number, total: number): string => `${done} / ${total} aihealuetta`,
       results: "Tulokset",
       report: "Raportti",
@@ -937,6 +950,14 @@ export const fi: Strings = {
       status: "Tila",
       backToCampaign: "Takaisin kampanjaan",
       openRequirements: "Avaa vaatimustyötila",
+      flagTitle: "Tämä haastattelu on merkitty",
+      flagBody:
+        "Haastattelija huomasi vihamielisyyttä tai ahdistusta. Katso haastattelu ja päätä, tarvitseeko jonkun ottaa yhteyttä.",
+      flagReasonLabel: "Mitä haastattelija huomasi",
+      flagReasonHidden: "Syy on piilotettu, koska keskustelut on piilotettu tietosuoja-asetuksella.",
+      flagAck: "Merkitse tarkistetuksi",
+      flagAcked: (date: string): string => `Tarkistettu ${date}`,
+      flagAckFailed: "Tallennus ei onnistunut. Yritä uudelleen.",
     },
     requirements: {
       title: "Vaatimukset",
@@ -1754,6 +1775,16 @@ export const fi: Strings = {
       "engine.maxTurns": {
         label: "Pisin haastattelu vuoroina",
         description: "Haastattelu päätetään, kun haastattelijan vuoroja on käytetty näin monta.",
+      },
+      "engine.resumeRecap": {
+        label: "Yhteenveto paluun yhteydessä",
+        description:
+          "Näytetään kahden virkkeen muistutus siitä, mihin haastattelussa jäätiin, kun vastaaja palaa.",
+      },
+      "engine.recapAfterMinutes": {
+        label: "Muistutus, kun poissa vähintään (min)",
+        description:
+          "Kuinka monta minuuttia vastaaja on ollut poissa, ennen kuin muistutus näytetään. 0 näyttää sen aina.",
       },
       "campaign.completionThreshold": {
         label: "Haastatteluja lopullisiin tuloksiin",

@@ -3,7 +3,7 @@
 import type { Widget } from "@aidp/shared";
 import { SquareIcon, Volume2Icon } from "lucide-react";
 import * as React from "react";
-import type { Announcement } from "@/hooks/useInterview";
+import { controlChipOf, type Announcement, type ControlChip } from "@/hooks/useInterview";
 import { usePrefersReducedMotion } from "@/hooks/useMediaQuery";
 import type { Speech } from "@/hooks/useSpeech";
 import { t } from "@/i18n";
@@ -84,6 +84,20 @@ export function MessageBubble({
   );
 }
 
+/** What the chip for a control says: "You skipped Tools and systems". */
+export function controlChipText(chip: ControlChip): string {
+  const s = t.participant.session;
+  const name = chip.areaName ?? chip.areaKey ?? "";
+  switch (chip.kind) {
+    case "skip_area":
+      return s.controlSkipped(name);
+    case "return_area":
+      return s.controlReturned(name);
+    case "finish":
+      return s.controlFinished;
+  }
+}
+
 /** One line that says a question has something to choose from, so a listener knows to look. */
 export function widgetSummary(widget: Widget): string {
   const s = t.participant.session;
@@ -137,15 +151,23 @@ export function MessageList({
     endRef.current?.scrollIntoView({ block: "end", behavior: reduceMotion ? "auto" : "smooth" });
   }, [messages.length, streaming, pending, reduceMotion]);
 
-  const visible = messages.filter((m) => m.role !== "system");
+  // A system message is not transcript; only the chips this screen made for a control are shown.
+  const visible = messages.filter((m) => m.role !== "system" || controlChipOf(m) !== undefined);
   return (
     <div className="flex flex-col gap-3">
       <ol aria-label={t.participant.session.messagesLabel} className="flex flex-col gap-3">
-        {visible.map((m) => (
-          <li key={m.id}>
-            <MessageBubble message={m} speech={speech} />
-          </li>
-        ))}
+        {visible.map((m) => {
+          const chip = controlChipOf(m);
+          return (
+            <li key={m.id}>
+              {chip ? (
+                <p className="text-muted-foreground text-center text-xs">{controlChipText(chip)}</p>
+              ) : (
+                <MessageBubble message={m} speech={speech} />
+              )}
+            </li>
+          );
+        })}
       </ol>
       {streaming !== null ? (
         <div aria-live="off">
