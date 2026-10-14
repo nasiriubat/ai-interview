@@ -150,7 +150,13 @@ export class ParticipantSessionReader {
         { maxTurns: options.maxTurns, useModel: caller !== undefined },
       );
       const cache = { text: made.text, source: made.source, upToSeq: options.lastSeq };
-      await new PrismaSessionStore(this.db).commitRecap(session.id, cache);
+      const store = new PrismaSessionStore(this.db);
+      await store.commitRecap(session.id, cache);
+      // One row per recap written (a cached one is not a new visit), with how long they were away.
+      await store.appendEvent(session.id, "resume", {
+        source: made.source,
+        idleMinutes: Math.floor(idleMs / 60_000),
+      });
       return { text: made.text, source: made.source };
     } catch {
       return undefined;

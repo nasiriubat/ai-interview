@@ -16,6 +16,7 @@ import {
   type InterviewTemplate,
   type Modality,
   type RecapCache,
+  type SessionEventType,
   type Path,
   type SessionState,
 } from "@aidp/shared";
@@ -137,7 +138,7 @@ export class PrismaSessionStore implements SessionStore {
     });
   }
 
-  async appendEvent(sessionId: string, type: string, payload: unknown): Promise<void> {
+  async appendEvent(sessionId: string, type: SessionEventType, payload: unknown): Promise<void> {
     await tenantTransaction(this.db, (tx) => appendEventIn(tx, sessionId, type, payload));
   }
 
@@ -232,7 +233,12 @@ export class PrismaSessionStore implements SessionStore {
 
 type Tx = Parameters<Parameters<typeof tenantTransaction>[1]>[0];
 
-async function appendEventIn(tx: Tx, sessionId: string, type: string, payload: unknown): Promise<void> {
+async function appendEventIn(
+  tx: Tx,
+  sessionId: string,
+  type: SessionEventType,
+  payload: unknown,
+): Promise<void> {
   const last = await tx.sessionEvent.findFirst({
     where: { sessionId },
     orderBy: { seq: "desc" },

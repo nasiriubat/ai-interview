@@ -499,8 +499,10 @@ meant.
 
 Migrations here only add (a nullable column, a table, an index); a drop or rename ships one release
 after the code stopped reading the old shape. That is what lets the previous code run against the
-newer schema, so rolling back is a tag switch. A migration that does not follow this says so in its
-header, and that release needs the dump.
+newer schema, so rolling back is a tag switch. A migration that does not follow this carries a
+`-- migration-policy: allow-destructive <reason>` line, and that release needs the dump. The policy
+and the gate that enforces it (`scripts/check-migrations.mjs`, in `pnpm check`) are in
+[`MIGRATIONS.md`](MIGRATIONS.md).
 
 ## Provider timeouts and retries
 

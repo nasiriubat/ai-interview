@@ -13,6 +13,7 @@ import {
   type TenantGate,
 } from "@aidp/core";
 import { tenantTransaction } from "@aidp/db";
+import type { ModeSwitchReason } from "@aidp/shared";
 import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
@@ -41,9 +42,6 @@ export interface DeletionNotice {
   language: string;
   deletedAt: string;
 }
-
-/** Why the answer mode changed: the participant chose it, or the client fell back (contract 16). */
-export type ModeSwitchReason = "participant" | "fallback_captions" | "fallback_typing" | "unavailable";
 
 /** A counted abuse signal. Carries ids only, never an address (D-82). */
 export type AbuseEvent = "abuse.code_request_capped" | "abuse.code_confirm_locked";
