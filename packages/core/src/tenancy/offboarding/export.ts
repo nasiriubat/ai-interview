@@ -80,6 +80,7 @@ export class TenantExporter {
     const signing = crypto.bulkKey("export-sign", companyId);
     if (!seal || !signing) throw new Error("No platform key available to seal the export");
 
+    const signKey = signing.key;
     const rows: Record<string, number> = {};
     const manifest: { path: string; bytes: number; sha256: string; rows?: number }[] = [];
     let files = 0;
@@ -223,7 +224,7 @@ export class TenantExporter {
         ),
         "utf8",
       );
-      signature = createHmac("sha256", signing.key).update(body).digest("hex");
+      signature = createHmac("sha256", signKey).update(body).digest("hex");
       yield { path: "manifest.json", data: body };
       yield { path: "manifest.sig", data: `${signature}\n` };
     }

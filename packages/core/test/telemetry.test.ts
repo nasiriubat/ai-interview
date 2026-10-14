@@ -7,7 +7,7 @@ import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
-import { pino } from "pino";
+import { pino, type Logger } from "pino";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MemoryJobPublisher } from "../src/jobs/definitions.js";
 import { runBatch } from "../src/jobs/pg-boss.js";
@@ -27,7 +27,7 @@ import {
 } from "../src/telemetry/index.js";
 
 /** A pino instance with the shared redaction options, writing into an array of parsed lines. */
-function logger(options: { development?: boolean } = {}): { log: pino.Logger; lines: () => string[] } {
+function logger(options: { development?: boolean } = {}): { log: Logger; lines: () => string[] } {
   const out: string[] = [];
   const stream = new Writable({
     write(chunk: Buffer, _enc, cb) {

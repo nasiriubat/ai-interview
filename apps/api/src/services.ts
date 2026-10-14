@@ -6,6 +6,7 @@ import type {
   Crypto,
   EgressGuard,
   EmailPort,
+  JobAdminPort,
   JobPublisher,
   SettingsService,
   TenantCeilings,
@@ -88,6 +89,8 @@ export interface ServiceDeps {
   ceilings: TenantCeilings;
   onboarding: TenantOnboarding;
   exporter?: TenantExporter;
+  /** Queue depth and dead letters, for the health tiles. */
+  jobAdmin: JobAdminPort;
 }
 
 export function buildServices(d: ServiceDeps): Services {
@@ -107,7 +110,32 @@ export function buildServices(d: ServiceDeps): Services {
   return {
     audit,
     users: new UsersService(d.db, audit),
-    stats: new StatsService(d.db),
+    stats: new StatsService(d.db, {
+      weightsFor: (campaignId, companyId) => d.analysis.weightsFor(campaignId, companyId),
+      k: async (companyId) => d.settings.get("privacy.kAnonymity", [{ scope: "tenant", scopeId: companyId }]),
+      preliminaryVisibleToMembers: async (companyId) =>
+        d.settings.get("analysis.preliminaryVisibleToMembers", [{ scope: "tenant", scopeId: companyId }]),
+      queues: async () =>
+        (await d.jobAdmin.list()).map((q) => ({
+          name: q.name,
+          queued: q.queued,
+          active: q.active,
+          deadLettered: q.deadLettered,
+        })),
+      deadLetters: async (companyId) => {
+        let n = 0;
+        for (const q of await d.jobAdmin.list()) {
+          if (q.deadLettered === 0) continue;
+          const jobs = await d.jobAdmin.deadLetters(q.name, 200);
+          n += jobs.filter((j) => j.companyId === companyId).length;
+        }
+        return n;
+      },
+      storageQuotaBytes: async (companyId) => {
+        const mb = await d.settings.get("files.tenantQuotaMb", [{ scope: "tenant", scopeId: companyId }]);
+        return mb > 0 ? mb * 1024 * 1024 : null;
+      },
+    }),
     sessions: new SessionsService(d.db, d.settings),
     privacy: new PrivacyService(d.db, d.settings),
     health: new HealthService(d.db),

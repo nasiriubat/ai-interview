@@ -42,6 +42,17 @@ opportunities for requirements discovery. Markdown and PDF; sections can be hidd
 Merge or split clusters, rename, override class or factors with a note, dismiss,
 shortlist, promote to requirements discovery (FR-18). Overrides survive re-runs.
 
+A merge or split is anchored to the member fact ids of the clusters it was made on, never to a
+cluster key, and is applied after clustering in every run: an anchor attaches to the cluster
+holding at least half of its facts, and an edit that matches nothing is skipped and reported
+(D-200). An edit produces the next version as an edit run that costs a model call only for the
+clusters that changed (D-201). A cluster below k cannot be split, because its facts are not shown.
+
+Department comparison (FR-17, D-203): participants are counted, not facts. A department is
+shown at k or more; smaller ones are pooled into an unnamed "Other" only when the pool reaches k,
+and are otherwise left out with no total that would let them be subtracted. A department-by-
+opportunity cell needs k people of its own.
+
 ## Admin knobs (ADM-ANALYSIS)
 
 Threshold, k, weights and presets, similarity strictness, report sections, preliminary
