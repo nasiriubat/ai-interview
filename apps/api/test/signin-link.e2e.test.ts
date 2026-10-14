@@ -1,10 +1,11 @@
 import type { Server } from "node:http";
+import { describeDb } from "@aidp/testing";
 import { Auth, type AuthConfig } from "@auth/core";
 import type { Adapter, AdapterUser } from "@auth/core/adapters";
 import { decode } from "@auth/core/jwt";
-import type { Provider } from "@auth/core/providers";
-import { describeDb } from "@aidp/testing";
+import type { EmailConfig } from "@auth/core/providers/email";
 import { afterAll, beforeAll, expect, it } from "vitest";
+import { VerificationTokenService } from "../src/modules/internal-auth/service.js";
 import {
   hashVerificationToken,
   issueSigninLink,
@@ -12,7 +13,6 @@ import {
   SIGNIN_LINK_AUDIT_ACTION,
   SIGNIN_LINK_TTL_MS,
 } from "../src/modules/internal-auth/signin-link.js";
-import { VerificationTokenService } from "../src/modules/internal-auth/service.js";
 import { fakeModelServer, TEST_AUTH_SECRET, testWorld, type TestWorld } from "./helpers.js";
 
 const WEB = "http://localhost:3000";
@@ -65,14 +65,15 @@ describeDb("break-glass sign-in link (D-440)", () => {
         return row ? { ...row, expires: new Date(row.expires) } : null;
       },
     };
-    const email = {
+    const email: EmailConfig = {
       id: "nodemailer",
       type: "email",
       name: "Email",
       maxAge: 24 * 60 * 60,
-      sendVerificationRequest: async () => {},
+      // Never called: the callback route does not send mail, and that is the only route opened here.
+      sendVerificationRequest: () => Promise.resolve(),
       options: {},
-    } as unknown as Provider;
+    };
     return {
       secret: TEST_AUTH_SECRET,
       basePath: "/api/auth",
@@ -131,18 +132,29 @@ describeDb("break-glass sign-in link (D-440)", () => {
     const token = url.searchParams.get("token") ?? "";
     expect(token).toMatch(/^[0-9a-f]{64}$/);
     const row = await world.db.verificationToken.findUniqueOrThrow({
-      where: { identifier_token: { identifier: world.adminEmail, token: hashVerificationToken(token, TEST_AUTH_SECRET) } },
+      where: {
+        identifier_token: {
+          identifier: world.adminEmail,
+          token: hashVerificationToken(token, TEST_AUTH_SECRET),
+        },
+      },
     });
     expect(row.token).not.toBe(token);
 
     const first = await open(result.url);
     expect(first.location).toBe(`${WEB}/admin`);
     expect(first.sessionCookie).toBeTruthy();
-    const jwt = await decode({ token: first.sessionCookie ?? "", secret: TEST_AUTH_SECRET, salt: "authjs.session-token" });
+    const jwt = await decode({
+      token: first.sessionCookie ?? "",
+      secret: TEST_AUTH_SECRET,
+      salt: "authjs.session-token",
+    });
     expect(jwt?.email).toBe(world.adminEmail);
 
     // The callback consumed it: the row is gone, and the same link is now an invalid link.
-    expect(await world.db.verificationToken.count({ where: { identifier: world.adminEmail, token: row.token } })).toBe(0);
+    expect(
+      await world.db.verificationToken.count({ where: { identifier: world.adminEmail, token: row.token } }),
+    ).toBe(0);
     const second = await open(result.url);
     expect(second.sessionCookie).toBeNull();
     expect(second.location).toContain("error=Verification");

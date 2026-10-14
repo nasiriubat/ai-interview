@@ -15,7 +15,11 @@
 import { withTenantScope } from "@aidp/db";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
-import { issueSigninLink, REFUSAL_TEXT, SIGNIN_LINK_AUDIT_ACTION } from "../modules/internal-auth/signin-link.js";
+import {
+  issueSigninLink,
+  REFUSAL_TEXT,
+  SIGNIN_LINK_AUDIT_ACTION,
+} from "../modules/internal-auth/signin-link.js";
 
 // Only what this needs, so a missing variable the server needs and this does not (the encryption
 // key, say) does not stand between a locked-out operator and their link.
@@ -27,7 +31,9 @@ const Env = z.object({
 
 function warn(msg: string, fields: Record<string, unknown>): void {
   // A pino-shaped line (level 40 is warn) on stderr, so log tooling reads it like the server's own.
-  process.stderr.write(`${JSON.stringify({ level: 40, time: Date.now(), name: "signin-link", ...fields, msg })}\n`);
+  process.stderr.write(
+    `${JSON.stringify({ level: 40, time: Date.now(), name: "signin-link", ...fields, msg })}\n`,
+  );
 }
 
 async function main(argv: string[]): Promise<number> {
