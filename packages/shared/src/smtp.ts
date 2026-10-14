@@ -142,3 +142,108 @@ export function smtpUrlFromForm(form: SmtpForm, stored: string | undefined): str
     password,
   });
 }
+
+// ---- Install-time configuration (D-445) -------------------------------------------------------
+
+/**
+ * The values `SMTP_SECURITY` accepts, in the words a mail provider's help page uses. `tls` is
+ * implicit TLS (the form's "SSL/TLS", stored as `smtps://`); `ssl` is accepted as a synonym.
+ */
+export const SMTP_ENV_SECURITIES = ["none", "starttls", "tls"] as const;
+export type SmtpEnvSecurity = (typeof SMTP_ENV_SECURITIES)[number];
+
+/** The environment variables a relay is read from. Everything else in the environment is ignored. */
+export interface SmtpEnvInput {
+  SMTP_HOST?: string | undefined;
+  SMTP_PORT?: string | undefined;
+  SMTP_SECURITY?: string | undefined;
+  SMTP_USER?: string | undefined;
+  SMTP_PASSWORD?: string | undefined;
+  /** Deprecated (D-446): the one-URL form, still read when SMTP_HOST is not set. */
+  EMAIL_SMTP_URL?: string | undefined;
+}
+
+export type SmtpEnvRelay =
+  /** Composed from SMTP_*. `parts` and `url` carry the password, so neither is ever logged. */
+  | { source: "smtp_vars"; url: string; parts: SmtpParts }
+  /** The legacy EMAIL_SMTP_URL, passed through as written. */
+  | { source: "legacy_url"; url: string }
+  | { source: "none" };
+
+/** A relay configuration that cannot be used. The message names variables, never their values. */
+export class SmtpEnvError extends Error {
+  override name = "SmtpEnvError";
+}
+
+/**
+ * Resolves the deployment relay from the environment: the one rule the API, the worker and the
+ * web app's sign-in mail share (`deploy/ops/notify.sh` mirrors it in shell, D-447).
+ *
+ *   1. SMTP_HOST set: the relay is composed from SMTP_HOST, SMTP_PORT, SMTP_SECURITY, SMTP_USER
+ *      and SMTP_PASSWORD with `composeSmtpUrl`, the function the admin form uses. Credentials are
+ *      taken literally and percent-encoded here, so an operator never encodes anything. The port
+ *      defaults from the security (starttls 587, tls 465, none 25); security defaults to starttls.
+ *   2. Otherwise EMAIL_SMTP_URL when set (deprecated, so existing installs keep working).
+ *   3. Otherwise none.
+ *
+ * An empty string is "not set", because compose passes an unset variable through as "".
+ */
+export function resolveSmtpEnv(env: SmtpEnvInput): SmtpEnvRelay {
+  const host = (env.SMTP_HOST ?? "").trim();
+  if (host === "") {
+    const stray = (["SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD"] as const).filter(
+      (k) => (env[k] ?? "").trim() !== "",
+    );
+    if (stray.length > 0) {
+      throw new SmtpEnvError(
+        `${stray.join(", ")} ${stray.length === 1 ? "is" : "are"} set but SMTP_HOST is empty`,
+      );
+    }
+    const legacy = (env.EMAIL_SMTP_URL ?? "").trim();
+    if (legacy === "") return { source: "none" };
+    if (!parseSmtpUrl(legacy)) throw new SmtpEnvError("EMAIL_SMTP_URL is not an smtp:// or smtps:// URL");
+    return { source: "legacy_url", url: legacy };
+  }
+  if (!isSmtpHost(host)) {
+    throw new SmtpEnvError("SMTP_HOST must be a host name or address only, such as smtp.example.com");
+  }
+  const rawSecurity = (env.SMTP_SECURITY ?? "").trim().toLowerCase();
+  let security: SmtpSecurity;
+  if (rawSecurity === "" || rawSecurity === "starttls") security = "starttls";
+  else if (rawSecurity === "tls" || rawSecurity === "ssl") security = "ssl";
+  else if (rawSecurity === "none") security = "none";
+  else throw new SmtpEnvError("SMTP_SECURITY must be one of none, starttls, tls");
+  const rawPort = (env.SMTP_PORT ?? "").trim();
+  let port = SMTP_DEFAULT_PORTS[security];
+  if (rawPort !== "") {
+    const n = /^\d{1,5}$/.test(rawPort) ? Number(rawPort) : 0;
+    if (n < 1 || n > 65535) throw new SmtpEnvError("SMTP_PORT must be a number between 1 and 65535");
+    port = n;
+  }
+  // The password is used exactly as written: a space at either end can be part of it.
+  const username = (env.SMTP_USER ?? "").trim();
+  const password = env.SMTP_PASSWORD ?? "";
+  if (username === "" && password !== "") {
+    throw new SmtpEnvError("SMTP_PASSWORD is set but SMTP_USER is empty");
+  }
+  const parts: SmtpParts = { host, port, security, username, password };
+  return { source: "smtp_vars", url: composeSmtpUrl(parts), parts };
+}
+
+/** The sentence a process prints when it refuses to start without a relay (D-448). */
+export const SMTP_ENV_REQUIRED_MESSAGE =
+  "No mail relay: set SMTP_HOST (with SMTP_PORT, SMTP_SECURITY, SMTP_USER, SMTP_PASSWORD) in " +
+  "deploy/.env, or the deprecated EMAIL_SMTP_URL. Sign-in is by emailed link, so nobody can sign " +
+  "in without one. See docs/DEPLOY.md, 'How the first admin signs in'.";
+
+/**
+ * The relay URL a server process uses, or undefined for none. A production process refuses to
+ * start without one (D-448): a stack without a relay looks healthy and admits nobody. The result
+ * carries the password: never log it.
+ */
+export function smtpRelayUrlFromEnv(env: SmtpEnvInput & { NODE_ENV?: string | undefined }): string | undefined {
+  const relay = resolveSmtpEnv(env);
+  if (relay.source !== "none") return relay.url;
+  if (env.NODE_ENV === "production") throw new SmtpEnvError(SMTP_ENV_REQUIRED_MESSAGE);
+  return undefined;
+}
