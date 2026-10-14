@@ -9,6 +9,7 @@ export const fi: Strings = {
     name: "Discovery",
     description: "Tekoälyavusteiset kartoitushaastattelut",
     skipToContent: "Siirry sisältöön",
+    theme: { label: "Ulkoasu", system: "Järjestelmä", light: "Vaalea", dark: "Tumma" },
     loading: "Ladataan…",
     close: "Sulje",
     cancel: "Peruuta",

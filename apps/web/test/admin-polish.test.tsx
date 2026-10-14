@@ -43,16 +43,15 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const provider = (over: Partial<Provider> = {}): Provider =>
-  ({
-    id: "p1",
-    kind: "anthropic",
-    name: "Anthropic",
-    enabled: true,
-    hasKey: true,
-    companyId: "c1",
-    ...over,
-  });
+const provider = (over: Partial<Provider> = {}): Provider => ({
+  id: "p1",
+  kind: "anthropic",
+  name: "Anthropic",
+  enabled: true,
+  hasKey: true,
+  companyId: "c1",
+  ...over,
+});
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -104,15 +103,14 @@ describe("testing a provider connection", () => {
 });
 
 describe("budgets show how much is spent", () => {
-  const budget = (over: Partial<BudgetRecord>): BudgetRecord =>
-    ({
-      id: "b1",
-      scope: "campaign",
-      scopeId: "camp1",
-      limitCents: 10000,
-      period: "total",
-      ...over,
-    });
+  const budget = (over: Partial<BudgetRecord>): BudgetRecord => ({
+    id: "b1",
+    scope: "campaign",
+    scopeId: "camp1",
+    limitCents: 10000,
+    period: "total",
+    ...over,
+  });
 
   it("draws a bar with the figures in words, amber from 80 percent, red at the limit", () => {
     render(
@@ -246,7 +244,7 @@ describe("boxes", () => {
         readFileSync(f, "utf8")
           .split("\n")
           .map((line, i) => ({ line, n: i + 1 }))
-          .filter(({ line }) => /rounded(-[a-z0-9]+)? border( |"|`)/.test(line) && !line.includes('border-0'))
+          .filter(({ line }) => /rounded(-[a-z0-9]+)? border( |"|`)/.test(line) && !line.includes("border-0"))
           // The comment that explains the rule quotes the pattern.
           .filter(({ line }) => !line.trim().startsWith("*") && !line.trim().startsWith("//"))
           .map(({ n }) => `${rel(f)}:${String(n)}`),
