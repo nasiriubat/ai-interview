@@ -59,7 +59,6 @@ export function settingInputKind(
     if (type === "enum") return { kind: "enum", values: enumValues(schema) ?? [] };
     if (type === "array") return { kind: "list" };
     if (type === "record") return { kind: "weights", keys: recordKeys(defaultValue), min: 0, max: 5 };
-    if (key === "branding.primaryColor") return { kind: "color" };
     return { kind: "text" };
   }
   if (typeof defaultValue === "boolean") return { kind: "boolean" };

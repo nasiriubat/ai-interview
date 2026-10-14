@@ -55,8 +55,12 @@ export function InterviewScreen({
   /** Whether this tenant does spoken answers at all, either way round. */
   const voiceConfigured = can.recordedVoice || can.liveVoice;
   // A stored `voice` preference outlives the setting that allowed it, so it is coerced back.
+  const optionsEnabled = can.optionsView !== false;
   const [mode, setMode] = React.useState<ModePreference>(
-    initial.modePreference === "voice" && !voiceConfigured ? "chat" : (initial.modePreference ?? "chat"),
+    (initial.modePreference === "voice" && !voiceConfigured) ||
+      (initial.modePreference === "options" && !optionsEnabled)
+      ? "chat"
+      : (initial.modePreference ?? "chat"),
   );
   const [screen, setScreen] = React.useState<Screen>(initial.status === "paused" ? "paused" : "interview");
   const attachments = useAttachments(api, {
@@ -241,7 +245,12 @@ export function InterviewScreen({
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {!state.ended ? (
-              <ModeSwitch mode={mode} onChange={changeMode} voiceEnabled={voiceConfigured && spokenAnswers} />
+              <ModeSwitch
+                mode={mode}
+                onChange={changeMode}
+                voiceEnabled={voiceConfigured && spokenAnswers}
+                optionsEnabled={optionsEnabled}
+              />
             ) : null}
             <LanguageSwitch />
             <SessionMenu onPause={pause} onDone={done} onDelete={remove} disabled={busy || state.ended} />

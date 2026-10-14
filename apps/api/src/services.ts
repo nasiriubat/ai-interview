@@ -6,8 +6,11 @@ import type {
   Crypto,
   EgressGuard,
   EmailPort,
+  JobPublisher,
   SettingsService,
+  TenantCeilings,
   TenantGate,
+  TenantOnboarding,
 } from "@aidp/core";
 import type { PrismaClient } from "@prisma/client";
 import type { Logger as PinoLogger } from "pino";
@@ -61,6 +64,8 @@ export interface Services {
   turns: TurnStore;
   /** Auth.js magic-link tokens: not tenant-owned (a token belongs to an address, not a company). */
   verificationTokens: VerificationTokenService;
+  /** The getting-started checklist, derived from what the tenant has (D-189). */
+  onboarding: TenantOnboarding;
 }
 
 export interface ServiceDeps {
@@ -76,6 +81,9 @@ export interface ServiceDeps {
   tenants: TenantGate;
   analysis: AnalysisService;
   attachments: AttachmentService;
+  jobs: JobPublisher;
+  ceilings: TenantCeilings;
+  onboarding: TenantOnboarding;
 }
 
 export function buildServices(d: ServiceDeps): Services {
@@ -90,6 +98,7 @@ export function buildServices(d: ServiceDeps): Services {
     (event, meta) => {
       d.log.warn({ event, ...meta }, "abuse signal");
     },
+    d.ceilings,
   );
   return {
     audit,
@@ -98,8 +107,8 @@ export function buildServices(d: ServiceDeps): Services {
     sessions: new SessionsService(d.db, d.settings),
     privacy: new PrivacyService(d.db, d.settings),
     health: new HealthService(d.db),
-    campaigns: new CampaignService(d.db, d.crypto, d.settings, d.email, d.config.PUBLIC_WEB_URL),
-    templates: new TemplateService(d.db),
+    campaigns: new CampaignService(d.db, d.crypto, d.settings, d.email, d.config.PUBLIC_WEB_URL, d.ceilings),
+    templates: new TemplateService(d.db, d.settings),
     providers,
     budgets: new BudgetService(d.db, audit),
     settingsAdmin: new SettingsAdminService(d.db, d.settings, d.egress, d.email, audit, {
@@ -108,7 +117,12 @@ export function buildServices(d: ServiceDeps): Services {
       },
     }),
     analysisQueries: new AnalysisQueryService(d.db, d.analysis, d.settings),
-    operator: new OperatorService(d.db, d.settings, d.tenants, audit),
+    operator: new OperatorService(d.db, d.settings, d.tenants, audit, {
+      jobs: d.jobs,
+      ceilings: d.ceilings,
+      onboarding: d.onboarding,
+      publicWebUrl: d.config.PUBLIC_WEB_URL,
+    }),
     voiceSetup: new VoiceSetupService({
       db: d.db,
       settings: d.settings,
@@ -120,5 +134,6 @@ export function buildServices(d: ServiceDeps): Services {
     recordings: new RecordingStore(d.db),
     turns: new TurnStore(d.db),
     verificationTokens: new VerificationTokenService(d.db),
+    onboarding: d.onboarding,
   };
 }

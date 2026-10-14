@@ -37,6 +37,8 @@ export interface ResultsViewProps {
   detail: AnalysisDetail | null;
   initialPreset: WeightsPreset;
   initialWeights: Weights;
+  /** False when `features.chaining` is off for the organization. */
+  canPromote?: boolean;
 }
 
 /** The campaign results page: header, weights, filters, grouped opportunity cards, compare. */
@@ -47,6 +49,7 @@ export function ResultsView({
   detail,
   initialPreset,
   initialWeights,
+  canPromote = true,
 }: ResultsViewProps): React.JSX.Element {
   const s = t.admin.results;
   const router = useRouter();
@@ -196,6 +199,7 @@ export function ResultsView({
                       onEdit={() => {
                         setEditing(o);
                       }}
+                      canPromote={canPromote}
                       onPromote={() => {
                         setPromoting(o);
                       }}

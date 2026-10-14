@@ -131,6 +131,14 @@ export class RequirementsVersions {
         version: version.version,
         generated: result.generated,
       });
+      // One mail per version, keyed by its id; a retried job finds the key taken.
+      await this.deps.notices?.specReady({
+        companyId: session.companyId,
+        sessionId: session.id,
+        title: session.title || template.name,
+        versionId,
+        version: version.version,
+      });
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
       log.warn("spec version failed", { versionId, error });
