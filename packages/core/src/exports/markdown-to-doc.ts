@@ -405,10 +405,10 @@ function table(tokens: Token[], theme: PdfTheme, limits: MarkdownLimits, warning
   if (rows.some((r) => r.cells.length > width)) warnings.push("table_columns_truncated");
   if (rows.length > limits.maxTableRows) warnings.push("table_rows_truncated");
   // Short columns (ranks, scores, counts) take what they need; the rest share what is left.
-  const widths = Array.from({ length: width }, (_, c) =>
+  const widths: ("auto" | "*")[] = Array.from({ length: width }, (_, c) =>
     Math.max(0, ...rows.map((r) => r.lens[c] ?? 0)) <= 8 ? "auto" : "*",
   );
-  if (widths.every((w) => w === "auto")) widths[widths.length - 1] = "*";
+  if (!widths.includes("*")) widths[widths.length - 1] = "*";
   const body = rows.slice(0, limits.maxTableRows).map((r) => {
     const cells = r.cells.slice(0, width);
     while (cells.length < width) cells.push({ text: " " });

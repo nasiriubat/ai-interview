@@ -48,7 +48,7 @@ export async function readPdf(bytes: Uint8Array): Promise<PdfSummary> {
       imagesPerPage.push(ops.fnArray.filter((f) => f === 85).length);
     }
     const meta = await doc.getMetadata();
-    const info: Record<string, unknown> = meta.info;
+    const info = meta.info as Record<string, unknown>;
     // pdf.js answers null for a document with no outline, whatever its types say.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const outline = (await doc.getOutline()) ?? [];
