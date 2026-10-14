@@ -89,7 +89,7 @@ describe("checkMermaidSource (FR-23: what may be saved as a diagram)", () => {
 
   it("reports the line of the problem", () => {
     const r = checkMermaidSource("flowchart LR\n  A-->B\n  click A callback");
-    expect(r.ok === false && r.issues[0]?.line).toBe(3);
+    expect(!r.ok && r.issues[0]?.line).toBe(3);
   });
 });
 

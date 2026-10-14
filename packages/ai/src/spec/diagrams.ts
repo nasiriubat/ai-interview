@@ -92,7 +92,7 @@ export function checkMermaidSource(raw: string): DiagramCheck {
 
   lines.forEach((text, i) => {
     const line = i + 1;
-    if (/%%\{/.test(text))
+    if (text.includes("%%{"))
       issues.push({ code: "directive", message: "Directives (%%{ }%%) are not allowed.", line });
     if (/^\s*click\s/i.test(text))
       issues.push({ code: "click", message: "click statements are not allowed.", line });
@@ -142,7 +142,7 @@ export function mergeDiagrams(generated: readonly SpecDiagram[], edits: SpecEdit
     if (known.has(key)) continue;
     out.push({
       key,
-      title: edit.title?.trim() || key,
+      title: trimmed(edit.title) ?? key,
       type: edit.type ?? "context",
       mermaid: edit.mermaid,
       ...(edit.description?.trim() ? { description: edit.description.trim() } : {}),
@@ -152,11 +152,16 @@ export function mergeDiagrams(generated: readonly SpecDiagram[], edits: SpecEdit
   return out.slice(0, MAX_DIAGRAMS);
 }
 
+const trimmed = (s: string | undefined): string | undefined => {
+  const t = s?.trim();
+  return t === "" ? undefined : t;
+};
+
 function applyEdit(base: SpecDiagram, edit: SpecEdits[string]): SpecDiagram {
   return {
     ...base,
     mermaid: edit.mermaid ?? base.mermaid,
-    title: edit.title?.trim() || base.title,
+    title: trimmed(edit.title) ?? base.title,
     type: edit.type ?? base.type,
     ...(edit.description?.trim() ? { description: edit.description.trim() } : {}),
   };
