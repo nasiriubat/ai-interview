@@ -29,10 +29,13 @@ export default async function SpecVersionPage({ params }: Props): Promise<React.
   await requireMe();
   const { id, v } = await params;
   const api = await staffServer();
-  const [detailR, listR] = await Promise.allSettled([
+  const [detailR, listR, sessionR] = await Promise.allSettled([
     api.requirements.versions.get(id, v),
     api.requirements.versions.list(id),
+    api.requirements.get(id),
   ]);
+  // The trail named the interview "Details" (simulation 2026-10-15); it is the interview's title.
+  const sessionTitle = sessionR.status === "fulfilled" ? sessionR.value.session.title : "";
   if (detailR.status === "rejected") {
     if (isApiError(detailR.reason) && detailR.reason.isNotFound) notFound();
     throw detailR.reason;
@@ -44,6 +47,7 @@ export default async function SpecVersionPage({ params }: Props): Promise<React.
   return (
     <>
       <PageHeader
+        crumbLabels={{ [id]: sessionTitle || t.admin.common.unnamed, [v]: s.title(detail.version.version) }}
         title={s.title(detail.version.version)}
         subtitle={detail.version.label ?? undefined}
         actions={

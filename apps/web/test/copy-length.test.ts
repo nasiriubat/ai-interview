@@ -107,3 +107,36 @@ describe("empty states do not repeat their title", () => {
     expect(repeating.map(([p]) => p)).toEqual([]);
   });
 });
+
+describe("weekly time on an opportunity (simulation 2026-10-15)", () => {
+  it("says nothing was stated instead of 0, and hours instead of thousands of minutes", () => {
+    expect(en.ws.opportunity.minutes(0)).toBe("No time stated");
+    expect(en.ws.opportunity.minutes(45)).toBe("45 min per week");
+    expect(en.ws.opportunity.minutes(3285)).toBe("About 55 h per week");
+    expect(fi.ws.opportunity.minutes(0)).toBe("Aikaa ei mainittu");
+  });
+});
+
+describe("a withheld department cell (simulation 2026-10-15)", () => {
+  it("says the share has too few people behind it, not that the group did", () => {
+    // A department of three showed "Fewer than 3 people in this group answered".
+    expect(en.ws.departments.cellReason(3)).toMatch(/behind this share/);
+    expect(en.ws.departments.cellReason(3)).not.toMatch(/in this group answered/);
+  });
+});
+
+describe("a running analysis is not always the admin's own edit (simulation 2026-10-15)", () => {
+  it("does not say 'your change' for an automatic run", () => {
+    expect(en.admin.results.reanalysing).not.toMatch(/your change/i);
+    expect(fi.admin.results.reanalysing).not.toMatch(/muutoksesi/);
+  });
+});
+
+describe("the promote dialog says what is carried over (claims C5)", () => {
+  // Simulation 2026-10-15: it promised "the brief below" and showed only the title.
+  it("names the starting brief instead of pointing at one that is not shown", () => {
+    expect(en.admin.results.promote.body).toMatch(/starting brief/);
+    expect(en.admin.results.promote.body).not.toMatch(/brief below/);
+    expect(fi.admin.results.promote.body).toMatch(/lähtötiedoiksi/);
+  });
+});

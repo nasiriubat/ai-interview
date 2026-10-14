@@ -147,7 +147,7 @@ describe("generateSpec", () => {
     });
 
     expect(r.markdown).toContain("# Single-entry charting");
-    expect(r.markdown).toContain("| hosting | cloud |");
+    expect(r.markdown).toContain("| Hosting | cloud |");
     expect(r.markdown).toContain("## Business rules\n\nR1. Owner rule.");
     expect(r.markdown).not.toContain("MODEL RULES");
     expect(r.markdown).toContain("- **FR-1** Single entry");

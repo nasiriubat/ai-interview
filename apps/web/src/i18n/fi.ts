@@ -1252,7 +1252,7 @@ export const fi: Strings = {
           `${n} aiempaa muokkausta ei enää vastaa mitään havaintoja, ja se ohitettiin.`,
         unassigned: (n: number): string => `${n} uutta havaintoa liitettiin jaon suurempaan osaan.`,
       },
-      reanalysing: "Analysoidaan uudelleen muutoksesi kanssa…",
+      reanalysing: "Uudempi analyysi on käynnissä…",
       reanalysingBody: "Voit jatkaa tämän version lukemista. Uusi versio korvaa sen tässä, kun se on valmis.",
       newerReady: "Uudempi versio on valmis.",
       showNewer: "Näytä se",
@@ -1286,7 +1286,7 @@ export const fi: Strings = {
       },
       promote: {
         title: "Aloitetaanko vaatimushaastattelu?",
-        body: "Tästä mahdollisuudesta avataan vaatimushaastattelu. Se alkaa alla olevista lähtötiedoista.",
+        body: "Alla olevasta mahdollisuudesta avataan vaatimushaastattelu. Haastatteluissa siitä kerrottu siirtyy lähtötiedoiksi, joten omistajalta kysytään vain puuttuvat asiat.",
         confirm: "Aloita vaatimushaastattelu",
         starting: "Aloitetaan…",
         done: "Vaatimushaastattelu aloitettu",
@@ -1462,6 +1462,8 @@ export const fi: Strings = {
         conversation: "Keskustelu",
         backToList: "Kaikki vaatimushaastattelut",
         pathLabel: "Haastattelun polku",
+        choosePathFirst:
+          "Haastattelija mukauttaa kysymyksensä tämän mukaan. Valitse toinen aloittaaksesi; voit vaihtaa milloin tahansa keskustelun otsikkorivistä.",
         done: "Olen valmis",
         reopen: "Avaa uudelleen",
         reopened: "Haastattelu avattu uudelleen",

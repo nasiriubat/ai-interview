@@ -149,13 +149,25 @@ function renderFunctional(fields: { path: string; value: unknown; source: string
     .join("\n");
 }
 
+/**
+ * A field path as a person reads it: "expected_benefit" becomes "Expected benefit". The draft
+ * showed raw keys such as "existing_process" to the owner (simulation 2026-10-15). Paths that are
+ * not plain snake_case keys (an id like FR-3) are shown as they are.
+ */
+export function fieldLabel(path: string): string {
+  if (!/^[a-z][a-z0-9_]*$/.test(path)) return path;
+  const words = path.replace(/_+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 function renderFields(fields: { path: string; value: unknown; source: string }[]): string {
   return fields
     .map((f) => {
       const r = renderValue(f.value);
       const mark =
         f.source === "recommended" ? " _(recommended)_" : f.source === "handoff" ? " _(from discovery)_" : "";
-      return r.startsWith("\n") ? `- **${f.path}**${mark}:${r}` : `- **${f.path}**${mark}: ${r}`;
+      const label = fieldLabel(f.path);
+      return r.startsWith("\n") ? `- **${label}**${mark}:${r}` : `- **${label}**${mark}: ${r}`;
     })
     .join("\n");
 }

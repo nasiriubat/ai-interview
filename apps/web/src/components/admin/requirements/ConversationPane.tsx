@@ -51,11 +51,86 @@ function PathSwitch({
   );
 }
 
+interface PaneProps {
+  api: ParticipantApi;
+  initial: ParticipantSession;
+  title: string;
+  onSpec: (spec: LiveSpec) => void;
+  onSetPath: (path: Path) => Promise<void>;
+  onReopen: () => Promise<void>;
+}
+
+/**
+ * A requirements interview with no path yet (one started from a discovery opportunity) asks for
+ * one before the interviewer's first turn. It used to start anyway, and the owner met "Something
+ * went wrong: Choose a path before the first turn" (simulation 2026-10-15).
+ */
+export function ConversationPane(props: PaneProps): React.JSX.Element {
+  const { initial, onSetPath } = props;
+  const [path, setPath] = React.useState<Path | null>(initial.path ?? null);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  if (path !== null || initial.messages.length > 0) {
+    return <ConversationBody {...props} initial={path ? { ...initial, path } : initial} />;
+  }
+  const w = t.admin.requirements.workspace;
+  const c = t.participant.path;
+  const choose = (next: Path): void => {
+    setBusy(true);
+    setError(null);
+    onSetPath(next)
+      .then(() => {
+        setPath(next);
+      })
+      .catch((e: unknown) => {
+        setError(errorMessage(e, t.app.unknownError));
+      })
+      .finally(() => {
+        setBusy(false);
+      });
+  };
+  return (
+    <section
+      aria-label={w.conversation}
+      className="bg-card shadow-card grid content-start gap-4 rounded-lg p-4"
+    >
+      <div className="grid gap-1">
+        <h2 className="text-base font-semibold">{c.title}</h2>
+        <p className="text-muted-foreground text-sm">{w.choosePathFirst}</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {PATHS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            disabled={busy}
+            className="hover:border-primary focus-visible:ring-ring grid content-start gap-1 rounded-lg border p-4 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+            onClick={() => {
+              choose(p);
+            }}
+          >
+            <span className="font-medium">{p === "technical" ? c.technical : c.nontechnical}</span>
+            <span className="text-muted-foreground text-sm">
+              {p === "technical" ? c.technicalHint : c.nontechnicalHint}
+            </span>
+          </button>
+        ))}
+      </div>
+      {error ? (
+        <Alert variant="destructive">
+          <AlertTriangleIcon />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+    </section>
+  );
+}
+
 /**
  * The owner's side of a requirements session: the interview hook over the staff routes,
  * the message list with widgets, the composer, and the path / done / reopen controls.
  */
-export function ConversationPane({
+function ConversationBody({
   api,
   initial,
   title,
