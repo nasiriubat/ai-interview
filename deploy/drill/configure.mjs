@@ -67,6 +67,9 @@ log(`provider test: ${JSON.stringify(test).slice(0, 160)}`);
 
 const admin = await signIn(ADMIN_EMAIL, "admin");
 log("tenant admin signed in");
+// Live voice is off until a tenant turns it on (features.realtimeVoice, default false).
+await staff(admin, "PUT", "/settings?scope=tenant", { values: { "features.realtimeVoice": true } });
+log("tenant setting features.realtimeVoice = true");
 const templates = await staff(admin, "GET", "/templates");
 const template = templates.templates
   .filter((t) => t.key === "opportunity_discovery")

@@ -71,6 +71,7 @@ export async function participant(index, maxTurns = 30) {
     ended = out.ended;
     turns += 1;
     input = { content: ANSWERS[(turns - 1) % ANSWERS.length], modality: "text" };
+    await sleep(600);
   }
   if (!ended) throw new Error(`interview did not end within ${maxTurns} turns`);
   const view = await p.ok("GET", "/api/participant/p/session");
@@ -129,6 +130,8 @@ async function requirements(admin) {
       ended = out.ended;
       turns += 1;
       input = { content: ANSWERS[(turns - 1) % ANSWERS.length], modality: "text" };
+      // A person takes a few seconds to answer; the route allows 20 turns a minute.
+      await sleep(3200);
     }
     if (!ended) {
       await staff(admin, "POST", `/requirements/${sessionId}/complete`);
