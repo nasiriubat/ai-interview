@@ -8,7 +8,6 @@ import type {
   SolutionClass,
   Weights,
 } from "@aidp/shared";
-import { weeklyMinutes } from "./minutes.js";
 import {
   ClusterMergeResultSchema,
   OPPORTUNITY_TEXT_MAX,
@@ -35,6 +34,7 @@ import {
 import { compareDepartments } from "./departments.js";
 import { applyClusterEdits, type ClusterEditOp } from "./edits.js";
 import { LEXICAL_THRESHOLD, LexicalEmbeddings, type EmbeddingSource } from "./embeddings.js";
+import { weeklyMinutes } from "./minutes.js";
 import { renderReport, type ReportOpportunity } from "./report.js";
 import { sanitizeSnippet } from "./sanitize.js";
 

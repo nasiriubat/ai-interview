@@ -1,8 +1,8 @@
 import NextAuth, { type NextAuthResult } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Nodemailer from "next-auth/providers/nodemailer";
-import { authConfig } from "./auth.config";
 import { createTransport } from "nodemailer";
+import { authConfig } from "./auth.config";
 import { apiAdapter } from "./lib/auth/adapter";
 import { signInMailLocale, signInMessage } from "./lib/auth/signin-mail";
 import { resolveSmtpUrl } from "./lib/auth/smtp";
@@ -19,10 +19,12 @@ async function productName(): Promise<string> {
   }
 }
 
+const relay = resolveSmtpUrl(process.env);
+
 // The beta's NodemailerConfig type is not assignable to Provider under
 // `exactOptionalPropertyTypes`; the runtime shape is the documented one.
 const emailProvider = Nodemailer({
-  server: resolveSmtpUrl(process.env),
+  server: relay,
   from: process.env.EMAIL_FROM ?? "no-reply@example.com",
   // A message that names the product and says the link works once (simulation 2026-10-15),
   // instead of Auth.js's "Sign in to <host>".
@@ -34,7 +36,7 @@ const emailProvider = Nodemailer({
       locale: signInMailLocale(request.headers),
       hours,
     });
-    const result = await createTransport(provider.server).sendMail({
+    const result = await createTransport(relay).sendMail({
       to: identifier,
       from: provider.from,
       subject: mail.subject,

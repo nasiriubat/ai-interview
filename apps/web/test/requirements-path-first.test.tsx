@@ -17,11 +17,12 @@ describe("a requirements interview without a path", () => {
     setClientLocale("en");
     const never = (): Promise<never> => new Promise<never>(() => undefined);
     const api = { sendTurn: vi.fn(never), sendControl: vi.fn(never), sendVoice: vi.fn(never) };
+    const partial: Partial<ParticipantApi> = api;
     const onSetPath = vi.fn(() => Promise.resolve());
     const initial = ParticipantSessionSchema.parse({ id: "s1", status: "created", path: null, messages: [] });
     render(
       <ConversationPane
-        api={api as unknown as ParticipantApi}
+        api={partial as ParticipantApi}
         initial={initial}
         title="No-show calls"
         onSpec={vi.fn()}

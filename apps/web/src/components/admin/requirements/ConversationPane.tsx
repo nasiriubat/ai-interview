@@ -8,6 +8,7 @@ import { Composer } from "@/components/participant/Composer";
 import { MessageList } from "@/components/participant/MessageList";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { choiceTileClass } from "@/components/ui/choice-tile";
 import { WidgetRenderer } from "@/components/widgets";
 import { useInterview } from "@/hooks/useInterview";
 import { t } from "@/i18n";
@@ -104,7 +105,7 @@ export function ConversationPane(props: PaneProps): React.JSX.Element {
             key={p}
             type="button"
             disabled={busy}
-            className="hover:border-primary focus-visible:ring-ring grid content-start gap-1 rounded-lg border p-4 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+            className={cn(choiceTileClass({ disabled: busy }), "grid content-start gap-1 text-left")}
             onClick={() => {
               choose(p);
             }}
