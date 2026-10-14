@@ -24,4 +24,13 @@ COPY restore-drill.sh /usr/local/bin/restore-drill.sh
 COPY backup-health.sh /usr/local/bin/backup-health.sh
 RUN chmod 0755 /usr/local/bin/backup.sh /usr/local/bin/backup-lib.sh /usr/local/bin/restore-drill.sh /usr/local/bin/backup-health.sh
 
+# Runs as the image's own unprivileged `postgres` user (uid 999), never root (Trivy DS-0002, D-312).
+# What it needs from the volumes, and how it gets it:
+#   /backups      owned by 999 by the `ops-state-init` one-shot (a named volume starts root-owned)
+#   /uploads      read-only, files are 0640 owned by the application's uid 1000: compose adds the
+#                 supplementary group 1000 (`group_add`), so tar can read them and nothing else
+#   /ops-state    sticky and world-writable, the files the backup writes are owned by 999
+# Ports below 1024 and package installs are not needed after the build, so nothing else wants root.
+USER postgres
+
 ENTRYPOINT ["/usr/local/bin/backup.sh"]
