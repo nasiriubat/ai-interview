@@ -97,6 +97,37 @@ describe("call state machine: starting and ending", () => {
   });
 });
 
+describe("call state machine: mute", () => {
+  it("switches the microphone off and on without touching the call", () => {
+    const off = reduce(live(), { type: "mute", muted: true });
+    expect(off.state).toMatchObject({ muted: true, status: "listening" });
+    expect(off.effects).toEqual([{ type: "end_utterance" }, { type: "set_muted", muted: true }]);
+    const on = reduce(off.state, { type: "mute", muted: false });
+    expect(on.state.muted).toBe(false);
+    expect(on.effects).toEqual([{ type: "set_muted", muted: false }]);
+  });
+
+  it("closes an utterance that was open and forgets the partial text", () => {
+    const talking = live({ partial: "we copy every fig" });
+    const off = reduce(talking, { type: "mute", muted: true });
+    expect(off.state.partial).toBe("");
+    expect(types(off.effects)).toContain("end_utterance");
+  });
+
+  it("is a no-op with no call, and when nothing changes", () => {
+    expect(reduce(INITIAL_CALL, { type: "mute", muted: true })).toEqual({ state: INITIAL_CALL, effects: [] });
+    const already = live({ muted: true });
+    expect(reduce(already, { type: "mute", muted: true }).effects).toEqual([]);
+  });
+
+  it("is never carried into the next call or past the end of this one", () => {
+    const ended = reduce(live({ muted: true }), { type: "end" });
+    expect(ended.state.muted).toBe(false);
+    const again = reduce({ ...ended.state }, { type: "start" });
+    expect(again.state.muted).toBe(false);
+  });
+});
+
 describe("call state machine: a turn", () => {
   it("thinks after the interviewer's turn arrives, then speaks, then plays, then listens", () => {
     let s = live();
