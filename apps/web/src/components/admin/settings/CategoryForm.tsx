@@ -18,8 +18,10 @@ import { displaySettingValue, settingInputKind, weightsValue } from "@/lib/admin
 import { staffClient } from "@/lib/api/browser";
 import { SECRET_UNCHANGED, type EmailTest, type SettingsCatalogEntry } from "@/lib/api/schemas";
 import { label as enumLabel, settingText, settingValueLabel } from "@/lib/i18n/enums";
+import { cn } from "@/lib/utils";
 
 const s = t.admin.settings;
+const k = t.kit.settingsLayout;
 
 export interface CategoryFormProps {
   category: string;
@@ -102,6 +104,12 @@ export function CategoryForm({
   const isSetHere = (entry: SettingsCatalogEntry): boolean =>
     entry.key in edits || (entry.key in values && !(entry.key in resets));
 
+  const [onlyChanged, setOnlyChanged] = React.useState(false);
+  const differsFromDefault = (entry: SettingsCatalogEntry): boolean =>
+    !entry.secret && JSON.stringify(valueOf(entry)) !== JSON.stringify(entry.default);
+  const shown = onlyChanged ? entries.filter((e) => differsFromDefault(e)) : entries;
+  const changedCount = entries.filter((e) => differsFromDefault(e)).length;
+
   const payload = (): Record<string, unknown> => {
     const out: Record<string, unknown> = {};
     for (const entry of entries) {
@@ -141,15 +149,31 @@ export function CategoryForm({
         save();
       }}
     >
-      <h2 id={`category-${category}`} className="text-lg font-semibold tracking-tight">
-        {title}
-      </h2>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 id={`category-${category}`} className="text-lg font-semibold tracking-tight">
+            {title}
+          </h2>
+          <p className="text-muted-foreground text-xs">{k.count(entries.length)}</p>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={onlyChanged} onCheckedChange={setOnlyChanged} />
+          {k.onlyChanged}
+          <Badge variant="secondary">{changedCount}</Badge>
+        </label>
+      </div>
       <Flash flash={action.flash} />
-      <div className="bg-card shadow-card grid gap-5 rounded-lg p-4 md:p-5">
-        {entries.map((entry) => (
+      <div className="bg-card shadow-card grid gap-0 rounded-lg">
+        {shown.length === 0 ? (
+          <p className="text-muted-foreground p-5 text-sm" role="status">
+            {k.nothingChanged}
+          </p>
+        ) : null}
+        {shown.map((entry) => (
           <SettingRow
             key={entry.key}
             entry={entry}
+            changed={differsFromDefault(entry)}
             value={valueOf(entry)}
             setHere={isSetHere(entry)}
             source={sources[entry.key]}
@@ -243,6 +267,7 @@ function EmailTestButton({
 
 function SettingRow({
   entry,
+  changed,
   value,
   setHere,
   source,
@@ -255,6 +280,8 @@ function SettingRow({
   onSecretClear,
 }: {
   entry: SettingsCatalogEntry;
+  /** The value in force differs from the catalog's default (D-394). */
+  changed: boolean;
   value: unknown;
   setHere: boolean;
   source: string | undefined;
@@ -458,10 +485,23 @@ function SettingRow({
   );
 
   return (
-    <div className="grid gap-2 border-b pb-4 last:border-0 last:pb-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-6">
-      <div className="grid gap-1">
+    <div
+      id={`${id}-row`}
+      data-changed={changed || undefined}
+      className={cn(
+        "grid scroll-mt-24 gap-2 border-b border-l-2 border-l-transparent px-4 py-4 first:rounded-t-lg last:rounded-b-lg last:border-b-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-6 md:px-5",
+        changed && "border-l-primary bg-accent/20",
+      )}
+    >
+      <div className="grid content-start gap-1">
         <Label htmlFor={id} className="flex flex-wrap items-center gap-2">
           {label}
+          {changed ? (
+            <span className="text-primary inline-flex items-center gap-1 text-xs font-medium">
+              <span aria-hidden="true" className="bg-primary size-1.5 rounded-full" />
+              {k.changedMarker}
+            </span>
+          ) : null}
           <span className="text-muted-foreground font-mono text-xs font-normal break-all">{entry.key}</span>
           {originBadge}
         </Label>

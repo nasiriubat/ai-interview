@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import * as React from "react";
 import { NavigationProgress } from "@/components/common/NavigationProgress";
+import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { ToasterHost } from "@/components/common/ToasterHost";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
@@ -68,6 +69,7 @@ export default async function RootLayout({
           </a>
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
           <ToasterHost />
+          <OfflineBanner />
         </LocaleProvider>
       </body>
     </html>

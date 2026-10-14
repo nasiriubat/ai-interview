@@ -43,7 +43,7 @@ beforeEach(() => {
 describe("AdminShell", () => {
   it("has a labelled sidebar, a top bar with the trail, the user menu and the page", () => {
     render(
-      <AdminShell me={me()} signOutAction={vi.fn()}>
+      <AdminShell me={me()}>
         <PageHeader title="Ward round" crumbLabels={{ c1: "Ward round" }} />
       </AdminShell>,
     );
@@ -60,7 +60,7 @@ describe("AdminShell", () => {
   it("collapses to icons that keep their names, and remembers the choice in a cookie", async () => {
     const user = userEvent.setup();
     render(
-      <AdminShell me={me()} signOutAction={vi.fn()}>
+      <AdminShell me={me()}>
         <p>page</p>
       </AdminShell>,
     );
@@ -81,7 +81,7 @@ describe("AdminShell", () => {
   it("opens the quick search with Ctrl+K and goes to a page with Enter", async () => {
     const user = userEvent.setup();
     render(
-      <AdminShell me={me()} signOutAction={vi.fn()}>
+      <AdminShell me={me()}>
         <p>page</p>
       </AdminShell>,
     );

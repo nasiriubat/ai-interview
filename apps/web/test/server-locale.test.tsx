@@ -130,26 +130,27 @@ describe("server pages follow the lang cookie", () => {
   it("auth error and verify screens in Finnish", async () => {
     const { default: ErrorPage } = await import("@/app/auth/error/page");
     await renderPage(ErrorPage());
-    expect(screen.getByText(fi.auth.error)).toBeInTheDocument();
+    expect(screen.getByText(fi.kit.authPages.errorBody)).toBeInTheDocument();
     request.memo.clear();
     const { default: VerifyPage } = await import("@/app/auth/verify/page");
     await renderPage(VerifyPage());
-    expect(screen.getByText(fi.auth.verifyRequest)).toBeInTheDocument();
+    expect(screen.getByText(fi.kit.authPages.linkSentBody)).toBeInTheDocument();
   });
 
   it("not-found page in Finnish, with no way to the staff sign-in for a participant", async () => {
     const { default: NotFound } = await import("@/app/not-found");
     await renderPage(NotFound());
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(fi.app.notFoundTitle);
-    expect(screen.getByText(fi.app.notFoundBody)).toBeInTheDocument();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(fi.kit.states.notFound.title);
+    expect(screen.getByText(fi.kit.states.notFound.body)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: fi.kit.states.backHome })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: fi.app.signIn })).not.toBeInTheDocument();
   });
 
   it("not-found page offers the dashboard only to a signed-in staff member", async () => {
     api.staffToken = "jwt";
     const { default: NotFound } = await import("@/app/not-found");
     await renderPage(NotFound());
-    expect(screen.getByRole("link", { name: fi.app.notFoundDashboard })).toHaveAttribute("href", "/admin");
+    expect(screen.getByRole("link", { name: fi.kit.states.backHome })).toHaveAttribute("href", "/admin");
   });
 
   it("participant not-found says the link is not valid and has no link of its own", async () => {

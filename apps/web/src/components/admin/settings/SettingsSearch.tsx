@@ -53,7 +53,7 @@ export function SettingsSearch({
           id={inputId}
           type="search"
           className="pr-10 pl-9"
-          placeholder={s.search.placeholder}
+          placeholder={s.search.label}
           value={query}
           autoComplete="off"
           onChange={(e) => {
