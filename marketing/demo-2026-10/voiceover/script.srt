@@ -1,0 +1,155 @@
+1
+00:00:00,000 --> 00:00:06,233
+Before you decide what to build, find out what the problem actually is.
+
+2
+00:00:06,283 --> 00:00:08,650
+That is what this does.
+
+3
+00:00:09,000 --> 00:00:13,142
+You could ask a chatbot to interview your team.
+
+4
+00:00:13,192 --> 00:00:19,663
+But every conversation comes out a little different, and nothing is counted across people.
+
+5
+00:00:19,713 --> 00:00:26,650
+Here, everyone gets the same interview, from a template that is fixed for the campaign.
+
+6
+00:00:27,000 --> 00:00:28,934
+A colleague opens a link.
+
+7
+00:00:28,984 --> 00:00:30,522
+No account, no app.
+
+8
+00:00:30,572 --> 00:00:37,666
+They see who is asking, what is kept, and choose to take part with their name, or anonymously.
+
+9
+00:00:37,716 --> 00:00:39,650
+Then they agree, and start.
+
+10
+00:00:40,000 --> 00:00:45,909
+The interviewer asks one question at a time, about how the work is really done.
+
+11
+00:00:45,959 --> 00:00:50,280
+It can offer answer options, and it works on a phone.
+
+12
+00:00:50,330 --> 00:00:54,650
+It is told never to ask where AI should be used.
+
+13
+00:00:55,000 --> 00:01:01,650
+At the end, the person sees their own summary, and can correct it.
+
+14
+00:01:02,000 --> 00:01:07,067
+In this demo, ten simulated colleagues from three departments took part.
+
+15
+00:01:07,117 --> 00:01:12,650
+Their answers became two hundred and eighty-eight items, grouped into twenty-five themes.
+
+16
+00:01:13,000 --> 00:01:18,800
+Each theme is scored, and classed as AI, automation, software, or process.
+
+17
+00:01:18,850 --> 00:01:24,650
+Open one, and you see the reasoning, and the quotes behind it.
+
+18
+00:01:25,000 --> 00:01:28,016
+Anonymity is a rule, not a promise.
+
+19
+00:01:28,066 --> 00:01:35,460
+A department, a role or a quote appears only when at least three people are behind it.
+
+20
+00:01:35,510 --> 00:01:37,650
+Below that, it says withheld.
+
+21
+00:01:38,000 --> 00:01:42,396
+The report states its method, and what it does not do.
+
+22
+00:01:42,446 --> 00:01:46,033
+It can say that AI is not the answer.
+
+23
+00:01:46,083 --> 00:01:47,650
+Download it as PDF.
+
+24
+00:01:48,000 --> 00:01:51,913
+Pick an opportunity, and start a requirements interview from it.
+
+25
+00:01:51,963 --> 00:01:58,650
+What the first round learned is carried over, so the second interview asks only what is missing.
+
+26
+00:01:59,000 --> 00:02:00,936
+Or start from one sentence.
+
+27
+00:02:00,986 --> 00:02:03,718
+A small parking tool, for clinic visitors.
+
+28
+00:02:03,768 --> 00:02:08,088
+It settles the context, then decides one thing at a time.
+
+29
+00:02:08,138 --> 00:02:13,650
+At the end it reads the list back, and says what is still open.
+
+30
+00:02:14,000 --> 00:02:16,436
+Out comes a specification.
+
+31
+00:02:16,486 --> 00:02:20,164
+Numbered requirements, each with acceptance criteria.
+
+32
+00:02:20,214 --> 00:02:22,650
+Marked MVP, or later.
+
+33
+00:02:23,000 --> 00:02:29,519
+Reopen the interview, change your mind, and you get a second version, with a diff.
+
+34
+00:02:29,569 --> 00:02:35,650
+Download it as PDF, as Markdown, or as a bundle for a coding agent.
+
+35
+00:02:36,000 --> 00:02:39,984
+It is built to run on a server you operate.
+
+36
+00:02:40,034 --> 00:02:43,212
+Every model call is recorded with its cost.
+
+37
+00:02:43,262 --> 00:02:47,650
+The interface comes in English and Finnish, in light and dark.
+
+38
+00:02:48,000 --> 00:02:50,976
+Understand the problem, then decide what to build.
+
+39
+00:02:51,026 --> 00:02:56,650
+The colleagues in this demo were simulated, and the figures come from one test run.
