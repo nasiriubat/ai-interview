@@ -64,7 +64,10 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "PUT /admin/voice/live": ["voice.live_toggle"],
   // analysis
   "POST /campaigns/:id/analyses": ["analysis.start"],
-  "PATCH /opportunities/:id": ["opportunity.override"],
+  "PATCH /opportunities/:id": ["opportunity.override", "cluster.rename"],
+  "POST /analyses/:id/opportunities/merge": ["cluster.merge"],
+  "POST /opportunities/:id/split": ["cluster.split"],
+  "DELETE /campaigns/:id/cluster-edits/:editId": ["cluster.edit.undo"],
   "POST /opportunities/:id/status": ["opportunity.*"],
   "POST /opportunities/:id/promote": ["opportunity.promote"],
   // requirements workspace (staff, members included)
