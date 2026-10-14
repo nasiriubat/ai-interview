@@ -12,6 +12,16 @@ not a constant in code.
 - AI operations: spend by day, purpose, model, provider, campaign, against budget lines; cache hit rate; latency percentiles; error and refusal rates; tokens per interview; voice latency and interruption rates.
 - Health: job queue depth and failures; provider test results; storage used; prompt version canaries.
 
+### Definitions (D-204 to D-209)
+
+- Median length: idle-capped active time, each gap between messages capped at 5 minutes; withheld below k interviews.
+- Identified vs anonymous: `Session.identified`, set at consent. Reminders: `Invitation.reminderCount`.
+- Drop-off by area: the area of the last question of unfinished interviews; areas below k are pooled.
+- "AI not appropriate": solution class `process` or `none`, the same predicate as the report.
+- Turns to completion: `turnCount` of completed requirements sessions, median and mean; findings raised and settled from `state.findings`.
+- Latency: p50 and p95 of the ledger's `latencyMs` per purpose for answered calls; first token is not recorded yet.
+- Health: queue depth from the job admin port (platform-wide, admins), this organization's dead letters, attachment bytes by kind against the quota.
+
 ## Configurable without code
 
 - Templates: everything in `01`, with versions, rollback, preview, diff against shipped.
