@@ -150,7 +150,7 @@ export function buildContext(input: {
     input.email ??
     new SettingsEmail({
       settings,
-      env: { smtpUrl: config.EMAIL_SMTP_URL, from: config.EMAIL_FROM },
+      env: { smtpUrl: config.smtpRelayUrl, from: config.EMAIL_FROM },
       fallback: new MemoryEmail((m) => {
         log.info({ to: m.to, subject: m.subject }, "email (console)");
       }),

@@ -1,3 +1,4 @@
+import { smtpRelayUrlFromEnv } from "@aidp/shared";
 import { z } from "zod";
 
 const Env = z.object({
@@ -15,6 +16,14 @@ const Env = z.object({
   PUBLIC_WEB_URL: z.string().default("http://localhost:3000"),
   /** Where uploaded audio and documents live. Unset keeps them in memory, which loses them. */
   UPLOAD_DIR: z.string().optional(),
+  // The deployment's mail relay (D-445): the same fields as the admin form. Read through
+  // `resolveSmtpEnv` in loadConfig, which composes them into `smtpRelayUrl`.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_SECURITY: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  /** Deprecated (D-446): one-URL form, read only when SMTP_HOST is not set. */
   EMAIL_SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
@@ -93,7 +102,10 @@ const Env = z.object({
   /** Requests per minute per caller on the internal shared-secret routes. */
   RATE_LIMIT_INTERNAL_MAX: z.coerce.number().int().positive().default(120),
 });
-export type Config = z.infer<typeof Env>;
+export type Config = z.infer<typeof Env> & {
+  /** The resolved deployment relay, or undefined for none. Carries the password: never log it. */
+  smtpRelayUrl: string | undefined;
+};
 
 /**
  * The hostnames the platform may reach on a private address: what the operator listed, plus the
@@ -116,5 +128,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Invalid configuration: ${issues}`);
   }
-  return parsed.data;
+  // The relay rule is shared with the worker and the web app (D-445); production requires one.
+  let smtpRelayUrl: string | undefined;
+  try {
+    smtpRelayUrl = smtpRelayUrlFromEnv(parsed.data);
+  } catch (e) {
+    throw new Error(`Invalid configuration: ${(e as Error).message}`);
+  }
+  return { ...parsed.data, smtpRelayUrl };
 }

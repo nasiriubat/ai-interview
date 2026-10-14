@@ -536,7 +536,7 @@ export const SETTINGS = {
     description: "Deprecated: superseded by email.from, which falls back to this when it is unset",
   }),
   // Email. The port resolves these per send, tenant first and platform second, and falls back
-  // to EMAIL_SMTP_URL and EMAIL_FROM from the environment when neither scope sets them.
+  // to the deployment relay (SMTP_HOST and friends, see resolveSmtpEnv) and EMAIL_FROM.
   "email.smtpUrl": def({
     // Validated rather than free text: this string becomes an outbound connection from inside the
     // platform network, so an unchecked value is a port scanner with an authenticated trigger.

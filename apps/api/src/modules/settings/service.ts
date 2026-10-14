@@ -93,7 +93,7 @@ export interface SmtpView {
   set: SmtpSummary | null;
   /** Which scope's relay is in force for a send from here. `none`: nothing can send mail. */
   effective: "tenant" | "platform" | "env" | "none";
-  /** Whether the deployment's EMAIL_SMTP_URL exists. Its host is never shown to a tenant. */
+  /** Whether the deployment's relay (SMTP_HOST or the legacy EMAIL_SMTP_URL) exists. Its host is never shown to a tenant. */
   envConfigured: boolean;
 }
 
@@ -147,7 +147,7 @@ export class SettingsAdminService {
     private readonly email: EmailPort,
     private readonly audit: AuditService,
     private readonly log: { warn(meta: object, message: string): void },
-    /** Whether EMAIL_SMTP_URL is set in the deployment; the value itself never comes here. */
+    /** Whether the deployment relay (SMTP_* or EMAIL_SMTP_URL) is set; the value itself never comes here. */
     private readonly envSmtpConfigured = false,
     /** EMAIL_FROM: the sender when neither scope sets one. */
     private readonly envFrom = "no-reply@example.com",
