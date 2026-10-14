@@ -1,10 +1,14 @@
 import { PgBoss, type JobResult, type JobWithMetadata } from "pg-boss";
+import { runWithLogBindings } from "../telemetry/log-scope.js";
+import type { Metrics } from "../telemetry/metrics.js";
+import { SpanKind, contextFrom, currentCarrier, withSpan, type TraceCarrier } from "../telemetry/trace.js";
 import {
   DEAD_LETTER_RETENTION_DAYS,
   JOBS,
   type JobName,
   type JobPayload,
   type JobPublisher,
+  type PublishOptions,
   type ScheduleOptions,
 } from "./definitions.js";
 
@@ -39,11 +43,16 @@ export async function runBatch<N extends JobName>(
     onError?: ((jobId: string, error: unknown, failure: JobFailure) => void) | undefined;
     onStart?: ((jobId: string) => void) | undefined;
     onSettle?: ((jobId: string) => void) | undefined;
+    /** One call per attempt with how it ended and how long it took (metrics). */
+    onResult?:
+      | ((info: { name: string; jobId: string; ok: boolean; durationMs: number; final: boolean }) => void)
+      | undefined;
   } = {},
 ): Promise<JobResult[]> {
   return Promise.all(
     jobs.map(async (job): Promise<JobResult> => {
       hooks.onStart?.(job.id);
+      const began = Date.now();
       try {
         const parsed = JOBS[name].schema.safeParse(job.data);
         if (!parsed.success) {
@@ -51,11 +60,21 @@ export async function runBatch<N extends JobName>(
           hooks.onError?.(job.id, parsed.error, failure(job, true));
           return { id: job.id, status: "deadletter", output: { message: "payload failed validation" } };
         }
-        await handler(parsed.data as JobPayload<N>, job.id, job.signal);
+        const payload = parsed.data as JobPayload<N>;
+        await runJob(name, job, payload, () => handler(payload, job.id, job.signal));
+        hooks.onResult?.({ name, jobId: job.id, ok: true, durationMs: Date.now() - began, final: false });
         return { id: job.id, status: "completed" };
       } catch (err) {
         // Surface the failure (pg-boss keeps it only in the job row), then let the queue retry it.
-        hooks.onError?.(job.id, err, failure(job, false));
+        const f = failure(job, false);
+        hooks.onError?.(job.id, err, f);
+        hooks.onResult?.({
+          name,
+          jobId: job.id,
+          ok: false,
+          durationMs: Date.now() - began,
+          final: f.final,
+        });
         return {
           id: job.id,
           status: "failed",
@@ -65,6 +84,45 @@ export async function runBatch<N extends JobName>(
         hooks.onSettle?.(job.id);
       }
     }),
+  );
+}
+
+/** The payload keys that name what a job is about, in the order they are looked for. */
+const SUBJECT_KEYS = ["sessionId", "analysisId", "versionId", "attachmentId", "campaignId"] as const;
+
+/**
+ * Runs one job attempt inside the span and the log scope every job gets (D-222, D-223): a
+ * `job <name>` span that is a child of the span that published it (carried in the payload), and
+ * log bindings for the tenant, the session and the attempt, so a line written deep inside a
+ * handler is still filterable.
+ */
+function runJob(name: string, job: BatchJob, payload: unknown, fn: () => Promise<void>): Promise<void> {
+  const p = payload as Record<string, unknown> & TraceCarrier;
+  const companyId = typeof p.companyId === "string" ? p.companyId : undefined;
+  const subjectKey = SUBJECT_KEYS.find((k) => typeof p[k] === "string");
+  const subject = subjectKey ? (p[subjectKey] as string) : undefined;
+  const attempt = (job.retryCount ?? 0) + 1;
+  return runWithLogBindings(
+    {
+      job: name,
+      jobId: job.id,
+      attempt,
+      tenantId: companyId,
+      ...(subjectKey === "sessionId" ? { sessionId: subject } : {}),
+    },
+    () =>
+      withSpan(
+        `job ${name}`,
+        {
+          "job.name": name,
+          "job.id": job.id,
+          "job.attempt": attempt,
+          ...(companyId ? { "tenant.id": companyId } : {}),
+          ...(subjectKey && subject ? { [`${subjectKey.replace(/Id$/, "")}.id`]: subject } : {}),
+        },
+        fn,
+        { kind: SpanKind.CONSUMER, parent: contextFrom(p) },
+      ),
   );
 }
 
@@ -96,7 +154,13 @@ export class BossJobs implements JobPublisher {
   /** `name:id` of every job a handler is currently running, for the shutdown log. */
   private readonly running = new Set<string>();
 
-  constructor(connectionString: string, options: { onError?: (error: unknown) => void } = {}) {
+  private readonly metrics: Metrics | undefined;
+
+  constructor(
+    connectionString: string,
+    options: { onError?: (error: unknown) => void; metrics?: Metrics } = {},
+  ) {
+    this.metrics = options.metrics;
     this.boss = new PgBoss({ connectionString, schema: "pgboss" });
     // pg-boss reports fetch and maintenance failures (a dropped connection, a timeout) as
     // `error` events; without a listener Node treats them as fatal and the process dies.
@@ -142,16 +206,19 @@ export class BossJobs implements JobPublisher {
     return [...this.running];
   }
 
-  async publish<N extends JobName>(
-    name: N,
-    payload: JobPayload<N>,
-    options?: { singletonKey?: string },
-  ): Promise<void> {
+  async publish<N extends JobName>(name: N, payload: JobPayload<N>, options?: PublishOptions): Promise<void> {
     JOBS[name].schema.parse(payload);
-    await this.boss.send(name, payload, {
-      expireInSeconds: JOBS[name].expireInSeconds,
-      ...(options?.singletonKey ? { singletonKey: options.singletonKey } : {}),
-    });
+    // The active span's trace context rides in the payload, so the consumer's span is a child of
+    // the publisher's (D-222). Empty when no SDK runs, which leaves the payload exactly as it was.
+    await this.boss.send(
+      name,
+      { ...payload, ...currentCarrier() },
+      {
+        expireInSeconds: JOBS[name].expireInSeconds,
+        ...(options?.singletonKey ? { singletonKey: options.singletonKey } : {}),
+        ...(options?.startAfterSeconds ? { startAfter: options.startAfterSeconds } : {}),
+      },
+    );
   }
 
   /**
@@ -206,6 +273,9 @@ export class BossJobs implements JobPublisher {
           onError,
           onStart: (id) => this.running.add(`${name}:${id}`),
           onSettle: (id) => this.running.delete(`${name}:${id}`),
+          onResult: (r) => {
+            this.metrics?.job(name, r.ok ? "ok" : "error", r.durationMs, r.final);
+          },
         }),
     );
   }

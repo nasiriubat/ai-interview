@@ -1,10 +1,17 @@
 import type { NodeSDK } from "@opentelemetry/sdk-node";
 
 /**
- * Tracing (spec 12). Starts only when an OTLP endpoint is configured, so local dev and tests pay
- * nothing — and "nothing" includes loading it: the auto-instrumentation bundle is about forty
- * packages, measured at 40 MB of memory and 270 ms of startup in the server image, so it is
- * imported here, behind the check, rather than at the top of the file where every API paid for it.
+ * Tracing (spec 12), shared by the API and the worker (D-222). Starts only when an OTLP endpoint
+ * is configured, so local dev and tests pay nothing — and "nothing" includes loading it: the
+ * auto-instrumentation bundle is about forty packages, measured at 40 MB of memory and 270 ms of
+ * startup in the server image, so it is imported here, behind the check, rather than at the top of
+ * the file where every process paid for it.
+ *
+ * Call it before the first import that should be instrumented is used (before `PrismaClient` is
+ * constructed): auto-instrumentation patches modules as they load.
+ *
+ * Without an endpoint no SDK is registered, `@opentelemetry/api` hands out no-op tracers, and the
+ * custom spans in the engine, the model caller and the job wrapper cost one function call each.
  */
 export async function startTelemetry(
   serviceName: string,

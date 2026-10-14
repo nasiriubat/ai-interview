@@ -17,6 +17,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { voiceAllowedForSession } from "../settings/features.js";
 import type { SettingsService } from "../settings/service.js";
 import { attachmentKey, ObjectTooLarge, type StoragePort } from "../storage/index.js";
+import { CeilingReachedError, type TenantCeilings } from "../tenancy/ceilings.js";
 
 /**
  * Attachments, from upload to retrieval (FR-30, FR-31, FR-32).
@@ -38,6 +39,11 @@ export interface AttachmentServiceDeps {
   /** Absent in the API, which only stores and enqueues; the worker supplies it to ingest. */
   caller?: ModelCaller;
   prompts?: PromptSource;
+  /**
+   * The operator's storage ceiling for the tenant (D-229). Absent in tools that never enforce one;
+   * the API always passes it, so an upload cannot take a tenant past what it was promised.
+   */
+  ceilings?: TenantCeilings;
   now?: () => Date;
 }
 
@@ -185,13 +191,21 @@ export class AttachmentService {
     if (quotas.tenantRoom <= 0) {
       throw new AttachmentRejected("quota", "This organization's attachment storage is full");
     }
-    const maxBytes = Math.min(perFile, quotas.sessionRoom, quotas.tenantRoom);
-    const overflow: AttachmentRejected =
+    // The operator's ceiling is the platform's promise and sits above the tenant's own quota
+    // setting: it refuses with the tenant told once, and caps this upload to what is left of it.
+    const ceiling = await this.deps.ceilings?.standing(input.companyId, "storageBytes");
+    const ceilingRoom = ceiling && ceiling.max > 0 ? ceiling.max - ceiling.used : undefined;
+    if (ceiling && ceilingRoom !== undefined && ceilingRoom <= 0)
+      throw await this.deps.ceilings!.reached(input.companyId, "storageBytes", ceiling.used, ceiling.max);
+    const maxBytes = Math.min(perFile, quotas.sessionRoom, quotas.tenantRoom, ceilingRoom ?? Infinity);
+    const overflow: Error =
       maxBytes === perFile
         ? new AttachmentRejected("size", perFileLabel)
         : maxBytes === quotas.sessionRoom
           ? new AttachmentRejected("quota", "This interview's attachments have reached their size limit")
-          : new AttachmentRejected("quota", "This organization's attachment storage is full");
+          : maxBytes === quotas.tenantRoom
+            ? new AttachmentRejected("quota", "This organization's attachment storage is full")
+            : new CeilingReachedError("storageBytes", ceiling?.used ?? 0, ceiling?.max ?? 0);
 
     const filename = safeFilename(input.filename);
     // The row is created first so the id can name the object. A failure to store then leaves a
@@ -220,6 +234,20 @@ export class AttachmentService {
       sizeBytes = stored.sizeBytes;
     } catch (err) {
       await db.attachment.delete({ where: { id: row.id } }).catch(() => undefined);
+      if (
+        (err instanceof ObjectTooLarge || isRequestTooLarge(err)) &&
+        overflow instanceof CeilingReachedError
+      ) {
+        // The operator's ceiling was what stopped it: the tenant and the operator are told once.
+        throw (
+          (await this.deps.ceilings?.reached(
+            input.companyId,
+            "storageBytes",
+            overflow.current,
+            overflow.max,
+          )) ?? overflow
+        );
+      }
       if (err instanceof ObjectTooLarge) throw overflow;
       if (err instanceof IngestRejected) throw new AttachmentRejected("type", err.message);
       // A sender that disconnects mid-upload and multipart's own size limit both end up here.
@@ -241,6 +269,16 @@ export class AttachmentService {
         ? new AttachmentRejected("quota", "This interview's attachments have reached their size limit")
         : new AttachmentRejected("quota", "This organization's attachment storage is full");
     }
+    // Two uploads that each fit when they began may not both fit now; the ceiling is re-read
+    // after the write, like the quotas above, and the one that crossed it is removed.
+    if (ceiling && ceiling.max > 0) {
+      const now = await this.deps.ceilings!.standing(input.companyId, "storageBytes");
+      if (now.used > now.max) {
+        await this.discard(row.id, key);
+        throw await this.deps.ceilings!.reached(input.companyId, "storageBytes", now.used, now.max);
+      }
+    }
+    await this.deps.ceilings?.afterChange(input.companyId);
     return view(stored);
   }
 

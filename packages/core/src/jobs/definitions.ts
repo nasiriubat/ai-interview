@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { currentCarrier } from "../telemetry/trace.js";
 
 /**
  * Every background job: name, payload schema, retry policy and how long one attempt may run.
@@ -9,7 +10,7 @@ import { z } from "zod";
  * attempt was still working, so the report was built twice and billed twice. Each value is the
  * job's honest worst case with headroom, and a handler that outlives it is by definition stuck.
  */
-export const JOBS = {
+const JOB_DEFINITIONS = {
   "session.summarize": {
     schema: z.object({ sessionId: z.string(), companyId: z.string() }),
     retryLimit: 3,
@@ -99,7 +100,70 @@ export const JOBS = {
    * operator after a key rotation; idempotent, so a second run finishes what a crashed one began.
    */
   "crypto.rekey": { schema: z.object({}), retryLimit: 1, expireInSeconds: 900 },
+  /**
+   * Freezes one month of every tenant's usage and cost into `TenantStatement` rows (D-224). Runs
+   * on the 1st for the month that just ended; the payload may name a month to redo one. Idempotent:
+   * a statement that exists is left alone unless `force` is set.
+   */
+  "billing.statement": {
+    schema: z.object({
+      month: z
+        .string()
+        .regex(/^\d{4}-\d{2}$/)
+        .optional(),
+      companyId: z.string().optional(),
+      force: z.boolean().optional(),
+    }),
+    retryLimit: 3,
+    expireInSeconds: 900,
+  },
+  /**
+   * A signed, encrypted archive of everything a tenant owns (D-225), written to the object store
+   * for the operator (or the tenant's admin) to download. Read-only: it changes nothing.
+   */
+  "tenant.export": {
+    schema: z.object({ companyId: z.string(), requestedBy: z.string() }),
+    retryLimit: 2,
+    expireInSeconds: 3600,
+  },
+  /**
+   * Removes a tenant's data, rows and bytes (D-226). Operator-only, and only for a tenant that
+   * was suspended first; idempotent, so a crashed run is finished by the next one.
+   */
+  "tenant.offboard": {
+    schema: z.object({
+      companyId: z.string(),
+      requestedBy: z.string(),
+      /**
+       * Set by the operator route, which schedules this job after the grace period: when it runs,
+       * the tenant must still be suspended, so reactivating it during the grace period cancels
+       * the offboarding without any queue surgery. The erasure ledger's re-application leaves it
+       * unset, because an erasure that already happened is not up for reconsideration.
+       */
+      graceCheck: z.boolean().optional(),
+    }),
+    retryLimit: 2,
+    expireInSeconds: 3600,
+  },
 } as const;
+
+/**
+ * Every payload may carry the W3C trace context of the span that published it (D-222), so a job
+ * joins the trace of the request or session that caused it. Added here, once, rather than in each
+ * definition: the keys are infrastructure, not part of any job's contract, and `JobPayload` stays
+ * the producer's shape. Without these the schemas would strip the fields on parse.
+ */
+const TRACE_FIELDS = {
+  traceparent: z.string().max(256).optional(),
+  tracestate: z.string().max(2048).optional(),
+};
+
+export const JOBS = Object.fromEntries(
+  Object.entries(JOB_DEFINITIONS).map(([name, def]) => [
+    name,
+    { ...def, schema: def.schema.extend(TRACE_FIELDS) },
+  ]),
+) as unknown as typeof JOB_DEFINITIONS;
 
 /** How long a dead-lettered job is kept for the operator to look at before pg-boss drops it. */
 export const DEAD_LETTER_RETENTION_DAYS = 30;
@@ -114,12 +178,15 @@ export interface ScheduleOptions {
   key?: string;
 }
 
+/** What a caller may ask of one publish. */
+export interface PublishOptions {
+  singletonKey?: string;
+  /** Do not start before this many seconds from now: the offboarding grace period (D-226). */
+  startAfterSeconds?: number;
+}
+
 export interface JobPublisher {
-  publish<N extends JobName>(
-    name: N,
-    payload: JobPayload<N>,
-    options?: { singletonKey?: string },
-  ): Promise<void>;
+  publish<N extends JobName>(name: N, payload: JobPayload<N>, options?: PublishOptions): Promise<void>;
 
   /**
    * Registers a recurring job. Upserted on (name, key), so calling it on every worker start is
@@ -149,6 +216,8 @@ export const RECURRING_JOBS: {
   "ops.health-sweep": { cron: "*/5 * * * *", payload: {}, tz: "UTC" },
   // Daily, after the retention sweep: its heads are the values to copy into the backup log.
   "audit.verify": { cron: "27 5 * * *", payload: {}, tz: "UTC" },
+  // The 1st, 02:17 UTC: the month that just ended is closed, so its statement is final (D-224).
+  "billing.statement": { cron: "17 2 1 * *", payload: {}, tz: "UTC" },
 };
 
 /**
@@ -160,19 +229,23 @@ export const RUN_NOW_JOBS = Object.keys(RECURRING_JOBS) as JobName[];
 
 /** Collects jobs in memory: tests, and dry runs. */
 export class MemoryJobPublisher implements JobPublisher {
-  readonly published: { name: JobName; payload: unknown; singletonKey?: string }[] = [];
+  readonly published: {
+    name: JobName;
+    payload: unknown;
+    singletonKey?: string;
+    startAfterSeconds?: number;
+  }[] = [];
   readonly scheduled: { name: JobName; cron: string; payload: unknown; options?: ScheduleOptions }[] = [];
 
-  async publish<N extends JobName>(
-    name: N,
-    payload: JobPayload<N>,
-    options?: { singletonKey?: string },
-  ): Promise<void> {
+  async publish<N extends JobName>(name: N, payload: JobPayload<N>, options?: PublishOptions): Promise<void> {
     JOBS[name].schema.parse(payload);
+    // The trace context travels in the payload exactly as it does through the queue (D-222), so a
+    // test can assert that a job joins its session's trace.
     this.published.push({
       name,
-      payload,
+      payload: { ...payload, ...currentCarrier() },
       ...(options?.singletonKey ? { singletonKey: options.singletonKey } : {}),
+      ...(options?.startAfterSeconds ? { startAfterSeconds: options.startAfterSeconds } : {}),
     });
   }
 
