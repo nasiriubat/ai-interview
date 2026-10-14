@@ -411,7 +411,7 @@ describe("the interview screen on a phone", () => {
   const api = {
     listAttachments: () => Promise.resolve([]),
     setMode: () => Promise.resolve(),
-  } as unknown as ParticipantApi;
+  } as Partial<ParticipantApi> as ParticipantApi;
 
   const matchMedia = (phone: boolean) =>
     vi.fn().mockImplementation((query: string) => ({

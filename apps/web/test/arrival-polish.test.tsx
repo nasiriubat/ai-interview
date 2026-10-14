@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -39,7 +39,8 @@ const mocks = () => ({
   open: vi.fn(() => Promise.resolve({ sessionId: "s", resume: false })),
   consent: vi.fn(() => Promise.resolve()),
 });
-const api = (m: ReturnType<typeof mocks> = mocks()): ParticipantApi => m as unknown as ParticipantApi;
+const api = (m: ReturnType<typeof mocks> = mocks()): ParticipantApi =>
+  m as Partial<ParticipantApi> as ParticipantApi;
 
 beforeEach(() => {
   push.mockReset();
@@ -168,7 +169,7 @@ describe("a new sign-in code", () => {
 
   it("useCooldown is zero until started and then falls to zero on its own", () => {
     vi.useFakeTimers();
-    const { result } = rendered(() => useCooldown(5));
+    const { result } = renderHook(() => useCooldown(5));
     expect(result.current.remaining).toBe(0);
     act(() => {
       result.current.start();
@@ -180,16 +181,6 @@ describe("a new sign-in code", () => {
     expect(result.current.remaining).toBe(0);
   });
 });
-
-function rendered<T>(hook: () => T): { result: { current: T } } {
-  const result = { current: undefined as unknown as T };
-  function Probe(): null {
-    result.current = hook();
-    return null;
-  }
-  render(<Probe />);
-  return { result };
-}
 
 describe("the Other field takes speech", () => {
   function Field({

@@ -14,7 +14,7 @@ import * as f from "./fixtures";
 
 type Handler = (url: URL, req: IncomingMessage) => { status?: number; body: unknown } | undefined;
 
-const page = <K extends string, T>(key: K, rows: T[]) => ({
+const page = (key: string, rows: unknown[]): Record<string, unknown> => ({
   [key]: rows,
   total: rows.length,
   limit: 25,

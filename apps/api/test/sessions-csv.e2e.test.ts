@@ -63,14 +63,14 @@ describeDb("campaign sessions CSV (D-236)", () => {
 
   async function session(
     campaignId: string,
-    fields: Record<string, unknown>,
+    fields: Record<string, string>,
     over: { consented?: boolean; flagged?: boolean; status?: string } = {},
   ) {
     const p = await world.db.participant.create({
       data: {
         companyId: world.companyId,
         campaignId,
-        fields: fields as object,
+        fields,
         tokenHash: `h-${Math.random().toString(36).slice(2)}`,
       },
     });
@@ -95,7 +95,7 @@ describeDb("campaign sessions CSV (D-236)", () => {
     world.app.inject({ method: "GET", url: `/api/v1/campaigns/${id}/sessions.csv`, headers });
   const parse = (body: string): string[][] =>
     body
-      .replace(/^﻿/, "")
+      .replace(/^\uFEFF/, "")
       .trimEnd()
       .split("\r\n")
       .map((l) => l.split(","));

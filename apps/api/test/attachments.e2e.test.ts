@@ -341,7 +341,7 @@ suite("attachments and recorded voice", () => {
       url: "/api/v1/p/session/turns",
       headers: { authorization: token },
     });
-    const before = (await world.db.message.count({ where: { companyId: world.companyId } })) as number;
+    const before = await world.db.message.count({ where: { companyId: world.companyId } });
     const previous = transcript;
     transcript = { text: "  We also use a whiteboard.  ", duration: 2 };
 

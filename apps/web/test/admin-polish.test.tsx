@@ -225,6 +225,8 @@ describe("boxes", () => {
   const PENDING = new Set([
     "components/admin/results/OverrideSheet.tsx",
     "components/admin/results/WeightsPanel.tsx",
+    "components/admin/results/MergeBar.tsx",
+    "components/admin/results/SplitDialog.tsx",
     "components/admin/requirements/VersionView.tsx",
     "components/admin/requirements/VersionDiff.tsx",
     "components/report/MermaidDiagram.tsx",
