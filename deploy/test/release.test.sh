@@ -111,6 +111,22 @@ assert_contains "records the old version as running again" "$(versions)" "AIDP_V
 builds=$(echo "$E" | grep -c "compose-build")
 assert_eq "built once, for the upgrade, and not again for the rollback" 1 "$builds"
 assert_contains "warns that migrations are not undone" "$OUT" "Migrations that ran are NOT undone"
+last_page=$(echo "$E" | grep "^maintenance-" | tail -n 1)
+assert_eq "leaves the maintenance page up when the stack still cannot be checked" "maintenance-on" "$last_page"
+cleanup_sandbox
+
+echo "the smoke test is made through Caddy, which answers 503 while the maintenance page is up"
+new_sandbox
+touch "$SB/state/running-backup" "$SB/state/running-caddy"
+for i in aidp-server aidp-web aidp-backup aidp-ops-notify; do echo "$i:oldoldoldold" >>"$SB/state/images"; done
+printf 'AIDP_VERSION=oldoldoldold\nAIDP_PREVIOUS_VERSION=\n' >"$SB/repo/deploy/versions.env"
+echo "hhhhhhhhhhhh" >"$SB/state/sha"
+upgrade
+E=$(echo "$(events)")
+assert_status "a healthy upgrade succeeds with the real flag semantics" 0 "$STATUS"
+assert_not_contains "and does not roll itself back" "$E" "compose-up version=oldoldoldold"
+last_page=$(echo "$E" | grep "^maintenance-" | tail -n 1)
+assert_eq "and ends with the page down" "maintenance-off" "$last_page"
 cleanup_sandbox
 
 echo "refusals"
