@@ -40,6 +40,7 @@ import { SettingsAdminService } from "./modules/settings/service.js";
 import { StatsService } from "./modules/stats/service.js";
 import { TemplateService } from "./modules/templates/service.js";
 import { UsersService } from "./modules/users/service.js";
+import { userAddedMessage } from "./modules/users/welcome-mail.js";
 import { VoiceSetupService } from "./modules/voice/service.js";
 
 /**
@@ -123,8 +124,28 @@ export function buildServices(d: ServiceDeps): Services {
   );
   return {
     audit,
-    users: new UsersService(d.db, audit, (companyId) =>
-      d.settings.get("branding.currency", [{ scope: "tenant", scopeId: companyId }]),
+    users: new UsersService(
+      d.db,
+      audit,
+      (companyId) => d.settings.get("branding.currency", [{ scope: "tenant", scopeId: companyId }]),
+      async (companyId, user, actorId) => {
+        const [company, actor, productName] = await Promise.all([
+          d.db.company.findUnique({ where: { id: companyId }, select: { name: true } }),
+          d.db.user.findFirst({ where: { id: actorId, companyId }, select: { name: true, email: true } }),
+          d.settings.get("branding.productName", [{ scope: "tenant", scopeId: companyId }]),
+        ]);
+        await d.email.send(
+          userAddedMessage({
+            to: user.email,
+            companyId,
+            productName,
+            organization: company?.name ?? "your organization",
+            role: user.role,
+            addedBy: actor?.name ?? actor?.email ?? null,
+            webUrl: d.config.PUBLIC_WEB_URL,
+          }),
+        );
+      },
     ),
     stats: new StatsService(d.db, {
       weightsFor: (campaignId, companyId) => d.analysis.weightsFor(campaignId, companyId),

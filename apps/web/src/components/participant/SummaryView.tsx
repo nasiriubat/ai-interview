@@ -39,13 +39,34 @@ function factLine(f: Fact): string {
   }
 }
 
+/**
+ * The lines of "What was noted", each once. Extraction runs every few turns over a window that
+ * overlaps the last one, so the same task can be in the state twice; the 2026-10-15 simulation
+ * showed "Calling no-shows (daily)" and four others listed twice to the participant.
+ */
+export function uniqueFactLines(facts: Fact[]): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const f of facts) {
+    const line = factLine(f).trim();
+    const key = line
+      .toLowerCase()
+      .replace(/[\s.]+/g, " ")
+      .trim();
+    if (line === "" || seen.has(key)) continue;
+    seen.add(key);
+    lines.push(line);
+  }
+  return lines;
+}
+
 function FactList({ facts }: { facts: Fact[] }): React.JSX.Element {
   return (
     <div>
       <h3 className="text-sm font-medium">{t.participant.summary.factsTitle}</h3>
       <ul className="text-muted-foreground mt-1 list-disc pl-5 text-sm">
-        {facts.map((f, i) => (
-          <li key={i}>{factLine(f)}</li>
+        {uniqueFactLines(facts).map((line) => (
+          <li key={line}>{line}</li>
         ))}
       </ul>
     </div>

@@ -134,7 +134,8 @@ export type Verification = z.infer<typeof VerificationSchema>;
 export const PublicCampaignSchema = z.looseObject({
   name: z.string(),
   productName: z.string().default(""),
-  purpose: z.string().default(""),
+  /** The participant-facing welcome (D-460). The template objective is never sent. */
+  welcome: z.string().default(""),
   expectedMinutes: z.number().default(15),
   participationMode: PrivacyModeSchema.default("identified"),
   verification: VerificationSchema.default("email_code"),
@@ -254,7 +255,7 @@ export const ParticipantSessionSchema = z.looseObject({
   about: z
     .looseObject({
       name: z.string().default(""),
-      purpose: z.string().default(""),
+      welcome: z.string().default(""),
       productName: z.string().default(""),
     })
     .nullish(),
@@ -340,6 +341,8 @@ export const TemplateListItemSchema = z.looseObject({
   companyId: z.string().nullish(),
   status: TemplateStatusSchema.catch("draft"),
   updatedAt: iso.nullish(),
+  /** Whether answers are tied to a person; a new campaign starts from it. */
+  privacyMode: z.string().nullish(),
 });
 export type TemplateListItem = z.infer<typeof TemplateListItemSchema>;
 export const TemplateListSchema = listOf(TemplateListItemSchema, "templates");
@@ -520,7 +523,15 @@ export type Invitation = z.infer<typeof InvitationSchema>;
 export const InvitationPageSchema = pagedOf(InvitationSchema, "invitations");
 export const InvitationResultSchema = z.looseObject({
   created: z.number().default(0),
-  skipped: z.number().default(0),
+  /**
+   * The API lists the addresses it skipped (already invited or not allowed); the screen needs the
+   * count. Expecting a number made every send fail with "Unexpected response shape" although the
+   * invitations went out (simulation 2026-10-15).
+   */
+  skipped: z
+    .union([z.number(), z.array(z.string())])
+    .default(0)
+    .transform((v) => (Array.isArray(v) ? v.length : v)),
 });
 
 export const SessionListItemSchema = z.looseObject({
@@ -1312,7 +1323,7 @@ export const InviteArrivalSchema = z.looseObject({
   session: z.looseObject({
     title: z.string().default(""),
     productName: z.string().default(""),
-    purpose: z.string().default(""),
+    welcome: z.string().default(""),
     consentText: z.string().default(""),
     consentVersion: z.string().default(""),
     pathSelection: PathSelectionSchema.default("none"),

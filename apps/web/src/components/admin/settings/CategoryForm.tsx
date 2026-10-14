@@ -169,6 +169,11 @@ export function CategoryForm({
 
   const emailString = (key: string): string => {
     const entry = entries.find((e) => e.key === key);
+    // An unset sender is shown empty, not as the catalog's placeholder default: mail then goes out
+    // from EMAIL_FROM, and showing "no-reply@example.com" said otherwise (simulation 2026-10-15).
+    // `effective` carries the catalog default for a key nobody set, so that is what is compared.
+    if (entry && !(key in edits) && !(key in values) && (effective[key] ?? entry.default) === entry.default)
+      return "";
     const v = entry ? valueOf(entry) : "";
     return typeof v === "string" ? v : "";
   };

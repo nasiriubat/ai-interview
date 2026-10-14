@@ -56,7 +56,13 @@ export const wsEn = {
   opportunity: {
     open: (title: string): string => `Open details: ${title}`,
     people: (n: number): string => (n === 1 ? "1 person" : `${String(n)} people`),
-    minutes: (n: number): string => `${String(n)} min per week`,
+    // "0 min per week" and "3285 min per week" read badly (simulation 2026-10-15).
+    minutes: (n: number): string =>
+      n <= 0
+        ? "No time stated"
+        : n >= 120
+          ? `About ${String(Math.round(n / 60))} h per week`
+          : `${String(n)} min per week`,
     summary: "What people described",
     reach: "Reach",
     fact: "fact",
@@ -69,7 +75,7 @@ export const wsEn = {
     people: (n: number): string => (n === 1 ? "1 person" : `${String(n)} people`),
     hours: (n: number): string => `${String(n)} h per week`,
     cellReason: (k: number): string =>
-      `Fewer than ${String(k)} people in this group answered, so the share is not shown.`,
+      `Fewer than ${String(k)} people are behind this share, so it is not shown.`,
     legendWithheld: (k: number): string => `Withheld: fewer than ${String(k)} people behind the number`,
     whyHidden:
       "This is the anonymity rule working, not a fault. Nothing is lost: the numbers appear as soon as enough people have taken part.",

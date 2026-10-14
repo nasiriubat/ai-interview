@@ -387,7 +387,7 @@ describe("focus moves to the new heading", () => {
         campaign={{
           name: "Acme",
           productName: "",
-          purpose: "To learn.",
+          welcome: "To learn.",
           expectedMinutes: 10,
           participationMode: "anonymous",
           verification: "open",

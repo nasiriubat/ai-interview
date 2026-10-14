@@ -57,3 +57,8 @@ export function countBySection(issues: readonly FormIssue[]): Record<string, num
   for (const i of issues) if (i.section) out[i.section] = (out[i.section] ?? 0) + 1;
   return out;
 }
+
+/** A specification version in an address: a positive whole number, nothing else. */
+export function isVersionNumber(v: string): boolean {
+  return /^[1-9]\d{0,5}$/.test(v);
+}

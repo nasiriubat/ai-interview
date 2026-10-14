@@ -62,7 +62,7 @@ describe("live spec", () => {
     expect(keys.at(-1)).toBe("weird_section");
     const overview = live.sections.find((s) => s.key === "overview");
     expect(overview?.status).toBe("draft");
-    expect(overview?.markdown).toContain("**statement**: Nurses chart twice");
+    expect(overview?.markdown).toContain("**Statement**: Nurses chart twice");
     const technical = live.sections.find((s) => s.key === "technical");
     expect(technical?.fields).toHaveLength(1);
     expect(technical?.markdown).toContain("_(recommended)_");
@@ -185,5 +185,14 @@ describe("the MVP challenge outcome the owner is shown (D-322)", () => {
 
   it("is off when the template or setting turns the challenge off, however the interview ended", () => {
     expect(outcome({ phase: "done", closingAsked: true }, "off").outcome).toBe("off");
+  });
+});
+
+describe("field labels (simulation 2026-10-15)", () => {
+  it("shows snake_case keys as words and leaves ids alone", async () => {
+    const { fieldLabel } = await import("../../src/spec/live.js");
+    expect(fieldLabel("expected_benefit")).toBe("Expected benefit");
+    expect(fieldLabel("idea")).toBe("Idea");
+    expect(fieldLabel("FR-3")).toBe("FR-3");
   });
 });

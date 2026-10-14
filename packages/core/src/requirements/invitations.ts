@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { SessionInvitation } from "@aidp/shared";
+import { defaultConsentText, participantWelcome, type SessionInvitation } from "@aidp/shared";
 import { newToken } from "../crypto.js";
 import type { RequirementsContext } from "./context.js";
 import { InviteNotOpenError, RequirementsNotFoundError, SessionNotOpenError } from "./errors.js";
@@ -107,11 +107,17 @@ export class RequirementsInvitations {
   /** Public arrival on an invitation link. */
   async resolveInvite(token: string): Promise<InviteView & { sessionId: string; invitationId: string }> {
     const { session, invitation } = await this.findInvitation(token);
-    const values = await this.deps.settings.resolveMany(
+    const resolved = await this.deps.settings.resolveDetailed(
       ["branding.productName", "campaign.consentText"],
       [{ scope: "tenant", scopeId: session.companyId }],
     );
-    const consentText = values["campaign.consentText"] as string;
+    const values = { "branding.productName": resolved["branding.productName"]?.value };
+    // As on a campaign link (D-185): nobody wrote a consent, so the default speaks the interview's
+    // language; before D-462 a Finnish requirements interview got the English default.
+    const consentText =
+      resolved["campaign.consentText"]?.scope != null
+        ? (resolved["campaign.consentText"].value as string)
+        : defaultConsentText(session.template.language);
     const status: InviteView["status"] =
       invitation.status === "revoked"
         ? "revoked"
@@ -126,7 +132,9 @@ export class RequirementsInvitations {
       session: {
         title: session.title,
         productName: values["branding.productName"] as string,
-        purpose: session.template.objective,
+        // Requirements interviews have no campaign, so the default for the kind and language is
+        // what the owner reads (D-461).
+        welcome: participantWelcome(null, session.template),
         consentText,
         consentVersion: `v${createHash("sha256").update(consentText).digest("hex").slice(0, 12)}`,
         pathSelection: session.template.pathSelection,

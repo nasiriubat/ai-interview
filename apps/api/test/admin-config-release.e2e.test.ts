@@ -1,6 +1,6 @@
 import type { Server } from "node:http";
 import { shippedTemplates, withTenant } from "@aidp/db";
-import { DEFAULT_CONSENT_TEXT } from "@aidp/shared";
+import { DEFAULT_CONSENT_TEXT, DEFAULT_WELCOME_TEXT } from "@aidp/shared";
 import { describeDb } from "@aidp/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fakeModelServer, testWorld, type TestWorld } from "./helpers.js";
@@ -435,6 +435,75 @@ suite("admin configuration, 2026.10", () => {
       await putSettings({ "features.chaining": null });
       const on = await call("POST", `/opportunities/${opportunity.id}/promote`, admin);
       expect(on.statusCode).not.toBe(403);
+    });
+  });
+
+  describe("participant welcome (D-460, D-461)", () => {
+    it("never shows the template objective: the default welcome for the kind and language, then the campaign's own", async () => {
+      const t = shippedTemplates()[0]!;
+      const fi = await world.db.interviewTemplate.create({
+        data: {
+          companyId: world.companyId,
+          key: "welcome_fi",
+          version: 1,
+          name: "Suomi",
+          language: "fi",
+          objective: t.objective,
+          privacyMode: t.privacyMode,
+          participantFields: t.participantFields,
+          coverageAreas: t.coverageAreas,
+          aiInstructions: t.aiInstructions,
+          adaptivity: t.adaptivity,
+          widgetPolicy: t.widgetPolicy,
+          outputs: t.outputs,
+          status: "published",
+        },
+      });
+      const finnish = await openCampaign("Welcome fi", fi.id);
+      const english = await openCampaign("Welcome en");
+      const read = async (link: string) =>
+        (await world.app.inject({ method: "GET", url: `/api/v1/p/${link}` })).json<{
+          campaign: Record<string, unknown> & { welcome: string };
+        }>().campaign;
+
+      const enView = await read(english.link);
+      expect(enView.welcome).toBe(DEFAULT_WELCOME_TEXT.discovery.en);
+      expect(enView).not.toHaveProperty("purpose");
+      expect(JSON.stringify(enView)).not.toContain(t.objective);
+      expect((await read(finnish.link)).welcome).toBe(DEFAULT_WELCOME_TEXT.discovery.fi);
+
+      await putSettings(
+        { "campaign.welcomeText": "  Hello from the ward team.  " },
+        `scope=campaign&scopeId=${english.id}`,
+      );
+      expect((await read(english.link)).welcome).toBe("Hello from the ward team.");
+
+      // The side panel of a running interview carries the same words, not the objective.
+      const { token } = await join(english.link);
+      const session = await world.app.inject({
+        method: "GET",
+        url: "/api/v1/p/session",
+        headers: { authorization: token },
+      });
+      const about = session.json<{ session: { about: Record<string, unknown> } }>().session.about;
+      expect(about.welcome).toBe("Hello from the ward team.");
+      expect(JSON.stringify(about)).not.toContain(t.objective);
+
+      // The invitation email carries the same welcome and states no duration (claims B9).
+      const before = world.email.sent.length;
+      const invited = await call("POST", `/campaigns/${english.id}/invitations`, admin, {
+        emails: ["welcome-invitee@test.io"],
+      });
+      expect(invited.statusCode).toBe(200);
+      const mail = world.email.sent.slice(before).find((m) => m.to === "welcome-invitee@test.io");
+      expect(mail?.text).toContain("Hello from the ward team.");
+      expect(mail?.text).not.toMatch(/minutes/);
+
+      // The key is campaign-scoped: an organization-wide welcome is refused.
+      const tenantWrite = await call("PUT", "/settings?scope=tenant", admin, {
+        values: { "campaign.welcomeText": "Org-wide" },
+      });
+      expect(tenantWrite.statusCode).toBeGreaterThanOrEqual(400);
     });
   });
 

@@ -124,7 +124,7 @@ const voices = {
     },
   ],
   attachments: voiceClips,
-  about: { name: "Ward round, Q4", purpose: "We want to understand how work really happens on your ward." },
+  about: { name: "Ward round, Q4", welcome: "We want to understand how work really happens on your ward." },
 };
 
 /** The attachments a session starts with (the fake API serves the same list on the poll). */

@@ -21,7 +21,7 @@ import {
   type VoiceMode,
 } from "@aidp/core";
 import { tenantTransaction } from "@aidp/db";
-import { defaultConsentText, type ModeSwitchReason } from "@aidp/shared";
+import { defaultConsentText, participantWelcome, type ModeSwitchReason } from "@aidp/shared";
 import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
@@ -31,7 +31,8 @@ export interface LinkView {
   companyId: string;
   name: string;
   productName: string;
-  purpose: string;
+  /** The participant-facing welcome (D-460); never the template's objective, which is for the AI. */
+  welcome: string;
   expectedMinutes: number;
   participationMode: string;
   verification: string;
@@ -117,7 +118,7 @@ export class ParticipantService {
       { scope: "tenant" as const, scopeId: campaign.companyId },
     ];
     const resolved = await this.settings.resolveDetailed(
-      ["branding.productName", "campaign.consentText"],
+      ["branding.productName", "campaign.consentText", "campaign.welcomeText"],
       chain,
     );
     // Nobody wrote a consent text at any level: the default speaks the interview's language
@@ -138,7 +139,10 @@ export class ParticipantService {
         companyId: campaign.companyId,
         name: campaign.name,
         productName: values["branding.productName"] as string,
-        purpose: campaign.template.objective,
+        welcome: participantWelcome(
+          resolved["campaign.welcomeText"]?.scope != null ? resolved["campaign.welcomeText"].value : null,
+          campaign.template,
+        ),
         expectedMinutes: Math.max(10, Math.round(campaign.maxTurns / 3)),
         participationMode: campaign.participationMode,
         verification: campaign.verification,

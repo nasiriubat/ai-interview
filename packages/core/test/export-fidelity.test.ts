@@ -148,7 +148,7 @@ describe("specification fidelity", () => {
       "Default taken: The EHR",
       "In version one:",
       "Moved to future scope:",
-      "| hosting | EU cloud |",
+      "| Hosting | EU cloud |",
     ])
       expect(markdown, needle).toContain(needle);
     expect((markdown.match(/^```mermaid$/gm) ?? []).length).toBe(3);

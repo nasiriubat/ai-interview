@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_WELCOME_TEXT } from "./welcome.js";
 
 /**
  * The settings catalog. Every admin knob in the specification is a typed key with a
@@ -215,6 +216,17 @@ export const SETTINGS = {
     category: "campaign",
     description: "Consent text shown before the first turn",
   }),
+  // Campaign scope only: a welcome is about one campaign. Unset, the participant flow shows
+  // `defaultWelcomeText(kind, language)` (D-460, D-461); the stored default is the English
+  // discovery text so the catalog has a value to show.
+  "campaign.welcomeText": def({
+    schema: z.string().trim().min(1).max(2000),
+    default: DEFAULT_WELCOME_TEXT.discovery.en,
+    scopes: ["campaign"],
+    category: "campaign",
+    description: "Welcome text participants read before they start (never the interviewer's objective)",
+    since: "2026.10",
+  }),
   // Privacy
   // Enforced by the daily `privacy.retention-sweep` job (packages/core/src/privacy/retention.ts).
   "privacy.retentionMonths": def({
@@ -293,8 +305,11 @@ export const SETTINGS = {
     description: "New interviews all of an organization's campaigns together may start per hour",
   }),
   "abuse.distinctEmailsPerAddressPerHour": def({
-    schema: z.number().int().min(1).max(100),
-    default: 5,
+    // 5 until D-468: colleagues in one office share one internet address, and in the 2026-10-15
+    // simulation the sixth person to ask for a code within the hour silently got none. 50 still
+    // stops one address mail-bombing a victim list; a bigger office raises it per tenant.
+    schema: z.number().int().min(1).max(1000),
+    default: 50,
     scopes: ["platform", "tenant"],
     category: "privacy",
     since: "2026.10",

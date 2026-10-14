@@ -1,0 +1,29 @@
+Most teams decide what to automate from a hunch, a vendor demo, or the loudest person in the room. There is a better place to start: the people who do the work.
+
+You set up a discovery campaign from a template, write a short welcome, and share one link, or a QR code, with your team.
+
+Your colleagues open it on a laptop or a phone. No account. They see who is asking and why, what is kept, and how to delete it, before they agree to anything.
+
+Then an AI interviewer asks about their actual week. One question at a time. It follows the same template for everyone, and it is instructed never to ask where AI should go. It asks what fills the day, and what gets in the way.
+
+They can type, tap an answer option, or simply record an answer, where voice is set up.
+
+At the end, they see a summary they can correct. They can download what they said, or delete it.
+
+Now the part a chat window cannot give you. Every interview is turned into items on a fixed schema, then grouped, counted and scored across the whole campaign. In this demo: six simulated colleagues, nine groups.
+
+Each opportunity is scored on seven factors, with the reasons. And sometimes the answer is not AI. Here it says why plain automation fits better. That is a result, too.
+
+Departments are compared only when at least three people, the default, are behind a number. Below that, it is withheld. By design.
+
+The report states its method, and what it does not do, and exports as a PDF you can hand to leadership.
+
+When something is worth building, one click starts a requirements interview, carrying over what the interviews found. It asks one decision at a time, suggests a sensible default, and pushes back when something does not add up.
+
+Before it finishes, it reads back what it understood, so the owner can correct it.
+
+The result is a versioned specification with numbered requirements, and you can see exactly what changed between versions.
+
+Download it as a PDF, as Markdown, or as a bundle for coding agents like Claude Code or Codex.
+
+It is built to run on a server you operate, with the AI providers you choose, and every model call is recorded with its cost. Understand the problem, before deciding what to build.

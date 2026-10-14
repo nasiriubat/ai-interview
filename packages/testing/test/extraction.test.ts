@@ -158,7 +158,9 @@ describe("session.extract commits per batch (D-100)", () => {
         // And the retry always ends in the same place.
         store.commitExtraction = original;
         store.failAt = undefined;
-        await run(store, new ScriptedModel([reply("a"), reply("b"), reply("c")]));
+        // The retry resumes at the failed batch, so the model is asked for the batches left. (A
+        // repeat of a fact already committed would now be dropped as a repeat, D-463.)
+        await run(store, new ScriptedModel([reply("a"), reply("b"), reply("c")].slice(failingBatch)));
         expect(store.state.lastExtractedSeq).toBe(60);
         expect(store.state.facts).toHaveLength(store.factRows.length);
         expect(store.factRows).toHaveLength(3);

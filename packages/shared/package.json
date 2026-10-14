@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./welcome": {
+      "types": "./dist/welcome.d.ts",
+      "default": "./dist/welcome.js"
+    },
     "./internal-secret": {
       "types": "./dist/internal-secret.d.ts",
       "default": "./dist/internal-secret.js"

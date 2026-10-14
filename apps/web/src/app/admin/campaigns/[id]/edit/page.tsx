@@ -1,8 +1,12 @@
-import { defaultConsentText } from "@aidp/shared";
+import { defaultConsentText, participantWelcome } from "@aidp/shared";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import * as React from "react";
-import { CampaignEditForm, type ConsentView } from "@/components/admin/campaigns/CampaignEditForm";
+import {
+  CampaignEditForm,
+  type ConsentView,
+  type WelcomeView,
+} from "@/components/admin/campaigns/CampaignEditForm";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
@@ -46,6 +50,17 @@ export default async function EditCampaignPage({ params }: Props): Promise<React
     language: label("language", language),
     organizationText: typeof tenantText === "string" && tenantText !== "" ? tenantText : null,
   };
+  const ownWelcome = ownR.status === "fulfilled" ? ownR.value.values["campaign.welcomeText"] : undefined;
+  const template = templateR.status === "fulfilled" ? templateR.value : undefined;
+  const welcome: WelcomeView = {
+    own: typeof ownWelcome === "string" && ownWelcome !== "" ? ownWelcome : null,
+    defaultText: participantWelcome(null, {
+      key: template?.key ?? null,
+      issueDetection: template?.issueDetection,
+      language,
+    }),
+    language: label("language", language),
+  };
   return (
     <>
       <PageHeader
@@ -53,7 +68,7 @@ export default async function EditCampaignPage({ params }: Props): Promise<React
         title={t.admin.campaigns.editTitle}
         subtitle={campaign.name}
       />
-      <CampaignEditForm campaign={campaign} consent={consent} />
+      <CampaignEditForm campaign={campaign} consent={consent} welcome={welcome} />
     </>
   );
 }
