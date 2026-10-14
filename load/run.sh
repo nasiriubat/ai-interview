@@ -4,7 +4,7 @@
 #
 #   load/run.sh smoke          # 4 interviews, 1 voice call, 12 link opens: about two minutes
 #   load/run.sh full           # 40 interviews x 20 turns, 5 voice calls, 100 opens, admin reads
-#   load/run.sh single-ip      # negative control: 60 opens from ONE address must hit the limiter
+#   load/run.sh single-ip      # negative control: 200 opens from ONE address must hit the limiter
 #   load/run.sh office         # 40 colleagues behind ONE office address open the link in two minutes
 #
 #   LINKS=1 load/run.sh full   # everything through one campaign's link (default: all of them)

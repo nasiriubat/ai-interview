@@ -249,7 +249,7 @@ export const SETTINGS = {
   // restarts and replicas. A refused open answers 429 and raises `abuse.limit_hit`.
   "abuse.campaignSessionsPerHour": def({
     schema: z.number().int().min(1).max(100000),
-    // 120 until D-311: a drill with the default limits turned away 311 of 499 opens when a
+    // 120 until D-311: a drill with the default limits refused 311 of 499 open attempts when a
     // campaign was announced to a company (100 in a minute, then the people arriving behind them).
     default: 300,
     scopes: ["platform", "tenant", "campaign"],
