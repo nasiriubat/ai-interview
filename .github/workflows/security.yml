@@ -1,0 +1,102 @@
+name: security
+
+# Spec 11 and security plan S5b / M3: scanning that is not the unit tests. Its own workflow so
+# that it can be a required check on its own, and so that a new advisory (which arrives without
+# any code change, hence the weekly schedule) is a clearly labelled red mark rather than a reason
+# the test job looks broken. Every action is pinned by commit SHA (scripts/security-gates.mjs
+# workflows enforces it); Dependabot raises the update PRs.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  schedule:
+    - cron: "23 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  # Full history, not just the tip: a key that was committed and then deleted is still a leaked key.
+  # Run from the pinned image rather than the gitleaks action, which wants a licence for an
+  # organisation; the configuration is .gitleaks.toml.
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+      - name: Scan the full history
+        run: >-
+          docker run --rm -v "$PWD:/repo"
+          zricethezav/gitleaks:v8.28.0@sha256:cdbb7c955abce02001a9f6c9f602fb195b7fadc1e812065883f695d1eeaba854
+          detect --source /repo --config /repo/.gitleaks.toml --log-opts="--all" --redact --no-banner
+
+  # The ignore file and the pins are checked first: they are what the rest of this workflow
+  # trusts. The same checks run in `pnpm check`.
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - run: node scripts/security-gates.mjs trivy
+      - run: node scripts/security-gates.mjs workflows
+      - run: node scripts/security-gates.mjs security-txt
+      - run: node --test scripts/security-gates.test.mjs
+
+  # Dependencies as locked, and the two Dockerfiles as written. Fixable HIGH and CRITICAL fail the
+  # job; an advisory with no fix yet does not (--ignore-unfixed), and one that must be carried
+  # with a fix available goes in .trivyignore.yaml with a statement and an expiry.
+  trivy-fs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Lockfile and secrets
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: .trivyignore.yaml
+          version: v0.67.2
+      - name: Dockerfiles
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: apps
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          trivyignores: .trivyignore.yaml
+          version: v0.67.2
+
+  # What actually ships: each image is built the way compose builds it and scanned, OS packages
+  # and the Node tree inside it. This is the scan that found npm, pnpm and perl-base in the
+  # runtime layers (D-267).
+  trivy-image:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: server
+            dockerfile: apps/api/Dockerfile
+          - name: web
+            dockerfile: apps/web/Dockerfile
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Build ${{ matrix.name }}
+        run: docker build -f ${{ matrix.dockerfile }} -t aidp-${{ matrix.name }}:scan .
+      - name: Scan ${{ matrix.name }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: aidp-${{ matrix.name }}:scan
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: .trivyignore.yaml
+          version: v0.67.2

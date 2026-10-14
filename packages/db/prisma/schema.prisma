@@ -37,6 +37,7 @@ model Company {
   llmCalls     LlmCall[]
   auditLogs    AuditLog[]
   opsAlerts    OpsAlert[]
+  usageCounters UsageCounter[]
 }
 
 model User {
@@ -688,6 +689,25 @@ model ErasureLedger {
   requestedBy String?
 
   @@unique([kind, targetId])
+}
+
+/// A fixed-window counter for abuse limits on open links and the email-code flow (D-261). One row
+/// per tenant, subject and window; incremented with an atomic upsert so the count is shared by
+/// every API replica and survives a restart. `key` names the subject (a campaign id, or a keyed
+/// hash of a client address: never an address itself) and carries no personal data. Rows older
+/// than two days are swept by the retention job.
+model UsageCounter {
+  id          String   @id @default(cuid())
+  companyId   String
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, key, windowStart])
+  @@index([windowStart])
 }
 
 model Budget {

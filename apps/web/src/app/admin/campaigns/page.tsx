@@ -15,7 +15,7 @@ import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { isFiltered, statusFilter } from "@/lib/admin/toolbar";
-import { LISTS } from "@/lib/api/lists";
+import { LISTS, sortOf } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
@@ -52,7 +52,7 @@ export default async function CampaignsPage({ searchParams }: Props): Promise<Re
       <ListToolbar
         searchLabel={t.admin.list.searchCampaigns}
         filters={[statusFilter(LISTS.campaigns)]}
-        sort={{ list: LISTS.campaigns, labels: t.admin.list.fields }}
+        sort={{ list: sortOf(LISTS.campaigns), labels: t.admin.list.fields }}
       />
       {campaigns.length === 0 ? (
         <EmptyState text={isFiltered(lp.q, lp.filters) ? t.admin.list.noMatches : s.empty} />

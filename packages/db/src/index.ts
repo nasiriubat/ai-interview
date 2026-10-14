@@ -85,6 +85,7 @@ export const SCOPED_MODELS: ReadonlySet<string> = new Set([
   "EmailCode",
   "TenantStatement",
   "ErasureLedger",
+  "UsageCounter",
 ]);
 
 export type ScopedClient = ReturnType<typeof buildScoped>;

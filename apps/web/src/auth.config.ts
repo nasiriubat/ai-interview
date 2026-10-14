@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
+import { SESSION_UPDATE_AGE_SECONDS, sessionMaxAgeSeconds } from "@/lib/session-lifetime";
 
 /**
  * Google is offered only when it is actually configured. Listing it unconditionally puts a
@@ -14,7 +15,7 @@ const googleProviders = process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SE
  * provider (Nodemailer) and the adapter are added in `auth.ts` only.
  */
 export const authConfig = {
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: sessionMaxAgeSeconds(), updateAge: SESSION_UPDATE_AGE_SECONDS },
   trustHost: true,
   pages: { signIn: "/auth/signin", verifyRequest: "/auth/verify", error: "/auth/error" },
   providers: googleProviders,

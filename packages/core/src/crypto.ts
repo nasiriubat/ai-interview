@@ -269,6 +269,17 @@ export class Crypto {
     return { kid: entry.kid, key: derive(entry.key, `aidp:bulk:${info}`, salt) };
   }
 
+  /**
+   * A keyed, non-reversible name for something that must be counted but not stored: a client
+   * address in an abuse counter (D-261). The address space of IPv4 is small enough to enumerate, so
+   * a plain hash would be a lookup table; this one needs the platform key. Rotating the key
+   * resets the counters, which are an hour long anyway.
+   */
+  abuseSubject(kind: string, value: string): string {
+    const subkey = derive(this.active.key, "aidp:abuse:v1", kind);
+    return createHmac("sha256", subkey).update(value).digest("hex").slice(0, 32);
+  }
+
   /** Hash of a bearer token for storage; tokens themselves are random and shown once. */
   hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");

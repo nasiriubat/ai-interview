@@ -167,6 +167,17 @@ export const ALERT_KINDS = {
     repeatMinutes: 60,
     summary: "The API has not answered its readiness check",
   },
+  // An interview link hit one of its abuse limits (D-261): a campaign's hourly or total cap, the
+  // tenant's hourly cap, or one client address asking codes for too many different addresses. The
+  // tenant's admins hear about it because the link is theirs; the operator because it is also the
+  // platform's mail reputation and model spend.
+  "abuse.limit_hit": {
+    severity: "warning",
+    audience: ["operator", "tenant_admins"],
+    repeatMinutes: 60,
+    summary: "An interview link hit an abuse limit and new interviews or codes are being refused",
+    tenantSetting: "notifications.abuseLimits",
+  },
   "alerts.storm": {
     severity: "critical",
     audience: ["operator"],

@@ -542,6 +542,10 @@ async function sweepTenant(
   maxBatches: number,
 ): Promise<TenantSweep> {
   const { db, settings, log, storage, crypto } = deps;
+  // Abuse counters are an hour long (D-261); two days is margin, and nothing reads an older one.
+  await db.usageCounter.deleteMany({
+    where: { companyId, windowStart: { lt: new Date(now.getTime() - 2 * 24 * 60 * 60_000) } },
+  });
   const audio = await sweepAudio({ db, settings, log, ...(storage ? { storage } : {}) }, companyId, now);
   const audioDeleted = audio.deleted;
   let bytesFailed = audio.failed;
