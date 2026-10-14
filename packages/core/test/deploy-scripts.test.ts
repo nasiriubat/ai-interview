@@ -186,6 +186,20 @@ describe("docs/OPERATIONS.md", () => {
     expect(headings).toContain("migrate.failed");
   });
 
+  it("has the security runbooks, each with the four parts, under the anchors the code points at", () => {
+    for (const heading of ["audit.chain_broken", "crypto.rekey"]) {
+      expect(headings, `no "### ${heading}" section`).toContain(heading);
+      const start = doc.indexOf(`### ${heading}\n`);
+      const next = doc.indexOf("\n### ", start + 1);
+      const section = doc.slice(start, next === -1 ? undefined : next);
+      for (const part of ["**Symptom**", "**Look at**", "**Do**", "**Fixed when**"])
+        expect(section, `${heading} is missing ${part}`).toContain(part);
+    }
+    // The preflight message and the DEPLOY.md link use GitHub's slug of these headings.
+    expect(read("deploy", "preflight.sh")).toContain("OPERATIONS.md#auditchain_broken");
+    expect(read("docs", "DEPLOY.md")).toContain("OPERATIONS.md#cryptorekey");
+  });
+
   it("gives each runbook section the four parts an operator at 3 a.m. needs", () => {
     for (const kind of ALERT_KIND_NAMES) {
       const start = doc.indexOf(`### ${kind}\n`);

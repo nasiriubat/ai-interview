@@ -8,6 +8,8 @@ const Env = z.object({
   API_SHUTDOWN_DRAIN_SECONDS: z.coerce.number().int().min(0).max(120).default(20),
   DATABASE_URL: z.string().min(1),
   PLATFORM_ENCRYPTION_KEY: z.string().min(1),
+  /** Comma-separated keys that stay readable during a rotation (D-164); empty when none. */
+  PLATFORM_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
   AUTH_SECRET: z.string().min(16),
   WEB_ORIGIN: z.string().default("http://localhost:3000"),
   PUBLIC_WEB_URL: z.string().default("http://localhost:3000"),

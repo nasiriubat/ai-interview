@@ -293,7 +293,12 @@ export class CampaignService {
     });
     // The plain link token is kept encrypted so admins can copy the link later.
     await this.db.setting.create({
-      data: { scope: "campaign", scopeId: campaign.id, key: "_linkToken", value: this.crypto.encrypt(token) },
+      data: {
+        scope: "campaign",
+        scopeId: campaign.id,
+        key: "_linkToken",
+        value: this.crypto.encrypt(token, "campaign.linkToken"),
+      },
     });
     return { campaign, link: this.linkFor(token) };
   }
@@ -304,7 +309,7 @@ export class CampaignService {
       where: { scope_scopeId_key: { scope: "campaign", scopeId: campaignId, key: "_linkToken" } },
     });
     if (!row || typeof row.value !== "string") throw notFound("Campaign link");
-    return this.linkFor(this.crypto.decrypt(row.value));
+    return this.linkFor(this.crypto.decrypt(row.value, "campaign.linkToken"));
   }
 
   linkFor(token: string): string {
@@ -375,9 +380,19 @@ export class CampaignService {
       }
       // Salted by campaign (D-142); an invitation written before that carries the platform-wide
       // value, so it is looked for as well and the address is not invited twice.
-      const emailHash = this.crypto.campaignEmailHash(email, campaignId);
+      const [emailHash = ""] = this.crypto.campaignEmailHashCandidates(email, campaignId);
       const exists = await this.db.invitation.findFirst({
-        where: { campaignId, emailHash: { in: [emailHash, this.crypto.hashEmail(email)] } },
+        where: {
+          campaignId,
+          // Under every key in the ring, so an address invited before a key rotation is not
+          // invited twice (D-164).
+          emailHash: {
+            in: [
+              ...this.crypto.campaignEmailHashCandidates(email, campaignId),
+              ...this.crypto.hashEmailCandidates(email),
+            ],
+          },
+        },
       });
       if (exists) {
         skipped.push(raw);

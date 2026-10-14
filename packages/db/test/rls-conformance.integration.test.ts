@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describeDb } from "@aidp/testing";
+import { describeDb, purgeAuditLog } from "@aidp/testing";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SCOPED_MODELS, withSystemTenant, withTenant, withTenantScope } from "../src/index.js";
@@ -393,7 +393,7 @@ describeDb("row-level security conformance (D-140)", () => {
     await owner.route.deleteMany({ where });
     await owner.provider.deleteMany({ where });
     await owner.budget.deleteMany({ where });
-    await owner.auditLog.deleteMany({ where });
+    await purgeAuditLog(owner, [companyId]);
     await owner.opsAlert.deleteMany({ where });
     await owner.sentEmail.deleteMany({ where });
     await owner.promptVersion.deleteMany({ where });

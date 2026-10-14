@@ -3,6 +3,7 @@ import { shippedTemplates } from "@aidp/db";
 import { describeDb } from "@aidp/testing";
 import { encode } from "@auth/core/jwt";
 import { afterAll, beforeAll, expect, it } from "vitest";
+import { actionIsDeclared, AUDIT_DECLARATIONS } from "../src/auth/audit-actions.js";
 import { fakeModelServer, testWorld, type TestWorld } from "./helpers.js";
 
 /*
@@ -34,11 +35,13 @@ interface Expect {
   secrets?: string[];
 }
 
-/** Mutating routes with no audit row, on purpose, and why. */
-const EXEMPT: Record<string, string> = {
-  "POST /requirements/:id/turns":
-    "A conversation turn is the interview itself, stored as messages; it is not an administrative action.",
-};
+/**
+ * Mutating routes with no audit row, on purpose, and why: the declarations in
+ * `auth/audit-actions.ts` that name a reason instead of an action.
+ */
+const EXEMPT: Record<string, string> = Object.fromEntries(
+  Object.entries(AUDIT_DECLARATIONS).flatMap(([route, d]) => ("none" in d ? [[route, d.none]] : [])),
+);
 
 suite("audit rows: every administrative mutation writes one", () => {
   let world: TestWorld;
@@ -115,6 +118,12 @@ suite("audit rows: every administrative mutation writes one", () => {
     expect([200, 201, 202], `${route} -> ${res.statusCode} ${res.body.slice(0, 200)}`).toContain(
       res.statusCode,
     );
+    // The route's own declaration must name the action it really wrote (D-163).
+    const declared = AUDIT_DECLARATIONS[route];
+    expect(
+      Array.isArray(declared) && actionIsDeclared(declared as readonly string[], expected.action),
+      `${route} does not declare ${expected.action} in auth/audit-actions.ts`,
+    ).toBe(true);
     const companyId =
       typeof expected.companyId === "function"
         ? expected.companyId(res.json())
@@ -705,5 +714,7 @@ suite("audit rows: every administrative mutation writes one", () => {
     expect(missing, "add an audit scenario, or an exemption with a reason").toEqual([]);
     const gone = [...exercised, ...Object.keys(EXEMPT)].filter((k) => !mutating.includes(k));
     expect(gone, "a scenario for a route that no longer exists").toEqual([]);
+    const stale = Object.keys(AUDIT_DECLARATIONS).filter((k) => !mutating.includes(k));
+    expect(stale, "an audit declaration for a route that no longer exists").toEqual([]);
   });
 });

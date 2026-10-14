@@ -641,9 +641,15 @@ model AuditLog {
   targetId   String
   diff       Json?
   createdAt  DateTime @default(now())
+  /// Position in this tenant's chain, previous hash and own hash: filled by the insert trigger
+  /// (migration 0019), never by the application. The table is append-only for every role (D-163).
+  seq        Int      @default(0)
+  prevHash   String   @default("")
+  hash       String   @default("")
 
   company Company @relation(fields: [companyId], references: [id])
 
+  @@unique([companyId, seq])
   @@index([companyId, createdAt])
   @@index([companyId, action, createdAt])
 }

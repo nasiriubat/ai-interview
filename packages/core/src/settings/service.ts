@@ -140,7 +140,7 @@ export class SettingsService {
         // The sentinel means "leave the stored secret alone", so nothing is written for it.
         if (isSecretSetting(key) && v === SECRET_SENTINEL) continue;
         const parsed = parseValue(key, v);
-        const stored = isSecretSetting(key) ? this.crypto.encrypt(String(parsed)) : parsed;
+        const stored = isSecretSetting(key) ? this.crypto.encrypt(String(parsed), "setting.secret") : parsed;
         await tx.setting.upsert({
           where: { scope_scopeId_key: { scope: ref.scope, scopeId: ref.scopeId, key } },
           create: { scope: ref.scope, scopeId: ref.scopeId, key, value: stored as object, changedBy },
@@ -160,7 +160,7 @@ export class SettingsService {
     if (!isSecretSetting(key)) return value;
     if (typeof value !== "string" || value.length === 0) return undefined;
     try {
-      return this.crypto.decrypt(value);
+      return this.crypto.decrypt(value, "setting.secret");
     } catch {
       this.log?.warn("setting could not be decrypted; treating it as unset", {
         key,
