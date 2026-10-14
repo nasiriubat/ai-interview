@@ -155,6 +155,24 @@ describe("CategoryForm", () => {
     expect(screen.getByText("Inherited from platform")).toBeInTheDocument();
   });
 
+  it("shows an unset sender empty with the install address as its placeholder, not example.com", () => {
+    const smtp = { set: null, effective: "env" as const, envConfigured: true };
+    renderForm({ scope: "platform", smtp, effective: { "email.from": "noreply@example.com" } });
+    const sender = screen.getByRole("textbox", { name: /Sender address/ });
+    expect(sender).toHaveValue("");
+    expect(sender).toHaveAttribute("placeholder", "The address set at install");
+  });
+
+  it("shows a sender someone set", () => {
+    const smtp = { set: null, effective: "env" as const, envConfigured: true };
+    renderForm({
+      smtp,
+      values: { "email.from": "hello@acme.fi" },
+      effective: { "email.from": "hello@acme.fi" },
+    });
+    expect(screen.getByRole("textbox", { name: /Sender address/ })).toHaveValue("hello@acme.fi");
+  });
+
   it("sends a test email and reports the scope that was used", async () => {
     const user = userEvent.setup();
     emailTest.mockResolvedValue({ ok: true, usedScope: "tenant" });

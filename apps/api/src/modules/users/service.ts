@@ -38,6 +38,12 @@ export class UsersService {
     private readonly audit: AuditService,
     /** The tenant's `branding.currency`, for `/me`; USD when not given (tests of this class alone). */
     private readonly currencyOf: (companyId: string) => Promise<string> = () => Promise.resolve("USD"),
+    /**
+     * Tells a newly added person where to sign in. The add-user dialog promises "They receive a
+     * sign-in link by email", and until the 2026-10-15 simulation nothing was sent. Best effort:
+     * a mail failure never undoes the user, the admin can still send the address by hand.
+     */
+    private readonly welcome?: (companyId: string, user: User, actorId: string) => Promise<void>,
   ) {}
 
   /** The signed-in user and their company, for `GET /me`. */
@@ -154,6 +160,7 @@ export class UsersService {
       targetId: user.id,
       diff: { role: user.role },
     });
+    await this.welcome?.(companyId, user, actorId).catch(() => undefined);
     return user;
   }
 
