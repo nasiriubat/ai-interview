@@ -129,7 +129,7 @@ export async function generateRecap(
   // Nothing covered yet: the model has nothing to say that the fallback does not.
   if (options.useModel === false || facts.covered.length === 0) return fallback();
   try {
-    const prompt = await deps.prompts.get(session.companyId, "recap");
+    const prompt = await deps.prompts.get(session.companyId, "recap", session.id);
     const out = await deps.caller.complete(
       "resume_summary",
       {

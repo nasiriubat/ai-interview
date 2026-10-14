@@ -3,6 +3,7 @@
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { Inset } from "@/components/ui/inset";
 import { t } from "@/i18n";
 
 /** Generic ordered list editor with add, remove and up/down reorder. */
@@ -36,7 +37,7 @@ export function ListEditor<T>({
     <div className="grid gap-3">
       <ol className="grid gap-3">
         {items.map((item, i) => (
-          <li key={i} className="bg-muted/30 grid gap-3 rounded-lg border p-3">
+          <Inset as="li" key={i} className="grid gap-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium">
                 {i + 1}. {itemLabel(item, i)}
@@ -86,7 +87,7 @@ export function ListEditor<T>({
               },
               i,
             )}
-          </li>
+          </Inset>
         ))}
       </ol>
       <div>

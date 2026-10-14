@@ -454,9 +454,7 @@ function SettingRow({
       <div className="grid gap-1">
         <Label htmlFor={id} className="flex flex-wrap items-center gap-2">
           {label}
-          <span className="text-muted-foreground font-mono text-[11px] font-normal break-all">
-            {entry.key}
-          </span>
+          <span className="text-muted-foreground font-mono text-xs font-normal break-all">{entry.key}</span>
           {originBadge}
         </Label>
         <p id={`${id}-desc`} className="text-muted-foreground text-xs">

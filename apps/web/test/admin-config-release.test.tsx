@@ -355,6 +355,8 @@ describe("creating a tenant (D-189)", () => {
     const user = userEvent.setup();
     createTenant.mockResolvedValue({ tenant, invitation: { to: "boss@uusi.fi", language: "fi" } });
     render(<TenantsPanel tenants={[]} />);
+    // The form is a dialog, so the table of tenants is the first thing on the page.
+    await user.click(screen.getByRole("button", { name: "New tenant" }));
 
     await user.type(screen.getByLabelText(/^Name/), "Uusi Oy");
     await user.type(screen.getByLabelText(/First admin's email/), "boss@uusi.fi");

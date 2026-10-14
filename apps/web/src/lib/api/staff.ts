@@ -91,6 +91,16 @@ import {
   type Paged,
   PreviewSessionSchema,
   PricePageSchema,
+  PromptCheckSchema,
+  PromptDetailSchema,
+  PromptDiffSchema,
+  PromptListSchema,
+  PromptVersionSchema,
+  type PromptCheck,
+  type PromptDetail,
+  type PromptDiff,
+  type PromptList,
+  type PromptVersion,
   type PromoteResult,
   PromoteResultSchema,
   ProviderEnvelopeSchema,
@@ -475,6 +485,54 @@ export function staffApi(transport: Transport): StaffApi {
             body: { values },
             schema: OkSchema,
           }),
+        ),
+    },
+
+    prompts: {
+      list: () => request(transport, { path: "/prompts", schema: PromptListSchema }),
+      get: (key) =>
+        request(transport, { path: `/prompts/${encodeURIComponent(key)}`, schema: PromptDetailSchema }),
+      diff: (key, from, to) =>
+        request(transport, {
+          path: `/prompts/${encodeURIComponent(key)}/diff`,
+          query: { from, to },
+          schema: PromptDiffSchema,
+        }),
+      check: (key, body) =>
+        request(transport, {
+          method: "POST",
+          path: `/prompts/${encodeURIComponent(key)}/check`,
+          body: { body },
+          schema: PromptCheckSchema,
+        }),
+      create: (key, input) =>
+        request(transport, {
+          method: "POST",
+          path: `/prompts/${encodeURIComponent(key)}/versions`,
+          body: input,
+          schema: PromptVersionSchema,
+        }),
+      activate: (key, version, canaryShare) =>
+        ok(
+          request(transport, {
+            method: "POST",
+            path: `/prompts/${encodeURIComponent(key)}/versions/${String(version)}/activate`,
+            body: { canaryShare },
+          }),
+        ),
+      stopCanary: (key) =>
+        ok(request(transport, { method: "DELETE", path: `/prompts/${encodeURIComponent(key)}/canary` })),
+      rollback: (key) =>
+        ok(
+          request(transport, {
+            method: "POST",
+            path: `/prompts/${encodeURIComponent(key)}/rollback`,
+            body: {},
+          }),
+        ),
+      reset: (key) =>
+        ok(
+          request(transport, { method: "POST", path: `/prompts/${encodeURIComponent(key)}/reset`, body: {} }),
         ),
     },
 
@@ -893,6 +951,24 @@ export interface StaffApi {
       limit?: number;
       before?: string;
     }): Promise<SettingsHistory>;
+  };
+  /** Prompt administration: tenant versions, canaries and the built-in prompts they replace (D-230). */
+  prompts: {
+    list(): Promise<PromptList>;
+    get(key: string): Promise<PromptDetail>;
+    /** Line diff of two bodies; each side is `shipped` or a version number. */
+    diff(key: string, from: string, to: string): Promise<PromptDiff>;
+    /** Validates a draft against the contract without storing it. */
+    check(key: string, body: string): Promise<PromptCheck>;
+    create(
+      key: string,
+      input: { body: string; note?: string; parentVersion?: number },
+    ): Promise<PromptVersion>;
+    /** `canaryShare` 1 makes the version the stable one; between 0 and 1 starts a canary. */
+    activate(key: string, version: number, canaryShare: number): Promise<void>;
+    stopCanary(key: string): Promise<void>;
+    rollback(key: string): Promise<void>;
+    reset(key: string): Promise<void>;
   };
   /** The getting-started checklist (D-189). */
   onboarding: {

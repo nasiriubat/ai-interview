@@ -46,9 +46,13 @@ export interface LiveVoiceController {
   partial: string;
   /** How speech is being captured in this call. */
   mode: HearingMode;
+  /** The participant switched the microphone off; the call stays up and nothing is heard. */
+  muted: boolean;
   problem: LiveVoiceProblem | null;
   start: () => void;
   end: () => void;
+  /** Switches the microphone off or on without ending the call. */
+  setMuted: (muted: boolean) => void;
   /** Cuts the interviewer off now: the same thing barge-in does, from a button. */
   stopSpeaking: () => void;
   dismissProblem: () => void;

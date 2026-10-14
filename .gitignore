@@ -21,3 +21,6 @@ deploy/.upgrade.lock
 .check-state.json
 # Live-run harness output (transcripts, reports, scorecards)
 scripts/live-run/out/
+apps/web/e2e/results/
+apps/web/test-results/
+apps/web/playwright-report/

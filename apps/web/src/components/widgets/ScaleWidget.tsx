@@ -41,8 +41,10 @@ export function ScaleWidget({
             disabled={disabled}
             tabIndex={selected === undefined ? (v === 1 ? 0 : -1) : selected === v ? 0 : -1}
             className={cn(
-              "h-12 rounded-lg border text-lg font-medium transition-colors disabled:opacity-50",
-              selected === v ? "bg-primary text-primary-foreground" : "hover:bg-accent",
+              "bg-card shadow-control h-12 rounded-lg text-lg font-medium transition-shadow disabled:opacity-50",
+              selected === v
+                ? "bg-primary text-primary-foreground shadow-[0_0_0_2px_var(--primary)]"
+                : "hover:shadow-[0_0_0_1px_var(--input-hover)]",
             )}
             onClick={() => {
               choose(v);

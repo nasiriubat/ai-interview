@@ -15,6 +15,7 @@ import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { ModelPrice, Provider, RouteRecord } from "@/lib/api/schemas";
@@ -67,6 +68,8 @@ export function RoutesForm({
   const router = useRouter();
   const action = useAction();
   const api = providersApiFor(scope);
+  // A table where there is room for one, a card per task where there is not.
+  const narrow = useMediaQuery("(max-width: 767px)");
 
   const sources = React.useMemo(() => {
     const out = {} as Record<Purpose, RouteSource>;
@@ -194,6 +197,123 @@ export function RoutesForm({
   const sourceLabel = (src: RouteSource): string =>
     src === "tenant" ? s.sourceTenant : src === "platform" ? s.sourcePlatform : s.sourceNone;
 
+  /** The controls of one purpose, built once and placed in a table row or in a card. */
+  const controls = (p: Purpose) => {
+    const d = drafts[p];
+    const entry = models[d.providerId];
+    const loading = entry === "loading";
+    const list: ModelPrice[] = Array.isArray(entry) ? entry : [];
+    const options: ComboboxOption[] = list.map((m) => ({
+      value: m.id,
+      label: m.name || m.id,
+      detail: m.id,
+    }));
+    const name = enumLabel("purpose", p);
+    return {
+      provider: (
+        <Combobox
+          id={`route-provider-${p}`}
+          size="sm"
+          value={d.providerId || INHERIT}
+          aria-label={`${s.provider}: ${name}`}
+          options={providerOptions}
+          labels={{
+            placeholder: inheritLabel,
+            search: t.admin.combobox.search,
+            empty: t.admin.combobox.empty,
+          }}
+          onChange={(v) => {
+            update(p, { providerId: v === INHERIT ? "" : v, model: "" });
+          }}
+        />
+      ),
+      model: (
+        <Combobox
+          id={`route-model-${p}`}
+          size="sm"
+          value={d.model}
+          disabled={!d.providerId}
+          loading={loading}
+          allowCustom
+          aria-label={`${s.model}: ${name}`}
+          options={options}
+          labels={{
+            placeholder: s.modelPlaceholder,
+            search: t.admin.combobox.search,
+            empty: s.noModels,
+            loading: t.admin.combobox.loading,
+            useCustom: t.admin.combobox.useCustom,
+          }}
+          onChange={(v) => {
+            update(p, { model: v });
+          }}
+        />
+      ),
+      effort: (
+        <Select
+          value={d.effort || "__none__"}
+          onValueChange={(v) => {
+            update(p, { effort: v === "__none__" ? "" : (v as Effort) });
+          }}
+        >
+          <SelectTrigger
+            aria-label={`${s.effort}: ${name}`}
+            className="w-full md:w-28"
+            size="sm"
+            disabled={!d.providerId}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">{t.app.none}</SelectItem>
+            {EFFORTS.map((e) => (
+              <SelectItem key={e} value={e}>
+                {enumLabel("effort", e)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
+      tokens: (
+        <Input
+          aria-label={`${s.maxOutputTokens}: ${name}`}
+          type="number"
+          min={1}
+          className="w-full md:w-28"
+          value={d.maxOutputTokens}
+          disabled={!d.providerId}
+          onChange={(e) => {
+            update(p, { maxOutputTokens: e.target.value === "" ? "" : Number(e.target.value) });
+          }}
+        />
+      ),
+      batch: (
+        <Checkbox
+          aria-label={`${s.batchAllowed}: ${name}`}
+          checked={d.batchAllowed}
+          disabled={!d.providerId}
+          onCheckedChange={(v) => {
+            update(p, { batchAllowed: v === true });
+          }}
+        />
+      ),
+      source: (
+        <Badge variant={sources[p] === "tenant" ? "secondary" : "outline"}>{sourceLabel(sources[p])}</Badge>
+      ),
+      clear:
+        scope !== "platform" && sources[p] === "tenant" ? (
+          <IconButton
+            label={`${s.clearOverride}: ${name}`}
+            icon={<RotateCcwIcon />}
+            disabled={action.busy}
+            onClick={() => {
+              clearOverride(p);
+            }}
+          />
+        ) : null,
+    };
+  };
+
   return (
     <form
       className="grid gap-4"
@@ -203,154 +323,92 @@ export function RoutesForm({
       }}
     >
       <Flash flash={action.flash} />
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{s.purpose}</TableHead>
-              <TableHead>{s.provider}</TableHead>
-              <TableHead>{s.model}</TableHead>
-              <TableHead>{s.effort}</TableHead>
-              <TableHead>{s.maxOutputTokens}</TableHead>
-              <TableHead>{s.batchAllowed}</TableHead>
-              <TableHead>{s.source}</TableHead>
-              {scope === "platform" ? null : (
-                <TableHead className="text-right">{t.admin.common.actions}</TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {ROUTABLE_PURPOSES.map((p) => {
-              const d = drafts[p];
-              const entry = models[d.providerId];
-              const loading = entry === "loading";
-              const list: ModelPrice[] = Array.isArray(entry) ? entry : [];
-              const options: ComboboxOption[] = list.map((m) => ({
-                value: m.id,
-                label: m.name || m.id,
-                detail: m.id,
-              }));
-              return (
-                <TableRow key={p}>
-                  <TableCell className="font-medium">{enumLabel("purpose", p)}</TableCell>
-                  <TableCell>
-                    <div className="w-44">
-                      <Combobox
-                        id={`route-provider-${p}`}
-                        size="sm"
-                        value={d.providerId || INHERIT}
-                        aria-label={`${s.provider}: ${enumLabel("purpose", p)}`}
-                        options={providerOptions}
-                        labels={{
-                          placeholder: inheritLabel,
-                          search: t.admin.combobox.search,
-                          empty: t.admin.combobox.empty,
-                        }}
-                        onChange={(v) => {
-                          update(p, { providerId: v === INHERIT ? "" : v, model: "" });
-                        }}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="w-56">
-                      <Combobox
-                        id={`route-model-${p}`}
-                        size="sm"
-                        value={d.model}
-                        disabled={!d.providerId}
-                        loading={loading}
-                        allowCustom
-                        aria-label={`${s.model}: ${enumLabel("purpose", p)}`}
-                        options={options}
-                        labels={{
-                          placeholder: s.modelPlaceholder,
-                          search: t.admin.combobox.search,
-                          empty: s.noModels,
-                          loading: t.admin.combobox.loading,
-                          useCustom: t.admin.combobox.useCustom,
-                        }}
-                        onChange={(v) => {
-                          update(p, { model: v });
-                        }}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={d.effort || "__none__"}
-                      onValueChange={(v) => {
-                        update(p, { effort: v === "__none__" ? "" : (v as Effort) });
-                      }}
-                    >
-                      <SelectTrigger
-                        aria-label={`${s.effort}: ${enumLabel("purpose", p)}`}
-                        className="w-28"
-                        size="sm"
-                        disabled={!d.providerId}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">{t.app.none}</SelectItem>
-                        {EFFORTS.map((e) => (
-                          <SelectItem key={e} value={e}>
-                            {enumLabel("effort", e)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      aria-label={`${s.maxOutputTokens}: ${enumLabel("purpose", p)}`}
-                      type="number"
-                      min={1}
-                      className="w-28"
-                      value={d.maxOutputTokens}
-                      disabled={!d.providerId}
-                      onChange={(e) => {
-                        update(p, { maxOutputTokens: e.target.value === "" ? "" : Number(e.target.value) });
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Checkbox
-                      aria-label={`${s.batchAllowed}: ${enumLabel("purpose", p)}`}
-                      checked={d.batchAllowed}
-                      disabled={!d.providerId}
-                      onCheckedChange={(v) => {
-                        update(p, { batchAllowed: v === true });
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={sources[p] === "tenant" ? "secondary" : "outline"}>
-                      {sourceLabel(sources[p])}
-                    </Badge>
-                  </TableCell>
-                  {scope === "platform" ? null : (
-                    <TableCell className="text-right">
-                      <RowActions>
-                        {sources[p] === "tenant" ? (
-                          <IconButton
-                            label={`${s.clearOverride}: ${enumLabel("purpose", p)}`}
-                            icon={<RotateCcwIcon />}
-                            disabled={action.busy}
-                            onClick={() => {
-                              clearOverride(p);
-                            }}
-                          />
-                        ) : null}
-                      </RowActions>
+      {!narrow ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{s.purpose}</TableHead>
+                <TableHead>{s.provider}</TableHead>
+                <TableHead>{s.model}</TableHead>
+                <TableHead>{s.effort}</TableHead>
+                <TableHead>{s.maxOutputTokens}</TableHead>
+                <TableHead>{s.batchAllowed}</TableHead>
+                <TableHead>{s.source}</TableHead>
+                {scope === "platform" ? null : (
+                  <TableHead className="text-right">{t.admin.common.actions}</TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ROUTABLE_PURPOSES.map((p) => {
+                const c = controls(p);
+                return (
+                  <TableRow key={p}>
+                    <TableCell className="font-medium">{enumLabel("purpose", p)}</TableCell>
+                    <TableCell>
+                      <div className="w-44">{c.provider}</div>
                     </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+                    <TableCell>
+                      <div className="w-56">{c.model}</div>
+                    </TableCell>
+                    <TableCell>{c.effort}</TableCell>
+                    <TableCell>{c.tokens}</TableCell>
+                    <TableCell>{c.batch}</TableCell>
+                    <TableCell>{c.source}</TableCell>
+                    {scope === "platform" ? null : (
+                      <TableCell className="text-right">
+                        <RowActions>{c.clear}</RowActions>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        // On a phone a seven-column table is a sideways scroll. One card per task keeps every
+        // control reachable with a thumb and names it in words next to the control.
+        <ul className="grid gap-3">
+          {ROUTABLE_PURPOSES.map((p) => {
+            const c = controls(p);
+            return (
+              <li key={p} className="bg-card shadow-card grid gap-3 rounded-lg p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-foreground text-sm font-semibold">{enumLabel("purpose", p)}</h3>
+                  <div className="flex items-center gap-1">
+                    {c.source}
+                    {c.clear}
+                  </div>
+                </div>
+                <div className="grid gap-1">
+                  <span className="text-muted-foreground text-xs font-medium">{s.provider}</span>
+                  {c.provider}
+                </div>
+                <div className="grid gap-1">
+                  <span className="text-muted-foreground text-xs font-medium">{s.model}</span>
+                  {c.model}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1">
+                    <span className="text-muted-foreground text-xs font-medium">{s.effort}</span>
+                    {c.effort}
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-muted-foreground text-xs font-medium">{s.maxOutputTokens}</span>
+                    {c.tokens}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {c.batch}
+                  <span>{s.batchAllowed}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <div>
         <Button type="submit" loading={action.busy}>
           {action.busy ? t.app.saving : s.save}

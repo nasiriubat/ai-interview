@@ -599,3 +599,16 @@ Phase 4 (voice and files, `09-voice-and-files.md`):
 49. **`DELETE /p/session` answers `{ ok, emailSent }` (D-175).** The deleted screen names an email
     only when `emailSent` is true; the always-shown copy still promises answers, recordings and
     files only.
+
+## Accessibility evidence
+
+- `pnpm --filter @aidp/web contrast` computes every named colour pair of `globals.css` in the light
+  and the dark theme (4.5:1 text, 3:1 edges). The web tests run it (`test/contrast.test.ts`), so a
+  colour edit that drops below the bar fails there.
+- `pnpm --filter @aidp/web e2e` runs Playwright with axe over every page in six projects (en and fi
+  at 390 and 1280 px, reduced motion, dark). It needs a browser and a production build, so it is not
+  part of `pnpm check`, which prints a notice saying so. One-time setup:
+  `pnpm --filter @aidp/web exec playwright install chromium`. It starts `e2e/fake-api.ts`, a small
+  stand-in for the API with fixtures for every page, and fails on serious or critical violations.
+  A page added under `src/app` needs an entry in `e2e/pages.ts` (a unit test checks).
+- Themes: System, Light, Dark, by `data-theme` on `<html>`; see D-238.

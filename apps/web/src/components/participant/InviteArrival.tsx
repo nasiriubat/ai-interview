@@ -138,7 +138,12 @@ export function InviteArrival({
         <Shell key="consent">
           <PageHeading focusOnMount>{t.participant.consent.title}</PageHeading>
           <Card>
-            <CardContent className="text-sm leading-relaxed whitespace-pre-wrap">
+            <CardContent
+              tabIndex={0}
+              role="region"
+              aria-label={t.participant.consent.textLabel}
+              className="max-h-[50dvh] overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap"
+            >
               {session.consentText}
             </CardContent>
           </Card>
@@ -158,6 +163,11 @@ export function InviteArrival({
           <Button size="lg" onClick={consent} disabled={busy || !agreed} className="w-full">
             {busy ? t.participant.consent.starting : t.participant.consent.start}
           </Button>
+          {!agreed ? (
+            <p className="text-muted-foreground -mt-3 text-center text-xs">
+              {t.participant.consent.needsCheck}
+            </p>
+          ) : null}
           <Button
             type="button"
             variant="ghost"

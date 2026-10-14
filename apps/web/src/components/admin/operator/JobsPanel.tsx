@@ -146,12 +146,12 @@ export function JobsPanel({
                   <TableRow key={j.id}>
                     <TableCell className="text-xs">
                       <p className="font-mono">{j.sourceId ?? j.id}</p>
-                      <p className="text-muted-foreground font-mono text-[11px]">
+                      <p className="text-muted-foreground font-mono text-xs">
                         {Object.entries(j.data)
                           .map(([k, v]) => `${k}: ${v}`)
                           .join(" · ")}
                       </p>
-                      <p className="text-muted-foreground text-[11px]">{s.attempts(j.retryCount + 1)}</p>
+                      <p className="text-muted-foreground text-xs">{s.attempts(j.retryCount + 1)}</p>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">{formatDate(j.createdAt)}</TableCell>
                     <TableCell className="max-w-md text-xs break-words">

@@ -3,6 +3,7 @@
 import type { Path } from "@aidp/shared";
 import { CodeIcon, MessageCircleIcon } from "lucide-react";
 import * as React from "react";
+import { choiceTileClass } from "@/components/ui/choice-tile";
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -36,8 +37,8 @@ export function PathChoice({
             disabled={disabled}
             aria-pressed={value !== undefined ? selected : undefined}
             className={cn(
-              "hover:bg-accent flex items-start gap-4 rounded-xl border p-4 text-left transition-colors disabled:opacity-50",
-              selected && "border-primary bg-accent",
+              choiceTileClass({ selected, disabled }),
+              "w-full gap-4 p-4 text-left disabled:cursor-not-allowed disabled:opacity-60",
             )}
             onClick={() => {
               onChoose(path);

@@ -10,6 +10,7 @@ import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
@@ -66,6 +67,7 @@ export function TenantsPanel({ tenants }: { tenants: Tenant[] }): React.JSX.Elem
     voiceMinutes: "",
   });
   const [suspending, setSuspending] = React.useState<Tenant | null>(null);
+  const [creating, setCreating] = React.useState(false);
   /** Who the invitation went to, for the sentence under the form. */
   const [invited, setInvited] = React.useState<string | null>(null);
 
@@ -78,92 +80,108 @@ export function TenantsPanel({ tenants }: { tenants: Tenant[] }): React.JSX.Elem
 
   return (
     <div className="grid gap-6">
-      <form
-        className="bg-card shadow-card grid gap-4 rounded-lg p-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void action.run(async () => {
-            const limits: Partial<Record<CeilingMetric, number>> = {};
-            for (const m of CEILING_METRICS) {
-              const v = ceilings[m];
-              if (v === "") continue;
-              limits[m] = m === "storageBytes" ? Math.round(v * MIB) : v;
-            }
-            const created = await staffClient.operator.tenants.create({
-              name: name.trim(),
-              region,
-              adminEmail: adminEmail.trim(),
-              language,
-              ...(budget !== "" ? { monthlyBudgetCents: Math.round(budget * 100) } : {}),
-              ...(Object.keys(limits).length > 0 ? { ceilings: limits } : {}),
-            });
-            setInvited(created.invitation?.to ?? null);
-            setName("");
-            setAdminEmail("");
-            setBudget("");
-            setCeilings({
-              maxActiveCampaigns: "",
-              maxSessionsPerMonth: "",
-              storageBytes: "",
-              voiceMinutes: "",
-            });
-            router.refresh();
-          }, s.addedToast);
-        }}
-      >
-        <div className="grid gap-3 md:grid-cols-[1fr_1fr_8rem_10rem_12rem] md:items-end">
-          <TextField id="tenant-name" label={s.name} value={name} required onChange={setName} />
-          <TextField
-            id="tenant-admin"
-            label={s.adminEmail}
-            value={adminEmail}
-            required
-            onChange={setAdminEmail}
-          />
-          <TextField id="tenant-region" label={s.region} value={region} onChange={setRegion} />
-          <SelectField
-            id="tenant-language"
-            label={s.language}
-            value={language}
-            onChange={setLanguage}
-            options={[
-              { value: "en", label: s.languages.en },
-              { value: "fi", label: s.languages.fi },
-            ]}
-          />
-          <NumberField
-            id="tenant-budget"
-            label={`${s.defaultBudget} (€)`}
-            value={budget}
-            min={0}
-            onChange={setBudget}
-          />
-        </div>
-        <fieldset className="grid gap-2">
-          <legend className="text-sm font-medium">{s.ceilings}</legend>
-          <p className="text-muted-foreground text-xs">{s.ceilingHint}</p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {CEILING_METRICS.map((m) => (
-              <NumberField
-                key={m}
-                id={`tenant-ceiling-${m}`}
-                label={names()[m] ?? m}
-                value={ceilings[m]}
-                min={0}
-                onChange={(v) => {
-                  setCeilings((prev) => ({ ...prev, [m]: v }));
-                }}
-              />
-            ))}
-          </div>
-        </fieldset>
-        <div>
-          <Button type="submit" disabled={action.busy || !name.trim() || !adminEmail.trim()}>
-            <PlusIcon /> {s.add}
-          </Button>
-        </div>
-      </form>
-      <Flash flash={action.flash} />
+      <div className="flex justify-end">
+        <Dialog open={creating} onOpenChange={setCreating}>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusIcon aria-hidden="true" /> {s.newTenant}
+            </Button>
+          </DialogTrigger>
+          <DialogContent closeLabel={t.app.close} className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{s.newTenant}</DialogTitle>
+            </DialogHeader>
+            <form
+              className="grid gap-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void action.run(async () => {
+                  const limits: Partial<Record<CeilingMetric, number>> = {};
+                  for (const m of CEILING_METRICS) {
+                    const v = ceilings[m];
+                    if (v === "") continue;
+                    limits[m] = m === "storageBytes" ? Math.round(v * MIB) : v;
+                  }
+                  const created = await staffClient.operator.tenants.create({
+                    name: name.trim(),
+                    region,
+                    adminEmail: adminEmail.trim(),
+                    language,
+                    ...(budget !== "" ? { monthlyBudgetCents: Math.round(budget * 100) } : {}),
+                    ...(Object.keys(limits).length > 0 ? { ceilings: limits } : {}),
+                  });
+                  setInvited(created.invitation?.to ?? null);
+                  setName("");
+                  setAdminEmail("");
+                  setBudget("");
+                  setCeilings({
+                    maxActiveCampaigns: "",
+                    maxSessionsPerMonth: "",
+                    storageBytes: "",
+                    voiceMinutes: "",
+                  });
+                  setCreating(false);
+                  router.refresh();
+                }, s.addedToast);
+              }}
+            >
+              <Flash flash={action.flash} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <TextField id="tenant-name" label={s.name} value={name} required onChange={setName} />
+                <TextField
+                  id="tenant-admin"
+                  label={s.adminEmail}
+                  value={adminEmail}
+                  required
+                  onChange={setAdminEmail}
+                />
+                <TextField id="tenant-region" label={s.region} value={region} onChange={setRegion} />
+                <SelectField
+                  id="tenant-language"
+                  label={s.language}
+                  value={language}
+                  onChange={setLanguage}
+                  options={[
+                    { value: "en", label: s.languages.en },
+                    { value: "fi", label: s.languages.fi },
+                  ]}
+                />
+                <NumberField
+                  id="tenant-budget"
+                  label={`${s.defaultBudget} (€)`}
+                  value={budget}
+                  min={0}
+                  onChange={setBudget}
+                />
+              </div>
+              <fieldset className="grid gap-2">
+                <legend className="text-sm font-medium">{s.ceilings}</legend>
+                <p className="text-muted-foreground text-xs">{s.ceilingHint}</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {CEILING_METRICS.map((m) => (
+                    <NumberField
+                      key={m}
+                      id={`tenant-ceiling-${m}`}
+                      label={names()[m] ?? m}
+                      value={ceilings[m]}
+                      min={0}
+                      onChange={(v) => {
+                        setCeilings((prev) => ({ ...prev, [m]: v }));
+                      }}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+              <div>
+                <Button type="submit" disabled={action.busy || !name.trim() || !adminEmail.trim()}>
+                  <PlusIcon /> {s.add}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+      {creating ? null : <Flash flash={action.flash} />}
       {invited ? (
         <p role="status" className="text-sm">
           {s.invitationSent(invited)}
@@ -192,9 +210,9 @@ export function TenantsPanel({ tenants }: { tenants: Tenant[] }): React.JSX.Elem
                   <TableRow key={tn.id}>
                     <TableCell className="font-medium">
                       {tn.name}
-                      <p className="text-muted-foreground font-mono text-[11px]">{tn.id}</p>
+                      <p className="text-muted-foreground font-mono text-xs">{tn.id}</p>
                       {tn.onboarding && tn.onboarding.total > 0 ? (
-                        <p className="text-muted-foreground text-[11px] font-normal">
+                        <p className="text-muted-foreground text-xs font-normal">
                           {s.setupProgress(tn.onboarding.done, tn.onboarding.total)}
                         </p>
                       ) : null}
