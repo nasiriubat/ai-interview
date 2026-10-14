@@ -18,6 +18,7 @@ import { undoToast } from "@/components/common/undoToast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { WidgetRenderer } from "@/components/widgets";
+import { WidgetVoiceProvider, type WidgetVoice } from "@/components/widgets/voice-context";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useInterview } from "@/hooks/useInterview";
 import { useLiveVoice } from "@/hooks/useLiveVoice";
@@ -135,6 +136,14 @@ export function InterviewScreen({
     onUnavailable: setGaveUp,
   });
   const spokenAnswers = gaveUp !== "text";
+  // The "Other" field takes speech where recorded voice is on and no call holds the microphone.
+  const widgetVoice = React.useMemo<WidgetVoice | null>(
+    () =>
+      can.recordedVoice && spokenAnswers && live.status === "idle"
+        ? { transcribe: (audio, ms) => api.transcribe(audio, ms) }
+        : null,
+    [can.recordedVoice, spokenAnswers, live.status, api],
+  );
   const liveOffered = can.liveVoice && gaveUp === null;
   const inCall = live.status !== "idle" && live.status !== "unavailable";
   // On a phone the call is a screen of its own (D-238); elsewhere it stays the panel above the composer.
@@ -339,16 +348,18 @@ export function InterviewScreen({
               aria-label={t.participant.session.widgetAnswer}
               className="bg-card shadow-card mt-1 rounded-2xl p-4"
             >
-              <WidgetRenderer
-                key={state.messages[state.messages.length - 1]?.id}
-                widget={activeWidget}
-                disabled={inputDisabled}
-                onSubmit={(r) => {
-                  typedTurn(() => {
-                    void sendWidget(activeWidget, r);
-                  });
-                }}
-              />
+              <WidgetVoiceProvider value={widgetVoice}>
+                <WidgetRenderer
+                  key={state.messages[state.messages.length - 1]?.id}
+                  widget={activeWidget}
+                  disabled={inputDisabled}
+                  onSubmit={(r) => {
+                    typedTurn(() => {
+                      void sendWidget(activeWidget, r);
+                    });
+                  }}
+                />
+              </WidgetVoiceProvider>
               {mode === "options" && !typeInstead ? (
                 <Button
                   variant="link"

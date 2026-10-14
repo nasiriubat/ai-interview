@@ -98,6 +98,7 @@ function apiWith(over: Partial<ParticipantApi> = {}): ParticipantApi {
     sendTurn: vi.fn(unused),
     sendControl: vi.fn(unused),
     sendVoice: unused,
+    transcribe: unused,
     uploadAttachment: unused,
     listAttachments: () => Promise.resolve([]),
     attachmentBytes: unused,

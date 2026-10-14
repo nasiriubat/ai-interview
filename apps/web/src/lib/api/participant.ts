@@ -1,4 +1,5 @@
 import type { Path, TurnControl, WidgetResponse } from "@aidp/shared";
+import { z } from "zod";
 import { request, requestBlob, requestStream, type Transport } from "./http";
 import {
   type Attachment,
@@ -40,6 +41,8 @@ const AUDIO_EXTENSIONS: Record<string, string> = {
 };
 
 /** Browsers append codec parameters (`audio/webm;codecs=opus`); the extension follows the container. */
+const TranscriptSchema = z.looseObject({ text: z.string() });
+
 function recordingName(mime: string): string {
   const base = mime.split(";")[0]?.trim().toLowerCase() ?? "";
   return `recording.${AUDIO_EXTENSIONS[base] ?? "webm"}`;
@@ -140,6 +143,13 @@ export function participantApi(transport: Transport): ParticipantApi {
         body: uploadForm(audio, recordingName(audio.type), durationMs),
         signal,
       }),
+    transcribe: (audio, durationMs) =>
+      request(transport, {
+        method: "POST",
+        path: "/p/session/transcribe",
+        body: uploadForm(audio, recordingName(audio.type), durationMs),
+        schema: TranscriptSchema,
+      }).then((r) => r.text),
     uploadAttachment: (file, durationMs) =>
       request(transport, {
         method: "POST",
@@ -204,6 +214,11 @@ export interface ParticipantApi {
    * response is a turn stream that opens with a `transcript` event.
    */
   sendVoice(audio: Blob, durationMs?: number, signal?: AbortSignal): Promise<Response>;
+  /**
+   * Speech to text for one field (D-239): the words come back as a draft and nothing is stored or
+   * answered. Used by the "Other" entry of a choice question.
+   */
+  transcribe(audio: Blob, durationMs?: number): Promise<string>;
   /** Uploads one file (FR-31). The attachment comes back before it has been read; watch `status`. */
   uploadAttachment(file: File, durationMs?: number): Promise<Attachment>;
   listAttachments(): Promise<Attachment[]>;

@@ -37,6 +37,60 @@ const AUDIO_MIMES = new Set([
 ]);
 
 export async function participantVoiceRoutes(app: App, ctx: RouteContext): Promise<void> {
+  /**
+   * Speech to text for one field, nothing else (D-239): the "Other" entry of a choice question
+   * accepts speech, and the words are put in the field for the participant to read, correct and
+   * send. No turn is taken, no message is written and the audio is not kept: what comes back is a
+   * draft, and the answer is whatever the participant then sends. The call is budgeted and in the
+   * ledger like any transcription; it is held to the recorded-voice switch and its rate limit.
+   */
+  app.post(
+    "/p/session/transcribe",
+    {
+      ...guard.participant({ config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }),
+      schema: { hide: true },
+    },
+    async (req) => {
+      const p = participant(req);
+      const enabled = await ctx.services.participant.voiceAllowed(p.companyId, p.sessionId, "recorded");
+      if (!enabled) throw new AppError("feature_disabled", "Voice answers are turned off");
+
+      const file = await readAudio(req);
+      const bytes = await file.toBuffer();
+      const caller = await ctx.callers.forCompany(p.companyId);
+      const languages = speechLanguages(await ctx.attachments.languageFor(p.sessionId));
+      let transcript;
+      try {
+        transcript = await caller.transcribe(
+          { companyId: p.companyId, sessionId: p.sessionId, ref: { type: "session", id: p.sessionId } },
+          {
+            data: new Uint8Array(bytes),
+            mime: file.mimetype,
+            filename: file.filename || "recording.webm",
+            languages,
+          },
+        );
+      } catch (err) {
+        if (err instanceof UnsupportedAudioError) {
+          throw new AppError(
+            "validation",
+            "This browser's recording could not be read here; please type your answer instead",
+          );
+        }
+        if (err instanceof ProviderError && err.code === "unsupported") {
+          throw new AppError(
+            "provider_error",
+            "Voice answers need a transcription model, which is not configured yet",
+          );
+        }
+        throw err;
+      }
+      const text = transcript.text.trim().slice(0, 2000);
+      if (text.length === 0) throw new AppError("validation", "I could not hear anything in that recording");
+      return { text };
+    },
+  );
+
   app.post(
     "/p/session/voice-turns",
     {
