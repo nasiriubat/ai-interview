@@ -66,6 +66,22 @@ export const IssueDetectionSchema = z.object({
   mvpChallenge: z.boolean().default(false),
 });
 
+/**
+ * What a finished specification must hold before the interview may close (D-191). Checked in code
+ * from the recorded facts; each gap becomes a finding the interviewer raises as a question.
+ */
+export const CompletenessSchema = z.object({
+  /** Fewest functional requirements a finished specification may have. */
+  minRequirements: z.number().int().min(0).max(50).default(3),
+  /** Sections that must hold at least one recorded field. */
+  requiredSections: z.array(z.string()).default(["overview", "users", "functional"]),
+  /** How many times the completeness check may send the interview back for more. */
+  maxAsks: z.number().int().min(0).max(5).default(2),
+  /** Whether a requirement without an acceptance criterion is a gap. */
+  requireAcceptance: z.boolean().default(true),
+});
+export type Completeness = z.infer<typeof CompletenessSchema>;
+
 export const ChainMappingSchema = z.record(z.string(), z.string());
 
 /** The template is the whole definition of an interview type. The engine reads nothing else. */
@@ -84,6 +100,7 @@ export const InterviewTemplateSchema = z.object({
   adaptivity: AdaptivitySchema.prefault({}),
   widgetPolicy: WidgetPolicySchema.prefault({}),
   issueDetection: IssueDetectionSchema.prefault({}),
+  completeness: CompletenessSchema.prefault({}),
   outputs: z.array(FactKindSchema).min(1),
   analysisEnabled: z.boolean().default(false),
   chainToKey: z.string().nullable().default(null),
