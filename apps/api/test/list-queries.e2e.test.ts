@@ -315,6 +315,87 @@ suite("staff list queries (D-79)", () => {
     });
   });
 
+  describe("/campaigns/:id/invitations (D-360)", () => {
+    interface I {
+      id: string;
+      email: string | null;
+      status: string;
+    }
+    type R = Page<"invitations", I>;
+    const emails = ["amy", "bob", "cleo", "dan", "eve"].map((n) => `${n}-${tag}@acme.io`);
+    const statuses = ["pending", "sent", "opened", "bound", "revoked"];
+    let invitedCampaign = "";
+    const url = (qs: string) => `/campaigns/${invitedCampaign}/invitations?${qs}`;
+
+    beforeAll(async () => {
+      invitedCampaign = (
+        await world.db.campaign.create({
+          data: {
+            companyId: world.companyId,
+            templateId: world.templateId,
+            name: `Invited ${tag}`,
+            status: "open",
+            participationMode: "identified",
+            linkTokenHash: randomBytes(16).toString("hex"),
+            createdById: adminId,
+          },
+        })
+      ).id;
+      for (const [i, email] of emails.entries()) {
+        await world.db.invitation.create({
+          data: {
+            companyId: world.companyId,
+            campaignId: invitedCampaign,
+            email,
+            emailHash: `hash-${tag}-${i}`,
+            tokenHash: `token-${tag}-${i}`,
+            status: statuses[i]!,
+            expiresAt: new Date("2030-01-01"),
+            createdAt: new Date(2026, 0, 1 + i),
+          },
+        });
+      }
+    });
+
+    it("pages with a total that counts the filtered set, in creation order by default", async () => {
+      const first = (await get(url("limit=2"))).json<R>();
+      expect(first.invitations.map((i) => i.email)).toEqual(emails.slice(0, 2));
+      expect(first).toMatchObject({ total: 5, limit: 2, offset: 0 });
+      const last = (await get(url("limit=2&offset=4"))).json<R>();
+      expect(last.invitations.map((i) => i.email)).toEqual([emails[4]]);
+    });
+
+    it("filters by status, searches the address case-insensitively and sorts both ways", async () => {
+      const opened = (await get(url("status=opened"))).json<R>();
+      expect(opened.invitations.map((i) => i.email)).toEqual([emails[2]]);
+      expect(opened.total).toBe(1);
+      const found = (await get(url(`q=CLEO-${tag}`))).json<R>();
+      expect(found.invitations.map((i) => i.email)).toEqual([emails[2]]);
+      expect((await get(url("q=nobody-here"))).json<R>().total).toBe(0);
+      const desc = (await get(url("sort=email&dir=desc&limit=1"))).json<R>();
+      expect(desc.invitations[0]?.email).toBe(emails[4]);
+    });
+
+    it("never lets a member find or order by an address it is not shown", async () => {
+      const all = (await get(url(""), member)).json<R>();
+      expect(all.invitations.every((i) => i.email === null)).toBe(true);
+      expect(all.total).toBe(5);
+      const probe = (await get(url(`q=amy-${tag}`), member)).json<R>();
+      expect(probe).toMatchObject({ invitations: [], total: 0 });
+      const byEmail = (await get(url("sort=email&dir=desc"), member)).json<R>();
+      const byCreation = (await get(url("sort=createdAt&dir=desc"), member)).json<R>();
+      expect(byEmail.invitations.map((i) => i.id)).toEqual(byCreation.invitations.map((i) => i.id));
+    });
+
+    it("answers 400 to an unknown sort or status and 404 to another tenant's campaign", async () => {
+      expect((await get(url("sort=tokenHash"))).statusCode).toBe(400);
+      expect((await get(url("status=exploded"))).statusCode).toBe(400);
+      expect((await get(url(`q=${"x".repeat(201)}`))).statusCode).toBe(400);
+      const cross = await get(`/campaigns/${otherCampaignId}/invitations?q=amy`);
+      expect(cross.statusCode).toBe(404);
+    });
+  });
+
   describe("/campaigns/:id/sessions", () => {
     interface S {
       id: string;

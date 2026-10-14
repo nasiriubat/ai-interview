@@ -7,9 +7,7 @@ import {
   ArrowUpIcon,
   CalendarRangeIcon,
   Columns3Icon,
-  InboxIcon,
   SearchIcon,
-  SearchXIcon,
   XIcon,
 } from "lucide-react";
 import * as React from "react";
@@ -27,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Illustration, type IllustrationName } from "@/components/ui/illustrations";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -79,7 +78,10 @@ export interface DataTableEmpty {
   description?: string;
   /** What gets the first row in: a link or button. */
   action?: React.ReactNode;
+  /** Superseded by `illustration`; kept for pages that pass an icon. */
   icon?: React.ReactNode;
+  /** One of the kit's inline illustrations (D-392). Default: the empty inbox. */
+  illustration?: IllustrationName;
 }
 
 interface SelectionApi {
@@ -597,7 +599,7 @@ export function DataTable({
         </div>
 
         {!error && !loading && rows.length > 0 ? (
-          <div className="border-t px-3 py-2.5">
+          <div className="border-t px-3 py-2.5 empty:hidden">
             <Pagination
               page={page.page}
               limit={page.limit}
@@ -627,13 +629,13 @@ function EmptyBody({
   const k = t.kit.table;
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-      <span className="bg-accent text-accent-foreground grid size-10 place-items-center rounded-full">
-        {filtered ? (
-          <SearchXIcon className="size-5" aria-hidden="true" />
-        ) : (
-          (empty?.icon ?? <InboxIcon className="size-5" aria-hidden="true" />)
-        )}
-      </span>
+      {empty?.icon && !filtered && !empty.illustration ? (
+        <span className="bg-accent text-accent-foreground grid size-10 place-items-center rounded-full">
+          {empty.icon}
+        </span>
+      ) : (
+        <Illustration name={filtered ? "search" : (empty?.illustration ?? "inbox")} className="w-32" />
+      )}
       <div>
         <p className="text-foreground text-sm font-medium">
           {filtered ? k.noMatchesTitle : (empty?.title ?? k.emptyTitle)}

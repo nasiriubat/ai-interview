@@ -1,6 +1,6 @@
 "use client";
 
-import { MicIcon, PaperclipIcon, SendHorizontalIcon, SquareIcon, XIcon } from "lucide-react";
+import { AlertCircleIcon, MicIcon, PaperclipIcon, SendHorizontalIcon, SquareIcon, XIcon } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -213,7 +213,7 @@ export function Composer({
             rows={1}
             autoFocus={autoFocus && !voiceFirst}
             placeholder={s.composerPlaceholder}
-            className="max-h-40 min-h-11 flex-1 resize-none border-0 bg-transparent text-base shadow-none hover:shadow-none focus-visible:shadow-none"
+            className="max-h-40 min-h-11 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 text-base placeholder:text-sm shadow-none hover:shadow-none focus-visible:shadow-none"
             enterKeyHint={coarse ? "enter" : "send"}
             aria-describedby={hintOpen ? hintId : undefined}
             disabled={disabled}
@@ -270,8 +270,12 @@ export function Composer({
         </p>
       ) : null}
       {recorder.problem ? (
-        <p className="text-destructive text-xs" role="alert">
-          {recorderProblemMessage(recorder.problem)}
+        <p
+          className="bg-destructive-soft text-destructive-soft-foreground flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm leading-snug"
+          role="alert"
+        >
+          <AlertCircleIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span>{recorderProblemMessage(recorder.problem)}</span>
         </p>
       ) : null}
       {recorder.maxedOut ? (

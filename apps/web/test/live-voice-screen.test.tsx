@@ -274,7 +274,8 @@ describe("LiveVoiceScreen", () => {
 
   it("starts no animation of its own under reduced motion: spinners are motion-safe only", () => {
     render(<LiveVoiceScreen {...props({ live: controller({ status: "connecting" }) })} />);
-    const icon = screen.getAllByRole("status")[0]!.querySelector("svg")!;
+    // The state icon is the large one in the orb above the phase word.
+    const icon = screen.getByRole("dialog").querySelector("span[aria-hidden='true'] svg")!;
     expect(icon.getAttribute("class")).toContain("motion-safe:animate-spin");
     expect(icon.getAttribute("class")).not.toMatch(/(^|\s)animate-spin/);
   });

@@ -4,91 +4,137 @@ import { ArchiveIcon, CopyIcon, ExternalLinkIcon, PencilIcon, RocketIcon } from 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { Flash, useAction } from "@/components/admin/Flash";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { IconButton } from "@/components/admin/IconButton";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { notify } from "@/components/common/notify";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { TemplateRecord } from "@/lib/api/schemas";
 
-export function TemplateActions({ template }: { template: TemplateRecord }): React.JSX.Element {
-  const router = useRouter();
-  const action = useAction();
+/**
+ * The primary action of a template page (D-363): publish a draft, or edit a published template of
+ * the organization. A built-in template is the platform's, so it has none.
+ */
+export function TemplatePrimaryAction({
+  template,
+  canManage,
+}: {
+  template: TemplateRecord;
+  canManage: boolean;
+}): React.JSX.Element | null {
   const s = t.admin.templates;
-  const isPlatform = !template.companyId;
+  const router = useRouter();
+  const [busy, setBusy] = React.useState(false);
+  if (!canManage || !template.companyId) return null;
+  if (template.status === "published") {
+    return (
+      <Button asChild>
+        <Link href={`/admin/templates/${template.id}/edit`}>
+          <PencilIcon aria-hidden="true" /> {s.edit}
+        </Link>
+      </Button>
+    );
+  }
+  const publish = (): void => {
+    setBusy(true);
+    staffClient.templates
+      .publish(template.id)
+      .then(() => {
+        notify.success(s.published);
+        router.refresh();
+      })
+      .catch((e: unknown) => {
+        notify.error(e, { retry: publish });
+      })
+      .finally(() => {
+        setBusy(false);
+      });
+  };
   return (
-    <div className="grid gap-2">
-      <div className="flex flex-wrap gap-2">
-        {!isPlatform ? (
-          <Button asChild variant="outline">
-            <Link href={`/admin/templates/${template.id}/edit`}>
-              <PencilIcon /> {s.edit}
-            </Link>
-          </Button>
-        ) : null}
-        <Button asChild variant="outline">
-          <Link href={`/admin/templates/new?copyFrom=${template.id}`}>
-            <CopyIcon /> {s.copy}
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <a href={`/api/preview/${template.id}`} target="_blank" rel="noopener">
-            <ExternalLinkIcon /> {s.preview}
-          </a>
-        </Button>
-        {template.status !== "published" && !isPlatform ? (
-          <Button
-            disabled={action.busy}
-            onClick={() => {
-              void action.run(async () => {
-                await staffClient.templates.publish(template.id);
-                router.refresh();
-              }, s.published);
-            }}
-          >
-            <RocketIcon /> {s.publish}
-          </Button>
-        ) : null}
-        {template.status !== "archived" && !isPlatform ? (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" disabled={action.busy}>
-                <ArchiveIcon /> {s.archive}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{s.archive}</AlertDialogTitle>
-                <AlertDialogDescription>{template.name}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t.app.cancel}</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    void action.run(async () => {
-                      await staffClient.templates.archive(template.id);
-                      router.refresh();
-                    }, s.archived);
-                  }}
-                >
-                  {t.app.confirm}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        ) : null}
-      </div>
-      <Flash flash={action.flash} />
-    </div>
+    <Button loading={busy} onClick={publish}>
+      <RocketIcon aria-hidden="true" /> {s.publish}
+    </Button>
+  );
+}
+
+/** The quieter actions, icon-only with tooltips: edit (draft), copy, preview, and archive (asks first). */
+export function TemplateSecondaryActions({
+  template,
+  canManage,
+}: {
+  template: TemplateRecord;
+  canManage: boolean;
+}): React.JSX.Element {
+  const s = t.admin.templates;
+  const router = useRouter();
+  const [busy, setBusy] = React.useState(false);
+  const [archiving, setArchiving] = React.useState(false);
+  const own = Boolean(template.companyId);
+
+  return (
+    <>
+      {canManage && own && template.status !== "published" ? (
+        <IconButton
+          label={s.edit}
+          variant="outline"
+          size="icon"
+          icon={<PencilIcon />}
+          href={`/admin/templates/${template.id}/edit`}
+        />
+      ) : null}
+      {canManage ? (
+        <IconButton
+          label={s.copy}
+          variant="outline"
+          size="icon"
+          icon={<CopyIcon />}
+          href={`/admin/templates/new?copyFrom=${template.id}`}
+        />
+      ) : null}
+      <IconButton
+        label={s.previewLabel}
+        variant="outline"
+        size="icon"
+        icon={<ExternalLinkIcon />}
+        href={`/api/preview/${template.id}`}
+        external
+      />
+      {canManage && own && template.status !== "archived" ? (
+        <IconButton
+          label={s.archive}
+          variant="outline"
+          size="icon"
+          icon={<ArchiveIcon />}
+          disabled={busy}
+          onClick={() => {
+            setArchiving(true);
+          }}
+        />
+      ) : null}
+      <ConfirmDialog
+        open={archiving}
+        onOpenChange={setArchiving}
+        title={s.archiveTitle(template.name)}
+        description={<p>{s.archiveBody}</p>}
+        confirmLabel={s.archiveConfirm}
+        pending={busy}
+        onConfirm={() => {
+          setBusy(true);
+          staffClient.templates
+            .archive(template.id)
+            .then(() => {
+              notify.success(s.archived);
+              router.refresh();
+            })
+            .catch((e: unknown) => {
+              notify.error(e);
+            })
+            .finally(() => {
+              setBusy(false);
+            });
+        }}
+      />
+    </>
   );
 }
