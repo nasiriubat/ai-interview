@@ -6,6 +6,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { buildEntries } from "@/components/admin/shell/CommandPalette";
 import { parseSidebar, sidebarCookie } from "@/components/admin/shell/sidebar-state";
+import { BrandingProvider } from "@/components/common/Branding";
 import { notify, TOAST_MS } from "@/components/common/notify";
 import type { Me } from "@/lib/api/schemas";
 
@@ -68,7 +69,35 @@ describe("AdminShell", () => {
     const nav = screen.getByRole("navigation", { name: "Main navigation" });
     expect(within(nav).getByRole("link", { name: "Campaigns" })).toBeInTheDocument();
     expect(document.cookie).toContain("aidp-sidebar=collapsed");
-    expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+    // No letter tile (D-430): with no logo the collapsed sidebar's top is the expand button, the
+    // only one on the page, and focus moved to it from the toggle that went away.
+    const aside = screen.getByRole("complementary", { name: "Sidebar" });
+    const expand = within(aside).getByRole("button", { name: "Expand sidebar" });
+    expect(screen.getAllByRole("button", { name: "Expand sidebar" })).toHaveLength(1);
+    expect(expand).toHaveFocus();
+    expect(within(aside).queryByText("D")).toBeNull();
+    await user.click(expand);
+    expect(document.cookie).toContain("aidp-sidebar=expanded");
+    expect(within(aside).getByRole("link", { name: "Discovery" })).toHaveAttribute("href", "/admin");
+  });
+
+  it("shows the platform's logo instead of the name, expanded and collapsed (D-430)", async () => {
+    const user = userEvent.setup();
+    render(
+      <BrandingProvider value={{ productName: "Askel", logoUrl: "/api/branding/logo?v=1" }}>
+        <AdminShell me={me()}>
+          <p>page</p>
+        </AdminShell>
+      </BrandingProvider>,
+    );
+    const aside = screen.getByRole("complementary", { name: "Sidebar" });
+    const link = within(aside).getByRole("link", { name: "Askel" });
+    expect(within(link).getByRole("img", { name: "Askel" })).toHaveAttribute("src", "/api/branding/logo?v=1");
+    await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
+    // Collapsed, the logo stays and the top bar keeps the expand toggle.
+    expect(within(aside).getByRole("img", { name: "Askel" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Expand sidebar" })).toHaveLength(1);
+    expect(within(aside).queryByRole("button", { name: "Expand sidebar" })).toBeNull();
   });
 
   it("starts collapsed when the cookie said so", () => {

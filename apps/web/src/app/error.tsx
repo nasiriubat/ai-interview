@@ -3,6 +3,7 @@
 import Link from "next/link";
 import * as React from "react";
 import { AuthShell } from "@/components/common/AuthShell";
+import { useBranding } from "@/components/common/Branding";
 import { StateView } from "@/components/common/StateView";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
@@ -19,6 +20,7 @@ export default function GlobalError({
     console.error(error);
   }, [error]);
   const s = t.kit.states;
+  const { productName } = useBranding();
   return (
     <AuthShell variant="centered">
       <StateView
@@ -36,7 +38,7 @@ export default function GlobalError({
               {t.app.retry}
             </Button>
             <Button asChild variant="outline">
-              <Link href="/">{t.app.name}</Link>
+              <Link href="/">{productName}</Link>
             </Button>
           </>
         }

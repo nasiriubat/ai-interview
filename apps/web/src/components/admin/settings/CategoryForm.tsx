@@ -12,6 +12,7 @@ import {
   smtpDraftErrors,
   type SmtpDraft,
 } from "./EmailPanel";
+import { LogoPanel } from "./LogoPanel";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { useDirty } from "@/components/common/DirtyGuard";
 import { SaveBarView } from "@/components/form/Form";
@@ -221,6 +222,8 @@ export function CategoryForm({
         )}
       </div>
       <Flash flash={action.flash} />
+      {/* The site logo is platform-wide and the operator's (D-434): only that scope shows it. */}
+      {category === "branding" && scope === "platform" && operator ? <LogoPanel /> : null}
       {smtpPanel ? (
         <EmailPanel
           scope={scope}

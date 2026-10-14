@@ -1,27 +1,15 @@
 import { CheckIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
+import { ProductMark } from "@/components/common/Branding";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { ThemeSwitch } from "@/components/common/ThemeSwitch";
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
 
-/** The product mark: the same tile the landing page and the sidebar use. */
+/** The product mark (D-430): the platform's logo, or its name when none is uploaded. */
 export function BrandMark({ onBrand = false }: { onBrand?: boolean }): React.JSX.Element {
-  return (
-    <span className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight">
-      <span
-        aria-hidden="true"
-        className={cn(
-          "grid size-8 place-items-center rounded-lg text-sm font-bold",
-          onBrand ? "bg-white/15 text-white ring-1 ring-white/30" : "bg-brand-gradient text-brand-text",
-        )}
-      >
-        D
-      </span>
-      <span className={onBrand ? "text-white" : "text-foreground"}>{t.app.name}</span>
-    </span>
-  );
+  return <ProductMark onBrand={onBrand} />;
 }
 
 /**
@@ -53,7 +41,7 @@ export function AuthShell({
     return (
       <div className="bg-background flex min-h-dvh flex-col">
         <header className="flex items-center justify-between gap-3 px-5 py-4 sm:px-8">
-          <Link href="/" aria-label={t.app.name} className="rounded-md">
+          <Link href="/" className="rounded-md">
             <BrandMark />
           </Link>
           {controls}
@@ -72,7 +60,7 @@ export function AuthShell({
           className="absolute -right-24 -bottom-24 size-[28rem] rounded-full bg-white/[0.06]"
         />
         <div aria-hidden="true" className="absolute -top-20 -left-16 size-72 rounded-full bg-white/[0.05]" />
-        <Link href="/" aria-label={t.app.name} className="relative w-fit rounded-md">
+        <Link href="/" className="relative w-fit rounded-md">
           <BrandMark onBrand />
         </Link>
         <div className="relative max-w-md">
@@ -97,7 +85,7 @@ export function AuthShell({
       </aside>
       <div className="flex min-h-dvh flex-col lg:min-h-0">
         <header className="flex items-center justify-between gap-3 px-5 py-4 sm:px-8">
-          <Link href="/" aria-label={t.app.name} className="rounded-md lg:invisible lg:pointer-events-none">
+          <Link href="/" className="rounded-md lg:invisible lg:pointer-events-none">
             <BrandMark />
           </Link>
           {controls}

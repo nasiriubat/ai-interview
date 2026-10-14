@@ -16,12 +16,15 @@ import type { Me } from "@/lib/api/schemas";
 export function TopBar({
   me,
   collapsed,
+  toggleInSidebar = false,
   onToggleSidebar,
   onOpenDrawer,
   onOpenSearch,
 }: {
   me: Me | null;
   collapsed: boolean;
+  /** The collapsed sidebar shows the expand button itself (it has no logo to show), so this bar does not repeat it. */
+  toggleInSidebar?: boolean;
   onToggleSidebar: () => void;
   onOpenDrawer: () => void;
   onOpenSearch: () => void;
@@ -39,13 +42,15 @@ export function TopBar({
       <div className="lg:hidden">
         <IconButton label={k.openMenu} icon={<MenuIcon />} onClick={onOpenDrawer} />
       </div>
-      <div className="hidden lg:block">
-        <IconButton
-          label={collapsed ? k.expand : k.collapse}
-          icon={collapsed ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
-          onClick={onToggleSidebar}
-        />
-      </div>
+      {toggleInSidebar ? null : (
+        <div className="hidden lg:block" data-sidebar-toggle="">
+          <IconButton
+            label={collapsed ? k.expand : k.collapse}
+            icon={collapsed ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
+            onClick={onToggleSidebar}
+          />
+        </div>
+      )}
       <Breadcrumbs className="flex-1" />
       <button
         type="button"
