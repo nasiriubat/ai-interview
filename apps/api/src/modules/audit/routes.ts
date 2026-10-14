@@ -1,10 +1,9 @@
-import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
-import { AuditList, AuditListQuery } from "./service.js";
 import { listQuery } from "../../lib/pagination.js";
+import { AuditList, AuditListQuery } from "./service.js";
 
 /** The export takes the list's search, sort and filters, and no window: it is the whole result. */
 const AuditExportQuery = listQuery(AuditList).omit({ limit: true, offset: true });
@@ -21,7 +20,10 @@ export async function auditRoutes(app: App, ctx: RouteContext): Promise<void> {
    */
   app.get(
     "/audit.csv",
-    { ...guard.admin({ config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }), schema: { querystring: AuditExportQuery } },
+    {
+      ...guard.admin({ config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }),
+      schema: { querystring: AuditExportQuery },
+    },
     async (req, reply) => {
       const out = await ctx.services.audit.exportCsv(req.companyId, req.query);
       await ctx.services.audit.record(req.companyId, {
@@ -41,5 +43,3 @@ export async function auditRoutes(app: App, ctx: RouteContext): Promise<void> {
     },
   );
 }
-
-void z;

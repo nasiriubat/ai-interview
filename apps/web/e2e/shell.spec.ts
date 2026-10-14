@@ -52,7 +52,8 @@ for (const path of PAGES) {
     if (width >= 1024) {
       const box = await page.locator("main#main").boundingBox();
       const panel = await page.locator("main#main").evaluate((m) => {
-        const card = m.parentElement as HTMLElement;
+        const card = m.parentElement;
+        if (!card) throw new Error("main has no parent");
         const r = card.getBoundingClientRect();
         return { left: r.left, right: r.right };
       });
