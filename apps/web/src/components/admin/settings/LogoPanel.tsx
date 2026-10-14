@@ -102,12 +102,17 @@ export function LogoPanel(): React.JSX.Element {
         <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label={s.current}>
           {(
             [
-              ["light", s.onLight, "border-border bg-white"],
-              ["dark", s.onDark, "border-transparent bg-neutral-900"],
+              ["light", s.onLight, "ring-border bg-white"],
+              ["dark", s.onDark, "ring-transparent bg-neutral-900"],
             ] as const
           ).map(([key, label, surface]) => (
             <figure key={key} className="grid gap-1.5">
-              <div className={cn("flex h-20 items-center justify-center rounded-md border px-4", surface)}>
+              <div
+                className={cn(
+                  "flex h-20 items-center justify-center rounded-md px-4 ring-1 ring-inset",
+                  surface,
+                )}
+              >
                 <img
                   src={url}
                   alt={key === "light" ? branding.productName : ""}

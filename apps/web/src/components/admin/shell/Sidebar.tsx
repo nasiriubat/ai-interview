@@ -39,7 +39,9 @@ export function Brand({
         <img
           src={branding.logoUrl}
           alt={branding.productName}
-          className="block max-h-8 w-auto max-w-10 object-contain"
+          // A wordmark shrunk to the rail is unreadable; its left square (where a symbol sits in
+          // most logos) at full height reads, so the rail shows that crop.
+          className="block size-8 object-cover object-left"
         />
       ) : (
         <ProductMark branding={branding} />
