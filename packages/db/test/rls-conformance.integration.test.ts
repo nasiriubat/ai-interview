@@ -176,6 +176,15 @@ const factories: Record<string, Factory> = {
       data: { companyId: w.companyId, opportunityId: w.opportunityId, factId: fact.id, snippet: tag },
     });
   },
+  ClusterEdit: (db, w, tag) =>
+    db.clusterEdit.create({
+      data: {
+        companyId: w.companyId,
+        campaignId: w.campaignId,
+        op: "merge",
+        payload: { op: "merge", anchors: [[tag], [`${tag}-2`]] },
+      },
+    }),
   Report: (db, w, tag) =>
     db.report.create({
       data: {

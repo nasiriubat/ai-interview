@@ -1,6 +1,14 @@
+import { compareDepartments, type AnalysisFact } from "@aidp/ai";
 import type { AnalysisService, SettingsService } from "@aidp/core";
 import { tenantBatch } from "@aidp/db";
-import { rankScore, toListResponse, type ListEnvelope } from "@aidp/shared";
+import {
+  FactSchema,
+  rankScore,
+  toListResponse,
+  type DepartmentComparison,
+  type ListEnvelope,
+  type SolutionClass,
+} from "@aidp/shared";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { AppError, notFound } from "../../lib/errors.js";
@@ -190,6 +198,69 @@ export class AnalysisQueryService {
           }
         : null,
     };
+  }
+
+  /**
+   * The comparison of departments for one analysis, under the anonymity rule (FR-17). Computed on
+   * read from the facts the analysis was made of, with the k and the switch in force now, so a
+   * change of k takes effect without a re-run and a stored number can never be stale against it.
+   */
+  async departments(companyId: string, role: string, id: string): Promise<DepartmentComparison> {
+    const a = await this.db.analysis.findFirst({
+      where: { id, campaign: { companyId } },
+      include: { opportunities: true },
+    });
+    if (!a) throw notFound("Analysis");
+    if (a.preliminary && role === "member") {
+      const visible = await this.settings.get("analysis.preliminaryVisibleToMembers", [
+        { scope: "tenant", scopeId: companyId },
+      ]);
+      if (!visible) throw new AppError("forbidden", "Preliminary results are not visible to members");
+    }
+    const chain = [
+      { scope: "campaign" as const, scopeId: a.campaignId },
+      { scope: "tenant" as const, scopeId: companyId },
+    ];
+    const [k, enabled] = await Promise.all([
+      this.settings.get("privacy.kAnonymity", chain),
+      this.settings.get("analysis.departmentComparison", chain),
+    ]);
+    if (!enabled) return { shown: false, k, reason: "disabled", departments: [], belowK: 0 };
+    const stored: unknown[] = [];
+    for (const c of Array.isArray(a.clusters) ? (a.clusters as { factIds?: unknown }[]) : [])
+      if (Array.isArray(c.factIds)) stored.push(...(c.factIds as unknown[]));
+    const factIds = [...new Set(stored.filter((x): x is string => typeof x === "string"))];
+    if (factIds.length === 0)
+      return { shown: false, k, reason: "rerun_required", departments: [], belowK: 0 };
+    const rows = await this.db.fact.findMany({
+      where: { id: { in: factIds }, companyId, session: { status: "completed" } },
+      include: { session: { include: { participant: true } } },
+    });
+    const facts: AnalysisFact[] = [];
+    for (const r of rows) {
+      const parsed = FactSchema.safeParse(r.payload);
+      if (!parsed.success) continue;
+      const fields = (r.session.participant?.fields ?? {}) as Record<string, string>;
+      facts.push({
+        id: r.id,
+        sessionId: r.sessionId,
+        participantKey: r.session.participantId ?? r.sessionId,
+        role: fields.role,
+        department: fields.department,
+        fact: parsed.data,
+      });
+    }
+    return compareDepartments({
+      facts,
+      opportunities: a.opportunities.map((o) => ({
+        clusterKey: o.clusterKey,
+        title: o.title,
+        solutionClass: o.solutionClass as SolutionClass,
+        factIds: Array.isArray(o.factIds) ? (o.factIds as string[]) : [],
+      })),
+      k,
+      enabled,
+    });
   }
 
   async diff(companyId: string, id: string, otherId: string): Promise<AnalysisDiff> {

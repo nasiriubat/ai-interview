@@ -132,9 +132,24 @@ export type ClusterStats = z.infer<typeof ClusterStatsSchema>;
 export const OpportunityStatusSchema = z.enum(["new", "shortlisted", "promoted", "dismissed"]);
 export type OpportunityStatus = z.infer<typeof OpportunityStatusSchema>;
 
-/** What an admin may change about a generated opportunity; kept across re-runs by cluster key. */
+/**
+ * Where AI is not the answer (FR-16a): a cluster whose best response is a change of process, or no
+ * change at all. The report section, the results section and the dashboard tile all use this one
+ * predicate so the three can never disagree (blueprint section 0 item 8).
+ */
+export const NOT_AI_CLASSES = ["process", "none"] as const satisfies readonly SolutionClass[];
+export function isNotAi(solutionClass: string): boolean {
+  return (NOT_AI_CLASSES as readonly string[]).includes(solutionClass);
+}
+
+/**
+ * What an admin may change about a generated opportunity. Anchored to the opportunity's evidence
+ * fact ids and re-attached by overlap on a later run, so it survives re-clustering (D-151).
+ * Renaming is a title (and optional summary) override.
+ */
 export const OpportunityOverrideSchema = z.object({
   title: z.string().min(1).max(160).optional(),
+  summary: z.string().min(1).max(1200).optional(),
   solutionClass: SolutionClassSchema.optional(),
   factors: FactorsSchema.partial().optional(),
   note: z.string().max(1000).optional(),
@@ -148,6 +163,7 @@ export const REPORT_SECTIONS = [
   "opportunities",
   "quick_wins_vs_strategic",
   "not_ai",
+  "department_comparison",
   "next_steps",
 ] as const;
 export const ReportSectionSchema = z.enum(REPORT_SECTIONS);
@@ -165,3 +181,99 @@ export const HandoffSchema = z.object({
   evidenceQuotes: z.array(z.string()),
 });
 export type Handoff = z.infer<typeof HandoffSchema>;
+
+/** Most opportunities one merge may combine; more than this is a different decision (D-201). */
+export const MAX_MERGE = 6;
+/** A split makes two or three parts, never more (D-201). */
+export const MAX_SPLIT_PARTS = 3;
+
+/** `POST /analyses/:id/opportunities/merge` */
+export const MergeBodySchema = z.object({
+  opportunityIds: z.array(z.string().min(1)).min(2).max(MAX_MERGE),
+  /** Title of the merged opportunity; defaults to the larger one's. */
+  title: z.string().trim().min(1).max(160).optional(),
+});
+export type MergeBody = z.infer<typeof MergeBodySchema>;
+
+/** `POST /opportunities/:id/split`: a partition of the cluster's fact ids into two or three parts. */
+export const SplitBodySchema = z.object({
+  parts: z
+    .array(z.array(z.string().min(1)).min(1))
+    .min(2)
+    .max(MAX_SPLIT_PARTS),
+});
+export type SplitBody = z.infer<typeof SplitBodySchema>;
+
+/** What a stored cluster edit holds. Rename is an override, not an edit. */
+export const ClusterEditPayloadSchema = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("merge"),
+    /** The member fact ids of each cluster that was merged, as they were when the admin merged. */
+    anchors: z.array(z.array(z.string()).min(1)).min(2),
+    title: z.string().max(160).optional(),
+  }),
+  z.object({
+    op: z.literal("split"),
+    /** All facts of the cluster that was split. */
+    source: z.array(z.string()).min(2),
+    parts: z.array(z.array(z.string()).min(1)).min(2).max(MAX_SPLIT_PARTS),
+  }),
+]);
+export type ClusterEditPayload = z.infer<typeof ClusterEditPayloadSchema>;
+
+/** The split dialog's starting point: the cluster's facts as text, grouped by similarity. */
+export const SplitProposalSchema = z.object({
+  facts: z.array(z.object({ id: z.string(), text: z.string(), part: z.number().int().min(0).max(2) })),
+  parts: z.number().int().min(2).max(MAX_SPLIT_PARTS),
+});
+export type SplitProposal = z.infer<typeof SplitProposalSchema>;
+
+/**
+ * Department comparison (FR-17). A department appears only when at least k participants stand
+ * behind it; smaller ones are pooled into "Other" when the pool itself reaches k, and are
+ * otherwise left out without a name or a number.
+ */
+export const DEPARTMENT_NOT_SHOWN_REASONS = [
+  "disabled",
+  "no_departments",
+  "too_few_eligible",
+  "rerun_required",
+] as const;
+export const DepartmentRowSchema = z.object({
+  /** Display name; null for the pool and for the people who gave none. */
+  name: z.string().nullable(),
+  /** `other` is the pool of departments below k, `unspecified` those who gave none. */
+  kind: z.enum(["department", "other", "unspecified"]),
+  participants: z.number().int().nonnegative(),
+  facts: z.number().int().nonnegative(),
+  minutesPerWeek: z.number().nonnegative(),
+  /** Opportunities at least k of the department's people described, most shared first. */
+  topOpportunities: z.array(
+    z.object({
+      clusterKey: z.string(),
+      title: z.string(),
+      /** Share of this department's participants who described it, 0..1. */
+      share: z.number().min(0).max(1),
+    }),
+  ),
+  /**
+   * Share of this department's participants who described something of each solution class, 0..1.
+   * A class is present only when at least k of them did; an absent class is withheld, not zero.
+   */
+  solutionClassShare: z.object(
+    Object.fromEntries(SOLUTION_CLASSES.map((c) => [c, z.number().min(0).max(1).optional()])) as Record<
+      SolutionClass,
+      z.ZodOptional<z.ZodNumber>
+    >,
+  ),
+});
+export type DepartmentRow = z.infer<typeof DepartmentRowSchema>;
+export const DepartmentComparisonSchema = z.object({
+  shown: z.boolean(),
+  k: z.number().int().positive(),
+  reason: z.enum(DEPARTMENT_NOT_SHOWN_REASONS).optional(),
+  departments: z.array(DepartmentRowSchema),
+  /** Departments whose name is withheld, pooled or left out, because fewer than k people stand behind them. */
+  belowK: z.number().int().nonnegative(),
+});
+export type DepartmentComparison = z.infer<typeof DepartmentComparisonSchema>;
