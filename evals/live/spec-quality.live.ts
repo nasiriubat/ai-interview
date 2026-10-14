@@ -144,7 +144,23 @@ async function main(): Promise<void> {
     mergedAway: number;
   }[] = [];
 
+  const skipped: string[] = [];
+  // A spec the cap stops in the middle is dropped whole, and the rest are listed as skipped.
   for (const f of files) {
+    if (spent() >= CAP) {
+      skipped.push(f);
+      continue;
+    }
+    try {
+      await judgeOne(f);
+    } catch (e) {
+      if (!(e instanceof Error) || !e.message.startsWith("cost cap")) throw e;
+      skipped.push(f);
+    }
+  }
+  if (skipped.length) console.warn(`skipped for cost: ${skipped.join(", ")}`);
+
+  async function judgeOne(f: string): Promise<void> {
     const a = JSON.parse(readFileSync(join(DIR!, f), "utf8")) as Artifact;
     const spec = f.replace(/\.json$/, "");
     const { text, participant } = transcriptText(a);
@@ -252,14 +268,14 @@ async function main(): Promise<void> {
     return s.length === 0 ? 0 : s.length % 2 ? (s[m] ?? 0) : ((s[m - 1] ?? 0) + (s[m] ?? 0)) / 2;
   };
   console.log(
-    "| set | specs | requirements | median per spec | grounded | duplicate | over-granular | non-requirement | testable | scope not contradicted | capabilities missed |",
+    "| set | specs | requirements | median per spec | grounded (quote verified) | grounded (as judged) | duplicate | over-granular | non-requirement | testable | scope not contradicted | capabilities missed |",
   );
-  console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+  console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
   for (const r of rows) {
     const missed = r.specs.reduce((n, x) => n + x.missing.length, 0);
     const caps = r.specs.reduce((n, x) => n + x.capabilities, 0);
     console.log(
-      `| ${r.name} | ${r.specs.length} | ${r.s.count} | ${med(r.specs.map((x) => x.score.count))} | ${pct(r.s.groundedRate)} | ${pct(r.s.duplicateRate)} | ${pct(r.s.overGranularRate)} | ${pct(r.s.nonRequirementRate)} | ${pct(r.s.testableRate)} | ${pct(r.s.scopeAccuracy)} | ${missed} of ${caps} |`,
+      `| ${r.name} | ${r.specs.length} | ${r.s.count} | ${med(r.specs.map((x) => x.score.count))} | ${pct(r.s.groundedRate)} | ${pct(r.s.groundedClaimedRate)} | ${pct(r.s.duplicateRate)} | ${pct(r.s.overGranularRate)} | ${pct(r.s.nonRequirementRate)} | ${pct(r.s.testableRate)} | ${pct(r.s.scopeAccuracy)} | ${missed} of ${caps} |`,
     );
   }
 

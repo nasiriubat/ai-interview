@@ -34,7 +34,14 @@ import {
 } from "./live.js";
 import { renderSpecMarkdown } from "./markdown.js";
 import { judgeCandidatePairs } from "./merge.js";
-import { curateRequirements, reqViewOf, type CurationReport } from "./quality.js";
+import {
+  curateRequirements,
+  DEFAULT_DUPLICATE_THRESHOLDS,
+  reqViewOf,
+  requirementSimilarity,
+  type CurationReport,
+  type ReqView,
+} from "./quality.js";
 
 /** What the model returns; the document is assembled from it plus the owner's edits. */
 export const SpecGenerationOutputSchema = z.object({
@@ -102,6 +109,13 @@ export interface SpecGenerationResult {
   failure?: string;
 }
 
+const reqView = (r: SpecDocument["requirements"][number]): ReqView => ({
+  id: r.id,
+  title: r.title,
+  scope: r.scope,
+  acceptance: r.acceptance,
+});
+
 /**
  * The requirements of a version: every one the interview recorded (the owner's scope and reason are
  * authoritative), improved by the model's wording where it wrote one, plus any the model added. A
@@ -126,13 +140,33 @@ export function mergeRequirements(
             scope: s.scope,
             ...(s.reason ? { reason: s.reason } : {}),
             acceptance: m.acceptance.length ? m.acceptance : s.acceptance,
+            // What the quality pass learned about it is the state's, whatever the model echoes.
+            ...(s.evidence ? { evidence: s.evidence } : {}),
+            ...(s.needsConfirmation ? { needsConfirmation: true } : {}),
+            ...(s.mergedFrom?.length ? { mergedFrom: s.mergedFrom } : {}),
           }
         : s,
     );
   }
   // A requirement the model added that the interview never recorded has no quote of the owner
-  // behind it: kept, but flagged for the owner to confirm (D-243).
-  for (const m of fromModel) if (!seen.has(m.id.toUpperCase())) out.push({ ...m, needsConfirmation: true });
+  // behind it. One that restates a recorded requirement is folded into it (its acceptance
+  // criteria are kept, its id goes to mergedFrom); a new one is kept, flagged for the owner to
+  // confirm (D-243).
+  for (const m of fromModel) {
+    if (seen.has(m.id.toUpperCase())) continue;
+    const twin = out.findIndex(
+      (r) => requirementSimilarity(reqView(r), reqView(m)) >= DEFAULT_DUPLICATE_THRESHOLDS.candidate,
+    );
+    const into = twin >= 0 ? out[twin] : undefined;
+    if (into) {
+      const have = new Set(into.acceptance.map((a) => a.trim().toLowerCase()));
+      out[twin] = {
+        ...into,
+        acceptance: [...into.acceptance, ...m.acceptance.filter((a) => !have.has(a.trim().toLowerCase()))],
+        mergedFrom: [...new Set([...(into.mergedFrom ?? []), m.id])],
+      };
+    } else out.push({ ...m, needsConfirmation: true });
+  }
   return out;
 }
 

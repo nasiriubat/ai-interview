@@ -1,0 +1,1873 @@
+{
+  "persona": "nontechnical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Before we get into the nurse workflow, a quick question about where this would run. Hosting affects the design, cost, and privacy rules, since patient information is involved. If you're not sure yet, that's fine too."
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks, that's clear. A cloud account means we can design for managed hosting rather than company servers, which affects cost and the patient-data rules we'll need to cover later.\n\nNow for the problem itself: when a nurse types a note into the patient system, what happens to the spreadsheet step, and who asks for it?"
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "The spreadsheet step is automatically triggered when the nurse saves the ward note in the system — no extra action needed. The ward manager gets an email alert every morning at 7:30 a.m. with a list of patients who have new notes since the previous day, including a link to view the note and download the updated spreadsheet. If a nurse forgets to enter a note, the system sends a reminder to them and their team leader at 10 a.m. the next day."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "That's helpful. The automatic spreadsheet step and the 7:30 a.m. digest tell me a lot about how the ward works.\n\nWhich tools or systems does this need to connect to, if any? It matters because each connection adds data and security work. If you're not sure, I'll assume none for now."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "It needs to connect to the existing patient management system — which we call InHealth — and the central reporting spreadsheet system, which is called ShareSheet. I don’t know the technical details of how they talk to each other, but I do know the nurse enters the note in InHealth, and the same note must appear in ShareSheet by 8 a.m. the next day. If one connection fails, the system should flag it to the IT team via email, but the nurse can still enter the note — we’d rather have the note than lose it because of a connection issue."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "The participant has already answered the systems question, so I'm recording that answer rather than asking again.\n\nSent: InHealth to ShareSheet, with the note in ShareSheet by 8 a.m. the next day. If a connection fails, the nurse can still save the note, and IT is emailed.\n\nNext, I'd like to know who besides the ward manager relies on ShareSheet. Who opens it, and for what?"
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "The care coordinator opens ShareSheet every morning to plan the day’s tasks, like who needs medication changes or physiotherapy. The regional quality team downloads it weekly to check if all notes are being entered within 24 hours — they flag any ward that misses the deadline twice in a row. The finance supervisor also uses it once a month to match nurse hours with documented patient interactions. If a nurse enters a note after 8 a.m., the spreadsheet still gets updated, but the quality team logs it as a delay."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "Thanks for the detail on who else uses ShareSheet. Those three uses (the care coordinator's morning planning, the quality team's 24-hour check, and the finance supervisor's monthly hours match) are important, and I'll come back to them.\n\nNext, who will build this? It shapes how the specification and plan are written. If you're not sure, we'll assume a coding agent."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": "I don’t know who exactly will build it, but I expect it will be a team from the hospital’s IT department — specifically, the clinical systems team, who’ve worked on InHealth before. They’ll need to work with the ward managers and nurses to test it, but they’ll handle the actual build. If we go with a coding agent, I’d want it to be someone with experience in healthcare systems, not just general software, because the workflow has to match how nurses actually work on the ward."
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "The participant has answered the builder question: the in-house clinical systems team, with healthcare experience, working with ward managers and nurses for testing. Recording that now.\n\nNext: how should a missed note be treated after 10 a.m.? Does it stay open until the nurse enters it, or does it escalate to the team leader or quality team?"
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": "If a note isn’t entered by 10 a.m. the next day, it stays in the system as a pending task for the nurse, but the team leader gets an alert at 10:15 a.m. with the nurse’s name and patient full name. The alert includes a direct link to the note entry page. If the note still isn’t entered by 11 a.m., the system logs it as a delay in the quality team’s weekly report — but only if it's the second time in a week for that nurse. We don’t want to over-escalate for one missed note, but we do want to track patterns."
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "Thanks for the escalation detail. A missed note goes to the team leader at 10:15 a.m., and a repeat in one week gets logged for the quality team.\n\nOne question for the build team: what technologies do they usually work with? A stack they already know is worth more than a slightly better one they'd have to learn. If you're not sure, we'll record \"unknown\" for now."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "I don’t know the exact tech stack they use, but I do know they’ve worked with InHealth before, which runs on a web-based platform using a mix of JavaScript and .NET, and they’ve used secure internal APIs to connect systems in the past. I’d recommend sticking with those tools — it’s faster, safer, and they already know how to maintain them. If the build team suggests something new, I’d want to see a clear reason why it’s better, not just a trend."
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "The team already works with JavaScript and .NET on InHealth, and they use secure internal APIs. That's a strong signal, so we'll build on those tools."
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "Good — I’ll make sure the build team uses JavaScript and .NET, and the secure internal APIs they already know. That way, the system fits in with InHealth and stays within the hospital’s security protocols. I’d also want them to use the same login system as InHealth — no extra passwords for nurses. If there’s any delay in syncing the note to ShareSheet, the system should log it with a timestamp and alert the IT team within 5 minutes, so we don’t lose track of it."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "Thanks for the login and sync details. Noted: same login as InHealth, and a sync delay gets logged with a timestamp and reported to IT within 5 minutes.\n\nWhen does version one need to exist? This shapes how much we include in the first release. If you're not sure, we'll assume no fixed date."
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": "I’d say version one needs to be ready by the start of the next quarterly review cycle — that’s in six weeks. We need it in time for the ward managers to show it during their feedback session with the clinical lead. That means the build team has to finish the core functionality — note entry, sync to ShareSheet by 8 a.m., and the 10:15 a.m. alert — by week five. We can add the quality team’s weekly logging in version two, as long as the core workflow works and the nurses can use it without extra steps."
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Got it: version one is due in six weeks, with core functionality done by week five. That means note entry, sync to ShareSheet by 8 a.m., and the 10:15 a.m. alert come first, and the quality team's weekly logging moves to version two."
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "Yes, that’s right. The core pieces — the nurse entering the note, it syncing to ShareSheet by 8 a.m., and the team leader getting the 10:15 a.m. alert — must work perfectly by week five. If those fail, we delay the whole release. The quality team’s logging of repeat delays can wait — we’re still protecting the nurse workflow, and we’re not risking an early launch just to add a feature. I’d rather have a clean, simple first version than a messy one with extra parts."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "Is there a budget range for this? It helps decide whether to build in-house or buy an existing tool. If you're not sure, we'll leave it undecided for now."
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "Understood, no budget range for now. We'll leave that undecided and keep the build plan flexible.\n\nNext, the core pieces need to work perfectly by week five. What is the most important thing that must be right for a nurse to trust this system?"
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "The most important thing is that the note they type once in InHealth must appear in ShareSheet by 8 a.m. the next day — no exceptions, no delays. If it doesn’t, the care coordinator can’t plan, the quality team flags it, and the nurse gets blamed for something that wasn’t their fault. So the system must be reliable, even if the nurse is on a busy shift — if they save the note, it must go through. I’d rather the system show a clear error message than silently fail. And if it does fail, the nurse must know exactly what to do — like retry or contact IT — not just wonder if it worked."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "That's clear: a saved note must reach ShareSheet, and any failure must show a clear message telling the nurse what to do.\n\nRoughly how many nurses will use this at launch? It decides how much capacity we plan for. If you're not sure, we'll assume under 100."
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "I’d say around 80 nurses across the six wards in the region will use it at launch — that’s about 13 to 15 per ward, which matches our current staffing. Each nurse will enter notes on an average of 5 to 8 patients a day, so we’re looking at roughly 400 to 640 note entries daily. The system must handle that load without slowing down, even during morning handover when everyone is logging in at once. If it crashes when the first nurse tries to save a note, we’re not ready to launch."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "Noted: about 80 nurses across six wards, roughly 400 to 640 note entries a day, with peaks at morning handover.\n\nNext, what should happen when the first note is saved and ShareSheet is unreachable? Should the nurse see an error on screen and a prompt to retry, with the note kept until it syncs?"
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "Yes — when the first note is saved and ShareSheet is unreachable, the nurse should see a clear message on screen: “Note saved locally, but not yet sent to ShareSheet. Please check again in 5 minutes.” The note stays in the system on their device, and the system automatically retries every 5 minutes for up to 30 minutes. If it still fails after that, the system shows a second message: “Still unable to send. Please contact IT now.” At the same time, the IT team gets an alert with the nurse’s name, patient ID, and time of failure. The nurse never loses the note, and they know exactly what to do — no guesswork."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "Thanks, the offline retry behavior is clear: a local save, retries every 5 minutes for 30 minutes, then a contact-IT message with an alert to IT.\n\nNext: does this system handle compliance-regulated data? It matters because it changes hosting, data handling, and security requirements. If you're not sure, we'll assume personal data under GDPR."
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": "Yes, it handles personal data under GDPR — all notes contain patient names, medical conditions, and treatment details, so they’re classified as sensitive personal data. That means the system must store and transmit data encrypted, log every access, and allow patients to request their notes be deleted if they ask. The build team must use the hospital’s approved encryption protocols and ensure no data leaves the local cloud region. I don’t know the exact rules around deletion, but I do know the system must be able to permanently remove a note from both InHealth and ShareSheet — and confirm it’s gone — within 72 hours of a request."
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Thanks, that answers the compliance question: sensitive personal data under GDPR, with encryption, access logging, deletion within 72 hours, and data kept inside the local cloud region."
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": "Yes, and I’d add that the system must also prevent nurses from editing a note after 48 hours — once it’s been synced, it’s final, unless a supervisor approves a correction. That’s to keep the audit trail clear and avoid accidental changes. If a nurse needs to correct a note, they must add a new one with a timestamp and explanation, not overwrite the original. The system should flag any edit after 48 hours and send it to the team leader for review."
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "Got it: notes lock after 48 hours, and corrections are added as new timestamped entries, with edits after 48 hours flagged for the team leader.\n\nBefore we go further, I'd like to confirm the problem itself. Who is the primary user of the system beyond the ward manager and nurse? For example, does the care coordinator only read the ShareSheet report?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": "The primary user beyond the nurse and ward manager is the care coordinator — they rely on the ShareSheet report every morning to assign tasks like medication rounds, wound care, and therapy visits. They don’t just read it — they use it to plan the entire day’s workflow, so if a note is missing or delayed, they can’t schedule properly. That’s why it’s critical the note appears by 8 a.m. — if it doesn’t, the care coordinator has to call the nurse to confirm it’s been entered, which wastes time and causes delays in patient care. So the system isn’t just about avoiding double-entry — it’s about keeping the whole day’s plan on track."
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "That's helpful: the care coordinator plans the whole day from ShareSheet, so a missing note delays patient care, not just paperwork.\n\nCan you walk me through the last time a note was missed or delayed? Which steps did the nurse take, and how long did the chase take before the care coordinator had what they needed?"
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": "Last month, a nurse on Ward 3 forgot to enter a note for a patient with a new wound after a morning assessment. The care coordinator didn’t see it in ShareSheet by 8 a.m., so at 8:15 a.m. they called the team leader, who checked the system and found the note wasn’t saved. The team leader then messaged the nurse’s mobile — but she was in a procedure at the time and didn’t see the alert until 9:45 a.m. She entered it then, and the care coordinator got the update by 10 a.m. That meant the wound care nurse didn’t arrive until 11 a.m., an hour late. The delay was only one note, but it disrupted the whole morning plan. The nurse said she didn’t realize it wasn’t in the system because she thought it would sync automatically — which shows how fragile the workflow is if it’s not built right."
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "That example is clear, and it shows the cost: an hour's delay for one wound care visit. Did the team leader have any way to see the note was missing before 8 a.m., or only after the coordinator called?"
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "No, the team leader had no way to see it was missing before 8:15 a.m. — there was no dashboard or alert system at that time. The only way the team leader knew was when the care coordinator called them directly. That meant the team leader had to check InHealth manually, then message the nurse, then wait for a reply. If there had been a simple alert — like a red flag in the team leader’s daily dashboard showing “1 note pending by 8 a.m.” — they could have acted at 7:45 a.m., before the care coordinator even noticed. That’s why the 10:15 a.m. alert is so important — it’s not just for the nurse, it’s for the team leader to catch problems early."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "That's a useful point: an earlier warning for team leaders would have prevented the delay. We'll come back to it when we define the alerts.\n\nLet's move to users. Which roles will use the system, and what is the first thing each one does when they open it? I'll start with nurses: when a nurse opens the system for the first time in a shift, what do they do first?"
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "When a nurse opens InHealth at the start of their shift, the first thing they do is check the “Today’s Notes” dashboard — it shows a list of patients they’re responsible for, with a bold red flag next to any patient who has a missing or overdue note. If there’s a red flag, they click it to open the note entry form immediately. If not, they start assessing patients and enter notes as they go. The system doesn’t require them to do anything else first — no login screen, no prompts — it just loads the dashboard with everything they need for the shift. If they’re new to the system, they get a short video pop-up the first time, but only once."
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Thanks, that's clear for nurses: they open the \"Today's Notes\" dashboard and act on any red flag first.\n\nNow for the ward manager: what do they need to see first when they start their day, and what do they do with it?"
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": "When the ward manager opens the system each morning, the first thing they see is a summary dashboard with three key items: the number of notes entered so far today, how many are overdue (more than 10 a.m.), and a list of nurses who haven’t entered a note yet. If any nurse is flagged, they can click the name to see which patient notes are missing. The manager then sends a quick message through the system to the nurse — no phone calls needed — saying “Hi, just checking in on your notes for Mr. Smith. Thanks!” If a nurse has missed two notes in a row, the manager gets a yellow alert and can schedule a quick 5-minute huddle to check in. The system doesn’t make the manager do anything — it just gives them the facts and the tools to act, fast."
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "Thanks for the ward manager detail. I also found a conflict in the spec: one requirement says the 10:15 a.m. alert goes out with no details, while another says the team leader's 10:15 alert includes specific details. Default: the team leader's 10:15 alert includes the nurse's name, the missing patient, and the time, and FR-12 gets updated to match. That means the team leader can act on it straight away. Keep this default?"
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Thanks, FR-12 will now match FR-8: the team leader's 10:15 a.m. alert includes the nurse's name, the missing patient, and the time.\n\nNext, the care coordinator. When they open ShareSheet in the morning, what is the first thing they look for?"
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": "The first thing the care coordinator looks for is the list of patients who have new notes from the previous day — specifically, any patient with a note marked “urgent” or “new assessment” — because that’s what drives their task planning. They scan the list quickly, then open the full report to check the details of each note, like medication changes, wound care needs, or therapy referrals. If a note is missing, they immediately flag it in the system and send a message to the team leader — but only after checking the time, because if it’s before 8:15 a.m., they wait to see if it comes through. They don’t want to create noise for something that might still be coming. The system doesn’t force them to do anything — it just gives them the data they need to act, fast and accurately."
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "Thanks, that's clear: the care coordinator starts with new notes marked \"urgent\" or \"new assessment\" and waits until 8:15 a.m. before chasing a missing one.\n\nDoes the care coordinator also need to flag or message the team leader from inside the system, or is that done outside it today?"
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "They do it inside the system — that’s the whole point of the new tool. If a note is missing by 8:15 a.m., the care coordinator clicks a button in ShareSheet that says “Notify Team Leader,” and the system sends a pre-filled message: “Hi, Mr. Smith’s note is missing — due by 8 a.m. — please check.” The message goes directly to the team leader’s dashboard, where it shows up as a red alert with the patient name and time. They don’t need to call, text, or email — the system handles the chain. If the note still isn’t entered by 9:30 a.m., the system escalates it to the ward manager automatically. That way, no one misses a beat, and there’s a clear record of who was notified and when."
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "Thanks, that gives a clear picture of the care coordinator's escalation path, including the 9:30 a.m. step up to the ward manager.\n\nLet's move on to user stories. Starting with the nurse: as a nurse, what is the one thing you most want to be able to do when you save a note?"
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": "As a nurse, the one thing I most want to be able to do when I save a note is to know for sure it’s been sent to ShareSheet — no guessing, no checking another system. I want a simple confirmation message: “Note saved and sent to ShareSheet. Next update at 8 a.m. tomorrow.” If it fails, I want to see exactly what went wrong — like “ShareSheet is unreachable — retrying automatically” — and if it still fails after 30 minutes, I want to know how to get help. I don’t want to spend time chasing it, especially during a busy shift. I just want to trust that once I hit save, it’s done."
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "That's a clear nurse goal: confirmation on save, and clear guidance if something fails. Let me capture it as a user story.\n\nFor the care coordinator, the story would be: as a care coordinator, I want to see all of the day's notes in ShareSheet by 8 a.m. so that I can plan medication, wound care, and therapy visits without calling nurses.\n\nDoes that match what they need, or is there something about their planning that I've missed?"
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": "Yes, that’s very close — but I’d add one thing: as a care coordinator, I want to see a clear indicator of which notes are urgent or require immediate action — like a red tag for new assessments, medication changes, or falls — so I can prioritize the most critical patients first. Without that, I’m scanning through the whole list, which takes time and risks missing something important. Also, if a note is missing, I want it to be obvious — not just a blank row, but a red highlight with the patient’s name and the time it was due. That way, I can act fast, without guessing. The system should not make me infer what’s urgent — it should show it."
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "Good addition. I'll update the care coordinator story to include urgent-note marking and red highlighting for missing notes, showing the patient name and due time.\n\nNext, the ward manager. As a ward manager, I want to see which nurses have not yet entered notes so that I can check in with them before the problem reaches the care coordinator. Is that the right goal, or would they want something more?"
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": "Yes, that’s the right goal — but I’d add one key detail: as a ward manager, I want to see not just which nurses haven’t entered notes, but also *which patients* are affected, so I can prioritize based on clinical urgency. If it’s a patient with a new wound or a change in condition, I’ll act faster than if it’s a routine follow-up. The system should show the patient’s name, the note type (e.g., “new assessment”), and the time it was due — not just the nurse’s name. That way, I can decide whether to send a quick message, call the nurse, or step in myself. Without that, I’m guessing, and that slows down the whole team."
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "Thanks, I'll add the patient name, note type, and due time to the ward manager story.\n\nBefore we write it up, one question: when a nurse is flagged, should the ward manager be able to send a message straight from that same view, or is a separate screen better?"
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "Thanks, so the ward manager can message a flagged nurse from the same view. I'll record that with the ward manager story.\n\nWe now have enough user stories to start listing the system's capabilities. Each one becomes a numbered requirement with an acceptance check. Do you want to start with the saving and confirmation behaviour for nurses?"
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": "Yes, let’s start with the nurse’s note-saving behaviour — that’s the heart of the system. The first requirement should be: when a nurse saves a ward note in InHealth, the system must immediately confirm the note was sent to ShareSheet, with a clear message on screen. If the send fails, the system must retry automatically every 5 minutes for 30 minutes, showing the nurse a real-time update like “Retrying… connection restored.” If it still fails after 30 minutes, the system must display a clear action prompt: “Still not sent — contact IT now.” And the IT team must be alerted with the nurse’s name, patient ID, and time of failure — all automatically. The nurse never loses the note, and they always know what to do next."
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "Thanks, that's a strong first requirement. I'll record it as FR-30 and make the acceptance checks testable.\n\nOne detail to confirm: once a note is saved locally during an outage, does the nurse see the \"Retrying\" updates on the same screen, or is there a separate notice on the dashboard? Default: the same screen, with a status line that stays visible until the note is sent or the 30 minutes run out. That means the nurse never has to go looking for it. Keep this default?"
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "Thanks, the same-screen status line is confirmed as part of FR-30.\n\nNext, the acceptance check for FR-30. Would a nurse who saves a note during a ShareSheet outage be able to see the status line change from \"Retrying\" to \"Sent\" once the connection returns, without refreshing the screen?"
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": "Yes — the status line must update in real time, without needing a refresh. If the connection comes back after 12 minutes, the nurse should see “Sent” appear automatically on the same screen, right after the “Retrying” message. The system should not require them to close and reopen the note or reload the page. If it does, they’ll think it failed again, and they might re-enter the note — which would create a duplicate. The update must be seamless, visible, and trusted. That’s the only way the nurse can be sure the note went through."
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "Thanks, the status line will update live from \"Retrying\" to \"Sent\" without a refresh, which keeps the nurse from re-entering the note. I'll add that to FR-30's acceptance checks.\n\nNext, the duplicate risk. If the nurse saves the same patient's note twice during an outage, should the system keep both copies or merge them into one?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": "The system should keep both copies — but only if they’re entered at different times. If the nurse saves the note once, then the connection fails, then they save it again after the outage, the system must treat them as separate entries. It should show both in ShareSheet, but with timestamps and a note that says “Duplicate entry — check for accuracy.” That way, the care coordinator sees both, but knows one might be a retry. The nurse shouldn’t lose anything, and the system doesn’t guess what’s right. If it merged them automatically, it could hide a mistake — like if the second entry had a correction. We’d rather have two notes than one wrong one."
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "Thanks, I'll record that duplicates are kept as separate timestamped entries, flagged \"Duplicate entry — check for accuracy.\"\n\nNow the rules area. Note-locking after 48 hours is already captured, so I'd like to check the other timing rules. Should the 8 a.m. deadline apply to every ward on the same schedule, or do any wards have different cut-offs?"
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": "The 8 a.m. deadline applies to all wards on the same schedule — no exceptions. The care coordinator starts planning at 8 a.m. every day, and the same time is used across the entire region, so we can’t have one ward at 7:30 a.m., another at 8:15. The system must send the note by 8 a.m. to every ward, regardless of staffing or shift start times. If a nurse on a night shift enters a note at 1 a.m., it still counts toward the 8 a.m. deadline for the next day. The system doesn’t care when they enter it — only that it’s in ShareSheet by 8 a.m. the next day. That’s the rule: 8 a.m. sharp, same for all."
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "Thanks, the 8 a.m. cut-off is the same on every ward, and a note entered at 1 a.m. still counts toward the next morning's deadline.\n\nLet's test that with a concrete case. A night nurse saves a note at 1 a.m. but ShareSheet is down until 9 a.m. What should happen at 8 a.m. for that note: should the system flag it as missed in the care coordinator's view, or hold it until it syncs?"
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "The system should flag it as missed in the care coordinator’s view — but only if it hasn’t synced by 8 a.m. The note is saved locally, but the system knows the deadline is 8 a.m., so if ShareSheet is still down at 8 a.m., it shows a red warning in the dashboard: “Note for Mr. Smith (saved 1 a.m.) not sent by 8 a.m. — status: delayed.” The care coordinator sees it immediately, and the team leader gets an alert at 8:15 a.m. with the same details. The system doesn’t wait — it checks the deadline at 8 a.m., and if the sync hasn’t happened, it treats it as a delay, even if the connection is still down. That way, no one assumes it’s in when it isn’t. The nurse can still retry later, but the delay is recorded, and the team acts."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "Thanks. Recording that at 8 a.m. an unsynced note is shown as delayed in the care coordinator's view, and the team leader is alerted at 8:15 a.m.\n\nOne gap remains. The 10 a.m. pending-task rule and the 10:15 a.m. team leader alert are different from the 8 a.m. delay. If the 1 a.m. note still hasn't synced by 10 a.m., should it stay visible as delayed until it's sent, or be closed as missed once the 10 a.m. deadline passes?"
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": "It should stay visible as delayed until it’s sent — even after 10 a.m. The 10 a.m. deadline is just the nurse’s window to enter it, not a final cut-off. If the note isn’t synced by 10 a.m., the team leader gets alerted at 10:15 a.m., but the system keeps showing it as “delayed” in the care coordinator’s view until it’s actually sent. That way, the team leader knows it’s still outstanding, and the quality team can track it in their weekly report. If we closed it at 10 a.m., we’d lose the audit trail, and the nurse might think it’s fine — but it’s not. The delay only ends when the note syncs, not when the deadline passes."
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Thanks, so a delayed note stays visible until it syncs, even after the 10 a.m. and 10:15 a.m. steps. The 10 a.m. point is only the nurse's entry window, not a cut-off.\n\nLet's test the rule with the second alert. If the team leader gets the 10:15 a.m. alert and the note still hasn't synced by 11 a.m., should the system repeat the alert, escalate it to the ward manager, or stay quiet until the note syncs?"
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": "The system should escalate it automatically to the ward manager at 11 a.m. — not repeat the alert to the team leader, but send a new one to the ward manager with the same details: nurse’s name, patient name, note type, and time of the original save. The ward manager’s dashboard should show it as a red priority alert, and they can decide whether to step in personally or send a message to the team leader. The team leader doesn’t need to be nagged again — the system handles the escalation. If it’s still not sent by 11:30 a.m., the system sends the same alert to the regional clinical lead, with a note that this is the third delay in a week. We don’t want to flood the team leader with repeated alerts — we want to move the issue up when it’s not resolved, not just remind the same person."
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "Thanks for the 11 a.m. and 11:30 a.m. escalation detail. I'll record it.\n\nWe have an open point about the 10:15 a.m. alert to the team leader. The earlier requirements describe it differently, so I need one decision. Default: use the FR-8 version, which includes the nurse's name, the patient, and the time the note was due. That means the team leader sees exactly who to contact and about which patient, without opening another screen. Keep this default?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Thanks, the 10:15 a.m. alert will follow the FR-8 version, and FR-12 will be aligned to match.\n\nNow acceptance checks. Take the morning summary: when a nurse's note is still unsent at 10:15 a.m., what should the team leader see on screen in the alert?"
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": "At 10:15 a.m., the team leader should see a clear alert in their dashboard with the nurse’s name, the patient’s full name, the note type (e.g., “new assessment”), and the time it was due — all in one line, easy to read. The alert should be red, pinned to the top, and include a direct link to open the note entry page. If they click it, the system takes them straight to the patient’s record and the note field, with the due time highlighted. They don’t have to search or guess — everything they need is in the alert. And if the note was saved at 1 a.m. and still unsent, it shows “Overdue by 11 hours” — that way, they know how urgent it is."
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "Thanks, the 10:15 a.m. alert is now clear: name, patient, note type, due time, and an \"Overdue by\" figure, pinned in red with a direct link to the note field.\n\nFor the acceptance check, I'll test the link. When the team leader clicks the alert for a note saved at 1 a.m., should the note field open already scrolled to the patient's record, or should the team leader land on the dashboard with the alert still visible?"
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": "The note field should open already scrolled to the patient’s record — the system must take them directly to where they need to act. The alert stays visible on the screen, but now with a “Marked as resolved” button if they click it after entering the note. The team leader doesn’t have to search, re-log in, or open a new page — the system carries them straight to the right spot. If the note is already entered, the system shows it as “Note re-entered — check for accuracy” to prevent duplication. That way, they can fix it in one click, not three."
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "Thanks, the link opens the note field scrolled to the patient, and the alert stays visible with a \"Marked as resolved\" button. I'll record that and the \"Note re-entered — check for accuracy\" flag.\n\nOne thing to pin down before I write the acceptance checks: if the team leader clicks \"Marked as resolved\" but the note has not actually synced to ShareSheet yet, should the alert close, or stay open until the sync is confirmed?"
+    },
+    {
+      "seq": 80,
+      "role": "user",
+      "content": "The alert should stay open until the sync is confirmed — even if the team leader clicks “Marked as resolved.” The system must not close the alert based on a manual action alone. Instead, it waits for the actual sync to ShareSheet to complete, then shows a green “Synced and resolved” message. If the note still hasn’t synced after 5 minutes, the alert reverts to red and sends a new message to the IT team: “Note still not sent — team leader marked as resolved, but sync failed.” That way, the team leader isn’t misled, and the system protects the audit trail. The “Marked as resolved” button is for their tracking, not for closing the alert — the real closure comes only when the data is in ShareSheet."
+    },
+    {
+      "seq": 81,
+      "role": "assistant",
+      "content": "Thanks, the alert stays open until the sync is confirmed, and \"Marked as resolved\" only records the team leader's action. If sync still fails after 5 minutes, the alert reverts to red and IT is notified.\n\nLet's test that with one case. The team leader clicks \"Marked as resolved,\" and ShareSheet is still down for 20 minutes. What should the team leader see on screen during those 20 minutes: the red alert with a \"Waiting for sync\" status, or the alert greyed out with a \"Resolved, pending sync\" label?"
+    },
+    {
+      "seq": 82,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 83,
+      "role": "assistant",
+      "content": "Thanks, the alert stays red with a \"Waiting for sync\" status while the sync is pending.\n\nNext, the technical side. Since your team works in JavaScript and .NET and already builds secure internal APIs, the simplest route is to build the note-to-ShareSheet sync as an internal API service that InHealth calls when a note is saved. Would you like me to record that as the recommended approach?"
+    },
+    {
+      "seq": 84,
+      "role": "user",
+      "content": "Yes, I’d like that recorded — building the sync as an internal API service that InHealth calls when a note is saved is the best approach. It’s what the team already knows, it’s secure, and it fits with the hospital’s current systems. I don’t need to know the details of how it works — just that it’s reliable, encrypted, and logs every call. If it fails, the system retries automatically, and the nurse gets a message. That’s all I care about. If the build team suggests a different way, I’d want to see a clear reason — not just because it’s “faster” — because I’ve seen faster tools fail in production. This one must work every time."
+    },
+    {
+      "seq": 85,
+      "role": "assistant",
+      "content": "Recorded: the sync will be an internal API service that InHealth calls on note save. You're right that a different approach would need a clear reason, and I'll note that the build team has to justify any change against reliability and the audit trail.\n\nNext, the database. The system needs to store each note's save time, sync status, and retry history. Would you like the database to be the one the hospital already uses for InHealth, or a separate database for the sync service?"
+    },
+    {
+      "seq": 86,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 87,
+      "role": "assistant",
+      "content": "Thanks. I'll record that the sync status and retry history will live in the InHealth database.\n\nHere is a concrete case to check it. A nurse saves a note at 1 a.m., the first retry fails, and a retry at 1:05 a.m. succeeds. Should the system keep both attempts in the history so the quality team can see the delay, or only keep the final successful sync time?"
+    },
+    {
+      "seq": 88,
+      "role": "user",
+      "content": "The system should keep both attempts in the history — not just the final sync time. The quality team needs to see the full timeline: when the nurse saved the note, when the first retry failed, when the second succeeded. That way, they can tell if it was a short outage or a persistent issue. The history must show the save time, the retry times, the result of each attempt, and the final sync time. If we only kept the final sync, we’d lose the context — and the team might miss a pattern, like repeated failures at certain times. The audit trail has to be complete, not just the end result."
+    },
+    {
+      "seq": 89,
+      "role": "assistant",
+      "content": "Thanks, the full retry history will be kept: save time, each retry time, each result, and the final sync time.\n\nLet's test the pattern case you mentioned. If the quality team wants to spot repeated failures at certain times, should the history be kept for the full retention period, or only for a shorter window such as the last 30 days?"
+    },
+    {
+      "seq": 90,
+      "role": "user",
+      "content": "The history should be kept for the full retention period — at least 90 days. The quality team uses it to spot patterns, like if a nurse consistently misses notes during night shifts, or if there’s a recurring connection issue at 1 a.m. on Tuesdays. If we only keep 30 days, we’d miss trends that take longer to appear. I don’t care about the technical cost — if it’s already in the InHealth database, we use it. The audit trail must be complete, and the team must be able to go back and find out what happened, even after several weeks. If we delete the data too soon, we’re hiding problems, not solving them."
+    },
+    {
+      "seq": 91,
+      "role": "assistant",
+      "content": "Thanks, the sync history will be kept for at least 90 days, which covers the night-shift and 1 a.m. patterns you described.\n\nNext, the data side. Which records does the system need to hold: the notes themselves, the sync history, the alerts, or all three?"
+    },
+    {
+      "seq": 92,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 93,
+      "role": "assistant",
+      "content": "Thanks, notes, sync history, and alerts are the three records. Let's define the note record. A note needs a patient, a nurse, a note type such as \"new assessment,\" the save time, and a lock time 48 hours later. Should a corrected note be stored as a new linked entry that points back to the original, or as a separate entry with no link?"
+    },
+    {
+      "seq": 94,
+      "role": "user",
+      "content": "A corrected note must be stored as a new linked entry that points back to the original — not just a separate one. The system should create a new note with a timestamp, the nurse’s name, the note type “correction,” and a clear link to the original note’s ID. That way, the care coordinator sees both, knows one is a correction, and can read the original if needed. If we store it as a separate entry with no link, we lose the audit trail — the team might not know why the note changed, or if it’s accurate. The system must preserve the chain of events, not just the final version. That’s how we prevent mistakes and keep trust in the data."
+    },
+    {
+      "seq": 95,
+      "role": "assistant",
+      "content": "Thanks, corrections will be stored as new linked entries that point back to the original note's ID, with note type \"correction.\"\n\nNext, the alert record. An alert needs to track the nurse, the patient, the note it refers to, when it was raised, and its status (open, waiting for sync, or closed). Should the alert also keep the full history of status changes, such as when the team leader clicked \"Marked as resolved,\" or only its current status?"
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "Cloud account",
+        "reason": "Participant already has a cloud account.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "Auto-trigger spreadsheet update on note save",
+        "scope": "mvp",
+        "acceptance": ["Saving a note updates the spreadsheet without any further user action"],
+        "description": "When a nurse saves a ward note, the spreadsheet is updated automatically with no extra action."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "Daily ward manager digest",
+        "scope": "mvp",
+        "acceptance": [
+          "Email is sent at 7:30 a.m. each day",
+          "Email lists only patients with notes added since the previous day",
+          "Each entry links to the note and to the spreadsheet download"
+        ],
+        "description": "Each morning at 7:30 a.m. the ward manager receives an email listing patients with new notes since the previous day, with a link to view each note and download the updated spreadsheet."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "Missing-note reminder",
+        "scope": "mvp",
+        "acceptance": [
+          "Reminder is sent at 10 a.m. the next day when a note is missing",
+          "Reminder goes to both the nurse and their team leader"
+        ],
+        "description": "If a nurse has not entered a note, the system sends a reminder to the nurse and their team leader at 10 a.m. the next day."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a nurse, I want a confirmation when I save a note so that I know it reached ShareSheet, and clear guidance if it fails so that I don't have to chase it.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "INT-1-InHealth-to-ShareSheet",
+      "value": {
+        "direction": "InHealth to ShareSheet",
+        "data": "ward notes",
+        "deadline": "8 a.m. next day",
+        "failureHandling": "email IT; note still saved"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "Automatic spreadsheet generation",
+        "scope": "mvp",
+        "acceptance": ["Spreadsheet is generated automatically when a nurse saves a ward note."],
+        "description": "When a nurse saves a ward note in the patient system, the spreadsheet step is automatically triggered."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "Daily email digest for ward managers",
+        "scope": "mvp",
+        "acceptance": [
+          "Ward manager receives an email digest at 7:30 a.m. daily with new notes and spreadsheet link."
+        ],
+        "description": "The ward manager receives an email alert every morning at 7:30 a.m. with a list of patients who have new notes since the previous day, including a link to view the note and download the updated spreadsheet."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "Reminder for missed notes",
+        "scope": "mvp",
+        "acceptance": ["System sends reminder to nurse and team leader at 10 a.m. if note is missed."],
+        "description": "If a nurse forgets to enter a note, the system sends a reminder to them and their team leader at 10 a.m. the next day."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "INT-2-InHealth-to-ShareSheet",
+      "value": {
+        "from": "InHealth",
+        "to": "ShareSheet",
+        "note": "The note must appear in ShareSheet by 8 a.m. the next day.",
+        "failure": "If the connection fails, the system should flag it to the IT team via email, but the nurse can still enter the note."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_manager",
+      "value": {
+        "role": "Ward manager",
+        "needs": "Morning summary of notes entered, overdue notes, and nurses with missing notes; messages nurses and schedules short huddles on repeated misses"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "care_coordinator",
+      "value": {
+        "role": "Care coordinator",
+        "needs": "Opens ShareSheet each morning, checks new notes marked urgent or new assessment, waits until 8:15 a.m. before flagging a missing note, then messages the team leader."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "regional_quality_team",
+      "value": {
+        "role": "Regional quality team",
+        "needs": "Downloads ShareSheet weekly to check that notes are entered within 24 hours and flags wards that miss the deadline twice in a row."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "finance_supervisor",
+      "value": {
+        "role": "Finance supervisor",
+        "needs": "Uses ShareSheet monthly to match nurse hours with documented patient interactions."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "nurse",
+      "value": {
+        "role": "Nurse",
+        "needs": "Opens Today's Notes dashboard at shift start; acts on red-flagged patients first"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "builder",
+      "value": "In-house clinical systems team with healthcare experience; ward managers and nurses test",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-2",
+      "value": "As a care coordinator, I want urgent notes marked and missing notes highlighted in red with patient name and due time so that I can prioritize and act without guessing.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-3",
+      "value": "As a ward manager, I want to see nurses with missing notes along with the affected patient, note type, and due time so that I can prioritize clinically urgent cases.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-4",
+      "value": "As a finance supervisor, I want to match nurse hours with documented patient interactions each month so that hours can be verified.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "Log late notes as delays",
+        "scope": "mvp",
+        "acceptance": [
+          "A note saved after the 8 a.m. deadline appears in ShareSheet with a delay flag",
+          "Quality reporting counts it as a delay"
+        ],
+        "description": "Notes saved after 8 a.m. the next day still sync to ShareSheet but are flagged as delayed for quality reporting."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-8",
+      "value": {
+        "title": "Escalate missed notes",
+        "scope": "mvp",
+        "acceptance": [
+          "Pending note stays open for the nurse after 10 a.m.",
+          "Team leader receives alert at 10:15 a.m. with nurse name, patient full name and entry link",
+          "Second miss by the same nurse in one week is logged in the quality weekly report"
+        ],
+        "description": "A note not entered by 10 a.m. the next day stays pending for the nurse. The team leader gets an alert at 10:15 a.m. with the nurse's name, patient full name, and a direct link to the note entry page. If still missing at 11 a.m., the delay is logged in the quality team's weekly report only when it is the nurse's second miss in a week."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "missed-note-escalation",
+      "value": "Single missed notes are not reported to quality; repeat misses by the same nurse in one week are.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "InHealth to ShareSheet Integration",
+        "scope": "mvp",
+        "acceptance": ["The system allows the finance supervisor to access ShareSheet monthly."],
+        "description": "The finance supervisor uses ShareSheet once a month to match nurse hours with documented patient interactions.",
+        "reason": "To match nurse hours with documented patient interactions."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": "JavaScript and .NET with secure internal APIs",
+        "alternatives": ["Any new stack, only with a clear reason"],
+        "reason": "Team already works with it on InHealth.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "login",
+      "value": "Nurses use the same login system as InHealth; no separate passwords.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sync-failure-alerting",
+      "value": "Sync delays are logged with a timestamp and IT is alerted within 5 minutes.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-10",
+      "value": {
+        "title": "Log and alert on sync delay",
+        "scope": "mvp",
+        "acceptance": [
+          "A failed or delayed sync creates a timestamped log entry",
+          "IT receives an alert within 5 minutes"
+        ],
+        "description": "If a note does not reach ShareSheet, log it with a timestamp and alert IT within 5 minutes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "timeline",
+      "value": "Version one in six weeks; core functionality by week five",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "future",
+      "path": "FR-quality-weekly-logging",
+      "value": "Quality team weekly logging of repeat missed notes deferred to version two",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-11",
+      "value": {
+        "title": "Sync notes to ShareSheet by 8 a.m.",
+        "scope": "mvp",
+        "acceptance": ["Notes are synced to ShareSheet by 8 a.m."],
+        "description": "Ensure that notes are synced to ShareSheet by 8 a.m. daily"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-12",
+      "value": {
+        "title": "Team leader 10:15 a.m. alert",
+        "scope": "mvp",
+        "acceptance": [
+          "Alert shows nurse name, patient full name, note type and due time on one line",
+          "Alert shows Overdue by figure for a note saved earlier and still unsent",
+          "Clicking the alert opens the patient record and note field with due time highlighted"
+        ],
+        "description": "Red alert pinned to the top of the team leader dashboard with nurse name, patient full name, note type, due time and Overdue by figure, linking directly to the patient record and note field with the due time highlighted.",
+        "reason": "Aligned with FR-8 version per participant decision"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-13",
+      "value": {
+        "title": "Quality team's weekly logging",
+        "scope": "future",
+        "acceptance": ["Quality team's weekly logging is implemented"],
+        "description": "Add functionality for the quality team's weekly logging",
+        "reason": "To be added in version two after the core workflow is established and nurses can use the system without extra steps"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "reliability",
+      "value": "A saved note must reach ShareSheet by 8 a.m. the next day with no silent failures; failures show a clear error and the next step (retry or contact IT).",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-14",
+      "value": {
+        "title": "Show clear error messages on sync failure",
+        "scope": "mvp",
+        "acceptance": [
+          "The system shows a clear error message when a note fails to sync.",
+          "The error message tells the nurse what to do to resolve the issue."
+        ],
+        "description": "If a note fails to sync, the nurse must see a clear error message telling them what to do.",
+        "reason": "To ensure the nurse knows exactly what to do if a note fails to sync, rather than wondering if it worked."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "scale",
+      "value": "About 80 nurses, 400 to 640 note entries per day, peak load at morning handover",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-15",
+      "value": {
+        "title": "Offline save and retry",
+        "scope": "mvp",
+        "acceptance": [
+          "Note is kept locally when sync fails",
+          "Retry runs every 5 minutes for up to 30 minutes",
+          "After 30 minutes the nurse sees a contact-IT message and IT receives an alert with nurse name, patient ID and failure time"
+        ],
+        "description": "If ShareSheet is unreachable, the note is kept on the device and retried every 5 minutes for up to 30 minutes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-16",
+      "value": {
+        "title": "Clear on-screen sync error messages",
+        "scope": "mvp",
+        "acceptance": [
+          "Message reads 'Note saved locally, but not yet sent to ShareSheet. Please check again in 5 minutes.'",
+          "Second message reads 'Still unable to send. Please contact IT now.' after 30 minutes"
+        ],
+        "description": "Nurses see a plain message when a note is saved locally but not yet sent."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": "GDPR, sensitive personal data. Encrypted storage and transmission using approved protocols; every access logged; patient deletion requests fulfilled from InHealth and ShareSheet within 72 hours with confirmation; no data leaves the local cloud region.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "load",
+      "value": "The system must handle 400 to 640 note entries daily, including peaks at morning handover, without slowing down or crashing.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-17",
+      "value": {
+        "title": "Handle sync failures with offline retry and IT alert",
+        "scope": "mvp",
+        "acceptance": [
+          "The system shows a message when ShareSheet is unreachable and retries every 5 minutes for 30 minutes.",
+          "The system shows a contact-IT message and sends an alert to IT after 30 minutes of failure.",
+          "The nurse never loses the note and knows exactly what to do."
+        ],
+        "description": "When the first note is saved and ShareSheet is unreachable, the nurse should see a message: 'Note saved locally, but not yet sent to ShareSheet. Please check again in 5 minutes.' The note stays in the system on their device, and the system automatically retries every 5 minutes for up to 30 minutes. If it still fails after that, the system shows a second message: 'Still unable to send. Please contact IT now.' At the same time, the IT team gets an alert with the nurse’s name, patient ID, and time of failure."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note-edit-lock",
+      "value": {
+        "rule": "Notes become final 48 hours after sync. Corrections are new timestamped entries with explanation. Edits after 48 hours are flagged and sent to the team leader for review."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-18",
+      "value": {
+        "title": "Lock notes after 48 hours",
+        "scope": "mvp",
+        "acceptance": [
+          "Editing a note older than 48 hours is blocked",
+          "Corrections create a new entry with timestamp and explanation",
+          "Any attempted edit after 48 hours is flagged to the team leader"
+        ],
+        "description": "Prevent editing of synced notes after 48 hours; allow corrections only as new timestamped entries.",
+        "reason": "Keeps audit trail clear"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem_example",
+      "value": "Last month a Ward 3 wound note was not entered after a morning assessment; the coordinator found it missing at 8:15 a.m., the nurse saw the alert at 9:45 a.m., and the wound care visit was delayed an hour.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-19",
+      "value": {
+        "title": "Flag and escalate notes edited after 48 hours",
+        "scope": "mvp",
+        "acceptance": [
+          "The system flags edits made after 48 hours.",
+          "The system sends flagged edits to the team leader for review."
+        ],
+        "description": "The system should flag any edit after 48 hours and send it to the team leader for review.",
+        "reason": "To keep the audit trail clear and avoid accidental changes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "team_leader",
+      "value": {
+        "role": "Team leader",
+        "needs": "Early visibility of pending notes via a dashboard flag, so they can act before the care coordinator escalates."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-20",
+      "value": {
+        "title": "Team leader pending-note dashboard flag",
+        "scope": "mvp",
+        "acceptance": [
+          "A pending note before the 8 a.m. deadline appears as a flag on the team leader's dashboard before the deadline passes."
+        ],
+        "description": "Team leader's daily dashboard shows a flag for notes still pending before a set deadline (example: '1 note pending by 8 a.m.') so the team leader can act early."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-21",
+      "value": {
+        "title": "Ward manager morning summary dashboard",
+        "scope": "mvp",
+        "acceptance": [
+          "Summary shows the three counts on load",
+          "Clicking a flagged nurse lists missing patient notes"
+        ],
+        "description": "Shows notes entered today, overdue notes after 10 a.m., and nurses with missing notes; each nurse can be expanded to show missing patients."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-22",
+      "value": {
+        "title": "In-system messaging to nurses",
+        "scope": "mvp",
+        "acceptance": ["Message is delivered to the nurse in the system", "Sender and time are recorded"],
+        "description": "Ward manager can send a short message to a nurse from the system."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-23",
+      "value": {
+        "title": "Yellow alert for repeated missed notes",
+        "scope": "mvp",
+        "acceptance": [
+          "Two consecutive misses set a yellow flag",
+          "Flag is visible on the ward manager dashboard"
+        ],
+        "description": "A nurse who misses two notes in a row is flagged yellow for the ward manager."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-24",
+      "value": {
+        "title": "Nurse first-use tutorial",
+        "scope": "mvp",
+        "acceptance": ["Video shows on first login only", "Does not show again after it has been seen"],
+        "description": "Short video pop-up shown to new nurses the first time they open the system, once only."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "f21-1",
+      "value": "FR-12 and FR-8 disagree on the content of the 10:15 a.m. alert; proposed default is FR-8 (includes nurse name, patient, time)",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-25",
+      "value": {
+        "title": "Team leader alert for missing notes",
+        "scope": "mvp",
+        "acceptance": [
+          "The team leader receives an alert at 10:15 a.m. with the nurse's name, the missing patient, and the time."
+        ],
+        "description": "At 10:15 a.m., the team leader receives an alert with the nurse's name, the missing patient, and the time."
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-5",
+      "value": "As a care coordinator, I want to flag a missing note to the team leader from ShareSheet so that the day's plan is not delayed and the notification is recorded.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-26",
+      "value": {
+        "title": "Care coordinator Notify Team Leader button",
+        "scope": "mvp",
+        "acceptance": [
+          "Button appears for a patient with no note by 8:15 a.m.",
+          "Team leader dashboard shows a red alert with patient name and time",
+          "Notification is logged with sender and timestamp"
+        ],
+        "description": "A button in ShareSheet that sends a pre-filled message to the team leader's dashboard for a missing note, and records who was notified and when."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-27",
+      "value": {
+        "title": "Automatic escalation to ward manager at 9:30 a.m.",
+        "scope": "mvp",
+        "acceptance": [
+          "Escalation fires at 9:30 a.m. when the note is still missing",
+          "Ward manager receives the escalation with patient and nurse details",
+          "Escalation is logged"
+        ],
+        "description": "If a missing note is still not entered by 9:30 a.m., the system escalates it to the ward manager automatically."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-6",
+      "value": "As a nurse, I want a confirmation that my saved note reached ShareSheet, and clear guidance if it fails, so that I can trust the note is done without chasing it during a shift.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-7",
+      "value": "As a care coordinator, I want all of the day's notes in ShareSheet by 8 a.m. so that I can plan medication, wound care, and therapy visits without calling nurses.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-28",
+      "value": {
+        "title": "Urgent-note marking in ShareSheet",
+        "scope": "mvp",
+        "acceptance": [
+          "Notes with urgent, new assessment, medication change, or fall flags show a red tag in ShareSheet",
+          "Care coordinator can sort or filter to see flagged notes first"
+        ],
+        "description": "Notes marked urgent or new assessment, or involving medication changes, wound care, or falls, are visibly flagged in ShareSheet.",
+        "reason": "Care coordinator needs to prioritize without scanning the full list"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-29",
+      "value": {
+        "title": "Red highlight for missing notes in ShareSheet",
+        "scope": "mvp",
+        "acceptance": [
+          "Missing notes appear as a red row showing patient name and due time",
+          "Highlight clears when the note is saved"
+        ],
+        "description": "A missing note shows as a red highlighted row with the patient name and due time.",
+        "reason": "Care coordinator must see missing notes without inferring from blank rows"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-8",
+      "value": "As a nurse, I want a simple confirmation message after saving a note, and clear error guidance if sending fails, so that I can trust the system and focus on patient care.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-9",
+      "value": "As a care coordinator, I want to see a clear indicator of urgent notes and red highlighting for missing notes, so that I can prioritize critical patients quickly.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-10",
+      "value": "As a ward manager, I want to see which nurses haven't entered notes, including the affected patients, note types, and due times, so that I can prioritize based on clinical urgency.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-ward-manager-detail",
+      "value": "As a ward manager, I want to see the patient name, note type, and due time for each missing note, and message the nurse from the same view, so that I can prioritise and act quickly.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-30",
+      "value": {
+        "title": "Note save confirmation and outage retry",
+        "scope": "mvp",
+        "acceptance": [
+          "On a successful save, the nurse sees an on-screen confirmation that the note was sent to ShareSheet.",
+          "During an outage, the status line shows 'Retrying' and changes to 'Sent' on the same screen without refresh when the connection returns, e.g. after 12 minutes.",
+          "After 30 minutes of failure, the nurse sees 'Still not sent, contact IT now' and IT receives an alert with nurse name, patient ID and time."
+        ],
+        "description": "On save, confirm the note was sent to ShareSheet on screen. If sending fails, keep the note locally, retry every 5 minutes for 30 minutes, show a live status line on the same screen that updates from 'Retrying' to 'Sent' without refresh, and after 30 minutes show 'Still not sent, contact IT now' and alert IT with nurse name, patient ID and time."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-31",
+      "value": {
+        "title": "Nurse note saving and confirmation",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse sees a confirmation message on screen when the note is sent to ShareSheet.",
+          "The nurse sees a real-time update like “Retrying... connection restored.” when the connection is restored.",
+          "The nurse sees a clear action prompt: “Still not sent — contact IT now.” after 30 minutes if the note is not sent.",
+          "The IT team is alerted with the nurse’s name, patient ID, and time of failure if the note is not sent after 30 minutes."
+        ],
+        "description": "When a nurse saves a ward note in InHealth, the system must immediately confirm the note was sent to ShareSheet, with a clear message on screen. If the send fails, the system must retry automatically every 5 minutes for 30 minutes, showing the nurse a real-time update like “Retrying... connection restored.” If it still fails after 30 minutes, the system must display a clear action prompt: “Still not sent — contact IT now.” And the IT team must be alerted with the nurse’s name, patient ID, and time of failure — all automatically. The nurse never loses the note, and they always know what to do next.",
+        "reason": "The nurse’s note-saving behaviour is the heart of the system. It ensures that the nurse never loses the note and always knows what to do next."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-32",
+      "value": {
+        "title": "Nurse note saving and confirmation",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse sees the status line change from “Retrying” to “Sent” once the connection returns, without refreshing the screen."
+        ],
+        "description": "The nurse sees the status line change from “Retrying” to “Sent” once the connection returns, without refreshing the screen.",
+        "reason": "The nurse should be able to see the status line change without having to refresh the screen."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "duplicate-note-handling",
+      "value": {
+        "rule": "Entries saved at different times are kept as separate records; shown in ShareSheet with timestamps and the flag 'Duplicate entry — check for accuracy'; never merged automatically.",
+        "reason": "Avoids hiding a correction or mistake."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-33",
+      "value": {
+        "title": "Flag duplicate notes",
+        "scope": "mvp",
+        "acceptance": [
+          "Two saves for the same patient at different times produce two ShareSheet records",
+          "Each record shows its timestamp",
+          "Duplicate records carry the note 'Duplicate entry — check for accuracy'"
+        ],
+        "description": "When a nurse saves a second note for the same patient at a different time, keep both and flag the second in ShareSheet.",
+        "reason": "Care coordinator needs to see both entries without losing a possible correction."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "8am-deadline-all-wards",
+      "value": "Same 8 a.m. sync deadline for every ward regardless of shift times; notes entered at any hour count toward the next morning's deadline",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-34",
+      "value": {
+        "title": "Update status line live",
+        "scope": "mvp",
+        "acceptance": ["The status line updates from \"Retrying\" to \"Sent\" without a refresh"],
+        "reason": "Prevents duplicate entries by showing the nurse that the note was sent successfully"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "unsynced-at-8am",
+      "value": {
+        "rule": "A note not synced to ShareSheet by 8 a.m. is shown as delayed on the care coordinator dashboard with its patient name and save time; the team leader is alerted at 8:15 a.m. with the same details; the nurse can still retry and the delay stays recorded.",
+        "scope": "mvp"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "delayed-until-synced",
+      "value": "A note not synced by 8 a.m. stays shown as delayed in the care coordinator's view until it syncs, including after the 10 a.m. window and 10:15 a.m. team leader alert.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "delayed-escalation-11am",
+      "value": "At 11 a.m., if a note is still unsynced, alert the ward manager with nurse name, patient, note type, and original save time, shown as a red priority alert. Do not repeat the team leader alert.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "delayed-escalation-1130am",
+      "value": "At 11:30 a.m., if still unsynced, send the same alert to the regional clinical lead, noting this is the third delay in a week.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-35",
+      "value": {
+        "title": "Team leader alert link to note field",
+        "scope": "mvp",
+        "acceptance": [
+          "Clicking the alert opens the patient's note field without search or re-login",
+          "Due time is highlighted on arrival"
+        ],
+        "description": "Clicking the 10:15 a.m. alert opens the patient record with the note field scrolled into view and the due time highlighted.",
+        "reason": "Team leader must act in one click"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-36",
+      "value": {
+        "title": "Team leader alert resolution control",
+        "scope": "mvp",
+        "acceptance": [
+          "'Marked as resolved' button is visible after the note is entered",
+          "A note already entered shows 'Note re-entered — check for accuracy'"
+        ],
+        "description": "Alert stays visible with a 'Marked as resolved' button; if the note is already entered, the alert shows 'Note re-entered — check for accuracy'.",
+        "reason": "Prevents duplicate entry and gives a one-click fix"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-37",
+      "value": {
+        "title": "10:15 a.m. alert for unsent notes",
+        "scope": "mvp",
+        "acceptance": [
+          "The alert displays nurse’s name, patient’s full name, note type, due time, and 'Overdue by' figure in one line, red, pinned to the top, with a direct link to the note field.",
+          "When the team leader clicks the alert, the note field opens already scrolled to the patient’s record, and the alert stays visible with a 'Marked as resolved' button.",
+          "If the note is already entered, the system shows 'Note re-entered — check for accuracy' to prevent duplication."
+        ],
+        "description": "At 10:15 a.m., the team leader should see a clear alert in their dashboard with the nurse’s name, the patient’s full name, the note type, and the time it was due — all in one line, easy to read. The alert should be red, pinned to the top, and include a direct link to open the note entry page. If they click it, the system takes them straight to the patient’s record and the note field, with the due time highlighted. The alert should show 'Overdue by' figure. If the note was saved at 1 a.m. and still unsent, it shows 'Overdue by 11 hours'.",
+        "reason": "To ensure timely submission of patient notes and reduce manual tracking."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-38",
+      "value": {
+        "title": "Team leader alert closure requires confirmed sync",
+        "scope": "mvp",
+        "acceptance": [
+          "Marked as resolved does not close the alert before sync is confirmed",
+          "Green Synced and resolved message appears after sync completes",
+          "If sync still fails after 5 minutes, the alert reverts to red and IT receives a message stating the note is still not sent"
+        ],
+        "description": "Marked as resolved records the action only; the alert closes with a green Synced and resolved message once ShareSheet sync is confirmed.",
+        "reason": "Protects the audit trail and prevents the team leader being misled"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "alert-resolution-vs-sync",
+      "value": "Manual resolution is tracking only; closure requires confirmed ShareSheet sync",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-39",
+      "value": {
+        "title": "Team leader alert waiting-for-sync status",
+        "scope": "mvp",
+        "acceptance": [
+          "Alert remains red with Waiting for sync status after Marked as resolved while sync is pending",
+          "Alert changes to green Synced and resolved only after sync is confirmed"
+        ],
+        "description": "After Marked as resolved, the alert stays red with a Waiting for sync status until the ShareSheet sync is confirmed.",
+        "reason": "Prevents the team leader from assuming the note is in ShareSheet before it is."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "api",
+      "value": {
+        "choice": "Internal API service for note-to-ShareSheet sync",
+        "alternatives": [],
+        "reason": "Matches the team's JavaScript, .NET, and secure internal API experience.",
+        "status": "recommended"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "sync-architecture",
+      "value": {
+        "choice": "Internal API service called by InHealth on note save",
+        "alternatives": [],
+        "reason": "Matches the team's JavaScript, .NET, and secure internal API skills; must be reliable, encrypted, and log every call; any alternative needs a clear reason from the build team.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-40",
+      "value": {
+        "title": "Alert status during sync delay",
+        "scope": "mvp",
+        "acceptance": ["The alert stays red with a 'Waiting for sync' status while the sync is pending."],
+        "description": "The alert should stay red with a 'Waiting for sync' status while the sync is pending.",
+        "reason": "To clearly indicate that the sync is still in progress."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "database",
+      "value": {
+        "choice": "Reuse the InHealth database",
+        "reason": "Team already runs InHealth; keeps sync status and retry history in the existing audited store.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "sync-history",
+      "value": {
+        "choice": "Full retry history per note: save time, each retry time, result of each attempt, final sync time",
+        "reason": "Quality team needs the full timeline to distinguish short outages from persistent issues and spot repeated failures at certain times; audit trail must be complete",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "sync-history-retention",
+      "value": {
+        "retention": "At least 90 days",
+        "reason": "Quality team pattern analysis (night shifts, recurring connection issues)"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "sync-history",
+      "value": {
+        "fields": ["note ID", "save time", "each retry time", "result of each attempt", "final sync time"],
+        "relations": ["belongs to a note"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "notes",
+      "value": {
+        "fields": [
+          "patient",
+          "nurse",
+          "note type",
+          "save time",
+          "lock time (48 hours after save)",
+          "original note ID (for corrections)"
+        ],
+        "relations": ["correction entries link to the original note by ID"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "alerts",
+      "value": {
+        "fields": ["nurse", "patient", "note ID", "raised time", "status (open, waiting for sync, closed)"],
+        "relations": ["refers to a note"]
+      },
+      "source": "recommended"
+    }
+  ],
+  "summary": "The system will run on a cloud account, affecting design, cost, and patient-data rules. The spreadsheet step is automatically triggered when a nurse saves a note in the patient system (InHealth). The ward manager receives a daily email digest at 7:30 a.m. with new notes and a spreadsheet link. If a nurse forgets to enter a note, the system sends reminders to the nurse and their team leader at 10 a.m. the next day.\n\nThe system must connect to InHealth and ShareSheet, with notes appearing in ShareSheet by 8 a.m. the next day. If a connection fails, the nurse can still save the note, and IT is emailed. ShareSheet is used by the care coordinator for daily planning, the regional quality team for weekly checks, and the finance supervisor for monthly hours matching. If a note is entered after 8 a.m., it is still updated in ShareSheet but logged as a delay by the quality team.\n\nThe build will be handled by the hospital’s in-house clinical systems team, with healthcare experience, working with ward managers and nurses for testing. The build team will use JavaScript, .NET, and secure internal APIs, as they have experience with these tools and InHealth. The system will use the same login system as InHealth. If there’s any delay in syncing the note to ShareSheet, the system will log it with a timestamp and alert the IT team within 5 minutes. If a note isn’t entered by 10 a.m. the next day, it stays as a pending task for the nurse, and the team leader gets an alert at 10:15 a.m. with the nurse's name, the missing patient, and the time. If the note is still not entered by 11 a.m. and it's the second time in a week for that nurse, it is logged as a delay in the quality team’s weekly report.\n\nVersion one is due in six weeks, with core functionality—note entry, sync to ShareSheet by 8 a.m., and the 10:15 a.m. alert—done by week five. The quality team’s weekly logging of repeat delays will be added in version two. The most important thing for a nurse to trust the system is that a saved note must reach ShareSheet, and any failure must show a clear message telling the nurse what to do. The budget range is undecided, and the number of nurses using the system at launch is unknown.\n\nAround 80 nurses across six wards will use the system at launch, with 13 to 15 nurses per ward. Each nurse will enter notes on an average of 5 to 8 patients a day, resulting in roughly 400 to 640 note entries daily. The system must handle this load without slowing down, even during morning handover when everyone is logging in at once. If ShareSheet is unreachable when the first note is saved, the nurse sees a message: “Note saved locally, but not yet sent to ShareSheet. Please check again in 5 minutes.” The note stays in the system on their device, and the system automatically retries every 5 minutes for up to 30 minutes. If it still fails after that, the system shows a second message: “Still unable to send. Please contact IT now.” At the same time, the IT team gets an alert with the nurse’s name, patient ID, and time of failure. The system handles sensitive personal data under GDPR, with encryption, access logging, and deletion within 72 hours. Data must be kept inside the local cloud region. Notes lock after 48 hours, and corrections are added as new timestamped entries, with edits after 48 hours flagged for the team leader.\n\nThe primary user beyond the nurse and ward manager is the care coordinator, who relies on the ShareSheet report every morning to assign tasks. If a note is missing or delayed, the care coordinator cannot schedule properly, causing delays in patient care. Last month, a nurse on Ward 3 forgot to enter a note for a patient with a new wound, causing a one-hour delay in wound care. The team leader had no way to see the note was missing before 8:15 a.m. — there was no dashboard or alert system at that time. The only way the team leader knew was when the care coordinator called them directly.\n\nWhen a nurse opens InHealth at the start of their shift, the first thing they do is check the “Today’s Notes” dashboard, which shows a list of patients they’re responsible for, with a bold red flag next to any patient who has a missing or overdue note. If there’s a red flag, they click it to open the note entry form immediately. If not, they start assessing patients and enter notes as they go. The system doesn’t require them to do anything else first — no login screen, no prompts — it just loads the dashboard with everything they need for the shift. If they’re new to the system, they get a short video pop-up the first time, but only once.\n\nWhen the ward manager opens the system each morning, the first thing they see is a summary dashboard with three key items: the number of notes entered so far today, how many are overdue (more than 10 a.m.), and a list of nurses who haven’t entered a note yet. If any nurse is flagged, they can click the name to see which patient notes are missing. The manager then sends a quick message through the system to the nurse — no phone calls needed — saying “Hi, just checking in on your notes for Mr. Smith. Thanks!” If a nurse has missed two notes in a row, the manager gets a yellow alert and can schedule a quick 5-minute huddle to check in. The system doesn’t make the manager do anything — it just gives them the facts and the tools to act, fast.\n\nThe first thing the care coordinator looks for is the list of patients who have new notes from the previous day — specifically, any patient with a note marked “urgent” or “new assessment” — because that’s what drives their task planning. They scan the list quickly, then open the full report to check the details of each note, like medication changes, wound care needs, or therapy referrals. If a note is missing, they immediately flag it in the system and send a message to the team leader — but only after checking the time, because if it’s before 8:15 a.m., they wait to see if it comes through. They do it inside the system — that’s the whole point of the new tool. If a note is missing by 8:15 a.m., the care coordinator clicks a button in ShareSheet that says “Notify Team Leader,” and the system sends a pre-filled message: “Hi, Mr. Smith’s note is missing — due by 8 a.m. — please check.” The message goes directly to the team leader’s dashboard, where it shows up as a red alert with the patient name and time. They don’t need to call, text, or email — the system handles the chain. If the note still isn’t entered by 9:30 a.m., the system escalates it to the ward manager automatically.\n\nThe nurse's top priority is to know for sure that a saved note has been sent to ShareSheet, with a simple confirmation message: “Note saved and sent to ShareSheet. Next update at 8 a.m. tomorrow.” If it fails, the nurse wants to see exactly what went wrong, such as “ShareSheet is unreachable — retrying automatically,” and clear guidance on how to get help if it still fails after 30 minutes. The care coordinator needs to see a clear indicator of urgent notes, such as a red tag for new assessments, medication changes, or falls, and a red highlight for missing notes with the patient’s name and the time it was due. The ward manager needs to see not just which nurses haven’t entered notes, but also which patients are affected, including the patient’s name, the note type, and the time it was due, to prioritize based on clinical urgency. The ward manager should be able to message a flagged nurse from the same view.\n\nThe first requirement (FR-30) is: when a nurse saves a ward note in InHealth, the system must immediately confirm the note was sent to ShareSheet, with a clear message on screen. If the send fails, the system must retry automatically every 5 minutes for 30 minutes, showing the nurse a real-time update like “Retrying... connection restored.” If it still fails after 30 minutes, the system must display a clear action prompt: “Still not sent — contact IT now.” And the IT team must be alerted with the nurse’s name, patient ID, and time of failure — all automatically. The nurse never loses the note, and they always know what to do next. The same-screen status line is confirmed as part of FR-30, and a nurse who saves a note during a ShareSheet outage will be able to see the status line change from \"Retrying\" to \"Sent\" once the connection returns, without refreshing the screen. If the nurse saves the same patient's note twice during an outage, the system keeps both copies as separate timestamped entries, flagged \"Duplicate entry — check for accuracy.\"\n\nThe 8 a.m. deadline applies to all wards on the same schedule, with no exceptions. A note entered at 1 a.m. still counts toward the next morning's 8 a.m. deadline. If ShareSheet is down at 8 a.m., the system flags the note as delayed in the care coordinator's view and alerts the team leader at 8:15 a.m. A delayed note stays visible until it syncs, even after the 10 a.m. and",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "Auto-trigger spreadsheet update on note save",
+      "scope": "mvp",
+      "acceptance": ["Saving a note updates the spreadsheet without any further user action"]
+    },
+    {
+      "id": "FR-2",
+      "title": "Daily ward manager digest",
+      "scope": "mvp",
+      "acceptance": [
+        "Email is sent at 7:30 a.m. each day",
+        "Email lists only patients with notes added since the previous day",
+        "Each entry links to the note and to the spreadsheet download"
+      ]
+    },
+    {
+      "id": "FR-3",
+      "title": "Missing-note reminder",
+      "scope": "mvp",
+      "acceptance": [
+        "Reminder is sent at 10 a.m. the next day when a note is missing",
+        "Reminder goes to both the nurse and their team leader"
+      ]
+    },
+    {
+      "id": "FR-4",
+      "title": "Automatic spreadsheet generation",
+      "scope": "mvp",
+      "acceptance": ["Spreadsheet is generated automatically when a nurse saves a ward note."]
+    },
+    {
+      "id": "FR-5",
+      "title": "Daily email digest for ward managers",
+      "scope": "mvp",
+      "acceptance": [
+        "Ward manager receives an email digest at 7:30 a.m. daily with new notes and spreadsheet link."
+      ]
+    },
+    {
+      "id": "FR-6",
+      "title": "Reminder for missed notes",
+      "scope": "mvp",
+      "acceptance": ["System sends reminder to nurse and team leader at 10 a.m. if note is missed."]
+    },
+    {
+      "id": "FR-7",
+      "title": "Log late notes as delays",
+      "scope": "mvp",
+      "acceptance": [
+        "A note saved after the 8 a.m. deadline appears in ShareSheet with a delay flag",
+        "Quality reporting counts it as a delay"
+      ]
+    },
+    {
+      "id": "FR-8",
+      "title": "Escalate missed notes",
+      "scope": "mvp",
+      "acceptance": [
+        "Pending note stays open for the nurse after 10 a.m.",
+        "Team leader receives alert at 10:15 a.m. with nurse name, patient full name and entry link",
+        "Second miss by the same nurse in one week is logged in the quality weekly report"
+      ]
+    },
+    {
+      "id": "FR-9",
+      "title": "InHealth to ShareSheet Integration",
+      "scope": "mvp",
+      "acceptance": ["The system allows the finance supervisor to access ShareSheet monthly."],
+      "reason": "To match nurse hours with documented patient interactions."
+    },
+    {
+      "id": "FR-10",
+      "title": "Log and alert on sync delay",
+      "scope": "mvp",
+      "acceptance": [
+        "A failed or delayed sync creates a timestamped log entry",
+        "IT receives an alert within 5 minutes"
+      ]
+    },
+    {
+      "id": "FR-11",
+      "title": "Sync notes to ShareSheet by 8 a.m.",
+      "scope": "mvp",
+      "acceptance": ["Notes are synced to ShareSheet by 8 a.m."]
+    },
+    {
+      "id": "FR-12",
+      "title": "Team leader 10:15 a.m. alert",
+      "scope": "mvp",
+      "acceptance": [
+        "Alert shows nurse name, patient full name, note type and due time on one line",
+        "Alert shows Overdue by figure for a note saved earlier and still unsent",
+        "Clicking the alert opens the patient record and note field with due time highlighted"
+      ],
+      "reason": "Aligned with FR-8 version per participant decision"
+    },
+    {
+      "id": "FR-13",
+      "title": "Quality team's weekly logging",
+      "scope": "future",
+      "acceptance": ["Quality team's weekly logging is implemented"],
+      "reason": "To be added in version two after the core workflow is established and nurses can use the system without extra steps"
+    },
+    {
+      "id": "FR-14",
+      "title": "Show clear error messages on sync failure",
+      "scope": "mvp",
+      "acceptance": [
+        "The system shows a clear error message when a note fails to sync.",
+        "The error message tells the nurse what to do to resolve the issue."
+      ],
+      "reason": "To ensure the nurse knows exactly what to do if a note fails to sync, rather than wondering if it worked."
+    },
+    {
+      "id": "FR-15",
+      "title": "Offline save and retry",
+      "scope": "mvp",
+      "acceptance": [
+        "Note is kept locally when sync fails",
+        "Retry runs every 5 minutes for up to 30 minutes",
+        "After 30 minutes the nurse sees a contact-IT message and IT receives an alert with nurse name, patient ID and failure time"
+      ]
+    },
+    {
+      "id": "FR-16",
+      "title": "Clear on-screen sync error messages",
+      "scope": "mvp",
+      "acceptance": [
+        "Message reads 'Note saved locally, but not yet sent to ShareSheet. Please check again in 5 minutes.'",
+        "Second message reads 'Still unable to send. Please contact IT now.' after 30 minutes"
+      ]
+    },
+    {
+      "id": "FR-17",
+      "title": "Handle sync failures with offline retry and IT alert",
+      "scope": "mvp",
+      "acceptance": [
+        "The system shows a message when ShareSheet is unreachable and retries every 5 minutes for 30 minutes.",
+        "The system shows a contact-IT message and sends an alert to IT after 30 minutes of failure.",
+        "The nurse never loses the note and knows exactly what to do."
+      ]
+    },
+    {
+      "id": "FR-18",
+      "title": "Lock notes after 48 hours",
+      "scope": "mvp",
+      "acceptance": [
+        "Editing a note older than 48 hours is blocked",
+        "Corrections create a new entry with timestamp and explanation",
+        "Any attempted edit after 48 hours is flagged to the team leader"
+      ],
+      "reason": "Keeps audit trail clear"
+    },
+    {
+      "id": "FR-19",
+      "title": "Flag and escalate notes edited after 48 hours",
+      "scope": "mvp",
+      "acceptance": [
+        "The system flags edits made after 48 hours.",
+        "The system sends flagged edits to the team leader for review."
+      ],
+      "reason": "To keep the audit trail clear and avoid accidental changes."
+    },
+    {
+      "id": "FR-20",
+      "title": "Team leader pending-note dashboard flag",
+      "scope": "mvp",
+      "acceptance": [
+        "A pending note before the 8 a.m. deadline appears as a flag on the team leader's dashboard before the deadline passes."
+      ]
+    },
+    {
+      "id": "FR-21",
+      "title": "Ward manager morning summary dashboard",
+      "scope": "mvp",
+      "acceptance": [
+        "Summary shows the three counts on load",
+        "Clicking a flagged nurse lists missing patient notes"
+      ]
+    },
+    {
+      "id": "FR-22",
+      "title": "In-system messaging to nurses",
+      "scope": "mvp",
+      "acceptance": ["Message is delivered to the nurse in the system", "Sender and time are recorded"]
+    },
+    {
+      "id": "FR-23",
+      "title": "Yellow alert for repeated missed notes",
+      "scope": "mvp",
+      "acceptance": [
+        "Two consecutive misses set a yellow flag",
+        "Flag is visible on the ward manager dashboard"
+      ]
+    },
+    {
+      "id": "FR-24",
+      "title": "Nurse first-use tutorial",
+      "scope": "mvp",
+      "acceptance": ["Video shows on first login only", "Does not show again after it has been seen"]
+    },
+    {
+      "id": "FR-25",
+      "title": "Team leader alert for missing notes",
+      "scope": "mvp",
+      "acceptance": [
+        "The team leader receives an alert at 10:15 a.m. with the nurse's name, the missing patient, and the time."
+      ]
+    },
+    {
+      "id": "FR-26",
+      "title": "Care coordinator Notify Team Leader button",
+      "scope": "mvp",
+      "acceptance": [
+        "Button appears for a patient with no note by 8:15 a.m.",
+        "Team leader dashboard shows a red alert with patient name and time",
+        "Notification is logged with sender and timestamp"
+      ]
+    },
+    {
+      "id": "FR-27",
+      "title": "Automatic escalation to ward manager at 9:30 a.m.",
+      "scope": "mvp",
+      "acceptance": [
+        "Escalation fires at 9:30 a.m. when the note is still missing",
+        "Ward manager receives the escalation with patient and nurse details",
+        "Escalation is logged"
+      ]
+    },
+    {
+      "id": "FR-28",
+      "title": "Urgent-note marking in ShareSheet",
+      "scope": "mvp",
+      "acceptance": [
+        "Notes with urgent, new assessment, medication change, or fall flags show a red tag in ShareSheet",
+        "Care coordinator can sort or filter to see flagged notes first"
+      ],
+      "reason": "Care coordinator needs to prioritize without scanning the full list"
+    },
+    {
+      "id": "FR-29",
+      "title": "Red highlight for missing notes in ShareSheet",
+      "scope": "mvp",
+      "acceptance": [
+        "Missing notes appear as a red row showing patient name and due time",
+        "Highlight clears when the note is saved"
+      ],
+      "reason": "Care coordinator must see missing notes without inferring from blank rows"
+    },
+    {
+      "id": "FR-30",
+      "title": "Note save confirmation and outage retry",
+      "scope": "mvp",
+      "acceptance": [
+        "On a successful save, the nurse sees an on-screen confirmation that the note was sent to ShareSheet.",
+        "During an outage, the status line shows 'Retrying' and changes to 'Sent' on the same screen without refresh when the connection returns, e.g. after 12 minutes.",
+        "After 30 minutes of failure, the nurse sees 'Still not sent, contact IT now' and IT receives an alert with nurse name, patient ID and time."
+      ]
+    },
+    {
+      "id": "FR-31",
+      "title": "Nurse note saving and confirmation",
+      "scope": "mvp",
+      "acceptance": [
+        "The nurse sees a confirmation message on screen when the note is sent to ShareSheet.",
+        "The nurse sees a real-time update like “Retrying... connection restored.” when the connection is restored.",
+        "The nurse sees a clear action prompt: “Still not sent — contact IT now.” after 30 minutes if the note is not sent.",
+        "The IT team is alerted with the nurse’s name, patient ID, and time of failure if the note is not sent after 30 minutes."
+      ],
+      "reason": "The nurse’s note-saving behaviour is the heart of the system. It ensures that the nurse never loses the note and always knows what to do next."
+    },
+    {
+      "id": "FR-32",
+      "title": "Nurse note saving and confirmation",
+      "scope": "mvp",
+      "acceptance": [
+        "The nurse sees the status line change from “Retrying” to “Sent” once the connection returns, without refreshing the screen."
+      ],
+      "reason": "The nurse should be able to see the status line change without having to refresh the screen."
+    },
+    {
+      "id": "FR-33",
+      "title": "Flag duplicate notes",
+      "scope": "mvp",
+      "acceptance": [
+        "Two saves for the same patient at different times produce two ShareSheet records",
+        "Each record shows its timestamp",
+        "Duplicate records carry the note 'Duplicate entry — check for accuracy'"
+      ],
+      "reason": "Care coordinator needs to see both entries without losing a possible correction."
+    },
+    {
+      "id": "FR-34",
+      "title": "Update status line live",
+      "scope": "mvp",
+      "acceptance": ["The status line updates from \"Retrying\" to \"Sent\" without a refresh"],
+      "reason": "Prevents duplicate entries by showing the nurse that the note was sent successfully"
+    },
+    {
+      "id": "FR-35",
+      "title": "Team leader alert link to note field",
+      "scope": "mvp",
+      "acceptance": [
+        "Clicking the alert opens the patient's note field without search or re-login",
+        "Due time is highlighted on arrival"
+      ],
+      "reason": "Team leader must act in one click"
+    },
+    {
+      "id": "FR-36",
+      "title": "Team leader alert resolution control",
+      "scope": "mvp",
+      "acceptance": [
+        "'Marked as resolved' button is visible after the note is entered",
+        "A note already entered shows 'Note re-entered — check for accuracy'"
+      ],
+      "reason": "Prevents duplicate entry and gives a one-click fix"
+    },
+    {
+      "id": "FR-37",
+      "title": "10:15 a.m. alert for unsent notes",
+      "scope": "mvp",
+      "acceptance": [
+        "The alert displays nurse’s name, patient’s full name, note type, due time, and 'Overdue by' figure in one line, red, pinned to the top, with a direct link to the note field.",
+        "When the team leader clicks the alert, the note field opens already scrolled to the patient’s record, and the alert stays visible with a 'Marked as resolved' button.",
+        "If the note is already entered, the system shows 'Note re-entered — check for accuracy' to prevent duplication."
+      ],
+      "reason": "To ensure timely submission of patient notes and reduce manual tracking."
+    },
+    {
+      "id": "FR-38",
+      "title": "Team leader alert closure requires confirmed sync",
+      "scope": "mvp",
+      "acceptance": [
+        "Marked as resolved does not close the alert before sync is confirmed",
+        "Green Synced and resolved message appears after sync completes",
+        "If sync still fails after 5 minutes, the alert reverts to red and IT receives a message stating the note is still not sent"
+      ],
+      "reason": "Protects the audit trail and prevents the team leader being misled"
+    },
+    {
+      "id": "FR-39",
+      "title": "Team leader alert waiting-for-sync status",
+      "scope": "mvp",
+      "acceptance": [
+        "Alert remains red with Waiting for sync status after Marked as resolved while sync is pending",
+        "Alert changes to green Synced and resolved only after sync is confirmed"
+      ],
+      "reason": "Prevents the team leader from assuming the note is in ShareSheet before it is."
+    },
+    {
+      "id": "FR-40",
+      "title": "Alert status during sync delay",
+      "scope": "mvp",
+      "acceptance": ["The alert stays red with a 'Waiting for sync' status while the sync is pending."],
+      "reason": "To clearly indicate that the sync is still in progress."
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: nontechnical · Generated: 2026-10-14T06:36:35.524Z\n\n## Context\n\n| Question | Answer |\n| --- | --- |\n| hosting | cloud |\n| existing_systems | InHealth (patient management) and ShareSheet (central reporting spreadsheet); the note must appear in ShareSheet by 8 a.m. next day; connection failures email IT and do not block note entry. |\n| builder | team: in-house clinical systems team with healthcare experience, working with ward managers and nurses for testing |\n| team_skills | JavaScript and .NET (web-based InHealth platform), with experience in secure internal APIs |\n| login | Same login system as InHealth; no separate passwords for nurses. |\n| sync_alerting | Sync delays logged with a timestamp; IT alerted by email within 5 minutes. |\n| timeline | Version one ready in six weeks (before the quarterly review cycle); core functionality by week five. |\n| budget | Not decided (participant answered 'No') |\n| users_at_launch | About 80 nurses across six wards |\n| compliance | Personal data under GDPR; sensitive health data; encryption, access logging, 72-hour deletion from InHealth and ShareSheet, data stays in local cloud region |\n\n## Product overview and problem\n\n### Overview\n\nThis product replaces the current double-entry process where nurses record ward notes both in the patient system and a central reporting spreadsheet. The goal is to enter notes once, streamlining workflow and reducing errors.\n\nThe system is built by the in-house clinical systems team, working with ward managers and nurses for testing.\n\nA recent problem example: A missing wound note caused a delayed wound care visit by one hour due to a late alert, showing the need for improved timely note entry and alerting.\n\n## Target users and roles\n\n### Users\n\n- **Ward manager:** Needs a morning summary of notes entered, overdue notes, and missing notes by nurses. Can message nurses and schedule quick huddles for repeated misses.\n\n- **Care coordinator:** Uses ShareSheet each morning to check urgent notes and missing notes after 8:15 a.m., messages team leader if notes are missing.\n\n- **Regional quality team:** Reviews weekly ShareSheet logs to monitor timeliness of note entry and flags wards missing deadlines twice consecutively.\n\n- **Finance supervisor:** Uses ShareSheet monthly to verify nurse hours against documented patient interactions.\n\n- **Nurse:** Starts each shift by viewing \"Today's Notes\" dashboard, prioritizing patients flagged with missing or overdue notes.\n\n- **Team leader:** Receives early alerts about pending notes to act before escalation, manages notes status on a dashboard.\n\n## User stories\n\n### User Stories\n\n- **US-1:** Nurse wants immediate confirmation on saving a note and detailed guidance if save fails.\n\n- **US-2:** Care coordinator wants urgent and missing notes clearly marked to prioritize action.\n\n- **US-3:** Ward manager wants details of nurses with missing notes and affected patients for clinical prioritization.\n\n- **US-4:** Finance supervisor wants to verify nurse hours match patient interactions monthly.\n\n- **US-5:** Care coordinator wants to flag missing notes directly from ShareSheet to team leader.\n\n- **US-6:** Nurse wants confirmation of note receipt to trust completion without chasing.\n\n- **US-7:** Care coordinator needs all notes in ShareSheet by 8 a.m. daily for planning.\n\n- **US-8:** Nurse needs clear confirmation and error messages on note save to focus on care.\n\n- **US-9:** Care coordinator wants urgent notes and missing notes highlighted clearly for quick prioritization.\n\n- **US-10:** Ward manager wants visibility of nurses without notes including patient and note details.\n\n- **US-ward-manager-detail:** Ward manager wants to see patient name, note type, due time for missing notes and message nurses from same view.\n\n## Functional requirements\n\n### Functional Requirements\n\nThis system automates syncing ward notes saved in InHealth to ShareSheet by 8 a.m. daily, supports alerts for missing and late notes, messages staff about missing notes, locks note edits after 48 hours, and flags duplicates. Nurses get clear save confirmations and error guidance.\n\nRequirements include automatic spreadsheet updates, daily reminder emails to ward managers, alerts sent to nurses and team leaders for missing notes, logging of sync delays, and escalation alerts for unresolved missing notes.\n\nDelayed and missing notes management, user notifications, live status updates during sync outages, and audit trail rules are covered. Immediate on-screen nurse confirmations and retry logic for failures ensure safe note handling.\n\nThe functional scope prioritizes core workflow delivery in the MVP with repeat missed-note logging deferred to future releases.\n\n### MVP\n\n- **FR-1** Auto-trigger spreadsheet update on note save\n  - Acceptance: Saving a note updates the spreadsheet without any further user action\n- **FR-2** Daily ward manager digest\n  - Acceptance: Email is sent at 7:30 a.m. each day\n  - Acceptance: Email lists only patients with notes added since the previous day\n  - Acceptance: Each entry links to the note and to the spreadsheet download\n- **FR-3** Missing-note reminder\n  - Acceptance: Reminder is sent at 10 a.m. the next day when a note is missing\n  - Acceptance: Reminder goes to both the nurse and their team leader\n- **FR-4** Automatic spreadsheet generation\n  - Acceptance: Spreadsheet is generated automatically when a nurse saves a ward note.\n- **FR-5** Daily email digest for ward managers\n  - Acceptance: Ward manager receives an email digest at 7:30 a.m. daily with new notes and spreadsheet link.\n- **FR-6** Reminder for missed notes\n  - Acceptance: System sends reminder to nurse and team leader at 10 a.m. if note is missed.\n- **FR-7** Log late notes as delays\n  - Acceptance: A note saved after the 8 a.m. deadline appears in ShareSheet with a delay flag\n  - Acceptance: Quality reporting counts it as a delay\n- **FR-8** Escalate missed notes\n  - Acceptance: Pending note stays open for the nurse after 10 a.m.\n  - Acceptance: Team leader receives alert at 10:15 a.m. with nurse name, patient full name and entry link\n  - Acceptance: Second miss by the same nurse in one week is logged in the quality weekly report\n- **FR-9** InHealth to ShareSheet Integration\n  - Acceptance: The system allows the finance supervisor to access ShareSheet monthly.\n  - Reason: To match nurse hours with documented patient interactions.\n- **FR-10** Log and alert on sync delay\n  - Acceptance: A failed or delayed sync creates a timestamped log entry\n  - Acceptance: IT receives an alert within 5 minutes\n- **FR-11** Sync notes to ShareSheet by 8 a.m.\n  - Acceptance: Notes are synced to ShareSheet by 8 a.m.\n- **FR-12** Team leader 10:15 a.m. alert\n  - Acceptance: Alert shows nurse name, patient full name, note type and due time on one line\n  - Acceptance: Alert shows Overdue by figure for a note saved earlier and still unsent\n  - Acceptance: Clicking the alert opens the patient record and note field with due time highlighted\n  - Reason: Aligned with FR-8 version per participant decision\n- **FR-14** Show clear error messages on sync failure\n  - Acceptance: The system shows a clear error message when a note fails to sync.\n  - Acceptance: The error message tells the nurse what to do to resolve the issue.\n  - Reason: To ensure the nurse knows exactly what to do if a note fails to sync, rather than wondering if it worked.\n- **FR-15** Offline save and retry\n  - Acceptance: Note is kept locally when sync fails\n  - Acceptance: Retry runs every 5 minutes for up to 30 minutes\n  - Acceptance: After 30 minutes the nurse sees a contact-IT message and IT receives an alert with nurse name, patient ID and failure time\n- **FR-16** Clear on-screen sync error messages\n  - Acceptance: Message reads 'Note saved locally, but not yet sent to ShareSheet. Please check again in 5 minutes.'\n  - Acceptance: Second message reads 'Still unable to send. Please contact IT now.' after 30 minutes\n- **FR-17** Handle sync failures with offline retry and IT alert\n  - Acceptance: The system shows a message when ShareSheet is unreachable and retries every 5 minutes for 30 minutes.\n  - Acceptance: The system shows a contact-IT message and sends an alert to IT after 30 minutes of failure.\n  - Acceptance: The nurse never loses the note and knows exactly what to do.\n- **FR-18** Lock notes after 48 hours\n  - Acceptance: Editing a note older than 48 hours is blocked\n  - Acceptance: Corrections create a new entry with timestamp and explanation\n  - Acceptance: Any attempted edit after 48 hours is flagged to the team leader\n  - Reason: Keeps audit trail clear\n- **FR-19** Flag and escalate notes edited after 48 hours\n  - Acceptance: The system flags edits made after 48 hours.\n  - Acceptance: The system sends flagged edits to the team leader for review.\n  - Reason: To keep the audit trail clear and avoid accidental changes.\n- **FR-20** Team leader pending-note dashboard flag\n  - Acceptance: A pending note before the 8 a.m. deadline appears as a flag on the team leader's dashboard before the deadline passes.\n- **FR-21** Ward manager morning summary dashboard\n  - Acceptance: Summary shows the three counts on load\n  - Acceptance: Clicking a flagged nurse lists missing patient notes\n- **FR-22** In-system messaging to nurses\n  - Acceptance: Message is delivered to the nurse in the system\n  - Acceptance: Sender and time are recorded\n- **FR-23** Yellow alert for repeated missed notes\n  - Acceptance: Two consecutive misses set a yellow flag\n  - Acceptance: Flag is visible on the ward manager dashboard\n- **FR-24** Nurse first-use tutorial\n  - Acceptance: Video shows on first login only\n  - Acceptance: Does not show again after it has been seen\n- **FR-25** Team leader alert for missing notes\n  - Acceptance: The team leader receives an alert at 10:15 a.m. with the nurse's name, the missing patient, and the time.\n- **FR-26** Care coordinator Notify Team Leader button\n  - Acceptance: Button appears for a patient with no note by 8:15 a.m.\n  - Acceptance: Team leader dashboard shows a red alert with patient name and time\n  - Acceptance: Notification is logged with sender and timestamp\n- **FR-27** Automatic escalation to ward manager at 9:30 a.m.\n  - Acceptance: Escalation fires at 9:30 a.m. when the note is still missing\n  - Acceptance: Ward manager receives the escalation with patient and nurse details\n  - Acceptance: Escalation is logged\n- **FR-28** Urgent-note marking in ShareSheet\n  - Acceptance: Notes with urgent, new assessment, medication change, or fall flags show a red tag in ShareSheet\n  - Acceptance: Care coordinator can sort or filter to see flagged notes first\n  - Reason: Care coordinator needs to prioritize without scanning the full list\n- **FR-29** Red highlight for missing notes in ShareSheet\n  - Acceptance: Missing notes appear as a red row showing patient name and due time\n  - Acceptance: Highlight clears when the note is saved\n  - Reason: Care coordinator must see missing notes without inferring from blank rows\n- **FR-30** Note save confirmation and outage retry\n  - Acceptance: On a successful save, the nurse sees an on-screen confirmation that the note was sent to ShareSheet.\n  - Acceptance: During an outage, the status line shows 'Retrying' and changes to 'Sent' on the same screen without refresh when the connection returns, e.g. after 12 minutes.\n  - Acceptance: After 30 minutes of failure, the nurse sees 'Still not sent, contact IT now' and IT receives an alert with nurse name, patient ID and time.\n- **FR-31** Nurse note saving and confirmation\n  - Acceptance: The nurse sees a confirmation message on screen when the note is sent to ShareSheet.\n  - Acceptance: The nurse sees a real-time update like “Retrying... connection restored.” when the connection is restored.\n  - Acceptance: The nurse sees a clear action prompt: “Still not sent — contact IT now.” after 30 minutes if the note is not sent.\n  - Acceptance: The IT team is alerted with the nurse’s name, patient ID, and time of failure if the note is not sent after 30 minutes.\n  - Reason: The nurse’s note-saving behaviour is the heart of the system. It ensures that the nurse never loses the note and always knows what to do next.\n- **FR-32** Nurse note saving and confirmation\n  - Acceptance: The nurse sees the status line change from “Retrying” to “Sent” once the connection returns, without refreshing the screen.\n  - Reason: The nurse should be able to see the status line change without having to refresh the screen.\n- **FR-33** Flag duplicate notes\n  - Acceptance: Two saves for the same patient at different times produce two ShareSheet records\n  - Acceptance: Each record shows its timestamp\n  - Acceptance: Duplicate records carry the note 'Duplicate entry — check for accuracy'\n  - Reason: Care coordinator needs to see both entries without losing a possible correction.\n- **FR-34** Update status line live\n  - Acceptance: The status line updates from \"Retrying\" to \"Sent\" without a refresh\n  - Reason: Prevents duplicate entries by showing the nurse that the note was sent successfully\n- **FR-35** Team leader alert link to note field\n  - Acceptance: Clicking the alert opens the patient's note field without search or re-login\n  - Acceptance: Due time is highlighted on arrival\n  - Reason: Team leader must act in one click\n- **FR-36** Team leader alert resolution control\n  - Acceptance: 'Marked as resolved' button is visible after the note is entered\n  - Acceptance: A note already entered shows 'Note re-entered — check for accuracy'\n  - Reason: Prevents duplicate entry and gives a one-click fix\n- **FR-37** 10:15 a.m. alert for unsent notes\n  - Acceptance: The alert displays nurse’s name, patient’s full name, note type, due time, and 'Overdue by' figure in one line, red, pinned to the top, with a direct link to the note field.\n  - Acceptance: When the team leader clicks the alert, the note field opens already scrolled to the patient’s record, and the alert stays visible with a 'Marked as resolved' button.\n  - Acceptance: If the note is already entered, the system shows 'Note re-entered — check for accuracy' to prevent duplication.\n  - Reason: To ensure timely submission of patient notes and reduce manual tracking.\n- **FR-38** Team leader alert closure requires confirmed sync\n  - Acceptance: Marked as resolved does not close the alert before sync is confirmed\n  - Acceptance: Green Synced and resolved message appears after sync completes\n  - Acceptance: If sync still fails after 5 minutes, the alert reverts to red and IT receives a message stating the note is still not sent\n  - Reason: Protects the audit trail and prevents the team leader being misled\n- **FR-39** Team leader alert waiting-for-sync status\n  - Acceptance: Alert remains red with Waiting for sync status after Marked as resolved while sync is pending\n  - Acceptance: Alert changes to green Synced and resolved only after sync is confirmed\n  - Reason: Prevents the team leader from assuming the note is in ShareSheet before it is.\n- **FR-40** Alert status during sync delay\n  - Acceptance: The alert stays red with a 'Waiting for sync' status while the sync is pending.\n  - Reason: To clearly indicate that the sync is still in progress.\n\n### Future\n\n- **FR-13** Quality team's weekly logging\n  - Acceptance: Quality team's weekly logging is implemented\n  - Reason: To be added in version two after the core workflow is established and nurses can use the system without extra steps\n\n## Business rules\n\n### Business Rules\n\n1. Single missed notes do not trigger quality reports; repeat misses within one week by the same nurse do.\n\n2. Notes lock 48 hours after sync; corrections require new entries with explanation; edits after locking are flagged and sent to team leaders.\n\n3. Duplicate notes saved at different times are kept separately with timestamps and 'Duplicate entry — check for accuracy' tags; never merged.\n\n4. All wards follow the same 8 a.m. sync deadline; notes entered overnight count toward the next morning.\n\n5. Unsynced notes by 8 a.m. appear delayed on care coordinator dashboard; team leader alerted at 8:15 a.m.; nurse can retry syncing.\n\n6. Delayed notes remain visible as delayed until synced, even past escalation windows.\n\n7. Notes unsynced by 11 a.m. send a red-priority alert to ward manager with full details; no repeated team leader alert.\n\n8. If still unsynced at 11:30 a.m., alert is sent to regional clinical lead noting third delay that week.\n\n9. Alert resolution is tracking only; closure requires confirmation that ShareSheet sync succeeded.\n\n## Technical requirements\n\n### Technical Requirements\n\n- Hosting will be on an existing cloud account for data safety and compliance.\n\n- The application's technology stack is JavaScript and .NET, matching the existing InHealth platform expertise.\n\n- Sync functionality uses an internal API service called by InHealth at note save, ensuring secure, reliable, and logged communication.\n\n- The existing InHealth database is reused to store notes, sync status, and retry histories.\n\n- Sync history records include every save, retry, and response timestamp to support audit trails and quality tracking.\n\nThese choices leverage existing skills and infrastructure to ensure security, maintainability, and compliance.\n\n## Data requirements\n\n### Data Requirements\n\n- **Notes:** Entities include patient, nurse, note type, save time, lock time (48 hours after save), original note ID for corrections.\n\n- **Sync History:** Records every note save, retry attempts with timestamps, results, and final sync time; retains data for at least 90 days.\n\n- **Alerts:** Capture nurse, patient, note ID, raised time, and status (open, waiting for sync, or closed).\n\nRelations ensure corrections link to original notes, and alerts link to notes for traceability.\n\n## Integrations\n\n### Integrations\n\n- Integration is from InHealth to ShareSheet, synchronizing ward notes with a next-day 8 a.m. deadline.\n\n- On sync failure, the system sends an email alert to IT but does not block the nurse from entering notes.\n\n- Sync delays generate logged timestamps and alert IT within 5 minutes to support rapid response and system reliability.\n\n- ShareSheet is accessed by care coordinators daily, quality team weekly, and finance supervisors monthly for reporting and planning.\n\n## Security and privacy\n\n### Security and Privacy\n\n- Nurses use the existing InHealth login system, requiring no additional passwords.\n\n- The system complies with GDPR for sensitive personal and health data.\n\n- All data storage and transmission use approved encryption protocols.\n\n- Access is logged for audit purposes.\n\n- Patient data deletion requests are fulfilled within 72 hours from both InHealth and ShareSheet with confirmation.\n\n- All data processing and storage remain within the local cloud region.\n\n## Non-functional requirements\n\n### Non-Functional Requirements\n\n- The system must reliably deliver all saved notes to ShareSheet by 8 a.m. the next day, with no silent failures.\n\n- Failures show clear error messages and guidance for retry or contacting IT.\n\n- The system supports 80 nurses entering between 400 and 640 notes daily.\n\n- Must handle peak load at morning handover without degradation or crashes.\n\n## Administrative surface\n\n### Administrative Surface\n\n- Ward manager receives a daily email digest at 7:30 a.m. listing new notes since the previous day, with links to notes and spreadsheet downloads.\n\n- Ward manager dashboard shows counts of notes entered today, overdue notes, and nurses with missing notes, with ability to expand missing notes per nurse.\n\n- Ward manager can send in-system messages to nurses, with recorded sender and timestamps.\n\n- Care coordinator accesses ShareSheet daily and has a 'Notify Team Leader' button to flag missing notes.\n\n- Team leader dashboard shows red alerts for missing notes from 8:15 a.m., pinned alerts with direct links to patient notes, and controls to mark alerts as resolved.\n\n- System supports nurse onboarding video pop-up on first login only.\n\n## MVP scope\n\n### MVP Scope\n\nThe MVP delivers the core workflow: note entry in InHealth syncing automatically to ShareSheet by 8 a.m.; nurse save confirmation and outage retry with real-time status; alerts for missing notes to nurse, team leader (10:15 a.m.), ward manager (escalation after 9:30 a.m.), and regional lead for repeat delays; locking of notes after 48 hours; dashboards and email digests for ward managers; messaging within the system; red/urgent note flags; and syncing retry logging.\n\nQuality team's weekly logging of repeat missed notes is deferred to future releases.\n\nIn version one:\n- FR-1\n- FR-2\n- FR-3\n- FR-4\n- FR-5\n- FR-6\n- FR-7\n- FR-8\n- FR-9\n- FR-10\n- FR-11\n- FR-12\n- FR-14\n- FR-15\n- FR-16\n- FR-17\n- FR-18\n- FR-19\n- FR-20\n- FR-21\n- FR-22\n- FR-23\n- FR-24\n- FR-25\n- FR-26\n- FR-27\n- FR-28\n- FR-29\n- FR-30\n- FR-31\n- FR-32\n- FR-33\n- FR-34\n- FR-35\n- FR-36\n- FR-37\n- FR-38\n- FR-39\n- FR-40\n\nMoved to future scope:\n- FR-13: Quality team weekly logging deferred to version two to focus on core workflow first.\n\nNext:\n- FR-13\n\n## Future scope\n\n### Future Scope\n\n- Implement functionality for the quality team’s weekly reporting of repeated missed notes (currently deferred to version two).\n\n- Consideration of logging scope expansion to include quality logging and analytics beyond MVP.\n\n## Implementation phases\n\n### Implementation Phases\n\nThe implementation will be structured in multiple phases, each with goals and concrete tasks:\n\n- **Phase 1:** Deliver end-to-end core workflow: nurse note saving in InHealth with automatic ShareSheet update, save confirmations, retry logic, and basic dashboards.\n\n- **Phase 2:** Implement alerting system for missing notes to team leaders and ward managers including escalation logic.\n\n- **Phase 3:** Add detailed dashboards for ward managers and team leaders with messaging capability.\n\n- **Phase 4:** Add audit trail locking and correction workflows including edit flagging for team leader review.\n\n- **Phase 5:** Implement quality team weekly logging and reporting features in future release.\n\n### Phase 1: Core Workflow Implementation\n\nGoals:\n- Enable saving ward notes with automatic syncing to ShareSheet by 8 a.m.\n- Implement nurse save confirmation and retry logic with real-time status\n- Provide basic dashboards for nurses and ward managers\n\nTasks:\n- Implement note saving and sync triggering to ShareSheet\n  - Acceptance: Nurse note saves update ShareSheet automatically without extra action\n- Show immediate on-screen confirmation and live retry status during outages\n  - Acceptance: Nurse sees confirmation and status line changing from 'Retrying' to 'Sent' without screen refresh\n- Deliver the ward manager daily email digest\n  - Acceptance: Ward manager receives a daily email at 7:30 a.m. with new notes and spreadsheet link\n\nPhase acceptance:\n- System allows nurses to save notes that reliably appear in ShareSheet by 8 a.m.\n- Status messages clearly guide nurses on note save and retry status\n- Ward managers get daily summary emails on new notes\n\n### Phase 2: Alerting and Escalations\n\nGoals:\n- Implement alerts for missing and delayed notes to nurses, team leaders, and ward managers\n- Automate notification escalation workflows\n\nTasks:\n- Send reminders to nurses and team leaders at 10 a.m. for missing notes\n  - Acceptance: Reminders accurately notify nurse and team leader at the scheduled time\n- Implement escalation alerts to ward managers and regional leads for prolonged delays\n  - Acceptance: Escalations sent correctly at 9:30 a.m. and 11:30 a.m. with logged details\n\nDepends on: phase1\n\nPhase acceptance:\n- Alerts trigger as specified and escalate missing notes properly\n- Escalations include required patient, nurse, note, and timing data\n\n### Phase 3: Dashboard and Messaging Enhancements\n\nGoals:\n- Provide detailed dashboards for ward managers and team leaders\n- Enable in-system messaging between managers and nurses\n\nTasks:\n- Develop ward manager dashboard with summaries and detailed views\n  - Acceptance: Dashboard shows notes entered, overdue notes, missing nurses, and expands missing patient lists\n- Implement messaging feature allowing ward managers to message nurses with logged timestamps\n  - Acceptance: Messages are delivered, recorded, and visible to nurses\n\nDepends on: phase2\n\nPhase acceptance:\n- Users can review missing notes and message nurses efficiently from dashboards\n\n### Phase 4: Audit Trail and Correction Controls\n\nGoals:\n- Lock notes after 48 hours to prevent edit\n- Support correction entries and flag edits after locking for team leader review\n\nTasks:\n- Implement locking logic for notes and treat corrections as new entries\n  - Acceptance: Editing locked notes blocked; corrections recorded as new timestamped entries\n- Flag edits after lock and notify team leaders\n  - Acceptance: Team leaders receive alerts for edits after locking\n\nDepends on: phase3\n\nPhase acceptance:\n- Audit trail and locking rules enforced as specified\n\n### Phase 5: Quality Team Reporting (Future)\n\nGoals:\n- Add weekly logging and reports for quality team on repeat missed notes\n\nTasks:\n- Implement reports and dashboards for quality team\n  - Acceptance: Quality team can see repeat missed notes and ward flags\n\nDepends on: phase4\n\nPhase acceptance:\n- Quality team receives weekly analysis as planned\n\n## Open questions\n\n### Open Questions\n\n- **FR-12 Alert Content Conflict:** FR-12 and FR-8 differed on 10:15 a.m. alert content for the team leader. The default taken is the content from FR-8, including nurse name, patient name, and time, as agreed to resolve the conflict.\n\nNo other open questions remained after specifications and decisions.\n\n- What exact content should the 10:15 a.m. team leader alert include to resolve conflicts between FR-8 and FR-12? _Default taken: The team leader alert includes nurse name, patient full name, note type, due time, and overdue figure as per FR-8, aligned with participant decision._\n"
+}

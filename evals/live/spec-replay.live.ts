@@ -105,8 +105,12 @@ async function main(): Promise<void> {
   const template = shippedTemplate("requirements_discovery");
   if (!template) throw new Error("requirements_discovery template not found");
   const logger = {
-    warn: (m: string, meta?: Record<string, unknown>) => { console.warn(redact(`warn: ${m} ${meta ? JSON.stringify(meta).slice(0, 300) : ""}`)); },
-    info: (m: string, meta?: Record<string, unknown>) => { console.warn(redact(`info: ${m} ${meta ? JSON.stringify(meta).slice(0, 300) : ""}`)); },
+    warn: (m: string, meta?: Record<string, unknown>) => {
+      console.warn(redact(`warn: ${m} ${meta ? JSON.stringify(meta).slice(0, 300) : ""}`));
+    },
+    info: (m: string, meta?: Record<string, unknown>) => {
+      console.warn(redact(`info: ${m} ${meta ? JSON.stringify(meta).slice(0, 300) : ""}`));
+    },
   };
   mkdirSync(OUT!, { recursive: true });
 
