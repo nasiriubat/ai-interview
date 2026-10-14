@@ -91,20 +91,61 @@ describeDb("user disable and delete", () => {
     // A tenant of its own, with one admin, so the count is exact. The operator acts from outside.
     const company = await world.db.company.create({ data: { name: "Solo", status: "active" } });
     const solo = await world.db.user.create({
-      data: { companyId: company.id, email: `solo-${Math.random().toString(36).slice(2)}@test.io`, role: "admin" },
+      data: {
+        companyId: company.id,
+        email: `solo-${Math.random().toString(36).slice(2)}@test.io`,
+        role: "admin",
+      },
     });
     const operator = { ...as(world.operatorToken), "x-company-id": company.id };
 
-    expect((await world.app.inject({ method: "PATCH", url: `/api/v1/users/${solo.id}`, headers: operator, payload: { disabled: true } })).statusCode).toBe(409);
-    expect((await world.app.inject({ method: "PATCH", url: `/api/v1/users/${solo.id}`, headers: operator, payload: { role: "member" } })).statusCode).toBe(409);
-    expect((await world.app.inject({ method: "DELETE", url: `/api/v1/users/${solo.id}`, headers: operator })).statusCode).toBe(409);
-    expect(await world.db.user.findUnique({ where: { id: solo.id } })).toMatchObject({ role: "admin", disabledAt: null });
+    expect(
+      (
+        await world.app.inject({
+          method: "PATCH",
+          url: `/api/v1/users/${solo.id}`,
+          headers: operator,
+          payload: { disabled: true },
+        })
+      ).statusCode,
+    ).toBe(409);
+    expect(
+      (
+        await world.app.inject({
+          method: "PATCH",
+          url: `/api/v1/users/${solo.id}`,
+          headers: operator,
+          payload: { role: "member" },
+        })
+      ).statusCode,
+    ).toBe(409);
+    expect(
+      (await world.app.inject({ method: "DELETE", url: `/api/v1/users/${solo.id}`, headers: operator }))
+        .statusCode,
+    ).toBe(409);
+    expect(await world.db.user.findUnique({ where: { id: solo.id } })).toMatchObject({
+      role: "admin",
+      disabledAt: null,
+    });
 
     // With a second administrator it is allowed, and not before.
     await world.db.user.create({
-      data: { companyId: company.id, email: `second-${Math.random().toString(36).slice(2)}@test.io`, role: "admin" },
+      data: {
+        companyId: company.id,
+        email: `second-${Math.random().toString(36).slice(2)}@test.io`,
+        role: "admin",
+      },
     });
-    expect((await world.app.inject({ method: "PATCH", url: `/api/v1/users/${solo.id}`, headers: operator, payload: { disabled: true } })).statusCode).toBe(200);
+    expect(
+      (
+        await world.app.inject({
+          method: "PATCH",
+          url: `/api/v1/users/${solo.id}`,
+          headers: operator,
+          payload: { disabled: true },
+        })
+      ).statusCode,
+    ).toBe(200);
   });
 
   it("does not count a disabled administrator as one that is left", async () => {
@@ -221,12 +262,21 @@ describeDb("user disable and delete", () => {
 
     const other = await world.db.company.create({ data: { name: "Elsewhere", status: "active" } });
     const stranger = await world.db.user.create({
-      data: { companyId: other.id, email: `s-${Math.random().toString(36).slice(2)}@test.io`, role: "member" },
+      data: {
+        companyId: other.id,
+        email: `s-${Math.random().toString(36).slice(2)}@test.io`,
+        role: "member",
+      },
     });
     expect((await patch(world.adminToken, stranger.id, { disabled: true })).statusCode).toBe(404);
     expect(
-      (await world.app.inject({ method: "DELETE", url: `/api/v1/users/${stranger.id}`, headers: as(world.adminToken) }))
-        .statusCode,
+      (
+        await world.app.inject({
+          method: "DELETE",
+          url: `/api/v1/users/${stranger.id}`,
+          headers: as(world.adminToken),
+        })
+      ).statusCode,
     ).toBe(404);
   });
 });

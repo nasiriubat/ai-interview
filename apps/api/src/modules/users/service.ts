@@ -176,7 +176,10 @@ export class UsersService {
     // The heir is the admin doing the deleting. When the platform operator does it from outside
     // the tenant, that user is not in this tenant and must not be written into its rows, so the
     // longest-serving enabled administrator inherits instead.
-    const inTenant = await this.db.user.findFirst({ where: { id: actorId, companyId }, select: { id: true } });
+    const inTenant = await this.db.user.findFirst({
+      where: { id: actorId, companyId },
+      select: { id: true },
+    });
     const heir =
       inTenant?.id ??
       (

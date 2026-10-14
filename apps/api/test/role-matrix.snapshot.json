@@ -395,6 +395,18 @@
       "crossTenantAdmin": 401
     }
   },
+  "GET /p/session/export": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
   "GET /p/session/live": {
     "access": "participant",
     "isolation": false,
@@ -989,6 +1001,18 @@
     "statuses": {
       "anonymous": 401,
       "participant": 404,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "HEAD /p/session/export": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
       "member": 401,
       "admin": 401,
       "operator": 401,

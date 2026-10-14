@@ -18,6 +18,8 @@ export * from "./email/outbox.js";
 export * from "./email/smtp.js";
 export * from "./email/settings-email.js";
 export * from "./privacy/retention.js";
+export * from "./privacy/export.js";
+export * from "./privacy/inventory.js";
 export * from "./analysis/service.js";
 export * from "./requirements/service.js";
 export * from "./requirements/github.js";
