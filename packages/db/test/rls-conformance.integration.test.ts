@@ -292,6 +292,30 @@ const factories: Record<string, Factory> = {
     }),
   SentEmail: (db, w, tag) =>
     db.sentEmail.create({ data: { companyId: w.companyId, idempotencyKey: `se-${tag}-${Math.random()}` } }),
+  FallbackRoute: (db, w, tag) =>
+    db.fallbackRoute.create({
+      data: {
+        companyId: w.companyId,
+        purpose: `p-${tag}-${Math.random()}`,
+        providerId: w.providerId,
+        model: "m",
+        maxOutputTokens: 100,
+      },
+    }),
+  TenantStatement: (db, w) =>
+    db.tenantStatement.create({
+      data: {
+        companyId: w.companyId,
+        month: `20${Math.floor(10 + Math.random() * 89)}-0${Math.ceil(Math.random() * 9)}`,
+        lines: [],
+        totals: {},
+        counts: {},
+      },
+    }),
+  ErasureLedger: (db, w, tag) =>
+    db.erasureLedger.create({
+      data: { kind: "session", targetId: `er-${tag}-${Math.random()}`, companyId: w.companyId },
+    }),
   OpsAlert: (db, w, tag) =>
     db.opsAlert.create({
       data: {
@@ -393,6 +417,9 @@ describeDb("row-level security conformance (D-140)", () => {
     await owner.sessionEvent.deleteMany({ where });
     await owner.message.deleteMany({ where });
     await owner.llmCall.deleteMany({ where });
+    await owner.fallbackRoute.deleteMany({ where });
+    await owner.tenantStatement.deleteMany({ where });
+    await owner.erasureLedger.deleteMany({ where });
     await owner.session.deleteMany({ where });
     await owner.participant.deleteMany({ where });
     await owner.setting.deleteMany({

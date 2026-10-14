@@ -17,6 +17,9 @@ import { SpeechOutput } from "./speech.js";
 import { LiveState, type SessionOpts } from "./state.js";
 import { TurnDriver } from "./turn.js";
 
+/** How often a running call re-reads the voice-minutes ceiling. */
+const CEILING_CHECK_MS = 60_000;
+
 /**
  * One live conversation.
  *
@@ -28,7 +31,7 @@ import { TurnDriver } from "./turn.js";
 export class LiveVoiceSession implements LiveHost {
   readonly state = new LiveState();
   readonly gate = new AudioGate();
-  readonly metrics = new VoiceMetrics();
+  readonly metrics: VoiceMetrics;
   /**
    * Aborted when the socket closes or errors, and handed to the turn: a participant who hangs up
    * mid-turn must stop the model call in flight, not leave it to run to completion and be billed.
@@ -43,6 +46,18 @@ export class LiveVoiceSession implements LiveHost {
     private readonly socket: WebSocket,
     readonly scope: Scope,
   ) {
+    // Every sample also goes to the histograms the voice SLO is read from (D-222).
+    this.metrics = new VoiceMetrics({
+      firstWord: (ms, mode) => {
+        ctx.metrics.voiceFirstWord(scope.companyId, mode, ms);
+      },
+      firstPartial: (ms, mode) => {
+        ctx.metrics.voiceFirstPartial(scope.companyId, mode, ms);
+      },
+      event: (event) => {
+        ctx.metrics.voiceEvent(scope.companyId, event);
+      },
+    });
     this.speech = new SpeechOutput(this);
     this.turns = new TurnDriver(this, this.speech);
     this.hearing = new Hearing(this, this.turns, this.speech);
@@ -83,6 +98,10 @@ export class LiveVoiceSession implements LiveHost {
       return;
     }
     this.state.opts = settings;
+    // The operator's voice-minutes ceiling (D-229): checked before a provider socket is opened,
+    // and again each minute while the call runs, so a call cannot carry a tenant far past it.
+    if (await this.scoped(() => this.overCeiling())) return;
+    this.watchCeiling();
     await this.scoped(() => this.hearing.open(settings));
     if (this.state.closed) {
       this.state.stt?.close();
@@ -101,8 +120,37 @@ export class LiveVoiceSession implements LiveHost {
     });
   }
 
+  /**
+   * Whether the tenant's voice-minutes ceiling is used up. When it is, the participant is told the
+   * call is unavailable with text as the way on (the chain of D-72), the tenant and operator are
+   * notified once, and the socket is closed.
+   */
+  private async overCeiling(): Promise<boolean> {
+    const { ceilings } = this.ctx;
+    const { max, used } = await ceilings.standing(this.scope.companyId, "voiceMinutes");
+    if (max <= 0 || used < max) return false;
+    await ceilings.reached(this.scope.companyId, "voiceMinutes", used, max).catch(() => undefined);
+    this.send({ type: "unavailable", reason: "limit", fallback: "text" });
+    this.state.close();
+    this.state.stt?.close();
+    this.socket.close(CLOSE_POLICY, "voice minutes used up");
+    return true;
+  }
+
+  private ceilingTimer: NodeJS.Timeout | undefined;
+
+  /** Re-checks the ceiling every minute of the call. */
+  private watchCeiling(): void {
+    this.ceilingTimer = setInterval(() => {
+      if (this.state.closed) return;
+      void this.scoped(() => this.overCeiling()).catch(() => undefined);
+    }, CEILING_CHECK_MS);
+    this.ceilingTimer.unref();
+  }
+
   /** The socket went away: stop the turn, the speech and the provider's socket. */
   private hangUp(): void {
+    if (this.ceilingTimer) clearInterval(this.ceilingTimer);
     this.abortController.abort();
     this.state.close();
   }
@@ -179,7 +227,8 @@ export class LiveVoiceSession implements LiveHost {
   private async settings(): Promise<
     SessionOpts & { enabled: boolean; endOfSpeechMs: number; language: string | undefined }
   > {
-    const chain = [{ scope: "tenant" as const, scopeId: this.scope.companyId }];
+    // Template first, tenant second: the interview's own voice settings win (D-186, D-229).
+    const chain = await this.ctx.services.turns.settingsChain(this.scope.companyId, this.scope.sessionId);
     const [values, language, voiceOk] = await Promise.all([
       this.ctx.settings.resolveMany(
         [

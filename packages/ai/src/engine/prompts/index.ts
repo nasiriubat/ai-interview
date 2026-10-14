@@ -16,6 +16,11 @@ export interface PromptDefinition {
   key: string;
   version: number;
   body: string;
+  /**
+   * Where the body came from. Absent means shipped. A tenant or platform version is numbered
+   * independently of the shipped file numbers, so the ledger tag says which kind it is.
+   */
+  source?: "shipped" | "platform" | "tenant";
 }
 
 /** Prompts shipped with the code (FR-50). Tenant overrides come through a PromptSource. */
@@ -36,8 +41,12 @@ export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
 };
 
 export interface PromptSource {
-  /** Returns the prompt to use for this tenant (override or shipped). */
-  get(companyId: string, key: string): Promise<PromptDefinition>;
+  /**
+   * Returns the prompt to use for this tenant (override or shipped). `stickyKey` (the session or
+   * campaign id) makes a canary assignment deterministic, so one participant does not flip between
+   * two prompts mid-interview (D-230).
+   */
+  get(companyId: string, key: string, stickyKey?: string): Promise<PromptDefinition>;
 }
 
 export class ShippedPromptSource implements PromptSource {
@@ -48,4 +57,6 @@ export class ShippedPromptSource implements PromptSource {
   }
 }
 
-export const promptVersionTag = (p: PromptDefinition): string => `${p.key}@${p.version}`;
+/** `interviewer@5` for a shipped file, `interviewer@t3` for tenant version 3, `@p2` for platform. */
+export const promptVersionTag = (p: PromptDefinition): string =>
+  `${p.key}@${p.source === "tenant" ? "t" : p.source === "platform" ? "p" : ""}${p.version}`;

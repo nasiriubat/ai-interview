@@ -69,6 +69,8 @@ import {
   type Campaign,
   DeadJobListSchema,
   type DeadJob,
+  PlatformHealthSchema,
+  type PlatformHealth,
   QueueListSchema,
   type QueueSummary,
   type EmailTest,
@@ -89,6 +91,16 @@ import {
   type Paged,
   PreviewSessionSchema,
   PricePageSchema,
+  PromptCheckSchema,
+  PromptDetailSchema,
+  PromptDiffSchema,
+  PromptListSchema,
+  PromptVersionSchema,
+  type PromptCheck,
+  type PromptDetail,
+  type PromptDiff,
+  type PromptList,
+  type PromptVersion,
   type PromoteResult,
   PromoteResultSchema,
   ProviderEnvelopeSchema,
@@ -476,6 +488,54 @@ export function staffApi(transport: Transport): StaffApi {
         ),
     },
 
+    prompts: {
+      list: () => request(transport, { path: "/prompts", schema: PromptListSchema }),
+      get: (key) =>
+        request(transport, { path: `/prompts/${encodeURIComponent(key)}`, schema: PromptDetailSchema }),
+      diff: (key, from, to) =>
+        request(transport, {
+          path: `/prompts/${encodeURIComponent(key)}/diff`,
+          query: { from, to },
+          schema: PromptDiffSchema,
+        }),
+      check: (key, body) =>
+        request(transport, {
+          method: "POST",
+          path: `/prompts/${encodeURIComponent(key)}/check`,
+          body: { body },
+          schema: PromptCheckSchema,
+        }),
+      create: (key, input) =>
+        request(transport, {
+          method: "POST",
+          path: `/prompts/${encodeURIComponent(key)}/versions`,
+          body: input,
+          schema: PromptVersionSchema,
+        }),
+      activate: (key, version, canaryShare) =>
+        ok(
+          request(transport, {
+            method: "POST",
+            path: `/prompts/${encodeURIComponent(key)}/versions/${String(version)}/activate`,
+            body: { canaryShare },
+          }),
+        ),
+      stopCanary: (key) =>
+        ok(request(transport, { method: "DELETE", path: `/prompts/${encodeURIComponent(key)}/canary` })),
+      rollback: (key) =>
+        ok(
+          request(transport, {
+            method: "POST",
+            path: `/prompts/${encodeURIComponent(key)}/rollback`,
+            body: {},
+          }),
+        ),
+      reset: (key) =>
+        ok(
+          request(transport, { method: "POST", path: `/prompts/${encodeURIComponent(key)}/reset`, body: {} }),
+        ),
+    },
+
     onboarding: {
       get: () => request(transport, { path: "/onboarding", schema: OnboardingSchema }),
       dismiss: () =>
@@ -728,6 +788,7 @@ export function staffApi(transport: Transport): StaffApi {
           ok(request(transport, { method: "PUT", path: "/operator/routes", body: { routes } })),
       },
       stats: () => request(transport, { path: "/operator/stats", schema: StatsSchema }),
+      health: () => request(transport, { path: "/operator/health", schema: PlatformHealthSchema }),
       jobs: {
         list: () =>
           request(transport, { path: "/operator/jobs", schema: QueueListSchema }).then((r) => r.queues),
@@ -891,6 +952,24 @@ export interface StaffApi {
       before?: string;
     }): Promise<SettingsHistory>;
   };
+  /** Prompt administration: tenant versions, canaries and the built-in prompts they replace (D-230). */
+  prompts: {
+    list(): Promise<PromptList>;
+    get(key: string): Promise<PromptDetail>;
+    /** Line diff of two bodies; each side is `shipped` or a version number. */
+    diff(key: string, from: string, to: string): Promise<PromptDiff>;
+    /** Validates a draft against the contract without storing it. */
+    check(key: string, body: string): Promise<PromptCheck>;
+    create(
+      key: string,
+      input: { body: string; note?: string; parentVersion?: number },
+    ): Promise<PromptVersion>;
+    /** `canaryShare` 1 makes the version the stable one; between 0 and 1 starts a canary. */
+    activate(key: string, version: number, canaryShare: number): Promise<void>;
+    stopCanary(key: string): Promise<void>;
+    rollback(key: string): Promise<void>;
+    reset(key: string): Promise<void>;
+  };
   /** The getting-started checklist (D-189). */
   onboarding: {
     get(): Promise<Onboarding>;
@@ -933,6 +1012,8 @@ export interface StaffApi {
     providers: ProvidersApi;
     routes: RoutesApi;
     stats(): Promise<Stats>;
+    /** Every platform signal and each tenant's utilisation on one page (D-222). */
+    health(): Promise<PlatformHealth>;
     /** The background queue: counters, dead letters, and the verbs that act on them (D-92). */
     jobs: {
       list(): Promise<QueueSummary[]>;

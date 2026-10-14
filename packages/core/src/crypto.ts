@@ -257,6 +257,18 @@ export class Crypto {
     return null;
   }
 
+  /**
+   * A key for sealing or signing a bulk artefact (a tenant export, D-225), derived from the
+   * platform key and bound to what it is for (`info`) and to whom (`salt`). Under the active key,
+   * or under the ring key named by `kid` when an older artefact is being opened. Null when `kid`
+   * names a key that is no longer in the ring.
+   */
+  bulkKey(info: string, salt: string, kid?: string): { kid: string; key: Buffer } | null {
+    const entry = kid === undefined ? this.active : this.ring.find((k) => k.kid === kid);
+    if (!entry) return null;
+    return { kid: entry.kid, key: derive(entry.key, `aidp:bulk:${info}`, salt) };
+  }
+
   /** Hash of a bearer token for storage; tokens themselves are random and shown once. */
   hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");

@@ -112,7 +112,7 @@ function FindingCard({
 function SettledFinding({ finding: f }: { finding: FindingRecord }): React.JSX.Element {
   const s = t.admin.requirements.findings;
   return (
-    <details className="rounded-lg border px-4 py-2 text-sm">
+    <details className="bg-muted/50 rounded-lg px-4 py-2 text-sm">
       <summary className="flex cursor-pointer flex-wrap items-center gap-2">
         <Badge variant="secondary">{s.types[f.type]}</Badge>
         <StatusBadge status={f.status} />

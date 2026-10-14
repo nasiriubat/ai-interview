@@ -39,6 +39,12 @@ if [ "$result" = "failed" ]; then
 	unhealthy "last backup failed: $(jq -r '.error // "no reason recorded"' "$STATUS_FILE")"
 fi
 
+# 2b. The newest backup restores (D-227). A failed weekly drill means the dump on disk may not be
+#     usable, which is as serious as a failed backup and just as invisible without this line.
+if [ "$(jq -r '.drill.result // empty' "$STATUS_FILE")" = "failed" ]; then
+	unhealthy "last restore drill failed: $(jq -r '.drill.error // "no reason recorded"' "$STATUS_FILE")"
+fi
+
 # 3. There has been a success recently. A fresh install has none yet, so it is measured from when
 #    the scheduler started: the first scheduled run has the whole limit to happen in.
 ref=$(jq -r '.lastSuccessEpoch // .startedEpoch // empty' "$STATUS_FILE")

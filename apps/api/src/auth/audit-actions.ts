@@ -37,6 +37,15 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /campaigns/:id/invitations": ["campaign.invite"],
   "POST /campaigns/:id/invitations/:invId/remind": ["invitation.remind"],
   "POST /campaigns/:id/invitations/:invId/revoke": ["invitation.revoke"],
+  // prompts (D-230)
+  "POST /prompts/:key/versions": ["prompt.create"],
+  "POST /prompts/:key/versions/:v/activate": ["prompt.activate", "prompt.canary"],
+  "DELETE /prompts/:key/canary": ["prompt.canary_stop"],
+  "POST /prompts/:key/rollback": ["prompt.rollback"],
+  "POST /prompts/:key/reset": ["prompt.reset"],
+  "POST /prompts/:key/check": {
+    none: "Validates and renders a draft without storing it; nothing changes, so there is nothing to record.",
+  },
   // interviews
   "POST /sessions/:id/flag/ack": ["session.flag.ack"],
   // onboarding
@@ -81,6 +90,10 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   // operator
   "POST /operator/tenants": ["tenant.create"],
   "PATCH /operator/tenants/:id": ["tenant.update"],
+  // Filed under the operator's own company, not the tenant's: the tenant's trail is what
+  // offboarding removes, and who took a copy of its data and who removed it must outlive that.
+  "POST /operator/tenants/:id/export": ["tenant.export_requested"],
+  "POST /operator/tenants/:id/offboard": ["tenant.offboard_requested"],
   "POST /operator/providers": ["provider.create"],
   "PATCH /operator/providers/:id": ["provider.update"],
   "DELETE /operator/providers/:id": ["provider.delete"],

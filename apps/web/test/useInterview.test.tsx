@@ -37,6 +37,7 @@ function apiWith(sendTurn: ParticipantApi["sendTurn"], extra: Partial<Participan
   return {
     sendTurn,
     sendVoice: () => Promise.reject(new Error("unused")),
+    transcribe: () => Promise.reject(new Error("unused")),
     uploadAttachment: () => Promise.reject(new Error("unused")),
     listAttachments: () => Promise.resolve([]),
     attachmentBytes: () => Promise.reject(new Error("unused")),

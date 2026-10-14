@@ -1,0 +1,34 @@
+# Recording rules for the SLO panels (D-222). Recording, not alerting: the operator's alerts are
+# the application's own (docs/OPERATIONS.md), and a second alerting path is a second thing to
+# configure. These exist so a dashboard asks for a precomputed series instead of a quantile over a
+# long range on every refresh, which matters on a 4 GB host.
+groups:
+  - name: aidp-slo
+    interval: 30s
+    rules:
+      # NFR-01: first token of an interview turn, p95 under 2 s.
+      - record: aidp:first_token_seconds:p95_5m
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(aidp_turn_first_token_seconds_bucket{purpose=~"interview_turn|spec_turn"}[5m])))
+      - record: aidp:first_token_seconds:p95_1h
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(aidp_turn_first_token_seconds_bucket{purpose=~"interview_turn|spec_turn"}[1h])))
+      # Voice first word, p95 under 1.5 s (voice.targetFirstWordMs).
+      - record: aidp:voice_first_word_seconds:p95_5m
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(aidp_voice_first_word_seconds_bucket[5m])))
+      # Share of model calls that failed.
+      - record: aidp:model_call_error_ratio:5m
+        expr: |
+          sum(rate(aidp_provider_errors_total[5m])) / clamp_min(sum(rate(aidp_model_call_duration_seconds_count[5m])), 1e-9)
+      # Share of first-token samples over the 2 s target: the SLO's error budget burn.
+      - record: aidp:first_token_over_target_ratio:1h
+        expr: |
+          1 - (
+            sum(rate(aidp_turn_first_token_seconds_bucket{purpose=~"interview_turn|spec_turn",le="2"}[1h]))
+            / clamp_min(sum(rate(aidp_turn_first_token_seconds_count{purpose=~"interview_turn|spec_turn"}[1h])), 1e-9)
+          )
+      # Job success: dead-lettered attempts against all attempts.
+      - record: aidp:job_failure_ratio:1h
+        expr: |
+          sum(rate(aidp_job_failures_total{final="true"}[1h])) / clamp_min(sum(rate(aidp_job_duration_seconds_count[1h])), 1e-9)

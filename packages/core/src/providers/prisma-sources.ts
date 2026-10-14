@@ -36,6 +36,30 @@ export class PrismaRouteResolver implements RouteResolver {
   }
 }
 
+/**
+ * Fallback routes (D-228): tenant override first, platform default second, exactly like routes.
+ * A purpose with none returns undefined and keeps today's behaviour.
+ */
+export class PrismaFallbackRouteResolver implements RouteResolver {
+  constructor(private readonly db: PrismaClient) {}
+  async resolve(companyId: string, purpose: Purpose): Promise<Route | undefined> {
+    const rows = await this.db.fallbackRoute.findMany({
+      where: { purpose, OR: [{ companyId }, { companyId: null }] },
+    });
+    const row = rows.find((r) => r.companyId === companyId) ?? rows.find((r) => r.companyId === null);
+    if (!row) return undefined;
+    return RouteSchema.parse({
+      companyId: row.companyId,
+      purpose: row.purpose,
+      providerId: row.providerId,
+      model: row.model,
+      ...(row.effort ? { effort: row.effort } : {}),
+      maxOutputTokens: row.maxOutputTokens,
+      batchAllowed: false,
+    });
+  }
+}
+
 /** Providers a tenant may use: its own, plus platform-level. Keys are decrypted here and nowhere else. */
 export class PrismaProviderConfigSource implements ProviderConfigSource {
   constructor(
@@ -92,6 +116,11 @@ export class PrismaLedger implements LedgerSink, SpendSource {
         sessionId: e.sessionId ?? null,
         campaignId: e.campaignId ?? null,
         createdAt: e.createdAt,
+        firstTokenMs: e.firstTokenMs ?? null,
+        audioSeconds: e.usage.audioSeconds ?? 0,
+        ttsCharacters: e.usage.ttsCharacters ?? 0,
+        estimated: e.estimated ?? false,
+        routeTier: e.routeTier ?? "primary",
       },
     });
   }
@@ -166,6 +195,8 @@ export async function loadPrices(db: PrismaClient, companyId: string, into: Pric
       inputPerMtok: r.inputPerMtok,
       cachedInputPerMtok: r.cachedInputPerMtok,
       outputPerMtok: r.outputPerMtok,
+      ...(r.audioPerMinute !== null ? { audioPerMinute: r.audioPerMinute } : {}),
+      ...(r.ttsPerMChars !== null ? { ttsPerMChars: r.ttsPerMChars } : {}),
       source: r.source as ModelPrice["source"],
     };
     into.set(p);

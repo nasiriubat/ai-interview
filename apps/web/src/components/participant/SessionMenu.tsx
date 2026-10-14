@@ -3,6 +3,7 @@
 import { CheckCircle2Icon, DownloadIcon, MoreHorizontalIcon, PauseIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ThemeSwitch } from "@/components/common/ThemeSwitch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -130,6 +131,10 @@ export function SessionMenu({
               <Trash2Icon /> {t.participant.session.deleteData}
             </Button>
           </div>
+          <div className="mt-2 flex items-center justify-between gap-2 border-t px-2 pt-2">
+            <span className="text-muted-foreground text-xs">{t.app.theme.label}</span>
+            <ThemeSwitch />
+          </div>
           {/* Announced to a screen reader as it changes, so a slow export is not silent. */}
           <p role="status" aria-live="polite" className="text-muted-foreground px-2 pt-2 text-xs">
             {download === "busy"
@@ -160,7 +165,7 @@ export function SessionMenu({
           <AlertDialogFooter>
             <AlertDialogCancel>{t.app.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => {
                 onDelete();
               }}

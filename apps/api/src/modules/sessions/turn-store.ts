@@ -88,6 +88,25 @@ export class TurnStore {
     return s?.status ?? null;
   }
 
+  /**
+   * The settings scopes this interview resolves through, narrowest first: its template, then its
+   * tenant (voice keys exist at those two scopes). A live call used to read the tenant alone, so
+   * a template's own voice name, speaking rate or captions switch never reached the call.
+   */
+  async settingsChain(
+    companyId: string,
+    sessionId: string,
+  ): Promise<{ scope: "template" | "tenant"; scopeId: string }[]> {
+    const s = await this.db.session.findFirst({
+      where: { id: sessionId, companyId },
+      select: { templateId: true },
+    });
+    return [
+      ...(s ? [{ scope: "template" as const, scopeId: s.templateId }] : []),
+      { scope: "tenant" as const, scopeId: companyId },
+    ];
+  }
+
   /** The language the interview's template is written in. */
   async templateLanguage(companyId: string, sessionId: string): Promise<string | undefined> {
     const s = await this.db.session.findFirst({

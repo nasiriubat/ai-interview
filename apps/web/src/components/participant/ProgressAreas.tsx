@@ -51,8 +51,8 @@ export function ProgressAreas({
                     type="button"
                     aria-label={`${a.name}: ${statusLabel}. ${t.participant.session.areaActions(a.name)}`}
                     className={cn(
-                      "inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs whitespace-nowrap transition-colors",
-                      a.status === "covered" && "bg-primary/10 border-primary/30",
+                      "shadow-control inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs whitespace-nowrap transition-colors",
+                      a.status === "covered" && "bg-primary/10",
                       a.status === "partial" && "bg-accent",
                       a.status === "skipped" && "text-muted-foreground line-through",
                     )}

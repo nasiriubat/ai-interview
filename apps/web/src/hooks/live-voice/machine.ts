@@ -32,6 +32,8 @@ export interface CallState {
   ended: boolean;
   /** A fallback has been handed to the participant; it is handed over at most once per call. */
   fellBack: boolean;
+  /** The microphone is switched off by the participant: nothing is heard, the call stays up. */
+  muted: boolean;
 }
 
 export const INITIAL_CALL: CallState = {
@@ -45,12 +47,15 @@ export const INITIAL_CALL: CallState = {
   reconnects: 0,
   ended: false,
   fellBack: false,
+  muted: false,
 };
 
 export type CallEvent =
   | { type: "start" }
   /** The participant ended the call. A no-op when there is none. */
   | { type: "end" }
+  /** The participant switched the microphone off or on. A no-op when there is no call. */
+  | { type: "mute"; muted: boolean }
   /** The component went away. Unlike `end`, always releases everything. */
   | { type: "unmount" }
   | { type: "frame"; frame: ServerFrame }
@@ -84,6 +89,8 @@ export type CallEffect =
   | { type: "teardown" }
   | { type: "start_streaming"; sampleRate: number }
   | { type: "stop_streaming" }
+  /** Disable or enable the microphone track: a disabled track is silence, and the device stays held. */
+  | { type: "set_muted"; muted: boolean }
   | { type: "stop_playback" }
   | { type: "begin_speech"; mime: string }
   | { type: "discard_speech" }
@@ -117,7 +124,10 @@ function toListening(state: CallState): Transition {
 
 /** Closes the call on purpose: the socket is silenced first, so its close is not read as a drop. */
 function teardown(state: CallState, next: LiveVoiceStatus): Transition {
-  return { state: { ...state, ended: true, partial: "", status: next }, effects: [{ type: "teardown" }] };
+  return {
+    state: { ...state, ended: true, partial: "", muted: false, status: next },
+    effects: [{ type: "teardown" }],
+  };
 }
 
 /** The cascade cannot hear. Hands the participant a rung of the chain, once. */
@@ -268,6 +278,7 @@ export function reduce(state: CallState, event: CallEvent): Transition {
           reconnects: 0,
           textOnly: false,
           notHeard: false,
+          muted: false,
           partial: "",
           mode: "utterance",
           status: "connecting",
@@ -277,6 +288,18 @@ export function reduce(state: CallState, event: CallEvent): Transition {
     case "end":
       if (state.status === "idle") return stay(state);
       return teardown(state, "idle");
+    case "mute": {
+      if (state.status === "idle" || state.status === "unavailable" || state.muted === event.muted)
+        return stay(state);
+      // An utterance open when the microphone goes quiet is closed, not left running on silence.
+      return {
+        state: { ...state, muted: event.muted, partial: event.muted ? "" : state.partial },
+        effects: [
+          ...(event.muted ? ([{ type: "end_utterance" }] as CallEffect[]) : []),
+          { type: "set_muted", muted: event.muted },
+        ],
+      };
+    }
     case "unmount":
       return teardown(state, "idle");
     case "frame":

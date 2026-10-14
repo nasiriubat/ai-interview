@@ -25,7 +25,12 @@
 #   RCLONE_REMOTE             e.g. s3:aidp-backups; unset means no offsite copy (and says so)
 #   RCLONE_*                  rclone reads its remote's configuration from these
 #
+#   BACKUP_DRILL              off to disable the weekly restore drill (default on)
+#   BACKUP_DRILL_DAY          ISO weekday of the drill, 1 (Monday) to 7 (Sunday), default 7
+#   BACKUP_DRILL_AT           HH:MM of the drill on that day, container clock (UTC), default 04:40
+#
 # `backup.sh once` takes one backup and exits with its result: what upgrade.sh waits for.
+# `backup.sh drill` runs one restore drill now (deploy/restore-drill.sh) and exits with its result.
 set -euo pipefail
 
 : "${PGURL:?backup: PGURL is required}"
@@ -37,45 +42,20 @@ UPLOAD_DIR="${UPLOAD_DIR:-}"
 OPS_STATE_DIR="${OPS_STATE_DIR:-/ops-state}"
 RCLONE_REMOTE="${RCLONE_REMOTE:-}"
 BACKUP_AGE_IDENTITY="${BACKUP_AGE_IDENTITY:-}"
+BACKUP_DRILL="${BACKUP_DRILL:-on}"
+BACKUP_DRILL_DAY="${BACKUP_DRILL_DAY:-7}"
+BACKUP_DRILL_AT="${BACKUP_DRILL_AT:-04:40}"
 HEARTBEAT="${BACKUP_HEARTBEAT_FILE:-/run/backup-alive}"
 STATUS_FILE="$OPS_STATE_DIR/status/backup.json"
 ALERT_DIR="$OPS_STATE_DIR/alerts"
 
-log() { echo "backup: $(date -u +%Y-%m-%dT%H:%M:%SZ) $*"; }
-iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+LOG_PREFIX=backup
+# shellcheck source=backup-lib.sh
+. "$(dirname "$0")/backup-lib.sh"
 
 # compose passes every RCLONE_CONFIG_OFFSITE_* variable through, empty ones included, because it
 # cannot pass them conditionally; rclone would read an empty one as a value. Only the set ones stay.
 for _v in $(env | sed -n 's/^\(RCLONE_CONFIG_[A-Za-z0-9_]*\)=$/\1/p'); do unset "$_v"; done
-
-# ---- status file ------------------------------------------------------------------------------
-
-# Merges the given jq object into the status file, atomically. An unwritable ops-state volume is
-# reported and survived: a backup that cannot say so is still a backup.
-status_merge() {
-	local patch=$1 current='{}' tmp
-	[ -f "$STATUS_FILE" ] && current=$(cat "$STATUS_FILE" 2>/dev/null || echo '{}')
-	printf '%s' "$current" | jq -e . >/dev/null 2>&1 || current='{}'
-	mkdir -p "$(dirname "$STATUS_FILE")" 2>/dev/null || { log "WARNING: cannot create $(dirname "$STATUS_FILE")"; return 0; }
-	tmp="$STATUS_FILE.tmp.$$"
-	if printf '%s' "$current" | jq -c --argjson p "$patch" '. + $p' >"$tmp" 2>/dev/null; then
-		mv "$tmp" "$STATUS_FILE"
-	else
-		rm -f "$tmp"
-		log "WARNING: could not write $STATUS_FILE"
-	fi
-}
-
-# A notification for the ops-notify sidecar: the application may be down, so this is a file. The
-# field names are those of packages/core/src/alerts/port.ts, and `kind` must be a catalog kind.
-emit_alert() {
-	local kind=$1 severity=$2 title=$3 message=$4 file
-	[ -d "$ALERT_DIR" ] || mkdir -p "$ALERT_DIR" 2>/dev/null || return 0
-	file="$ALERT_DIR/$kind-$(date -u +%Y%m%dT%H%M%SZ).json"
-	jq -cn --arg kind "$kind" --arg severity "$severity" --arg title "$title" --arg message "$message" \
-		--arg at "$(iso)" '{kind:$kind,severity:$severity,key:$kind,title:$title,message:$message,occurredAt:$at}' \
-		>"$ALERT_DIR/.tmp.$$" 2>/dev/null && mv "$ALERT_DIR/.tmp.$$" "$file" 2>/dev/null || true
-}
 
 # ---- one run ----------------------------------------------------------------------------------
 
@@ -87,28 +67,16 @@ fail_run() {
 	return 1
 }
 
-# Table counts at the moment of the dump: the manifest the weekly restore drill (and a human) can
-# check a restore against. One query, so the numbers are one snapshot.
-table_counts() {
-	psql "$PGURL" -tA -v ON_ERROR_STOP=1 -c "select json_build_object(
-	  'Company', (select count(*) from \"Company\"),
-	  'User', (select count(*) from \"User\"),
-	  'Campaign', (select count(*) from \"Campaign\"),
-	  'Session', (select count(*) from \"Session\"),
-	  'Message', (select count(*) from \"Message\"),
-	  'Fact', (select count(*) from \"Fact\"),
-	  'Attachment', (select count(*) from \"Attachment\"),
-	  'LlmCall', (select count(*) from \"LlmCall\"))"
-}
+# The manifest is `manifest_counts` (backup-lib.sh): the row counts at the moment of the dump,
+# which restore-drill.sh checks a restore against.
+table_counts() { manifest_counts "$PGURL"; }
 
 # Decrypts the finished dump and reads its table of contents. A truncated or corrupt archive, or
 # one encrypted to a key we do not hold, fails here at 03:20 and not on the day it is needed.
 verify_dump() {
 	local file=$1 id
 	[ -n "$BACKUP_AGE_IDENTITY" ] || { log "no BACKUP_AGE_IDENTITY: written but not verified"; return 0; }
-	id=$(mktemp)
-	chmod 600 "$id"
-	printf '%s\n' "$BACKUP_AGE_IDENTITY" >"$id"
+	id=$(identity_file)
 	if age -d -i "$id" <"$file" | pg_restore --list >/dev/null 2>&1; then
 		rm -f "$id"
 		return 0
@@ -148,7 +116,26 @@ run_backup() {
 		fail_run "the uploads archive failed; the dump from this run is kept but the pair is incomplete"
 		return 1
 	fi
-	[ -z "$UPLOAD_DIR" ] || uploads_count=$(find "$UPLOAD_DIR" -type f ! -name '*.type' ! -name '*.part' | wc -l | tr -d ' ')
+	if [ -n "$UPLOAD_DIR" ]; then
+		# Counted from the archive itself, not from the volume a moment later: that is the number a
+		# restore of this archive must reproduce, exactly, and it proves the archive reads back.
+		if [ -n "$BACKUP_AGE_IDENTITY" ]; then
+			local id
+			id=$(identity_file)
+			if ! uploads_count=$(archive_file_count "$BACKUP_DIR/uploads-$stamp.tar.gz.age" "$id"); then
+				rm -f "$id"
+				fail_run "the uploads archive did not decrypt and list back"
+				return 1
+			fi
+			rm -f "$id"
+		else
+			uploads_count=$(find "$UPLOAD_DIR" -type f ! -name '*.type' ! -name '*.part' | wc -l | tr -d ' ')
+		fi
+	fi
+	# The manifest travels with the dump (and offsite with it), so the drill can check any dump, not
+	# only the one the status file happens to describe.
+	jq -cn --argjson counts "$counts" --argjson uploads "$uploads_count" --arg dump "$(basename "$dump")" \
+		'{dump:$dump,counts:$counts,uploadsCount:$uploads}' >"${dump%.dump.age}.manifest.json"
 
 	epoch=$(date +%s)
 	status_merge "$(jq -cn --arg at "$(iso)" --argjson epoch "$epoch" --arg dump "$(basename "$dump")" \
@@ -191,7 +178,7 @@ backup_uploads() {
 prune_local() {
 	local pruned kept
 	pruned=$(find "$BACKUP_DIR" -maxdepth 1 \
-		\( -name 'ai_discovery-*.dump.age' -o -name 'uploads-*.tar.gz.age' -o -name 'ai_discovery-*.dump' -o -name 'uploads-*.tar.gz' \) \
+		\( -name 'ai_discovery-*.dump.age' -o -name 'uploads-*.tar.gz.age' -o -name 'ai_discovery-*.dump' -o -name 'uploads-*.tar.gz' -o -name 'ai_discovery-*.manifest.json' \) \
 		-mtime "+$BACKUP_RETENTION_DAYS" -print -delete | wc -l | tr -d ' ')
 	kept=$(find "$BACKUP_DIR" -maxdepth 1 \( -name 'ai_discovery-*.dump.age' -o -name 'ai_discovery-*.dump' \) | wc -l | tr -d ' ')
 	log "pruned $pruned older than ${BACKUP_RETENTION_DAYS}d, $kept dumps kept"
@@ -208,7 +195,7 @@ offsite_copy() {
 	fi
 	dow=$(date -u +%u)
 	dom=$(date -u +%d)
-	for f in "$BACKUP_DIR/ai_discovery-$stamp.dump.age" "$BACKUP_DIR/uploads-$stamp.tar.gz.age"; do
+	for f in "$BACKUP_DIR/ai_discovery-$stamp.dump.age" "$BACKUP_DIR/uploads-$stamp.tar.gz.age" "$BACKUP_DIR/ai_discovery-$stamp.manifest.json"; do
 		[ -f "$f" ] || continue
 		rclone copy "$f" "$RCLONE_REMOTE/daily/" || ok=0
 		[ "$dow" = "7" ] && { rclone copy "$f" "$RCLONE_REMOTE/weekly/" || ok=0; }
@@ -219,7 +206,7 @@ offsite_copy() {
 		rclone delete --min-age 30d "$RCLONE_REMOTE/daily/" >/dev/null 2>&1 || true
 		rclone delete --min-age 90d "$RCLONE_REMOTE/weekly/" >/dev/null 2>&1 || true
 		rclone delete --min-age 400d "$RCLONE_REMOTE/monthly/" >/dev/null 2>&1 || true
-		status_merge "$(jq -cn --arg at "$(iso)" '{offsite:"ok",offsiteAt:$at}')"
+		status_merge "$(jq -cn --arg at "$(iso)" '{offsite:"ok",offsiteAt:$at,offsiteLastSuccessAt:$at}')"
 		log "offsite copy done to $RCLONE_REMOTE"
 		return 0
 	fi
@@ -244,10 +231,40 @@ next_run_epoch() {
 	echo "$best"
 }
 
-if [ "${1:-loop}" = "once" ]; then
+# The weekly restore drill (D-227), in its own script so it can also be run by hand.
+run_drill() {
+	local ticker rc
+	# A drill of a large dump outlasts the heartbeat's allowance; keep it fresh from the side so the
+	# healthcheck does not call a busy container dead.
+	( while :; do date +%s >"$HEARTBEAT"; sleep 30; done ) &
+	ticker=$!
+	"$(dirname "$0")/restore-drill.sh"
+	rc=$?
+	kill "$ticker" 2>/dev/null || true
+	return $rc
+}
+
+# Epoch of the next drill: the next BACKUP_DRILL_DAY (ISO weekday) at BACKUP_DRILL_AT, UTC.
+next_drill_epoch() {
+	local now today_dow days target
+	now=$(date -u +%s)
+	today_dow=$(date -u +%u)
+	days=$(((BACKUP_DRILL_DAY - today_dow + 7) % 7))
+	target=$(date -u -d "today ${BACKUP_DRILL_AT} + ${days} days" +%s)
+	[ "$target" -gt "$now" ] || target=$(date -u -d "today ${BACKUP_DRILL_AT} + $((days + 7)) days" +%s)
+	echo "$target"
+}
+
+case "${1:-loop}" in
+once)
 	run_backup
 	exit $?
-fi
+	;;
+drill)
+	"$(dirname "$0")/restore-drill.sh"
+	exit $?
+	;;
+esac
 
 log "scheduler up: at $BACKUP_AT UTC, keeping ${BACKUP_RETENTION_DAYS} days in $BACKUP_DIR, offsite ${RCLONE_REMOTE:-not configured}"
 now_epoch=$(date +%s)
@@ -257,14 +274,26 @@ date +%s >"$HEARTBEAT"
 
 while true; do
 	next=$(next_run_epoch)
+	what=backup
+	if [ "$BACKUP_DRILL" != "off" ]; then
+		drill_at=$(next_drill_epoch)
+		if [ "$drill_at" -lt "$next" ]; then
+			next=$drill_at
+			what=drill
+		fi
+	fi
 	now=$(date -u +%s)
-	log "next run in $(((next - now) / 60)) minutes"
+	log "next $what in $(((next - now) / 60)) minutes"
 	# Sleep in one-minute slices so the heartbeat stays fresh and a `docker stop` is not waiting
 	# out a multi-hour sleep.
 	while [ "$(date -u +%s)" -lt "$next" ]; do
 		date +%s >"$HEARTBEAT"
 		sleep 60
 	done
-	run_backup || log "continuing; the next scheduled run will try again"
+	if [ "$what" = drill ]; then
+		run_drill || log "the restore drill failed; see the status file and the alert"
+	else
+		run_backup || log "continuing; the next scheduled run will try again"
+	fi
 	date +%s >"$HEARTBEAT"
 done

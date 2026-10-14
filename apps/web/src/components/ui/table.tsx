@@ -3,7 +3,8 @@ import { cn } from "@/lib/utils";
 
 export function Table({ className, ...props }: React.ComponentProps<"table">): React.JSX.Element {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    // Focusable so a keyboard user can scroll a table wider than the screen (axe: scrollable-region-focusable).
+    <div data-slot="table-container" tabIndex={0} className="relative w-full overflow-x-auto">
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm tabular-nums", className)}

@@ -32,6 +32,7 @@ describe("deploy script harnesses", () => {
     expect(harnesses).toEqual(
       expect.arrayContaining([
         "backup.test.sh",
+        "drill.test.sh",
         "env.test.sh",
         "notify.test.sh",
         "preflight.test.sh",
@@ -79,6 +80,8 @@ describe("deploy script harnesses", () => {
 describe("every script is syntactically valid bash", () => {
   const scripts = [
     "backup.sh",
+    "backup-lib.sh",
+    "restore-drill.sh",
     "backup-health.sh",
     "restore.sh",
     "preflight.sh",
@@ -111,7 +114,7 @@ describe("shell producers and the alert catalog", () => {
     return [...found];
   }
 
-  for (const file of ["backup.sh", "preflight.sh", "ops/notify.sh"]) {
+  for (const file of ["backup.sh", "restore-drill.sh", "preflight.sh", "ops/notify.sh"]) {
     it(`${file} only emits kinds the catalog defines`, () => {
       const kinds = emitted(read("deploy", file));
       expect(kinds.length, `${file} should emit at least one alert`).toBeGreaterThan(0);
@@ -121,11 +124,14 @@ describe("shell producers and the alert catalog", () => {
 
   it("together emit the shell-side alerts the plan lists", () => {
     const all = new Set(
-      ["backup.sh", "preflight.sh", "ops/notify.sh"].flatMap((f) => emitted(read("deploy", f))),
+      ["backup.sh", "restore-drill.sh", "preflight.sh", "ops/notify.sh"].flatMap((f) =>
+        emitted(read("deploy", f)),
+      ),
     );
     for (const k of [
       "rls.preflight_failed",
       "backup.offsite_failed",
+      "backup.drill_failed",
       "backup.failed",
       "backup.missing",
       "disk.high",
@@ -225,6 +231,20 @@ describe("compose.prod.yml", () => {
     // Mentioned in a comment explaining what it used to be; what must not exist is the check.
     expect(compose).not.toMatch(/test:.*kill -0 1/);
     expect(compose).toContain("/ops-state/heartbeat/worker");
+  });
+
+  it("filters link tokens and secret query keys out of the access log (D-223)", () => {
+    const caddyfile = read("deploy", "Caddyfile");
+    expect(caddyfile).toContain("format filter");
+    expect(caddyfile).toContain("request>uri regexp (/p/(?:r/)?)[A-Za-z0-9_-]{16,} $1<token>");
+    for (const key of ["token", "code", "email"]) expect(caddyfile).toContain(`delete ${key}`);
+    // The pattern matches a token and not a fixed route, which is the whole of its contract.
+    const pattern = /(\/p\/(?:r\/)?)[A-Za-z0-9_-]{16,}/;
+    expect("/p/Zk3p9xQ2mVb7LrTn4WcYd8HfGa6JeUs1/open".replace(pattern, "$1<token>")).toBe("/p/<token>/open");
+    expect("/p/r/Zk3p9xQ2mVb7LrTn4WcYd8HfGa6JeUs1".replace(pattern, "$1<token>")).toBe("/p/r/<token>");
+    expect("/api/participant/p/session/turns".replace(pattern, "$1<token>")).toBe(
+      "/api/participant/p/session/turns",
+    );
   });
 
   it("makes the backup healthcheck read the last result, not the loop", () => {

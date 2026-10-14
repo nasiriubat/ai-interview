@@ -1,6 +1,8 @@
 import {
   tenantInvitationEmail,
   type CeilingUtilisation,
+  type ExportMeta,
+  type TenantExporter,
   type JobPublisher,
   type OnboardingState,
   type SettingsService,
@@ -12,7 +14,7 @@ import { tenantBatch, tenantTransaction, withSystemTenant } from "@aidp/db";
 import { toListResponse, type ListEnvelope } from "@aidp/shared";
 import type { Company, Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
-import { emailTaken, isUniqueViolation, notFound } from "../../lib/errors.js";
+import { AppError, emailTaken, isUniqueViolation, notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
 import { contains, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
 import type { AuditService } from "../audit/service.js";
@@ -83,7 +85,12 @@ export interface OperatorExtras {
   ceilings: TenantCeilings;
   onboarding: TenantOnboarding;
   publicWebUrl: string;
+  /** Tenant export (D-225). */
+  exporter?: TenantExporter;
 }
+
+/** How long a suspended tenant has before `tenant.offboard` removes its data, unless `immediate`. */
+export const OFFBOARD_GRACE_DAYS = 7;
 
 export interface PlatformStats {
   tenants: number;
@@ -264,6 +271,104 @@ export class OperatorService {
         calls: s._count._all,
       })),
     };
+  }
+
+  private exporter(): TenantExporter {
+    const e = this.extras?.exporter;
+    if (!e) throw new AppError("internal", "Tenant export is not configured");
+    return e;
+  }
+
+  /**
+   * Queues a signed, sealed export of a tenant (D-225). Audited under the operator's own company,
+   * not the tenant's: the tenant's audit trail is what offboarding removes, and "who took a copy
+   * of this tenant's data" has to outlive it.
+   */
+  async requestExport(
+    actor: OperatorActor,
+    operatorCompanyId: string,
+    tenantId: string,
+  ): Promise<{ queued: true }> {
+    const tenant = await withSystemTenant(async () =>
+      this.db.company.findUnique({ where: { id: tenantId }, select: { id: true, status: true } }),
+    );
+    if (!tenant || tenant.status === "deleted") throw notFound("Tenant");
+    if (!this.extras) throw new AppError("internal", "Jobs are not configured");
+    await this.extras.jobs.publish("tenant.export", { companyId: tenantId, requestedBy: actor.userId });
+    await this.audit.record(operatorCompanyId, {
+      actorId: actor.userId,
+      action: "tenant.export_requested",
+      targetType: "company",
+      targetId: tenantId,
+      diff: {},
+    });
+    return { queued: true };
+  }
+
+  async listExports(tenantId: string): Promise<ExportMeta[]> {
+    return this.exporter().list(tenantId);
+  }
+
+  /** The decrypted archive of one export, with the audit row that says who took it. */
+  async openExport(
+    actor: OperatorActor,
+    operatorCompanyId: string,
+    tenantId: string,
+    stamp: string,
+  ): Promise<{ meta: ExportMeta; body: AsyncIterable<Buffer> }> {
+    const exporter = this.exporter();
+    const meta = await exporter.readMeta(tenantId, stamp);
+    if (!meta) throw notFound("Export");
+    const body = await exporter.open(tenantId, stamp);
+    await this.audit.record(operatorCompanyId, {
+      actorId: actor.userId,
+      action: "tenant.export_downloaded",
+      targetType: "company",
+      targetId: tenantId,
+      diff: { stamp },
+    });
+    return { meta, body };
+  }
+
+  /**
+   * Starts offboarding (D-226): the tenant must be suspended first and the operator must type its
+   * name. An export is taken now, and the purge is queued for after the grace period; reactivating
+   * the tenant in between cancels it (the job checks). `immediate` queues the purge at once.
+   */
+  async requestOffboard(
+    actor: OperatorActor,
+    operatorCompanyId: string,
+    tenantId: string,
+    body: { confirmName: string; immediate: boolean },
+  ): Promise<{ queued: true; purgeAfter: string | null }> {
+    const tenant = await withSystemTenant(async () =>
+      this.db.company.findUnique({ where: { id: tenantId }, select: { id: true, name: true, status: true } }),
+    );
+    if (!tenant || tenant.status === "deleted") throw notFound("Tenant");
+    if (tenant.status !== "suspended")
+      throw new AppError("conflict", "Suspend the tenant first: offboarding starts from a suspended tenant");
+    if (body.confirmName !== tenant.name)
+      throw new AppError("validation", "The confirmation does not match the tenant's name");
+    if (!this.extras) throw new AppError("internal", "Jobs are not configured");
+    await this.extras.jobs.publish("tenant.export", { companyId: tenantId, requestedBy: actor.userId });
+    const graceSeconds = body.immediate ? 0 : OFFBOARD_GRACE_DAYS * 86_400;
+    await this.extras.jobs.publish(
+      "tenant.offboard",
+      { companyId: tenantId, requestedBy: actor.userId, graceCheck: true },
+      {
+        singletonKey: `tenant.offboard:${tenantId}`,
+        ...(graceSeconds > 0 ? { startAfterSeconds: graceSeconds } : {}),
+      },
+    );
+    const purgeAfter = graceSeconds > 0 ? new Date(Date.now() + graceSeconds * 1000).toISOString() : null;
+    await this.audit.record(operatorCompanyId, {
+      actorId: actor.userId,
+      action: "tenant.offboard_requested",
+      targetType: "company",
+      targetId: tenantId,
+      diff: { immediate: body.immediate, purgeAfter },
+    });
+    return { queued: true, purgeAfter };
   }
 
   /**

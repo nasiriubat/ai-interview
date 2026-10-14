@@ -78,7 +78,7 @@ export async function repairTurnMeta(
   deps: { caller: ModelCallerPort; prompts: PromptSource },
   input: RepairInput,
 ): Promise<TurnMeta | undefined> {
-  const prompt = await deps.prompts.get(input.companyId, "turn_meta_repair");
+  const prompt = await deps.prompts.get(input.companyId, "turn_meta_repair", input.sessionId);
   const nonce = newNonce();
   const system = prompt.body.replace(
     "{{capture}}",

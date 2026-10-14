@@ -23,6 +23,8 @@ export interface ProviderDeps {
   speech?: SpeechRunner;
   /** Deadlines and retries for every adapter built here (D-93); `PROVIDER_*` environment when absent. */
   timeouts?: ProviderTimeouts;
+  /** Builds the adapter for a provider row, instead of `createProvider`: a test seam for fakes. */
+  build?: (cfg: ProviderConfig) => Provider;
 }
 
 /** Build an adapter from a (decrypted) provider row. Adding a kind touches this file and one adapter. */
@@ -83,7 +85,7 @@ export class ProviderRegistry {
   get(cfg: ProviderConfig): Provider {
     const hit = this.cache.get(cfg.id);
     if (hit && sameConfig(hit.config, cfg)) return hit.provider;
-    const provider = createProvider(cfg, this.deps);
+    const provider = this.deps.build ? this.deps.build(cfg) : createProvider(cfg, this.deps);
     this.cache.set(cfg.id, { config: cfg, provider });
     return provider;
   }
