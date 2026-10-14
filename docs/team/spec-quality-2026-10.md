@@ -276,7 +276,7 @@ sets of six, the first discarded when the read-back defect was found), judge of 
   lists is the check this needs.
 - Duplicates in the judge's reading are not under 5%; the judge has false positives here (kappa 0.79
   was measured on the earlier lists) and its number should be read as an upper bound for this set.
-- The scope-tag and ordering corrections of the read-back are untested.
+- The scope-tag and ordering corrections of the read-back are untested (closed in the fourth pass below).
 
 ## Third pass: is anything lost? (D-300 to D-305)
 
@@ -289,3 +289,68 @@ median of 7 to 8 is not a loss. The "39% uncovered" of D-294 was the judge model
 coverage, checked nowhere. Merging does drop a title in a few percent of merges, which is guarded
 (D-301), and the 8 to 20 target is withdrawn (D-303). The live re-run found duplicated requirement
 ids in a finished specification, fixed in D-302.
+
+## Fourth pass: the final merge code on the six fresh interviews (D-334, D-335)
+
+The six fresh interviews (`evals/measurements/2026-10/after-d301/`, recorded facts and transcripts)
+were generated again through the code as it is on the branch: curation, `requirement_merge@3`, the
+D-302 id guard. Judge: the committed `evals/live/spec-quality.live.ts` (gpt-4.1-mini, clustering by
+gpt-4.1), calls cached where the prompt was identical, the rest paid for: 0.05 USD for the replay and
+0.06 USD for the judge. Artifacts: `evals/measurements/2026-10/final-merge3/`.
+
+| Final code, six fresh interviews | Specs | Requirements | Median | Grounded (verified) | Duplicate (judge) | Over-granular | Non-requirement | Testable | Scope not contradicted |
+| -------------------------------- | ----- | ------------ | ------ | ------------------- | ----------------- | ------------- | --------------- | -------- | ---------------------- |
+| Nontechnical                     | 3     | 30           | 11     | 90%                 | 30%               | 13%           | 0%              | 90%      | 100%                   |
+| Technical                        | 3     | 21           | 6      | 86%                 | 14%               | 14%           | 14%             | 91%      | 100%                   |
+| All                              | 6     | 51           | 8      | 88%                 | 24%               | 14%           | 6%              | 90%      | 100%                   |
+
+Recorded to final per interview: 12 to 11, 11 to 6, 14 to 13, 5 to 5, 22 to 6, 20 to 10.
+
+### The 13 requirements the judge called duplicates, labelled by hand
+
+One reader (the agent that ran this, not a person who owns the product), reading title and
+acceptance criteria next to the requirement each was said to repeat.
+
+| Interview      | Requirement                                              | Of                                 | Hand label      | Why                                                  |
+| -------------- | -------------------------------------------------------- | ---------------------------------- | --------------- | ---------------------------------------------------- |
+| nontechnical-1 | FR-8 night nurse sees all notes in one place             | FR-4 autosave                      | Not a duplicate | Different capability                                 |
+| nontechnical-1 | FR-9 one Save and Send                                   | FR-3 time defaults to now          | Not a duplicate | Different capability                                 |
+| nontechnical-2 | FR-9 name and ID appear within two seconds               | FR-3 save once to both systems     | Not a duplicate | Different capability                                 |
+| nontechnical-3 | FR-2 enter once, saved to CareCom and printed            | FR-1 enter once, reaches both      | Duplicate       | Same capability, same actor                          |
+| nontechnical-3 | FR-5 patient list with bed and last note time            | FR-3 pick a patient from the list  | Duplicate       | Same list                                            |
+| nontechnical-3 | FR-6 blank note with time filled in (and a history view) | FR-4 clean text box with timestamp | Duplicate       | Same screen; the history criteria are extra          |
+| nontechnical-3 | FR-7 type a note and hit Save and Print                  | FR-1                               | Duplicate       | The same action                                      |
+| nontechnical-3 | FR-8 send to CareCom and print a copy                    | FR-4 (Save and Print)              | Duplicate       | Restates FR-1, FR-2 and FR-4                         |
+| nontechnical-3 | FR-14 told it is saved even when print fails             | FR-3 patient list                  | Not a duplicate | The judge named the wrong twin; this is a constraint |
+| technical-3    | FR-20 green Received badge within 30 s                   | FR-3 green Received badge          | Duplicate       | Same badge, written as a test                        |
+| technical-3    | FR-22 load test passes when 48 of 50 show the badge      | FR-3                               | Not a duplicate | A test criterion, not a capability                   |
+| technical-3    | FR-23 load test rolls back at 3 failures                 | FR-3                               | Not a duplicate | A test criterion, not a capability                   |
+
+Both numbers: **24% by the judge (13 of 51), 12% by hand (6 of 51).** The target of under 5% is not
+reached under either reading. Five of the six real duplicates are in one interview
+(nontechnical-3: 13 requirements, no merge at all, because the grouped pass found no group in it).
+The three "not a duplicate" load-test and failure-message items are a different defect the judge
+also scores: constraints written as requirements (technical-3, 2 of 10).
+
+What this does and does not show. It is one sample of six, a non-deterministic pipeline and a judge
+with false positives (here 7 of 13), read by one person. The 11% of the previous pass was another
+sample of the same interviews and is not comparable. `requirement_merge@3` leaves a pair apart when
+it is unsure (D-301), which trades duplicates for losses by design; what the replay shows is that on
+interviews where the candidate pairs are many and loosely worded the pass can find nothing
+(nontechnical-3). Technical-2 went from 22 recorded to 6, an aggressive merge the judge did not
+flag as loss; its recall was not re-measured here.
+
+### Read-back corrections: scope tags and order (D-334)
+
+Four deterministic cases were added to `evals/src/readback-corrections.eval.ts`:
+
+- A scope correction moves an item between MVP and future, whichever tag shape the model used
+  (`"mvp"`, `"Future"`, `mvp: false`). **Failed before the fix:** `"Future"` and `"later"` were read
+  as MVP.
+- Later-style words (`later`, `post-mvp`, `v2`) are future. **Failed before the fix.**
+- A correction filed under another spelling of the section keeps one fact per id and the id order.
+  Passes: `normalizeSectionKey` already covers the spellings the schema allows.
+- Requirements are in id order inside each scope block, FR-10 after FR-9. Passes.
+
+Not covered: an owner move to future of one of two items that curation then merges, without a reason
+(the merge keeps MVP); and the model recording a reply under the wrong FR, which only the live read-back can show.

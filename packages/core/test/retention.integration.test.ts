@@ -165,7 +165,7 @@ suite("retention sweep (spec 11)", () => {
       endedAt: monthsAgo(1),
     });
 
-    const first = await runRetentionSweep({ db, settings, log });
+    const first = await runRetentionSweep({ db, settings, log, companyIds: [companyId, strictCompanyId] });
     const mine = sweepFor(first, companyId);
     expect(mine.deleted).toBe(2);
     expect(mine.examined).toBe(2);
@@ -209,7 +209,7 @@ suite("retention sweep (spec 11)", () => {
     expect(serialized).not.toContain(expired);
 
     // Second run: nothing left to do, and no second audit row.
-    const second = await runRetentionSweep({ db, settings, log });
+    const second = await runRetentionSweep({ db, settings, log, companyIds: [companyId, strictCompanyId] });
     expect(sweepFor(second, companyId).deleted).toBe(0);
     expect(sweepFor(second, companyId).examined).toBe(0);
     expect(await db.auditLog.count({ where: { companyId, action: RETENTION_SWEEP_ACTION } })).toBe(1);
@@ -231,11 +231,16 @@ suite("retention sweep (spec 11)", () => {
       endedAt: monthsAgo(2),
     });
 
-    const untouched = await runRetentionSweep({ db, settings, log });
+    const untouched = await runRetentionSweep({
+      db,
+      settings,
+      log,
+      companyIds: [companyId, strictCompanyId],
+    });
     expect(sweepFor(untouched, strictCompanyId).deleted).toBe(0);
 
     await settings.set({ scope: "tenant", scopeId: strictCompanyId }, { "privacy.retentionMonths": 6 }, "u1");
-    const sweeps = await runRetentionSweep({ db, settings, log });
+    const sweeps = await runRetentionSweep({ db, settings, log, companyIds: [companyId, strictCompanyId] });
     const strict = sweepFor(sweeps, strictCompanyId);
     expect(strict.retentionMonths).toBe(6);
     expect(strict.deleted).toBe(1);
@@ -245,15 +250,42 @@ suite("retention sweep (spec 11)", () => {
     expect(sweepFor(sweeps, companyId).retentionMonths).toBe(24);
   });
 
+  it("a tenant-scoped sweep neither reports nor touches another tenant's expired sessions", async () => {
+    const other = await makeSession(companyId, templateId, {
+      createdAt: monthsAgo(50),
+      endedAt: monthsAgo(49),
+    });
+    const scoped = await runRetentionSweep({ db, settings, log, companyIds: [strictCompanyId] });
+    expect(scoped.map((s) => s.companyId)).toEqual([strictCompanyId]);
+    expect((await db.session.findUniqueOrThrow({ where: { id: other } })).status).toBe("completed");
+    // Leave nothing for the tests that follow to trip over.
+    await runRetentionSweep({ db, settings, log, companyIds: [companyId] });
+    expect((await db.session.findUniqueOrThrow({ where: { id: other } })).status).toBe("deleted");
+  });
+
   it("works in bounded batches and reports what a run left behind", async () => {
     for (let i = 0; i < 5; i++) {
       await makeSession(companyId, templateId, { createdAt: monthsAgo(40), endedAt: monthsAgo(39) });
     }
-    const capped = await runRetentionSweep({ db, settings, log, batchSize: 2, maxBatches: 2 });
+    const capped = await runRetentionSweep({
+      db,
+      settings,
+      log,
+      companyIds: [companyId, strictCompanyId],
+      batchSize: 2,
+      maxBatches: 2,
+    });
     const mine = sweepFor(capped, companyId);
     expect(mine.deleted).toBe(4);
     expect(mine.truncated).toBe(true);
-    const rest = await runRetentionSweep({ db, settings, log, batchSize: 2, maxBatches: 2 });
+    const rest = await runRetentionSweep({
+      db,
+      settings,
+      log,
+      companyIds: [companyId, strictCompanyId],
+      batchSize: 2,
+      maxBatches: 2,
+    });
     expect(sweepFor(rest, companyId).deleted).toBe(1);
     expect(sweepFor(rest, companyId).truncated).toBe(false);
   });
@@ -269,7 +301,7 @@ suite("retention sweep (spec 11)", () => {
     expect(after.expiredSessions).toBe(1);
     expect(Date.parse(after.oldestSessionAt ?? "")).toBeLessThan(monthsAgo(48).getTime());
 
-    await runRetentionSweep({ db, settings, log });
+    await runRetentionSweep({ db, settings, log, companyIds: [companyId, strictCompanyId] });
     const swept = await retentionStatus({ db, settings }, companyId);
     expect(swept.expiredSessions).toBe(0);
   });
@@ -293,7 +325,7 @@ suite("retention sweep (spec 11)", () => {
       });
       await storage.put(key, Buffer.from("the participant's document"), { contentType: "text/plain" });
 
-      await runRetentionSweep({ db, settings, log, storage });
+      await runRetentionSweep({ db, settings, log, companyIds: [companyId, strictCompanyId], storage });
 
       expect(await storage.head(key)).toBeNull();
     });
@@ -335,7 +367,13 @@ suite("retention sweep (spec 11)", () => {
         },
       });
 
-      const sweeps = await runRetentionSweep({ db, settings, log, storage });
+      const sweeps = await runRetentionSweep({
+        db,
+        settings,
+        log,
+        companyIds: [companyId, strictCompanyId],
+        storage,
+      });
 
       // Default is 365 days: the old recording goes, the recent one stays.
       expect(await db.attachment.findUnique({ where: { id: old.id } })).toBeNull();
@@ -371,7 +409,7 @@ suite("retention sweep (spec 11)", () => {
         },
       });
 
-      await runRetentionSweep({ db, settings, log, storage });
+      await runRetentionSweep({ db, settings, log, companyIds: [companyId, strictCompanyId], storage });
 
       expect(await db.attachment.findUnique({ where: { id: stuck.id } })).not.toBeNull();
     });

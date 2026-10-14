@@ -114,6 +114,28 @@ assert_contains "the old version stays on record" "$(versions)" "AIDP_VERSION=ol
 assert_contains "the page comes down" "$E" "maintenance-off"
 cleanup_sandbox
 
+echo "a crash-looping backup container fails the upgrade (D-316)"
+new_sandbox
+touch "$SB/state/running-backup" "$SB/state/running-caddy" "$SB/state/restarting-backup"
+printf 'AIDP_VERSION=oldoldoldold\nAIDP_PREVIOUS_VERSION=\n' >"$SB/repo/deploy/versions.env"
+echo "jjjjjjjjjjjj" >"$SB/state/sha"
+upgrade
+assert_status "exits non-zero" 1 "$STATUS"
+assert_contains "says the backup is crash-looping" "$OUT" "backup container is 'restarting'"
+assert_contains "says backups are not working" "$OUT" "BACKUPS ARE NOT WORKING"
+assert_not_contains "does not report done" "$OUT" "done: jjjjjjjjjjjj is running"
+cleanup_sandbox
+
+echo "a backup container that never becomes healthy fails the upgrade (D-316)"
+new_sandbox
+touch "$SB/state/running-backup" "$SB/state/running-caddy" "$SB/state/unhealthy-backup"
+printf 'AIDP_VERSION=oldoldoldold\nAIDP_PREVIOUS_VERSION=\n' >"$SB/repo/deploy/versions.env"
+echo "kkkkkkkkkkkk" >"$SB/state/sha"
+AIDP_BACKUP_WAIT_SECONDS=1 upgrade
+assert_status "exits non-zero" 1 "$STATUS"
+assert_contains "names the state it was left in" "$OUT" "still 'unhealthy'"
+cleanup_sandbox
+
 echo "the smoke test fails after the switch"
 new_sandbox
 touch "$SB/state/running-backup" "$SB/state/running-caddy" "$SB/state/smoke-api-fails"

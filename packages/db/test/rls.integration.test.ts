@@ -1,4 +1,4 @@
-import { describeDb } from "@aidp/testing";
+import { describeDb, APP_ROLE_TEST_PASSWORD, APP_ROLE_TEST_USER, setAppRolePassword } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { tenantTransaction, withSystemTenant, withTenant, withTenantScope } from "../src/index.js";
@@ -11,10 +11,10 @@ import { tenantTransaction, withSystemTenant, withTenant, withTenantScope } from
 const url = process.env.DATABASE_URL;
 const suite = describeDb;
 
-const API_PASSWORD = "rls-test-password";
+const API_PASSWORD = APP_ROLE_TEST_PASSWORD;
 const apiUrl = (owner: string): string => {
   const u = new URL(owner);
-  u.username = "app_api";
+  u.username = APP_ROLE_TEST_USER;
   u.password = API_PASSWORD;
   return u.toString();
 };
@@ -27,7 +27,7 @@ suite("row-level security as app_api", () => {
   let b = "";
 
   beforeAll(async () => {
-    await owner.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD '${API_PASSWORD}'`);
+    await setAppRolePassword(owner);
     a = (await owner.company.create({ data: { name: `RLS A ${Date.now()}` } })).id;
     b = (await owner.company.create({ data: { name: `RLS B ${Date.now()}` } })).id;
     await owner.user.create({ data: { companyId: a, email: `rls-a-${Date.now()}@t.io`, role: "admin" } });

@@ -33,9 +33,13 @@ export OPENROUTER_API_KEY=...   # or keep it in an untracked .env, see "The key"
 pnpm live:run
 ```
 
-Only one run at a time per machine: the database name, the API port and the scratch directory are
-fixed defaults (`LIVE_DB_NAME`, `LIVE_API_PORT`, `LIVE_RUN_SCRATCH`), so two runs started together
-drop each other's database. Override all three to run beside another.
+Concurrent runs: set `LIVE_RUN_ID=<name>` (lowercase letters, digits, underscore, up to 24) and the
+database (`ai_discovery_live_<name>`), the API port (derived from the id, 4101 to 4199), the scratch
+directory and the output folder (`out/<name>/`) all carry it, so runs do not touch each other. Without
+an id the historical names are used (`ai_discovery_live`, 4100, `out/`) and a lock file in the
+system temp directory refuses a second run with a message naming the other process (a lock whose
+process is dead is taken over). `LIVE_DB_NAME`, `LIVE_API_PORT` and `LIVE_RUN_SCRATCH` still override
+single names. The model-backed evals that read a run's database take `LIVE_DB_NAME`.
 
 Everything it writes goes to `scripts/live-run/out/` (git-ignored): transcripts, `report.md`, the
 specification versions and bundles, `scorecard.md`. Child-process logs go to a scratch directory
@@ -62,6 +66,7 @@ redaction, and handed to child processes through their environment. It is never 
 | `LIVE_CAMPAIGN_MAX_TURNS`     | `18`                               | The campaign's own turn cap                             |
 | `LIVE_MODEL_SIMULATOR`        | `qwen/qwen3-30b-a3b-instruct-2507` | Model that plays the employee                           |
 | `LIVE_MODEL_JUDGE`            | `openai/gpt-4.1-mini`              | Model that judges transcripts                           |
+| `LIVE_RUN_ID`                 | none (`default`)                   | Isolates database, port, scratch and `out/` per run     |
 | `LIVE_API_PORT`               | `4100`                             | Port of the API it starts                               |
 | `LIVE_DB_NAME`                | `ai_discovery_live`                | Database it drops and recreates                         |
 | `LIVE_PG_CONTAINER`           | `ai-interview-postgres-1`          | Postgres container it runs `psql` in                    |

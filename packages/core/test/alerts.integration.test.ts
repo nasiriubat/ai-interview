@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { withSystemTenant, withTenant, withTenantScope } from "@aidp/db";
-import { purgeAuditLog } from "@aidp/testing";
+import { purgeAuditLog, APP_ROLE_TEST_PASSWORD, APP_ROLE_TEST_USER, setAppRolePassword } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -16,10 +16,10 @@ import {
 
 const suite = process.env.DATABASE_URL ? describe : describe.skip;
 
-const API_PASSWORD = "test-app-role";
+const API_PASSWORD = APP_ROLE_TEST_PASSWORD;
 const apiUrl = (owner: string): string => {
   const u = new URL(owner);
-  u.username = "app_api";
+  u.username = APP_ROLE_TEST_USER;
   u.password = API_PASSWORD;
   return u.toString();
 };
@@ -40,7 +40,7 @@ suite("alert state and routing against Postgres", () => {
   };
 
   beforeAll(async () => {
-    await owner.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD '${API_PASSWORD}'`);
+    await setAppRolePassword(owner);
     api = new PrismaClient({ datasources: { db: { url: apiUrl(process.env.DATABASE_URL ?? "") } } });
     scoped = withTenantScope(api);
     tenantA = (await owner.company.create({ data: { name: `Alerts A ${tag}` } })).id;
