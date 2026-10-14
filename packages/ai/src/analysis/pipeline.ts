@@ -2,6 +2,7 @@ import type {
   ClusterStats,
   Fact,
   Factors,
+  OpportunityDraft,
   OpportunityOverride,
   ReportSection,
   SolutionClass,
@@ -15,6 +16,8 @@ import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js"
 import { languageName } from "../util/language.js";
 import { neutralize, newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { agglomerate } from "./cluster.js";
+import { compareDepartments } from "./departments.js";
+import { applyClusterEdits, type ClusterEditOp } from "./edits.js";
 import {
   centroidOf,
   chunk,
@@ -61,6 +64,20 @@ export interface AnalysisInput {
   maxOpportunities?: number;
   /** Draft clusters per merge call (default 40). */
   clusterBatchSize?: number;
+  /** Administrator merges and splits, oldest first, applied after clustering (FR-18, D-200). */
+  edits?: ClusterEditOp[];
+  /**
+   * An edit run: cluster from these instead of embedding and asking the model again, and reuse the
+   * opportunity of any cluster whose members are exactly what they were. The run then costs a model
+   * call per changed cluster and one for the narrative.
+   */
+  seed?: {
+    clusters: { key: string; name: string; summary: string; factIds: string[] }[];
+    /** Previous opportunities by cluster key, with the members they were generated for. */
+    reuse: Map<string, { factIds: string[]; draft: OpportunityDraft }>;
+  };
+  /** `analysis.departmentComparison`: the comparison and its report section honour it (default on). */
+  departmentComparison?: boolean;
 }
 
 /** Defaults that keep a 500-fact campaign to a few dozen model calls and a few minutes. */
@@ -82,11 +99,15 @@ export interface AnalysisOpportunity {
   risks: string[];
   whyNotAi?: string | undefined;
   evidence: { factId: string; snippet: string; anonymized: boolean }[];
+  /** Every member fact, not only the evidence rows: what edits and the next edit run anchor to. */
+  factIds: string[];
   override: OpportunityOverride | null;
 }
 
 export interface AnalysisResult {
   clusters: { key: string; name: string; summary: string; factIds: string[] }[];
+  /** The clusters before administrator edits: what an edit run starts from, so an undo can undo. */
+  baseClusters: { key: string; name: string; summary: string; factIds: string[] }[];
   opportunities: AnalysisOpportunity[];
   report: { markdown: string; sections: ReportSection[] };
   stats: {
@@ -102,6 +123,12 @@ export interface AnalysisResult {
     opportunitiesFailed?: number;
     /** Anchored overrides that matched no cluster of this run. */
     orphanedOverrides?: number;
+    /** Ids of cluster edits that matched nothing in this run and were skipped. */
+    orphanedEdits?: string[];
+    /** Facts a split did not know, which joined its larger part. */
+    unassignedNew?: number;
+    /** Opportunities an edit run carried over unchanged, with no model call. */
+    reusedOpportunities?: number;
   };
 }
 
@@ -148,6 +175,7 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     });
     return {
       clusters: [],
+      baseClusters: [],
       opportunities: [],
       report: { markdown, sections: input.sections },
       stats: {
@@ -161,47 +189,23 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     };
   }
 
-  // 1. Vectors: provider embeddings when routed, lexical otherwise. Provider calls go in batches so
-  // a large campaign is a handful of requests, each of a size every provider accepts.
-  const texts = facts.map((f) => factText(f.fact));
-  let vectors: number[][] | undefined;
   let embedding: "provider" | "lexical" = "lexical";
-  try {
-    const parts: number[][] = [];
-    let routed = true;
-    for (const part of chunk(texts, EMBED_BATCH)) {
-      const res = await deps.caller.embed(ctx, part);
-      if (!res) {
-        routed = false;
-        break;
-      }
-      parts.push(...res.vectors);
-    }
-    if (routed && parts.length === texts.length) {
-      vectors = parts;
-      embedding = "provider";
-    }
-  } catch (e) {
-    deps.logger.warn("embedding route failed; falling back to lexical vectors", {
-      error: e instanceof Error ? e.message : String(e),
-    });
+  let base: NamedCluster[];
+  if (input.seed) {
+    // An edit run: the clustering is the previous run's (before its edits), so nothing is embedded
+    // or named again. Facts that no longer exist drop out; the edits are applied below.
+    base = reconcile(
+      input.seed.clusters.map((c) => ({ ...c })),
+      facts,
+    );
+  } else {
+    const made = await clusterFacts(deps, ctx, input, facts, versions);
+    base = made.clusters;
+    embedding = made.embedding;
   }
-  vectors ??= await (deps.embeddings ?? new LexicalEmbeddings()).embed(texts);
-  const threshold =
-    embedding === "lexical"
-      ? Math.min(input.similarityThreshold, LEXICAL_THRESHOLD)
-      : input.similarityThreshold;
+  const applied = applyClusterEdits(base, input.edits ?? []);
+  const clusters: NamedCluster[] = applied.clusters;
 
-  // 2. Draft clusters by similarity, then the model merges and names them over draft ids.
-  const drafts: DraftCluster[] = agglomerate(vectors, threshold).map((idx, i) => ({
-    id: `d${i + 1}`,
-    factIds: idx
-      .map((j) => facts[j]?.id)
-      .filter((x): x is string => Boolean(x))
-      .sort(),
-    centroid: centroidOf(idx.map((j) => vectors?.[j] ?? [])),
-  }));
-  const clusters = await mergeAndName(deps, ctx, input, facts, drafts, versions);
 
   // 3. Per-cluster aggregates with k-anonymity. Every fact is in a cluster; opportunities are
   // generated for the highest-ranked clusters only, so the number of model calls does not grow
@@ -223,8 +227,15 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     );
   const selected = candidates.slice(0, Math.max(0, cap));
   let failed = 0;
+  let reused = 0;
   let firstError: unknown;
   const results = await mapLimit(selected, MODEL_CONCURRENCY, async ({ c, members, stats }) => {
+    // An edit run keeps the opportunity of every cluster that is exactly what it was.
+    const prior = input.seed?.reuse.get(c.key);
+    if (prior && sameSet(prior.factIds, c.factIds)) {
+      reused++;
+      return prior.draft;
+    }
     try {
       return await opportunityFor(deps, ctx, input, c, members, stats, versions);
     } catch (e) {
@@ -265,6 +276,7 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
         snippet: stats.participants >= input.k ? sanitizeSnippet(snippet(m.fact)) : "",
         anonymized: true,
       })),
+      factIds: c.factIds,
       override,
     });
   });
@@ -283,6 +295,17 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     processes: o.stats.participants >= input.k ? c(o.clusterKey, clusters, byId) : [],
   }));
   const story = await narrative(deps, ctx, input, opportunities, versions);
+  const departments = compareDepartments({
+    facts,
+    opportunities: opportunities.map((o) => ({
+      clusterKey: o.clusterKey,
+      title: o.title,
+      solutionClass: o.solutionClass,
+      factIds: o.factIds,
+    })),
+    k: input.k,
+    enabled: input.departmentComparison ?? true,
+  });
   const markdown = renderReport({
     campaignName: input.campaignName,
     generatedAt: (deps.now ?? (() => new Date()))(),
@@ -292,10 +315,12 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     sections: input.sections,
     k: input.k,
     language: input.language,
+    departments,
   });
 
   return {
     clusters,
+    baseClusters: base,
     opportunities,
     report: { markdown, sections: input.sections },
     stats: {
@@ -308,8 +333,17 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
       longTailClusters: Math.max(0, candidates.length - selected.length),
       opportunitiesFailed: failed,
       orphanedOverrides: anchored.orphaned.length,
+      orphanedEdits: applied.orphaned,
+      unassignedNew: applied.unassignedNew,
+      reusedOpportunities: reused,
     },
   };
+}
+
+function sameSet(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const s = new Set(a);
+  return b.every((x) => s.has(x));
 }
 
 function c(
@@ -632,3 +666,56 @@ function snippet(f: Fact): string {
 function uniq(xs: (string | undefined)[]): string[] {
   return [...new Set(xs.filter((x): x is string => Boolean(x?.trim())))];
 }
+
+/** Steps 1 and 2 of the pipeline: embed the facts, cluster them, let the model merge and name. */
+async function clusterFacts(
+  deps: AnalysisDeps,
+  ctx: CallContext,
+  input: AnalysisInput,
+  facts: AnalysisFact[],
+  versions: string[],
+): Promise<{ clusters: NamedCluster[]; embedding: "provider" | "lexical" }> {
+  // 1. Vectors: provider embeddings when routed, lexical otherwise. Provider calls go in batches so
+  // a large campaign is a handful of requests, each of a size every provider accepts.
+  const texts = facts.map((f) => factText(f.fact));
+  let vectors: number[][] | undefined;
+  let embedding: "provider" | "lexical" = "lexical";
+  try {
+    const parts: number[][] = [];
+    let routed = true;
+    for (const part of chunk(texts, EMBED_BATCH)) {
+      const res = await deps.caller.embed(ctx, part);
+      if (!res) {
+        routed = false;
+        break;
+      }
+      parts.push(...res.vectors);
+    }
+    if (routed && parts.length === texts.length) {
+      vectors = parts;
+      embedding = "provider";
+    }
+  } catch (e) {
+    deps.logger.warn("embedding route failed; falling back to lexical vectors", {
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+  vectors ??= await (deps.embeddings ?? new LexicalEmbeddings()).embed(texts);
+  const threshold =
+    embedding === "lexical"
+      ? Math.min(input.similarityThreshold, LEXICAL_THRESHOLD)
+      : input.similarityThreshold;
+
+  // 2. Draft clusters by similarity, then the model merges and names them over draft ids.
+  const drafts: DraftCluster[] = agglomerate(vectors, threshold).map((idx, i) => ({
+    id: `d${i + 1}`,
+    factIds: idx
+      .map((j) => facts[j]?.id)
+      .filter((x): x is string => Boolean(x))
+      .sort(),
+    centroid: centroidOf(idx.map((j) => vectors?.[j] ?? [])),
+  }));
+  const clusters = await mergeAndName(deps, ctx, input, facts, drafts, versions);
+  return { clusters, embedding };
+}
+
