@@ -33,9 +33,16 @@ interface TenantContext {
 
 const storage = new AsyncLocalStorage<TenantContext>();
 
-/** One place where the tenant context is entered, so the callers all read the same. */
+/**
+ * One place where the tenant context is entered, so the callers all read the same.
+ *
+ * The result is awaited inside the context. Prisma's query promises are lazy: a callback that
+ * returns `db.x.findMany(...)` without awaiting it hands back a query that only runs when the caller
+ * awaits it, after this context has ended, so row-level security would see no tenant and return
+ * nothing. Awaiting here makes `withSystemTenant(() => db.x.findMany(...))` safe at every call site.
+ */
 function runInContext<T>(context: TenantContext, fn: () => Promise<T>): Promise<T> {
-  return storage.run(context, fn);
+  return storage.run(context, async () => await fn());
 }
 
 export function currentTenant(): string | null {
