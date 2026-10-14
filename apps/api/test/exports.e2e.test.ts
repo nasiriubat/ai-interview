@@ -47,7 +47,12 @@ const specification = {
   ],
   requirements: [
     { id: "FR-1", title: "Enter a note once", scope: "mvp", acceptance: ["Saved once, visible twice"] },
-    { id: "FR-2", title: "See a note at the bedside", scope: "mvp", acceptance: ["Shown on the ward screen"] },
+    {
+      id: "FR-2",
+      title: "See a note at the bedside",
+      scope: "mvp",
+      acceptance: ["Shown on the ward screen"],
+    },
     { id: "FR-3", title: "Correct a note", scope: "mvp", acceptance: ["The edit is audited"] },
   ],
   phases: [],
