@@ -29,6 +29,7 @@ import { useDirty, useDirtyGuard } from "@/components/common/DirtyGuard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
 import { templateIssues } from "@/lib/admin/templateIssues";
 import { countBySection, issueMessage, type FormIssue } from "@/lib/admin/validation";
@@ -730,11 +731,10 @@ export function TemplateForm({
           }}
         />
         <Field id="chainMapping" label={f.chainMapping}>
-          <textarea
+          <Textarea
             id="chainMapping"
             value={mappingText}
             rows={4}
-            className="border-input min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-sm"
             onChange={(e) => {
               setMappingText(e.target.value);
             }}

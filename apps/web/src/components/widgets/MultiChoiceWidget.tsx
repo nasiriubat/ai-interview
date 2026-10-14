@@ -6,6 +6,7 @@ import { OptionDetail } from "./OptionDetail";
 import { OtherInput } from "./OtherInput";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ChoiceTile } from "@/components/ui/choice-tile";
 import { Label } from "@/components/ui/label";
 import { t } from "@/i18n";
 
@@ -50,8 +51,8 @@ export function MultiChoiceWidget({
         {widget.options.map((o) => {
           const checked = keys.includes(o.key);
           return (
-            <div key={o.key} className="rounded-lg border p-3">
-              <div className="flex items-start gap-3">
+            <ChoiceTile key={o.key} as="div" className="flex-col" disabled={disabled ?? false}>
+              <div className="flex w-full items-start gap-3">
                 <Checkbox
                   id={`${id}-${o.key}`}
                   checked={checked}
@@ -66,7 +67,7 @@ export function MultiChoiceWidget({
                 </Label>
               </div>
               <OptionDetail id={`${id}-${o.key}-detail`} label={o.label} detail={o.detail} />
-            </div>
+            </ChoiceTile>
           );
         })}
       </fieldset>

@@ -83,7 +83,7 @@ export function SummaryView({
   };
 
   return (
-    <section aria-labelledby={`${id}-title`} className="bg-card mt-2 grid gap-4 rounded-2xl border p-5">
+    <section aria-labelledby={`${id}-title`} className="bg-card shadow-card mt-2 grid gap-4 rounded-xl p-5">
       <div>
         <h2 id={`${id}-title`} className="text-xl font-semibold">
           {t.participant.summary.title}

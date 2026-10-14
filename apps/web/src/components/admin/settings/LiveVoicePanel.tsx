@@ -135,7 +135,10 @@ export function LiveVoicePanel(): React.JSX.Element {
   }
 
   return (
-    <section aria-labelledby={`${switchId}-title`} className="mb-6 grid gap-3 rounded-xl border p-4 md:p-5">
+    <section
+      aria-labelledby={`${switchId}-title`}
+      className="bg-card shadow-card mb-6 grid gap-3 rounded-xl p-4 md:p-5"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="grid gap-1">
           <h2 id={`${switchId}-title`} className="text-foreground text-base font-semibold tracking-tight">

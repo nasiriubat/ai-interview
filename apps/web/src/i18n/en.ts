@@ -1504,6 +1504,7 @@ export const en = {
       name: "Name",
       kind: "Type",
       baseUrl: "Base URL",
+      baseUrlHint: "A public https address. Addresses inside a private network are refused.",
       apiKey: "API key",
       apiKeyHint: "Stored encrypted. Leave empty to keep the current key.",
       hasKey: "Key set",
@@ -1516,6 +1517,8 @@ export const en = {
       tenantLevel: "Set by your organization",
       test: "Test",
       testing: "Testing…",
+      testToast: (name: string, model: string, latency: number): string =>
+        `Connected to ${name} · ${model} · ${latency} ms`,
       testResult: (latency: number, tokens: number, cost: string): string =>
         `OK in ${latency} ms, ${tokens} tokens, ${cost}`,
       testFailed: (error: string): string => `Test failed: ${error}`,
@@ -1878,6 +1881,7 @@ export const en = {
       created: "Created",
       add: "Create tenant",
       addedToast: "Tenant created",
+      newTenant: "New tenant",
       suspend: "Suspend",
       activate: "Activate",
       updated: "Tenant updated",

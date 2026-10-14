@@ -110,7 +110,7 @@ export function AdminShell({
     <nav aria-label={t.admin.nav.menu} className="grid gap-5 text-sm">
       {groups.map((group) => (
         <div key={group.label} className="grid gap-0.5">
-          <p className="text-muted-foreground mb-1 px-2.5 text-[11px] font-semibold tracking-wider uppercase">
+          <p className="text-muted-foreground mb-1 px-2.5 text-xs font-semibold tracking-wider uppercase">
             {group.label}
           </p>
           {group.items.map((item) => (
@@ -230,7 +230,7 @@ function UserBox({
         <div className="flex items-center gap-2.5 px-1.5">
           <span
             aria-hidden="true"
-            className="bg-accent text-accent-foreground grid size-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
+            className="bg-accent text-accent-foreground grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold"
           >
             {initials(me.user.email)}
           </span>

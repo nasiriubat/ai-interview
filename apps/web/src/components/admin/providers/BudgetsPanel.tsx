@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { ComboboxField, NumberField, SelectField, TextField } from "@/components/admin/forms";
 import { IconTooltip, RowActions } from "@/components/admin/IconButton";
+import { MeterBar } from "@/components/admin/MeterBar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -189,9 +190,20 @@ export function BudgetsPanel({
                   <TableCell className="text-right tabular-nums">
                     {formatCents(b.limitCents)}
                     {typeof b.spentCents === "number" ? (
-                      <span className="text-muted-foreground block text-xs">
-                        {s.spentSoFar(formatCents(b.spentCents), formatCents(b.limitCents))}
-                      </span>
+                      <div className="mt-1 grid min-w-40 gap-1">
+                        <span className="text-muted-foreground block text-xs">
+                          {s.spentSoFar(formatCents(b.spentCents), formatCents(b.limitCents))}
+                        </span>
+                        {b.limitCents > 0 ? (
+                          <MeterBar
+                            tone="spend"
+                            value={b.spentCents}
+                            max={b.limitCents}
+                            label={`${label("budgetScope", b.scope)}: ${b.scopeId}`}
+                            valueText={s.spentSoFar(formatCents(b.spentCents), formatCents(b.limitCents))}
+                          />
+                        ) : null}
+                      </div>
                     ) : null}
                   </TableCell>
                   <TableCell>{s.periods[b.period]}</TableCell>
