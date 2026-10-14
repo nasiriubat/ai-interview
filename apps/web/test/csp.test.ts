@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { withStyleNonce } from "@/components/report/MermaidDiagram";
-import { buildCsp, CSP_REPORT_ONLY_HEADER, newNonce, PERMISSIONS_POLICY } from "@/lib/csp";
+import {
+  buildCsp,
+  CSP_ENFORCING_HEADER,
+  CSP_REPORT_ONLY_HEADER,
+  cspHeaderName,
+  cspMode,
+  newNonce,
+  PERMISSIONS_POLICY,
+} from "@/lib/csp";
 
 /** The Content-Security-Policy and the security headers of a page (A3, D-165). */
 describe("buildCsp", () => {
@@ -128,5 +136,28 @@ describe("proxy", () => {
     const res = await run("/admin", true);
     expect(res.status).toBe(200);
     expect(res.headers.get(CSP_REPORT_ONLY_HEADER)).toContain("'strict-dynamic'");
+  });
+});
+
+describe("cspMode (D-264)", () => {
+  it("is enforce in production and report elsewhere when nothing is set", () => {
+    expect(cspMode({ NODE_ENV: "production" })).toBe("enforce");
+    expect(cspMode({ NODE_ENV: "development" })).toBe("report");
+    expect(cspMode({})).toBe("report");
+  });
+
+  it("takes an explicit mode, whatever the environment", () => {
+    expect(cspMode({ CSP_MODE: "report", NODE_ENV: "production" })).toBe("report");
+    expect(cspMode({ CSP_MODE: "ENFORCE", NODE_ENV: "development" })).toBe("enforce");
+  });
+
+  it("falls back to the environment's answer on a value it does not know", () => {
+    expect(cspMode({ CSP_MODE: "off", NODE_ENV: "production" })).toBe("enforce");
+    expect(cspMode({ CSP_MODE: "", NODE_ENV: "production" })).toBe("enforce");
+  });
+
+  it("names the header that blocks or the one that only reports", () => {
+    expect(cspHeaderName("enforce")).toBe(CSP_ENFORCING_HEADER);
+    expect(cspHeaderName("report")).toBe(CSP_REPORT_ONLY_HEADER);
   });
 });

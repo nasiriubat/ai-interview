@@ -2,7 +2,13 @@ import type { Server } from "node:http";
 import { INTERNAL_AUTH_HEADER } from "@aidp/shared";
 import { describeDb } from "@aidp/testing";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { fakeModelServer, TEST_AUTH_SECRET, testWorld, type TestWorld } from "./helpers.js";
+import {
+  fakeModelServer,
+  TEST_AUTH_SECRET,
+  TEST_INTERNAL_SECRET,
+  testWorld,
+  type TestWorld,
+} from "./helpers.js";
 
 const suite = describeDb;
 
@@ -21,7 +27,7 @@ suite("internal verification-token routes (D-56)", () => {
     model.server.close();
   });
 
-  const secret = { [INTERNAL_AUTH_HEADER]: TEST_AUTH_SECRET };
+  const secret = { [INTERNAL_AUTH_HEADER]: TEST_INTERNAL_SECRET };
   const post = (url: string, payload: object, headers: Record<string, string> = secret) =>
     world.app.inject({ method: "POST", url, headers, payload });
 
@@ -86,9 +92,15 @@ suite("internal verification-token routes (D-56)", () => {
     expect((await post(PATH, body, {})).statusCode).toBe(401);
     expect((await post(PATH, body, { [INTERNAL_AUTH_HEADER]: "" })).statusCode).toBe(401);
     // Same length as the real secret, so length alone never distinguishes the two.
-    const sameLength = "x".repeat(TEST_AUTH_SECRET.length);
+    const sameLength = "x".repeat(TEST_INTERNAL_SECRET.length);
     expect((await post(PATH, body, { [INTERNAL_AUTH_HEADER]: sameLength })).statusCode).toBe(401);
-    expect((await post(PATH, body, { [INTERNAL_AUTH_HEADER]: `${TEST_AUTH_SECRET}x` })).statusCode).toBe(401);
+    expect((await post(PATH, body, { [INTERNAL_AUTH_HEADER]: `${TEST_INTERNAL_SECRET}x` })).statusCode).toBe(
+      401,
+    );
+
+    // AUTH_SECRET itself is not the credential (D-260): it signs sessions, and a leaked internal
+    // header must never be that key, nor may the key open these routes.
+    expect((await post(PATH, body, { [INTERNAL_AUTH_HEADER]: TEST_AUTH_SECRET })).statusCode).toBe(401);
 
     // These are not staff routes: an admin session, with no shared secret, gets nothing.
     const asAdmin = await post(PATH, body, { authorization: `Bearer ${world.adminToken}` });

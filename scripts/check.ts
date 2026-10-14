@@ -57,6 +57,12 @@ const steps: [string, string[]][] = [
   // proof that it fires.
   ["migration policy", ["node", "scripts/check-migrations.mjs"]],
   ["migration policy gate tests", ["node", "--test", "scripts/check-migrations.test.mjs"]],
+  // The repository's own security gates (D-267, D-268): expiring Trivy exceptions, actions pinned
+  // by commit SHA, security.txt unexpired, and proof that each one fires.
+  ["trivy ignore file", ["node", "scripts/security-gates.mjs", "trivy"]],
+  ["workflow pins", ["node", "scripts/security-gates.mjs", "workflows"]],
+  ["security.txt", ["node", "scripts/security-gates.mjs", "security-txt"]],
+  ["security gate tests", ["node", "--test", "scripts/security-gates.test.mjs"]],
 ];
 for (const [label, command] of steps) {
   const { code } = await run(label, command);

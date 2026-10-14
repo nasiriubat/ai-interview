@@ -9,7 +9,7 @@ import { getStrings, requestLocale } from "@/i18n/server";
 import { hasRole, requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { enumFilter } from "@/lib/admin/toolbar";
-import { LISTS } from "@/lib/api/lists";
+import { LISTS, sortOf } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -37,7 +37,7 @@ export default async function UsersPage({ searchParams }: Props): Promise<React.
             v in t.admin.nav.role ? t.admin.nav.role[v as keyof typeof t.admin.nav.role] : v,
           ),
         ]}
-        sort={{ list: LISTS.users, labels: t.admin.list.fields }}
+        sort={{ list: sortOf(LISTS.users), labels: t.admin.list.fields }}
       />
       <UsersPanel
         users={result.items}

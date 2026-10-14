@@ -13,6 +13,7 @@ import {
   MemoryStorage,
 } from "@aidp/core";
 import { shippedTemplates, withTenantScope } from "@aidp/db";
+import { deriveInternalSecret } from "@aidp/shared/internal-secret";
 import { encode } from "@auth/core/jwt";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
@@ -266,6 +267,8 @@ async function appRoleClient(owner: PrismaClient): Promise<PrismaClient> {
 }
 
 export const TEST_AUTH_SECRET = "test-secret-test-secret-test-secret";
+/** What the web process presents on the machine routes: derived from the secret, never the secret (D-260). */
+export const TEST_INTERNAL_SECRET = deriveInternalSecret(TEST_AUTH_SECRET);
 
 /** `env` overrides land on top of the defaults, so a suite can pick its own rate-limit ceilings. */
 export async function testWorld(

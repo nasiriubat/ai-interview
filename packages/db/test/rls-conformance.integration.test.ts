@@ -316,6 +316,10 @@ const factories: Record<string, Factory> = {
     db.erasureLedger.create({
       data: { kind: "session", targetId: `er-${tag}-${Math.random()}`, companyId: w.companyId },
     }),
+  UsageCounter: (db, w, tag) =>
+    db.usageCounter.create({
+      data: { companyId: w.companyId, key: `uc-${tag}-${Math.random()}`, windowStart: new Date(), count: 1 },
+    }),
   OpsAlert: (db, w, tag) =>
     db.opsAlert.create({
       data: {

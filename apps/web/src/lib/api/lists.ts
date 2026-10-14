@@ -20,6 +20,16 @@ export const AUDIT_ACTION = { pattern: /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*\.?$/, ma
 const IDENTIFIER = { pattern: /^[a-z][a-z0-9_]*$/, max: 50 } as const;
 const REGION = { pattern: /^[a-z0-9-]+$/, max: 20 } as const;
 
+/**
+ * What a client component may be given of a list definition: the sorts, and nothing else. A
+ * definition's filters can hold a RegExp, which React Server Components cannot serialize, so
+ * handing the whole definition to the toolbar broke the audit and tenants pages in a production
+ * build (found by the Security M3 Playwright pass, whose server log named it).
+ */
+export function sortOf(list: ListDef): Pick<ListDef, "sort" | "defaultSort"> {
+  return { sort: list.sort, defaultSort: list.defaultSort };
+}
+
 export interface ListDef {
   sort: Readonly<Record<string, SortDir>>;
   defaultSort: string;

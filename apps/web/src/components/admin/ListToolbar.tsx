@@ -21,7 +21,7 @@ export interface ToolbarFilter {
 
 export interface ToolbarSort {
   /** The list's definition from `lib/api/lists.ts`: its fields, default, and each field's direction. */
-  list: ListDef;
+  list: Pick<ListDef, "sort" | "defaultSort">;
   /** A label for each sort field offered; fields without one are not offered. */
   labels: Record<string, string>;
 }

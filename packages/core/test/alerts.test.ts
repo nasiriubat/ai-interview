@@ -119,12 +119,13 @@ describe("the alert catalog", () => {
     expect(runbookRef("disk.high")).toBe("docs/OPERATIONS.md#diskhigh");
   });
 
-  it("keeps tenant mail to the budget kinds, the three event notices, the ceilings and the session flag", () => {
+  it("keeps tenant mail to the budget kinds, the three event notices, the ceilings, the session flag and abuse limits", () => {
     const tenantFacing = Object.entries(ALERT_KINDS)
       .filter(([, spec]) => (spec.audience as readonly string[]).includes("tenant_admins"))
       .map(([kind]) => kind)
       .sort();
     expect(tenantFacing).toEqual([
+      "abuse.limit_hit",
       "analysis.ready",
       "budget.exceeded",
       "budget.warning",

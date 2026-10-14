@@ -103,6 +103,11 @@ suite("email-code endpoints are capped per address", () => {
       where: { campaignId },
       data: { createdAt: new Date(Date.now() - 2 * 3_600_000) },
     });
+    // The counters are fixed windows in Postgres (D-269): the window passing is their rows aging.
+    await world.db.usageCounter.updateMany({
+      where: { companyId: world.companyId, key: { startsWith: `code:` } },
+      data: { windowStart: new Date(Date.now() - 3 * 3_600_000) },
+    });
     await request(email);
     const code3 = /is (\d{6})/.exec(sentTo(email).at(-1)?.text ?? "")?.[1] ?? "";
     expect((await confirm(email, code3)).statusCode).toBe(200);

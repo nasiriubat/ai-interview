@@ -20,6 +20,27 @@ export const CSP_ENFORCING_HEADER = "Content-Security-Policy";
 export const CSP_REPORT_ONLY_HEADER = "Content-Security-Policy-Report-Only";
 export const CSP_REPORT_PATH = "/api/csp-report";
 
+/**
+ * Whether the policy blocks or only reports (D-264). `CSP_MODE=enforce|report`.
+ *
+ * Unset means `enforce` in production and `report` anywhere else, so a production deployment
+ * that forgot the variable is protected and a developer's dev server never breaks on a policy
+ * written for the built app. `deploy/compose.prod.yml` sets it explicitly, so the mode of a
+ * production stack is a line a reviewer can read. Anything that is not exactly `enforce` or
+ * `report` is a misconfiguration and falls back to the safe answer for the environment.
+ */
+export type CspMode = "enforce" | "report";
+
+export function cspMode(env: { CSP_MODE?: string | undefined; NODE_ENV?: string | undefined }): CspMode {
+  const v = env.CSP_MODE?.trim().toLowerCase();
+  if (v === "enforce" || v === "report") return v;
+  return env.NODE_ENV === "production" ? "enforce" : "report";
+}
+
+export function cspHeaderName(mode: CspMode): string {
+  return mode === "enforce" ? CSP_ENFORCING_HEADER : CSP_REPORT_ONLY_HEADER;
+}
+
 /** A fresh nonce: 128 bits, base64. Never reused across requests. */
 export function newNonce(): string {
   const bytes = new Uint8Array(16);

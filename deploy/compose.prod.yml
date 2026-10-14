@@ -330,6 +330,9 @@ services:
       AUTH_URL: https://${PUBLIC_HOSTNAME:?}
       AUTH_TRUST_HOST: "true"
       AUTH_SECRET: ${AUTH_SECRET:?}
+      # The Content-Security-Policy blocks, it does not just report (D-264). `report` is the
+      # escape hatch for a deployment that finds a violation the Playwright pass did not.
+      CSP_MODE: ${CSP_MODE:-enforce}
       EMAIL_SERVER: ${EMAIL_SMTP_URL:?set EMAIL_SMTP_URL in deploy/.env — sign-in does not work without an SMTP relay}
       EMAIL_FROM: ${EMAIL_FROM:?}
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}

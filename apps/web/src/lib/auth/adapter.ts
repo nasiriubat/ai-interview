@@ -3,6 +3,7 @@ import {
   VerificationTokenResponseSchema,
   type VerificationTokenDto,
 } from "@aidp/shared";
+import { deriveInternalSecret } from "@aidp/shared/internal-secret";
 import type {
   Adapter,
   AdapterAccount,
@@ -30,7 +31,8 @@ import { apiBaseUrl } from "@/lib/env";
  * to the adapter and emails the plaintext, so nothing on this path hashes it a second time.
  */
 function internalTransport(): Transport {
-  const secret = process.env.AUTH_SECRET ?? "";
+  // The derived credential, never AUTH_SECRET itself (D-260).
+  const secret = deriveInternalSecret(process.env.AUTH_SECRET ?? "");
   return createTransport(apiBaseUrl(), () => ({ [INTERNAL_AUTH_HEADER]: secret }));
 }
 
