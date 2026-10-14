@@ -3,7 +3,7 @@ import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { encode } from "next-auth/jwt";
-import { PAGES, type Entry } from "./pages";
+import { PAGES } from "./pages";
 
 const AUTH_SECRET = "e2e-auth-secret-e2e-auth-secret-0123456789";
 const RESULTS = path.join(import.meta.dirname, "results");
@@ -19,7 +19,7 @@ async function staffCookie(): Promise<string> {
   });
 }
 
-for (const entry of PAGES as Entry[]) {
+for (const entry of PAGES) {
   test(`${entry.id}: no serious or critical axe violations`, async ({ page, context }, info) => {
     const origin = new URL(info.project.use.baseURL ?? "http://localhost:3100");
     if (entry.auth === "staff") {
@@ -41,6 +41,8 @@ for (const entry of PAGES as Entry[]) {
     expect(response, `${entry.path} answered`).not.toBeNull();
     await entry.prepare?.(page);
     await page.waitForLoadState("networkidle");
+    // Dialogs and popovers fade in; axe would read the colours halfway through the fade.
+    if (entry.prepare) await page.waitForTimeout(600);
 
     const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
     mkdirSync(RESULTS, { recursive: true });

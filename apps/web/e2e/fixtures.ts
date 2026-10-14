@@ -15,7 +15,7 @@ const EARLIER = "2026-10-10T08:00:00.000Z";
 
 export const company = { id: "c1", name: "Acme Care" };
 
-export const me = (role: "admin" | "member" | "platform_operator" = "admin") => ({
+export const me = (role: "admin" | "member" | "platform_operator" = "admin"): Record<string, unknown> => ({
   user: { id: "u1", email: "ada@acme.test", name: "Ada Admin", role, companyId: "c1" },
   company,
 });
@@ -149,7 +149,12 @@ export const analysis = {
 };
 
 const factor = (score: number) => ({ score, rationale: "Observed in several interviews." });
-export const opportunity = (id: string, title: string, cls: string, rank: number) => ({
+export const opportunity = (
+  id: string,
+  title: string,
+  cls: string,
+  rank: number,
+): Record<string, unknown> => ({
   id,
   analysisId: "an1",
   title,
@@ -419,7 +424,7 @@ export const participantSession = {
   recap: { text: "You covered your role. Next is a normal day.", source: "fallback" },
 };
 
-export const linkInfo = (status: "open" | "closed" | "expired" = "open") => ({
+export const linkInfo = (status: "open" | "closed" | "expired" = "open"): Record<string, unknown> => ({
   campaign: {
     name: "Ward round, Q4",
     productName: "",

@@ -10,7 +10,7 @@ This file is for coding agents and new engineers. It is the short version of
 3. **Templates and settings are data.** New interview behavior is a template field or a settings-catalog key (`packages/shared/src/settings.ts`), not a constant.
 4. **Every tenant-owned query goes through the scoped client** (`forCompany`) or is filtered by `companyId` explicitly; RLS is the second fence, not the first.
 5. **Ports and adapters** at every external edge, each with an in-memory fake. Tests never hit the network.
-6. **Prompts are versioned files** in `packages/ai/src/engine/prompts/`. A prompt change bumps the version and runs `pnpm --filter @aidp/evals test`.
+6. **Prompts are versioned files** in `packages/ai/src/engine/prompts/`. A prompt change bumps the version and runs `pnpm --filter @aidp/evals test`. A tenant may add versions (`key@tN`) through the admin; they must keep the contract in `engine/prompts/admin.ts` and are never edited in place.
 7. **Quality gate before every push:** `pnpm check` (format, build, typecheck, lint, tests). It needs `DATABASE_URL` pointing at a migrated Postgres with pgvector (`pnpm db:up`) and fails without it. `pnpm check --no-db` runs the rest and prints a banner that the result is not the gate. A skipped test with a database present fails the run. Database suites use `describeDb` from `@aidp/testing`, never `describe.skip`.
 
 ## Layout

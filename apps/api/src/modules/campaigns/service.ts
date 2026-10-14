@@ -279,7 +279,7 @@ export class CampaignService {
         offset,
         sort: "createdAt",
         dir: "desc",
-      } as CampaignSessionListQuery);
+      });
       all.push(...page.sessions);
       if (page.sessions.length < 200) break;
     }

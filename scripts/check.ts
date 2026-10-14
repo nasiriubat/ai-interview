@@ -77,4 +77,10 @@ writeFileSync(
   new URL("../.check-state.json", import.meta.url),
   `${JSON.stringify({ ...outcome.state, at: new Date().toISOString() }, null, 2)}\n`,
 );
+// Not part of the gate, and said so rather than left out: the browser pass needs a download and a
+// production build (apps/web/README.md, "Accessibility evidence").
+console.log(
+  "\nNOTICE: browser accessibility pass (Playwright + axe) was not run by this gate: it needs a browser\n" +
+    "download and a production build. Run it with `pnpm --filter @aidp/web e2e`.",
+);
 process.exit(outcome.exitCode);

@@ -79,9 +79,9 @@ export const PAGES: Entry[] = [
     path: "/p/session",
     route: "app/p/session/page.tsx",
     auth: "participant",
-    prepare: async (page) => {
+    prepare: async (page: Page): Promise<void> => {
       await page
-        .getByRole("button", { name: /menu|valikko/i })
+        .getByRole("button", { name: /interview options|haastattelun valinnat|valinnat/i })
         .first()
         .click();
     },
@@ -125,7 +125,7 @@ export const PAGES: Entry[] = [
     "/admin/prompts/interviewer",
     "app/admin/prompts/[key]/page.tsx",
     async (page) => {
-      await page.getByRole("button", { name: /^(Use version|Ota käyttöön versio) 2/ }).click();
+      await page.getByRole("button", { name: /^(Use version|Ota käyttöön versio) 3/ }).click();
       await page.getByRole("dialog").waitFor();
     },
   ),

@@ -50,6 +50,9 @@ export default defineConfig({
         API_URL: `http://127.0.0.1:${String(API_PORT)}`,
         AUTH_SECRET: E2E_AUTH_SECRET,
         AUTH_TRUST_HOST: "true",
+        // Required at start-up; nothing is sent, the fake API never asks for a mail.
+        EMAIL_SERVER: "smtp://localhost:1025",
+        EMAIL_FROM: "e2e@localhost",
         NEXTAUTH_URL: `http://localhost:${String(WEB_PORT)}`,
       },
       reuseExistingServer: !process.env.CI,

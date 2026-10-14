@@ -1,4 +1,4 @@
-import type { ChatEvent } from "@aidp/shared";
+import type { ChatEvent, Purpose } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import { InterviewEngine } from "../../src/engine/engine.js";
 import {
@@ -20,7 +20,7 @@ import {
   type PromptSource,
 } from "../../src/engine/prompts/index.js";
 import { LexicalRecall } from "../../src/engine/recall.js";
-import type { CallContext, CallRequest, Purpose } from "../../src/index.js";
+import type { CallContext, CallRequest } from "../../src/index.js";
 import { lineDiff } from "../../src/spec/diff.js";
 import { MemoryStore, ScriptedCaller, settings, snapshot, template, turn } from "./helpers.js";
 
