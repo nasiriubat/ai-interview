@@ -6,7 +6,9 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "build": "echo 'evals are not built'"
+    "build": "echo 'evals are not built'",
+    "eval:baseline": "UPDATE_EVAL_BASELINE=1 vitest run src/gate.eval.ts",
+    "eval:fixtures": "tsx tools/gen-fixtures.ts"
   },
   "dependencies": {
     "@aidp/ai": "workspace:*",

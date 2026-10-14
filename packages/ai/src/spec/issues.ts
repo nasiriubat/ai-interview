@@ -15,6 +15,7 @@ import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js"
 import { areasComplete, contextComplete } from "../engine/selection.js";
 import { languageName } from "../util/language.js";
 import { newNonce, wrapUntrusted } from "../util/untrusted.js";
+import { checkCompleteness, completenessFinding } from "./completeness.js";
 import { renderSpecState, specFacts } from "./live.js";
 import type { RequirementsPolicy } from "./policy.js";
 
@@ -27,7 +28,8 @@ const TYPE_PRIORITY: Record<FindingType, number> = {
 const CONFIDENCE_PRIORITY = { high: 0, medium: 1, low: 2 } as const;
 const GENTLE_TYPES: ReadonlySet<FindingType> = new Set(["contradiction", "missing_decision"]);
 
-export type ScanReason = "periodic" | "final";
+/** `completeness` is the deterministic check of D-191: no model call, one gap raised as a question. */
+export type ScanReason = "periodic" | "final" | "completeness";
 
 /** Whether this turn starts with an issue-detection pass (every N turns, and once at completion). */
 export function shouldScanIssues(
@@ -40,8 +42,19 @@ export function shouldScanIssues(
   if (state.phase === "done" || state.phase === "summary" || state.closingAsked) return undefined;
   if (!contextComplete(template, state)) return undefined;
   if (state.findings.some((f) => f.status === "open" || f.status === "raised")) return undefined;
-  if (specFacts(state).length === 0) return undefined;
-  if (areasComplete(template, state, path)) return state.finalIssueScanDone ? undefined : "final";
+  const hasFacts = specFacts(state).length > 0;
+  if (areasComplete(template, state, path)) {
+    if (hasFacts && !state.finalIssueScanDone) return "final";
+    // Every area is done and the model-side pass has run: the deterministic check decides whether
+    // the specification is complete enough to close, a bounded number of times.
+    if (
+      state.completenessAsks < template.completeness.maxAsks &&
+      !checkCompleteness(state, template.completeness).ok
+    )
+      return "completeness";
+    return undefined;
+  }
+  if (!hasFacts) return undefined;
   if (state.turnCount > 0 && state.turnCount - state.lastIssueScanTurn >= policy.everyTurns)
     return "periodic";
   return undefined;
@@ -116,6 +129,20 @@ export async function detectIssues(
     signal?: AbortSignal;
   },
 ): Promise<Finding[]> {
+  if (input.reason === "completeness") {
+    const found = completenessFinding(checkCompleteness(input.state, input.template.completeness));
+    return found
+      ? [
+          {
+            ...found,
+            section: normalizeSectionKey(found.section) ?? found.section,
+            id: `c${input.state.turnCount}-1`,
+            status: "open" as const,
+            pushedBack: false,
+          },
+        ]
+      : [];
+  }
   try {
     const prompt = await deps.prompts.get(input.companyId, "issues");
     const res = await deps.caller.complete(

@@ -315,3 +315,32 @@ new readiness. Turning it off always succeeds.
 The web settings screen shows this as a panel at the top of the Voice category, at tenant scope: the
 switch, the checklist, and a dialog that asks for the key when the switch is turned on and the call
 is not ready, then turns it on once the key is connected.
+
+## Exports and branding (D-210 to D-219)
+
+Four catalog keys shape the PDF exports, all at platform and tenant scope, with English and Finnish
+labels. There is no logo upload (D-218): a tenant brands a PDF with a name and a colour.
+
+| Key                     | Type, default           | What it does                                                         |
+| ----------------------- | ----------------------- | -------------------------------------------------------------------- |
+| `branding.productName`  | string, `Discovery`     | The name on the cover, in the footer and in the file metadata        |
+| `branding.primaryColor` | `#rrggbb`, `#1f4e79`    | Colour of the cover band, headings, table header tint and quote rule |
+| `exports.pdfPageSize`   | `A4` or `Letter`, `A4`  | Page size                                                            |
+| `exports.pdfCoverPage`  | boolean, on             | A cover page; off puts the title and version above the contents      |
+| `exports.pdfFooterText` | string up to 120, empty | A line added under the footer of every page                          |
+
+Deployment, not settings, decides where diagrams are drawn: `KROKI_URL` (environment only, reached
+through the egress guard) names the renderer. A tenant cannot name one (D-213).
+
+Audit actions added: `requirements.diagram_add`, `requirements.diagram_edit`,
+`requirements.diagram_reset` (mutations, declared in the boot-time registry) and, for downloads,
+`requirements.export` and `analysis.report_export` (the file format, the version, the page count and
+the warnings, never the content). `x-export-warnings` and `x-export-pages` response headers carry
+what a PDF left out and how long it is; the web proxy forwards them with the file name.
+
+| Code           | Status | When                                                                      |
+| -------------- | ------ | ------------------------------------------------------------------------- |
+| `rate_limited` | 429    | A PDF was asked for while two others were already being composed          |
+| `too_large`    | 413    | The document is over 150 pages; export the Markdown instead               |
+| `validation`   | 400    | A diagram was refused; `details.issues` is a list of `{ message, line? }` |
+| `conflict`     | 409    | The analysis has no report yet                                            |

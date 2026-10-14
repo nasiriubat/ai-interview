@@ -6,7 +6,7 @@
 #   pnpm stack:up        # build and start: postgres, mail catcher, migrations + bootstrap, api, worker, web
 #   pnpm stack:down      # stop, keeping the database
 #   pnpm stack:clean     # stop and remove this project's images and dangling build layers
-#   docker compose --profile extras up -d # adds MinIO (object storage) and Kroki (diagram rendering)
+#   docker compose --profile extras up -d # adds MinIO (object storage) and Kroki with its Mermaid companion (diagram rendering)
 #
 # Two images are built, not four: `aidp-server` (migrate, api and worker run it with different
 # commands) and `aidp-web`. See docs/discovery/decisions.md D-74.
@@ -83,6 +83,8 @@ services:
       EMAIL_SMTP_URL: smtp://mailpit:1025
       # Platform providers may reach these local services; a tenant never can (D-83).
       EGRESS_ALLOW_HOSTS: kroki,minio,mailpit,host.docker.internal
+      # Present only with `--profile extras`; without it a diagram is printed as source.
+      KROKI_URL: http://kroki:8000
     ports:
       - "4000:4000"
     volumes:
@@ -149,12 +151,39 @@ services:
     volumes:
       - minio:/data
 
+  # Diagram rendering for PDF export and the diagram editor (D-210). The core image cannot draw
+  # Mermaid by itself: it hands those requests to the companion below (a headless Chromium) through
+  # KROKI_MERMAID_HOST. Without the `extras` profile the API has no renderer, and says so: diagrams
+  # are printed as their source and saved unverified.
   kroki:
     <<: *logging
     profiles: ["extras"]
-    image: yuzutech/kroki:latest
+    image: yuzutech/kroki:0.26.0
+    environment:
+      KROKI_MERMAID_HOST: kroki-mermaid
+      KROKI_MAX_BODY_SIZE: "65536"
+      JAVA_OPTS: "-Xms64m -Xmx192m"
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     ports:
       - "8000:8000"
+    depends_on:
+      kroki-mermaid: { condition: service_healthy }
+
+  kroki-mermaid:
+    <<: *logging
+    profiles: ["extras"]
+    image: yuzutech/kroki-mermaid:0.26.0
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   pgdata:

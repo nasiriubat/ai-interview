@@ -42,7 +42,8 @@ and a rollback needs no build): `aidp-server` runs `migrate`, `api` and `worker`
 `web`; `aidp-backup` (the server's Postgres plus `age`, `rclone` and `jq`) runs `backup`;
 `aidp-ops-notify` (a shell script on Alpine) runs `ops-notify` and the `ops-state-init` one-shot.
 The stock `pgvector/pgvector:pg16` runs `postgres` and the two database helpers (`db-grants`,
-`preflight`); `caddy:2-alpine` runs Caddy. Six images for eleven services.
+`preflight`); `caddy:2-alpine` runs Caddy; `yuzutech/kroki` and `yuzutech/kroki-mermaid` run the diagram
+renderer ([PDF export and diagrams](#pdf-export-and-diagrams)). Eight images for thirteen services.
 
 **The API is not on the internet.** The browser never calls it: every request goes to a Next.js
 route handler (`apps/web/src/app/api/**`), which attaches the bearer token server-side
@@ -213,7 +214,8 @@ single-host layout in this document and each is a stated number or list rather t
   so a client cannot choose its own rate-limit bucket. Put another proxy or a CDN in front and
   this number has to change with it; a wrong value either lumps every visitor into one bucket or
   lets one visitor pick theirs. IPv6 clients are limited by their /64.
-- **`EGRESS_ALLOW_HOSTS`** (API and worker, default empty). The API connects out to model
+- **`EGRESS_ALLOW_HOSTS`** (API and worker; the compose default is `kroki`, the diagram renderer,
+  whose host the API also adds by itself from `KROKI_URL`). The API connects out to model
   providers and mail relays that admins name. A **tenant** admin's address must be `https`, a
   public DNS name, port 443 or 8443, and may not resolve to a loopback, private, link-local or
   cloud-metadata address; this is checked on every connection, not only when it is saved. The
@@ -275,6 +277,54 @@ the first utterance. For a live call that stays live, route `transcription` to O
 
 Costs run per second of conversation rather than per turn, which is worth knowing before opening
 it to a whole department. The per-call figures land in the same cost ledger as everything else.
+
+## PDF export and diagrams
+
+The analysis report and each specification version can be downloaded as a PDF, and the
+specification's diagrams are editable Mermaid. Two things make that work, and they are different
+in kind.
+
+**The PDF is composed inside the API process** (pdfmake, no browser). It needs no service, no
+volume and no setting beyond the look of the document: `branding.productName` and
+`branding.primaryColor` (the cover and headings), `exports.pdfPageSize` (A4 or Letter),
+`exports.pdfCoverPage` and `exports.pdfFooterText`, all under Admin → Settings, per tenant. There
+is no logo upload. A document is composed in about half a second at 135 pages (measured: 265 000
+characters of Markdown, twelve diagrams over the cap shown as source), one at a time per API
+process; a second request waits and a fourth is turned away with a 429.
+
+**Diagrams are drawn by Kroki**, two containers in `deploy/compose.prod.yml`:
+
+| Service         | Image                           | Limit  | Resident, measured             | What it is                               |
+| --------------- | ------------------------------- | ------ | ------------------------------ | ---------------------------------------- |
+| `kroki`         | `yuzutech/kroki:0.26.0`         | 320 MB | about 85 MB idle               | A JVM service (heap capped at 192 MB)    |
+| `kroki-mermaid` | `yuzutech/kroki-mermaid:0.26.0` | 512 MB | about 115 MB idle, 295 MB busy | A Node service driving headless Chromium |
+
+`kroki` cannot draw Mermaid by itself: it forwards the request to `kroki-mermaid` through
+`KROKI_MERMAID_HOST`, which is why there are two. Together they add roughly 0.2 GB at rest and 0.4 GB
+while a document with several diagrams is drawn (the API asks for at most three at a time). On the
+4 GB host that is the headroom the Whisper model otherwise uses, so if you also run the on-server
+transcription model, watch `docker stats` after the first exports; the limits above are the
+ceilings that stop a runaway render taking the host with it.
+
+- **Isolation.** Both sit on the `diagrams` network, which is `internal`: no route to the
+  internet or to the host, and only `api` is also attached to it. A diagram label cannot make the
+  renderer's browser fetch a URL or reach Postgres. The images are pinned; `latest` would change
+  what a diagram looks like on the next pull. No port is published.
+- **Wiring.** `KROKI_URL` (API only; compose sets `http://kroki:8000`) names the renderer. Its host
+  is added to the egress allow-list for you, so `EGRESS_ALLOW_HOSTS` need not mention it, and a
+  tenant's setting can never name a renderer. The default in compose is `kroki`, the same name.
+- **When it is down.** Nothing fails. A PDF is still produced, each diagram that could not be
+  drawn is printed as its Mermaid source under a note, and the download carries
+  `x-export-warnings: diagram_unrendered:<n>`, which the exports panel shows. Saving a diagram in
+  the editor still works and is marked "not verified".
+- **Turning it off** (a 2 GB host, or no use for diagrams): put `KROKI_URL=` (empty) in
+  `deploy/.env` and `deploy/dc stop kroki kroki-mermaid`. An upgrade starts them again, so
+  also remove the two services from a local copy of the compose file if you want them gone.
+- **Checking it.** `deploy/dc ps` shows both as `healthy`. To draw one by hand from the API's
+  network: `deploy/dc exec -T api node -e "fetch('http://kroki:8000/mermaid/svg',{method:'POST',body:'flowchart LR\n A-->B'}).then(r=>console.log(r.status))"`.
+
+The development stack runs the same pair under the `extras` profile
+(`docker compose --profile extras up -d`), with Kroki published on 8000.
 
 ## Where the data lives
 
