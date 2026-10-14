@@ -43,4 +43,27 @@ assert_not_contains "the production file never mentions the mail catcher" "$(cat
 dockerfile_fake="$REPO/tools/fake-provider/Dockerfile"
 assert_contains "the fake's Dockerfile builds from the repository root" "$(cat "$dockerfile_fake")" "COPY tools/fake-provider/src"
 
+echo "the Caddyfile"
+caddyfile="$DEPLOY_DIR/Caddyfile"
+# A log filter field takes one filter type. A `regexp` and a `query` on request>uri in the same
+# block made Caddy refuse the whole file and restart forever; the pair has to be one multi_regexp.
+mixed=$(awk '
+	/request>uri[[:space:]]+regexp/ {re=1}
+	/request>uri[[:space:]]+query/ {q=1}
+	END {print (re && q) ? "mixed" : "ok"}' "$caddyfile")
+assert_eq "request>uri does not mix regexp and query filters" "ok" "$mixed"
+assert_contains "the access log redacts path tokens and secret query values" "$(cat "$caddyfile")" "multi_regexp"
+
+# The real parser, when this machine has Docker and the Caddy image already: the adapter is the
+# only thing that knows what Caddy accepts. Not pulled here: the harness is offline by contract.
+if docker image inspect caddy:2-alpine >/dev/null 2>&1; then
+	out=$(docker run --rm -e ACME_EMAIL=ops@example.com -e PUBLIC_HOSTNAME=pilot.example.com -e CADDY_LOCAL_CERTS= \
+		-v "$caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy adapt --config /etc/caddy/Caddyfile --adapter caddyfile 2>&1)
+	status=$?
+	assert_status "caddy adapts the Caddyfile" 0 "$status"
+	[ "$status" = 0 ] || echo "$out" | tail -n 5
+else
+	echo "  note caddy:2-alpine is not on this machine; the adapter check was not run"
+fi
+
 finish
