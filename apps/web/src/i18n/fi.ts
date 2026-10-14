@@ -2924,8 +2924,9 @@ export const fi: Strings = {
         description: "Mallipohja voi käynnistää toisen sen oppimien tietojen pohjalta.",
       },
       "branding.productName": {
-        label: "Osallistujille näytettävä tuotenimi",
-        description: "Näkyy saapumissivulla ja sähköposteissa.",
+        label: "Sivustolla ja osallistujille näytettävä tuotenimi",
+        description:
+          "Alustatasolla se on sivuston nimi: etusivu, kirjautuminen, hallinta ja selaimen välilehti. Organisaation oma arvo korvaa sen vain sen osallistujille ja sähköposteissa.",
       },
       "branding.emailSender": {
         label: "Lähettäjän osoite (vanhentunut)",

@@ -557,6 +557,24 @@ model VerificationToken {
   @@index([expires])
 }
 
+/// Public branding files of the platform itself: today only the site logo (D-432).
+///
+/// Platform-level, not tenant-owned, and deliberately outside row-level security like
+/// `VerificationToken`: the bytes are served to anyone at `GET /public/branding/logo`, so there is
+/// nothing a tenant fence would protect. Only the platform operator writes it. `version` is a
+/// content hash, so it is also the cache key a browser keeps the image under.
+model PlatformAsset {
+  key         String   @id
+  contentType String
+  bytes       Bytes
+  sizeBytes   Int
+  width       Int
+  height      Int
+  version     String
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+}
+
 /// Tenant overrides and canaries of the versioned prompt files shipped in packages/ai.
 model PromptVersion {
   id          String   @id @default(cuid())

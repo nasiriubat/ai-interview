@@ -107,6 +107,9 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /operator/jobs/dead/:queue/:id/discard": ["job.discard"],
   "POST /operator/jobs/run/:name": ["job.run_now"],
   "POST /operator/crypto/rekey": ["crypto.rekey_requested"],
+  // the platform's logo (D-434)
+  "PUT /operator/branding/logo": ["branding.logo_update"],
+  "DELETE /operator/branding/logo": ["branding.logo_remove"],
 };
 
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);

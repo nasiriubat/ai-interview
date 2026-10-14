@@ -2920,8 +2920,9 @@ export const en = {
         description: "A template can start another one from what it learned.",
       },
       "branding.productName": {
-        label: "Product name shown to participants",
-        description: "Appears on the arrival page and in emails.",
+        label: "Product name shown on the site and to participants",
+        description:
+          "At platform scope it names the site: the landing page, sign-in, the admin and the browser tab. An organization's own value replaces it for its participants and emails only.",
       },
       "branding.emailSender": {
         label: "Sender address (deprecated)",
