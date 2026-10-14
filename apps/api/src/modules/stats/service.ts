@@ -1,6 +1,4 @@
 import { tenantTransaction } from "@aidp/db";
-import { Prisma, type PrismaClient } from "@prisma/client";
-
 import type {
   StatsAi,
   StatsDiscovery,
@@ -9,6 +7,7 @@ import type {
   StatsRange,
   StatsRequirements,
 } from "@aidp/shared";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import * as segments from "./segments.js";
 
 /** The purposes a participant waits on: the ones the first-token SLO is read from (NFR-01). */
