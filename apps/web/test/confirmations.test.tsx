@@ -508,7 +508,7 @@ describe("participant: finishing the interview asks first", () => {
   it("I'm done opens a question, Cancel changes nothing, Finish ends it", async () => {
     const onDone = vi.fn();
     const user = userEvent.setup();
-    render(<SessionMenu onPause={vi.fn()} onDone={onDone} onDelete={vi.fn()} />);
+    render(<SessionMenu onDone={onDone} onDelete={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: "Interview options" }));
     await user.click(screen.getByRole("button", { name: "I'm done" }));
     expect(within(dialog()).getByText("Finish the interview?")).toBeInTheDocument();
@@ -520,15 +520,5 @@ describe("participant: finishing the interview asks first", () => {
     await user.click(screen.getByRole("button", { name: "I'm done" }));
     await user.click(within(dialog()).getByRole("button", { name: "Finish" }));
     expect(onDone).toHaveBeenCalledTimes(1);
-  });
-
-  it("pausing does not ask, because reopening the link undoes it", async () => {
-    const onPause = vi.fn();
-    const user = userEvent.setup();
-    render(<SessionMenu onPause={onPause} onDone={vi.fn()} onDelete={vi.fn()} />);
-    await user.click(screen.getByRole("button", { name: "Interview options" }));
-    await user.click(screen.getByRole("button", { name: "Pause" }));
-    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-    expect(onPause).toHaveBeenCalledTimes(1);
   });
 });

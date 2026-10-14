@@ -1,8 +1,9 @@
 "use client";
 
-import { CheckCircle2Icon, DownloadIcon, MoreHorizontalIcon, PauseIcon, Trash2Icon } from "lucide-react";
+import { CheckCircle2Icon, DownloadIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { LanguageMenu } from "@/components/common/PreferenceMenus";
 import { ThemeSwitch } from "@/components/common/ThemeSwitch";
 import {
   AlertDialog,
@@ -41,18 +42,26 @@ async function saveMyData(format: "json" | "md"): Promise<void> {
 
 /** Pause, "I'm done", "Download my data" and "Delete my data": always one tap away. */
 export function SessionMenu({
-  onPause,
   onDone,
   onDelete,
   disabled,
+  deleteOpen,
+  onDeleteOpenChange,
 }: {
-  onPause: () => void;
   onDone: () => void;
   onDelete: () => void;
   disabled?: boolean;
+  /** The side panel can ask for the same confirmation: the screen then owns whether it is open. */
+  deleteOpen?: boolean;
+  onDeleteOpenChange?: (open: boolean) => void;
 }): React.JSX.Element {
   const [open, setOpen] = React.useState(false);
-  const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const [ownDelete, setOwnDelete] = React.useState(false);
+  const confirmDelete = deleteOpen ?? ownDelete;
+  const setConfirmDelete = (v: boolean): void => {
+    setOwnDelete(v);
+    onDeleteOpenChange?.(v);
+  };
   const [confirmDone, setConfirmDone] = React.useState(false);
   const [download, setDownload] = React.useState<Download>("idle");
   const download_ = (format: "json" | "md"): void => {
@@ -70,24 +79,13 @@ export function SessionMenu({
     <>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="icon" aria-label={t.participant.session.menu}>
+          <Button variant="ghost" size="icon" aria-label={t.participant.session.menu}>
             <MoreHorizontalIcon />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-72 max-w-[calc(100vw-1.5rem)] p-2">
           <p className="text-muted-foreground px-2 pb-2 text-xs">{t.participant.session.sessionMenuHint}</p>
           <div className="grid gap-1">
-            <Button
-              variant="ghost"
-              className="h-11 justify-start"
-              disabled={disabled}
-              onClick={() => {
-                setOpen(false);
-                onPause();
-              }}
-            >
-              <PauseIcon /> {t.participant.session.pause}
-            </Button>
             <Button
               variant="ghost"
               className="h-11 justify-start"
@@ -131,9 +129,16 @@ export function SessionMenu({
               <Trash2Icon /> {t.participant.session.deleteData}
             </Button>
           </div>
-          <div className="mt-2 flex items-center justify-between gap-2 border-t px-2 pt-2">
-            <span className="text-muted-foreground text-xs">{t.app.theme.label}</span>
-            <ThemeSwitch />
+          {/* From 640 px the header carries these two; below it they live here. */}
+          <div className="mt-2 grid gap-2 border-t px-2 pt-2 sm:hidden">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground text-xs">{t.app.language}</span>
+              <LanguageMenu showName align="end" />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground text-xs">{t.app.theme.label}</span>
+              <ThemeSwitch />
+            </div>
           </div>
           {/* Announced to a screen reader as it changes, so a slow export is not silent. */}
           <p role="status" aria-live="polite" className="text-muted-foreground px-2 pt-2 text-xs">
