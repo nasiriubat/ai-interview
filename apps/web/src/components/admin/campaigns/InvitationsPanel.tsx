@@ -22,6 +22,9 @@ const s = t.admin.campaigns;
 /** Above this many addresses a send is a mass email and asks first (the policy table, D-111). */
 export const BULK_INVITE_CONFIRM_ABOVE = 50;
 
+/** States in which an invitation can still be answered, and so reminded or revoked. */
+const LIVE = new Set(["pending", "sent", "opened"]);
+
 export function parseEmails(text: string): string[] {
   const seen = new Set<string>();
   for (const raw of text.split(/[\s,;]+/)) {
@@ -45,6 +48,9 @@ export function InvitationsPanel({
   const emails = parseEmails(text);
   const [confirmBulk, setConfirmBulk] = React.useState(false);
   const [revoking, setRevoking] = React.useState<Invitation | null>(null);
+  // Who was reminded in this view: the API stamps `sentAt` again, but only a reload would show it.
+  const [reminded, setReminded] = React.useState<ReadonlySet<string>>(new Set());
+  const fileInput = React.useRef<HTMLInputElement>(null);
 
   const requestSend = (): void => {
     if (emails.length === 0) return;
@@ -98,21 +104,28 @@ export function InvitationsPanel({
           <Button type="submit" disabled={action.busy || emails.length === 0}>
             <SendIcon /> {s.sendInvitations} {emails.length > 0 ? `(${emails.length})` : ""}
           </Button>
-          <Label htmlFor="invite-file" className="cursor-pointer">
-            <span className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium">
-              <UploadIcon className="size-4" /> {s.uploadFile}
-            </span>
-            <input
-              id="invite-file"
-              type="file"
-              accept=".txt,.csv"
-              className="sr-only"
-              onChange={(e) => {
-                onFile(e.target.files?.[0]);
-                e.target.value = "";
-              }}
-            />
-          </Label>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              fileInput.current?.click();
+            }}
+          >
+            <UploadIcon aria-hidden="true" /> {s.uploadFile}
+          </Button>
+          <input
+            ref={fileInput}
+            id="invite-file"
+            type="file"
+            accept=".txt,.csv"
+            aria-label={s.uploadFileNamed}
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(e) => {
+              onFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
         </div>
         <Flash flash={action.flash} />
       </form>
@@ -148,22 +161,31 @@ export function InvitationsPanel({
                     <DateText iso={inv.openedAt} />
                   </TableCell>
                   <TableCell className="text-right">
+                    {reminded.has(inv.id) ? (
+                      <span role="status" className="text-muted-foreground mr-2 text-xs">
+                        {s.reminderSent}
+                      </span>
+                    ) : null}
                     <RowActions>
                       <IconButton
                         label={`${s.remind}: ${inv.email ?? inv.id}`}
                         icon={<BellIcon />}
-                        disabled={rowAction.busy || inv.status === "revoked" || inv.status === "completed"}
+                        disabled={rowAction.busy || !LIVE.has(inv.status) || !inv.email}
                         onClick={() => {
-                          void rowAction.run(async () => {
-                            await staffClient.campaigns.remind(campaignId, inv.id);
-                          }, s.reminded);
+                          void rowAction
+                            .run(async () => {
+                              await staffClient.campaigns.remind(campaignId, inv.id);
+                            }, s.reminded)
+                            .then((ok) => {
+                              if (ok) setReminded((prev) => new Set(prev).add(inv.id));
+                            });
                         }}
                       />
                       <IconButton
                         label={`${s.revoke}: ${inv.email ?? inv.id}`}
                         icon={<BanIcon />}
                         className="text-destructive hover:text-destructive"
-                        disabled={rowAction.busy || inv.status === "revoked"}
+                        disabled={rowAction.busy || inv.status === "revoked" || inv.status === "bound"}
                         onClick={() => {
                           setRevoking(inv);
                         }}

@@ -15,6 +15,10 @@ import { z } from "zod";
 import { AppError, notFound } from "../../lib/errors.js";
 import { defined } from "../../lib/objects.js";
 import { listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
+import { csvFileName, toCsv } from "./csv.js";
+
+/** The export stops here rather than building a file nobody can open (50 pages of 200). */
+export const SESSIONS_CSV_MAX_ROWS = 10_000;
 
 /** `/campaigns` (D-79): `q` matches the name. */
 export const CampaignList = listSpec({
@@ -255,6 +259,72 @@ export class CampaignService {
       };
     });
     return toListResponse("sessions", rows, total, query);
+  }
+
+  /**
+   * Every session of a campaign as CSV, for an administrator (D-236). It is the list the staff
+   * screen shows, so it follows the same identity rule: a participant who is not named there has
+   * no name, no email and no session id here either, and their times are a day wide. Anonymous
+   * rows are numbered instead, in the stable order that follows no clock.
+   */
+  async sessionsCsv(
+    companyId: string,
+    campaignId: string,
+  ): Promise<{ filename: string; body: string; rows: number }> {
+    const campaign = await this.get(companyId, campaignId);
+    const all: CampaignSessionRow[] = [];
+    for (let offset = 0; offset < SESSIONS_CSV_MAX_ROWS; offset += 200) {
+      const page = await this.sessionsPage(companyId, campaignId, {
+        limit: 200,
+        offset,
+        sort: "createdAt",
+        dir: "desc",
+      } as CampaignSessionListQuery);
+      all.push(...page.sessions);
+      if (page.sessions.length < 200) break;
+    }
+    const header = [
+      "row",
+      "session_id",
+      "participant_name",
+      "participant_email",
+      "status",
+      "mode",
+      "turns",
+      "areas_covered",
+      "flagged",
+      "cost_cents",
+      "started_at",
+      "ended_at",
+      "last_activity_at",
+    ];
+    const body = toCsv(
+      header,
+      all.map((s, i) => {
+        const named =
+          campaign.participationMode === "identified" ||
+          s.participantName !== null ||
+          s.participantEmail !== null;
+        const when = (d: Date | null): string =>
+          d === null ? "" : named ? d.toISOString() : d.toISOString().slice(0, 10);
+        return [
+          i + 1,
+          named ? s.id : "",
+          s.participantName,
+          s.participantEmail,
+          s.status,
+          s.mode,
+          s.turns,
+          s.areasCovered,
+          s.flagged,
+          s.costCents.toFixed(2),
+          when(s.startedAt),
+          when(s.endedAt),
+          when(s.lastActivityAt),
+        ];
+      }),
+    );
+    return { filename: csvFileName(campaign.name, "sessions"), body, rows: all.length };
   }
 
   async get(companyId: string, id: string): Promise<Campaign & { linkToken?: undefined }> {
