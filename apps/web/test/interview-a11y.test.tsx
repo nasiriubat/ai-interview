@@ -92,7 +92,7 @@ function apiWith(sendTurn: ParticipantApi["sendTurn"]): ParticipantApi {
     pause: noop,
     sendControl: unused,
     deleteData: () => Promise.resolve({ ok: true, emailSent: false }),
-    getSummary: () => Promise.resolve({ summary: "", facts: [] }),
+    getSummary: () => Promise.resolve({ summary: "", facts: [], status: "ready" as const }),
     putSummary: noop,
   };
 }

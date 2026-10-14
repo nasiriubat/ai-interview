@@ -262,6 +262,8 @@ export type DeleteResult = z.infer<typeof DeleteResultSchema>;
 export const SummarySchema = z.looseObject({
   summary: z.string().default(""),
   facts: z.array(FactSchema).default([]),
+  /** Whether the summary is written (D-325). An older server that does not say is "ready". */
+  status: z.enum(["ready", "pending", "unavailable"]).catch("ready").default("ready"),
 });
 export type Summary = z.infer<typeof SummarySchema>;
 
@@ -278,7 +280,14 @@ export const MeSchema = z.looseObject({
     role: RoleSchema,
     companyId: z.string().nullish(),
   }),
-  company: z.looseObject({ id: z.string(), name: z.string() }).nullish(),
+  company: z
+    .looseObject({
+      id: z.string(),
+      name: z.string(),
+      /** `branding.currency`: what the cost figures are in (D-323). */
+      currency: z.string().optional(),
+    })
+    .nullish(),
 });
 export type Me = z.infer<typeof MeSchema>;
 
@@ -955,6 +964,10 @@ export const AnalysisStatsSchema = z.looseObject({
   thresholdMet: z.boolean().default(false),
   error: z.string().nullish(),
   embedding: EmbeddingModeSchema.nullish(),
+  /** Who started the run (D-324): the owner, the platform at the threshold, or an edit of a version. */
+  trigger: z.enum(["manual", "auto", "edit"]).optional().catch(undefined),
+  /** An automatic run waits for the interviews still finishing; this is when it starts. */
+  autoStartAt: z.string().optional().catch(undefined),
 });
 export type AnalysisStats = z.infer<typeof AnalysisStatsSchema>;
 
@@ -1130,6 +1143,9 @@ const MvpChallengeSchema = z.looseObject({
   started: z.boolean().default(false),
   done: z.boolean().default(false),
   asked: z.array(z.string()).default([]),
+  /** What to say about it (D-322): off, still to come, running, finished, or passed over. */
+  outcome: z.enum(["off", "pending", "in_progress", "done", "skipped"]).catch("pending").default("pending"),
+  endedBy: z.enum(["finish", "turn_limit"]).optional().catch(undefined),
 });
 const LiveSpecStatsSchema = z.looseObject({
   fields: z.number().int().default(0),

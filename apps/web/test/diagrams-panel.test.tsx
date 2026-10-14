@@ -51,7 +51,7 @@ const spec = (diagrams: LiveDiagram[]): LiveSpec => ({
   diagrams,
   findings: [],
   decisions: [],
-  mvpChallenge: { started: false, done: false, asked: [] },
+  mvpChallenge: { started: false, done: false, asked: [], outcome: "pending" },
   stats: { fields: 0, sectionsWithContent: 0, openFindings: 0 },
 });
 

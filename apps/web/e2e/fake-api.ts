@@ -91,6 +91,7 @@ const READS: [RegExp, Handler][] = [
     /^\/analyses\/[^/]+$/,
     () => ({ body: { analysis: f.analysis, opportunities: f.analysisDetail.opportunities, report: null } }),
   ],
+  [/^\/analyses\/[^/]+\/departments$/, () => ({ body: f.departments })],
   [
     /^\/sessions\/[^/]+$/,
     () => ({
@@ -145,9 +146,19 @@ const READS: [RegExp, Handler][] = [
     () => ({ body: { shipped: f.template, current: f.template, changedFields: [] } }),
   ],
   [/^\/requirements$/, () => ({ body: page("sessions", [f.requirementsItem]) })],
-  [/^\/requirements\/[^/]+$/, () => ({ body: f.requirementsDetail })],
+  [
+    /^\/requirements\/[^/]+$/,
+    (u) => ({
+      body: u.pathname.endsWith("/reqd") ? f.requirementsDetailWithDiagrams : f.requirementsDetail,
+    }),
+  ],
   [/^\/requirements\/[^/]+\/versions$/, () => ({ body: { versions: f.specVersions } })],
-  [/^\/requirements\/[^/]+\/versions\/[^/]+$/, () => ({ body: f.specVersionDetail })],
+  [
+    /^\/requirements\/[^/]+\/versions\/[^/]+$/,
+    (u) => ({
+      body: u.pathname.includes("/reqd/") ? f.specVersionDetailWithDiagrams : f.specVersionDetail,
+    }),
+  ],
   [
     /^\/settings$/,
     () => ({
@@ -252,9 +263,27 @@ const READS: [RegExp, Handler][] = [
   [/^\/operator\/jobs$/, () => ({ body: { queues: [] } })],
   [/^\/operator\/jobs\/dead$/, () => ({ body: { jobs: [] } })],
   // Participant
-  [/^\/p\/session$/, () => ({ body: { session: f.participantSession } })],
+  [
+    /^\/p\/session$/,
+    (_u, req) => ({
+      body: {
+        session: (req.headers.authorization ?? "").includes("live")
+          ? f.participantSessionLive
+          : f.participantSession,
+      },
+    }),
+  ],
   [/^\/p\/session\/attachments$/, () => ({ body: { attachments: [] } })],
-  [/^\/p\/session\/summary$/, () => ({ body: { summary: "", facts: [] } })],
+  [
+    /^\/p\/session\/summary$/,
+    () => ({
+      body: {
+        summary: "You described how handover notes get lost between shifts.",
+        facts: [],
+        status: "ready",
+      },
+    }),
+  ],
   [/^\/p\/r\/[^/]+$/, () => ({ body: f.inviteArrival })],
   [/^\/p\/closed-link$/, () => ({ body: f.linkInfo("closed") })],
   [/^\/p\/expired-link$/, () => ({ body: f.linkInfo("expired") })],

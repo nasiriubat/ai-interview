@@ -3,6 +3,7 @@ import {
   SPEC_SECTION_KEYS,
   SPEC_SECTION_TITLES,
   type Fact,
+  type LiveMvpChallenge,
   type LiveSection,
   type LiveSpec,
   type Path,
@@ -144,6 +145,27 @@ export interface LiveSpecInput {
   sections?: readonly string[];
   /** The newest version's diagrams, which the owner's diagram edits are laid over (FR-23). */
   diagrams?: readonly SpecDiagram[];
+  /** The challenge mode in force for this session; absent means it is not known, so "pending". */
+  mvpMode?: "mandatory" | "optional" | "off";
+}
+
+/**
+ * What to say about the MVP challenge (D-322). It is "skipped" once the interview has gone to its
+ * close (the owner pressed finish, or the turn limit came) without the walk having finished: the
+ * engine takes "finish" and the turn limit ahead of the walk, by design, and until now the panel
+ * went on saying "Not started" for an interview that was over.
+ */
+export function mvpOutcome(
+  state: SessionState,
+  mode: "mandatory" | "optional" | "off" | undefined,
+): Pick<LiveMvpChallenge, "outcome" | "endedBy"> {
+  const m = state.mvpChallenge;
+  if (mode === "off") return { outcome: "off" };
+  if (m.done) return { outcome: "done" };
+  const closing =
+    state.finishRequested || state.closingAsked || state.phase === "summary" || state.phase === "done";
+  if (closing) return { outcome: "skipped", endedBy: state.finishRequested ? "finish" : "turn_limit" };
+  return { outcome: m.started ? "in_progress" : "pending" };
 }
 
 /** Layer 2 of a requirements session made visible: the spec as it stands after the last turn (FR-22). */
@@ -174,7 +196,7 @@ export function renderLiveSpec(input: LiveSpecInput): LiveSpec {
     diagrams: liveDiagrams(input.diagrams ?? [], input.edits),
     findings: input.state.findings,
     decisions: input.state.decisions,
-    mvpChallenge: input.state.mvpChallenge,
+    mvpChallenge: { ...input.state.mvpChallenge, ...mvpOutcome(input.state, input.mvpMode) },
     stats: {
       fields: facts.length,
       sectionsWithContent: sections.filter((s) => s.status !== "empty").length,

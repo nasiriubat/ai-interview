@@ -48,6 +48,17 @@ describe("the department section of the report (FR-17)", () => {
     expect(shown).toContain("1 department with fewer than 3 participants is not shown by name.");
   });
 
+  it("keeps the opportunities a group shared out of the table, where they were a strip one word wide (D-321)", () => {
+    const facts = [...people("Ward", 3), ...people("Pharmacy", 3)];
+    const md = render(compareDepartments({ facts, opportunities: [], k: 3, enabled: true }));
+    const header = md.split("\n").find((l) => l.startsWith("| Group |")) ?? "";
+    expect(header).not.toContain("Most shared");
+    // seven short columns: the group, two counts and four class shares
+    expect(header.split("|").filter((c) => c.trim() !== "")).toHaveLength(7);
+    expect(md).toContain("Most shared by each group:");
+    expect(md).toMatch(/^- \*\*Ward:\*\* /m);
+  });
+
   it("says the comparison is switched off when the setting is off", () => {
     const off = render(
       compareDepartments({ facts: people("Ward", 5), opportunities: [], k: 3, enabled: false }),

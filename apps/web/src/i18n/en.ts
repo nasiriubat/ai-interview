@@ -402,6 +402,10 @@ export const en = {
       summaryLabel: "Your summary",
       save: "Save summary",
       saved: "Summary saved",
+      generating: "Your summary is being written. It will appear here in a moment.",
+      unavailable:
+        "No written summary was made for this conversation. What the interviewer noted is listed below, and your answers are kept as you gave them.",
+      loadError: "The summary could not be loaded. You can reload this page to try again.",
       factsTitle: "What was noted",
       whatNext: "What happens next",
       whatNextBody:
@@ -1014,6 +1018,9 @@ export const en = {
       polling: "Checking the analysis status",
       version: "Version",
       versionOption: (version: number, status: string): string => `v${version} · ${status}`,
+      trigger: { auto: "automatic", manual: "requested", edit: "after an edit" },
+      autoWaiting: (time: string): string =>
+        `Started automatically when enough interviews were complete. It waits until ${time} so interviews still finishing are included, then runs once.`,
       latest: "latest",
       status: { queued: "Queued", running: "Running", done: "Done", failed: "Failed" },
       preliminary: "Preliminary",
@@ -1300,6 +1307,8 @@ export const en = {
       diagram: "Process map",
       diagramLoading: "Rendering diagram…",
       diagramError: "This diagram could not be rendered. The source is shown instead.",
+      diagramTooLarge:
+        "This diagram came out too large to read when drawn. The source is shown instead; splitting it into two diagrams usually helps.",
       preliminaryNote:
         "Preliminary: fewer interviews than the completion threshold. Counts may change, so treat the ranking as indicative.",
     },
@@ -1375,7 +1384,16 @@ export const en = {
       spec: {
         contextTitle: "Context",
         mvpTitle: "MVP challenge",
-        mvpNotStarted: "Not started",
+        mvpNotStarted: "Not started yet",
+        mvpOff: "Off for this interview",
+        mvpSkippedFinish: (n: number): string =>
+          n > 0
+            ? `Ended early · ${n} item${n === 1 ? "" : "s"} asked before you finished`
+            : "Skipped · you finished before it began",
+        mvpSkippedLimit: (n: number): string =>
+          n > 0
+            ? `Ended early · ${n} item${n === 1 ? "" : "s"} asked before the turn limit`
+            : "Skipped · the turn limit came first",
         mvpInProgress: (n: number): string => `In progress · ${n} item${n === 1 ? "" : "s"} asked`,
         mvpDone: (n: number): string => `Done · ${n} item${n === 1 ? "" : "s"} asked`,
         stats: {
@@ -2528,6 +2546,15 @@ export const en = {
         off: "Off",
       },
       "branding.language": { en: "English", fi: "Finnish" },
+      "branding.currency": {
+        USD: "US dollar (USD)",
+        EUR: "Euro (EUR)",
+        GBP: "Pound sterling (GBP)",
+        SEK: "Swedish krona (SEK)",
+        NOK: "Norwegian krone (NOK)",
+        DKK: "Danish krone (DKK)",
+        CHF: "Swiss franc (CHF)",
+      },
       "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Generic" },
       "exports.pdfPageSize": { A4: "A4", Letter: "US Letter" },
     } as Record<string, Record<string, string>>,
@@ -2832,6 +2859,11 @@ export const en = {
         label: "Custom scoring weights",
         description: "Used when the preset is Custom. A higher weight means the factor counts for more.",
       },
+      "analysis.autoRunDelayMinutes": {
+        label: "Wait before the automatic analysis",
+        description:
+          "Minutes to wait after the campaign has enough interviews before the analysis starts by itself, so interviews still finishing are included and a burst of completions makes one version. 0 starts it at once.",
+      },
       "analysis.similarityThreshold": {
         label: "How alike items must be to be grouped",
         description:
@@ -2892,6 +2924,11 @@ export const en = {
       "exports.pdfFooterText": {
         label: "PDF footer text",
         description: "A short line added to the footer of every PDF page, such as a confidentiality note.",
+      },
+      "branding.currency": {
+        label: "Currency of costs",
+        description:
+          "The currency your provider price table is entered in, and so the unit of every cost shown. It labels the figures; it does not convert them.",
       },
       "branding.primaryColor": {
         label: "Accent colour",

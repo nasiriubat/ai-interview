@@ -1,6 +1,7 @@
 import { SOLUTION_CLASSES, type DepartmentComparison, type DepartmentRow } from "@aidp/shared";
 import * as React from "react";
 import { Panel } from "@/components/admin/Panel";
+import { Inset } from "@/components/ui/inset";
 import { t } from "@/i18n";
 import { formatNumber, formatPercent } from "@/lib/utils";
 
@@ -43,67 +44,57 @@ export function DepartmentsPanel({
     <Panel title={s.title} description={s.body(comparison.k)} headingLevel={3}>
       {comparison.shown ? (
         <div className="grid gap-3 px-5 py-4">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px]">
-              <caption className="sr-only">{s.title}</caption>
-              <thead>
-                <tr className="text-muted-foreground text-xs">
-                  <th scope="col" className="py-1.5 pr-3 font-medium">
-                    {s.title}
-                  </th>
-                  <th scope="col" className="px-2 py-1.5 text-right font-medium">
-                    {s.participants}
-                  </th>
-                  <th scope="col" className="px-2 py-1.5 text-right font-medium">
-                    {s.hours}
-                  </th>
-                  {COMPARED.map((c) => (
-                    <th key={c} scope="col" className="px-2 py-1.5 text-right font-medium">
-                      <span className="sr-only">{s.classShare}: </span>
-                      {t.admin.results.classes[c]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {comparison.departments.map((r) => (
-                  <React.Fragment key={`${r.kind}-${r.name ?? ""}`}>
-                    <tr className="border-t">
-                      <th scope="row" className="py-2 pr-3 font-medium">
-                        {rowName(r)}
-                      </th>
-                      <td className="px-2 py-2 text-right tabular-nums">{formatNumber(r.participants)}</td>
-                      <td className="px-2 py-2 text-right tabular-nums">
-                        {formatNumber(Math.round(r.minutesPerWeek / 60))}
-                      </td>
-                      {COMPARED.map((c) => {
-                        const v = r.solutionClassShare[c];
-                        return (
-                          <td key={c} className="px-2 py-2 text-right tabular-nums">
-                            {v === undefined ? (
-                              <span className="text-muted-foreground">{s.withheld}</span>
-                            ) : (
-                              formatPercent(v, 0)
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    <tr>
-                      <td colSpan={3 + COMPARED.length} className="text-muted-foreground pb-2 text-xs">
-                        <span className="font-medium">{s.mostShared}: </span>
-                        {r.topOpportunities.length > 0
-                          ? r.topOpportunities
-                              .map((o) => `${o.title} (${formatPercent(o.share, 0)})`)
-                              .join("; ")
-                          : s.none}
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/*
+           * One card per group rather than one table row: the panel lives in a column a third of the
+           * page wide, where eight columns clipped their text on the right and put "Described by many"
+           * in a strip a word wide. A card wraps at any width, and each number still sits next to its
+           * own name (D-321).
+           */}
+          <ul className="grid gap-3" aria-label={s.title}>
+            {comparison.departments.map((r) => (
+              <Inset as="li" key={`${r.kind}-${r.name ?? ""}`} className="min-w-0">
+                <h4 className="text-[13px] font-semibold break-words">{rowName(r)}</h4>
+                <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                  <div className="min-w-0">
+                    <dt className="text-muted-foreground">{s.participants}</dt>
+                    <dd className="font-medium tabular-nums">{formatNumber(r.participants)}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-muted-foreground">{s.hours}</dt>
+                    <dd className="font-medium tabular-nums">
+                      {formatNumber(Math.round(r.minutesPerWeek / 60))}
+                    </dd>
+                  </div>
+                </dl>
+                <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                  {COMPARED.map((c) => {
+                    const v = r.solutionClassShare[c];
+                    return (
+                      <div key={c} className="flex min-w-0 items-baseline justify-between gap-2">
+                        <dt className="text-muted-foreground min-w-0 break-words">
+                          <span className="sr-only">{s.classShare}: </span>
+                          {t.admin.results.classes[c]}
+                        </dt>
+                        <dd className="shrink-0 tabular-nums">
+                          {v === undefined ? (
+                            <span className="text-muted-foreground">{s.withheld}</span>
+                          ) : (
+                            formatPercent(v, 0)
+                          )}
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+                <p className="text-muted-foreground mt-2 text-xs break-words [overflow-wrap:anywhere]">
+                  <span className="font-medium">{s.mostShared}: </span>
+                  {r.topOpportunities.length > 0
+                    ? r.topOpportunities.map((o) => `${o.title} (${formatPercent(o.share, 0)})`).join("; ")
+                    : s.none}
+                </p>
+              </Inset>
+            ))}
+          </ul>
           {comparison.belowK > 0 ? (
             <p className="text-muted-foreground text-xs">{s.hidden(comparison.belowK, comparison.k)}</p>
           ) : null}

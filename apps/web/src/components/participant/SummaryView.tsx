@@ -29,7 +29,33 @@ function factLine(f: Fact): string {
   }
 }
 
-/** The end-of-session summary the participant may edit, then the thank-you. */
+function FactList({ facts }: { facts: Fact[] }): React.JSX.Element {
+  return (
+    <div>
+      <h3 className="text-sm font-medium">{t.participant.summary.factsTitle}</h3>
+      <ul className="text-muted-foreground mt-1 list-disc pl-5 text-sm">
+        {facts.map((f, i) => (
+          <li key={i}>{factLine(f)}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** How long, and how often, the page asks again while the summary is still being written. */
+export const SUMMARY_POLL_MS = 2_500;
+export const SUMMARY_POLL_TRIES = 24;
+
+type View =
+  { kind: "loading" } | { kind: "pending" } | { kind: "ready" } | { kind: "unavailable" } | { kind: "error" };
+
+/**
+ * The end-of-session summary the participant may edit, then the thank-you.
+ *
+ * The box is only ever the written summary (D-325). While it is still being written the page says
+ * so, and when none is coming it says that: an empty editable box here read as "type your own
+ * summary", and a participant's last answer typed into it became "the summary".
+ */
 export function SummaryView({
   api,
   available,
@@ -39,37 +65,53 @@ export function SummaryView({
   available: boolean;
   onDelete: () => void;
 }): React.JSX.Element {
-  const [summary, setSummary] = React.useState<string | null>(null);
+  const [summary, setSummary] = React.useState<string>("");
   const [facts, setFacts] = React.useState<Fact[]>([]);
-  const [loading, setLoading] = React.useState(available);
+  const [view, setView] = React.useState<View>(available ? { kind: "loading" } : { kind: "unavailable" });
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const id = React.useId();
 
   React.useEffect(() => {
-    if (!available) return;
+    if (!available) {
+      setView({ kind: "unavailable" });
+      return;
+    }
     let cancelled = false;
-    api
-      .getSummary()
-      .then((s) => {
-        if (cancelled) return;
-        setSummary(s.summary);
-        setFacts(s.facts);
-      })
-      .catch(() => {
-        if (!cancelled) setSummary(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = (attempt: number): void => {
+      api
+        .getSummary()
+        .then((s) => {
+          if (cancelled) return;
+          setFacts(s.facts);
+          if (s.status === "ready" && s.summary.trim() !== "") {
+            setSummary(s.summary);
+            setView({ kind: "ready" });
+          } else if (s.status === "pending" && attempt < SUMMARY_POLL_TRIES) {
+            setView({ kind: "pending" });
+            timer = setTimeout(() => {
+              load(attempt + 1);
+            }, SUMMARY_POLL_MS);
+          } else {
+            setView({ kind: "unavailable" });
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setView({ kind: "error" });
+        });
+    };
+    setView({ kind: "loading" });
+    load(0);
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [api, available]);
 
   const save = async (): Promise<void> => {
-    if (summary === null) return;
+    if (view.kind !== "ready") return;
     setSaving(true);
     setError(null);
     try {
@@ -88,16 +130,34 @@ export function SummaryView({
         <h2 id={`${id}-title`} className="text-xl font-semibold">
           {t.participant.summary.title}
         </h2>
-        <p className="text-muted-foreground text-sm">{t.participant.summary.body}</p>
+        {view.kind === "unavailable" || view.kind === "error" ? null : (
+          <p className="text-muted-foreground text-sm">{t.participant.summary.body}</p>
+        )}
       </div>
-      {loading ? (
+      {view.kind === "loading" || view.kind === "pending" ? (
         <div className="grid gap-2" aria-busy="true">
           <span className="sr-only">{t.participant.session.loadingSummary}</span>
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-5/6" />
           <Skeleton className="h-24 w-full" />
+          {view.kind === "pending" ? (
+            <p className="text-muted-foreground text-sm" role="status">
+              {t.participant.summary.generating}
+            </p>
+          ) : null}
         </div>
-      ) : summary !== null ? (
+      ) : view.kind === "error" ? (
+        <Alert variant="destructive">
+          <AlertDescription>{t.participant.summary.loadError}</AlertDescription>
+        </Alert>
+      ) : view.kind === "unavailable" ? (
+        <div className="grid gap-3">
+          <p className="text-muted-foreground text-sm" role="status">
+            {t.participant.summary.unavailable}
+          </p>
+          {facts.length > 0 ? <FactList facts={facts} /> : null}
+        </div>
+      ) : (
         <form
           className="grid gap-3"
           onSubmit={(e) => {
@@ -115,16 +175,7 @@ export function SummaryView({
               setSaved(false);
             }}
           />
-          {facts.length > 0 ? (
-            <div>
-              <h3 className="text-sm font-medium">{t.participant.summary.factsTitle}</h3>
-              <ul className="text-muted-foreground mt-1 list-disc pl-5 text-sm">
-                {facts.map((f, i) => (
-                  <li key={i}>{factLine(f)}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          {facts.length > 0 ? <FactList facts={facts} /> : null}
           {error ? (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -141,7 +192,7 @@ export function SummaryView({
             ) : null}
           </div>
         </form>
-      ) : null}
+      )}
       <div>
         <h3 className="text-sm font-medium">{t.participant.summary.whatNext}</h3>
         <p className="text-muted-foreground text-sm">{t.participant.summary.whatNextBody}</p>

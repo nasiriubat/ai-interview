@@ -324,4 +324,85 @@ suite("analysis end to end", () => {
     expect(stored).toHaveLength(2);
     expect(stored.every((e) => e.snippet === "")).toBe(true);
   });
+  it("makes the automatic run at the threshold one deliberate, visible, delayed version (D-324)", async () => {
+    const { app, adminToken, db } = world;
+    const h = { authorization: `Bearer ${adminToken}` };
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/campaigns",
+      headers: h,
+      payload: {
+        templateId: world.templateId,
+        name: "Auto run",
+        verification: "open",
+        completionThreshold: 1,
+      },
+    });
+    const { campaign } = created.json<{ campaign: { id: string } }>();
+    const finish = async (i: number): Promise<void> => {
+      const participant = await db.participant.create({
+        data: {
+          companyId: world.companyId,
+          campaignId: campaign.id,
+          fields: {},
+          tokenHash: `auto${i}-${Date.now()}`,
+        },
+      });
+      await db.session.create({
+        data: {
+          companyId: world.companyId,
+          templateId: world.templateId,
+          campaignId: campaign.id,
+          participantId: participant.id,
+          status: "completed",
+        },
+      });
+    };
+
+    // A burst: three interviews complete one after another past the threshold.
+    const before = world.jobs.published.length;
+    const results: boolean[] = [];
+    for (let i = 0; i < 3; i++) {
+      await finish(i);
+      results.push(
+        await withTenant(world.companyId, () =>
+          world.ctx.analysis.maybeQueueForCampaign(world.companyId, campaign.id),
+        ),
+      );
+    }
+    // One version, not three: the first completion scheduled it and the rest were absorbed.
+    expect(results).toEqual([true, false, false]);
+    const runs = await db.analysis.findMany({ where: { campaignId: campaign.id } });
+    expect(runs).toHaveLength(1);
+    // It says who started it and when it will start, and the job waits for that time.
+    const stats = runs[0]?.stats as { trigger?: string; autoStartAt?: string };
+    expect(stats.trigger).toBe("auto");
+    expect(new Date(stats.autoStartAt ?? 0).getTime()).toBeGreaterThan(Date.now() + 4 * 60_000);
+    const job = world.jobs.published.slice(before).find((j) => j.name === "analysis.run");
+    expect(job?.startAfterSeconds).toBe(5 * 60);
+
+    // The owner still sees it in the list, as automatic and waiting.
+    const listed = await app.inject({
+      method: "GET",
+      url: `/api/v1/campaigns/${campaign.id}/analyses`,
+      headers: h,
+    });
+    expect(listed.json<{ analyses: { stats: { trigger?: string } }[] }>().analyses[0]?.stats.trigger).toBe(
+      "auto",
+    );
+
+    // A run the owner asks for carries no trigger and no wait.
+    await db.analysis.update({ where: { id: runs[0]!.id }, data: { status: "done" } });
+    const manual = await app.inject({
+      method: "POST",
+      url: `/api/v1/campaigns/${campaign.id}/analyses`,
+      headers: h,
+    });
+    expect(manual.statusCode).toBe(202);
+    const manualRow = await db.analysis.findFirstOrThrow({
+      where: { campaignId: campaign.id, version: 2 },
+    });
+    expect((manualRow.stats as { trigger?: string }).trigger).toBeUndefined();
+    expect((manualRow.stats as { autoStartAt?: string }).autoStartAt).toBeUndefined();
+  });
 });

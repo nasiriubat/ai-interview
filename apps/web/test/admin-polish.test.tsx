@@ -125,7 +125,7 @@ describe("budgets show how much is spent", () => {
     );
     const bars = screen.getAllByRole("progressbar");
     expect(bars.map((b) => b.getAttribute("aria-valuenow"))).toEqual(["25", "85", "100"]);
-    expect(bars[0]).toHaveAttribute("aria-valuetext", expect.stringContaining("€25.00"));
+    expect(bars[0]).toHaveAttribute("aria-valuetext", expect.stringContaining("$25.00"));
     expect(bars[0]?.firstElementChild?.className).toContain("bg-primary");
     expect(bars[1]?.firstElementChild?.className).toContain("bg-warning");
     expect(bars[2]?.firstElementChild?.className).toContain("bg-destructive");

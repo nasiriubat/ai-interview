@@ -153,6 +153,31 @@ describe("renderPdf: what a reader of the document sees", () => {
     expect((await readPdf(r.bytes)).text).toContain("flowchart LR");
   });
 
+  it("keeps one drawing that came out far too large from taking the others down with it (D-320)", async () => {
+    // What the demo run produced: a drawing 16,500 pixels wide. It is not the renderer being down.
+    const huge = Buffer.from(TINY_PNG);
+    huge.writeUInt32BE(16_528, 16);
+    huge.writeUInt32BE(16_439, 20);
+    const kroki = new FakeKroki();
+    const render = kroki.render.bind(kroki);
+    kroki.render = async (source, format) => {
+      const png = await render(source, format);
+      return source.includes("HUGE") ? huge : png;
+    };
+    const fences = ["HUGE", "B", "C"].map((n) => `\`\`\`mermaid\nflowchart LR\n  ${n}-->X\n\`\`\``);
+    const r = await renderPdf(
+      base({
+        kroki,
+        markdown: `# T\n\n## S\n\n${fences.join("\n\n")}`,
+        limits: { diagramConcurrency: 1 },
+      }),
+    );
+    expect(kroki.calls).toHaveLength(3);
+    expect(r.warnings).toEqual(["diagram_too_large:1"]);
+    expect(r.diagrams).toEqual({ total: 3, rendered: 2 });
+    expect((await readPdf(r.bytes)).text).toContain("HUGE");
+  });
+
   it("stops asking once the renderer is down, so a dead service costs one timeout, not N", async () => {
     const kroki = new FakeKroki();
     kroki.failWith = "unavailable";

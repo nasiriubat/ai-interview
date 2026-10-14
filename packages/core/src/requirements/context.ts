@@ -1,4 +1,4 @@
-import { renderLiveSpec } from "@aidp/ai";
+import { renderLiveSpec, resolvePolicy } from "@aidp/ai";
 import { tenantTransaction } from "@aidp/db";
 import {
   HandoffSchema,
@@ -60,6 +60,13 @@ export class RequirementsContext {
 
   async liveSpecOf(row: SessionRow, state?: SessionState): Promise<LiveSpec> {
     const sections = (await this.deps.settings.get("requirements.specSections", this.chain(row))) as string[];
+    const mvpSetting = await this.deps.settings.get("requirements.mvpChallenge", this.chain(row));
+    // The mode this session really runs under: the template's own value unless a setting overrides it.
+    const mvpMode = resolvePolicy(templateFromRow(row.template), pathOf(row.path) ?? undefined, {
+      aggressivenessTechnical: "template",
+      aggressivenessNontechnical: "template",
+      mvpChallenge: mvpSetting,
+    }).mvpChallenge;
     return renderLiveSpec({
       title: row.title,
       path: pathOf(row.path),
@@ -67,6 +74,7 @@ export class RequirementsContext {
       edits: parseEdits(row.specEdits),
       sections,
       diagrams: await this.generatedDiagrams(row.id),
+      mvpMode,
     });
   }
 

@@ -259,17 +259,24 @@ function departmentSection(d: DepartmentComparison | undefined, k: number): stri
   out.push(
     `Each group below has at least ${k} participants. Shares are of the group's own participants.`,
     "",
-    `| Group | Participants | Hours per week | ${COMPARED_CLASSES.map((c) => CLASS_LABEL[c]).join(" | ")} | Most shared |`,
-    `|---|---|---|${COMPARED_CLASSES.map(() => "---").join("|")}|---|`,
+    `| Group | Participants | Hours per week | ${COMPARED_CLASSES.map((c) => CLASS_LABEL[c]).join(" | ")} |`,
+    `|---|---|---|${COMPARED_CLASSES.map(() => "---").join("|")}|`,
   );
+  for (const row of d.departments) {
+    const name = row.kind === "other" ? "Other departments" : (row.name ?? "Unspecified");
+    out.push(
+      `| ${name} | ${row.participants} | ${Math.round(row.minutesPerWeek / 60)} | ${COMPARED_CLASSES.map((c) => pct(row.solutionClassShare[c])).join(" | ")} |`,
+    );
+  }
+  // The opportunities each group described most are sentences, so they are a list under the table:
+  // as an eighth column they were a strip one word wide, on the page and in the PDF (D-321).
+  out.push("", "Most shared by each group:", "");
   for (const row of d.departments) {
     const name = row.kind === "other" ? "Other departments" : (row.name ?? "Unspecified");
     const top =
       row.topOpportunities.map((t) => `${t.title} (${pct(t.share)})`).join("; ") ||
       "none shared by enough people";
-    out.push(
-      `| ${name} | ${row.participants} | ${Math.round(row.minutesPerWeek / 60)} | ${COMPARED_CLASSES.map((c) => pct(row.solutionClassShare[c])).join(" | ")} | ${top} |`,
-    );
+    out.push(`- **${name}:** ${top}`);
   }
   out.push("");
   if (d.belowK > 0)

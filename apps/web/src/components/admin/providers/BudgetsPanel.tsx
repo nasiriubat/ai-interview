@@ -27,6 +27,7 @@ import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { BudgetRecord } from "@/lib/api/schemas";
 import type { ScopeKind } from "@/lib/api/staff";
+import { currentCurrency } from "@/lib/currency";
 import { label } from "@/lib/i18n/enums";
 import { formatCents } from "@/lib/utils";
 
@@ -148,7 +149,7 @@ export function BudgetsPanel({
         )}
         <NumberField
           id="budget-limit"
-          label={`${s.limit} (€)`}
+          label={`${s.limit} (${currentCurrency()})`}
           value={limit}
           min={0}
           step={1}
