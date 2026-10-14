@@ -87,6 +87,22 @@ describe("checkSpecFacts (D-190)", () => {
     expect(b).toMatchObject({ title: "Export", scope: "future", acceptance: ["a file downloads"] });
   });
 
+  it("keeps a plain note in the functional section as a note, not a requirement", () => {
+    const r = checkSpecFacts([spec("acceptance", "summary", "Covered in the next round")], none);
+    expect(r.facts).toEqual([spec("functional", "summary", "Covered in the next round")]);
+    expect(r.rejected).toEqual([]);
+  });
+
+  it("puts acceptance criteria written as their own field onto the requirement", () => {
+    const state = { facts: [spec("functional", "FR-1", req("One", { acceptance: ["a"] }))] };
+    const r = checkSpecFacts(
+      [spec("acceptance", "FR-1.acceptance", ["b", "A"]), spec("functional", "FR-2", req("Two"))],
+      state,
+    );
+    expect(pathsOf(r.facts)).toEqual(["FR-1", "FR-2"]);
+    expect(r.facts[0]).toMatchObject({ value: { title: "One", acceptance: ["a", "b"] } });
+  });
+
   it("rejects a requirement without any title and an unknown section that is not a requirement", () => {
     const r = checkSpecFacts(
       [spec("functional", "FR-1", { scope: "mvp" }), spec("vibes", "mood", "good")],

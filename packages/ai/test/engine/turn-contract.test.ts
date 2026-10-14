@@ -206,6 +206,8 @@ describe("the turn contract (D-190): a delta is obtained and validated, or rebui
     expect(model.repairCalls).toBe(1);
     expect(results[0]?.contract?.reasons).toContain("rules_without_requirements");
     expect(idsOf(store.state)).toEqual(["FR-1"]);
+    // The pile is replaced by what the repair filed, not kept beside it.
+    expect(store.state.facts.some((f) => f.kind === "spec_field" && f.section === "rules")).toBe(false);
   });
 
   it("asks once when an answered turn recorded no spec field at all", async () => {
