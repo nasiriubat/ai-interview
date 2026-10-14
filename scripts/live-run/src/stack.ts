@@ -266,7 +266,17 @@ export async function startStack(openRouterKey: string): Promise<Stack> {
   log(`starting API on :${API_PORT} and the worker`);
   const api = spawn("node", ["apps/api/dist/server.js"], {
     cwd: REPO_ROOT,
-    env: childEnv({ ...shared, AUTH_SECRET: authSecret, PORT: String(API_PORT), HOST: "127.0.0.1" }),
+    env: childEnv({
+      ...shared,
+      AUTH_SECRET: authSecret,
+      PORT: String(API_PORT),
+      HOST: "127.0.0.1",
+      // Where people open the web app, so a campaign's shareable link points at it. Set LIVE_WEB_URL
+      // when the web app is not on the default port (the browser demo runs it on 3200).
+      ...(process.env.LIVE_WEB_URL
+        ? { PUBLIC_WEB_URL: process.env.LIVE_WEB_URL, WEB_ORIGIN: process.env.LIVE_WEB_URL }
+        : {}),
+    }),
     stdio: ["ignore", "pipe", "pipe"],
   });
   const apiStream = pipeTo(api, logs.api);
