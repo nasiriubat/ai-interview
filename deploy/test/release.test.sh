@@ -95,6 +95,23 @@ assert_contains "takes the maintenance page down again" "$E" "maintenance-off"
 assert_contains "points at the migrate.failed runbook" "$OUT" "docs/OPERATIONS.md#migratefailed"
 assert_contains "names the dump to restore from" "$OUT" "ai_discovery-20261013T100000Z.dump.age"
 assert_not_contains "does not roll back code that was never replaced" "$E" "compose-up version=oldoldoldold"
+assert_not_contains "never asks compose to replace the application" "$E" "--remove-orphans"
+assert_contains "says the previous version is still running" "$OUT" "nothing was replaced and the previous version is still running"
+assert_before "ran migrate on its own first" "$E" "compose-run migrate" "maintenance-off"
+assert_not_contains "and did not go on to db-grants or preflight" "$E" "compose-run preflight"
+cleanup_sandbox
+
+echo "the application cannot be replaced after the database steps passed"
+new_sandbox
+touch "$SB/state/running-backup" "$SB/state/running-caddy" "$SB/state/switch-fails"
+printf 'AIDP_VERSION=oldoldoldold\nAIDP_PREVIOUS_VERSION=\n' >"$SB/repo/deploy/versions.env"
+echo "iiiiiiiiiiii" >"$SB/state/sha"
+upgrade
+E=$(events)
+assert_status "exits non-zero" 1 "$STATUS"
+assert_contains "migrate, db-grants and preflight ran first" "$E" "compose-run preflight"
+assert_contains "the old version stays on record" "$(versions)" "AIDP_VERSION=oldoldoldold"
+assert_contains "the page comes down" "$E" "maintenance-off"
 cleanup_sandbox
 
 echo "the smoke test fails after the switch"
