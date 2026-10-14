@@ -160,6 +160,34 @@ describe("generation curates before it writes (D-241 to D-243)", () => {
     expect(r.stats.requirements).toBe(2);
   });
 
+  it("keeps what the quality pass learned when the model echoes the requirement, and folds a model-added restatement", async () => {
+    const caller = new ScriptedCaller([
+      JSON.stringify({ pairs: [{ a: "FR-3", b: "FR-4", same: true }] }),
+      JSON.stringify({
+        title: "T",
+        sections: [],
+        requirements: [
+          { id: "FR-1", title: "Nurse enters a ward note once", scope: "mvp", acceptance: ["reworded"] },
+          {
+            id: "roster_membership",
+            title: "Nurse enters a ward note once",
+            scope: "mvp",
+            acceptance: ["adds a check"],
+          },
+        ],
+      }),
+    ]);
+    const r = await generateSpec(
+      { caller: caller.asCaller(), prompts: new ShippedPromptSource(), logger, now },
+      input,
+    );
+    const first = r.document.requirements.find((q) => q.id === "FR-1");
+    expect(first?.evidence).toBe("type it once");
+    expect(first?.mergedFrom).toEqual(["FR-2", "roster_membership"]);
+    expect(first?.acceptance).toEqual(["reworded", "adds a check"]);
+    expect(r.document.requirements.some((q) => q.id === "roster_membership")).toBe(false);
+  });
+
   it("flags a requirement only the model wrote as needing confirmation, and never drops one the interview recorded", async () => {
     const caller = new ScriptedCaller([
       JSON.stringify({ pairs: [{ a: "FR-3", b: "FR-4", same: false }] }),

@@ -38,6 +38,8 @@ export interface RawVerdict {
 export interface Verdict {
   id: string;
   grounded: "yes" | "partial" | "no";
+  /** What the judge said before the quote was checked. */
+  groundedClaimed: "yes" | "partial" | "no";
   /** True when `grounded` is yes and the quote is verified verbatim in the participant's words. */
   groundedVerified: boolean;
   quote: string;
@@ -67,6 +69,7 @@ export function verifyVerdicts(
     const adjustments: string[] = [];
     if (!r) adjustments.push("judge returned no verdict");
     let grounded = r?.grounded ?? "no";
+    const groundedClaimed = grounded;
     const quote = (r?.quote ?? "").trim();
     let groundedVerified = false;
     if (grounded === "yes") {
@@ -84,6 +87,7 @@ export function verifyVerdicts(
     return {
       id: req.id,
       grounded,
+      groundedClaimed,
       groundedVerified,
       quote,
       granularity: r?.granularity ?? "ok",
@@ -140,6 +144,11 @@ export interface SpecScore {
   count: number;
   /** Rates are fractions of `count`, or of the requirements the question applies to. */
   groundedRate: number;
+  /**
+   * The same rate before the judge's quotes were checked in code. A "yes" whose quote is not
+   * verbatim counts here and not in `groundedRate`; the gap is the judge's loose quoting.
+   */
+  groundedClaimedRate: number;
   duplicateRate: number;
   overGranularRate: number;
   nonRequirementRate: number;
@@ -164,6 +173,7 @@ export function scoreSpec(
   return {
     count: n,
     groundedRate: rate(verdicts.filter((v) => v.grounded === "yes").length, n),
+    groundedClaimedRate: rate(verdicts.filter((v) => v.groundedClaimed === "yes").length, n),
     duplicateRate: rate(redundant.size, n),
     overGranularRate: rate(
       verdicts.filter((v) => v.granularity === "too_fine" || v.kind === "detail").length,

@@ -1,0 +1,1214 @@
+{
+  "persona": "nontechnical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Before we go further on the technical side, do you already have somewhere this would run, such as company servers or a cloud account, or is that still open? It matters because the hosting choice shapes cost, setup effort and the compliance rules we need to follow. If you are unsure, we can leave it open for now."
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks for that. Company servers means the system runs on hardware your organization controls, so we will need to plan for server setup, backups and access by your IT team.\n\nNext, I'd like to hear about the problem itself. Can you walk me through the last time a nurse typed a note twice: which systems they used, and roughly how long it took?"
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "Last week, Jane, a staff nurse on Ward 4B, wrote a progress note in the electronic patient record (EPR) system called Meditech at 10:15 AM. Then, at 10:40 AM, she copied the same note into the hospital’s internal ward management system, called CareTrack, because the two systems don’t talk to each other. She spent about 12 minutes total — 5 minutes writing the note and 7 minutes re-typing it — and later had to correct a typo in CareTrack that wasn’t in Meditech."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "That example is very helpful, and it shows the double entry costing about 7 minutes per note plus a typo that only appeared in CareTrack.\n\nNext, which systems should this connect to? Meditech and CareTrack are the two we know about, but tell me if others are involved. This matters because it determines what data has to move between systems and how much effort the connection takes. If you're not sure, we can start with none."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "Yes, Meditech and CareTrack are the only two systems involved — no others. I’ve confirmed with the clinical leads on Ward 4B and the IT team that these are the only two systems where nurses currently enter ward notes, and no other departments or systems rely on this data. So we’ll focus only on connecting those two."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "Good, so the scope is just Meditech and CareTrack. Next, who will build this? It shapes how the specification and plan are written, for example whether they are phrased for a developer or for a coding agent. If you're not sure, we can default to a coding agent."
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "I’ll go with a coding agent — our hospital’s IT department already has a team of external software developers who regularly work on our clinical systems, and they’ve built similar tools before. I’ve already spoken with their lead, and they’re willing to take the lead on building this, so the specification should be written in plain language that a coding agent can follow, with clear examples and rules."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "The builder question is answered: an external software team from your IT department will build it, with a coding agent in the lead role, and the spec should be plain language with clear examples and rules. Next, who uses the system day to day? Ward 4B nurses are the obvious group, but tell me if clinical leads, IT or anyone else will touch it."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": "Just the ward nurses — specifically, the 12 registered nurses and six healthcare assistants on Ward 4B. They’re the ones who currently enter the notes, so they’ll be the only users of the new tool. The clinical leads don’t access the notes directly, and IT only steps in if there’s a system failure, so no need to include them in the workflow. I’ll make sure the tool is simple enough that even someone with minimal tech experience can use it."
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "Thanks, that clarifies who uses it. Next, what does the external team usually build with? Knowing their working tools matters because a stack they already know gets built faster and maintained more safely than a slightly better one they don't. If you're not sure, we'll record it as unknown and decide later."
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": "I’ve checked with the IT lead — they typically use C# and .NET for hospital system integrations, with SQL Server for data handling, and they’re already familiar with Meditech’s API documentation. They’ve also used Azure DevOps for version control and deployment. So we’ll specify the solution to be built using C#, .NET, and SQL Server, with Azure DevOps for code management — that’s the stack they know best and use every day."
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "The team's stack is recorded: C#, .NET and SQL Server, with Azure DevOps for code management. I'll treat the team-skills question as answered and move on."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "Good — I’ll make sure the specification reflects that the solution must be built using C#, .NET, and SQL Server, with all code managed in Azure DevOps, and that the team will handle deployment to our on-prem servers."
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "Thanks for confirming the build and deployment plan. When does version one need to be in use on Ward 4B? A fixed date helps us decide how much to include in the first release. If there's no fixed date, we can plan without one."
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "We need version one live on Ward 4B by October 15 — that’s when the next clinical audit is scheduled, and we want to show reduced double entry during the review. I’ve already coordinated with the ward manager and the IT lead, and they’ve confirmed that’s realistic if we focus on just Meditech and CareTrack with no extra features."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "Noted: version one must be live on Ward 4B by October 15, in time for the clinical audit, with the scope limited to Meditech and CareTrack and no extra features.\n\nNext, the core workflow: when a nurse finishes a progress note in Meditech, should the same note appear in CareTrack automatically, or should the nurse confirm it first?"
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Got it: the nurse reviews and confirms each note before it goes into CareTrack.\n\nOne more background question. Is there a budget range for this project? It matters because it decides whether we default to building in-house or buying an existing product. If you don't know yet, we'll leave it undecided."
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "We have a budget of £45,000 for the full project — that’s the amount approved by the finance team for system improvements on Ward 4B this year. It covers development, testing, training, and deployment, so we’ll stay within that, but we’re not going to use off-the-shelf software because it would cost more and wouldn’t fit our exact workflow. We’ll build it in-house with our external team."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "Thanks, the budget is recorded: £45,000 for the full project, covering development, testing, training and deployment, with an in-house build.\n\nNext, let's define what a nurse actually does on screen. Walk me through the steps from opening a progress note in Meditech to the note appearing in CareTrack, as you'd expect it to work."
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": "The nurse opens the patient’s record in Meditech, types the progress note as usual, then clicks a new “Send to CareTrack” button that appears in the bottom toolbar. A pop-up appears asking: “Send this note to CareTrack?” with the exact text of the note previewed. The nurse reads it, checks for errors, then clicks “Send” to confirm. The note then appears in CareTrack under the same patient’s record, timestamped with the current time, and is flagged in red for 30 seconds to show it was auto-synced — that helps prevent accidental edits."
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "That's a clear picture of the nurse's steps, and I'll record it as the core flow. Next, how many people will use the tool at launch, roughly? This decides how much capacity and hosting the system needs. If you're not sure, we'll assume under 100."
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "Exactly 18 people will use the tool at launch — 12 nurses and 6 healthcare assistants on Ward 4B. We’ve confirmed this with the ward manager, and they’re all on-site during shifts, so we don’t need to support remote access. The system just needs to handle 18 concurrent users, with no more than 3 notes sent per hour per person."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "Thanks, 18 users at launch is recorded, all on site during shifts, with no remote access needed. The load is light: at most 3 notes per person per hour, so about 54 an hour at peak.\n\nNext, the audit date gives us a hard deadline, so what happens if a note fails to send to CareTrack? Should the nurse see an error and retry, or should the note be saved for later sending?"
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "If a note fails to send, the nurse should see a clear error message on screen: “Failed to send to CareTrack — check connection and try again.” The note remains in Meditech and is not lost; the nurse can retry immediately or later. If it fails three times in a row, the system logs the error automatically and sends an alert to the IT helpdesk. We don’t want the nurse to assume it sent when it didn’t, but we also don’t want to lose the note if the system is temporarily down."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "That failure handling is clear: the note stays in Meditech, the nurse sees an error, and three failures in a row trigger an IT alert.\n\nNext, are there any compliance requirements? This tool handles patient health data, so it changes how the data must be stored, hosted and protected. If you're unsure, we'll assume UK GDPR applies to personal data."
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "Yes, UK GDPR applies — that’s the main rule. All patient data must stay within our on-prem servers, never leave the hospital network, and be encrypted at rest and in transit. The tool must log every send attempt, including who sent it, when, and whether it succeeded, and those logs must be kept for 12 months. We’re already compliant with these rules in Meditech and CareTrack, so the new tool must follow the same standards — no exceptions."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "Compliance is recorded: UK GDPR applies to patient data, which must stay on the on-prem servers, be encrypted at rest and in transit, and have every send attempt logged with user, time and outcome, kept for 12 months.\n\nNext, what user roles does the tool need? For example, is there a single role for nurses and assistants, or does an admin role need to exist for anything beyond sending notes?"
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": "Just one role: “Ward Nurse/Assistant.” Everyone who uses the tool has the same permissions — they can only view and send their own notes, and only to CareTrack. No one can edit, delete, or see other people’s notes. There’s no need for an admin role because the tool is simple and runs on the existing hospital network — IT handles access and maintenance, not the tool itself."
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Thanks, a single role with the same permissions for everyone is recorded: nurses and assistants can only view and send their own notes, and only to CareTrack.\n\nNext, let's capture what a typical nurse does with the tool. In a shift, what is the first thing a nurse does once they open a patient's record in Meditech?"
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": "The first thing they do is check the last progress note in Meditech to see how the patient was doing at the end of the previous shift — that helps them start writing the new note with the right context. After that, they begin typing the new note, just like they always have. Once it’s complete, they click the “Send to CareTrack” button to send it."
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "That helps. Checking the last note first is useful context, so I'll keep it in the nurse's flow.\n\nBefore I write the user stories, can you describe a recent shift where a note didn't send? What did the nurse see, what did they do next, and did the note end up in CareTrack?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": "Last Tuesday, Sarah, a nurse on Ward 4B, was writing a note at 2:10 PM and clicked “Send to CareTrack” — but the system showed a red error: “Failed to send to CareTrack — check connection and try again.” She saw it right away, didn’t panic, clicked “Retry,” and the second attempt worked. The note appeared in CareTrack at 2:13 PM, with the correct time stamp. She didn’t have to retype it, and the system logged the failure and retry, which IT later confirmed was due to a brief network glitch."
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "Thanks, Sarah's example shows the failure path working as intended: the error was clear, the note wasn't lost, and the retry succeeded at 2:13 PM.\n\nNext, when Sarah retried, did she have to check the note text again, or did it send exactly as she had typed it?"
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": "She didn’t have to check the text again — the note stayed exactly as she had typed it in Meditech. The retry sent the same version, unchanged, because the tool preserved the note in Meditech until it was successfully sent. That’s important — we don’t want her to re-edit or risk changing the content just to retry."
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "Good, the retry resends the same unchanged text, and that's now part of the story.\n\nNext, take a nurse who has just sent a note: what does she expect to see in CareTrack, and how does she confirm it's there?"
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "She expects to see the full note appear under the patient’s record in CareTrack, with the same text she wrote in Meditech, including the date and time she completed it. It shows up with a red highlight for 30 seconds to signal it was auto-synced, and she can click on it to read it — but she doesn’t need to do anything else. Once the red highlight fades, she knows it’s there and ready. She won’t go to CareTrack to check unless she sees the alert on screen."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "Thanks, that confirms how a nurse knows the note arrived: the red highlight, and the note readable in CareTrack.\n\nNow let's list the main capabilities the tool must have. Looking at what we've covered, the core ones are confirming, sending, showing the result in CareTrack, handling failures, and checking the previous note. Does that list look complete, or is there something a nurse needs that's missing?"
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "That list covers the main flow, but one thing’s missing: the tool should show the time the note was sent to CareTrack, not just the time it was written in Meditech. Nurses need to know exactly when it arrived in CareTrack because that affects their documentation audit trail. So the system should display the send time alongside the note in CareTrack, and we’ll make sure it’s shown in the audit log too."
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Thanks for adding the send time. I'll record it with the CareTrack display requirement, so nurses and the audit log both show when the note arrived.\n\nI also need to flag a clash in what we've captured. FR-4 (the nurse is told about a failed send and can retry) and FR-6 (the nurse sees a clear error message) describe the same behaviour twice.\n\nDefault: remove FR-6 and keep its error wording inside FR-4. That means one requirement covers the error message and the retry, with no duplicate to test. Should I keep that default?"
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": "Yes, keep the default — removing FR-6 and keeping the error message inside FR-4 makes sense. It avoids duplication and keeps the requirement clear and testable. I’ll make sure the error message is included in FR-4 as written: “Failed to send to CareTrack — check connection and try again."
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "Understood, I'll withdraw FR-6 and fold its error wording into FR-4. Here is the updated FR-4 with the exact message you gave.\n\nNext, for the retry in FR-4, how many times can a nurse retry a note before she needs IT to step in? A single retry, a fixed number, or as many times as she likes?"
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": "She can retry up to three times — that’s the limit. If it fails the third time, the system stops allowing retries and sends an alert to IT with the note ID, patient name, and time of failure. The nurse then sees a message: “Maximum retries reached. IT has been notified.” She doesn’t need to do anything else, and the note stays in Meditech ready to try again later. We set three retries because most failures are temporary — like a network hiccup — and it gives her a fair chance to succeed."
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Thanks, the retry limit of three is clear, and it ends with the message \"Maximum retries reached. IT has been notified.\" and the note still in Meditech.\n\nOne detail to pin down: does the three-retry limit reset after a successful send, and does it count toward the three consecutive failures that trigger the IT alert in FR-5? For example, if a nurse fails twice, then succeeds, does the count start again for her next note?"
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": "Yes, the three-retry limit resets after every successful send — so if she fails twice, then succeeds, the counter starts fresh for her next note. And the three failures that trigger the IT alert in FR-5 only count if they happen in a row for the same note — not across multiple notes. That way, a nurse can have failures on one note, succeed on another, and still have three retries available. It keeps the system fair and focused on the current note."
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "Thanks, that settles it: the retry counter resets after each successful send, and the IT alert counts only consecutive failures on the same note.\n\nNext, when IT is alerted, what exactly should the helpdesk see, and should the alert include anything beyond the note ID, patient name and failure time?"
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "The alert should show the note ID, patient name, the time the note was written in Meditech, the time of the last send attempt, and the reason code from the system — like \"Network timeout\" or \"Authentication failed.\" That gives IT enough to diagnose quickly without needing to ask the nurse. We’ll also include the nurse’s name and badge number, so IT can contact her if needed. No other details — protecting patient privacy is key, and we only want what’s necessary for support."
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "Thanks, the IT alert content is clear now: note ID, patient name, Meditech write time, last send attempt time, reason code, and the nurse's name and badge number, and nothing else.\n\nLet's move on to the business rules. When a nurse sends a note, what should happen if she tries to send it again after it has already reached CareTrack?"
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": "If she tries to send it again after it’s already in CareTrack, the system should block the second send and show a message: “This note has already been sent to CareTrack — no need to resend.” The note remains unchanged in Meditech, and no new entry is created in CareTrack. We don’t want duplicate notes, and this prevents accidental double-sends, especially if the nurse missed the red highlight or thought it didn’t go through."
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "Thanks, the duplicate block is clear: once a note is in CareTrack, a second send is refused with \"This note has already been sent to CareTrack — no need to resend.\", and nothing changes in either system.\n\nNext, what should happen if a nurse edits the note in Meditech after she has confirmed and sent it? Should the CareTrack copy stay as first sent, or should the edit be sent too?"
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": "If she edits the note after sending, the CareTrack copy stays as the original version — it doesn’t update. The system treats the sent version as final. If she wants the updated version in CareTrack, she must send it again, and the system will show the same confirmation screen as before. We’re keeping it this way because CareTrack is used for audit and shift handover, and we don’t want the record to change after it’s been confirmed. That protects the integrity of the documentation trail."
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "Thanks, so an edit after sending never changes the CareTrack copy, and a corrected version only goes over if she sends it again.\n\nOne gap remains: when she sends a corrected version as a new send, does CareTrack keep the original as well, with both visible in the record, or does the new version replace the old one?"
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "Got it: when a corrected note is sent again, CareTrack keeps the original and the new version, both visible in the patient's record.\n\nCan you walk me through a real example? Say Jane sends a note at 10:40, then spots a dosage typo at 11:15 and sends a corrected version. What should a reader see in CareTrack for that patient, and how should the two entries be labelled?"
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": "Yes — when Jane sends the first note at 10:40, it appears in CareTrack with the text, timestamped 10:40, and flagged in red for 30 seconds. Then at 11:15, she edits the note, corrects the dosage, and sends it again. The new version appears below the original, also timestamped 11:15, with a label: “(Re-sent correction)” in blue text. The original stays visible with its own time stamp and the label “Original — auto-sent.” A reader can see both versions, with the corrected one clearly marked as a follow-up, and no risk of missing the change."
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "Thanks, that example makes the labelling clear: the original shows \"Original — auto-sent\" and the correction shows \"(Re-sent correction)\" in blue, with both timestamps visible.\n\nNow we'll move to acceptance: how a tester will confirm the tool works. To start, when Jane sends a note and it reaches CareTrack, what should she be able to see to be sure it worked?"
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": "She should see a green confirmation box pop up in Meditech: “Note sent successfully to CareTrack at 10:43.” The box stays for 5 seconds, and the note remains in Meditech, unchanged. At the same time, in CareTrack, the note appears with the full text, a red highlight for 30 seconds, and the send time clearly shown. She doesn’t need to switch systems — the success is confirmed on-screen in Meditech with the time stamp."
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "Thanks, the green confirmation and the red highlight in CareTrack are clear. I'll record that as the success check.\n\nNext, let's check the failure side. When a send fails, what should a tester see on screen in Meditech, and how would they confirm the note is still safe?"
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": "When a send fails, the tester should see a red error box in Meditech: “Failed to send to CareTrack — check connection and try again.” The note stays in Meditech exactly as typed, with no changes, and the nurse can retry immediately. The tester confirms it’s safe by checking that the note is still present, unchanged, and the send attempt is logged in the system audit trail with a failure status. No data loss occurs, and the note is always recoverable."
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "Thanks, the failure check is clear: a red error box, the note unchanged in Meditech, and a failed attempt in the audit trail.\n\nOne gap remains on the Meditech side. We haven't yet agreed how the new system asks Meditech to hold or send a note: which address it calls, what information it passes, how it proves who it is, and what error replies look like. Default: the developers agree this contract with the Meditech team from its published API documentation, and we record it as a technical decision for IT to sign off. That means the team won't start building the link until the contract is written down.\n\nShould I keep that default?"
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": "Yes, keep the default — the developers will work with the Meditech team to document the exact API contract, including endpoints, authentication method, data format, and error codes, based on the published API documentation. I’ll make sure the IT team reviews and signs off on it before development starts, and we’ll keep that document as part of the final deliverable. That way, we’re not guessing — we’re building on an agreed, working interface."
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "Thanks, the Meditech contract will be documented with the Meditech team and signed off by IT before development starts, which closes that gap.\n\nLet's test the retry limit. Say Sarah's note fails three times in a row. What should she see after the third failure, and what should she be able to do next?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": "After the third failure, she sees a message: “Maximum retries reached. IT has been notified.” The system stops allowing retries, and the note stays in Meditech unchanged. She can’t send it again from there, but she can close the screen and come back later. She doesn’t need to do anything else — the IT alert is already sent, and she’ll be contacted if needed. The note remains safe and ready to try again when the issue is fixed."
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "Thanks, that matches what I recorded: after three failures on the same note she sees the maximum-retries message, the note stays unchanged in Meditech, and retries stop until the issue is fixed.\n\nOne point still needs a yes or no. After the retry limit is reached, can the nurse send that same note again later, once IT has fixed the problem, or does it stay blocked until someone resets it? Default: she can send it again later, and the counter starts fresh when she does."
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "Thanks, the retry limit is settled: after three failures the nurse can send the same note again later, and the counter starts fresh.\n\nNow for the technical recommendations. Based on your team's skills and on-prem hosting, I recommend building the screens in ASP.NET with Windows sign-in through your existing Active Directory, so nurses don't log in twice. Does that approach work for you?"
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "Yes, that works — using ASP.NET with Active Directory sign-in is perfect. Our nurses already use their hospital badge to log into Meditech and CareTrack, so having the same login for this tool means no extra passwords or accounts. It’s simple, secure, and fits exactly with how they work every day."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "Thanks, Windows sign-in with the hospital badge is confirmed for the screens.\n\nNext, the data side of the same recommendation. The tool needs to store each send attempt with the user, time and outcome for 12 months. I recommend SQL Server, which your team already uses, with one table for notes and one for send attempts. Does that work for you?"
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Thanks, SQL Server with notes and send-attempts tables is recorded.\n\nOne detail to settle: the red highlight in CareTrack lasts 30 seconds, but we haven't written down why that length was chosen. Default: 30 seconds, which is long enough for a nurse to notice the new entry without the highlight staying up and cluttering the record. Should I keep 30 seconds?"
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": "Yes, keep 30 seconds — it’s long enough to catch a nurse’s eye during a busy shift, but not so long that it stays visible and distracting after she’s moved on. We tested this with a few nurses, and 30 seconds felt just right. It gives her a clear visual cue without cluttering the screen or making her wait too long to start charting again."
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "Thanks, the 30-second highlight is now explained by the nurses' testing and recorded as the agreed duration.\n\nNext, the notes table. I recommend it store the note ID, patient, author, the Meditech write time, the text, and whether it's an original or a correction. Does that cover what you need, or is anything missing?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": "Yes, that covers everything we need — note ID, patient, author, write time, text, and whether it’s original or correction. We don’t need to store the CareTrack send time in the notes table since that’s already tracked in the send-attempts table. This keeps the notes table simple and focused on the content, with the audit trail managed separately."
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Thanks, keeping the send time in the send-attempts table rather than the notes table is a sensible split.\n\nOne more check on the technical side: each send attempt should record the note ID, the user, the time, the outcome, and a reason code such as \"Network timeout\" or \"Authentication failed\", so IT can diagnose failures from the audit log alone. Does that cover what the send-attempts table needs?"
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": "Yes, that covers it exactly — the send-attempts table should record the note ID, user, send time, outcome (success or failure), and a reason code like “Network timeout” or “Authentication failed.” That gives IT everything they need to diagnose the issue without needing to ask the nurse or check other systems. We’ll make sure the reason codes are standard and documented so there’s no confusion."
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "Thanks, the send-attempts fields and standard reason codes are settled.\n\nNow let's look at the data the tool holds. Which patient details should appear on each note in CareTrack and in the audit log: the patient's name and hospital number, or just the name?"
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "Thanks. So each note in CareTrack and the audit log will show both the patient's name and hospital number. Next, how long should the notes themselves be kept: the same 12 months as the send logs, or longer under your clinical record rules? Default: the same 12 months as the send logs, unless your records policy says otherwise."
+    },
+    {
+      "seq": 80,
+      "role": "assistant",
+      "content": "Before we wrap up, I still need the retention period for the notes themselves, which we haven't confirmed. Is there anything about this product we have not covered that a developer would need to know?"
+    },
+    {
+      "seq": 81,
+      "role": "user",
+      "content": "The notes themselves should be kept for 12 months — that’s the same as the send logs, and it matches our current clinical record retention policy. We don’t need to keep them longer because after 12 months, the full patient record is archived in Meditech, and CareTrack only holds active ward notes. \n\nOne thing a developer might need to know: the tool must not store any patient data in temporary files or logs outside the main database, and all data transfers between Meditech and CareTrack must use the hospital’s encrypted internal network — no public internet access, ever. Also, the system should not generate any pop-ups or alerts that block the nurse’s workflow, even during failures. It must stay lightweight and fast, so it doesn’t slow down the clinical process."
+    },
+    {
+      "seq": 82,
+      "role": "assistant",
+      "content": "Thank you. Here is what I captured: a single \"Send to CareTrack\" step after the nurse confirms a Meditech note, with retries capped at three and an IT alert after three consecutive failures on the same note. Duplicate sends are blocked, corrections are sent as labelled re-sends, and the send time is shown in CareTrack. Auth uses Windows sign-in through Active Directory, data is in SQL Server on-prem, and the Meditech contract is signed off by IT before development. Notes and send logs are kept 12 months. Please tell me if anything above is wrong or missing."
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "Company servers",
+        "reason": "Participant confirmed the organization already has company servers.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem",
+      "value": {
+        "statement": "Nurses on Ward 4B enter progress notes twice, into Meditech and into CareTrack, which do not connect. One example took about 12 minutes and produced a transcription error in CareTrack.",
+        "affected": "Nurses on Ward 4B"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "scope",
+      "value": "Meditech (EPR) and CareTrack (ward management) only; no other systems or departments rely on ward note data.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "builder",
+      "value": "External software team from the hospital IT department, with a coding agent; spec written in plain language with examples and rules.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_nurse",
+      "value": {
+        "role": "Registered nurse and healthcare assistant, Ward 4B",
+        "needs": "Enter a progress note once and have it reach both Meditech and CareTrack."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": "C#, .NET and SQL Server, with Azure DevOps for code management",
+        "alternatives": [],
+        "reason": "The external team already uses this stack daily and knows Meditech's API documentation.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "auth",
+      "value": {
+        "choice": "ASP.NET with Windows sign-in through Active Directory",
+        "reason": "Nurses already log in with their hospital badge to Meditech and CareTrack, so no extra passwords or accounts are needed.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "deadline",
+      "value": "Version one live on Ward 4B by October 15 for the clinical audit",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "Nurse confirms a Meditech progress note before it is sent to CareTrack",
+        "scope": "mvp",
+        "acceptance": [
+          "After a nurse finishes a progress note in Meditech, the note is not sent to CareTrack until the nurse confirms it",
+          "A confirmed note appears in CareTrack with the same text as in Meditech"
+        ],
+        "evidence": "Nurse confirms first"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "build",
+      "value": {
+        "choice": "C#, .NET, and SQL Server",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "code_repo",
+      "value": {
+        "choice": "Azure DevOps",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "deployment",
+      "value": {
+        "choice": "on-prem servers",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "budget",
+      "value": "£45,000 approved by finance for the full project, in-house build with the external team",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "future",
+      "path": "off_the_shelf",
+      "value": "Not used: off-the-shelf software would cost more and would not fit the exact workflow",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "Nurse sends a confirmed Meditech progress note to CareTrack",
+        "scope": "mvp",
+        "acceptance": [
+          "A 'Send to CareTrack' button appears in the bottom toolbar of a Meditech progress note.",
+          "Clicking Send to CareTrack shows a pop-up with the exact note text and the question 'Send this note to CareTrack?'",
+          "The note appears in CareTrack under the same patient's record only after the nurse clicks Send in the pop-up."
+        ],
+        "description": "From the patient's record in Meditech, the nurse clicks a Send to CareTrack button, reviews a preview of the exact note text, and confirms before the note is sent.",
+        "evidence": "The nurse opens the patient's record in Meditech, types the progress note as usual, then clicks a new \"Send to CareTrack\" button that appears in the bottom toolbar."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "CareTrack shows the auto-synced note with a timestamp and temporary red flag",
+        "scope": "mvp",
+        "acceptance": [
+          "A nurse sees the note in CareTrack with a red highlight for 30 seconds after sending",
+          "The highlight disappears after 30 seconds"
+        ],
+        "description": "Red highlight lasts 30 seconds to signal the note was auto-synced.",
+        "reason": "Long enough to catch a nurse's eye during a busy shift, not distracting after she moves on; tested with a few nurses.",
+        "evidence": "yes, keep 30 seconds"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "concurrency",
+      "value": "Supports 18 concurrent users with no more than 3 notes sent per user per hour",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "max_notes_per_hour",
+      "value": 54,
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "healthcare_assistant",
+      "value": {
+        "role": "healthcare_assistant",
+        "needs": "Send Meditech progress notes to CareTrack"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "max_users",
+      "value": 18,
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "max_concurrent_users",
+      "value": 18,
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "remote_access",
+      "value": false,
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "Nurse is told when a note fails to send and can retry",
+        "scope": "mvp",
+        "acceptance": [
+          "After a failed send, the message 'Failed to send to CareTrack — check connection and try again.' appears on screen",
+          "A retry resends the same unchanged note text",
+          "After three failed retries, retries are blocked and the message 'Maximum retries reached. IT has been notified.' appears"
+        ],
+        "description": "On failure, the nurse sees 'Failed to send to CareTrack — check connection and try again.' She can retry up to three times; the note stays in Meditech.",
+        "reason": "Merged error wording from withdrawn FR-6",
+        "evidence": "She can retry up to three times — that’s the limit."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "System alerts IT helpdesk after three consecutive send failures on the same note",
+        "scope": "mvp",
+        "acceptance": [
+          "After three consecutive failures on the same note, an IT alert is raised",
+          "The alert shows only note ID, patient name, Meditech write time, last send attempt time, reason code, nurse name and badge number"
+        ],
+        "description": "Alert contains note ID, patient name, Meditech write time, last send attempt time, reason code, nurse name and badge number; nothing else.",
+        "reason": "Alert content confirmed by owner",
+        "evidence": "The alert should show the note ID, patient name, the time the note was written in Meditech, the time of the last send attempt, and the reason code from the system"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "failure_no_loss",
+      "value": "A note is never lost or deleted because a send to CareTrack failed.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": {
+        "regime": "UK GDPR",
+        "dataResidency": "on-prem only, never leaves hospital network",
+        "encryption": "at rest and in transit",
+        "auditLog": "every send attempt: user, timestamp, outcome",
+        "logRetention": "12 months"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "log_retention",
+      "value": "Send-attempt logs kept for 12 months",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_nurse_assistant",
+      "value": {
+        "role": "Ward Nurse/Assistant",
+        "needs": "View and send own Meditech progress notes to CareTrack; cannot edit, delete or see other people's notes"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "roles",
+      "value": "Single role Ward Nurse/Assistant with identical permissions; no admin role; access managed by IT",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "Nurse sees a clear error message on failed send",
+        "scope": "mvp",
+        "acceptance": [],
+        "reason": "Duplicate of FR-4; error wording merged into FR-4.",
+        "withdrawn": true,
+        "evidence": "removing FR-6 and keeping the error message inside FR-4 makes sense."
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a ward nurse, I want to check the last progress note in Meditech before writing a new one so that I start with the patient's status from the previous shift.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-2",
+      "value": "As a ward nurse, I want a failed note to stay in Meditech with a clear error and a retry option so that I never have to retype it.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-3",
+      "value": "As a Ward Nurse, I want a failed note to be retried with the exact same text so that I don't have to retype or risk changing it.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "Nurse checks the last progress note in Meditech to see the patient's status from the previous shift",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse can open the last progress note in Meditech",
+          "The nurse can see the content of the last progress note"
+        ],
+        "description": "The nurse needs to see the previous note to have the right context for writing the new one.",
+        "reason": "Provides context for writing the new note.",
+        "evidence": "The first thing they do is check the last progress note in Meditech to see how the patient was doing at the end of the previous shift — that helps them start writing the new note with the right context."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "System preserves the note in Meditech until it is successfully sent",
+        "scope": "mvp",
+        "acceptance": [
+          "The note remains unchanged in Meditech until it is successfully sent to CareTrack",
+          "The nurse does not have to re-edit the note to retry sending it"
+        ],
+        "description": "The note should not be lost or changed during the sending process.",
+        "reason": "Ensures the note is not lost or changed during the sending process.",
+        "evidence": "She didn’t have to check the text again — the note stayed exactly as she had typed it in Meditech. The retry sent the same version, unchanged, because the tool preserved the note in Meditech until it was successfully sent. That’s important — we don’t want her to re-edit or risk changing the content just to retry."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-10",
+      "value": {
+        "title": "Nurse sees the synced note in CareTrack under the patient's record",
+        "scope": "mvp",
+        "acceptance": [
+          "The note appears under the patient's record in CareTrack with the same text as in Meditech.",
+          "The note shows the date and time the nurse completed it in Meditech.",
+          "The note shows a red highlight for 30 seconds after auto-sync and can be opened to read it."
+        ],
+        "description": "After a note is synced from Meditech, it appears under the patient's record in CareTrack with the same text and the date and time it was completed.",
+        "reason": "Participant described the expected result on the CareTrack side.",
+        "evidence": "She expects to see the full note appear under the patient's record in CareTrack, with the same text she wrote in Meditech, including the date and time she completed it."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-11",
+      "value": {
+        "title": "CareTrack shows the time the note was sent",
+        "scope": "mvp",
+        "acceptance": [
+          "The note in CareTrack shows the send time next to it",
+          "The audit log shows the same send time"
+        ],
+        "description": "Send time is displayed alongside the note in CareTrack and in the audit log.",
+        "reason": "Send time display confirmed by owner",
+        "evidence": "the tool should show the time the note was sent to CareTrack, not just the time it was written in Meditech"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "retry_counter",
+      "value": "The retry counter resets after every successful send. The IT alert counts only consecutive failures on the same note, not across notes.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-12",
+      "value": {
+        "title": "Nurse cannot send a note to CareTrack more than once",
+        "scope": "mvp",
+        "acceptance": [
+          "When a nurse tries to send a note that is already in CareTrack, the system shows an error message and does not send it again."
+        ],
+        "description": "The system prevents duplicate sends of the same note to CareTrack.",
+        "reason": "To avoid duplicate notes in CareTrack.",
+        "needsConfirmation": true
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "duplicate_send",
+      "value": "Blocking a second send of a note already in CareTrack, showing 'This note has already been sent to CareTrack — no need to resend.', leaving Meditech unchanged and creating no new CareTrack entry.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "edit_after_send",
+      "value": "CareTrack copy stays as the sent version; edits in Meditech do not update it. A corrected version is sent only by a new send, through the same confirmation screen.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "corrected_resend",
+      "value": "Corrected resend creates a new CareTrack entry labelled '(Re-sent correction)' in blue; the original stays labelled 'Original — auto-sent'; both remain visible.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "acceptance.success_path",
+      "value": "resolved",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "meditech_contract",
+      "value": {
+        "choice": "Contract agreed from Meditech's published API documentation",
+        "reason": "The integration cannot be built until the endpoint, payload, authentication and error shape are fixed.",
+        "status": "recommended"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-13",
+      "value": {
+        "title": "Nurse sees a corrected note in CareTrack with a timestamp and label (Re-sent correction)",
+        "scope": "mvp",
+        "acceptance": [
+          "Nurse sees the corrected note in CareTrack with the label (Re-sent correction) in blue text",
+          "Nurse sees the original note in CareTrack with the label Original — auto-sent",
+          "Nurse sees both versions with their respective timestamps"
+        ],
+        "evidence": "when Jane sends the first note at 10:40, it appears in CareTrack with the text, timestamped 10:40, and flagged in red for 30 seconds. Then at 11:15, she edits the note, corrects the dosage, and sends it again. The new version appears below the original, also timestamped 11:15, with a label: “(Re-sent correction)” in blue text. The original stays visible with its own time stamp and the label “Original — auto-sent.”"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-14",
+      "value": {
+        "title": "Nurse sees a green confirmation box in Meditech when a note is sent successfully",
+        "scope": "mvp",
+        "acceptance": [
+          "Nurse sees a green confirmation box in Meditech with the text Note sent successfully to CareTrack at <time>",
+          "The confirmation box stays for 5 seconds",
+          "The note remains in Meditech, unchanged"
+        ],
+        "evidence": "She should see a green confirmation box pop up in Meditech: “Note sent successfully to CareTrack at 10:43.” The box stays for 5 seconds, and the note remains in Meditech, unchanged."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-15",
+      "value": {
+        "title": "Nurse sees a red error box in Meditech when a note fails to send",
+        "scope": "mvp",
+        "acceptance": [
+          "Nurse sees a red error box in Meditech with the text Failed to send to CareTrack — check connection and try again",
+          "The note remains in Meditech, unchanged",
+          "The failed attempt is logged in the system audit trail with a failure status"
+        ],
+        "evidence": "When a send fails, the tester should see a red error box in Meditech: “Failed to send to CareTrack — check connection and try again.” The note stays in Meditech exactly as typed, with no changes, and the nurse can retry immediately. The tester confirms it’s safe by checking that the note is still present, unchanged, and the send attempt is logged in the system audit trail with a failure status."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "integrations.meditech_contract",
+      "value": {
+        "choice": "The developers agree this contract with the Meditech team from its published API documentation, and we record it as a technical decision for IT to sign off. That means the team won't start building the link until the contract is written down.",
+        "reason": "This is the default approach for integrating with Meditech.",
+        "status": "default_accepted"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "retry_limit_end_state",
+      "value": "After three failures on the same note: message 'Maximum retries reached. IT has been notified.' is shown, no further retries are offered from that screen, and the note stays unchanged in Meditech. The nurse can close the screen and return later.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "acceptance.retry_limit_resend_later",
+      "value": "Can the nurse send the same note later, after IT fixes the problem, and does the counter restart at that point? Default proposed: yes.",
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "retry_after_limit",
+      "value": "After the retry limit is reached, the nurse can send the same note again later; the retry counter starts fresh.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "frontend",
+      "value": {
+        "choice": "ASP.NET with Windows sign-in through Active Directory",
+        "reason": "Fits the team's C# and .NET skills and on-prem hosting; nurses do not log in twice.",
+        "status": "recommended"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-16",
+      "value": {
+        "title": "Nurse can send a note again later after the retry limit is reached",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse sees 'Maximum retries reached. IT has been notified.' after three failures",
+          "The nurse can send the same note again later once the issue is fixed",
+          "The retry counter starts fresh when the nurse sends the note again"
+        ],
+        "evidence": "After the third failure, she sees a message: “Maximum retries reached. IT has been notified.” The system stops allowing retries, and the note stays in Meditech unchanged. She can’t send it again from there, but she can close the screen and come back later. She doesn’t need to do anything else — the IT alert is already sent, and she’ll be contacted if needed. The note remains safe and ready to try again when the issue is fixed."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "FR-3-highlight-duration",
+      "value": {
+        "question": "Why is the red highlight in CareTrack shown for 30 seconds?",
+        "default": "30 seconds, long enough for a nurse to notice the new entry without cluttering the record"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "notes_table",
+      "value": {
+        "choice": "SQL Server notes table: note ID, patient, author, Meditech write time, text, original or correction flag",
+        "reason": "Keeps the notes table focused on content; send timing and outcomes tracked separately",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "send_attempts",
+      "value": {
+        "fields": ["note_id", "user", "send_time", "outcome", "reason_code"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "patient_identifiers",
+      "value": "Patient name and hospital number shown in CareTrack and audit log",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "notes",
+      "value": {
+        "fields": ["note_id", "patient", "author", "write_time", "text", "original_or_correction"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "reason_codes",
+      "value": "The reason codes for send attempts are standard and documented.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "notes_retention",
+      "value": "Notes kept 12 months, matching send logs; archived in Meditech after that.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "data_transfer",
+      "value": "Data moves between Meditech and CareTrack only over the hospital's encrypted internal network; no patient data in temporary files or logs outside the main database.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "workflow_blocking",
+      "value": "No pop-ups or alerts that block the nurse's workflow, including during failures; tool must stay lightweight and fast.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "no_temp_files",
+      "value": "The tool must not store any patient data in temporary files or logs outside the main database",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "no_workflow_blocking",
+      "value": "The system should not generate any pop-ups or alerts that block the nurse’s workflow, even during failures",
+      "source": "user"
+    }
+  ],
+  "summary": "The system will run on company servers. Last week, nurse Jane on Ward 4B wrote a progress note in Meditech at 10:15 AM and re-typed it in CareTrack at 10:40 AM, taking 7 minutes plus a typo correction. The scope is to connect Meditech and CareTrack only. An external software team from the hospital's IT department will build it, with a coding agent in the lead role. The specification should be in plain language with clear examples and rules. The system will be used by 12 registered nurses and 6 healthcare assistants on Ward 4B. The team typically uses C#, .NET, SQL Server, and Azure DevOps. The solution must be built using C#, .NET, and SQL Server, with all code managed in Azure DevOps, and the team will handle deployment to on-prem servers. Version one must be live on Ward 4B by October 15, in time for the clinical audit, with the scope limited to Meditech and CareTrack and no extra features. The nurse reviews and confirms each note before it goes into CareTrack. The budget is £45,000 for the full project, covering development, testing, training, and deployment, with an in-house build.\n\nThe nurse opens the patient’s record in Meditech, types the progress note as usual, then clicks a new “Send to CareTrack” button. A pop-up appears asking: “Send this note to CareTrack?” with the exact text of the note previewed. The nurse reads it, checks for errors, then clicks “Send” to confirm. The note then appears in CareTrack under the same patient’s record, timestamped with the current time, and is flagged in red for 30 seconds to show it was auto-synced. Exactly 18 people will use the tool at launch — 12 nurses and 6 healthcare assistants on Ward 4B. The system needs to handle 18 concurrent users, with no more than 3 notes sent per hour per person.\n\nIf a note fails to send, the nurse sees a clear error message on screen: “Failed to send to CareTrack — check connection and try again.” The note remains in Meditech and is not lost; the nurse can retry immediately or later. If it fails three times in a row, the system logs the error automatically and sends an alert to the IT helpdesk. UK GDPR applies to patient data, which must stay on the on-prem servers, be encrypted at rest and in transit, and have every send attempt logged with user, time and outcome, kept for 12 months. A single role with the same permissions for everyone is recorded: nurses and assistants can only view and send their own notes, and only to CareTrack.\n\nThe first thing a nurse does is check the last progress note in Meditech to see how the patient was doing at the end of the previous shift. After that, they begin typing the new note, just like they always have. Once it’s complete, they click the “Send to CareTrack” button to send it. Last Tuesday, Sarah, a nurse on Ward 4B, was writing a note at 2:10 PM and clicked “Send to CareTrack” — but the system showed a red error: “Failed to send to CareTrack — check connection and try again.” She saw it right away, didn’t panic, clicked “Retry,” and the second attempt worked. The note appeared in CareTrack at 2:13 PM, with the correct time stamp. She didn’t have to retype it, and the system logged the failure and retry, which IT later confirmed was due to a brief network glitch. She didn’t have to check the text again — the note stayed exactly as she had typed it in Meditech. The retry sent the same version, unchanged, because the tool preserved the note in Meditech until it was successfully sent.\n\nThe nurse expects to see the full note appear under the patient’s record in CareTrack, with the same text she wrote in Meditech, including the date and time she completed it. It shows up with a red highlight for 30 seconds to signal it was auto-synced, and she can click on it to read it — but she doesn’t need to do anything else. Once the red highlight fades, she knows it’s there and ready. She won’t go to CareTrack to check unless she sees the alert on screen. The tool should show the time the note was sent to CareTrack, not just the time it was written in Meditech. Nurses need to know exactly when it arrived in CareTrack because that affects their documentation audit trail. So the system should display the send time alongside the note in CareTrack, and we’ll make sure it’s shown in the audit log too.\n\nThe nurse can retry up to three times — that’s the limit. If it fails the third time, the system stops allowing retries and sends an alert to IT with the note ID, patient name, and time of failure. The nurse then sees a message: “Maximum retries reached. IT has been notified.” She doesn’t need to do anything else, and the note stays in Meditech ready to try again later. We set three retries because most failures are temporary — like a network hiccup — and it gives her a fair chance to succeed. The three-retry limit resets after every successful send — so if she fails twice, then succeeds, the counter starts fresh for her next note. And the three failures that trigger the IT alert in FR-5 only count if they happen in a row for the same note — not across multiple notes. That way, a nurse can have failures on one note, succeed on another, and still have three retries available. It keeps the system fair and focused on the current note.\n\nThe alert should show the note ID, patient name, the time the note was written in Meditech, the time of the last send attempt, and the reason code from the system — like \"Network timeout\" or \"Authentication failed.\" That gives IT enough to diagnose quickly without needing to ask the nurse. We’ll also include the nurse’s name and badge number, so IT can contact her if needed. No other details — protecting patient privacy is key, and we only want what’s necessary for support.",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "Nurse can confirm a Meditech progress note before it is sent to CareTrack",
+      "scope": "mvp",
+      "acceptance": [
+        "After a nurse finishes a progress note in Meditech, the note is not sent to CareTrack until the nurse confirms it",
+        "A confirmed note appears in CareTrack with the same text as in Meditech",
+        "Nurse sees the corrected note in CareTrack with the label (Re-sent correction) in blue text",
+        "Nurse sees the original note in CareTrack with the label Original — auto-sent",
+        "Nurse sees both versions with their respective timestamps"
+      ]
+    },
+    {
+      "id": "FR-2",
+      "title": "Nurse can send a confirmed Meditech progress note to CareTrack",
+      "scope": "mvp",
+      "acceptance": [
+        "A 'Send to CareTrack' button appears in the bottom toolbar of a Meditech progress note",
+        "Clicking Send to CareTrack shows a pop-up with the exact note text and the question 'Send this note to CareTrack?'",
+        "The note appears in CareTrack under the same patient's record only after the nurse clicks Send in the pop-up"
+      ]
+    },
+    {
+      "id": "FR-3",
+      "title": "CareTrack shows the auto-synced note with a timestamp and temporary red flag",
+      "scope": "mvp",
+      "acceptance": [
+        "A nurse sees the note in CareTrack with a red highlight for 30 seconds after sending",
+        "The highlight disappears after 30 seconds"
+      ],
+      "reason": "Long enough to catch a nurse's eye during a busy shift, not distracting after she moves on; tested with a few nurses."
+    },
+    {
+      "id": "FR-4",
+      "title": "Nurse is told when a note fails to send and can retry",
+      "scope": "mvp",
+      "acceptance": [
+        "After a failed send, the message 'Failed to send to CareTrack — check connection and try again.' appears on screen",
+        "A retry resends the same unchanged note text",
+        "After three failed retries, retries are blocked and the message 'Maximum retries reached. IT has been notified.' appears"
+      ],
+      "reason": "Merged error wording from withdrawn FR-6"
+    },
+    {
+      "id": "FR-5",
+      "title": "System alerts IT helpdesk after three consecutive send failures on the same note",
+      "scope": "mvp",
+      "acceptance": [
+        "After three consecutive failures on the same note, an IT alert is raised",
+        "The alert shows only note ID, patient name, Meditech write time, last send attempt time, reason code, nurse name and badge number"
+      ],
+      "reason": "Alert content confirmed by owner"
+    },
+    {
+      "id": "FR-7",
+      "title": "Nurse checks the last progress note in Meditech to see the patient's status from the previous shift",
+      "scope": "mvp",
+      "acceptance": [
+        "The nurse can open the last progress note in Meditech",
+        "The nurse can see the content of the last progress note"
+      ],
+      "reason": "Provides context for writing the new note."
+    },
+    {
+      "id": "FR-9",
+      "title": "System preserves the note in Meditech until it is successfully sent",
+      "scope": "mvp",
+      "acceptance": [
+        "The note remains unchanged in Meditech until it is successfully sent to CareTrack",
+        "The nurse does not have to re-edit the note to retry sending it"
+      ],
+      "reason": "Ensures the note is not lost or changed during the sending process."
+    },
+    {
+      "id": "FR-10",
+      "title": "Nurse sees the synced note in CareTrack under the patient's record",
+      "scope": "mvp",
+      "acceptance": [
+        "The note appears under the patient's record in CareTrack with the same text as in Meditech",
+        "The note shows the date and time the nurse completed it in Meditech",
+        "The note shows a red highlight for 30 seconds after auto-sync and can be opened to read it"
+      ],
+      "reason": "Participant described the expected result on the CareTrack side."
+    },
+    {
+      "id": "FR-11",
+      "title": "CareTrack shows the time the note was sent",
+      "scope": "mvp",
+      "acceptance": [
+        "The note in CareTrack shows the send time next to it",
+        "The audit log shows the same send time"
+      ],
+      "reason": "Send time display confirmed by owner"
+    },
+    {
+      "id": "FR-12",
+      "title": "Nurse cannot send a note to CareTrack more than once",
+      "scope": "mvp",
+      "acceptance": [
+        "When a nurse tries to send a note that is already in CareTrack, the system shows an error message and does not send it again"
+      ],
+      "reason": "To avoid duplicate notes in CareTrack."
+    },
+    {
+      "id": "FR-14",
+      "title": "Nurse sees a green confirmation box in Meditech when a note is sent successfully",
+      "scope": "mvp",
+      "acceptance": [
+        "Nurse sees a green confirmation box in Meditech with the text 'Note sent successfully to CareTrack at <time>'",
+        "The confirmation box stays for 5 seconds",
+        "The note remains in Meditech, unchanged"
+      ]
+    },
+    {
+      "id": "FR-15",
+      "title": "Nurse sees a red error box in Meditech when a note fails to send",
+      "scope": "mvp",
+      "acceptance": [
+        "Nurse sees a red error box in Meditech with the text 'Failed to send to CareTrack — check connection and try again'",
+        "The note remains in Meditech, unchanged",
+        "The failed attempt is logged in the system audit trail with a failure status"
+      ]
+    },
+    {
+      "id": "FR-16",
+      "title": "Nurse can send a note again later after the retry limit is reached",
+      "scope": "mvp",
+      "acceptance": [
+        "The nurse sees 'Maximum retries reached. IT has been notified.' after three failures",
+        "The nurse can send the same note again later once the issue is fixed",
+        "The retry counter starts fresh when the nurse sends the note again"
+      ]
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: nontechnical · Generated: 2026-10-14T07:08:56.230Z\n\n## Context\n\n| Question | Answer |\n| --- | --- |\n| hosting | onprem |\n| existing_systems | Meditech (EPR) and CareTrack (ward management); they do not talk to each other. |\n| builder | agent |\n| team_skills | C#, .NET, SQL Server, Azure DevOps; familiar with Meditech API documentation |\n| timeline | Version one must be live on Ward 4B by October 15 for the next clinical audit; scope limited to Meditech and CareTrack with no extra features. |\n| budget | £45,000 for the full project (development, testing, training, deployment), in-house build, no off-the-shelf software. |\n| users_at_launch | 18 (12 registered nurses and 6 healthcare assistants on Ward 4B), all on site; up to 18 concurrent users and no more than 3 notes per user per hour |\n| compliance | UK GDPR applies to patient data: data stays on on-prem servers, encrypted at rest and in transit, every send attempt logged (user, time, outcome) and kept 12 months; same standards as Meditech and CareTrack, no exceptions. |\n\n## Product overview and problem\n\n### Product overview and problem\n\nNurses on Ward 4B currently enter every progress note twice: once into Meditech (the patient system) and once into CareTrack (a ward management tool). These systems do not communicate, causing extra work and transcription errors. For example, one note took about 12 minutes to enter twice and introduced a typo in CareTrack.\n\nThe goal is to let nurses enter notes once in Meditech and have them automatically sent to CareTrack, reducing workload and errors.\n\nAn external hospital IT software team with a coding agent will build this, using a plain-language specification. The budget is £45,000 for the full project including development, testing, training, and deployment, with in-house build.\n\n## Target users and roles\n\n### Target users and roles\n\n- **Ward Nurse**: Registered nurses on Ward 4B. Needs to write a single progress note in Meditech and have it appear in CareTrack.\n- **Healthcare Assistant**: Healthcare assistants on Ward 4B. Need the same capability as nurses — to send Meditech notes to CareTrack.\n- **Ward Nurse/Assistant role**: One role for both nurses and assistants. Can view and send only their own notes to CareTrack. Cannot edit or delete notes or see others' notes. No admin role.\n\n## User stories\n\n### User stories\n\n- **US-1**: As a ward nurse, I want to check the last progress note in Meditech before writing a new one so I understand the patient’s status from the previous shift.\n- **US-2**: As a ward nurse, if sending a note to CareTrack fails, I want the note to remain in Meditech with a clear error message and an option to retry so I don’t have to rewrite it.\n- **US-3**: As a ward nurse, I want retries to resend the exact same note text so I do not risk transcription errors.\n\n## Functional requirements\n\n### Functional requirements\n\nThis section lists the MVP functional requirements. Each describes what the system must support and how success is tested.\n\n### MVP\n\n- **FR-1** Nurse can confirm a Meditech progress note before it is sent to CareTrack\n  - Acceptance: After a nurse finishes a progress note in Meditech, the note is not sent to CareTrack until the nurse confirms it\n  - Acceptance: A confirmed note appears in CareTrack with the same text as in Meditech\n  - Acceptance: Nurse sees the corrected note in CareTrack with the label (Re-sent correction) in blue text\n  - Acceptance: Nurse sees the original note in CareTrack with the label Original — auto-sent\n  - Acceptance: Nurse sees both versions with their respective timestamps\n- **FR-2** Nurse can send a confirmed Meditech progress note to CareTrack\n  - Acceptance: A 'Send to CareTrack' button appears in the bottom toolbar of a Meditech progress note\n  - Acceptance: Clicking Send to CareTrack shows a pop-up with the exact note text and the question 'Send this note to CareTrack?'\n  - Acceptance: The note appears in CareTrack under the same patient's record only after the nurse clicks Send in the pop-up\n- **FR-3** CareTrack shows the auto-synced note with a timestamp and temporary red flag\n  - Acceptance: A nurse sees the note in CareTrack with a red highlight for 30 seconds after sending\n  - Acceptance: The highlight disappears after 30 seconds\n  - Reason: Long enough to catch a nurse's eye during a busy shift, not distracting after she moves on; tested with a few nurses.\n- **FR-4** Nurse is told when a note fails to send and can retry\n  - Acceptance: After a failed send, the message 'Failed to send to CareTrack — check connection and try again.' appears on screen\n  - Acceptance: A retry resends the same unchanged note text\n  - Acceptance: After three failed retries, retries are blocked and the message 'Maximum retries reached. IT has been notified.' appears\n  - Reason: Merged error wording from withdrawn FR-6\n- **FR-5** System alerts IT helpdesk after three consecutive send failures on the same note\n  - Acceptance: After three consecutive failures on the same note, an IT alert is raised\n  - Acceptance: The alert shows only note ID, patient name, Meditech write time, last send attempt time, reason code, nurse name and badge number\n  - Reason: Alert content confirmed by owner\n- **FR-7** Nurse checks the last progress note in Meditech to see the patient's status from the previous shift\n  - Acceptance: The nurse can open the last progress note in Meditech\n  - Acceptance: The nurse can see the content of the last progress note\n  - Reason: Provides context for writing the new note.\n- **FR-9** System preserves the note in Meditech until it is successfully sent\n  - Acceptance: The note remains unchanged in Meditech until it is successfully sent to CareTrack\n  - Acceptance: The nurse does not have to re-edit the note to retry sending it\n  - Reason: Ensures the note is not lost or changed during the sending process.\n- **FR-10** Nurse sees the synced note in CareTrack under the patient's record\n  - Acceptance: The note appears under the patient's record in CareTrack with the same text as in Meditech\n  - Acceptance: The note shows the date and time the nurse completed it in Meditech\n  - Acceptance: The note shows a red highlight for 30 seconds after auto-sync and can be opened to read it\n  - Reason: Participant described the expected result on the CareTrack side.\n- **FR-11** CareTrack shows the time the note was sent\n  - Acceptance: The note in CareTrack shows the send time next to it\n  - Acceptance: The audit log shows the same send time\n  - Reason: Send time display confirmed by owner\n- **FR-12** Nurse cannot send a note to CareTrack more than once\n  - Acceptance: When a nurse tries to send a note that is already in CareTrack, the system shows an error message and does not send it again\n  - Reason: To avoid duplicate notes in CareTrack.\n- **FR-14** Nurse sees a green confirmation box in Meditech when a note is sent successfully\n  - Acceptance: Nurse sees a green confirmation box in Meditech with the text 'Note sent successfully to CareTrack at <time>'\n  - Acceptance: The confirmation box stays for 5 seconds\n  - Acceptance: The note remains in Meditech, unchanged\n- **FR-15** Nurse sees a red error box in Meditech when a note fails to send\n  - Acceptance: Nurse sees a red error box in Meditech with the text 'Failed to send to CareTrack — check connection and try again'\n  - Acceptance: The note remains in Meditech, unchanged\n  - Acceptance: The failed attempt is logged in the system audit trail with a failure status\n- **FR-16** Nurse can send a note again later after the retry limit is reached\n  - Acceptance: The nurse sees 'Maximum retries reached. IT has been notified.' after three failures\n  - Acceptance: The nurse can send the same note again later once the issue is fixed\n  - Acceptance: The retry counter starts fresh when the nurse sends the note again\n\n## Business rules\n\n### Business rules\n\n1. A note is never lost or deleted because a send to CareTrack failed.\n2. The retry counter resets after every successful send. IT alert counts only consecutive failures on the same note.\n3. Sending a note already in CareTrack is blocked with a clear message; Meditech and CareTrack data remain unchanged.\n4. CareTrack stores the note as sent; edits in Meditech do not alter it. Corrections create a new entry with a distinct label.\n5. Corrections are labelled \"(Re-sent correction)\" in blue; originals labelled \"Original — auto-sent.\" Both remain visible.\n6. After retry limit reached, nurse can resend the same note later; retry counter starts fresh.\n7. Reason codes for send attempts are standardized and documented.\n\n## Technical requirements\n\n### Technical requirements\n\n- Hosting on company on-premises servers for data control and compliance.\n- Stack: C#, .NET, SQL Server with Azure DevOps for code management, matching team's skills and Meditech API documentation.\n- Authentication via ASP.NET with Windows sign-in through Active Directory ensuring seamless user login.\n- Meditech API integration contract to be agreed and signed off before development.\n- Notes stored in SQL Server; audit logs kept separately.\n\n## Data requirements\n\n### Data requirements\n\n- Notes table stores: note ID, patient name, author, Meditech write time, note text, and flag for original vs correction.\n- Send attempts logged with note ID, user, send time, outcome, and reason code.\n- Patient identifiers include patient name and hospital number shown in CareTrack and audit logs.\n- Data retained for 12 months in compliance with clinical record policies.\n\n## Integrations\n\n### Integrations\n\n- Integration limited to Meditech (EPR) and CareTrack (ward management). No other systems or departments involved.\n- A contract specifying Meditech API endpoints, payload, authentication, and error formats must be agreed with Meditech team and IT before building.\n\n## Security and privacy\n\n### Security and privacy\n\n- Compliance with UK GDPR: patient data remains on hospital's on-premises servers.\n- Encryption at rest and in transit.\n- All send attempts logged with user, timestamp, and outcome; logs retained 12 months.\n- Single user role with permissions to view and send own notes only; no admin roles.\n- Data transfers occur only over hospital's encrypted internal network.\n- No patient data stored in temporary files or logs outside main database.\n\n## Non-functional requirements\n\n### Non-functional requirements\n\n- Support 18 concurrent users (12 nurses, 6 assistants).\n- Max 54 notes per hour total (up to 3 per user per hour).\n- No remote access; system runs on-premises only.\n- Send-attempt logs retained 12 months.\n- The tool must be lightweight and fast without pop-ups or alerts that block nurse workflow, including during failures.\n\n## Administrative surface\n\n### Administrative surface\n\n- No administrative user roles or screens are required.\n- IT helpdesk receives automated alerts after three consecutive send failures on the same note.\n- IT manages user access via Active Directory.\n\n## MVP scope\n\n### MVP scope\n\nVersion one must be live on Ward 4B by October 15 in time for the clinical audit.\nThe scope includes:\n- Integration only with Meditech and CareTrack.\n- Single user role: Ward Nurse/Assistant.\n- Core workflow: Nurse writes note in Meditech, confirms sending, and note is sent to CareTrack.\n- Error handling, retries, and IT alerts.\n- Display of send times and audit logging.\n\nIn version one:\n- FR-1\n- FR-2\n- FR-3\n- FR-4\n- FR-5\n- FR-7\n- FR-9\n- FR-10\n- FR-11\n- FR-12\n- FR-14\n- FR-15\n- FR-16\n\n## Future scope\n\n### Future scope\n\n- Off-the-shelf software is not used due to cost and workflow mismatch.\n- No additional features beyond Meditech-CareTrack integration planned for version one.\n\n## Implementation phases\n\n### Implementation phases\n\nThe project will be delivered in multiple phases with clear goals and tasks ensuring an end-to-end MVP slice is ready by October 15.\n\n### Phase 1: Core system and basic workflow\n\nGoals:\n- Implement note confirmation and sending from Meditech to CareTrack\n- Display synced notes with send time and temporary red highlight\n- Support single role Ward Nurse/Assistant with no admin interface\n- Ensure reliable retry and failure handling with error messages\n\nTasks:\n- Add 'Send to CareTrack' button and confirmation popup in Meditech\n  - Acceptance: A 'Send to CareTrack' button appears in the Meditech progress note toolbar\n  - Acceptance: Clicking it shows note text preview and confirmation question\n- Send confirmed notes to CareTrack with timestamps and red highlight for 30 seconds\n  - Acceptance: Sent notes appear in CareTrack with correct text, send time, and red highlight lasting 30 seconds\n- Implement retry logic with max three retries, error messages, and IT alert after failures\n  - Acceptance: Failures show clear error messages and allow retries up to three times\n  - Acceptance: After three failures, retries blocked and IT is alerted with correct info\n  - Acceptance: Retry counter resets after successful send\n\nPhase acceptance:\n- End-to-end flow works for 18 ward users on-premises by October 15\n- System handles up to 3 notes per user per hour with stable performance\n\n### Phase 2: Audit logging, data retention, and UI polish\n\nGoals:\n- Log all send attempts with user, time, outcome, and reason codes\n- Implement data retention of 12 months for notes and logs\n- Display confirmation and error messages in Meditech with proper styling and timing\n\nTasks:\n- Create audit logs and ensure 12-month retention\n  - Acceptance: All send attempts logged with required fields stay for 12 months\n- Show green success box and red error box in Meditech appropriately\n  - Acceptance: Success box displays for 5 seconds with correct text\n  - Acceptance: Error box displays on failure with correct message\n\nDepends on: phase-1\n\nPhase acceptance:\n- Logging completes audit requirements and messages appear as specified\n\n### Phase 3: Meditech API contract and security compliance\n\nGoals:\n- Agree Meditech API contract with IT and Meditech team before build\n- Implement security measures including encryption and Active Directory auth\n- Ensure system runs fully on on-premises servers\n\nTasks:\n- Document and sign Meditech API contract before development\n  - Acceptance: Contract includes endpoints, payload, authentication, and error handling\n- Deploy authentication using ASP.NET with Windows sign-in\n  - Acceptance: Nurses login through Active Directory without extra credentials\n- Encrypt data at rest and in transit as per UK GDPR\n  - Acceptance: Data never leaves hospital network; all storage encrypted\n\nPhase acceptance:\n- API contract signed and security requirements met before production use\n\n## Open questions\n\n### Open questions\n\n- Can the nurse send the same note again later after IT fixes the problem, and does the retry counter restart? Default taken: yes.\n- Why is the red highlight in CareTrack shown for exactly 30 seconds? Default taken: 30 seconds, long enough for a nurse to notice the new entry without cluttering the record.\n\n- Can the nurse send the same note later, after IT fixes the problem, and does the retry counter restart at that point? _Default taken: Yes, the nurse can resend later and the retry counter starts fresh_\n- Why is the red highlight in CareTrack shown for 30 seconds? _Default taken: 30 seconds is long enough for a nurse to notice the new entry without cluttering the record_\n"
+}

@@ -25,6 +25,7 @@ const said = ["I want to type the note once, and it must reach the patient syste
 const verdict = (id: string, over: Partial<Verdict> = {}): Verdict => ({
   id,
   grounded: "yes",
+  groundedClaimed: "yes",
   groundedVerified: true,
   quote: "x",
   granularity: "ok",
@@ -49,6 +50,8 @@ describe("verifying what the judge says (D-245)", () => {
       ["partial", false],
       ["partial", false],
     ]);
+    // What the judge claimed is kept beside what the code verified.
+    expect(out.map((v) => v.groundedClaimed)).toEqual(["yes", "yes", "yes"]);
     expect(out[1]?.adjustments[0]).toMatch(/not in the participant's words/);
   });
 
@@ -87,13 +90,19 @@ describe("scoring a specification", () => {
   it("computes the rates from the verdicts", () => {
     const vs = [
       verdict("FR-1"),
-      verdict("FR-2", { grounded: "partial", groundedVerified: false, testable: "partly" }),
+      verdict("FR-2", {
+        grounded: "partial",
+        groundedClaimed: "yes",
+        groundedVerified: false,
+        testable: "partly",
+      }),
       verdict("FR-3", { granularity: "too_fine", kind: "detail", scope: "wrong" }),
       verdict("FR-4", { kind: "decision", scope: "unclear" }),
     ];
     expect(scoreSpec(vs, { unconfirmedIds: ["FR-2"] })).toEqual({
       count: 4,
       groundedRate: 0.75,
+      groundedClaimedRate: 1,
       duplicateRate: 0,
       overGranularRate: 0.25,
       nonRequirementRate: 0.25,
