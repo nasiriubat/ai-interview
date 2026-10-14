@@ -39,8 +39,11 @@ describeDb("provider headers", () => {
           kind: "openai_compatible",
           name: `platform ${Date.now()}`,
           baseUrl: model.url,
-          apiKeyEnc: world.crypto.encrypt("k"),
-          headersEnc: world.crypto.encrypt(JSON.stringify({ "x-platform-gateway": "platform-secret" })),
+          apiKeyEnc: world.crypto.encrypt("k", "provider.apiKey"),
+          headersEnc: world.crypto.encrypt(
+            JSON.stringify({ "x-platform-gateway": "platform-secret" }),
+            "provider.headers",
+          ),
         },
       })
     ).id;
@@ -194,7 +197,7 @@ describeDb("provider headers", () => {
           kind: "openai_compatible",
           name: `legacy ${Date.now()}`,
           baseUrl: model.url,
-          apiKeyEnc: world.crypto.encrypt("k"),
+          apiKeyEnc: world.crypto.encrypt("k", "provider.apiKey"),
           headers: { "x-api-key": "legacy-secret-9" },
         },
       });
