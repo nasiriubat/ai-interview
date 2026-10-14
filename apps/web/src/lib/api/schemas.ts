@@ -344,6 +344,110 @@ export const TemplateDiffSchema = z.looseObject({
 });
 export type TemplateDiff = z.infer<typeof TemplateDiffSchema>;
 
+/*
+ * Prompt administration (D-230 to D-235). The groups, states and sources are closed sets of the
+ * API; an unknown one falls back so a newer API does not blank the page.
+ */
+export const PromptStatsSchema = z.looseObject({
+  calls: z.number().default(0),
+  errors: z.number().default(0),
+  errorRate: z.number().default(0),
+  meanLatencyMs: z.number().default(0),
+  meanCostCents: z.number().default(0),
+});
+export type PromptStats = z.infer<typeof PromptStatsSchema>;
+const PromptSourceSchema = z.enum(["shipped", "platform", "tenant"]).catch("shipped");
+const PromptEffectiveSchema = z.looseObject({
+  source: PromptSourceSchema,
+  version: z.number().int(),
+  tag: z.string(),
+});
+const PromptCanarySchema = z.looseObject({ version: z.number().int(), share: z.number() }).nullish();
+export const PROMPT_GROUPS = ["interview", "analysis", "requirements", "files"] as const;
+export type PromptGroup = (typeof PROMPT_GROUPS)[number];
+export const PromptSummarySchema = z.looseObject({
+  key: z.string(),
+  group: z.enum(PROMPT_GROUPS).catch("interview"),
+  shipped: z.looseObject({ version: z.number().int(), tag: z.string(), chars: z.number() }),
+  effective: PromptEffectiveSchema,
+  canary: PromptCanarySchema,
+  versions: z.number().int().default(0),
+  stats: PromptStatsSchema,
+});
+export type PromptSummary = z.infer<typeof PromptSummarySchema>;
+export const PromptListSchema = z.looseObject({
+  prompts: z.array(PromptSummarySchema).default([]),
+  windowDays: z.number().default(30),
+});
+export type PromptList = z.infer<typeof PromptListSchema>;
+
+export const PromptVersionSchema = z.looseObject({
+  version: z.number().int(),
+  tag: z.string(),
+  note: z.string().nullish(),
+  body: z.string(),
+  state: z.enum(["stable", "canary", "inactive"]).catch("inactive"),
+  canaryShare: z.number().default(0),
+  parentVersion: z.number().int().nullish(),
+  createdAt: iso,
+  createdBy: z.looseObject({ id: z.string(), name: z.string().nullish(), email: z.string() }).nullish(),
+  activatedAt: iso.nullish(),
+  deactivatedAt: iso.nullish(),
+  stats: PromptStatsSchema,
+});
+export type PromptVersion = z.infer<typeof PromptVersionSchema>;
+export const PromptDetailSchema = z.looseObject({
+  key: z.string(),
+  group: z.enum(PROMPT_GROUPS).catch("interview"),
+  shipped: z.looseObject({
+    version: z.number().int(),
+    tag: z.string(),
+    body: z.string(),
+    stats: PromptStatsSchema,
+  }),
+  contract: z.looseObject({
+    requiredPlaceholders: z.array(z.string()).default([]),
+    untrustedRules: z.boolean().default(false),
+    contractTokens: z.array(z.string()).default([]),
+    maxChars: z.number().default(30000),
+  }),
+  effective: PromptEffectiveSchema,
+  canary: PromptCanarySchema,
+  platform: z.looseObject({ version: z.number().int() }).nullish(),
+  versions: z.array(PromptVersionSchema).default([]),
+  windowDays: z.number().default(30),
+});
+export type PromptDetail = z.infer<typeof PromptDetailSchema>;
+export const PromptIssueSchema = z.looseObject({
+  code: z.string(),
+  detail: z.string().nullish(),
+  message: z.string().default(""),
+});
+export type PromptIssue = z.infer<typeof PromptIssueSchema>;
+export const PromptCheckSchema = z.looseObject({
+  ok: z.boolean(),
+  issues: z.array(PromptIssueSchema).default([]),
+  renders: z
+    .array(
+      z.looseObject({
+        template: z.string(),
+        ok: z.boolean(),
+        leftover: z.array(z.string()).default([]),
+        chars: z.number().default(0),
+      }),
+    )
+    .default([]),
+});
+export type PromptCheck = z.infer<typeof PromptCheckSchema>;
+export const PromptDiffSchema = z.looseObject({
+  from: z.string(),
+  to: z.string(),
+  lines: z.array(z.looseObject({ type: z.enum(["same", "add", "del"]), text: z.string() })).default([]),
+  added: z.number().default(0),
+  removed: z.number().default(0),
+});
+export type PromptDiff = z.infer<typeof PromptDiffSchema>;
+
 export const PreviewSessionSchema = z.looseObject({ participantToken: z.string(), sessionId: z.string() });
 
 export const CampaignStatsSchema = z.looseObject({

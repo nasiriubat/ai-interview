@@ -2,6 +2,7 @@ import type { ChatEvent } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import { InterviewEngine } from "../../src/engine/engine.js";
 import {
+  describeEvaluationFailure,
   evaluatePrompt,
   MAX_PROMPT_CHARS,
   pickFromRows,
@@ -183,16 +184,18 @@ describe("diff and evaluation", () => {
     const t = template();
     const ok = evaluatePrompt("interviewer", interviewer, [t]);
     expect(ok.ok).toBe(true);
-    expect(ok.checks.map((c) => c.id)).toEqual(["contract", `render:${t.key}`]);
+    expect(ok.issues).toEqual([]);
+    expect(ok.renders).toEqual([{ template: t.key, ok: true, leftover: [], chars: expect.any(Number) }]);
     // A second {{objective}} survives the engine's single replacement and would reach the model.
     const twice = evaluatePrompt("interviewer", `${interviewer}\nAgain: {{objective}}`, [t]);
     expect(twice.ok).toBe(false);
-    expect(twice.checks.find((c) => c.id === `render:${t.key}`)?.detail).toContain("{{objective}}");
+    expect(twice.renders[0]).toMatchObject({ ok: false, leftover: ["objective"] });
+    expect(describeEvaluationFailure(twice)).toContain("{{objective}}");
   });
 
   it("checks only the contract for prompts that are not rendered with a template", () => {
     const r = evaluatePrompt("summary", SHIPPED_PROMPTS.summary!.body, [template()]);
-    expect(r.checks.map((c) => c.id)).toEqual(["contract"]);
+    expect(r.renders).toEqual([]);
     expect(r.ok).toBe(true);
   });
 });

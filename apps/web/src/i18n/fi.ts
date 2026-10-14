@@ -405,6 +405,7 @@ export const fi: Strings = {
       providers: "Palveluntarjoajat",
       routes: "Mallivalinnat",
       budgets: "Budjetit",
+      prompts: "Kehotteet",
       audit: "Tapahtumaloki",
       users: "Käyttäjät",
       operator: "Alusta",
@@ -1477,6 +1478,220 @@ export const fi: Strings = {
       modelPlaceholder: "Valitse malli…",
       noModels:
         "Tältä palveluntarjoajalta ei ole vielä malleja. Avaa palveluntarjoaja ja päivitä sen katalogi.",
+    },
+    prompts: {
+      title: "Kehotteet",
+      subtitle:
+        "Kirjalliset ohjeet, joiden mukaan jokainen mallikutsu tehdään. Vakioversiot tulevat tuotteen mukana, ja voit muokata niitä organisaatiollesi.",
+      warningTitle: "Kehotteen muutos koskee kaikkia sitä käyttäviä haastatteluja",
+      warningBody:
+        "Versiota, joka rikkoo tulosteen muodon tai poistaa turvasäännöt, ei voi tallentaa. Hyväksytty versio voi silti heikentää haastatteluja, eikä mikään varoita siitä. Aloita pienestä osasta haastatteluja ja seuraa virheosuutta, ennen kuin otat version käyttöön kaikille.",
+      evalsTitle: "Mitä tarkistetaan",
+      evalsBuiltIn:
+        "Vakiokehotteet katetaan toistoarvioinneilla, jotka ajetaan jokaisen tuotemuutoksen yhteydessä.",
+      evalsYours:
+        "Omista versioistasi tarkistetaan vain rakenne: paikkamerkit, lainatun osallistujan tekstin säännöt ja tulosteen muoto. Se, kuinka hyvin haastattelija noudattaa sanamuotojasi, näkyy vasta käytössä.",
+      evalsDocPrefix: "Arvioinnit on kuvattu tiedostossa",
+      evalsDoc: "evals/README.md",
+      evalsDocSuffix: "koodivarastossa.",
+      groups: {
+        interview: "Haastattelu",
+        analysis: "Analyysi",
+        requirements: "Vaatimukset",
+        files: "Tiedostot",
+      },
+      names: {
+        interviewer: {
+          name: "Haastattelija",
+          description: "Miten haastattelija toimii haastattelun jokaisessa vuorossa.",
+        },
+        summary: {
+          name: "Jatkuva tiivistelmä",
+          description:
+            "Tiivistää keskustelun tähänastisen kulun, jotta pitkätkin haastattelut mahtuvat mallin muistiin.",
+        },
+        recap: {
+          name: "Mihin jäit",
+          description: "Kaksi lausetta, jotka näytetään haastatteluun palaavalle osallistujalle.",
+        },
+        turn_meta_repair: {
+          name: "Vuoron muistiinpanojen korjaus",
+          description:
+            "Rakentaa vuoron muistiinpanot uudelleen, kun haastattelijan vastaus tuli ilman niitä.",
+        },
+        extraction: {
+          name: "Poiminta",
+          description: "Poimii vastauksista tehtävät, työkalut, ongelmat ja vaatimukset.",
+        },
+        clustering: {
+          name: "Ryhmittely",
+          description: "Ryhmittelee samankaltaiset poiminnat haastattelujen yli ja nimeää ryhmät.",
+        },
+        opportunity: {
+          name: "Mahdollisuuden kuvaus",
+          description: "Kuvaa yhden ryhmitellyn mahdollisuuden ja sen, sopiiko se tekoälylle.",
+        },
+        report: {
+          name: "Raportti",
+          description: "Kirjoittaa tulosten tiivistelmän, jatkotoimet ja varaumat.",
+        },
+        issues: {
+          name: "Havaintojen tunnistus",
+          description: "Etsii aukkoja ja ristiriitoja vaatimusmäärittelystä.",
+        },
+        spec: {
+          name: "Määrittely",
+          description: "Kirjoittaa määrittelydokumentin vaatimushaastattelusta.",
+        },
+        file_summary: {
+          name: "Tiedoston tiivistelmä",
+          description: "Tiivistää osallistujan liittämän tiedoston.",
+        },
+        image_describe: {
+          name: "Kuvan kuvaus",
+          description: "Kuvaa osallistujan liittämän kuvan.",
+        },
+      },
+      columns: {
+        prompt: "Kehote",
+        serving: "Käytössä",
+        builtIn: "Vakio",
+        calls: "Kutsut",
+        errors: "Virheet",
+        actions: "Toiminnot",
+      },
+      source: { shipped: "Vakio", tenant: "Oma", platform: "Alusta" },
+      canaryBadge: (percent: number): string => `Kokeilu ${percent} %`,
+      windowNote: (days: number): string => `Kutsut ja virheet kattavat viimeiset ${days} päivää.`,
+      detail: {
+        servingTitle: "Nyt käytössä",
+        servingShipped: (version: number): string =>
+          `Haastattelut käyttävät vakioversiota ${version}. Mikään omistasi ei ole käytössä.`,
+        servingYours: (version: number): string => `Haastattelut käyttävät omaa versiota ${version}.`,
+        servingPlatform: (version: number): string =>
+          `Haastattelut käyttävät alustan versiota ${version}, jonka tämän asennuksen ylläpitäjä on asettanut.`,
+        canaryRunning: (version: number, percent: number): string =>
+          `Oma versiosi ${version} on kokeilussa: noin ${percent} % uusista haastatteluista käyttää sitä, muut yllä näkyvää versiota. Jokainen haastattelu pitää sen kehotteen, jolla se alkoi.`,
+        noCanary: "Kokeilua ei ole käynnissä.",
+        stopCanary: "Lopeta kokeilu",
+        stopCanaryTitle: "Lopetetaanko kokeilu?",
+        stopCanaryBody: (version: number): string =>
+          `Uudet haastattelut lakkaavat käyttämästä versiota ${version} heti. Jo käynnissä olevat haastattelut pitävät kehotteen, jolla ne alkoivat.`,
+        stopCanaryConfirm: "Lopeta kokeilu",
+        canaryStopped: "Kokeilu lopetettiin.",
+        rollBack: "Palaa edelliseen",
+        rollBackTitle: "Palataanko aiempaan versioon?",
+        rollBackBody:
+          "Versio, joka oli käytössä ennen nykyistä, otetaan uudelleen käyttöön. Uudet haastattelut käyttävät sitä tästä lähtien; mitään ei poisteta.",
+        rollBackConfirm: "Palaa edelliseen",
+        rolledBack: "Palattiin edelliseen versioon.",
+        reset: "Käytä vakiokehotetta",
+        resetTitle: "Palataanko vakiokehotteeseen?",
+        resetBody:
+          "Omat versiosi lakkaavat olemasta käytössä, ja uudet haastattelut käyttävät vakiokehotetta. Versiosi säilyvät historiassa, joten voit ottaa jonkin niistä uudelleen käyttöön.",
+        resetConfirm: "Käytä vakiokehotetta",
+        resetDone: "Vakiokehote on käytössä.",
+        platformNote: (version: number): string =>
+          `Tämä asennus asettaa alustan version ${version}; se on voimassa, kunnes otat käyttöön oman versiosi.`,
+        editorTitle: "Kirjoita versio",
+        editorHint:
+          "Tallennus luo uuden version eikä muuta mitään osallistujille. Päätät erikseen, milloin se otetaan käyttöön.",
+        startFrom: "Lähtökohta",
+        startFromShipped: "Vakiokehote",
+        startFromVersion: (version: number): string => `Oma versio ${version}`,
+        bodyLabel: "Kehotteen teksti",
+        noteLabel: "Mitä tämä muuttaa",
+        noteHint: "Lause historiaan, esimerkiksi miksi teit muutoksen.",
+        notePlaceholder: "Selkeämpi sanamuoto ensimmäisessä viestissä",
+        save: "Tallenna uutena versiona",
+        saving: "Tallennetaan…",
+        saved: (version: number): string => `Tallennettu versiona ${version}.`,
+        unchanged: "Teksti on sama kuin versiossa, josta lähdit.",
+        characters: (n: number, max: number): string => `${n} / ${max} merkkiä`,
+        checksTitle: "Tarkistukset",
+        checking: "Tarkistetaan…",
+        checkPassed: "Kaikki tarkistukset läpäistiin. Version voi tallentaa ja ottaa käyttöön.",
+        checkFailed: (n: number): string =>
+          n === 1 ? "1 tarkistus epäonnistui" : `${n} tarkistusta epäonnistui`,
+        checkPassedLabel: "Läpäisty",
+        checkFailedLabel: "Epäonnistui",
+        checkUnavailable: "Tarkistuksia ei voitu ajaa. Yritä hetken kuluttua uudelleen.",
+        issues: {
+          empty: "Kehote on tyhjä.",
+          tooLong: (max: number): string => `Kehote on pidempi kuin ${max} merkkiä.`,
+          missingPlaceholder: (name: string): string =>
+            `${name} puuttuu. Haastattelu täyttää sen jokaisella kerralla, joten kehotteen on säilytettävä se.`,
+          unknownPlaceholder: (name: string): string =>
+            `${name} ei ole paikkamerkki, jonka tämä kehote saa, joten se päätyisi malliin sellaisenaan.`,
+          missingUntrustedRules:
+            "Kappale, joka kertoo mallille osallistujan tekstin olevan lainattua aineistoa eikä koskaan ohjeita, puuttuu tai on muuttunut. Säilytä se sanasta sanaan.",
+          missingContractToken: (token: string): string =>
+            `${token} puuttuu. Haastattelun tarvitsema tulosteen muoto luetaan siitä.`,
+          unknown: "Tätä kehotetta ei voi käyttää.",
+        },
+        render: {
+          ok: (template: string, chars: number): string =>
+            `Muodostuu mallipohjalle ${template} (${chars} merkkiä).`,
+          leftover: (template: string, names: string): string =>
+            `Mallipohjalla ${template} tekstiin jää ${names}, kun haastattelu on täyttänyt omansa. Jokainen paikkamerkki saa esiintyä vain kerran.`,
+          tooLong: (template: string, chars: number): string =>
+            `Mallipohjalla ${template} muodostettu kehote on ${chars} merkkiä, mikä on liikaa.`,
+        },
+        contractTitle: "Mitä jokaisen version on säilytettävä",
+        contractPlaceholders: "Paikkamerkit, jotka haastattelu täyttää",
+        contractUntrusted:
+          "Kappale lainatusta osallistujan tekstistä sanasta sanaan. Se estää osallistujan vastauksia ja tiedostoja antamasta ohjeita.",
+        contractTokens: "Tulosteen muodon merkit",
+        diffTitle: "Muutokset",
+        diffAgainst: "Vertaa",
+        diffShipped: "Vakiokehote",
+        diffVersion: (version: number): string => `Versio ${version}`,
+        diffDraft: "Oma tekstisi",
+        diffNone: "Ei eroja.",
+        foldedLines: (n: number): string => (n === 1 ? "1 muuttumaton rivi" : `${n} muuttumatonta riviä`),
+        diffSummary: (added: number, removed: number): string => `${added} lisätty, ${removed} poistettu`,
+        diffAdded: "Lisätty",
+        diffRemoved: "Poistettu",
+        diffRegion: "Rivikohtainen vertailu",
+        diffFailed: "Vertailua ei voitu ladata.",
+        versionsTitle: "Omat versiosi",
+        versionsEmpty:
+          "Ei vielä versioita. Kirjoita yksi yllä; se tallentuu muuttamatta mitään osallistujille.",
+        versionsColumns: {
+          version: "Versio",
+          state: "Tila",
+          note: "Mikä muuttui",
+          saved: "Tallennettu",
+          by: "Tekijä",
+          calls: "Kutsut",
+          errorRate: "Virheosuus",
+          latency: "Keskimääräinen aika",
+          actions: "Toiminnot",
+        },
+        state: { stable: "Käytössä", canary: "Kokeilussa", inactive: "Ei käytössä" },
+        canaryShare: (percent: number): string => `${percent} %`,
+        derivedFrom: (version: number): string => `versiosta ${version}`,
+        use: "Ota käyttöön…",
+        useNamed: (version: number): string => `Ota käyttöön versio ${version}`,
+        editCopy: "Muokkaa kopiota",
+        editCopyNamed: (version: number): string => `Muokkaa version ${version} kopiota`,
+        compare: "Vertaa",
+        compareNamed: (version: number): string => `Vertaa versiota ${version} vakiokehotteeseen`,
+        useTitle: (version: number): string => `Ota käyttöön versio ${version}`,
+        useDescription: "Valitse, kuinka moni uusi haastattelu käyttää tätä versiota.",
+        shareLabel: "Osuus uusista haastatteluista",
+        shareNumberLabel: "Prosenttia",
+        shareHelp: (percent: number, version: number): string =>
+          percent >= 100
+            ? `Jokainen uusi haastattelu käyttää versiota ${version}. Nyt käytössä oleva versio lakkaa olemasta käytössä.`
+            : `Noin ${percent} % uusista haastatteluista käyttää versiota ${version}, muut nyt käytössä olevaa. Jokaiselle haastattelulle arvotaan kehote kerran, ja se säilyy.`,
+        shareSmall: "Ei arvioitu mallilla. Aloita pienestä, esimerkiksi 10 %:sta, ja seuraa virheosuutta.",
+        useConfirm: "Ota tämä versio käyttöön",
+        activated: (version: number, percent: number): string =>
+          percent >= 100
+            ? `Versio ${version} on käytössä.`
+            : `Versio ${version} on kokeilussa ${percent} %:lle uusista haastatteluista.`,
+      },
     },
     budgets: {
       title: "Budjetit",

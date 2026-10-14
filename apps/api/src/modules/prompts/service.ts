@@ -1,4 +1,5 @@
 import {
+  describeEvaluationFailure,
   evaluatePrompt,
   lineDiff,
   promptDiffStats,
@@ -6,11 +7,9 @@ import {
   promptContract,
   promptVersionTag,
   SHIPPED_PROMPTS,
-  validatePromptBody,
   type PromptContract,
   type PromptDefinition,
   type PromptEvaluation,
-  type PromptIssue,
 } from "@aidp/ai";
 import { shippedTemplates, tenantTransaction } from "@aidp/db";
 import type { DiffLine } from "@aidp/shared";
@@ -130,9 +129,6 @@ const contractOf = (key: string): PromptContract => {
   if (!c) throw notFound("Prompt");
   return c;
 };
-
-const validationError = (issues: PromptIssue[]): AppError =>
-  new AppError("validation", issues[0]?.message ?? "This prompt cannot be used.", { issues });
 
 export class PromptAdminService {
   constructor(
@@ -319,12 +315,11 @@ export class PromptAdminService {
   ): Promise<VersionView> {
     this.assertKey(key);
     const evaluation = this.check(key, input.body);
-    if (!evaluation.ok) {
-      const issues = validatePromptBody(key, input.body);
-      throw issues.length
-        ? validationError(issues)
-        : new AppError("validation", evaluation.checks.find((c) => !c.ok)?.detail ?? "Invalid prompt");
-    }
+    if (!evaluation.ok)
+      throw new AppError("validation", describeEvaluationFailure(evaluation), {
+        issues: evaluation.issues,
+        renders: evaluation.renders,
+      });
     const created = await tenantTransaction(this.db, async (tx) => {
       const existing = await tx.promptVersion.findMany({
         where: { companyId, key },
@@ -375,11 +370,10 @@ export class PromptAdminService {
     if (!row) throw notFound("Prompt version");
     const evaluation = this.check(key, row.body);
     if (!evaluation.ok)
-      throw new AppError(
-        "validation",
-        evaluation.checks.find((c) => !c.ok)?.detail ?? "This version fails its checks",
-        { checks: evaluation.checks },
-      );
+      throw new AppError("validation", describeEvaluationFailure(evaluation), {
+        issues: evaluation.issues,
+        renders: evaluation.renders,
+      });
     const now = this.now();
     const wantsStable = share >= 1;
     let replaced: number | null = null;

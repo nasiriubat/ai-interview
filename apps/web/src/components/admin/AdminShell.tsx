@@ -11,6 +11,7 @@ import {
   ListChecksIcon,
   MegaphoneIcon,
   MenuIcon,
+  MessageSquareTextIcon,
   RouteIcon,
   ScrollTextIcon,
   ServerIcon,
@@ -62,6 +63,7 @@ function mainNav(): NavGroup[] {
         { href: "/admin/providers", label: t.admin.nav.providers, icon: ServerIcon },
         { href: "/admin/routes", label: t.admin.nav.routes, icon: RouteIcon },
         { href: "/admin/budgets", label: t.admin.nav.budgets, icon: CoinsIcon },
+        { href: "/admin/prompts", label: t.admin.nav.prompts, icon: MessageSquareTextIcon },
       ],
     },
     {

@@ -5,6 +5,7 @@ import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
+import { STATS_WINDOW_DAYS } from "./service.js";
 
 const Key = z.object({ key: z.string().min(1).max(60) });
 const KeyVersion = Key.extend({ v: z.coerce.number().int().min(1) });
@@ -40,7 +41,10 @@ export async function promptRoutes(app: App, ctx: RouteContext): Promise<void> {
       diff,
     });
 
-  app.get("/prompts", { ...guard.admin() }, async (req) => ({ prompts: await svc.list(req.companyId) }));
+  app.get("/prompts", { ...guard.admin() }, async (req) => ({
+    prompts: await svc.list(req.companyId),
+    windowDays: STATS_WINDOW_DAYS,
+  }));
 
   app.get("/prompts/:key", { ...guard.admin(), schema: { params: Key } }, async (req) =>
     svc.get(req.companyId, req.params.key),

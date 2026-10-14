@@ -409,6 +409,7 @@ export const en = {
       providers: "Providers",
       routes: "Model assignment",
       budgets: "Budgets",
+      prompts: "Prompts",
       audit: "Audit log",
       users: "Users",
       operator: "Platform",
@@ -1472,6 +1473,218 @@ export const en = {
       clearedRestored: "Override restored.",
       modelPlaceholder: "Choose a model…",
       noModels: "No models from this provider yet. Open the provider and refresh its catalogue.",
+    },
+    prompts: {
+      title: "Prompts",
+      subtitle:
+        "The written instructions behind every model call. Built-in versions ship with the product; you can adapt them for your organization.",
+      warningTitle: "Changing a prompt changes every interview that uses it",
+      warningBody:
+        "A version that breaks the output format or drops the safety rules cannot be saved. A version that passes can still make interviews worse, and nothing will warn you. Start on a small share of interviews and watch the error rate before you use it for everyone.",
+      evalsTitle: "What is checked",
+      evalsBuiltIn:
+        "Built-in prompts are covered by the replay evaluations that run on every change to the product.",
+      evalsYours:
+        "Your versions are checked for structure only: the placeholders, the rules for quoted participant text and the output format. How well the interviewer follows your wording shows only in live use.",
+      evalsDocPrefix: "The evaluations are described in",
+      evalsDoc: "evals/README.md",
+      evalsDocSuffix: "in the repository.",
+      groups: {
+        interview: "Interview",
+        analysis: "Analysis",
+        requirements: "Requirements",
+        files: "Files",
+      },
+      names: {
+        interviewer: {
+          name: "Interviewer",
+          description: "How the interviewer behaves in every turn of an interview.",
+        },
+        summary: {
+          name: "Running summary",
+          description:
+            "Condenses the conversation so far, so long interviews stay within the model's memory.",
+        },
+        recap: {
+          name: "Where you left off",
+          description: "The two sentences shown to a participant who comes back to an interview.",
+        },
+        turn_meta_repair: {
+          name: "Turn notes repair",
+          description: "Rebuilds the notes of a turn when the interviewer's reply arrived without them.",
+        },
+        extraction: {
+          name: "Extraction",
+          description: "Pulls tasks, tools, problems and requirements out of the answers.",
+        },
+        clustering: {
+          name: "Grouping",
+          description: "Groups similar extracted items across interviews and names the groups.",
+        },
+        opportunity: {
+          name: "Opportunity write-up",
+          description: "Describes one grouped opportunity and why it is or is not a fit for AI.",
+        },
+        report: {
+          name: "Report",
+          description: "Writes the executive summary, next steps and caveats of the results.",
+        },
+        issues: {
+          name: "Finding detection",
+          description: "Looks for gaps and contradictions in a requirements specification.",
+        },
+        spec: {
+          name: "Specification",
+          description: "Writes the specification document from a requirements interview.",
+        },
+        file_summary: {
+          name: "File summary",
+          description: "Summarizes a file a participant attached.",
+        },
+        image_describe: {
+          name: "Image description",
+          description: "Describes an image a participant attached.",
+        },
+      },
+      columns: {
+        prompt: "Prompt",
+        serving: "In use",
+        builtIn: "Built-in",
+        calls: "Calls",
+        errors: "Errors",
+        actions: "Actions",
+      },
+      source: { shipped: "Built-in", tenant: "Yours", platform: "Platform" },
+      canaryBadge: (percent: number): string => `Canary ${percent} %`,
+      windowNote: (days: number): string => `Calls and errors cover the last ${days} days.`,
+      detail: {
+        servingTitle: "In use now",
+        servingShipped: (version: number): string =>
+          `Interviews use the built-in version ${version}. Nothing of yours is active.`,
+        servingYours: (version: number): string => `Interviews use your version ${version}.`,
+        servingPlatform: (version: number): string =>
+          `Interviews use the platform's version ${version}, set by the operator of this installation.`,
+        canaryRunning: (version: number, percent: number): string =>
+          `Your version ${version} is a canary: about ${percent} % of new interviews use it, the rest use the version above. Each interview keeps the prompt it started with.`,
+        noCanary: "No canary is running.",
+        stopCanary: "Stop canary",
+        stopCanaryTitle: "Stop the canary?",
+        stopCanaryBody: (version: number): string =>
+          `New interviews stop using version ${version} straight away. Interviews already running keep the prompt they started with.`,
+        stopCanaryConfirm: "Stop canary",
+        canaryStopped: "Canary stopped.",
+        rollBack: "Roll back",
+        rollBackTitle: "Go back to the earlier version?",
+        rollBackBody:
+          "The version that was in use before the current one becomes the version in use again. New interviews use it from now on; nothing is deleted.",
+        rollBackConfirm: "Roll back",
+        rolledBack: "Rolled back.",
+        reset: "Use the built-in prompt",
+        resetTitle: "Switch back to the built-in prompt?",
+        resetBody:
+          "Every version of yours stops being used and new interviews use the built-in prompt. Your versions stay in the history, so you can use one again.",
+        resetConfirm: "Use built-in prompt",
+        resetDone: "The built-in prompt is in use.",
+        platformNote: (version: number): string =>
+          `This installation sets a platform version ${version}; it applies until you activate a version of your own.`,
+        editorTitle: "Write a version",
+        editorHint:
+          "Saving creates a new version and changes nothing for participants. You choose separately when to use it.",
+        startFrom: "Start from",
+        startFromShipped: "The built-in prompt",
+        startFromVersion: (version: number): string => `Your version ${version}`,
+        bodyLabel: "Prompt text",
+        noteLabel: "What this changes",
+        noteHint: "A sentence for the history, such as why you made the change.",
+        notePlaceholder: "Plainer wording in the first message",
+        save: "Save as new version",
+        saving: "Saving…",
+        saved: (version: number): string => `Saved as version ${version}.`,
+        unchanged: "The text is the same as the version it starts from.",
+        characters: (n: number, max: number): string => `${n} of ${max} characters`,
+        checksTitle: "Checks",
+        checking: "Checking…",
+        checkPassed: "All checks passed. This version can be saved and used.",
+        checkFailed: (n: number): string => (n === 1 ? "1 check failed" : `${n} checks failed`),
+        checkPassedLabel: "Passed",
+        checkFailedLabel: "Failed",
+        checkUnavailable: "The checks could not be run. Try again in a moment.",
+        issues: {
+          empty: "The prompt is empty.",
+          tooLong: (max: number): string => `The prompt is longer than ${max} characters.`,
+          missingPlaceholder: (name: string): string =>
+            `${name} is missing. The interviewer fills it in for every interview, so the prompt must keep it.`,
+          unknownPlaceholder: (name: string): string =>
+            `${name} is not a placeholder this prompt receives, so it would reach the model as written.`,
+          missingUntrustedRules:
+            "The paragraph that tells the model participant text is quoted material and never instructions is missing or changed. Keep it word for word.",
+          missingContractToken: (token: string): string =>
+            `${token} is missing. The output format the interview depends on is read from it.`,
+          unknown: "This prompt cannot be used.",
+        },
+        render: {
+          ok: (template: string, chars: number): string =>
+            `Renders for the template ${template} (${chars} characters).`,
+          leftover: (template: string, names: string): string =>
+            `For the template ${template}, ${names} is still in the text after the interview fills in its own. Each placeholder may appear only once.`,
+          tooLong: (template: string, chars: number): string =>
+            `For the template ${template} the rendered prompt is ${chars} characters, which is too long.`,
+        },
+        contractTitle: "What every version must keep",
+        contractPlaceholders: "Placeholders the interview fills in",
+        contractUntrusted:
+          "The paragraph about quoted participant text, word for word. It stops participant answers and files from giving instructions.",
+        contractTokens: "Output format markers",
+        diffTitle: "Changes",
+        diffAgainst: "Compare with",
+        diffShipped: "Built-in prompt",
+        diffVersion: (version: number): string => `Version ${version}`,
+        diffDraft: "Your text",
+        diffNone: "No difference.",
+        foldedLines: (n: number): string => (n === 1 ? "1 unchanged line" : `${n} unchanged lines`),
+        diffSummary: (added: number, removed: number): string => `${added} added, ${removed} removed`,
+        diffAdded: "Added",
+        diffRemoved: "Removed",
+        diffRegion: "Line by line comparison",
+        diffFailed: "The comparison could not be loaded.",
+        versionsTitle: "Your versions",
+        versionsEmpty:
+          "No versions yet. Write one above; it is saved without changing anything for participants.",
+        versionsColumns: {
+          version: "Version",
+          state: "State",
+          note: "What changed",
+          saved: "Saved",
+          by: "By",
+          calls: "Calls",
+          errorRate: "Error rate",
+          latency: "Mean time",
+          actions: "Actions",
+        },
+        state: { stable: "In use", canary: "Canary", inactive: "Not in use" },
+        canaryShare: (percent: number): string => `${percent} %`,
+        derivedFrom: (version: number): string => `from version ${version}`,
+        use: "Use…",
+        useNamed: (version: number): string => `Use version ${version}`,
+        editCopy: "Edit a copy",
+        editCopyNamed: (version: number): string => `Edit a copy of version ${version}`,
+        compare: "Compare",
+        compareNamed: (version: number): string => `Compare version ${version} with the built-in prompt`,
+        useTitle: (version: number): string => `Use version ${version}`,
+        useDescription: "Choose how many new interviews use this version.",
+        shareLabel: "Share of new interviews",
+        shareNumberLabel: "Percent",
+        shareHelp: (percent: number, version: number): string =>
+          percent >= 100
+            ? `Every new interview uses version ${version}. The version in use now stops being used.`
+            : `About ${percent} % of new interviews use version ${version}; the rest use the version in use now. Each interview is assigned once and keeps its prompt.`,
+        shareSmall: "Not evaluated against a model. Start small, such as 10 %, and watch the error rate.",
+        useConfirm: "Use this version",
+        activated: (version: number, percent: number): string =>
+          percent >= 100
+            ? `Version ${version} is in use.`
+            : `Version ${version} is a canary for ${percent} % of new interviews.`,
+      },
     },
     budgets: {
       title: "Budgets",
