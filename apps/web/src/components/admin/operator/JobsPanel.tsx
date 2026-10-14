@@ -16,7 +16,10 @@ import { formatDate } from "@/lib/utils";
 
 const s = t.admin.operator.jobs;
 
-interface Pending { job: DeadJob; kind: "retry" | "discard" }
+interface Pending {
+  job: DeadJob;
+  kind: "retry" | "discard";
+}
 
 /**
  * The queue as an operator sees it (D-92): one row per job type with its counters, and below it
