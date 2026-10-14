@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { ApiError, apiErrorFromResponse } from "./errors";
+import { xhrFetch, type ProgressInit } from "./xhr";
 
 /**
  * A transport knows how to reach the API for one principal: where the base URL is and
@@ -22,6 +23,8 @@ export interface RequestOptions<T> {
   schema?: z.ZodType<T>;
   headers?: Record<string, string>;
   signal?: AbortSignal | undefined;
+  /** Upload progress, 0 to 100 (D-343). Makes the browser transport use XMLHttpRequest for this request. */
+  onUploadProgress?: ((percent: number) => void) | undefined;
 }
 
 /**
@@ -57,8 +60,11 @@ export async function request<T = unknown>(transport: Transport, opts: RequestOp
       headers,
       ...(body !== undefined ? { body } : {}),
       ...(opts.signal ? { signal: opts.signal } : {}),
+      ...(opts.onUploadProgress ? { onUploadProgress: opts.onUploadProgress } : {}),
     });
   } catch (e) {
+    // A person cancelling is not a failure of the network: let the caller see the abort itself.
+    if (e instanceof DOMException && e.name === "AbortError") throw e;
     throw new ApiError(0, "network_error", e instanceof Error ? e.message : "Network error");
   }
   if (!res.ok) throw await apiErrorFromResponse(res);
@@ -126,11 +132,15 @@ export function createTransport(
 ): Transport {
   const base = baseUrl.replace(/\/+$/, "");
   return {
-    fetch: (path, init) =>
-      fetch(`${base}${path.startsWith("/") ? path : `/${path}`}`, {
+    fetch: (path, init) => {
+      const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+      const merged = {
         ...init,
         headers: { ...headers(), ...(init?.headers as Record<string, string> | undefined) },
         cache: "no-store",
-      }),
+      } as ProgressInit;
+      if (merged.onUploadProgress && typeof XMLHttpRequest !== "undefined") return xhrFetch(url, merged);
+      return fetch(url, merged);
+    },
   };
 }

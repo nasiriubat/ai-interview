@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { useDirty } from "@/components/common/DirtyGuard";
+import { SaveBarView } from "@/components/form/Form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,14 +62,19 @@ export function CategoryForm({
   const [secretEdits, setSecretEdits] = React.useState<Record<string, string>>({});
   const [secretCleared, setSecretCleared] = React.useState<Record<string, true>>({});
   // Edits, resets and typed secrets are all unsaved work; leaving the category would drop them.
-  useDirty(
-    `settings-${category}`,
+  const dirty =
     Object.keys(edits).length +
       Object.keys(resets).length +
       Object.keys(secretEdits).length +
       Object.keys(secretCleared).length >
-      0,
-  );
+    0;
+  useDirty(`settings-${category}`, dirty);
+  const discard = (): void => {
+    setEdits({});
+    setResets({});
+    setSecretEdits({});
+    setSecretCleared({});
+  };
 
   const setValue = (key: string, v: unknown): void => {
     setEdits((prev) => ({ ...prev, [key]: v }));
@@ -135,11 +141,11 @@ export function CategoryForm({
         save();
       }}
     >
-      <h2 id={`category-${category}`} className="text-base font-semibold">
+      <h2 id={`category-${category}`} className="text-lg font-semibold tracking-tight">
         {title}
       </h2>
       <Flash flash={action.flash} />
-      <div className="grid gap-4 bg-card shadow-card rounded-lg p-4 md:p-5">
+      <div className="bg-card shadow-card grid gap-5 rounded-lg p-4 md:p-5">
         {entries.map((entry) => (
           <SettingRow
             key={entry.key}
@@ -173,12 +179,14 @@ export function CategoryForm({
           />
         ))}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" loading={action.busy}>
-          {action.busy ? t.app.saving : s.save}
-        </Button>
-        {category === "email" ? <EmailTestButton scope={scope} scopeId={scopeId} /> : null}
-      </div>
+      <SaveBarView
+        dirty={dirty}
+        alwaysEnabled
+        submitting={action.busy}
+        onDiscard={discard}
+        saveLabel={s.save}
+        extra={category === "email" ? <EmailTestButton scope={scope} scopeId={scopeId} /> : null}
+      />
     </form>
   );
 }

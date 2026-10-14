@@ -21,6 +21,10 @@ export interface AttachmentsOptions {
 export interface AttachmentsController {
   items: Attachment[];
   uploading: boolean;
+  /** 0 to 100 while a file is being sent; null when idle or when the browser cannot measure it. */
+  progress: number | null;
+  /** Stops the upload in progress; the file is not kept. */
+  cancelUpload: () => void;
   error: string | null;
   /** The `accept` attribute for the picker, from the types this session actually allows. */
   accept: string;
@@ -61,6 +65,8 @@ export function useAttachments(api: ParticipantApi, options: AttachmentsOptions)
   const { capabilities, enabled } = options;
   const [items, setItems] = React.useState<Attachment[]>(options.initial);
   const [uploading, setUploading] = React.useState(false);
+  const [progress, setProgress] = React.useState<number | null>(null);
+  const controller = React.useRef<AbortController | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const reload = React.useCallback((): void => {
@@ -93,16 +99,22 @@ export function useAttachments(api: ParticipantApi, options: AttachmentsOptions)
       }
       setError(null);
       setUploading(true);
+      setProgress(0);
+      const abort = new AbortController();
+      controller.current = abort;
       api
-        .uploadAttachment(file)
+        .uploadAttachment(file, undefined, { signal: abort.signal, onProgress: setProgress })
         .then((created) => {
           setItems((list) => [...list.filter((a) => a.id !== created.id), created]);
         })
         .catch((e: unknown) => {
+          if (abort.signal.aborted) return;
           setError(uploadMessage(e));
         })
         .finally(() => {
+          if (controller.current === abort) controller.current = null;
           setUploading(false);
+          setProgress(null);
         });
     },
     [api, capabilities.allowedTypes, capabilities.maxSizeMb],
@@ -162,6 +174,9 @@ export function useAttachments(api: ParticipantApi, options: AttachmentsOptions)
     (attachmentId: string): Promise<Blob> => api.attachmentBytes(attachmentId),
     [api],
   );
+  const cancelUpload = React.useCallback((): void => {
+    controller.current?.abort();
+  }, []);
   const clearError = React.useCallback((): void => {
     setError(null);
   }, []);
@@ -169,6 +184,8 @@ export function useAttachments(api: ParticipantApi, options: AttachmentsOptions)
   return {
     items,
     uploading,
+    progress,
+    cancelUpload,
     error,
     accept: acceptFor(capabilities.allowedTypes),
     upload,

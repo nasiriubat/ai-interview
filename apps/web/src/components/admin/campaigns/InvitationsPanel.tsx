@@ -1,6 +1,6 @@
 "use client";
 
-import { BellIcon, BanIcon, SendIcon, UploadIcon } from "lucide-react";
+import { BellIcon, BanIcon, SendIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -9,6 +9,7 @@ import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { DateText } from "@/components/common/DateText";
+import { ImportDialog } from "@/components/data/ImportDialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -50,7 +51,6 @@ export function InvitationsPanel({
   const [revoking, setRevoking] = React.useState<Invitation | null>(null);
   // Who was reminded in this view: the API stamps `sentAt` again, but only a reload would show it.
   const [reminded, setReminded] = React.useState<ReadonlySet<string>>(new Set());
-  const fileInput = React.useRef<HTMLInputElement>(null);
 
   const requestSend = (): void => {
     if (emails.length === 0) return;
@@ -66,16 +66,6 @@ export function InvitationsPanel({
       setText("");
       router.refresh();
     });
-  };
-
-  const onFile = (file: File | undefined): void => {
-    if (!file) return;
-    file
-      .text()
-      .then((content) => {
-        setText((prev) => (prev ? `${prev}\n${content}` : content));
-      })
-      .catch(() => undefined);
   };
 
   return (
@@ -104,26 +94,13 @@ export function InvitationsPanel({
           <Button type="submit" disabled={action.busy || emails.length === 0}>
             <SendIcon /> {s.sendInvitations} {emails.length > 0 ? `(${emails.length})` : ""}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              fileInput.current?.click();
-            }}
-          >
-            <UploadIcon aria-hidden="true" /> {s.uploadFile}
-          </Button>
-          <input
-            ref={fileInput}
-            id="invite-file"
-            type="file"
-            accept=".txt,.csv"
-            aria-label={s.uploadFileNamed}
-            className="sr-only"
-            tabIndex={-1}
-            onChange={(e) => {
-              onFile(e.target.files?.[0]);
-              e.target.value = "";
+          <ImportDialog
+            trigger={s.uploadFile}
+            title={s.uploadFile}
+            description={s.importBody}
+            accept={[".txt", ".csv", "text/plain", "text/csv"]}
+            onImport={(rows) => {
+              setText((prev) => (prev ? `${prev}\n${rows.join("\n")}` : rows.join("\n")));
             }}
           />
         </div>

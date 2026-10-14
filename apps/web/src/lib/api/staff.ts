@@ -284,6 +284,9 @@ export function staffApi(transport: Transport): StaffApi {
   const envelope = <T extends z.ZodType>(s: T): T => s;
   return {
     me: () => request(transport, { path: "/me", schema: MeSchema }),
+    updateProfile: (input) => ok(request(transport, { method: "PATCH", path: "/me", body: input })),
+    revokeOwnSessions: () =>
+      ok(request(transport, { method: "POST", path: "/me/sessions/revoke", body: { confirm: true } })),
     health: () => request(transport, { path: "/health/ready", schema: HealthSchema }),
 
     users: {
@@ -872,6 +875,10 @@ export interface RequirementsApi {
 
 export interface StaffApi {
   me(): Promise<Me>;
+  /** The signed-in person's own display name (D-344). `null` clears it. */
+  updateProfile(input: { name: string | null }): Promise<void>;
+  /** Ends every session of the signed-in person on every device, this one included (D-344). */
+  revokeOwnSessions(): Promise<void>;
   health(): Promise<unknown>;
   users: {
     list(q?: UserListQuery): Promise<Paged<User>>;

@@ -3,6 +3,7 @@
  * file with the same shape; components only ever import `t` from `@/i18n`.
  */
 import type { BudgetScope, CallStatus, Effort, ProviderKind, Purpose, SettingKey } from "@aidp/shared";
+import { kitEn } from "./kit.en";
 import { landingEn } from "./landing.en";
 
 export const en = {
@@ -340,6 +341,7 @@ export const en = {
       liveHideConversation: "Hide conversation",
       liveConversation: "Conversation so far",
       attach: "Attach a file",
+      attachCancel: "Cancel the upload",
       attachUploading: "Sending your file…",
       attachmentsLabel: "Your files",
       attachmentPending: "Reading your file…",
@@ -435,6 +437,7 @@ export const en = {
     },
   },
   landing: landingEn,
+  kit: kitEn,
   admin: {
     nav: {
       dashboard: "Overview",
@@ -846,6 +849,7 @@ export const en = {
       invited: "Invited",
       started: "Started",
       completed: "Completed",
+      emptyTitle: "No campaigns yet",
       empty: "No campaigns yet. Create one to get a link you can share with participants.",
       createTitle: "New campaign",
       createBody:
@@ -876,7 +880,9 @@ export const en = {
       invitationsTitle: "Invitations",
       invitationsBody: "Paste or upload email addresses, one per line or comma separated.",
       invitationsPlaceholder: "anna@company.com\nben@company.com",
-      uploadFile: "Upload a file",
+      uploadFile: "Import addresses from a file",
+      importBody:
+        "A .txt or .csv file with one address per line. You see what was understood before anything is added.",
       sendInvitations: "Send invitations",
       invitationsResult: (created: number, skipped: number): string =>
         `${created} invitation${created === 1 ? "" : "s"} sent, ${skipped} skipped`,
@@ -2083,6 +2089,23 @@ export const en = {
       action: "Action",
       target: "Target",
       details: "Details",
+      showDetails: "Show details",
+      dateRange: "Date range",
+      area: "Area",
+      searchPlaceholder: "Search by action or person",
+      exportCsv: "CSV",
+      exportCsvHint: "Every entry that matches the filters, newest first.",
+      exportWhat: "the audit log",
+      families: {
+        "campaign.": "Campaigns",
+        "user.": "Users",
+        "template.": "Templates",
+        "settings.": "Settings",
+        "provider.": "Providers",
+        "prompt.": "Prompts",
+        "budget.": "Budgets",
+        "requirements.": "Requirements",
+      } as Record<string, string>,
       empty: "No audit entries in this range. Try a wider range or clear the filters.",
     },
     users: {
@@ -2094,7 +2117,19 @@ export const en = {
       add: "Add user",
       added: "User added",
       updated: "User updated",
+      emptyTitle: "No users yet",
       empty: "No users yet. Add one to let a colleague sign in to the admin.",
+      inviteBody: "They receive a sign-in link by email. There is no password to set.",
+      changeRole: "Change role",
+      roleHints: {
+        admin: "Settings, providers, budgets and users, besides everything a member can do.",
+        member: "Runs campaigns and reads results; cannot change configuration.",
+      } as Record<"admin" | "member", string>,
+      bulkDisable: (n: number): string => (n === 1 ? "Disable 1 user" : `Disable ${n} users`),
+      bulkDisableTitle: (n: number): string => (n === 1 ? "Disable 1 user?" : `Disable ${n} users?`),
+      bulkDone: (n: number): string => (n === 1 ? "1 user disabled" : `${n} users disabled`),
+      bulkPartial: (done: number, failed: number): string =>
+        `${done} disabled, ${failed} could not be disabled`,
       roleTitle: (email: string): string => `Change the role of ${email}?`,
       roleBodyGrant: "Admins can change settings, providers, budgets and users in your organization.",
       roleBodyRevoke: "They will lose access to settings, providers, budgets and user management.",

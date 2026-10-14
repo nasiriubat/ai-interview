@@ -21,6 +21,86 @@ const page = (key: string, rows: unknown[]): Record<string, unknown> => ({
   offset: 0,
 });
 
+/**
+ * A list the way the API serves one (contract 19): searched on `q`, narrowed by the named filters,
+ * sorted on `sort` and `dir`, then windowed by `limit` and `offset`, with the full `total`. The
+ * fixtures are generated, so the table pages have enough rows to page through.
+ */
+function listOf<T extends Record<string, unknown>>(
+  key: string,
+  all: T[],
+  url: URL,
+  options: { search: (keyof T & string)[]; filters?: Record<string, (row: T, value: string) => boolean> },
+): Record<string, unknown> {
+  const q = (url.searchParams.get("q") ?? "").toLowerCase();
+  let rows = all.filter(
+    (r) =>
+      !q ||
+      options.search.some((k) =>
+        String(r[k] ?? "")
+          .toLowerCase()
+          .includes(q),
+      ),
+  );
+  for (const [name, match] of Object.entries(options.filters ?? {})) {
+    const v = url.searchParams.get(name);
+    if (v) rows = rows.filter((r) => match(r, v));
+  }
+  const sort = url.searchParams.get("sort");
+  if (sort) {
+    const dir = url.searchParams.get("dir") === "desc" ? -1 : 1;
+    rows = [...rows].sort(
+      (a, b) =>
+        `${(a[sort] as string | number | null) ?? ""}`.localeCompare(
+          `${(b[sort] as string | number | null) ?? ""}`,
+        ) * dir,
+    );
+  }
+  const limit = Math.min(200, Number(url.searchParams.get("limit") ?? 50) || 50);
+  const offset = Number(url.searchParams.get("offset") ?? 0) || 0;
+  return { [key]: rows.slice(offset, offset + limit), total: rows.length, limit, offset };
+}
+
+const STATUSES = ["draft", "open", "analyzing", "closed"] as const;
+const manyCampaigns = Array.from({ length: 37 }, (_v, i) => ({
+  ...f.campaign,
+  id: `camp${String(i + 1)}`,
+  name:
+    i === 0
+      ? f.campaign.name
+      : `${["Ward round", "Pharmacy", "Intake", "Billing", "Discharge"][i % 5] ?? "Round"} ${String(2026 - (i % 3))} Q${String((i % 4) + 1)}`,
+  status: STATUSES[i % 4] ?? "open",
+  createdAt: new Date(Date.UTC(2026, 9, 14 - (i % 28), 9, 30)).toISOString(),
+  stats: { invited: 24 + i, started: 15 + (i % 9), completed: 11 + (i % 7), dropOffByArea: {} },
+}));
+const manyUsers = Array.from({ length: 23 }, (_v, i) => ({
+  id: i === 0 ? "u1" : `u${String(i + 1)}`,
+  email: i === 0 ? "ada@acme.test" : `person${String(i)}@acme.test`,
+  name: i === 0 ? "Ada Admin" : i % 5 === 0 ? null : `Person ${String(i)}`,
+  role: i === 0 || i % 7 === 0 ? "admin" : "member",
+  status: "active",
+  createdAt: new Date(Date.UTC(2026, 8, 1 + i, 8)).toISOString(),
+  disabledAt: i % 9 === 4 ? "2026-10-01T08:00:00.000Z" : null,
+}));
+const ACTIONS = [
+  "campaign.create",
+  "campaign.open",
+  "user.create",
+  "user.update",
+  "settings.update",
+  "template.published",
+  "campaign.invite",
+];
+const manyAudit = Array.from({ length: 120 }, (_v, i) => ({
+  id: `a${String(i + 1)}`,
+  createdAt: new Date(Date.UTC(2026, 9, 14, 9, 30) - i * 3_600_000 * 5).toISOString(),
+  action: ACTIONS[i % ACTIONS.length] ?? "campaign.create",
+  targetType: (ACTIONS[i % ACTIONS.length] ?? "campaign.create").split(".")[0],
+  targetId: `id${String(i)}`,
+  actorEmail: i % 3 === 0 ? "ada@acme.test" : "ben@acme.test",
+  diff: i % 2 === 0 ? { name: `Change ${String(i)}`, status: "open" } : null,
+}));
+
 const READS: [RegExp, Handler][] = [
   [/^\/me$/, (_u, req) => ({ body: f.me(roleOf(req)) })],
   [/^\/health\/ready$/, () => ({ body: { ok: true } })],
@@ -79,7 +159,15 @@ const READS: [RegExp, Handler][] = [
       },
     }),
   ],
-  [/^\/campaigns$/, () => ({ body: page("campaigns", [f.campaign]) })],
+  [
+    /^\/campaigns$/,
+    (u) => ({
+      body: listOf("campaigns", manyCampaigns, u, {
+        search: ["name"],
+        filters: { status: (r, v) => r.status === v },
+      }),
+    }),
+  ],
   [
     /^\/campaigns\/[^/]+$/,
     () => ({ body: { campaign: f.campaign, link: f.campaign.link, stats: f.campaign.stats } }),
@@ -186,21 +274,31 @@ const READS: [RegExp, Handler][] = [
   [/^\/providers\/[^/]+\/prices$/, () => ({ body: page("prices", []) })],
   [/^\/routes$/, () => ({ body: { routes: f.routes } })],
   [/^\/budgets$/, () => ({ body: page("budgets", f.budgets) })],
-  [/^\/users$/, () => ({ body: page("users", f.users) })],
+  [
+    /^\/users$/,
+    (u) => ({
+      body: listOf("users", manyUsers, u, {
+        search: ["email", "name"],
+        filters: { role: (r, v) => r.role === v },
+      }),
+    }),
+  ],
   [
     /^\/audit$/,
-    () => ({
-      body: page("entries", [
-        {
-          id: "a1",
-          createdAt: "2026-10-14T09:30:00.000Z",
-          action: "campaign.create",
-          targetType: "campaign",
-          targetId: "camp1",
-          actorEmail: "ada@acme.test",
+    (u) => ({
+      body: listOf("entries", manyAudit, u, {
+        search: ["action", "actorEmail"],
+        filters: {
+          action: (r, v) => (v.endsWith(".") ? r.action.startsWith(v) : r.action === v),
+          from: (r, v) => r.createdAt.slice(0, 10) >= v,
+          to: (r, v) => r.createdAt.slice(0, 10) <= v,
         },
-      ]),
+      }),
     }),
+  ],
+  [
+    /^\/audit\.csv$/,
+    () => ({ body: "created_at,actor,action\r\n2026-10-14T09:30:00.000Z,ada@acme.test,campaign.create\r\n" }),
   ],
   [/^\/prompts$/, () => ({ body: { prompts: f.promptSummaries, windowDays: 30 } })],
   [/^\/prompts\/[^/]+$/, () => ({ body: f.promptDetail })],
@@ -307,6 +405,16 @@ export interface FakeApi {
 }
 
 function send(res: ServerResponse, status: number, body: unknown): void {
+  if (typeof body === "string") {
+    // A file (the CSV exports): sent as it is, with the headers a download carries.
+    res.writeHead(status, {
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": 'attachment; filename="audit-log-2026-10-14.csv"',
+      "content-length": Buffer.byteLength(body),
+    });
+    res.end(body);
+    return;
+  }
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-type": "application/json", "content-length": Buffer.byteLength(text) });
   res.end(text);

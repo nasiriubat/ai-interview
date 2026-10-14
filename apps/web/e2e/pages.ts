@@ -223,6 +223,10 @@ export const PAGES: Entry[] = [
   admin("budgets", "/admin/budgets", "app/admin/budgets/page.tsx"),
   admin("users", "/admin/users", "app/admin/users/page.tsx"),
   admin("audit", "/admin/audit", "app/admin/audit/page.tsx"),
+  admin("account", "/admin/account", "app/admin/account/page.tsx"),
+  // The UI kit gallery: not a product page, but every state of every primitive, so it is held to
+  // the same accessibility and layout checks (D-348). It is served only with UI_GALLERY=1.
+  publicPage("ui-gallery", "/dev/ui", "app/dev/ui/page.tsx"),
   admin("prompts", "/admin/prompts", "app/admin/prompts/page.tsx"),
   admin("prompt", "/admin/prompts/interviewer", "app/admin/prompts/[key]/page.tsx"),
   admin(
