@@ -79,7 +79,7 @@ export function AnalysisHeader({
                   value: a.id,
                   label: `${s.versionOption(a.version, s.status[a.status])}${i === 0 ? ` (${s.latest})` : ""}${
                     a.preliminary ? ` · ${s.preliminary}` : ""
-                  }`,
+                  }${a.stats.trigger ? ` · ${s.trigger[a.stats.trigger]}` : ""}`,
                   detail: formatDate(a.finishedAt ?? a.createdAt),
                 }))}
                 labels={{
@@ -107,6 +107,12 @@ export function AnalysisHeader({
       </div>
       {selected && !selected.stats.thresholdMet ? (
         <p className="text-muted-foreground text-xs">{s.preliminaryHint}</p>
+      ) : null}
+      {/* A run the platform queued at the threshold says so and when it will start (D-324). */}
+      {latest?.status === "queued" && latest.stats.trigger === "auto" && latest.stats.autoStartAt ? (
+        <p className="text-muted-foreground text-xs" role="status">
+          {s.autoWaiting(formatDate(latest.stats.autoStartAt))}
+        </p>
       ) : null}
       {stats ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">

@@ -109,7 +109,7 @@ describe("toTurnStreamEvent", () => {
     if (ev?.type === "spec") {
       expect(ev.spec.sections[0]?.key).toBe("overview");
       expect(ev.spec.findings[0]).toMatchObject({ status: "open", confidence: "medium", pushedBack: false });
-      expect(ev.spec.mvpChallenge).toEqual({ started: false, done: false, asked: [] });
+      expect(ev.spec.mvpChallenge).toEqual({ started: false, done: false, asked: [], outcome: "pending" });
       expect(ev.spec.stats).toEqual({ fields: 0, sectionsWithContent: 0, openFindings: 0 });
     }
     expect(toTurnStreamEvent({ event: "spec", data: '{"spec":{"sections":"nope"}}' })).toMatchObject({

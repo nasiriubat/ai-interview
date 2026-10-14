@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { LINK_TOKEN } from "./fixtures";
+import { LIVE_TOKEN, LINK_TOKEN } from "./fixtures";
 
 /**
  * Every page the app can show, and the states of the interview and the forms that a plain load
@@ -22,6 +22,13 @@ export interface Entry {
   route: string;
   /** The page is itself an error page, so showing the error wording is correct. */
   isErrorPage?: boolean;
+  /** For `participant`: the credential the cookie carries; the fake API reads "live" in it. */
+  token?: string;
+  /**
+   * Runs before the page is opened: permissions, a fake microphone state, a stand-in for the call's
+   * socket. `prepare` runs after it, once the page has loaded.
+   */
+  before?: (page: Page) => Promise<void>;
 }
 
 const publicPage = (id: string, path: string, route: string, prepare?: Entry["prepare"]): Entry => ({
@@ -50,6 +57,38 @@ const operator = (id: string, path: string, route: string): Entry => ({
 const click = async (page: Page, name: RegExp | string): Promise<void> => {
   await page.getByRole("button", { name }).first().click();
 };
+
+/** The third item of the mode switch is Voice (chat, options, voice); the last when options is off. */
+async function openVoiceMode(page: Page): Promise<void> {
+  await page.locator("[data-mode-switch] > *").last().click();
+}
+
+/** Microphone permission granted; the browser's fake device supplies the audio. */
+async function allowMicrophone(page: Page): Promise<void> {
+  await page.context().grantPermissions(["microphone"]);
+}
+
+/** A browser that refuses the microphone, the way a blocked site permission does. */
+async function refuseMicrophone(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const refuse = (): Promise<MediaStream> =>
+      Promise.reject(new DOMException("Permission denied", "NotAllowedError"));
+    if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = refuse;
+  });
+}
+
+/**
+ * The call's WebSocket is the one API surface the browser reaches without the web server in front,
+ * and the fake API is plain HTTP. A stand-in answers the one frame a call needs to come up.
+ */
+async function standInCallSocket(page: Page): Promise<void> {
+  await page.routeWebSocket(/\/api\/v1\/p\/session\/live/, (ws) => {
+    ws.send(
+      JSON.stringify({ type: "ready", captions: true, bargeIn: false, mode: "utterance", sampleRate: 24000 }),
+    );
+    ws.onMessage(() => undefined);
+  });
+}
 
 export const PAGES: Entry[] = [
   // Without any session
@@ -94,6 +133,54 @@ export const PAGES: Entry[] = [
         .getByRole("button", { name: /interview options|haastattelun valinnat|valinnat/i })
         .first()
         .click();
+    },
+  },
+
+  // The voice modes of the interview (D-326). Chromium is started with a fake microphone
+  // (`playwright.config.ts`), so these are the screens a participant sees with one allowed, with
+  // permission refused, and in a live call whose socket is a stand-in that answers `ready`.
+  {
+    id: "interview-voice",
+    path: "/p/session",
+    route: "app/p/session/page.tsx",
+    auth: "participant",
+    before: allowMicrophone,
+    prepare: openVoiceMode,
+  },
+  {
+    id: "interview-voice-denied",
+    path: "/p/session",
+    route: "app/p/session/page.tsx",
+    auth: "participant",
+    before: async (page: Page): Promise<void> => {
+      await refuseMicrophone(page);
+    },
+    prepare: async (page: Page): Promise<void> => {
+      await openVoiceMode(page);
+      await page.getByRole("button", { name: /record your answer|nauhoita vastauksesi/i }).click();
+      await page
+        .getByText(/Microphone access was blocked|Mikrofonin käyttö estettiin/)
+        .first()
+        .waitFor();
+    },
+  },
+  {
+    id: "interview-voice-live",
+    path: "/p/session",
+    route: "app/p/session/page.tsx",
+    auth: "participant",
+    token: LIVE_TOKEN,
+    before: async (page: Page): Promise<void> => {
+      await allowMicrophone(page);
+      await standInCallSocket(page);
+    },
+    prepare: async (page: Page): Promise<void> => {
+      await openVoiceMode(page);
+      // The call is up when the mute control of a call exists.
+      await page
+        .getByRole("button", { name: /mute microphone|mykistä mikrofoni/i })
+        .first()
+        .waitFor({ timeout: 15_000 });
     },
   },
 

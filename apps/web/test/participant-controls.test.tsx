@@ -115,7 +115,7 @@ function apiWith(over: Partial<ParticipantApi> = {}): ParticipantApi {
     setMode: noop,
     pause: noop,
     deleteData: () => Promise.resolve({ ok: true, emailSent: false }),
-    getSummary: () => Promise.resolve({ summary: "", facts: [] }),
+    getSummary: () => Promise.resolve({ summary: "", facts: [], status: "ready" as const }),
     putSummary: noop,
     ...over,
   };

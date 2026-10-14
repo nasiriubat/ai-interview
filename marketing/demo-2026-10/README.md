@@ -77,13 +77,13 @@ with simulated colleagues and low-cost models.
 Running it again: the wrappers in `tooling/` expect a scratch directory
 `/private/tmp/claude-504/d` (a symlink to the session scratchpad; change the paths). In order:
 `run-stack.sh` (needs `pnpm build`, `pnpm db:up`, free ports 4110 and 3200), `start-web.sh`,
-`run-disc.sh`, then in `apps/web`: `pnpm exec tsx scripts/demo-a.ts` (landing and the browser
+`run-disc.sh`, then in `apps/web`: `pnpm exec tsx demo/demo-a.ts` (moved out of `scripts/`, which the web image type-checks and cannot see `scripts/live-run`) (landing and the browser
 interview), `run-analysis.sh`, `run-req.sh`, and `demo-b.ts`, `demo-c.ts`, `demo-d.ts`,
 `demo-e.ts`, `demo-f.ts` for the staff screens. The PDFs were rendered to PNG with PyMuPDF.
 
 ## Candid list: what did not work, looked bad, or errored
 
-Product defects found (none fixed here; they are not small):
+Product defects found (none fixed in this folder; items 1 to 4, 7 and the end-screen part of the re-record list were fixed afterwards, see `docs/discovery/decisions.md` D-320 to D-326, and the diagram cause was reduced motion, not CSP):
 
 1. **Flowchart diagrams are illegible.** In the version page and in the workspace, the context,
    container and entity-relationship diagrams are drawn with a viewBox thousands of units wide

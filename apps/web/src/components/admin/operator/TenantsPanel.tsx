@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import { CEILING_METRICS, type CeilingMetric, type Tenant, type CeilingUtilisation } from "@/lib/api/schemas";
+import { currentCurrency } from "@/lib/currency";
 import { formatCents, formatDate, formatNumber } from "@/lib/utils";
 
 const s = t.admin.operator;
@@ -148,7 +149,7 @@ export function TenantsPanel({ tenants }: { tenants: Tenant[] }): React.JSX.Elem
                 />
                 <NumberField
                   id="tenant-budget"
-                  label={`${s.defaultBudget} (€)`}
+                  label={`${s.defaultBudget} (${currentCurrency()})`}
                   value={budget}
                   min={0}
                   onChange={setBudget}

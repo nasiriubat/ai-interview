@@ -6,9 +6,9 @@ import type { AlertPort } from "./port.js";
 
 type Limit = BudgetLimit & { spentCents: number };
 
-/** `EUR 166.00`: the ledger is in cents and has no currency of its own yet. */
-export function formatCents(cents: number): string {
-  return `EUR ${(cents / 100).toFixed(2)}`;
+/** `USD 166.00`: the ledger is in hundredths of the currency the price table is entered in (D-323). */
+export function formatCents(cents: number, currency = "USD"): string {
+  return `${currency} ${(cents / 100).toFixed(2)}`;
 }
 
 /** 80, 90: the tier a fraction falls in, so one condition has one key however many calls see it. */
@@ -36,6 +36,8 @@ export class BudgetAlerts {
       db: PrismaClient;
       alerts: AlertPort;
       publicWebUrl: string;
+      /** The tenant's `branding.currency`; USD when absent. */
+      currencyOf?: (companyId: string) => Promise<string>;
       now?: () => Date;
       log?: { warn: (message: string, meta?: Record<string, unknown>) => void };
     },
@@ -62,12 +64,13 @@ export class BudgetAlerts {
   private async raiseWarning(ctx: CallContext, w: Limit & { fraction: number }, key: string): Promise<void> {
     const subject = await this.describe(ctx.companyId, w.scope, w.scopeId);
     const pct = Math.round(w.fraction * 100);
+    const cur = await this.currency(ctx.companyId);
     await this.deps.alerts.raise({
       kind: "budget.warning",
       key,
       companyId: ctx.companyId,
       title: `Budget at ${pct}%: ${subject.label}`,
-      message: `The budget for ${subject.label} is at ${pct}% (${formatCents(w.spentCents)} of ${formatCents(w.limitCents)}). Interviews continue; at 100% they pause.`,
+      message: `The budget for ${subject.label} is at ${pct}% (${formatCents(w.spentCents, cur)} of ${formatCents(w.limitCents, cur)}). Interviews continue; at 100% they pause.`,
       context: {
         scope: w.scope,
         scopeId: w.scopeId,
@@ -89,12 +92,13 @@ export class BudgetAlerts {
     if (seen && at - seen.at < LOCAL_EXCEEDED_TTL_MS) return { notified: seen.notified };
 
     const subject = await this.describe(ctx.companyId, blocked.scope, blocked.scopeId);
+    const cur = await this.currency(ctx.companyId);
     const result = await this.deps.alerts.raise({
       kind: "budget.exceeded",
       key,
       companyId: ctx.companyId,
       title: `Budget used up: ${subject.label}`,
-      message: `The budget for ${subject.label} is used up (${formatCents(blocked.spentCents)} of ${formatCents(blocked.limitCents)}). Interviews under it are paused until the budget is raised${blocked.period === "month" ? " or the month rolls over" : ""}.`,
+      message: `The budget for ${subject.label} is used up (${formatCents(blocked.spentCents, cur)} of ${formatCents(blocked.limitCents, cur)}). Interviews under it are paused until the budget is raised${blocked.period === "month" ? " or the month rolls over" : ""}.`,
       context: {
         scope: blocked.scope,
         scopeId: blocked.scopeId,
@@ -107,6 +111,14 @@ export class BudgetAlerts {
     // the router has already given the claim back and the channel may have recovered.
     if (result.delivered) this.seenExceeded.set(key, { at, notified: true });
     return { notified: result.delivered };
+  }
+
+  private async currency(companyId: string): Promise<string> {
+    try {
+      return (await this.deps.currencyOf?.(companyId)) ?? "USD";
+    } catch {
+      return "USD";
+    }
   }
 
   private key(

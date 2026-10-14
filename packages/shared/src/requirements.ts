@@ -179,6 +179,25 @@ export const MvpChallengeStateSchema = z.object({
 });
 export type MvpChallengeState = z.infer<typeof MvpChallengeStateSchema>;
 
+/**
+ * What the owner is told about the MVP challenge (D-322). The stored state only says whether the
+ * walk started and finished; whether it is still to come, was switched off for this interview, or
+ * was passed over because the interview ended first is a different fact, and "Not started" for all
+ * three was untrue for the last two.
+ */
+export const MVP_OUTCOMES = ["off", "pending", "in_progress", "done", "skipped"] as const;
+export const MvpOutcomeSchema = z.enum(MVP_OUTCOMES);
+export type MvpOutcome = z.infer<typeof MvpOutcomeSchema>;
+/** Why a challenge that was meant to run did not finish: the owner finished, or the turn limit came. */
+export const MvpEndedBySchema = z.enum(["finish", "turn_limit"]);
+export type MvpEndedBy = z.infer<typeof MvpEndedBySchema>;
+
+export const LiveMvpChallengeSchema = MvpChallengeStateSchema.extend({
+  outcome: MvpOutcomeSchema.default("pending"),
+  endedBy: MvpEndedBySchema.optional(),
+});
+export type LiveMvpChallenge = z.infer<typeof LiveMvpChallengeSchema>;
+
 /** A diagram as the owner sees it in the live spec: generated, edited over a generated one, or added. */
 export const LiveDiagramSchema = z.object({
   key: z.string(),
@@ -203,7 +222,7 @@ export const LiveSpecSchema = z.object({
   diagrams: z.array(LiveDiagramSchema).default([]),
   findings: z.array(FindingSchema),
   decisions: z.array(DecisionSchema),
-  mvpChallenge: MvpChallengeStateSchema,
+  mvpChallenge: LiveMvpChallengeSchema.prefault({}),
   stats: z.object({
     fields: z.number().int().nonnegative(),
     sectionsWithContent: z.number().int().nonnegative(),

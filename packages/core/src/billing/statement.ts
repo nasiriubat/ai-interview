@@ -142,6 +142,8 @@ function bounds(month: string): { from: Date; to: Date } {
 export interface StatementServiceDeps {
   db: PrismaClient;
   now?: () => Date;
+  /** The tenant's `branding.currency` (D-323); USD when absent. */
+  currencyOf?: (companyId: string) => Promise<string>;
 }
 
 export class StatementService {
@@ -227,7 +229,7 @@ export class StatementService {
       companyId,
       month,
       generatedAt: this.now().toISOString(),
-      currency: "USD",
+      currency: (await this.deps.currencyOf?.(companyId)) ?? "USD",
       lines,
       totals,
       counts: await this.counts(companyId, from, to),

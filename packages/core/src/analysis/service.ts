@@ -51,11 +51,19 @@ export interface AnalysisServiceDeps {
 export class AnalysisService {
   constructor(private readonly deps: AnalysisServiceDeps) {}
 
-  /** Creates a queued run and publishes the job. 409-style error when one is active. */
+  /**
+   * Creates a queued run and publishes the job. 409-style error when one is active.
+   *
+   * `auto` is a run the platform started when the campaign crossed its threshold (D-324): it is
+   * recorded as such (`stats.trigger`), and it waits `delaySeconds` before it starts so that the
+   * interviews still finishing, and their extraction, are in it and one burst of completions makes
+   * one version instead of several.
+   */
   async queue(
     companyId: string,
     campaignId: string,
     requestedBy: string | null,
+    options: { auto?: boolean; delaySeconds?: number } = {},
   ): Promise<{ id: string; version: number }> {
     const { db } = this.deps;
     const campaign = await db.campaign.findFirstOrThrow({ where: { id: campaignId, companyId } });
@@ -69,6 +77,7 @@ export class AnalysisService {
       select: { version: true },
     });
     const threshold = await this.thresholdMet(campaign.id, campaign.companyId);
+    const delay = Math.max(0, Math.round(options.delaySeconds ?? 0));
     const run = await db.analysis.create({
       data: {
         companyId: campaign.companyId,
@@ -76,13 +85,19 @@ export class AnalysisService {
         version: (last?.version ?? 0) + 1,
         status: "queued",
         preliminary: !threshold.met,
-        stats: { requestedBy, thresholdMet: threshold.met, ...threshold },
+        stats: {
+          requestedBy,
+          ...(options.auto ? { trigger: "auto" as const } : {}),
+          ...(delay > 0 ? { autoStartAt: new Date(Date.now() + delay * 1000).toISOString() } : {}),
+          thresholdMet: threshold.met,
+          ...threshold,
+        },
       },
     });
     await this.deps.jobs.publish(
       "analysis.run",
       { analysisId: run.id, companyId },
-      { singletonKey: `analysis:${campaignId}` },
+      { singletonKey: `analysis:${campaignId}`, ...(delay > 0 ? { startAfterSeconds: delay } : {}) },
     );
     return { id: run.id, version: run.version };
   }
@@ -116,7 +131,14 @@ export class AnalysisService {
     // Re-run automatically only when new completed sessions arrived since the last run.
     if (latestDone && ((latestDone.stats as { completed?: number }).completed ?? 0) >= threshold.completed)
       return false;
-    await this.queue(companyId, campaignId, null);
+    // The wait is a setting (`analysis.autoRunDelayMinutes`): the first completion past the
+    // threshold schedules one run; completions that arrive while it waits are absorbed, because it
+    // is still queued and collects what has been extracted by the time it starts.
+    const minutes = await this.deps.settings.get("analysis.autoRunDelayMinutes", [
+      { scope: "campaign", scopeId: campaignId },
+      { scope: "tenant", scopeId: companyId },
+    ]);
+    await this.queue(companyId, campaignId, null, { auto: true, delaySeconds: minutes * 60 });
     return true;
   }
 

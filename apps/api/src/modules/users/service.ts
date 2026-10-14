@@ -36,6 +36,8 @@ export class UsersService {
   constructor(
     private readonly db: PrismaClient,
     private readonly audit: AuditService,
+    /** The tenant's `branding.currency`, for `/me`; USD when not given (tests of this class alone). */
+    private readonly currencyOf: (companyId: string) => Promise<string> = () => Promise.resolve("USD"),
   ) {}
 
   /** The signed-in user and their company, for `GET /me`. */
@@ -44,7 +46,7 @@ export class UsersService {
     userId: string,
   ): Promise<{
     user: { id: string; email: string; name: string | null; role: string; companyId: string };
-    company: { id: string; name: string; status: string };
+    company: { id: string; name: string; status: string; currency: string };
   }> {
     const user = await this.db.user.findFirstOrThrow({
       where: { id: userId, companyId },
@@ -52,7 +54,12 @@ export class UsersService {
     });
     return {
       user: { id: user.id, email: user.email, name: user.name, role: user.role, companyId: user.companyId },
-      company: { id: user.company.id, name: user.company.name, status: user.company.status },
+      company: {
+        id: user.company.id,
+        name: user.company.name,
+        status: user.company.status,
+        currency: await this.currencyOf(user.company.id),
+      },
     };
   }
 

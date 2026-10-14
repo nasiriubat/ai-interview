@@ -167,14 +167,17 @@ interface PngSize {
   height: number;
 }
 
-/** Dimensions from the IHDR chunk; null for anything that is not a plausible PNG. */
+/** Dimensions from the IHDR chunk; null for anything that is not a PNG with a size. */
 function pngSize(png: Buffer): PngSize | null {
   if (png.length < 24 || png.toString("ascii", 12, 16) !== "IHDR") return null;
   const width = png.readUInt32BE(16);
   const height = png.readUInt32BE(20);
-  if (width < 1 || height < 1 || width > 8_000 || height > 12_000) return null;
+  if (width < 1 || height < 1) return null;
   return { width, height };
 }
+
+/** A drawing beyond this is a layout gone wrong (D-320): unreadable on a page however it is scaled. */
+const isOversized = (s: PngSize): boolean => s.width > 8_000 || s.height > 12_000;
 
 async function renderDiagrams(
   slots: DiagramSlot[],
@@ -202,6 +205,13 @@ async function renderDiagrams(
         const png = await kroki.render(withExportTheme(slot.source), "png");
         const size = pngSize(png);
         if (!size) throw new KrokiUnavailableError("The renderer returned an unusable image");
+        if (isOversized(size)) {
+          // This one diagram is the problem, not the service: the others are still asked for. It
+          // used to be treated as "the renderer is down", which sent every later diagram to
+          // source as well (D-320).
+          warnings.push(`diagram_too_large:${n}`);
+          continue;
+        }
         done.set(slot.index, { png, size });
       } catch (e) {
         if (e instanceof KrokiSyntaxError) warnings.push(`diagram_syntax:${n}`);
