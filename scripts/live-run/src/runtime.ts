@@ -102,7 +102,7 @@ export function writeJson(relative: string, value: unknown): string {
 
 /**
  * Finds OPENROUTER_API_KEY. Read only inside this process: from the environment, or from the
- * first `.env` or `apps/api/.env` found walking up from the worktree (a worktree has none of its
+ * first `.env` (the root file, D-400) or legacy `apps/api/.env` found walking up from the worktree (a worktree has none of its
  * own because `.env` files are never copied). The value is registered for redaction and is only
  * ever handed to child processes through their environment, never written anywhere.
  */

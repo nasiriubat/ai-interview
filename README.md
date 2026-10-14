@@ -30,13 +30,9 @@ This repository is built using the product's own process. Start reading here:
 
 ### Configuration
 
-There is no root `.env`, and nothing loads one. Two files carry configuration in development, each
-next to the app that reads it:
-
-| File            | Read by                                   |
-| --------------- | ----------------------------------------- |
-| `apps/api/.env` | the API, the worker, and `docker compose` |
-| `apps/web/.env` | the web app when run outside compose      |
-
-Copy the `.env.example` beside each. Production reads neither: `deploy/generate-env.sh` writes
-`deploy/.env` and `deploy/compose.prod.yml` names every variable explicitly.
+Development has one configuration file: the root `.env` (copy `.env.example`, which documents
+every variable). `docker compose`, the API, the worker, the database tools and `next dev` all read
+it; see [docs/RUNNING.md](docs/RUNNING.md#configuration) for precedence and for what the admin
+overrides. An older `apps/api/.env` is still read underneath it until `pnpm env:migrate` moves it.
+Production reads neither: `deploy/generate-env.sh` writes `deploy/.env` and
+`deploy/compose.prod.yml` names every variable explicitly.
