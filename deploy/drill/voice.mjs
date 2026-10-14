@@ -52,7 +52,8 @@ log("socket open through Caddy");
 const until = async (what, check, ms = 20_000) => {
   const deadline = Date.now() + ms;
   while (!check()) {
-    if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}; frames: ${JSON.stringify(frames.map((f) => f.type))}`);
+    if (Date.now() > deadline)
+      throw new Error(`timed out waiting for ${what}; frames: ${JSON.stringify(frames.map((f) => f.type))}`);
     await sleep(25);
   }
 };
@@ -84,11 +85,19 @@ for (let i = 0; i < turns; i++) {
   if (ready.mode !== "stream") ws.send(JSON.stringify({ type: "utterance", durationMs: 1200 }));
   await until("the answer to be heard and a turn taken", () => count("turn") > before.turn, 30_000);
   await until("the reply to be spoken", () => count("audio") > before.audio, 30_000);
-  const reply = frames.slice().reverse().find((f) => f.type === "audio");
+  const reply = frames
+    .slice()
+    .reverse()
+    .find((f) => f.type === "audio");
   results.push({
     turn: i + 1,
     caption: frames.filter((f) => f.type === "caption_final" || f.type === "caption").length,
-    answerToFirstAudioMs: frames.find((f, idx) => f.type === "audio" && idx > frames.findIndex((x) => x.type === "turn" && x.at >= sentAt - t0))?.at - (sentAt - t0),
+    answerToFirstAudioMs:
+      frames.find(
+        (f, idx) =>
+          f.type === "audio" && idx > frames.findIndex((x) => x.type === "turn" && x.at >= sentAt - t0),
+      )?.at -
+      (sentAt - t0),
     replyAt: reply.at,
   });
 }

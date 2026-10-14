@@ -111,7 +111,7 @@ run_backup() {
 	# pipe is under pipefail, so a failing pg_dump fails the run instead of encrypting nothing.
 	if ! pg_dump --format=custom --compress=6 --no-owner "$PGURL" | age -r "$BACKUP_AGE_RECIPIENT" >"$dump.part"; then
 		rm -f "$dump.part"
-		fail_run "pg_dump failed; no dump written"
+		fail_run "pg_dump failed, or the dump could not be encrypted and written (a full backups disk looks like this); no dump written. The container log has the tool's own message"
 		return 1
 	fi
 	mv "$dump.part" "$dump"

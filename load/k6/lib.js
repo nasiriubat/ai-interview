@@ -87,7 +87,8 @@ export function arrive(name) {
 
 /** One turn. `index` 0 is the opening turn with no body, as the client sends it. */
 export function takeTurn(index) {
-  const body = index === 0 ? null : JSON.stringify({ content: ANSWERS[(index - 1) % ANSWERS.length], modality: "text" });
+  const body =
+    index === 0 ? null : JSON.stringify({ content: ANSWERS[(index - 1) % ANSWERS.length], modality: "text" });
   const res = http.post(`${BASE}/api/participant/p/session/turns`, body, {
     headers: index === 0 ? {} : JSON_HEADERS,
     tags: { name: "turn" },

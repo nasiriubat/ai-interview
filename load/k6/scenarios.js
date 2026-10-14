@@ -35,7 +35,12 @@ export function adminReads() {
   const cookie = __ENV.ADMIN_COOKIE || "";
   const params = { headers: { Cookie: cookie }, tags: { name: "admin" } };
   const campaignId = __ENV.CAMPAIGN_ID || "";
-  const paths = ["/api/staff/stats", "/api/staff/campaigns", "/api/staff/stats/participation", "/api/staff/spend/budgets"];
+  const paths = [
+    "/api/staff/stats",
+    "/api/staff/campaigns",
+    "/api/staff/stats/participation",
+    "/api/staff/spend/budgets",
+  ];
   if (campaignId) {
     paths.push(`/api/staff/campaigns/${campaignId}`, `/api/staff/campaigns/${campaignId}/sessions`);
   }
