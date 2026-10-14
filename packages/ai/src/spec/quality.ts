@@ -182,7 +182,7 @@ export interface DuplicateThresholds {
   candidate: number;
 }
 
-export const DEFAULT_DUPLICATE_THRESHOLDS: DuplicateThresholds = { auto: 0.8, candidate: 0.4 };
+export const DEFAULT_DUPLICATE_THRESHOLDS: DuplicateThresholds = { auto: 0.8, candidate: 0.3 };
 
 const normalizeTitle = (t: string): string =>
   t

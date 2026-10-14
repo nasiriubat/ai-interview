@@ -7,6 +7,8 @@ import type { DuplicatePair, ReqView } from "./quality.js";
 
 /** The most pairs one merge call is shown; the strongest candidates go first. */
 export const MAX_MERGE_PAIRS = 24;
+/** The most calls one specification spends on this pass: 144 pairs, a few cents on the cheap route. */
+export const MAX_MERGE_CALLS = 6;
 
 export const MergeVerdictSchema = z.object({
   pairs: z.array(z.object({ a: z.string(), b: z.string(), same: z.boolean() })).default([]),
@@ -24,8 +26,26 @@ export async function judgeCandidatePairs(
   deps: { caller: ModelCallerPort; prompts: PromptSource; logger: Logger },
   input: { companyId: string; sessionId: string; reqs: ReqView[]; pairs: DuplicatePair[] },
 ): Promise<{ same: { a: string; b: string }[]; different: { a: string; b: string }[] }> {
-  const pairs = input.pairs.filter((p) => p.kind === "candidate").slice(0, MAX_MERGE_PAIRS);
-  if (pairs.length === 0) return { same: [], different: [] };
+  const candidates = input.pairs.filter((p) => p.kind === "candidate");
+  const out: { same: { a: string; b: string }[]; different: { a: string; b: string }[] } = {
+    same: [],
+    different: [],
+  };
+  for (let i = 0; i < MAX_MERGE_CALLS; i++) {
+    const batch = candidates.slice(i * MAX_MERGE_PAIRS, (i + 1) * MAX_MERGE_PAIRS);
+    if (batch.length === 0) break;
+    const r = await judgeBatch(deps, { ...input, pairs: batch });
+    out.same.push(...r.same);
+    out.different.push(...r.different);
+  }
+  return out;
+}
+
+async function judgeBatch(
+  deps: { caller: ModelCallerPort; prompts: PromptSource; logger: Logger },
+  input: { companyId: string; sessionId: string; reqs: ReqView[]; pairs: DuplicatePair[] },
+): Promise<{ same: { a: string; b: string }[]; different: { a: string; b: string }[] }> {
+  const pairs = input.pairs;
   const byId = new Map(input.reqs.map((r) => [r.id, r]));
   const show = (id: string): string => {
     const r = byId.get(id);
@@ -57,7 +77,18 @@ export async function judgeCandidatePairs(
       "requirement_merge",
     );
     const allowed = new Set(pairs.map((p) => pairKey(p.a, p.b)));
-    const verdicts = res.pairs.filter((p) => allowed.has(pairKey(p.a, p.b)));
+    // A model under a strict schema sometimes answers with the whole line it was shown ("FR-3:
+    // title | acceptance: ...") as the id (seen live with a small model); the id is its first token.
+    const idOf = (s: string): string => /^\s*([^\s:|]+)/.exec(s)?.[1] ?? s;
+    const verdicts = res.pairs
+      .map((p) => ({ a: idOf(p.a), b: idOf(p.b), same: p.same }))
+      .filter((p) => allowed.has(pairKey(p.a, p.b)));
+    deps.logger.info("requirement merge pass", {
+      sessionId: input.sessionId,
+      asked: pairs.length,
+      answered: res.pairs.length,
+      usable: verdicts.length,
+    });
     return {
       same: verdicts.filter((p) => p.same).map(({ a, b }) => ({ a, b })),
       different: verdicts.filter((p) => !p.same).map(({ a, b }) => ({ a, b })),
