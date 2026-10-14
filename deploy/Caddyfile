@@ -96,7 +96,11 @@
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		X-Frame-Options "SAMEORIGIN"
+		# Nothing frames this app (the CSP says frame-ancestors 'none' as well), and the
+		# microphone is the one device permission voice needs (A3, D-165).
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), geolocation=(), microphone=(self)"
+		Cross-Origin-Opener-Policy "same-origin"
 		-Server
 	}
 

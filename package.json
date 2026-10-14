@@ -12,6 +12,7 @@
     "lint": "eslint packages apps evals scripts/live-run",
     "check": "tsx scripts/check.ts",
     "format": "prettier --write .",
+    "docs:privacy": "tsx scripts/gen-privacy-docs.ts",
     "format:check": "prettier --check .",
     "stack:up": "docker compose up -d --build --remove-orphans && docker image prune -f --filter label=com.docker.compose.project=ai-interview",
     "stack:down": "docker compose down --remove-orphans",

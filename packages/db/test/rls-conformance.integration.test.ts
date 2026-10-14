@@ -523,8 +523,16 @@ describeDb("row-level security conformance (D-140)", () => {
         `SELECT count(*) AS n FROM ${table} WHERE ${col} = $1`,
         b.companyId,
       );
-      const deleted = await rawExecAs(a.companyId, `DELETE FROM ${table} WHERE ${col} = $1`, b.companyId);
-      expect(deleted).toBe(0);
+      if (model === "AuditLog") {
+        // The application role has no DELETE on the audit log at all (migration 0019, D-163): the
+        // statement is refused outright, which is stronger than matching no rows.
+        await expect(
+          rawExecAs(a.companyId, `DELETE FROM ${table} WHERE ${col} = $1`, b.companyId),
+        ).rejects.toThrow(/permission denied/);
+      } else {
+        const deleted = await rawExecAs(a.companyId, `DELETE FROM ${table} WHERE ${col} = $1`, b.companyId);
+        expect(deleted).toBe(0);
+      }
       const after = await owner.$queryRawUnsafe<{ n: bigint }[]>(
         `SELECT count(*) AS n FROM ${table} WHERE ${col} = $1`,
         b.companyId,
