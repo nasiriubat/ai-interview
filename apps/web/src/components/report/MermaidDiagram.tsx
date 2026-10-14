@@ -3,6 +3,7 @@
 import { AlertTriangleIcon } from "lucide-react";
 import type { Mermaid } from "mermaid";
 import * as React from "react";
+import { DiagramViewer } from "./DiagramViewer";
 import { t } from "@/i18n";
 
 let loader: Promise<Mermaid> | null = null;
@@ -20,6 +21,10 @@ function loadMermaid(): Promise<Mermaid> {
       maxEdges: 300,
       theme: "neutral",
       fontFamily: "inherit",
+      // Plain SVG text is measured by the browser's own text metrics and is not clipped by a box
+      // that was sized before the page's style rules applied (D-381); HTML labels were.
+      htmlLabels: false,
+      flowchart: { htmlLabels: false },
     });
     return mermaid;
   });
@@ -102,6 +107,10 @@ export function MermaidDiagram({
     document.body.appendChild(scratch);
     loadMermaid()
       .then(async (mermaid) => {
+        // Labels are measured while the drawing is laid out: with the page's own font not yet
+        // loaded they are measured in a narrower fallback and then drawn wider, which clips them
+        // ("Receptio", "Google Shee"). Waiting for the fonts makes the box fit the text (D-381).
+        await (document.fonts as FontFaceSet | undefined)?.ready;
         await mermaid.parse(code);
         return mermaid.render(id, code, scratch);
       })
@@ -151,19 +160,13 @@ export function MermaidDiagram({
     );
   }
   return (
-    <figure
-      className="report-diagram my-4 min-w-0 overflow-x-auto"
-      // The drawing's own width: the stylesheet keeps it from being squeezed below a readable scale
-      // and lets the figure scroll instead (D-320).
-      style={
-        state.natural > 0
-          ? ({ "--diagram-natural": `${String(state.natural)}px` } as React.CSSProperties)
-          : undefined
-      }
-      role="img"
-      aria-label={label ?? t.admin.report.diagram}
-      // Mermaid's own DOMPurify pass runs in `strict` mode; the source is our API's report.
-      dangerouslySetInnerHTML={{ __html: withStyleNonce(state.svg, pageNonce()) }}
-    />
+    <figure className="my-4 min-w-0">
+      <DiagramViewer
+        html={withStyleNonce(state.svg, pageNonce())}
+        natural={state.natural}
+        code={code}
+        label={label ?? t.admin.report.diagram}
+      />
+    </figure>
   );
 }

@@ -157,19 +157,38 @@ export function LiveVoiceScreen({
           </header>
 
           <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto px-5 py-6">
-            <p role="status" className="flex items-center gap-3 text-lg font-semibold">
-              <Icon
-                className={cn(
-                  "size-6 shrink-0",
-                  (phase === "connecting" || phase === "thinking") && !live.muted
-                    ? "motion-safe:animate-spin"
-                    : "",
-                )}
+            <div className="flex flex-col items-center gap-3 pt-2 text-center">
+              <span
                 aria-hidden="true"
-              />
-              {live.muted ? s.liveMuted : statusLabel(phase)}
-              {phase === "listening" && !live.muted ? <LevelMeter level={live.level} /> : null}
-            </p>
+                className={cn(
+                  "relative grid size-24 place-items-center rounded-full",
+                  live.problem
+                    ? "bg-destructive-soft text-destructive-soft-foreground"
+                    : live.muted
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-accent text-accent-foreground",
+                )}
+              >
+                {phase === "listening" && !live.muted && !live.problem ? (
+                  <span
+                    className="bg-primary/20 absolute inset-0 rounded-full motion-safe:animate-ping"
+                    style={{ animationDuration: "2.4s" }}
+                  />
+                ) : null}
+                <Icon
+                  className={cn(
+                    "relative size-10",
+                    (phase === "connecting" || phase === "thinking") && !live.muted
+                      ? "motion-safe:animate-spin"
+                      : "",
+                  )}
+                />
+              </span>
+              <p role="status" className="flex items-center gap-3 text-xl font-semibold">
+                {live.muted ? s.liveMuted : statusLabel(phase)}
+                {phase === "listening" && !live.muted ? <LevelMeter level={live.level} /> : null}
+              </p>
+            </div>
 
             <section aria-label={s.liveInterviewerSays} className="grid gap-2">
               <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
@@ -205,11 +224,13 @@ export function LiveVoiceScreen({
             ) : null}
 
             <section aria-label={s.liveYouSaid} className="grid gap-2">
-              <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                {s.liveYouSaid}
-              </p>
+              {live.captions && !live.partial && !reply?.content ? null : (
+                <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                  {s.liveYouSaid}
+                </p>
+              )}
               {live.captions ? (
-                <p aria-live="off" className="text-base leading-snug">
+                <p aria-live="off" className="text-base leading-snug [overflow-wrap:anywhere]">
                   {live.partial ? (
                     <span className="italic">{live.partial}</span>
                   ) : (
@@ -230,7 +251,10 @@ export function LiveVoiceScreen({
                 </p>
               ) : null}
               {live.problem ? (
-                <p role="alert" className="text-destructive text-sm">
+                <p
+                  role="alert"
+                  className="bg-destructive-soft text-destructive-soft-foreground rounded-xl px-3 py-2.5 text-sm"
+                >
                   {problemMessage(live.problem)}
                 </p>
               ) : null}
@@ -258,7 +282,7 @@ export function LiveVoiceScreen({
                 <Button
                   type="button"
                   variant="outline"
-                  className="min-h-14 text-base"
+                  className="h-auto min-h-14 px-2 py-2 text-base leading-tight whitespace-normal"
                   aria-pressed={live.muted}
                   onClick={() => {
                     live.setMuted(!live.muted);

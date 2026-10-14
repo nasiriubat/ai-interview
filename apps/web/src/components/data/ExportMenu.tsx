@@ -41,10 +41,13 @@ export function ExportMenu({
   formats,
   withFilters = true,
   label = t.kit.export.label,
+  labelled = false,
 }: {
   formats: readonly ExportFormat[];
   withFilters?: boolean;
   label?: string;
+  /** A button that says "Export" instead of an icon: for a page header, where there is room. */
+  labelled?: boolean;
 }): React.JSX.Element {
   const params = useSearchParams();
   const [busy, setBusy] = React.useState(false);
@@ -81,16 +84,24 @@ export function ExportMenu({
 
   return (
     <DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" aria-label={label} loading={busy}>
-              <DownloadIcon aria-hidden="true" />
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
-      </Tooltip>
+      {labelled ? (
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" loading={busy}>
+            <DownloadIcon aria-hidden="true" /> {label}
+          </Button>
+        </DropdownMenuTrigger>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label={label} loading={busy}>
+                <DownloadIcon aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+      )}
       <DropdownMenuContent className="w-64">
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
         {formats.map((f) => (

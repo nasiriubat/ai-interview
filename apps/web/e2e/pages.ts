@@ -115,7 +115,31 @@ export const PAGES: Entry[] = [
   publicPage("link-expired", "/p/expired-link", "app/p/[linkToken]/page.tsx"),
   publicPage("session-without-cookie", "/p/session", "app/p/session/page.tsx"),
 
-  // Participant, against the fake API
+  // Participant, against the fake API. The variants (D-380) are picked by a word in the token.
+  {
+    id: "interview-long",
+    path: "/p/session",
+    route: "app/p/session/page.tsx",
+    auth: "participant",
+    token: "long",
+  },
+  {
+    id: "interview-ended",
+    path: "/p/session",
+    route: "app/p/session/page.tsx",
+    auth: "participant",
+    token: "ended",
+    prepare: async (page: Page): Promise<void> => {
+      await page.getByRole("heading", { level: 2 }).first().waitFor();
+    },
+  },
+  {
+    id: "interview-paused",
+    path: "/p/session",
+    route: "app/p/session/page.tsx",
+    auth: "participant",
+    token: "paused",
+  },
   publicPage("arrival", `/p/${LINK_TOKEN}`, "app/p/[linkToken]/page.tsx"),
   publicPage("arrival-details", `/p/${LINK_TOKEN}`, "app/p/[linkToken]/page.tsx", async (page) => {
     await click(page, /./);

@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { pathToFileURL } from "node:url";
 import * as f from "./fixtures";
+import { participantVariant } from "./participant-variants";
 
 /**
  * A tiny stand-in for the API (docs/spec/16 and 17), for the accessibility pass and nothing else.
@@ -365,9 +366,7 @@ const READS: [RegExp, Handler][] = [
     /^\/p\/session$/,
     (_u, req) => ({
       body: {
-        session: (req.headers.authorization ?? "").includes("live")
-          ? f.participantSessionLive
-          : f.participantSession,
+        session: participantVariant(req.headers.authorization ?? ""),
       },
     }),
   ],

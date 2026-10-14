@@ -74,12 +74,12 @@ export function SessionMenu({
             <MoreHorizontalIcon />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-60 p-2">
+        <PopoverContent align="end" className="w-72 max-w-[calc(100vw-1.5rem)] p-2">
           <p className="text-muted-foreground px-2 pb-2 text-xs">{t.participant.session.sessionMenuHint}</p>
           <div className="grid gap-1">
             <Button
               variant="ghost"
-              className="justify-start"
+              className="h-11 justify-start"
               disabled={disabled}
               onClick={() => {
                 setOpen(false);
@@ -90,7 +90,7 @@ export function SessionMenu({
             </Button>
             <Button
               variant="ghost"
-              className="justify-start"
+              className="h-11 justify-start"
               disabled={disabled}
               onClick={() => {
                 // Ending the interview is the participant's call and ends their part of it: ask.
@@ -102,7 +102,7 @@ export function SessionMenu({
             </Button>
             <Button
               variant="ghost"
-              className="justify-start"
+              className="h-11 justify-start"
               disabled={download === "busy"}
               onClick={() => {
                 download_("md");
@@ -112,7 +112,7 @@ export function SessionMenu({
             </Button>
             <Button
               variant="ghost"
-              className="justify-start"
+              className="h-11 justify-start"
               disabled={download === "busy"}
               onClick={() => {
                 download_("json");
@@ -122,7 +122,7 @@ export function SessionMenu({
             </Button>
             <Button
               variant="ghost"
-              className="text-destructive hover:text-destructive justify-start"
+              className="text-destructive hover:text-destructive h-11 justify-start"
               onClick={() => {
                 setOpen(false);
                 setConfirmDelete(true);
