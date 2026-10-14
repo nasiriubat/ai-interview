@@ -3,9 +3,8 @@
 import type { Path } from "@aidp/shared";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { ParticipantPage } from "./ParticipantFrame";
 import { PathChoice } from "./PathChoice";
-import { CenteredShell } from "@/components/common/CenteredShell";
-import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { PageHeading } from "@/components/common/PageHeading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -30,11 +29,21 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** How long a person waits before asking for another sign-in code. */
 export const RESEND_SECONDS = 30;
 
-function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
+function Shell({
+  children,
+  title,
+  product,
+  wide = false,
+}: {
+  children: React.ReactNode;
+  title: string;
+  product?: string | undefined;
+  wide?: boolean;
+}): React.JSX.Element {
   return (
-    <CenteredShell aside={<LanguageSwitch />} className="grid gap-6">
+    <ParticipantPage title={title} subtitle={product} width={wide ? "wide" : "narrow"} className="grid gap-6">
       {children}
-    </CenteredShell>
+    </ParticipantPage>
   );
 }
 
@@ -240,45 +249,49 @@ export function ArrivalFlow({
   switch (step) {
     case "arrival":
       return (
-        <Shell key="arrival">
-          <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            {t.participant.arrival.eyebrow}
-          </p>
-          <Heading
-            focus={moved.current}
-            title={t.participant.arrival.welcome(campaign.name)}
-            body={campaign.purpose}
-          />
-          <dl className="grid gap-4 text-sm">
-            <div>
-              <dt className="font-medium">{t.participant.arrival.lengthHeading}</dt>
-              <dd className="text-muted-foreground">
-                {t.participant.arrival.minutes(campaign.expectedMinutes)}
-              </dd>
+        <Shell key="arrival" title={campaign.name} product={campaign.productName} wide>
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start lg:gap-12">
+            <div className="grid content-start gap-6">
+              <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                {t.participant.arrival.eyebrow}
+              </p>
+              <Heading
+                focus={moved.current}
+                title={t.participant.arrival.welcome(campaign.name)}
+                body={campaign.purpose}
+              />
+              {errorBox}
+              <Button size="lg" onClick={start} loading={busy} className="w-full sm:w-auto sm:min-w-56">
+                {busy ? t.app.loading : t.participant.arrival.start}
+              </Button>
+              <p className="text-muted-foreground text-xs">
+                {t.participant.arrival.noAccount}
+                {campaign.productName ? ` · ${t.participant.arrival.poweredBy(campaign.productName)}` : ""}
+              </p>
             </div>
-            <div>
-              <dt className="font-medium">{t.participant.arrival.storedHeading}</dt>
-              <dd className="text-muted-foreground">{stored}</dd>
-            </div>
-            <div>
-              <dt className="font-medium">{t.participant.arrival.deleteHeading}</dt>
-              <dd className="text-muted-foreground">{t.participant.arrival.deletePromise}</dd>
-            </div>
-          </dl>
-          {errorBox}
-          <Button size="lg" onClick={start} loading={busy} className="w-full">
-            {busy ? t.app.loading : t.participant.arrival.start}
-          </Button>
-          <p className="text-muted-foreground text-center text-xs">
-            {t.participant.arrival.noAccount}
-            {campaign.productName ? ` · ${t.participant.arrival.poweredBy(campaign.productName)}` : ""}
-          </p>
+            <dl className="bg-muted/60 grid gap-5 rounded-xl p-5 text-sm">
+              <div>
+                <dt className="font-medium">{t.participant.arrival.lengthHeading}</dt>
+                <dd className="text-muted-foreground">
+                  {t.participant.arrival.minutes(campaign.expectedMinutes)}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">{t.participant.arrival.storedHeading}</dt>
+                <dd className="text-muted-foreground">{stored}</dd>
+              </div>
+              <div>
+                <dt className="font-medium">{t.participant.arrival.deleteHeading}</dt>
+                <dd className="text-muted-foreground">{t.participant.arrival.deletePromise}</dd>
+              </div>
+            </dl>
+          </div>
         </Shell>
       );
 
     case "email":
       return (
-        <Shell key="email">
+        <Shell key="email" title={campaign.name} product={campaign.productName}>
           <Heading
             focus={moved.current}
             title={t.participant.verify.title}
@@ -334,7 +347,7 @@ export function ArrivalFlow({
 
     case "code":
       return (
-        <Shell key="code">
+        <Shell key="code" title={campaign.name} product={campaign.productName}>
           <Heading
             focus={moved.current}
             title={t.participant.verify.codeTitle}
@@ -410,7 +423,7 @@ export function ArrivalFlow({
 
     case "details":
       return (
-        <Shell key="details">
+        <Shell key="details" title={campaign.name} product={campaign.productName}>
           <Heading
             focus={moved.current}
             title={t.participant.details.title}
@@ -488,7 +501,7 @@ export function ArrivalFlow({
 
     case "consent":
       return (
-        <Shell key="consent">
+        <Shell key="consent" title={campaign.name} product={campaign.productName}>
           <Heading focus={moved.current} title={t.participant.consent.title} />
           <Card>
             <CardContent
@@ -527,7 +540,7 @@ export function ArrivalFlow({
 
     case "path":
       return (
-        <Shell key="path">
+        <Shell key="path" title={campaign.name} product={campaign.productName}>
           <Heading focus={moved.current} title={t.participant.path.title} />
           <PathChoice disabled={busy} onChoose={choosePath} />
           {errorBox}

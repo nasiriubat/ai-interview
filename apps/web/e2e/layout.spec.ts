@@ -68,7 +68,7 @@ test("department cards: no text leaves its card (D-321, D-374)", async ({ page }
   expect(sentence.width).toBeGreaterThan(cardWidth / 3);
 });
 
-for (const id of ["interview-voice", "interview-voice-denied", "interview-voice-live"]) {
+for (const id of ["interview-voice", "interview-voice-denied", "interview-voice-live", "interview-voices"]) {
   test(`${id}: controls are inside the viewport, and the screen is captured`, async ({
     page,
     context,
@@ -84,7 +84,7 @@ for (const id of ["interview-voice", "interview-voice-denied", "interview-voice-
         path: "/",
       },
     ]);
-    expect([PARTICIPANT_TOKEN, LIVE_TOKEN]).toContain(entry.token ?? PARTICIPANT_TOKEN);
+    expect([PARTICIPANT_TOKEN, LIVE_TOKEN, "voices"]).toContain(entry.token ?? PARTICIPANT_TOKEN);
     await entry.before?.(page);
     await page.goto(entry.path, { waitUntil: "networkidle" });
     await entry.prepare?.(page);
