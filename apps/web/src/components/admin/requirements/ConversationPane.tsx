@@ -123,11 +123,13 @@ export function ConversationPane({
   return (
     <section
       aria-label={s.conversation}
-      className="bg-card shadow-card flex min-h-[60dvh] flex-col rounded-lg"
+      className="bg-card shadow-card flex min-h-[60dvh] flex-col rounded-lg lg:sticky lg:top-20 lg:h-[calc(100dvh-6.5rem)] lg:min-h-0"
     >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
-          <h2 className="truncate text-base font-semibold">{title}</h2>
+          <h2 className="truncate text-base font-semibold" title={title}>
+            {s.conversation}
+          </h2>
           <StatusBadge status={state.ended ? "completed" : initial.status} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -151,7 +153,7 @@ export function ConversationPane({
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 lg:max-h-[65dvh]">
+      <div className="max-h-[70dvh] min-h-0 flex-1 overflow-y-auto px-4 py-4 lg:max-h-none">
         <MessageList messages={state.messages} streaming={state.streaming} pending={state.pending}>
           {showWidget ? (
             <div aria-label={p.widgetAnswer} className="bg-card shadow-card mt-1 rounded-2xl p-4">

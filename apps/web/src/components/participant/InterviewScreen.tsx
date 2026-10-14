@@ -374,7 +374,10 @@ export function InterviewScreen({
             </section>
           ) : null}
           {state.error ? (
-            <Alert variant={isBudget ? "warning" : "destructive"} className="mt-2">
+            <Alert
+              variant={isBudget || isOffline || isProvider || isExpired ? "warning" : "destructive"}
+              className="mt-2"
+            >
               <AlertTriangleIcon />
               <AlertTitle>
                 {isOffline

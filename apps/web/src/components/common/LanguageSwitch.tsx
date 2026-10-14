@@ -35,7 +35,7 @@ export function LanguageSwitch({
         onChange={(e) => {
           change(e.target.value as Locale);
         }}
-        className="bg-card text-foreground shadow-control h-8 rounded-md border-0 px-2 text-xs"
+        className="bg-card text-foreground shadow-control h-10 rounded-md border-0 px-2 text-sm pointer-coarse:h-11"
       >
         {LOCALES.map((l) => (
           <option key={l} value={l}>
