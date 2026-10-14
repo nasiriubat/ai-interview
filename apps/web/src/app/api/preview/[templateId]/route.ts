@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/proxy";
 import { staffServer } from "@/lib/api/server";
-import { PARTICIPANT_COOKIE } from "@/lib/env";
+import { PARTICIPANT_COOKIE, PARTICIPANT_COOKIE_LEGACY } from "@/lib/env";
 
 interface Ctx {
   params: Promise<{ templateId: string }>;
@@ -29,5 +29,7 @@ export async function GET(req: NextRequest, ctx: Ctx): Promise<Response> {
     path: "/",
     maxAge: 60 * 60 * 24,
   });
+  // An earlier release's bare-name cookie would still be read after the `__Host-` one (D-263).
+  if (PARTICIPANT_COOKIE !== PARTICIPANT_COOKIE_LEGACY) res.cookies.delete(PARTICIPANT_COOKIE_LEGACY);
   return res;
 }

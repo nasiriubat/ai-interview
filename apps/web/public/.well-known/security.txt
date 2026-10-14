@@ -1,0 +1,9 @@
+# Security policy of this service (RFC 9116). Policy text: docs/SECURITY.md in the repository.
+#
+# OWNER ACTION REQUIRED: replace every <your-domain> below with the domain of the deployment and
+# create the mailbox. `node scripts/security-gates.mjs security-txt` prints a note on every run
+# until this is done, and fails the build when Expires has passed or is more than a year away.
+Contact: mailto:security@<your-domain>
+Expires: 2027-06-30T00:00:00.000Z
+Preferred-Languages: en, fi
+Canonical: https://<your-domain>/.well-known/security.txt

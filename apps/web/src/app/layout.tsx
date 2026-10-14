@@ -44,6 +44,15 @@ export default async function RootLayout({
     <html lang={locale} className={inter.variable} suppressHydrationWarning>
       <head>
         {nonce ? <meta name="csp-nonce" content={nonce} /> : null}
+        {/* react-style-singleton, under Radix dialogs and popovers, creates a <style> element and
+            gives it the nonce it finds in this global. Without it every dialog is a style-src
+            violation (found by the Playwright CSP assertion, D-264). */}
+        {nonce ? (
+          <script
+            nonce={nonce}
+            dangerouslySetInnerHTML={{ __html: `window.__webpack_nonce__=${JSON.stringify(nonce)};` }}
+          />
+        ) : null}
         <script nonce={nonce || undefined} dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-dvh">

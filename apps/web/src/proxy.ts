@@ -1,7 +1,7 @@
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import NextAuth from "next-auth";
 import { authConfig } from "@/auth.config";
-import { buildCsp, CSP_REPORT_ONLY_HEADER, newNonce, PERMISSIONS_POLICY } from "@/lib/csp";
+import { buildCsp, cspHeaderName, cspMode, newNonce, PERMISSIONS_POLICY } from "@/lib/csp";
 
 const { auth } = NextAuth(authConfig);
 
@@ -10,7 +10,8 @@ const { auth } = NextAuth(authConfig);
  *
  *  1. A fresh nonce and the Content-Security-Policy that names it, set on the request (so that
  *     Next puts the nonce on its own inline scripts and `layout.tsx` can hand it to Mermaid) and on
- *     the response. Report-only for now; promoting it is changing one header name in `lib/csp.ts`.
+ *     the response. Enforcing or report-only by `CSP_MODE` (D-264): enforce in production, where
+ *     the Playwright pass asserts that no page raises a violation, report in development.
  *  2. Staff routes require an Auth.js session. Role checks (admin vs operator) happen in the
  *     `/admin` layouts against `GET /me`, because the role lives in the API, not in the JWT.
  *
@@ -18,14 +19,22 @@ const { auth } = NextAuth(authConfig);
  */
 export default async function proxy(req: NextRequest, event: NextFetchEvent): Promise<Response> {
   const nonce = newNonce();
+  const mode = cspMode(process.env);
+  const header = cspHeaderName(mode);
+  // `upgrade-insecure-requests` only means something to a page that was served over https; behind
+  // Caddy the web process itself sees http, so the proxy's own header says which it was.
+  const https =
+    req.nextUrl.protocol === "https:" ||
+    req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() === "https";
   const csp = buildCsp({
     nonce,
     host: req.nextUrl.host,
     dev: process.env.NODE_ENV !== "production",
+    enforce: mode === "enforce" && https,
   });
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
-  requestHeaders.set(CSP_REPORT_ONLY_HEADER, csp);
+  requestHeaders.set(header, csp);
   const pass = (): NextResponse => NextResponse.next({ request: { headers: requestHeaders } });
 
   let res: Response;
@@ -40,7 +49,7 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent): Pr
   } else {
     res = pass();
   }
-  res.headers.set(CSP_REPORT_ONLY_HEADER, csp);
+  res.headers.set(header, csp);
   res.headers.set("Permissions-Policy", PERMISSIONS_POLICY);
   return res;
 }

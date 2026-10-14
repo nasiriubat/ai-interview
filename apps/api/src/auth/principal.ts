@@ -111,7 +111,10 @@ export function bearerFrom(
   cookies: Record<string, string | undefined>,
 ): string | undefined {
   if (header?.toLowerCase().startsWith("bearer ")) return header.slice(7).trim();
-  return cookies.aidp_participant
-    ? `pt.${cookies.aidp_participant}`
+  // The participant credential: the `__Host-` cookie the web app sets in production (D-263), or the
+  // bare name it set before that and still sets in development.
+  const participantCookie = cookies["__Host-aidp_participant"] ?? cookies.aidp_participant;
+  return participantCookie
+    ? `pt.${participantCookie}`
     : (cookies["__Secure-authjs.session-token"] ?? cookies["authjs.session-token"]);
 }
