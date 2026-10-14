@@ -1982,6 +1982,7 @@ export const fi: Strings = {
       adaptivity: "Mukautuvuus",
       widgetPolicy: "Vastausvaihtoehdot",
       issueDetection: "Havainnot",
+      completeness: "Kattavuus",
       outputs: "Mitä poimitaan",
       analysisEnabled: "Mukana kampanjan analyysissä",
       chainToKey: "Seuraava mallipohja",

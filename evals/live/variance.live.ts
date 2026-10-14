@@ -319,7 +319,8 @@ async function main(): Promise<void> {
               sim,
               system,
               history,
-              widget as unknown as Parameters<typeof simulateWidget>[3],
+              // The harness declares its own widget type; the JSON is the same.
+              JSON.parse(JSON.stringify(widget)) as Parameters<typeof simulateWidget>[3],
               `sim:${run}`,
             );
             if (wr) {
