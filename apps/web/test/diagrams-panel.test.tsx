@@ -129,7 +129,9 @@ describe("DiagramsPanel", () => {
       title: "Context",
       type: "context",
     });
-    await waitFor(() => { expect(onSpec).toHaveBeenCalledWith(next); });
+    await waitFor(() => {
+      expect(onSpec).toHaveBeenCalledWith(next);
+    });
     expect(toastMock.success).toHaveBeenCalledWith("Diagram saved");
   });
 
@@ -159,7 +161,7 @@ describe("DiagramsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Edit diagram Context" }));
     await user.click(screen.getByRole("button", { name: "Save diagram" }));
     const alert = await screen.findByText("The diagram was not saved:");
-    const list = alert.closest("[role=alert]")!;
+    const list = alert.closest<HTMLElement>("[role=alert]")!;
     expect(within(list).getByText(/line 3: click statements are not allowed/)).toBeInTheDocument();
     expect(within(list).getByText(/HTML in labels is not allowed/)).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Mermaid source/ })).toBeInTheDocument();
@@ -183,7 +185,9 @@ describe("DiagramsPanel", () => {
       null,
       expect.objectContaining({ description: "Where it runs", title: "Hosting", type: "context" }),
     );
-    await waitFor(() => { expect(onSpec).toHaveBeenCalled(); });
+    await waitFor(() => {
+      expect(onSpec).toHaveBeenCalled();
+    });
     expect(toastMock.warning).toHaveBeenCalledWith(expect.stringMatching(/could not be checked/));
   });
 
@@ -207,7 +211,9 @@ describe("DiagramsPanel", () => {
     expect(screen.getByLabelText("Generated version")).toHaveTextContent("X --> Y");
     await user.click(screen.getByRole("button", { name: "Put back the generated diagram" }));
     expect(reset).toHaveBeenCalledWith("s1", "ctx");
-    await waitFor(() => { expect(onSpec).toHaveBeenCalled(); });
+    await waitFor(() => {
+      expect(onSpec).toHaveBeenCalled();
+    });
 
     await user.click(screen.getByRole("button", { name: "Edit diagram Deployment" }));
     expect(screen.getByRole("button", { name: "Remove this diagram" })).toBeInTheDocument();
