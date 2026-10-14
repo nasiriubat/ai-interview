@@ -7,6 +7,7 @@ export * from "./widgets.js";
 export * from "./facts.js";
 export * from "./template.js";
 export * from "./session.js";
+export * from "./events.js";
 export * from "./settings.js";
 export * from "./analysis.js";
 export * from "./requirements.js";

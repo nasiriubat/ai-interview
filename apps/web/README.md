@@ -571,14 +571,31 @@ Phase 4 (voice and files, `09-voice-and-files.md`):
     microphone, the voice mode and the call panel all go away and the mode switches to chat. An
     unrecognized `fallback` value is treated as `text`, since typing is the only rung of the chain
     that cannot itself be the thing that is broken.
-44. **Skip and "come back" still go through `sendText`** and so still appear in the transcript as
-    things the participant said. Making them engine state operations needs `TurnBody.control`, the
-    engine change and a `control` SSE event (ux-design 1.5 item 3); the web side waits for the
-    contract. "I'm done" asks first (D-111) but still ends by sending the `"I'm done"` text turn,
-    for the same reason.
-45. **The answer-mode change is not recorded as a `mode_switch` session event.** The web posts the
-    existing `PUT /p/session/mode`; the event is written server-side (ux-design 1.5 item 2), and the
-    web sends nothing extra for it.
+44. **Skip, "come back" and "I'm done" are controls (D-170).** They are sent as
+    `{ control: { type: "skip_area" | "return_area", areaKey } | { type: "finish" } }` on
+    `POST /p/session/turns` (and `/requirements/:id/turns`), never as text, so they cannot reach the
+    transcript or the extractor. The stream opens with a `control` event: the progress chips move at
+    once and the conversation shows a quiet system chip ("You skipped Tools and systems"), which is
+    local to the screen and gone after a reload. Skipping is not asked about; it offers Undo for six
+    seconds, and Undo sends `return_area`. "I'm done" still asks first (D-111). The deprecated
+    `POST /p/session/complete` is no longer called.
+45. **The answer-mode change is recorded as a `mode_switch` session event (D-171).** The web posts
+    the existing `POST /p/session/mode`; the API writes the event when the mode really changes. The
+    one thing the web adds is `reason: "fallback_typing"` when it moves to typing because nothing
+    can transcribe.
 46. **Suspending a tenant describes its effect.** The dialog says staff cannot sign in and
     participants cannot open links, which is what suspension is for; at the time of writing the
     API stores the status and does not yet enforce it (security M1). Ship the two together.
+47. **The resume recap is `session.recap` on `GET /p/session` (D-172).** Two sentences, written by
+    the API from state, shown as a labelled region above the conversation (focus lands on its
+    heading) and on the paused screen. It is never added to `messages` and never announced as a
+    message; Continue focuses the answer box and answering ends it. A client reading an older API
+    sees no `recap` and no banner.
+48. **A flagged interview is `flagged` on the sessions list and the session (D-173).** The table
+    shows a "Needs attention" badge (icon and words), the toolbar filters on `flagged`, and the
+    interview page opens with a callout whose one action, Acknowledge, posts
+    `POST /sessions/:id/flag/ack`. `flagReason` is null unless the viewer may read transcripts, and
+    the callout says so rather than showing nothing.
+49. **`DELETE /p/session` answers `{ ok, emailSent }` (D-175).** The deleted screen names an email
+    only when `emailSent` is true; the always-shown copy still promises answers, recordings and
+    files only.

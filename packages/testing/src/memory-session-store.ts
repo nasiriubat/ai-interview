@@ -6,7 +6,13 @@ import {
   type SessionStore,
   type StoredMessage,
 } from "@aidp/ai";
-import { SessionStateSchema, type Fact, type InterviewTemplate, type SessionState } from "@aidp/shared";
+import {
+  SessionStateSchema,
+  type Fact,
+  type InterviewTemplate,
+  type SessionEventType,
+  type SessionState,
+} from "@aidp/shared";
 
 /** Where `commitExtraction` throws, to prove the commit is all-or-nothing. */
 export type CommitFailPoint = "after_state" | "after_rows" | "after_event";
@@ -89,7 +95,7 @@ export class MemorySessionStore implements SessionStore {
     this.state = { ...this.state, summaryUpToSeq: Math.max(this.state.summaryUpToSeq, upToSeq) };
   }
 
-  async appendEvent(_id: string, type: string, payload: unknown): Promise<void> {
+  async appendEvent(_id: string, type: SessionEventType, payload: unknown): Promise<void> {
     this.events.push({ type, payload });
   }
 

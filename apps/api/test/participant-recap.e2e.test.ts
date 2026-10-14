@@ -104,6 +104,11 @@ describeDb("resume recap", () => {
     expect((await view(pt)).recap?.text).toBe(first.recap?.text);
     expect(recapCalls()).toBe(1);
 
+    // One resume event for the recap that was written, none for the cached read.
+    const resumes = await world.db.sessionEvent.findMany({ where: { sessionId, type: "resume" } });
+    expect(resumes).toHaveLength(1);
+    expect(resumes[0]?.payload).toMatchObject({ source: "model", idleMinutes: 30 });
+
     // The ledger names the prompt that wrote it.
     const calls = await world.db.llmCall.findMany({ where: { sessionId, purpose: "resume_summary" } });
     expect(calls.map((c) => c.promptVersion)).toEqual(["recap@1"]);

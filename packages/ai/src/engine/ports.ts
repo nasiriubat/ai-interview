@@ -4,6 +4,7 @@ import type {
   InterviewTemplate,
   Modality,
   Path,
+  SessionEventType,
   SessionState,
   Widget,
   WidgetResponse,
@@ -85,7 +86,7 @@ export interface SessionStore {
    * would undo whatever the turn did in between.
    */
   commitSummary(sessionId: string, summary: string, upToSeq: number): Promise<void>;
-  appendEvent(sessionId: string, type: string, payload: unknown): Promise<void>;
+  appendEvent(sessionId: string, type: SessionEventType, payload: unknown): Promise<void>;
   /**
    * Persists one extraction batch atomically, with compare-and-set on the cursor.
    *

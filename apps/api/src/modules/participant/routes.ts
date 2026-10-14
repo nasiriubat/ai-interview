@@ -1,4 +1,5 @@
 import { InviteNotOpenError, RequirementsNotFoundError } from "@aidp/core";
+import { ModeSwitchReasonSchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
@@ -122,9 +123,7 @@ export async function participantRoutes(app: App, ctx: RouteContext): Promise<vo
       schema: {
         body: z.object({
           mode: z.enum(["chat", "options", "voice"]),
-          reason: z
-            .enum(["participant", "fallback_captions", "fallback_typing", "unavailable"])
-            .default("participant"),
+          reason: ModeSwitchReasonSchema.default("participant"),
         }),
       },
     },
