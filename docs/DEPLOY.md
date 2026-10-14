@@ -165,6 +165,42 @@ web process without `EMAIL_SERVER` throws on start instead of falling back to a 
 In Settings, Email, "Send test email" with no relay anywhere answers "No mail server is
 configured" rather than reporting a send that only went to the log.
 
+### Break glass: a sign-in link from the server's shell
+
+If the relay is wrong on a fresh install, or breaks later while every admin is signed out, nobody
+can receive a sign-in email. Whoever has a shell on the server can mint the link instead:
+
+```bash
+deploy/signin-link.sh admin@example.com
+# the same thing, by hand:
+deploy/dc exec -T api node apps/api/dist/cli/signin-link.js admin@example.com
+```
+
+It prints one URL on stdout, `https://<PUBLIC_HOSTNAME>/api/auth/callback/nodemailer?...`. Open it in
+the browser that should be signed in. The link:
+
+- is for an **existing** staff user only (the platform operator, or a tenant admin or member). An
+  unknown address, a disabled user and a user of a suspended organization are refused (exit status 1);
+  nothing is created, so it cannot add a user or re-enable one;
+- is made exactly the way the email sign-in makes it: a random token, stored only as its hash with
+  `AUTH_SECRET` in the same table, consumed by the same callback, so it works **once**;
+- is valid for **15 minutes**, not the 24 hours of an emailed link, because it is read off a screen;
+- is recorded: an audit row `auth.signin_link_issued` in the user's organization, actor `cli`,
+  target the user, with the expiry and never the token, plus a warning line on stderr.
+
+This adds no privilege. A shell on the server already reads `deploy/.env`, which holds
+`AUTH_SECRET` and the database password; the command only spares that person from forging a token
+by hand. It prints nothing secret except the link itself, so do not paste its output into a ticket.
+
+It is a way back in, not a way to run without mail. Production still needs a working relay in
+`EMAIL_SMTP_URL`: invitations, reports, alerts and everybody else's sign-in go through it. Any SMTP
+service that gives you a host, port and credentials will do, a transactional email provider, the
+SMTP submission service of the mailbox provider your organization already uses, or your own mail
+server; use port 587 with STARTTLS or 465 with TLS, and a sender address on a domain whose SPF and
+DKIM records allow that relay, or the mail lands in spam. Once you are in, fix `EMAIL_SMTP_URL` in
+`deploy/.env`, run `./deploy/dc up -d`, and send yourself a test from Settings, Email.
+[OPERATIONS.md](OPERATIONS.md#locked-out--email-not-working) has the checklist.
+
 ## Model configuration, and the one route that is easy to miss
 
 The platform routes each _purpose_ to a model independently, so a cheap model can drive the
