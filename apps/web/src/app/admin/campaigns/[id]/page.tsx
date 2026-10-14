@@ -1,42 +1,48 @@
-import { BarChart3Icon, DownloadIcon, FileTextIcon, PencilIcon } from "lucide-react";
+import {
+  BarChart3Icon,
+  EyeIcon,
+  FileTextIcon,
+  MailPlusIcon,
+  MessagesSquareIcon,
+  PencilIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import * as React from "react";
 import { CampaignActions } from "@/components/admin/campaigns/CampaignActions";
 import { CampaignOverview, type OverviewData } from "@/components/admin/campaigns/CampaignOverview";
 import { CampaignSettingsTab } from "@/components/admin/campaigns/CampaignSettingsTab";
 import { CampaignTabs, tabFrom } from "@/components/admin/campaigns/CampaignTabs";
-import { InvitationsPanel } from "@/components/admin/campaigns/InvitationsPanel";
-import { SessionsTable } from "@/components/admin/campaigns/SessionsTable";
-import { EmptyState } from "@/components/admin/EmptyState";
-import { ListToolbar } from "@/components/admin/ListToolbar";
+import { InvitationActions } from "@/components/admin/campaigns/InvitationActions";
+import { InviteComposer } from "@/components/admin/campaigns/InviteComposer";
+import { sessionRowsOf } from "@/components/admin/campaigns/sessionRows";
+import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { Pagination } from "@/components/admin/Pagination";
-import { Panel } from "@/components/admin/Panel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { DateText } from "@/components/common/DateText";
+import { DataTable } from "@/components/data/DataTable";
+import { ExportMenu } from "@/components/data/ExportMenu";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
-import { enumFilter, isFiltered, statusFilter } from "@/lib/admin/toolbar";
-import { isApiError } from "@/lib/api/errors";
+import { enumFilterDef, statusFilterDef } from "@/lib/admin/table-filters";
+import { errorMessage, isApiError } from "@/lib/api/errors";
 import { LISTS, sortOf } from "@/lib/api/lists";
-import type { Campaign } from "@/lib/api/schemas";
+import type { Analysis, Campaign, Invitation, SessionListItem } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).admin.campaigns.title };
 }
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
 interface Props {
   params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<SearchParams>;
 }
 
 /** Spend is read over this long a window; a campaign is never older than the product. */
@@ -71,38 +77,42 @@ export default async function CampaignPage({ params, searchParams }: Props): Pro
         ]
           .filter(Boolean)
           .join(" · ")}
-        actions={
+        meta={<StatusBadge status={campaign.status} />}
+        actions={isAdmin ? <CampaignActions campaign={campaign} /> : undefined}
+        secondaryActions={
           <>
-            <StatusBadge status={campaign.status} />
             {isAdmin ? (
-              <>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/admin/campaigns/${campaign.id}/edit`}>
-                    <PencilIcon aria-hidden="true" /> {s.edit}
-                  </Link>
-                </Button>
-                <CampaignActions campaign={campaign} />
-              </>
+              <IconButton
+                label={s.edit}
+                variant="outline"
+                size="icon"
+                icon={<PencilIcon />}
+                href={`/admin/campaigns/${campaign.id}/edit`}
+              />
             ) : null}
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/admin/campaigns/${campaign.id}/results`}>
-                <BarChart3Icon aria-hidden="true" /> {s.results}
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/admin/campaigns/${campaign.id}/report`}>
-                <FileTextIcon aria-hidden="true" /> {s.report}
-              </Link>
-            </Button>
+            <IconButton
+              label={s.results}
+              variant="outline"
+              size="icon"
+              icon={<BarChart3Icon />}
+              href={`/admin/campaigns/${campaign.id}/results`}
+            />
+            <IconButton
+              label={s.report}
+              variant="outline"
+              size="icon"
+              icon={<FileTextIcon />}
+              href={`/admin/campaigns/${campaign.id}/report`}
+            />
           </>
         }
       />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
         <CampaignTabs campaignId={campaign.id} current={tab} />
         {tab === "overview" ? <Overview campaignId={id} campaign={campaign} /> : null}
-        {tab === "invitations" ? <Invitations campaignId={id} /> : null}
+        {tab === "invitations" ? <Invitations campaignId={id} searchParams={sp} isAdmin={isAdmin} /> : null}
         {tab === "sessions" ? <Sessions campaignId={id} searchParams={sp} isAdmin={isAdmin} /> : null}
-        {tab === "analysis" ? <AnalysisTab campaignId={id} /> : null}
+        {tab === "analysis" ? <AnalysisTab campaignId={id} searchParams={sp} /> : null}
         {tab === "settings" ? <SettingsTab campaignId={id} /> : null}
       </div>
     </>
@@ -141,21 +151,90 @@ async function Overview({
   return <CampaignOverview campaign={campaign} data={data} />;
 }
 
-async function Invitations({ campaignId }: { campaignId: string }): Promise<React.JSX.Element> {
+/** One page of a list a tab shows, or the message that says why there is none (D-361). */
+async function load<T>(
+  work: () => Promise<{ items: T[]; total: number | null }>,
+): Promise<{ items: T[]; total: number | null; error: string | undefined }> {
+  try {
+    const r = await work();
+    return { items: r.items, total: r.total, error: undefined };
+  } catch (e) {
+    return { items: [], total: 0, error: errorMessage(e, t.app.unknownError) };
+  }
+}
+
+async function Invitations({
+  campaignId,
+  searchParams,
+  isAdmin,
+}: {
+  campaignId: string;
+  searchParams: SearchParams;
+  isAdmin: boolean;
+}): Promise<React.JSX.Element> {
   const api = await staffServer();
-  const [invitationsR] = await Promise.allSettled([api.campaigns.invitations(campaignId)]);
-  const invitations = settled(invitationsR);
+  const lp = listParams(searchParams, LISTS.invitations);
   const s = t.admin.campaigns;
+  const dash = <span className="text-muted-foreground">{t.admin.common.dash}</span>;
+  const { items, total, error } = await load<Invitation>(() =>
+    api.campaigns.invitations(campaignId, lp.query),
+  );
   return (
-    <Panel title={s.invitationsTitle}>
-      <div className="px-5 py-4">
-        {invitations.data ? (
-          <InvitationsPanel campaignId={campaignId} invitations={invitations.data} />
-        ) : (
-          <LoadError error={invitations.error} />
-        )}
-      </div>
-    </Panel>
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
+      {isAdmin ? <InviteComposer campaignId={campaignId} /> : null}
+      <DataTable
+        id="invitations"
+        label={s.invitationsTitle}
+        searchLabel={isAdmin ? t.admin.list.searchInvitations : undefined}
+        filters={[statusFilterDef(LISTS.invitations)]}
+        sort={sortOf(LISTS.invitations)}
+        error={error}
+        columns={[
+          {
+            id: "email",
+            header: s.invitationEmail,
+            ...(isAdmin ? { sortKey: "email" } : {}),
+            primary: true,
+            locked: true,
+          },
+          { id: "status", header: s.invitationStatus, sortKey: "status" },
+          { id: "sent", header: s.invitationSent, sortKey: "sentAt" },
+          { id: "opened", header: s.invitationOpened, sortKey: "openedAt" },
+        ]}
+        rows={items.map((inv) => ({
+          id: inv.id,
+          label: inv.email ?? s.anonymousEmail,
+          cells: {
+            email: inv.email ? (
+              <span className="text-foreground block truncate font-medium">{inv.email}</span>
+            ) : (
+              <span className="text-muted-foreground">{s.anonymousEmail}</span>
+            ),
+            status: <StatusBadge status={inv.status} />,
+            sent: inv.sentAt ? <DateText iso={inv.sentAt} /> : dash,
+            opened: inv.openedAt ? <DateText iso={inv.openedAt} /> : dash,
+          },
+          ...(isAdmin
+            ? {
+                actions: (
+                  <InvitationActions
+                    campaignId={campaignId}
+                    invitationId={inv.id}
+                    email={inv.email ?? null}
+                    status={inv.status}
+                  />
+                ),
+              }
+            : {}),
+        }))}
+        page={{ page: lp.page, limit: lp.limit, count: items.length, total }}
+        empty={{
+          icon: <MailPlusIcon className="size-5" aria-hidden="true" />,
+          title: s.invitationsEmptyTitle,
+          description: isAdmin ? s.noInvitations : s.noInvitationsMember,
+        }}
+      />
+    </div>
   );
 }
 
@@ -165,124 +244,125 @@ async function Sessions({
   isAdmin,
 }: {
   campaignId: string;
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: SearchParams;
   isAdmin: boolean;
 }): Promise<React.JSX.Element> {
   const api = await staffServer();
   const lp = listParams(searchParams, LISTS.campaignSessions);
-  const [sessionsR] = await Promise.allSettled([api.campaigns.sessions(campaignId, lp.query)]);
-  const sessions = settled(sessionsR);
   const s = t.admin.campaigns;
+  const { items, total, error } = await load<SessionListItem>(() =>
+    api.campaigns.sessions(campaignId, lp.query),
+  );
   return (
-    <Panel
-      title={s.sessionsTitle}
-      actions={
+    <DataTable
+      id="sessions"
+      label={s.sessionsTitle}
+      searchLabel={t.admin.list.searchSessions}
+      filters={[
+        statusFilterDef(LISTS.campaignSessions),
+        enumFilterDef(LISTS.campaignSessions, "flagged", s.flagFilterLabel, (v) =>
+          v === "true" ? s.flagFilterOn : s.flagFilterOff,
+        ),
+      ]}
+      sort={sortOf(LISTS.campaignSessions)}
+      error={error}
+      toolbarActions={
         isAdmin ? (
-          <Button asChild variant="outline" size="sm">
-            <a href={`/api/staff/campaigns/${encodeURIComponent(campaignId)}/sessions.csv`} download>
-              <DownloadIcon aria-hidden="true" /> {s.exportCsv}
-            </a>
-          </Button>
-        ) : null
+          <ExportMenu
+            withFilters={false}
+            formats={[
+              {
+                id: "csv",
+                label: s.exportCsv,
+                description: s.exportCsvHint,
+                path: `/api/staff/campaigns/${encodeURIComponent(campaignId)}/sessions.csv`,
+                fallbackName: "interviews.csv",
+                what: s.sessionsTitle,
+              },
+            ]}
+          />
+        ) : undefined
       }
-      description={isAdmin ? s.exportCsvHint : undefined}
-    >
-      <div className="px-5 py-4">
-        {sessions.data ? (
-          <>
-            <ListToolbar
-              searchLabel={t.admin.list.searchSessions}
-              filters={[
-                statusFilter(LISTS.campaignSessions),
-                enumFilter(LISTS.campaignSessions, "flagged", s.flagFilterLabel, s.flagFilterAll, (v) =>
-                  v === "true" ? s.flagFilterOn : s.flagFilterOff,
-                ),
-              ]}
-              sort={{ list: sortOf(LISTS.campaignSessions), labels: t.admin.list.fields }}
-            />
-            {sessions.data.items.length === 0 && isFiltered(lp.q, lp.filters) ? (
-              <EmptyState text={t.admin.list.noMatches} />
-            ) : (
-              <SessionsTable sessions={sessions.data.items} />
-            )}
-            <Pagination
-              page={lp.page}
-              limit={lp.limit}
-              count={sessions.data.items.length}
-              total={sessions.data.total}
-            />
-          </>
-        ) : (
-          <LoadError error={sessions.error} />
-        )}
-      </div>
-    </Panel>
+      columns={[
+        { id: "participant", header: s.sessionParticipant, primary: true, locked: true },
+        { id: "status", header: s.sessionStatus, sortKey: "status" },
+        { id: "mode", header: s.sessionMode },
+        { id: "flag", header: s.sessionFlag },
+        { id: "progress", header: s.sessionProgress },
+        { id: "cost", header: s.sessionCost, align: "end" },
+        { id: "updated", header: s.sessionUpdated, sortKey: "lastActivity" },
+      ]}
+      rows={sessionRowsOf(items)}
+      page={{ page: lp.page, limit: lp.limit, count: items.length, total }}
+      empty={{
+        icon: <MessagesSquareIcon className="size-5" aria-hidden="true" />,
+        title: s.sessionsEmptyTitle,
+        description: s.noSessions,
+      }}
+    />
   );
 }
 
-async function AnalysisTab({ campaignId }: { campaignId: string }): Promise<React.JSX.Element> {
+async function AnalysisTab({
+  campaignId,
+  searchParams,
+}: {
+  campaignId: string;
+  searchParams: SearchParams;
+}): Promise<React.JSX.Element> {
   const api = await staffServer();
-  const [analysesR] = await Promise.allSettled([api.analyses.list(campaignId, { limit: 50 })]);
-  const analyses = settled(analysesR);
+  const lp = listParams(searchParams, LISTS.analyses);
   const s = t.admin.campaigns;
-  if (!analyses.data) return <LoadError error={analyses.error} />;
-  if (analyses.data.items.length === 0) {
-    return (
-      <EmptyState text={s.analysisHistoryEmpty}>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/admin/campaigns/${campaignId}/results`}>{s.analysisOpenResults}</Link>
-        </Button>
-      </EmptyState>
-    );
-  }
+  const { items, total, error } = await load<Analysis>(() => api.analyses.list(campaignId, lp.query));
   return (
-    <Panel
-      title={s.analysisList}
-      actions={
-        <>
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/admin/campaigns/${campaignId}/results`}>
-              <BarChart3Icon aria-hidden="true" /> {s.analysisOpenResults}
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/admin/campaigns/${campaignId}/report`}>
-              <FileTextIcon aria-hidden="true" /> {s.analysisOpenReport}
-            </Link>
-          </Button>
-        </>
-      }
-    >
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{s.analysisVersion}</TableHead>
-              <TableHead>{s.status}</TableHead>
-              <TableHead>{s.analysisCreated}</TableHead>
-              <TableHead className="text-right">{s.analysisInterviews}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {analyses.data.items.map((a) => (
-              <TableRow key={a.id}>
-                <TableCell className="font-medium">
-                  v{a.version}{" "}
-                  {a.preliminary ? <Badge variant="outline">{t.admin.results.preliminary}</Badge> : null}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={a.status} />
-                </TableCell>
-                <TableCell className="text-muted-foreground text-xs">
-                  <DateText iso={a.createdAt} />
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{a.stats.sessions}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </Panel>
+    <DataTable
+      id="analyses"
+      label={s.analysisList}
+      sort={sortOf(LISTS.analyses)}
+      filters={[statusFilterDef(LISTS.analyses)]}
+      error={error}
+      columns={[
+        { id: "version", header: s.analysisVersion, sortKey: "version", primary: true, locked: true },
+        { id: "status", header: s.status },
+        { id: "created", header: s.analysisCreated, sortKey: "createdAt" },
+        { id: "interviews", header: s.analysisInterviews, align: "end" },
+      ]}
+      rows={items.map((a) => ({
+        id: a.id,
+        label: `v${String(a.version)}`,
+        cells: {
+          version: (
+            <span className="text-foreground font-medium">
+              v{a.version}{" "}
+              {a.preliminary ? <Badge variant="outline">{t.admin.results.preliminary}</Badge> : null}
+            </span>
+          ),
+          status: <StatusBadge status={a.status} />,
+          created: <DateText iso={a.createdAt} />,
+          interviews: <span className="tabular-nums">{a.stats.sessions}</span>,
+        },
+        actions: (
+          <RowActions>
+            <IconButton
+              label={`${s.analysisOpenResults}: v${String(a.version)}`}
+              icon={<BarChart3Icon />}
+              href={`/admin/campaigns/${campaignId}/results`}
+            />
+            <IconButton
+              label={`${s.analysisOpenReport}: v${String(a.version)}`}
+              icon={<EyeIcon />}
+              href={`/admin/campaigns/${campaignId}/report`}
+            />
+          </RowActions>
+        ),
+      }))}
+      page={{ page: lp.page, limit: lp.limit, count: items.length, total }}
+      empty={{
+        icon: <BarChart3Icon className="size-5" aria-hidden="true" />,
+        title: s.analysisEmptyTitle,
+        description: s.analysisHistoryEmpty,
+      }}
+    />
   );
 }
 

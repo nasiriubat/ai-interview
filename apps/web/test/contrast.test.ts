@@ -66,7 +66,15 @@ describe("the dark theme", () => {
   it("gives a value to every colour a component can read, or says it is the same in both themes", () => {
     // Fixed on purpose: the brand mark and band are white-on-indigo in both themes, and the
     // radius is not a colour. A new colour token has to be added to the dark block or to this list.
-    const SAME = new Set(["radius", "brand-1", "brand-2", "brand-text", "brand-gradient", "brand-band"]);
+    const SAME = new Set([
+      "radius",
+      "brand-1",
+      "brand-2",
+      "brand-text",
+      "brand-gradient",
+      "brand-band",
+      "brand-panel",
+    ]);
     const missing = Object.keys(light).filter(
       (k) => !(k in darkOwn) && !SAME.has(k) && !k.startsWith("switch-track"),
     );

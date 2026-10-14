@@ -42,7 +42,7 @@ vi.mock("@/lib/api/browser", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh, push, back: vi.fn(), replace: vi.fn() }),
-  usePathname: () => "/admin/operator",
+  usePathname: () => "/admin/templates/t3",
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -305,8 +305,8 @@ describe("the getting-started card (D-189)", () => {
 
   it("marks the next step, says where the model comes from, and links each open step", () => {
     render(<SetupChecklist state={state({})} />);
-    expect(screen.getByRole("region", { name: "Get started" })).toBeInTheDocument();
-    expect(screen.getByText("1 of 4 done")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Getting started" })).toBeInTheDocument();
+    expect(screen.getByText("1 of 5 steps done")).toBeInTheDocument();
     expect(screen.getByText(/platform's default model/)).toBeInTheDocument();
     const items = screen.getAllByRole("listitem");
     const current = items.filter((li) => li.getAttribute("aria-current") === "step");
@@ -327,15 +327,23 @@ describe("the getting-started card (D-189)", () => {
       expect(dismiss).toHaveBeenCalledTimes(1);
     });
     await waitFor(() => {
-      expect(screen.queryByRole("region", { name: "Get started" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
     });
   });
 
   it("renders nothing once dismissed or complete", () => {
     const a = render(<SetupChecklist state={state({ dismissed: true })} />);
     expect(a.container).toBeEmptyDOMElement();
-    const b = render(<SetupChecklist state={state({ complete: true, done: 4 })} />);
+    const allDone = state({
+      complete: true,
+      done: 4,
+      steps: ["provider", "template", "campaign", "invite"].map((key) => ({ key, done: true })),
+    });
+    const b = render(<SetupChecklist state={allDone} resultsReady />);
     expect(b.container).toBeEmptyDOMElement();
+    // The API's "complete" is not enough: nobody has seen results yet, so the last step is open.
+    const c = render(<SetupChecklist state={allDone} />);
+    expect(within(c.container).getByText("See the first results")).toBeInTheDocument();
   });
 });
 

@@ -34,7 +34,18 @@ export function ProgressAreas({
   return (
     <nav aria-label={t.participant.session.progressLabel} className="w-full">
       <span className="sr-only">{t.admin.campaigns.areasCovered(done, areas.length)}</span>
-      <ol className="flex gap-1.5 overflow-x-auto py-1 [scrollbar-width:thin]">
+      <div aria-hidden="true" className="flex items-center gap-2 pb-1.5">
+        <div className="bg-muted h-1 flex-1 overflow-hidden rounded-full">
+          <div
+            className="bg-primary h-full rounded-full transition-[width] duration-500"
+            style={{ width: `${String(Math.round((done / areas.length) * 100))}%` }}
+          />
+        </div>
+        <span className="text-foreground text-xs font-medium tabular-nums">
+          {done}/{areas.length}
+        </span>
+      </div>
+      <ol className="flex gap-1.5 overflow-x-auto py-1 [scrollbar-width:none]">
         {areas.map((a) => {
           const Icon = ICONS[a.status];
           const statusLabel = t.participant.session.progressStatus[a.status];
@@ -51,7 +62,7 @@ export function ProgressAreas({
                     type="button"
                     aria-label={`${a.name}: ${statusLabel}. ${t.participant.session.areaActions(a.name)}`}
                     className={cn(
-                      "shadow-control inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs whitespace-nowrap transition-colors",
+                      "shadow-control inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs whitespace-nowrap transition-colors pointer-coarse:h-11",
                       a.status === "covered" && "bg-primary/10",
                       a.status === "partial" && "bg-accent",
                       a.status === "skipped" && "text-muted-foreground line-through",

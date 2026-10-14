@@ -75,10 +75,13 @@ All of these take `limit` (1 to 200, default 50), `offset`, `q`, `sort`, `dir`, 
 `/campaigns/:id/sessions`, `/templates`, `/requirements`, `/budgets`, `/providers/:id/prices`,
 `/campaigns/:id/analyses`, `/operator/tenants`.
 
+Also paginated since D-360: `/campaigns/:id/invitations` (`status`, `q` on the address for administrators,
+sort by `createdAt`, `email`, `status`, `sentAt`, `openedAt`).
+
 Not paginated, and why: `/providers` and `/routes` (a handful per tenant), `/prompts` (a fixed set),
-`/settings/history` (takes `limit`), `/operator/jobs` (queues, not rows). **`/campaigns/:id/invitations`
-is unbounded** (one request may add 1000): it should get a `listSpec` before the invitations list is
-moved to `DataTable`.
+`/settings/history` (takes `limit`), `/operator/jobs` (queues, not rows). A fixed small list shown
+with the table (template versions, prompt groups) passes every row and `locked` columns, so there
+is no empty toolbar and no pager.
 
 ## Export and import
 
@@ -104,6 +107,10 @@ ComboField, FormSection, ErrorSummary, ValidatedForm) plus `components/form/`:
   Spread `{...form.field("name")}` into a field.
 - `<Form form>`: summary, focus on the first problem, and a floating **save bar** (unsaved or saved,
   Discard, Save). `SaveBarView` is the bar alone for forms that keep their own state (settings).
+- `useForm({ savedText: null })` when `onSubmit` raises its own toast; `<Form alwaysEnabled>` for a form that
+  creates something (Save is offered before any edit and validation says what is missing).
+- `SaveBarView` also takes `saveDisabled` (blocked by a check, not by "nothing changed") and `cleanText`
+  (what the bar says when nothing is edited; a prompt says its text is unchanged rather than "saved").
 - `ConfirmDialog`: pass `confirmPhrase` to make a person type it first, for what cannot be taken back.
 
 ## FileUpload (`components/upload/`)
@@ -121,6 +128,15 @@ attachment upload uses it and shows a progress bar with Cancel.
 `components/common/notify.ts`. Success 4 s, info 5 s, error 9 s (18 s with a Retry), three stacked,
 one live region. Errors that need fixing stay inline. Route loading: `app/admin/loading.tsx`; the
 top progress bar runs on in-app navigation and on `useUrlState` changes; buttons take `loading`.
+
+## Detail pages (D-361, D-363, D-364)
+
+A detail page is `PageHeader` with `meta` (status badges), **one** primary action in `actions` and
+icon-only `IconButton`s (`variant="outline" size="icon"`) in `secondaryActions`; a destructive one
+opens a `ConfirmDialog`. Sections that are lists are `DataTable`s; a small fixed list locks its
+columns. `DetailSkeleton` (`components/admin/DetailSkeleton.tsx`) is the route's `loading.tsx`.
+Wrap more than one panel or table in `grid grid-cols-[minmax(0,1fr)]` so nothing pushes the page sideways.
+The template editor shows a sticky jump bar over its eleven sections, with the number of problems in each.
 
 ## Motion
 
@@ -188,7 +204,7 @@ The review matrix:
 
 ```
 BASE=http://localhost:3641 OUT=/tmp/review SHOTS='^results-' WIDTHS=390,1280 THEMES=light,dark \
-  LOCALES=en,fi pnpm exec tsx scripts/review-shots.ts
+  LOCALES=en,fi pnpm exec tsx scripts/review-workspace.ts
 ```
 
 `scripts/overflow.ts` names what makes a page scroll sideways. It skips what a scroller clips, but
@@ -204,3 +220,31 @@ names itself, offboarding needs the name typed.
 `/admin/operator/tenants/:id`. A statement is frozen: it is never recalculated, and estimated cost is
 marked as an estimate (`includes estimate`). Offboarding follows D-226: the tenant must be suspended,
 its name is typed, and the person is told the date.
+
+## Auth, states and empty states (D-390 to D-396)
+
+- `AuthShell variant="split" | "centered"` and `AuthHeading` (`components/common/AuthShell.tsx`) frame
+  every staff-facing page that is not inside the admin shell. Put one `h1` in it.
+- `StateView` (`components/common/StateView.tsx`) says one state: `illustration`, `code`, `title`,
+  `body`, `actions`, `detail`; `size="page"` on `AuthShell`, `size="panel"` inside a page.
+- Illustrations: `components/ui/illustrations.tsx`. Add one by adding a name and a case; keep the
+  viewBox, the stroke weights and token colours. `/dev/states` shows them all.
+- `DataTable` `empty={{ illustration: "campaign", title, description, action }}`; `EmptyState`
+  takes `illustration` and `title`. First-run copy is in `kit.emptyStates`.
+- The session-expired, forbidden, suspended and maintenance states come from `getMe()` in the admin
+  layout; to show one elsewhere use `StateView`.
+- Settings: `SettingsCategories` groups the sections (`GROUPS`); a category not listed lands in
+  "other". `SettingsNav` is the grouped links (desktop) and the select (below 1024 px).
+- `ListToolbar`, `Pagination` and `ui/table` are still used by pages on main and were not removed.
+
+## Participant screens and the diagram viewer (D-380 to D-384)
+
+The participant has no shell: `CenteredShell` frames arrival and status screens, `InterviewScreen` is the chat. Rules that held up in review:
+
+- Mobile first at 360 px. Controls are at least 36 px high (44 on touch); `e2e/participant-layout.spec.ts` enforces it, and fails on sideways scroll.
+- Message text uses `[overflow-wrap:anywhere]`; anything a participant or a model wrote can contain a word longer than the screen.
+- Failures a person can retry (provider, offline, session expiry) are `Alert variant="warning"`; red is for what is wrong with their input.
+- `DiagramViewer` (`components/report/`) is the only way a diagram is shown: zoom, pan, full screen, source.
+- `ExportMenu labelled` is the page-header form of the export menu; the icon form is for table toolbars.
+
+Review states: `BASE=http://localhost:3470 OUT=/tmp/shots pnpm exec tsx scripts/review-shots.ts` (`ONLY`, `WIDTHS`, `THEMES`, `LOCALES`).

@@ -44,7 +44,7 @@ export function RecapBanner({
       </div>
       <p className="text-foreground mt-1 text-[15px] leading-relaxed">{text}</p>
       <div className="mt-3">
-        <Button type="button" size="sm" onClick={onContinue}>
+        <Button type="button" className="h-10" onClick={onContinue}>
           {s.recapContinue}
         </Button>
       </div>

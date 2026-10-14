@@ -1,14 +1,27 @@
 "use client";
 
-import { CheckIcon, FlaskConicalIcon, RotateCcwIcon, XIcon } from "lucide-react";
+import {
+  CheckIcon,
+  CircleSlashIcon,
+  FlaskConicalIcon,
+  GitCompareIcon,
+  PencilIcon,
+  PlayIcon,
+  RotateCcwIcon,
+  Undo2Icon,
+  XIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
-import { Field } from "@/components/admin/forms";
-import { Panel } from "@/components/admin/Panel";
+import { Field, SelectField } from "@/components/admin/forms";
+import { IconButton, RowActions } from "@/components/admin/IconButton";
+import { Panel, SectionTitle } from "@/components/admin/Panel";
 import { PromptDiff } from "@/components/admin/prompts/PromptDiff";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useDirty } from "@/components/common/DirtyGuard";
+import { DataTable } from "@/components/data/DataTable";
+import { SaveBarView } from "@/components/form/Form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +35,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Inset } from "@/components/ui/inset";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
 import { actorLabel } from "@/lib/admin/actor";
@@ -145,7 +157,7 @@ export function PromptWorkspace({ detail }: { detail: PromptDetail }): React.JSX
   const changes = countChanges(diff);
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <Alert variant="warning" role="status">
         <FlaskConicalIcon aria-hidden="true" />
         <AlertTitle>{s.warningTitle}</AlertTitle>
@@ -164,40 +176,37 @@ export function PromptWorkspace({ detail }: { detail: PromptDetail }): React.JSX
         actions={
           <>
             {canary ? (
-              <Button
-                type="button"
+              <IconButton
+                label={d.stopCanary}
                 variant="outline"
-                size="sm"
+                size="icon"
+                icon={<CircleSlashIcon />}
                 disabled={action.busy}
                 onClick={() => {
                   setConfirm("stop");
                 }}
-              >
-                {d.stopCanary}
-              </Button>
+              />
             ) : null}
-            <Button
-              type="button"
+            <IconButton
+              label={d.rollBack}
               variant="outline"
-              size="sm"
+              size="icon"
+              icon={<Undo2Icon />}
               disabled={action.busy || !canRollBack}
               onClick={() => {
                 setConfirm("rollback");
               }}
-            >
-              <RotateCcwIcon aria-hidden="true" /> {d.rollBack}
-            </Button>
-            <Button
-              type="button"
+            />
+            <IconButton
+              label={d.reset}
               variant="outline"
-              size="sm"
+              size="icon"
+              icon={<RotateCcwIcon />}
               disabled={action.busy || !usesOwn}
               onClick={() => {
                 setConfirm("reset");
               }}
-            >
-              {d.reset}
-            </Button>
+            />
           </>
         }
       >
@@ -217,104 +226,108 @@ export function PromptWorkspace({ detail }: { detail: PromptDetail }): React.JSX
         </div>
       </Panel>
 
-      <Panel title={d.editorTitle} description={d.editorHint}>
-        <div className="grid gap-4 px-5 py-4">
-          <Field id="prompt-start" label={d.startFrom}>
-            <select
+      <form
+        noValidate
+        className="grid grid-cols-[minmax(0,1fr)] gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (passed && dirty && !action.busy) save();
+        }}
+      >
+        <Panel title={d.editorTitle} description={d.editorHint}>
+          <div className="grid gap-4 px-5 py-4">
+            <SelectField
               id="prompt-start"
-              className="bg-card shadow-control h-9 w-full max-w-xs rounded-md px-3 text-sm"
+              label={d.startFrom}
               value={String(base)}
-              onChange={(e) => {
-                startFrom(e.target.value === "shipped" ? "shipped" : Number(e.target.value));
+              className="max-w-xs"
+              options={[
+                { value: "shipped", label: d.startFromShipped },
+                ...detail.versions.map((v) => ({
+                  value: String(v.version),
+                  label: d.startFromVersion(v.version),
+                })),
+              ]}
+              onChange={(v) => {
+                startFrom(v === "shipped" ? "shipped" : Number(v));
               }}
-            >
-              <option value="shipped">{d.startFromShipped}</option>
-              {detail.versions.map((v) => (
-                <option key={v.version} value={v.version}>
-                  {d.startFromVersion(v.version)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field
-            id="prompt-body"
-            label={d.bodyLabel}
-            hint={d.characters(body.length, detail.contract.maxChars)}
-          >
-            <Textarea
+            />
+            <Field
               id="prompt-body"
-              ref={textareaRef}
-              value={body}
-              rows={22}
-              spellCheck={false}
-              autoComplete="off"
-              className="min-h-72 font-mono text-xs leading-5"
-              aria-describedby="prompt-body-hint prompt-checks"
-              aria-invalid={check.state === "done" && !check.check.ok ? true : undefined}
-              onChange={(e) => {
-                setBody(e.target.value);
-              }}
-            />
-          </Field>
-
-          <div id="prompt-checks" className="grid gap-2">
-            <h3 className="text-foreground text-sm font-medium">{d.checksTitle}</h3>
-            <p role="status" className="text-sm">
-              {check.state === "pending"
-                ? d.checking
-                : check.state === "failed"
-                  ? d.checkUnavailable
-                  : passed
-                    ? d.checkPassed
-                    : d.checkFailed(failing)}
-            </p>
-            {lines.length > 0 ? (
-              <ul className="grid gap-1.5">
-                {lines.map((l) => (
-                  <li key={l.id} className="flex items-start gap-2 text-sm">
-                    {l.ok ? (
-                      <CheckIcon className="text-success mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                    ) : (
-                      <XIcon className="text-destructive mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                    )}
-                    <span>
-                      <span className="sr-only">{l.ok ? d.checkPassedLabel : d.checkFailedLabel}: </span>
-                      {l.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-
-          <Field id="prompt-note" label={d.noteLabel} hint={d.noteHint}>
-            <Input
-              id="prompt-note"
-              value={note}
-              maxLength={500}
-              placeholder={d.notePlaceholder}
-              aria-describedby="prompt-note-hint"
-              onChange={(e) => {
-                setNote(e.target.value);
-              }}
-            />
-          </Field>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              loading={action.busy}
-              disabled={!passed || !dirty || action.busy}
-              onClick={save}
+              label={d.bodyLabel}
+              hint={d.characters(body.length, detail.contract.maxChars)}
             >
-              {action.busy ? d.saving : d.save}
-            </Button>
-            <p className="text-muted-foreground text-sm" role="status">
-              {dirty ? "" : d.unchanged}
-            </p>
+              <Textarea
+                id="prompt-body"
+                ref={textareaRef}
+                value={body}
+                rows={22}
+                spellCheck={false}
+                autoComplete="off"
+                className="min-h-72 font-mono text-xs leading-5"
+                aria-describedby="prompt-body-hint prompt-checks"
+                aria-invalid={check.state === "done" && !check.check.ok ? true : undefined}
+                onChange={(e) => {
+                  setBody(e.target.value);
+                }}
+              />
+            </Field>
+
+            <div id="prompt-checks" className="grid gap-2">
+              <h3 className="text-foreground text-sm font-medium">{d.checksTitle}</h3>
+              <p role="status" className="text-sm">
+                {check.state === "pending"
+                  ? d.checking
+                  : check.state === "failed"
+                    ? d.checkUnavailable
+                    : passed
+                      ? d.checkPassed
+                      : d.checkFailed(failing)}
+              </p>
+              {lines.length > 0 ? (
+                <ul className="grid gap-1.5">
+                  {lines.map((l) => (
+                    <li key={l.id} className="flex items-start gap-2 text-sm">
+                      {l.ok ? (
+                        <CheckIcon className="text-success mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                      ) : (
+                        <XIcon className="text-destructive mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                      )}
+                      <span>
+                        <span className="sr-only">{l.ok ? d.checkPassedLabel : d.checkFailedLabel}: </span>
+                        {l.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+
+            <Field id="prompt-note" label={d.noteLabel} hint={d.noteHint}>
+              <Input
+                id="prompt-note"
+                value={note}
+                maxLength={500}
+                placeholder={d.notePlaceholder}
+                aria-describedby="prompt-note-hint"
+                onChange={(e) => {
+                  setNote(e.target.value);
+                }}
+              />
+            </Field>
           </div>
-        </div>
-      </Panel>
+        </Panel>
+        <SaveBarView
+          dirty={dirty}
+          submitting={action.busy}
+          saveDisabled={!passed}
+          onDiscard={() => {
+            startFrom(base);
+          }}
+          saveLabel={d.save}
+          cleanText={d.unchanged}
+        />
+      </form>
 
       <Panel title={d.contractTitle}>
         <div className="grid gap-3 px-5 py-4 text-sm">
@@ -359,41 +372,29 @@ export function PromptWorkspace({ detail }: { detail: PromptDetail }): React.JSX
             {d.diffTitle}
           </h3>
           <div className="flex flex-wrap items-end gap-3">
-            <Field id="diff-left" label={d.diffAgainst}>
-              <select
-                id="diff-left"
-                className="bg-card shadow-control h-9 rounded-md px-3 text-sm"
-                value={String(left)}
-                onChange={(e) => {
-                  setLeft(parse(e.target.value));
-                }}
-              >
-                {diffOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <SelectField
+              id="diff-left"
+              label={d.diffAgainst}
+              value={String(left)}
+              options={diffOptions}
+              className="min-w-44"
+              onChange={(v) => {
+                setLeft(parse(v));
+              }}
+            />
             <span aria-hidden="true" className="text-muted-foreground pb-2">
               →
             </span>
-            <Field id="diff-right" label={d.diffTitle}>
-              <select
-                id="diff-right"
-                className="bg-card shadow-control h-9 rounded-md px-3 text-sm"
-                value={String(right)}
-                onChange={(e) => {
-                  setRight(parse(e.target.value));
-                }}
-              >
-                {diffOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <SelectField
+              id="diff-right"
+              label={d.diffTitle}
+              value={String(right)}
+              options={diffOptions}
+              className="min-w-44"
+              onChange={(v) => {
+                setRight(parse(v));
+              }}
+            />
           </div>
           <p className="text-muted-foreground text-sm" role="status">
             {d.diffSummary(changes.added, changes.removed)}
@@ -402,107 +403,102 @@ export function PromptWorkspace({ detail }: { detail: PromptDetail }): React.JSX
         </div>
       </Panel>
 
-      <Panel title={d.versionsTitle}>
-        {detail.versions.length === 0 ? (
-          <p className="text-muted-foreground px-5 py-4 text-sm">{d.versionsEmpty}</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{d.versionsColumns.version}</TableHead>
-                  <TableHead>{d.versionsColumns.state}</TableHead>
-                  <TableHead>{d.versionsColumns.note}</TableHead>
-                  <TableHead>{d.versionsColumns.saved}</TableHead>
-                  <TableHead className="text-right">{d.versionsColumns.calls}</TableHead>
-                  <TableHead className="text-right">{d.versionsColumns.errorRate}</TableHead>
-                  <TableHead className="text-right">{d.versionsColumns.latency}</TableHead>
-                  <TableHead className="text-right">
-                    <span className="sr-only">{d.versionsColumns.actions}</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {detail.versions.map((v) => (
-                  <TableRow key={v.version}>
-                    <TableCell className="font-medium whitespace-nowrap">
-                      <code className="font-mono text-xs">{v.tag}</code>
-                      {v.parentVersion != null ? (
-                        <span className="text-muted-foreground block text-xs">
-                          {d.derivedFrom(v.parentVersion)}
-                        </span>
-                      ) : null}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          v.state === "stable" ? "success" : v.state === "canary" ? "warning" : "outline"
-                        }
-                      >
-                        {d.state[v.state]}
-                        {v.state === "canary" ? ` ${d.canaryShare(Math.round(v.canaryShare * 100))}` : ""}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-xs text-xs">{v.note ?? t.admin.common.dash}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                      {formatDate(v.createdAt)}
-                      <span className="block">{actorLabel(v.createdBy, t.admin.common.dash)}</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{v.stats.calls}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {v.stats.calls > 0 ? formatPercent(v.stats.errorRate) : t.admin.common.dash}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {v.stats.calls > 0 ? formatDuration(v.stats.meanLatencyMs) : t.admin.common.dash}
-                    </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-label={d.compareNamed(v.version)}
-                        onClick={() => {
-                          setLeft("shipped");
-                          setRight(v.version);
-                          diffHeadingRef.current?.focus();
-                        }}
-                      >
-                        {d.compare}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-label={d.editCopyNamed(v.version)}
-                        onClick={() => {
-                          startFrom(v.version);
-                          textareaRef.current?.focus();
-                        }}
-                      >
-                        {d.editCopy}
-                      </Button>
-                      {v.state !== "stable" ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          aria-label={d.useNamed(v.version)}
-                          disabled={action.busy}
-                          onClick={() => {
-                            setUsing(v);
-                          }}
-                        >
-                          {d.use}
-                        </Button>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </Panel>
+      <section aria-labelledby="prompt-versions" className="grid grid-cols-[minmax(0,1fr)] gap-3">
+        <SectionTitle id="prompt-versions">{d.versionsTitle}</SectionTitle>
+        <DataTable
+          id={`prompt-versions-${key}`}
+          label={d.versionsTitle}
+          columns={[
+            { id: "version", header: d.versionsColumns.version, primary: true, locked: true },
+            { id: "state", header: d.versionsColumns.state, locked: true },
+            { id: "note", header: d.versionsColumns.note, locked: true },
+            { id: "saved", header: d.versionsColumns.saved, locked: true },
+            { id: "calls", header: d.versionsColumns.calls, align: "end", locked: true },
+            { id: "errors", header: d.versionsColumns.errorRate, align: "end", locked: true },
+            { id: "latency", header: d.versionsColumns.latency, align: "end", locked: true },
+          ]}
+          rows={detail.versions.map((v) => ({
+            id: String(v.version),
+            label: v.tag,
+            cells: {
+              version: (
+                <span className="font-medium whitespace-nowrap">
+                  <code className="font-mono text-xs">{v.tag}</code>
+                  {v.parentVersion != null ? (
+                    <span className="text-muted-foreground block text-xs font-normal">
+                      {d.derivedFrom(v.parentVersion)}
+                    </span>
+                  ) : null}
+                </span>
+              ),
+              state: (
+                <Badge
+                  variant={v.state === "stable" ? "success" : v.state === "canary" ? "warning" : "outline"}
+                >
+                  {d.state[v.state]}
+                  {v.state === "canary" ? ` ${d.canaryShare(Math.round(v.canaryShare * 100))}` : ""}
+                </Badge>
+              ),
+              note: <span className="block max-w-xs text-xs">{v.note ?? t.admin.common.dash}</span>,
+              saved: (
+                <span className="text-muted-foreground text-xs whitespace-nowrap">
+                  {formatDate(v.createdAt)}
+                  <span className="block">{actorLabel(v.createdBy, t.admin.common.dash)}</span>
+                </span>
+              ),
+              calls: <span className="tabular-nums">{v.stats.calls}</span>,
+              errors: (
+                <span className="tabular-nums">
+                  {v.stats.calls > 0 ? formatPercent(v.stats.errorRate) : t.admin.common.dash}
+                </span>
+              ),
+              latency: (
+                <span className="tabular-nums">
+                  {v.stats.calls > 0 ? formatDuration(v.stats.meanLatencyMs) : t.admin.common.dash}
+                </span>
+              ),
+            },
+            actions: (
+              <RowActions>
+                <IconButton
+                  label={d.compareNamed(v.version)}
+                  icon={<GitCompareIcon />}
+                  onClick={() => {
+                    setLeft("shipped");
+                    setRight(v.version);
+                    diffHeadingRef.current?.focus();
+                  }}
+                />
+                <IconButton
+                  label={d.editCopyNamed(v.version)}
+                  icon={<PencilIcon />}
+                  onClick={() => {
+                    startFrom(v.version);
+                    textareaRef.current?.focus();
+                  }}
+                />
+                {v.state !== "stable" ? (
+                  <IconButton
+                    label={d.useNamed(v.version)}
+                    icon={<PlayIcon />}
+                    disabled={action.busy}
+                    onClick={() => {
+                      setUsing(v);
+                    }}
+                  />
+                ) : null}
+              </RowActions>
+            ),
+          }))}
+          page={{
+            page: 1,
+            limit: Math.max(detail.versions.length, 1),
+            count: detail.versions.length,
+            total: detail.versions.length,
+          }}
+          empty={{ title: d.versionsEmpty }}
+        />
+      </section>
 
       <UseDialog
         version={using}

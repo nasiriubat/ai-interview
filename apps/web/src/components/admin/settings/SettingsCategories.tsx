@@ -1,28 +1,18 @@
-import Link from "next/link";
 import * as React from "react";
 import { CategoryForm } from "./CategoryForm";
 import { LiveVoicePanel } from "./LiveVoicePanel";
+import { SettingsNav, type SettingsNavGroup } from "./SettingsNav";
+import { SettingsSearch } from "./SettingsSearch";
 import { t } from "@/i18n";
 import type { SettingsCatalogEntry, SettingsResponse } from "@/lib/api/schemas";
-import { cn } from "@/lib/utils";
 
-const CATEGORY_ORDER = [
-  "engine",
-  "campaign",
-  "privacy",
-  "cost",
-  "files",
-  "voice",
-  "features",
-  "branding",
-  "analysis",
-  "requirements",
-  "exports",
-  "email",
-  "notifications",
-  "ceiling",
-  "ops",
-  "other",
+/** The sections in a group, in reading order. A category not listed lands in "other". */
+const GROUPS: { key: "interview" | "costs" | "workspace" | "insight" | "other"; categories: string[] }[] = [
+  { key: "interview", categories: ["engine", "campaign", "privacy", "features", "voice"] },
+  { key: "costs", categories: ["cost", "ceiling", "ops"] },
+  { key: "workspace", categories: ["branding", "email", "notifications", "files"] },
+  { key: "insight", categories: ["analysis", "requirements", "exports"] },
+  { key: "other", categories: ["other"] },
 ];
 
 /**
@@ -37,9 +27,10 @@ function categoryLabel(key: string): string {
 }
 
 /**
- * The settings screen: categories down the left (above the form on phones), one category's
- * form on the right. The selection lives in `?category=`, so a reload or a shared link opens
- * the same category.
+ * The settings screen (D-394): a search box and grouped sections down the left (a select above
+ * the form on phones), one section's form on the right. The selection lives in `?category=`, so a
+ * reload or a shared link opens the same section; the badge on a section counts what differs from
+ * the default at this level.
  */
 export function SettingsCategories({
   data,
@@ -64,16 +55,7 @@ export function SettingsCategories({
     list.push(entry);
     grouped.set(entry.category, list);
   }
-  const categories = [...grouped.keys()].sort((a, b) => {
-    const ia = CATEGORY_ORDER.indexOf(a);
-    const ib = CATEGORY_ORDER.indexOf(b);
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-  });
-
-  if (categories.length === 0) return <p className="text-muted-foreground text-sm">{s.empty}</p>;
-
-  const selected = category && grouped.has(category) ? category : (categories[0] ?? "");
-  const entries = grouped.get(selected) ?? [];
+  if (grouped.size === 0) return <p className="text-muted-foreground text-sm">{s.empty}</p>;
 
   const href = (cat: string): string => {
     const params = new URLSearchParams({ scope });
@@ -82,26 +64,37 @@ export function SettingsCategories({
     return `/admin/settings?${params.toString()}`;
   };
 
+  const known = new Set(GROUPS.flatMap((g) => g.categories));
+  const navGroups: SettingsNavGroup[] = GROUPS.map((g) => {
+    const cats = [
+      ...g.categories,
+      ...(g.key === "other" ? [...grouped.keys()].filter((c) => !known.has(c)) : []),
+    ];
+    return {
+      key: g.key,
+      label: t.kit.settingsLayout.groups[g.key],
+      items: cats
+        .filter((c) => grouped.has(c))
+        .map((c) => ({
+          key: c,
+          label: categoryLabel(c),
+          href: href(c),
+          changed: (grouped.get(c) ?? []).filter((e) => e.key in data.values).length,
+        })),
+    };
+  }).filter((g) => g.items.length > 0);
+
+  const first = navGroups[0]?.items[0]?.key ?? "";
+  const selected = category && grouped.has(category) ? category : first;
+  const entries = grouped.get(selected) ?? [];
+  const searchable = data.catalog.filter((c) => c.category !== "ui" && c.scopes.includes(scope));
+
   return (
-    <div className="grid gap-6 md:grid-cols-[13rem_minmax(0,1fr)]">
-      <nav
-        aria-label={s.categoriesLabel}
-        className="flex gap-1 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0"
-      >
-        {categories.map((cat) => (
-          <Link
-            key={cat}
-            href={href(cat)}
-            aria-current={cat === selected ? "page" : undefined}
-            className={cn(
-              "hover:bg-accent shrink-0 rounded-md px-3 py-1.5 text-sm whitespace-nowrap",
-              cat === selected && "bg-accent font-medium",
-            )}
-          >
-            {categoryLabel(cat)}
-          </Link>
-        ))}
-      </nav>
+    <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+      <div className="grid content-start gap-5 lg:sticky lg:top-20 lg:self-start">
+        <SettingsSearch entries={searchable} scope={scope} scopeId={scopeId} />
+        <SettingsNav groups={navGroups} selected={selected} />
+      </div>
       <div className="min-w-0">
         {/* Live voice is one switch with a readiness check (D-77), and it is always the tenant's own. */}
         {selected === "voice" && scope === "tenant" && !scopeId ? <LiveVoicePanel /> : null}

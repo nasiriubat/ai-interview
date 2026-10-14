@@ -52,6 +52,23 @@ export const CampaignSessionList = listSpec({
 export const CampaignSessionListQuery = listQuery(CampaignSessionList);
 export type CampaignSessionListQuery = z.output<typeof CampaignSessionListQuery>;
 
+/**
+ * `/campaigns/:id/invitations` (D-79, D-360). `q` matches the address, and only for an administrator:
+ * a member is not shown addresses (D-144), so a member's search finds nothing rather than letting
+ * a guess be confirmed by a row appearing. An anonymous campaign keeps no address, so it matches nothing.
+ */
+export const InvitationList = listSpec({
+  sort: { createdAt: "asc", email: "asc", status: "asc", sentAt: "desc", openedAt: "desc" },
+  defaultSort: "createdAt",
+  nullable: ["sentAt", "openedAt"],
+  filters: {
+    status: z.enum(["pending", "sent", "opened", "bound", "revoked", "expired"]).optional(),
+  },
+});
+
+export const InvitationListQuery = listQuery(InvitationList);
+export type InvitationListQuery = z.output<typeof InvitationListQuery>;
+
 export interface CampaignSessionRow {
   id: string;
   status: string;
@@ -550,6 +567,41 @@ export class CampaignService {
   async invitations(companyId: string, campaignId: string): Promise<Invitation[]> {
     await this.get(companyId, campaignId);
     return this.db.invitation.findMany({ where: { campaignId }, orderBy: { createdAt: "asc" } });
+  }
+
+  /**
+   * One page of a campaign's invitations. `mayReadAddresses` is the caller's right to see who was
+   * invited: without it a search matches nothing and a sort by address falls back to creation order,
+   * so neither can be used to learn an address that is not shown.
+   */
+  async invitationsPage(
+    companyId: string,
+    campaignId: string,
+    query: InvitationListQuery,
+    mayReadAddresses: boolean,
+  ): Promise<{ invitations: Invitation[]; total: number }> {
+    await this.get(companyId, campaignId);
+    const q = searchTerm(query.q);
+    const where: Prisma.InvitationWhereInput = {
+      campaignId,
+      companyId,
+      ...(query.status ? { status: query.status } : {}),
+      ...(q === undefined ? {} : mayReadAddresses ? { email: containsInsensitive(q) } : { id: { in: [] } }),
+    };
+    const sort = !mayReadAddresses && query.sort === "email" ? "createdAt" : query.sort;
+    const [invitations, total] = await tenantBatch(this.db, [
+      this.db.invitation.findMany({
+        where,
+        orderBy: listOrder<Prisma.InvitationOrderByWithRelationInput, typeof query.sort>(InvitationList, {
+          ...query,
+          sort,
+        }),
+        take: query.limit,
+        skip: query.offset,
+      }),
+      this.db.invitation.count({ where }),
+    ]);
+    return { invitations, total };
   }
 
   /**

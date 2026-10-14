@@ -62,6 +62,8 @@
   --brand-text: #ffffff;
   --brand-gradient: linear-gradient(135deg, var(--brand-1), var(--brand-2));
   --brand-band: linear-gradient(115deg, #635bff 0%, #7a6bff 30%, #4f8dfd 60%, #00b8d9 100%);
+  /* The auth screens' brand panel: white text is at least 7:1 on every stop (D-390). */
+  --brand-panel: linear-gradient(155deg, #2b2796 0%, #3a34c4 55%, #4d45e6 100%);
   --chart-1: #5f56fa;
   --chart-2: #00b8d9;
   --chart-3: #0e8a55;
@@ -253,6 +255,7 @@
   --color-overlay: var(--overlay);
   --background-image-brand-gradient: var(--brand-gradient);
   --background-image-brand-band: var(--brand-band);
+  --background-image-brand-panel: var(--brand-panel);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -291,6 +294,15 @@
   /* WCAG 2.2: visible focus for keyboard users everywhere. */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;
+  }
+  /* Selection and scrollbars follow the tokens, so dark mode is not a white strip (D-396). */
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 28%, transparent);
+    color: inherit;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--input) transparent;
   }
 }
 

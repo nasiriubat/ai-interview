@@ -15,14 +15,12 @@ import type { Me } from "@/lib/api/schemas";
  */
 export function TopBar({
   me,
-  signOutAction,
   collapsed,
   onToggleSidebar,
   onOpenDrawer,
   onOpenSearch,
 }: {
   me: Me | null;
-  signOutAction: () => Promise<void>;
   collapsed: boolean;
   onToggleSidebar: () => void;
   onOpenDrawer: () => void;
@@ -65,7 +63,7 @@ export function TopBar({
       <div className="md:hidden">
         <IconButton label={k.searchHint} icon={<SearchIcon />} onClick={onOpenSearch} />
       </div>
-      <UserMenu me={me} signOutAction={signOutAction} />
+      <UserMenu me={me} />
     </header>
   );
 }

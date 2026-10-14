@@ -1,4 +1,5 @@
 import { CURRENT_RELEASE } from "@aidp/shared";
+import { HistoryIcon } from "lucide-react";
 import type { Metadata } from "next";
 import * as React from "react";
 import { LoadError } from "@/components/admin/LoadError";
@@ -6,8 +7,8 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { HistoryPanel } from "@/components/admin/settings/HistoryPanel";
 import { ScopePicker } from "@/components/admin/settings/ScopePicker";
 import { SettingsCategories } from "@/components/admin/settings/SettingsCategories";
-import { SettingsSearch } from "@/components/admin/settings/SettingsSearch";
 import { WhatChangedPanel } from "@/components/admin/settings/WhatChangedPanel";
+import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
@@ -46,10 +47,21 @@ export default async function SettingsPage({ searchParams }: Props): Promise<Rea
     else error = dataR.reason;
     if (historyR.status === "fulfilled") history = historyR.value;
   }
-  const searchable = data?.catalog.filter((c) => c.category !== "ui" && c.scopes.includes(scope)) ?? [];
   return (
     <>
-      <PageHeader title={t.admin.settings.title} subtitle={t.admin.settings.subtitle} />
+      <PageHeader
+        title={t.admin.settings.title}
+        subtitle={t.admin.settings.subtitle}
+        secondaryActions={
+          history ? (
+            <Button asChild variant="outline" size="sm">
+              <a href="#settings-history">
+                <HistoryIcon aria-hidden="true" /> {t.kit.settingsLayout.history}
+              </a>
+            </Button>
+          ) : null
+        }
+      />
       <ScopePicker
         scope={scope}
         scopeId={scopeId}
@@ -72,7 +84,6 @@ export default async function SettingsPage({ searchParams }: Props): Promise<Rea
             scope={scope}
             scopeId={scopeId || undefined}
           />
-          <SettingsSearch entries={searchable} scope={scope} scopeId={scopeId || undefined} />
           <SettingsCategories
             data={data}
             scope={scope}
@@ -80,7 +91,11 @@ export default async function SettingsPage({ searchParams }: Props): Promise<Rea
             category={category}
             operator={me?.user.role === "platform_operator"}
           />
-          {history ? <HistoryPanel items={history.items} /> : null}
+          {history ? (
+            <div id="settings-history" className="scroll-mt-20">
+              <HistoryPanel items={history.items} />
+            </div>
+          ) : null}
         </div>
       ) : (
         <LoadError error={error} />

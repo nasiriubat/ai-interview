@@ -24,6 +24,7 @@ export function Form<T extends Record<string, unknown>>({
   saveLabel,
   bar = true,
   readOnly = false,
+  alwaysEnabled = false,
 }: {
   form: FormApi<T>;
   children: React.ReactNode;
@@ -32,13 +33,15 @@ export function Form<T extends Record<string, unknown>>({
   bar?: boolean;
   /** The person may read but not save: the bar is not drawn. */
   readOnly?: boolean;
+  /** A form that creates something: Save is offered before any edit, and validation then says what is missing. */
+  alwaysEnabled?: boolean;
 }): React.JSX.Element {
   return (
     <ValidatedForm
       onSubmit={form.submit}
       issues={form.issues}
       attempt={form.attempt}
-      className={cn("grid gap-5", className)}
+      className={cn("grid grid-cols-[minmax(0,1fr)] gap-5", className)}
     >
       {form.serverError ? (
         <Alert variant="destructive">
@@ -46,7 +49,7 @@ export function Form<T extends Record<string, unknown>>({
         </Alert>
       ) : null}
       {children}
-      {bar && !readOnly ? <SaveBar form={form} saveLabel={saveLabel} /> : null}
+      {bar && !readOnly ? <SaveBar form={form} saveLabel={saveLabel} alwaysEnabled={alwaysEnabled} /> : null}
     </ValidatedForm>
   );
 }
@@ -54,9 +57,11 @@ export function Form<T extends Record<string, unknown>>({
 export function SaveBar<T extends Record<string, unknown>>({
   form,
   saveLabel,
+  alwaysEnabled = false,
 }: {
   form: FormApi<T>;
   saveLabel?: string | undefined;
+  alwaysEnabled?: boolean;
 }): React.JSX.Element {
   return (
     <SaveBarView
@@ -65,6 +70,8 @@ export function SaveBar<T extends Record<string, unknown>>({
       problems={form.issues.length}
       onDiscard={form.reset}
       saveLabel={saveLabel}
+      alwaysEnabled={alwaysEnabled}
+      cleanText={alwaysEnabled ? t.kit.form.noChanges : undefined}
     />
   );
 }
@@ -81,10 +88,16 @@ export function SaveBarView({
   saveLabel,
   extra,
   alwaysEnabled = false,
+  saveDisabled = false,
+  cleanText,
 }: {
   dirty: boolean;
   /** Save is offered even with no edit (a settings category re-sends what is set). */
   alwaysEnabled?: boolean;
+  /** Save is blocked for another reason (a check that has not passed), whatever was edited. */
+  saveDisabled?: boolean;
+  /** What the bar says when nothing is edited; "All changes saved" is wrong for a form that saves a new version. */
+  cleanText?: string | undefined;
   submitting: boolean;
   problems?: number;
   onDiscard: () => void;
@@ -107,7 +120,7 @@ export function SaveBarView({
         ) : (
           <>
             <CheckIcon className="text-success size-4 shrink-0" aria-hidden="true" />
-            <span className="truncate">{k.saved}</span>
+            <span className="truncate">{cleanText ?? k.saved}</span>
           </>
         )}
       </p>
@@ -117,7 +130,7 @@ export function SaveBarView({
         <RotateCcwIcon aria-hidden="true" />
         {k.discard}
       </Button>
-      <Button type="submit" loading={submitting} disabled={!dirty && !alwaysEnabled}>
+      <Button type="submit" loading={submitting} disabled={(!dirty && !alwaysEnabled) || saveDisabled}>
         {saveLabel ?? k.save}
       </Button>
     </div>
