@@ -65,9 +65,7 @@ export default async function TemplatePage({ params }: Props): Promise<React.JSX
       />
       <div className="grid gap-6">
         <TemplateActions template={tpl} />
-        {isAdmin ? (
-          <VoiceSwitch templateId={tpl.id} initial={voiceOn} disabled={!tpl.companyId} />
-        ) : null}
+        {isAdmin ? <VoiceSwitch templateId={tpl.id} initial={voiceOn} disabled={!tpl.companyId} /> : null}
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
