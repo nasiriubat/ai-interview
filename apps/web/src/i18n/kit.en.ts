@@ -179,7 +179,7 @@ export const kitEn = {
     points: [
       "AI-led conversations with the people who do the work",
       "Findings ranked by value, effort and risk",
-      "Your data stays in the EU, under your control",
+      "Built to run on a server you operate, with the AI providers you choose",
     ],
     footer: "One-time links, no passwords.",
   },

@@ -5,6 +5,7 @@ import {
   smtpDraftBody,
   smtpDraftDirty,
   smtpDraftErrors,
+  testFailureMessage,
 } from "@/components/admin/settings/EmailPanel";
 
 const view = {
@@ -51,5 +52,18 @@ describe("the mail server draft", () => {
     expect(emailAddressError("Acme <hello@acme.co>")).toBeUndefined();
     expect(emailAddressError("nope")).toBeTruthy();
     expect(emailAddressError("")).toBeUndefined();
+  });
+});
+
+describe("a refused test send", () => {
+  it("tells the operator how to allow a private relay, and a tenant admin whom to ask", () => {
+    expect(testFailureMessage("blocked", "platform")).toMatch(/EGRESS_ALLOW_HOSTS/);
+    const tenant = testFailureMessage("blocked", "tenant");
+    expect(tenant).toMatch(/operator/);
+    expect(tenant).not.toMatch(/EGRESS_ALLOW_HOSTS/);
+    expect(testFailureMessage("auth_failed", "platform")).toMatch(/username or password/);
+    expect(testFailureMessage(undefined, "tenant", "boom")).toBe(
+      "Could not send through this configuration.",
+    );
   });
 });

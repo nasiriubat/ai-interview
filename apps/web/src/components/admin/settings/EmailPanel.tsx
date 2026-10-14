@@ -93,6 +93,22 @@ export function emailAddressError(value: string): string | undefined {
   return t.admin.settings.email.form.errors.email;
 }
 
+/**
+ * What a failed test send says. A private relay is refused by the egress policy; the platform
+ * operator can allow one (EGRESS_ALLOW_HOSTS) and a tenant admin cannot, so they read different
+ * advice (found in the 2026-10-15 simulation: the old text gave no way forward).
+ */
+export function testFailureMessage(
+  errorClass: string | null | undefined,
+  scope: string,
+  error?: string | null,
+): string {
+  const map = t.admin.settings.email.form.testClass as Record<string, string>;
+  const cls =
+    errorClass === "blocked" && scope === "platform" ? "blockedPlatform" : (errorClass ?? "unknown");
+  return map[cls] ?? error ?? t.admin.settings.email.form.testClass.unknown;
+}
+
 interface EmailPanelProps {
   scope: string;
   scopeId: string | undefined;
@@ -341,6 +357,7 @@ export function EmailPanel({
               autoComplete="off"
               spellCheck={false}
               value={from}
+              placeholder={k.fromPlaceholder}
               aria-invalid={fromError ? true : undefined}
               aria-describedby={`email-from-hint${fromError ? " email-from-error" : ""}`}
               onChange={(e) => {
@@ -413,9 +430,7 @@ function TestSend({
       .then((r) => {
         if (r.ok) setOutcome({ ok: true });
         else {
-          const cls = r.errorClass ?? "unknown";
-          const map = k.form.testClass as Record<string, string>;
-          setOutcome({ ok: false, message: map[cls] ?? r.error ?? k.form.testClass.unknown });
+          setOutcome({ ok: false, message: testFailureMessage(r.errorClass, scope, r.error) });
         }
       })
       .catch((e: unknown) => {

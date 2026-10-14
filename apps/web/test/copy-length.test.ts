@@ -86,3 +86,24 @@ describe("Finnish strings that sit on buttons and headers stay short", () => {
     for (const path of [...BUTTONS, ...HEADERS]) expect(pick(en, path).length).toBeGreaterThan(0);
   });
 });
+
+describe("empty states do not repeat their title", () => {
+  // Found in the 2026-10-15 simulation: "No campaigns yet" over "No campaigns yet. Create one ...".
+  function pairs(node: unknown, path: string, out: [string, string, string][]): void {
+    if (!node || typeof node !== "object") return;
+    const o = node as Record<string, unknown>;
+    if (typeof o.emptyTitle === "string" && typeof o.empty === "string")
+      out.push([path, o.emptyTitle, o.empty]);
+    for (const [k, v] of Object.entries(o)) pairs(v, path ? `${path}.${k}` : k, out);
+  }
+  it.each([
+    ["en", en],
+    ["fi", fi],
+  ] as const)("%s", (_l, strings) => {
+    const found: [string, string, string][] = [];
+    pairs(strings, "", found);
+    expect(found.length).toBeGreaterThan(0);
+    const repeating = found.filter(([, title, body]) => body.toLowerCase().startsWith(title.toLowerCase()));
+    expect(repeating.map(([p]) => p)).toEqual([]);
+  });
+});

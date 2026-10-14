@@ -255,6 +255,16 @@ describe("claims the page may not make (docs/team/claims-2026-10.md, rows that a
     expect(all("fi")).not.toMatch(re);
   });
 
+  it("keeps the sign-in panel to Built claims too: no EU residency promise (E1, E2)", () => {
+    // Found in the 2026-10-15 simulation: the panel said "Your data stays in the EU", which hosted
+    // providers outside the EU make untrue (claims row E2).
+    for (const l of ["en", "fi"] as const) {
+      const panel = JSON.stringify(stringsFor(l).kit.brand);
+      expect(panel).not.toMatch(/stays in the EU|in the EU|EU:ssa/i);
+      for (const re of unbuilt) expect(panel).not.toMatch(re);
+    }
+  });
+
   it("states the one cost figure as a test figure", () => {
     const q = stringsFor("en").landing.faq.items.find((i) => /cost/i.test(i.q));
     expect(q?.a).toMatch(/internal test/);
