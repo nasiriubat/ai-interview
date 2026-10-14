@@ -103,7 +103,8 @@ suite("SettingsService", () => {
 
     const row = await db.setting.findFirstOrThrow({ where: { ...ref, key: "email.smtpUrl" } });
     expect(row.value).not.toContain("pass");
-    expect(crypto.decrypt(row.value as string)).toBe("smtp://user:pass@mail.test:587");
+    expect(row.value).toMatch(/^v2\./);
+    expect(crypto.decrypt(row.value as string, "setting.secret")).toBe("smtp://user:pass@mail.test:587");
 
     // The server-side read decrypts; the admin editor only ever sees the sentinel.
     expect(await svc.get("email.smtpUrl", [ref])).toBe("smtp://user:pass@mail.test:587");

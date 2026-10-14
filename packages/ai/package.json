@@ -22,6 +22,7 @@
     "@huggingface/transformers": "^4.3.0",
     "exceljs": "^4.4.0",
     "mammoth": "^1.12.3",
+    "sharp": "^0.35.5",
     "unpdf": "^1.8.1",
     "ws": "^8.21.3",
     "zod": "^4.0.0"

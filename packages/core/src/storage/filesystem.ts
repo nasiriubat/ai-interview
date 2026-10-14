@@ -1,10 +1,11 @@
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, readdir, rename, rm, stat, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
-import { Readable } from "node:stream";
+import { type Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import {
   assertSafeKey,
+  byteLimit,
   type PrefixInfo,
   ObjectNotFound,
   ObjectTooLarge,
@@ -140,18 +141,15 @@ export class FilesystemStorage implements StoragePort {
 
 async function writeStream(body: Readable, path: string, maxBytes?: number): Promise<number> {
   let total = 0;
-  const counter = new Readable({ read: () => undefined });
-  body.on("data", (chunk: Buffer) => {
-    total += chunk.byteLength;
-    if (maxBytes !== undefined && total > maxBytes) {
-      body.destroy(new ObjectTooLarge(maxBytes, total));
-      return;
-    }
-    counter.push(chunk);
+  const counter = new Transform({
+    transform(chunk: Buffer, _enc, cb): void {
+      total += chunk.byteLength;
+      cb(null, chunk);
+    },
   });
-  body.on("end", () => counter.push(null));
-  body.on("error", (err) => counter.destroy(err));
-  await pipeline(counter, createWriteStream(path, { mode: 0o640 }));
+  // One pipeline, so backpressure runs from the disk back to the sender and an error anywhere
+  // (the limit, the source, the file) tears the whole chain down.
+  await pipeline(body, byteLimit(maxBytes), counter, createWriteStream(path, { mode: 0o640 }));
   return total;
 }
 

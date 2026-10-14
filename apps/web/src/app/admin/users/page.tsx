@@ -39,7 +39,11 @@ export default async function UsersPage({ searchParams }: Props): Promise<React.
         ]}
         sort={{ list: LISTS.users, labels: t.admin.list.fields }}
       />
-      <UsersPanel users={result.items} canEdit={hasRole(me, ["admin", "platform_operator"])} />
+      <UsersPanel
+        users={result.items}
+        canEdit={hasRole(me, ["admin", "platform_operator"])}
+        currentUserId={me?.user.id}
+      />
       <Pagination page={page} limit={limit} count={result.items.length} total={result.total} />
     </>
   );

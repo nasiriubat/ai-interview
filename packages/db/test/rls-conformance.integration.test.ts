@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describeDb } from "@aidp/testing";
+import { describeDb, purgeAuditLog } from "@aidp/testing";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SCOPED_MODELS, withSystemTenant, withTenant, withTenantScope } from "../src/index.js";
@@ -393,7 +393,7 @@ describeDb("row-level security conformance (D-140)", () => {
     await owner.route.deleteMany({ where });
     await owner.provider.deleteMany({ where });
     await owner.budget.deleteMany({ where });
-    await owner.auditLog.deleteMany({ where });
+    await purgeAuditLog(owner, [companyId]);
     await owner.opsAlert.deleteMany({ where });
     await owner.sentEmail.deleteMany({ where });
     await owner.promptVersion.deleteMany({ where });
@@ -523,8 +523,16 @@ describeDb("row-level security conformance (D-140)", () => {
         `SELECT count(*) AS n FROM ${table} WHERE ${col} = $1`,
         b.companyId,
       );
-      const deleted = await rawExecAs(a.companyId, `DELETE FROM ${table} WHERE ${col} = $1`, b.companyId);
-      expect(deleted).toBe(0);
+      if (model === "AuditLog") {
+        // The application role has no DELETE on the audit log at all (migration 0019, D-163): the
+        // statement is refused outright, which is stronger than matching no rows.
+        await expect(
+          rawExecAs(a.companyId, `DELETE FROM ${table} WHERE ${col} = $1`, b.companyId),
+        ).rejects.toThrow(/permission denied/);
+      } else {
+        const deleted = await rawExecAs(a.companyId, `DELETE FROM ${table} WHERE ${col} = $1`, b.companyId);
+        expect(deleted).toBe(0);
+      }
       const after = await owner.$queryRawUnsafe<{ n: bigint }[]>(
         `SELECT count(*) AS n FROM ${table} WHERE ${col} = $1`,
         b.companyId,

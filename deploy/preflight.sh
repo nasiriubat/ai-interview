@@ -132,6 +132,22 @@ if [ "$(q "select (to_regclass('pgboss.version') is not null)::text")" = "true" 
 		fail "app_api cannot read pgboss.version; pg-boss will crash-loop (run deploy/grants.sql)"
 fi
 
+# 6b. The audit log is append-only (A2, D-163). Migration 0010 once granted everything on every
+#     table, so a later migration could silently grant it back; this is the question asked at every
+#     boot instead of trusted once. It also checks that the triggers which refuse the owner and
+#     chain the rows still exist, because a restore from an old dump would not have them.
+audit_problem=$(q "select case
+                     when has_table_privilege(current_user, '\"AuditLog\"', 'UPDATE') then 'app_api can UPDATE AuditLog'
+                     when has_table_privilege(current_user, '\"AuditLog\"', 'DELETE') then 'app_api can DELETE AuditLog'
+                     when has_table_privilege(current_user, '\"AuditLog\"', 'TRUNCATE') then 'app_api can TRUNCATE AuditLog'
+                     when (select count(*) from pg_trigger
+                            where tgrelid = '\"AuditLog\"'::regclass and not tgisinternal
+                              and tgname in ('AuditLog_chain', 'AuditLog_no_change', 'AuditLog_no_truncate')) <> 3
+                       then 'AuditLog append-only or chain triggers are missing'
+                     else 'ok' end as audit_append_only")
+[ "$audit_problem" = "ok" ] ||
+	fail "the audit log is not append-only: $audit_problem (re-run migrations; see docs/OPERATIONS.md#auditchain_broken)"
+
 # 7. The decisive one: with no app.company_id set, the policies must hide every tenant row.
 #    bootstrap has just created at least two users (operator and first admin). If this connection
 #    can see them, it is not being filtered, and steps 2 to 4 were lying somewhere.
@@ -139,4 +155,4 @@ visible=$(q 'select count(*) from "User"')
 [ "$visible" = "0" ] ||
 	fail "an untenanted connection can see $visible User rows; policies are not being applied"
 
-echo "preflight: ok — connected as app_api, no bypass, $protected tables under RLS, CREATE on database, untenanted reads return nothing"
+echo "preflight: ok — connected as app_api, no bypass, $protected tables under RLS, CREATE on database, audit log append-only, untenanted reads return nothing"

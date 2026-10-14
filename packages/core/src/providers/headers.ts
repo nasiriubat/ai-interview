@@ -18,7 +18,7 @@ export const HEADER_KEEP = "__keep__";
 
 /** The encrypted column value for a header map; empty means "no headers" and stores nothing. */
 export function sealHeaders(crypto: Crypto, headers: Record<string, string>): string {
-  return Object.keys(headers).length === 0 ? "" : crypto.encrypt(JSON.stringify(headers));
+  return Object.keys(headers).length === 0 ? "" : crypto.encrypt(JSON.stringify(headers), "provider.headers");
 }
 
 /**
@@ -27,7 +27,7 @@ export function sealHeaders(crypto: Crypto, headers: Record<string, string>): st
  */
 export function openHeaders(crypto: Crypto, headersEnc: string, legacy: unknown): Record<string, string> {
   if (headersEnc !== "") {
-    const parsed: unknown = JSON.parse(crypto.decrypt(headersEnc));
+    const parsed: unknown = JSON.parse(crypto.decrypt(headersEnc, "provider.headers"));
     return stringRecord(parsed);
   }
   return stringRecord(legacy);

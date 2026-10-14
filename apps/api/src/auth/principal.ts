@@ -61,6 +61,14 @@ export class PrincipalResolver {
           include: { company: true },
         });
         if (!user) return { kind: "anonymous" };
+        // Withdrawn access is immediate (D-161): the resolver reads the row on every request, so
+        // a 30-day JWT cannot outlive the decision. A token issued before the revocation
+        // watermark is refused even after the user is re-enabled; they sign in again.
+        if (user.disabledAt) return { kind: "anonymous" };
+        if (user.tokensValidAfter) {
+          const issuedAt = typeof jwt?.iat === "number" ? jwt.iat * 1000 : 0;
+          if (issuedAt < user.tokensValidAfter.getTime()) return { kind: "anonymous" };
+        }
         return {
           kind: "staff",
           userId: user.id,

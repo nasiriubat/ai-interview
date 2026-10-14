@@ -245,7 +245,7 @@ export class ProviderService {
         name: input.name,
         baseUrl: input.baseUrl ?? null,
         // No secret, so nothing to encrypt: an empty column is how "has no key" is stored.
-        apiKeyEnc: keyless ? "" : this.crypto.encrypt(apiKey),
+        apiKeyEnc: keyless ? "" : this.crypto.encrypt(apiKey, "provider.apiKey"),
         headers: {},
         headersEnc: sealHeaders(this.crypto, headers),
         enabled: input.enabled ?? true,
@@ -266,7 +266,9 @@ export class ProviderService {
         ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
         ...(headers !== undefined ? { headersEnc: sealHeaders(this.crypto, headers), headers: {} } : {}),
         ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
-        ...(input.apiKey && p.kind !== "local" ? { apiKeyEnc: this.crypto.encrypt(input.apiKey) } : {}),
+        ...(input.apiKey && p.kind !== "local"
+          ? { apiKeyEnc: this.crypto.encrypt(input.apiKey, "provider.apiKey") }
+          : {}),
       },
     });
     this.callers.invalidateProvider(p.id);

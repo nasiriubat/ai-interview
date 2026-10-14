@@ -21,6 +21,7 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import { guard, installAccessGuard } from "./auth/access.js";
+import { installAuditDeclarationCheck } from "./auth/audit-actions.js";
 import { authPlugin } from "./auth/plugin.js";
 import { PrincipalResolver } from "./auth/principal.js";
 import type { AppContext, RouteContext } from "./context.js";
@@ -34,6 +35,7 @@ import { internalAuthRoutes } from "./modules/internal-auth/routes.js";
 import { onboardingRoutes } from "./modules/onboarding/routes.js";
 import { operatorRoutes } from "./modules/operator/routes.js";
 import { participantAttachmentRoutes } from "./modules/participant/attachments.js";
+import { participantExportRoutes } from "./modules/participant/export.js";
 import { participantRoutes } from "./modules/participant/routes.js";
 import { participantVoiceLiveRoutes } from "./modules/participant/voice-live/routes.js";
 import { participantVoiceRoutes } from "./modules/participant/voice.js";
@@ -93,7 +95,18 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   app.addHook("preValidation", async (request) => {
     if (request.body == null && ["POST", "PUT", "PATCH"].includes(request.method)) request.body = {};
   });
-  await app.register(helmet, { contentSecurityPolicy: false });
+  // The API serves JSON and byte downloads, never a document: nothing it sends may load or frame
+  // anything (A3, D-165).
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'none'"],
+        formAction: ["'none'"],
+      },
+    },
+  });
   await app.register(cors, {
     origin: ctx.config.WEB_ORIGIN,
     credentials: true,
@@ -132,6 +145,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   });
   // After the limiter, so the guard is ordered behind its hook; before every route, so none escapes.
   installAccessGuard(app as unknown as FastifyInstance);
+  installAuditDeclarationCheck(app);
   // A path with no route has no route-level hook, so the 404 handler carries the limiter itself:
   // otherwise scanning for endpoints that do not exist is the one thing left without a ceiling.
   // The cast only drops the plugin's pino-specific `Logger` generic for Fastify's own
@@ -165,6 +179,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await campaignRoutes(a, routes);
       await participantRoutes(a, routes);
       await participantAttachmentRoutes(a, routes);
+      await participantExportRoutes(a, routes);
       await participantVoiceRoutes(a, routes);
       await participantVoiceLiveRoutes(a, routes);
       await sessionRoutes(a, routes);

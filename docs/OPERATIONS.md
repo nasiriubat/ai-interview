@@ -326,6 +326,64 @@ open). `deploy/dc restart caddy` retries immediately.
 **Fixed when** `deploy/dc logs caddy | grep -i "certificate obtained"` shows a recent line; the
 daily check clears the alert.
 
+### audit.chain_broken
+
+**Symptom** The `audit.verify` job failed and is in the dead-letter queue, or `preflight` refused
+to start with "the audit log is not append-only". The audit log is write-once and each row is
+chained to the one before it; this means a row was changed, removed or inserted out of order, or
+that the application role regained the right to edit the table.
+
+**Look at** `deploy/dc logs worker | grep "audit chain"`: each broken row is named by tenant,
+position and id (never content), with `hash does not match the row content`, `gap` or
+`prevHash does not follow the previous row`. The chain heads are logged daily as
+`audit chain head`; compare with an earlier day in your backup log, since a head that moved
+backwards means the table was replaced wholesale.
+
+**Do** Treat it as a security incident, not a bug. Do not "fix" the rows: restore the table from
+the last backup that verified (`docs/OPERATIONS.md#restoring`) into a scratch database and compare
+before deciding what is true. If preflight named a privilege, a migration or a hand-run `GRANT`
+restored it: re-run migrations (`deploy/upgrade.sh`), which revokes it and recreates the triggers.
+Never disable the triggers to make a job pass.
+
+**Fixed when** `audit_chain_verify()` returns no rows (`select * from audit_chain_verify();` as the
+owner) and the next `audit.verify` run finishes without a warning.
+
+### crypto.rekey
+
+**Symptom** You are rotating `PLATFORM_ENCRYPTION_KEY` (a leak, a leaver, or hygiene), or the job
+`crypto.rekey` is dead-lettered, or providers fail at call time with "not in the key ring".
+
+**Look at** `GET /operator/crypto/status` as the operator: the key ring (active key first), and for
+every encrypted column how many stored values each key id seals. `v1` is the old format, which is
+read forever but never written; a key id that is not in the ring is a value nothing can open.
+`pending` is what the job still has to move, and `previousKeysRemovable` is true when nothing needs
+a previous key any more.
+
+**Do** The drill, which you can rehearse on a staging copy of the database with
+`packages/core/test/rekey.integration.test.ts` as the executable version:
+
+1. Generate a new key: `openssl rand -base64 32`.
+2. In `deploy/.env`: set `PLATFORM_ENCRYPTION_KEY` to the new key and `PLATFORM_ENCRYPTION_KEY_PREVIOUS`
+   to the old one. `deploy/dc up -d api worker`. Check `/operator/crypto/status`: the ring lists both,
+   `pending` counts what is under the old key, and the application works.
+3. Start the re-encryption: `POST /operator/crypto/rekey` (or run the `crypto.rekey` job from the
+   jobs page). It writes one row at a time with a compare-and-swap, so an admin saving a key
+   during the run wins; it is safe to run twice, and it logs counts only.
+4. When status reports `pending: 0` and `previousKeysRemovable: true`, remove
+   `PLATFORM_ENCRYPTION_KEY_PREVIOUS`, restart, and check a provider test button once.
+5. Keep the old key somewhere safe until the oldest backup that still needs it is past retention:
+   a restore of an older backup needs the key that sealed it (set it as `..._PREVIOUS` for the
+   restore, then run the job).
+
+Email-address hashes (one response per person) cannot be re-keyed, because the address is not
+stored. They are looked up under every key in the ring and rewritten under the active key when
+the person returns. So do not remove the previous key while a campaign that dedupes respondents is
+still open, or those people will be treated as new. If it is compromised and must go now, accept
+that and say so to the campaign owners.
+
+**Fixed when** `previousKeysRemovable` was true before the previous key was removed, status after
+the restart shows one key in the ring, and no `crypto.rekey` dead letter remains.
+
 ### worker.heartbeat_stale
 
 **Symptom** The worker has not confirmed that it can reach the job queue for five minutes. No jobs

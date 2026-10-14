@@ -126,7 +126,7 @@ suite("live voice setup (D-77)", () => {
       where: { companyId: world.companyId, kind: "openai" },
     });
     expect(provider.apiKeyEnc).not.toContain(GOOD_KEY);
-    expect(world.crypto.decrypt(provider.apiKeyEnc)).toBe(GOOD_KEY);
+    expect(world.crypto.decrypt(provider.apiKeyEnc, "provider.apiKey")).toBe(GOOD_KEY);
     expect(provider.baseUrl).toBe(model.url);
 
     const entry = await world.db.auditLog.findFirstOrThrow({
@@ -145,7 +145,9 @@ suite("live voice setup (D-77)", () => {
       where: { companyId: world.companyId, kind: "openai" },
     });
     expect(providers).toHaveLength(1);
-    expect(world.crypto.decrypt(providers[0]?.apiKeyEnc ?? "")).toBe(`${GOOD_KEY}-rotated`);
+    expect(world.crypto.decrypt(providers[0]?.apiKeyEnc ?? "", "provider.apiKey")).toBe(
+      `${GOOD_KEY}-rotated`,
+    );
   });
 
   it("turns live voice on and off once ready, through the settings, audited", async () => {

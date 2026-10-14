@@ -1,7 +1,8 @@
 import type { CallContext, ModelCaller } from "../callModel.js";
 import type { PromptSource } from "../engine/prompts/index.js";
 import { chunkText, type ChunkOptions } from "./chunk.js";
-import { extractText, isImageMime, isTextMime, type ImageMime } from "./extract.js";
+import { extractText, isImageMime, isTextMime, type Extracted, type ImageMime } from "./extract.js";
+import { DEFAULT_INGEST_LIMITS, type IngestLimits } from "./limits.js";
 import { fileSummaryPromptV1 } from "./prompts/file-summary.v1.js";
 import { imageDescribePromptV1 } from "./prompts/image-describe.v1.js";
 
@@ -43,6 +44,12 @@ export interface IngestDeps {
   prompts: PromptSource;
   logger?: { warn: (message: string, meta?: Record<string, unknown>) => void };
   chunkOptions?: ChunkOptions;
+  /**
+   * How a document is read. Production passes `extractIsolated` so a hostile file can only cost a
+   * worker thread; the default runs in-process, which unit tests and trusted callers want.
+   */
+  extractor?: (bytes: Buffer, mime: string, limits: IngestLimits) => Promise<Extracted>;
+  limits?: IngestLimits;
 }
 
 /** Cap on the text handed to the summarizer, in characters. */
@@ -84,7 +91,8 @@ async function readText(
   input: IngestInput,
 ): Promise<{ text: string; parts?: number; empty: boolean }> {
   if (isTextMime(input.mime)) {
-    const out = await extractText(input.bytes, input.mime);
+    const extract = deps.extractor ?? extractText;
+    const out = await extract(input.bytes, input.mime, deps.limits ?? DEFAULT_INGEST_LIMITS);
     return { text: out.text, empty: out.empty, ...(out.parts === undefined ? {} : { parts: out.parts }) };
   }
   if (isImageMime(input.mime)) {

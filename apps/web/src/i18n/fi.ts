@@ -247,6 +247,11 @@ export const fi: Strings = {
         "Haastattelija esittää vielä yhden päättävän kysymyksen ja näyttää sitten yhteenvedon, jota voit muokata. Voit edelleen poistaa vastauksesi sen jälkeen.",
       doneConfirm: "Päätä",
       deleteData: "Poista tietoni",
+      downloadReadable: "Lataa tietoni (luettava)",
+      downloadJson: "Lataa tietoni (JSON)",
+      downloadBusy: "Valmistellaan tietojasi…",
+      downloadDone: "Tietosi on ladattu.",
+      downloadFailed: "Tietojen valmistelu ei onnistunut. Yritä hetken kuluttua uudelleen.",
       deleteTitle: "Poistetaanko vastauksesi?",
       deleteBody:
         "Tämä poistaa heti vastauksesi, tallenteesi, tiedostosi ja kaiken niistä kirjatun. Poistoa ei voi perua.",
@@ -1523,6 +1528,30 @@ export const fi: Strings = {
         "Ylläpitäjät voivat muuttaa organisaatiosi asetuksia, tarjoajia, budjetteja ja käyttäjiä.",
       roleBodyRevoke: "Hän menettää pääsyn asetuksiin, tarjoajiin, budjetteihin ja käyttäjähallintaan.",
       roleConfirm: (role: string): string => `Vaihda rooliksi ${role}`,
+      status: "Tila",
+      active: "Aktiivinen",
+      disabled: "Poistettu käytöstä",
+      you: "Sinä",
+      actions: "Toiminnot",
+      disable: "Poista käytöstä",
+      enable: "Ota käyttöön",
+      delete: "Poista",
+      rowActions: (email: string): string => `Käyttäjän ${email} toiminnot`,
+      disableTitle: (email: string): string => `Poistetaanko käyttäjä ${email} käytöstä?`,
+      disableBody:
+        "Hänet kirjataan ulos kaikilta laitteilta heti, eikä hän voi kirjautua uudelleen ennen kuin otat hänet takaisin käyttöön. Hänen kampanjansa ja haastattelunsa säilyvät ennallaan.",
+      disableConfirm: "Poista käyttäjä käytöstä",
+      enableTitle: (email: string): string => `Otetaanko käyttäjä ${email} takaisin käyttöön?`,
+      enableBody:
+        "Hän voi kirjautua uudelleen. Hänen on kirjauduttava sisään alusta; aiemmat istunnot pysyvät päättyneinä.",
+      enableConfirm: "Ota käyttäjä käyttöön",
+      deleteTitle: (email: string): string => `Poistetaanko käyttäjä ${email}?`,
+      deleteBody:
+        "Tämä poistaa henkilön organisaatiostasi, eikä sitä voi perua. Hänen omistamansa kampanjat ja haastattelut siirtyvät sinulle. Jos haluat säilyttää hänet kirjauksissa ilman pääsyä, poista hänet käytöstä.",
+      deleteConfirm: "Poista käyttäjä",
+      disabledDone: "Käyttäjä poistettu käytöstä",
+      enabledDone: "Käyttäjä otettu käyttöön",
+      deletedDone: "Käyttäjä poistettu",
     },
     operator: {
       title: "Alustan operaattori",
@@ -1973,6 +2002,44 @@ export const fi: Strings = {
         label: "Suurin tiedostokoko (Mt)",
         description:
           "Yksittäisen tiedoston suurin sallittu koko. Alusta asettaa ylärajan, jota tämä ei voi ylittää.",
+      },
+      "files.maxPerSession": {
+        label: "Liitteitä per haastattelu",
+        description: "Suurin määrä tiedostoja ja äänityksiä, jonka yksi haastattelu voi sisältää.",
+      },
+      "files.maxSessionMb": {
+        label: "Liitteiden yhteiskoko per haastattelu (Mt)",
+        description: "Yhden haastattelun liitteiden suurin yhteiskoko.",
+      },
+      "files.tenantQuotaMb": {
+        label: "Organisaation liitetila (Mt)",
+        description:
+          "Organisaation kaikkien liitteiden suurin yhteiskoko. Uudet lataukset hylätään, kun raja tulee vastaan.",
+      },
+      "files.maxExtractedChars": {
+        label: "Tiedostosta luettu teksti (merkkiä)",
+        description: "Kuinka paljon tekstiä yhdestä tiedostosta luetaan. Sen ylittävä osa jätetään pois.",
+      },
+      "files.maxPdfPages": {
+        label: "Pisin PDF (sivua)",
+        description: "Tätä pidempi PDF hylätään eikä sitä lueta.",
+      },
+      "files.maxZipRatio": {
+        label: "Pakkaussuhteen raja",
+        description:
+          "Word- ja Excel-tiedostot ovat zip-paketteja. Osa, joka purkautuu tätä suuremmaksi pakattuun kokoonsa nähden, hylätään.",
+      },
+      "files.maxSheetCells": {
+        label: "Suurin työkirja (solua)",
+        description: "Tätä enemmän soluja sisältävä työkirja hylätään eikä sitä lueta.",
+      },
+      "files.maxZipEntries": {
+        label: "Osia per Word- tai Excel-tiedosto",
+        description: "Tätä useampia osia sisältävä Word- tai Excel-tiedosto hylätään.",
+      },
+      "files.maxUncompressedMb": {
+        label: "Word- tai Excel-tiedoston purettu koko (Mt)",
+        description: "Tätä suuremmaksi purkautuva Word- tai Excel-tiedosto hylätään.",
       },
       "files.allowedTypes": {
         label: "Hyväksytyt tiedostotyypit",

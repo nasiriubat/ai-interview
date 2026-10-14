@@ -24,6 +24,7 @@ case "$sql" in
 *exempt_with_company*) s contradicting "" ;;
 *"as unprotected"*) s unprotected "" ;;
 *"count(*) from pg_class"*) s protected 28 ;;
+*audit_append_only*) s audit ok ;;
 *has_database_privilege*) s can_create true ;;
 *"to_regclass('pgboss.version')"*) echo true ;;
 *"from pgboss.version"*) exit 0 ;;
@@ -74,6 +75,15 @@ echo "VerificationToken" >"$SB/state/contradicting"
 pre
 assert_status "refuses" 1 "$STATUS"
 assert_contains "naming it" "$(jq -r .message "$(alerts | head -n1)")" "on deploy/rls-exempt.txt but carry a companyId: VerificationToken"
+rm -rf "$SB"
+
+echo "an audit log the application role could rewrite"
+setup
+echo "app_api can UPDATE AuditLog" >"$SB/state/audit"
+pre
+assert_status "refuses" 1 "$STATUS"
+assert_contains "naming the privilege" "$(jq -r .message "$(alerts | head -n1)")" "app_api can UPDATE AuditLog"
+assert_contains "and the consequence" "$(jq -r .message "$(alerts | head -n1)")" "api and worker did not start"
 rm -rf "$SB"
 
 echo "an exemption written without a reason is refused"

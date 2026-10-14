@@ -360,7 +360,7 @@ export async function testWorld(
       kind: "openai_compatible",
       name: "fake",
       baseUrl: modelUrl,
-      apiKeyEnc: ctx.crypto.encrypt("k"),
+      apiKeyEnc: ctx.crypto.encrypt("k", "provider.apiKey"),
       headers: {},
     },
   });

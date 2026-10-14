@@ -42,7 +42,7 @@ suite("admin configuration surface (contract 19)", () => {
       where: { scope: "tenant", scopeId: world.companyId, key: "email.smtpUrl" },
     });
     expect(row.value).not.toContain("sup3rsecret");
-    expect(world.crypto.decrypt(row.value as string)).toBe(url);
+    expect(world.crypto.decrypt(row.value as string, "setting.secret")).toBe(url);
 
     const got = await readSettings();
     expect(got.body).not.toContain("sup3rsecret");
@@ -273,7 +273,7 @@ suite("admin configuration surface (contract 19)", () => {
         kind: "openai_compatible",
         name: "dead",
         baseUrl: "http://127.0.0.1:1/v1",
-        apiKeyEnc: world.crypto.encrypt("k"),
+        apiKeyEnc: world.crypto.encrypt("k", "provider.apiKey"),
         headers: {},
       },
     });

@@ -1,5 +1,10 @@
 export * from "./extract.js";
 export * from "./chunk.js";
 export * from "./pipeline.js";
+export * from "./limits.js";
+export * from "./sandbox.js";
+export * from "./sniff.js";
+export * from "./zip-guard.js";
 export { fileSummaryPromptV1 } from "./prompts/file-summary.v1.js";
 export { imageDescribePromptV1 } from "./prompts/image-describe.v1.js";
+export * from "./image.js";

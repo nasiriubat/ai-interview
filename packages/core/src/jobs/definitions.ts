@@ -89,6 +89,16 @@ export const JOBS = {
    * One retry only: the next tick is five minutes away and is the better retry.
    */
   "ops.health-sweep": { schema: z.object({}), retryLimit: 1, expireInSeconds: 240 },
+  /**
+   * Walks every tenant's audit chain and writes the chain heads to the log (A2, D-163). A broken
+   * chain fails the job, which dead-letters and is raised by the health sweep like any other.
+   */
+  "audit.verify": { schema: z.object({}), retryLimit: 1, expireInSeconds: 900 },
+  /**
+   * Re-encrypts every stored secret under the active platform key (P9, D-164). Started by the
+   * operator after a key rotation; idempotent, so a second run finishes what a crashed one began.
+   */
+  "crypto.rekey": { schema: z.object({}), retryLimit: 1, expireInSeconds: 900 },
 } as const;
 
 /** How long a dead-lettered job is kept for the operator to look at before pg-boss drops it. */
@@ -137,6 +147,8 @@ export const RECURRING_JOBS: {
   // Every five minutes: the longest a dead disk, a stuck queue or a failed backup waits before the
   // operator is told. `expireInSeconds` (240) keeps one tick from overlapping the next.
   "ops.health-sweep": { cron: "*/5 * * * *", payload: {}, tz: "UTC" },
+  // Daily, after the retention sweep: its heads are the values to copy into the backup log.
+  "audit.verify": { cron: "27 5 * * *", payload: {}, tz: "UTC" },
 };
 
 /**

@@ -3,6 +3,7 @@ import { encode } from "@auth/core/jwt";
 import Fastify from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { guard, installAccessGuard } from "../src/auth/access.js";
+import { installAuditDeclarationCheck } from "../src/auth/audit-actions.js";
 import { fakeModelServer, testWorld, TEST_AUTH_SECRET, type TestWorld } from "./helpers.js";
 
 const suite = process.env.DATABASE_URL ? describe : describe.skip;
@@ -12,6 +13,28 @@ describe("access declarations fail closed (S2)", () => {
     const app = Fastify();
     installAccessGuard(app);
     expect(() => app.get("/undeclared", async () => ({ ok: true }))).toThrow(/declares no access/);
+  });
+
+  it("refuses to boot a staff mutation that declares no audit action (D-163)", () => {
+    const app = Fastify();
+    installAccessGuard(app);
+    installAuditDeclarationCheck(app);
+    // Reads need no declaration, and neither do participant or public mutations.
+    expect(() => app.get("/things", { ...guard.admin() }, async () => ({}))).not.toThrow();
+    expect(() => app.post("/open/thing", { ...guard.public() }, async () => ({}))).not.toThrow();
+    expect(() => app.post("/p/thing", { ...guard.participant() }, async () => ({}))).not.toThrow();
+    // A staff mutation does.
+    expect(() => app.post("/things", { ...guard.admin() }, async () => ({}))).toThrow(
+      /no audit declaration.*AUDIT_DECLARATIONS/,
+    );
+    expect(() => app.delete("/things/:id", { ...guard.operator() }, async () => ({}))).toThrow(
+      /no audit declaration/,
+    );
+    expect(() => app.put("/members/:id", { ...guard.staff() }, async () => ({}))).toThrow(
+      /no audit declaration/,
+    );
+    // And one that is declared is fine.
+    expect(() => app.post("/users", { ...guard.admin() }, async () => ({}))).not.toThrow();
   });
 
   it("records every declared route in the route table", async () => {
