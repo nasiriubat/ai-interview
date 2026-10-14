@@ -20,6 +20,7 @@ import type { ModelCallerPort } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";
 import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js";
 import { languageName } from "../util/language.js";
+import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { renderBundle } from "./bundle.js";
 import {
   asObject,
@@ -153,6 +154,42 @@ export function fallbackDocument(input: SpecGenerationInput, now: Date): SpecDoc
   });
 }
 
+/** Languages written in a script other than Latin; no script check applies to them. */
+const NON_LATIN_LANGUAGES = new Set([
+  "zh",
+  "ja",
+  "ko",
+  "ru",
+  "uk",
+  "bg",
+  "sr",
+  "ar",
+  "fa",
+  "he",
+  "el",
+  "th",
+  "hi",
+]);
+const FOREIGN_SCRIPT =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Cyrillic}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Thai}\p{Script=Devanagari}\p{Script=Greek}\p{Extended_Pictographic}]/u;
+
+/** Whether `text` holds letters from a script the document's language is not written in. */
+export function hasForeignScript(text: string, language: string): boolean {
+  if (NON_LATIN_LANGUAGES.has(language.toLowerCase().split("-")[0] ?? "")) return false;
+  return FOREIGN_SCRIPT.test(text);
+}
+
+/** Replaces Markdown heading lines written in a foreign script with the section's own title. */
+export function cleanHeadings(markdown: string, title: string, language: string): string {
+  return markdown
+    .split("\n")
+    .map((line) => {
+      const m = /^(#{1,6})\s+(.*)$/.exec(line);
+      return m && hasForeignScript(m[2] ?? "", language) ? `${m[1]} ${title}` : line;
+    })
+    .join("\n");
+}
+
 function openIssues(state: SessionState): Finding[] {
   return state.findings.filter(
     (f) => f.status === "open" || f.status === "raised" || f.status === "deferred",
@@ -222,12 +259,16 @@ export async function generateSpec(
       .replace("{{language}}", languageName(input.language))
       .replace("{{sections}}", input.sections.map((k) => `${k} (${sectionTitle(k)})`).join(", "))
       .replace("{{diagramTypes}}", input.diagramTypes.join(", ") || "none");
+    const nonce = newNonce();
     const user = [
-      `Title: ${input.title || "(untitled)"}`,
-      input.handoff ? `Started from a discovery hand-off: ${input.handoff.problem}` : "",
+      `Title: ${wrapUntrusted("title", input.title || "(untitled)", { nonce })}`,
+      input.handoff
+        ? `Started from a discovery hand-off: ${wrapUntrusted("handoff", input.handoff.problem, { nonce })}`
+        : "",
       "",
-      renderSpecState(input.state, input.path, input.edits),
-      input.summary ? `\nConversation summary:\n${input.summary}` : "",
+      "Specification state:",
+      wrapUntrusted("spec_state", renderSpecState(input.state, input.path, input.edits), { nonce }),
+      input.summary ? `\nConversation summary:\n${wrapUntrusted("summary", input.summary, { nonce })}` : "",
     ]
       .filter((l) => l !== "")
       .join("\n");
@@ -243,12 +284,16 @@ export async function generateSpec(
       SpecGenerationOutputSchema,
       "specification",
     );
-    const modelSections = new Map(out.sections.map((s) => [s.key, s.markdown]));
+    // Headings in another script than the document's language are replaced with the section's own
+    // title: a model once answered an English interview with Chinese headings.
+    const modelSections = new Map(
+      out.sections.map((s) => [s.key, cleanHeadings(s.markdown, sectionTitle(s.key), input.language)]),
+    );
     const requirements = out.requirements.length ? out.requirements : requirementsFromState(input.state);
     const bases = sectionBases(input);
     const basisOf = (key: string) => (bases.get(key) ? { basis: bases.get(key) } : {});
     const document = SpecDocumentSchema.parse({
-      title: out.title.trim() || input.title,
+      title: hasForeignScript(out.title, input.language) ? input.title : out.title.trim() || input.title,
       language: input.language,
       path: input.path ?? null,
       generatedAt: now.toISOString(),

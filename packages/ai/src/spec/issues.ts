@@ -1,3 +1,4 @@
+import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import {
   IssueDetectionResultSchema,
   TECHNICAL_SECTIONS,
@@ -132,10 +133,9 @@ export async function detectIssues(
         messages: [
           {
             role: "user",
-            content: `${input.reason === "final" ? "Final pass before the specification is closed." : "Periodic pass."}\n\nSpecification state:\n${renderSpecState(input.state, input.path)}`,
+            content: `${input.reason === "final" ? "Final pass before the specification is closed." : "Periodic pass."}\n\nSpecification state:\n${wrapUntrusted("spec_state", renderSpecState(input.state, input.path), { nonce: newNonce() })}`,
           },
         ],
-        maxOutputTokens: 4000,
         ...(input.signal ? { signal: input.signal } : {}),
       },
       IssueDetectionResultSchema,
