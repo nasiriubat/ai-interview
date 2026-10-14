@@ -9,10 +9,15 @@ describe("SMTP_* through Nodemailer", () => {
   const options = (env: Record<string, string>) => {
     const relay = resolveSmtpEnv(env);
     if (relay.source === "none") throw new Error("expected a relay");
-    const t = nodemailer.createTransport(relay.url) as unknown as {
-      options: { host: string; port: number; secure: boolean; requireTLS?: boolean; ignoreTLS?: boolean; auth?: { user: string; pass: string } };
+    // The parsed connection options, which the public types do not describe.
+    return Reflect.get(nodemailer.createTransport(relay.url), "options") as {
+      host: string;
+      port: number;
+      secure: boolean;
+      requireTLS?: boolean;
+      ignoreTLS?: boolean;
+      auth?: { user: string; pass: string };
     };
-    return t.options;
   };
 
   it("hands Nodemailer the credentials exactly as written", () => {

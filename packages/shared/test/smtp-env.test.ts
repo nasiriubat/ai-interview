@@ -47,14 +47,18 @@ describe("resolveSmtpEnv (D-445, D-446)", () => {
 
   it("defaults the security to starttls and the port from the security", () => {
     const at = (SMTP_SECURITY?: string) =>
-      parseSmtpUrl(url(resolveSmtpEnv({ SMTP_HOST: "mail.example.com", ...(SMTP_SECURITY ? { SMTP_SECURITY } : {}) })));
+      parseSmtpUrl(
+        url(resolveSmtpEnv({ SMTP_HOST: "mail.example.com", ...(SMTP_SECURITY ? { SMTP_SECURITY } : {}) })),
+      );
     expect(at()).toMatchObject({ security: "starttls", port: 587 });
     expect(at("starttls")).toMatchObject({ security: "starttls", port: 587 });
     expect(at("tls")).toMatchObject({ security: "ssl", port: 465 });
     expect(at("TLS")).toMatchObject({ security: "ssl", port: 465 });
     expect(at("ssl")).toMatchObject({ security: "ssl", port: 465 });
     expect(at("none")).toMatchObject({ security: "none", port: 25 });
-    expect(url(resolveSmtpEnv({ SMTP_HOST: "mail.example.com", SMTP_SECURITY: "tls" }))).toMatch(/^smtps:\/\//);
+    expect(url(resolveSmtpEnv({ SMTP_HOST: "mail.example.com", SMTP_SECURITY: "tls" }))).toMatch(
+      /^smtps:\/\//,
+    );
     expect(url(resolveSmtpEnv({ SMTP_HOST: "mailpit", SMTP_PORT: "1025", SMTP_SECURITY: "none" }))).toBe(
       "smtp://mailpit:1025?ignoreTLS=true",
     );

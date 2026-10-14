@@ -87,8 +87,8 @@ git clone <your-remote> ai-interview && cd ai-interview
 #    (when age-keygen is on this machine; upgrade.sh makes it otherwise). Refuses to overwrite.
 ./deploy/generate-env.sh pilot.example.com ops@example.com
 
-# 2. Fill in what it cannot invent. Sign-in is broken until EMAIL_SMTP_URL points at a real relay,
-#    and a failure reaches nobody until ALERT_EMAIL or ALERT_WEBHOOK_URL is set. (And if you have
+# 2. Fill in what it cannot invent. The stack does not start until SMTP_HOST (with SMTP_PORT,
+#    SMTP_SECURITY, SMTP_USER, SMTP_PASSWORD) names a real mail relay, and a failure reaches nobody until ALERT_EMAIL or ALERT_WEBHOOK_URL is set. (And if you have
 #    an ANTHROPIC_API_KEY or OPENROUTER_API_KEY, add it now so first boot seeds a provider with
 #    default routes; you can also do it in the admin UI later.)
 $EDITOR deploy/.env
@@ -140,28 +140,45 @@ without it rather than start on an empty database.
 Mailpit is a development tool (`docker-compose.yml`, mail on `:8025`); it is not in the production
 stack and never receives anything there. In production the first admin signs in like this:
 
-1. **The relay is set at deploy time, not in the admin.** `EMAIL_SMTP_URL` in `deploy/.env` is the
-   address of a real mail server (`smtp://user:password@smtp.provider.com:587`, or `smtps://` for
-   port 465; percent-encode `@`, `:` and `/` inside the user name or password). `compose.prod.yml`
-   refuses to start without it, so the mistake shows at `./deploy/dc up`, not as a silent page.
-   `EMAIL_FROM` is the sender. The web app takes the same value as `EMAIL_SERVER`.
+1. **The relay is set at deploy time, not in the admin.** Five lines in `deploy/.env`, the same
+   fields as the admin's mail server form, each written exactly as your mail provider gives it
+   (nothing is URL-encoded):
+
+   ```sh
+   SMTP_HOST=smtp.example.com   # the server name only
+   SMTP_PORT=587                # empty: 587 for starttls, 465 for tls, 25 for none
+   SMTP_SECURITY=starttls       # starttls (default), tls (implicit TLS, often called SSL), none
+   SMTP_USER=apikey
+   SMTP_PASSWORD='p@ss w#rd'    # single quotes when it has spaces, #, $ or quotes
+   ```
+
+   `EMAIL_FROM` is the sender. The API, the worker, the web app (sign-in links) and `ops-notify`
+   all read these variables and resolve them with one rule (`resolveSmtpEnv`,
+   `packages/shared/src/smtp.ts`). With neither `SMTP_HOST` nor the deprecated `EMAIL_SMTP_URL`
+   set, the API, the worker and the web app refuse to start and say which variables to set, so the
+   mistake shows at `./deploy/dc up`, not as a silent page.
+
+   An install from before this change may still have `EMAIL_SMTP_URL`; it keeps working while
+   `SMTP_HOST` is empty and is ignored once it is set. `node scripts/migrate-env.mjs --file
+deploy/.env` splits it into the five lines (it prints key names only and keeps a `.bak`).
+
 2. **The first admin is `BOOTSTRAP_ADMIN_EMAIL`.** `generate-env.sh <host> <admin-email>` writes it.
    The `migrate` step creates the tenant and that user, and `/auth/signin` mails a one-time link to
    exactly that address.
 3. **Google sign-in is the alternative.** Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` in
    `deploy/.env` and the sign-in page offers "Continue with Google" beside the email link. Google
-   does not need the relay to sign in, but invitations and reports still do, and
-   `compose.prod.yml` still requires `EMAIL_SMTP_URL`.
+   does not need the relay to sign in, but invitations and reports still do, and the stack still
+   requires `SMTP_HOST`.
 4. **Afterwards, tenant admins configure their own mail** in Settings, Email: mail server host,
    port, security, user name and password, sender and reply-to, with a "Send test email" that
    tries the form before it is saved. That relay is used for what the tenant sends (invitations,
    reports, notices). It does **not** replace the deployment relay for sign-in links, which are sent
-   by the web app from `EMAIL_SERVER` alone; keep `EMAIL_SMTP_URL` working.
+   by the web app from the deployment relay alone; keep `SMTP_HOST` and its siblings working.
 
 When the relay is wrong, the sign-in page does not pretend: Auth.js reports `EmailSignin` and
-`/auth/error` says that the sign-in email could not be sent and names `EMAIL_SMTP_URL`
-(English and Finnish). If `EMAIL_SMTP_URL` is empty the stack does not start, and a production
-web process without `EMAIL_SERVER` throws on start instead of falling back to a development relay.
+`/auth/error` says that the sign-in email could not be sent and names `SMTP_HOST` and the other
+`SMTP_*` settings (English and Finnish). If no relay is set the API, the worker and the web app
+refuse to start instead of falling back to a development relay.
 In Settings, Email, "Send test email" with no relay anywhere answers "No mail server is
 configured" rather than reporting a send that only went to the log.
 
@@ -266,7 +283,7 @@ single-host layout in this document and each is a stated number or list rather t
   enforced before the file is read. Slow clients are cut off after 10 s of headers or 3 minutes of
   body.
 
-Sign-in relay (`EMAIL_SMTP_URL`) is yours and is not restricted. An SMTP relay a tenant types in
+The deployment relay (`SMTP_HOST` and its siblings) is yours and is not restricted. An SMTP relay a tenant types in
 Admin → Settings is: a public name, port 465, 587 or 2525, TLS required.
 
 ## Live voice

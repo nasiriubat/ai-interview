@@ -94,10 +94,19 @@ BOOTSTRAP_OPERATOR_EMAIL=$operator
 BOOTSTRAP_ADMIN_EMAIL=$admin
 BOOTSTRAP_TENANT_NAME=First tenant
 
-# Outbound email. Magic links and invitations do not arrive until this points at a real relay.
-# Empty EMAIL_SMTP_URL logs the message instead of sending it, which is fine for a smoke test
-# and not fine for a pilot.
-EMAIL_SMTP_URL=
+# Outbound email: your mail relay, the same fields as the admin's mail server form. Sign-in is by
+# emailed link, so the stack refuses to start until SMTP_HOST is set. Write each value as your
+# mail provider gives it; nothing is URL-encoded. A password with spaces, #, \$ or quotes goes in
+# single quotes: SMTP_PASSWORD='p@ss w#rd'.
+# SMTP_HOST      the server name only, e.g. smtp.example.com
+SMTP_HOST=
+# SMTP_PORT      empty uses the usual one for the security: starttls 587, tls 465, none 25
+SMTP_PORT=
+# SMTP_SECURITY  starttls (default), tls (implicit TLS, often called SSL) or none
+SMTP_SECURITY=
+# SMTP_USER, SMTP_PASSWORD  the relay's login; leave both empty for a relay without one
+SMTP_USER=
+SMTP_PASSWORD=
 EMAIL_FROM=no-reply@$hostname
 
 # Optional: seeds a platform provider with default routes at first boot. Can also be done in the
@@ -176,7 +185,7 @@ ENV_FILE_PATH="$target" "$here/ensure-backup-key.sh" || echo "(the backup key wi
 
 echo
 echo "Next:"
-echo "  1. set EMAIL_SMTP_URL to your relay (and ALERT_EMAIL / ALERT_WEBHOOK_URL, so a failure reaches you)"
+echo "  1. set SMTP_HOST, SMTP_PORT, SMTP_SECURITY, SMTP_USER, SMTP_PASSWORD to your relay (and ALERT_EMAIL / ALERT_WEBHOOK_URL, so a failure reaches you)"
 echo "  2. copy $target somewhere other than this host (your password manager): it holds the keys to"
 echo "     the database backups and to the stored provider keys"
 echo "  3. ./deploy/upgrade.sh        # builds the images, starts the stack, checks it"

@@ -51,7 +51,7 @@ ALERT_WEBHOOK_FORMAT=ntfy                        # ntfy | slack | generic
 ```
 
 ntfy is the least effort: install the app, subscribe to the topic, done. Mail goes through the
-platform's own SMTP relay (`EMAIL_SMTP_URL`), so a mail alert needs that relay to work: this is why
+platform's own SMTP relay (`SMTP_HOST` and its siblings), so a mail alert needs that relay to work: this is why
 a webhook is worth having as well.
 
 Once the application is running, **Admin → Settings → Operations alerts** (platform scope) takes
@@ -1035,7 +1035,7 @@ incident whether the ones next to it were exposed too. After any rotation, look 
 | The internal header (`x-internal-auth`)   | The magic-link token store (D-260)                                  | Same as `AUTH_SECRET`: it is derived from it. A leak of only the derived value does not give the session key                                       |
 | `PLATFORM_ENCRYPTION_KEY`                 | Stored provider keys, SMTP passwords, GitHub tokens, export sealing | The [crypto.rekey](#cryptorekey) drill, **and** rotate the provider keys at the providers: the ciphertext was exposed                              |
 | A provider API key                        | Spend at that provider                                              | Rotate at the provider, then Admin → Providers (or Operator → Providers) to store the new one                                                      |
-| SMTP credentials                          | Sending mail as the platform                                        | New credentials at the relay; Settings → email (tenant) or `EMAIL_SMTP_URL` (platform), then `deploy/dc up -d`                                     |
+| SMTP credentials                          | Sending mail as the platform                                        | New credentials at the relay; Settings → email (tenant) or `SMTP_USER`/`SMTP_PASSWORD` (platform), then `deploy/dc up -d`                          |
 | `BACKUP_AGE_IDENTITY`                     | Reading every backup and offsite copy                               | New key pair (`deploy/ensure-backup-key.sh`), a fresh backup, keep the old identity until old backups age out; consider the offsite bucket exposed |
 | Offsite bucket credentials                | The bucket's contents (encrypted dumps)                             | Rotate at the storage provider, update `deploy/.env`, `deploy/dc up -d backup`                                                                     |
 | `POSTGRES_PASSWORD` / `APP_DB_PASSWORD`   | The database                                                        | See [DEPLOY.md](DEPLOY.md#secrets-you-cannot-casually-rotate): change, recreate; assume the data was readable                                      |

@@ -56,13 +56,31 @@ BOOTSTRAP_OPERATOR_EMAIL=ops@example.com
 BOOTSTRAP_ADMIN_EMAIL=ops@example.com
 PUBLIC_HOSTNAME=pilot.example.com
 ACME_EMAIL=ops@example.com
-EMAIL_SMTP_URL=smtp://relay:25
+SMTP_HOST=relay.example.com
+SMTP_PORT=25
+SMTP_SECURITY=none
 EMAIL_FROM=no-reply@example.com
 BACKUP_AGE_RECIPIENT=age1testtesttesttesttesttesttesttesttesttesttesttesttesttesttest
 ENV
 	plain=$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf" config 2>&1)
 	assert_contains "default: no port in WEB_ORIGIN" "$plain" "WEB_ORIGIN: https://pilot.example.com"
 	assert_not_contains "default: no port anywhere in the public URLs" "$plain" "https://pilot.example.com:"
+	# api, worker, web and ops-notify each get the split relay variables (D-445, D-447).
+	assert_eq "SMTP_HOST reaches api, worker, web and ops-notify" 4 "$(echo "$plain" | grep -c 'SMTP_HOST: relay.example.com')"
+	assert_eq "with its security" 4 "$(echo "$plain" | grep -c 'SMTP_SECURITY: none')"
+	assert_not_contains "the web app no longer gets a composed EMAIL_SERVER" "$plain" "EMAIL_SERVER"
+	# Neither SMTP_HOST nor EMAIL_SMTP_URL: compose cannot express "one of", so the configuration
+	# renders and the processes refuse to start (D-448, apps/api/test/smtp-config.test.ts).
+	grep -v '^SMTP_' "$envf" >"$envf.norelay"
+	assert_contains "compose renders without a relay; the processes refuse instead" \
+		"$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf.norelay" config 2>&1)" "SMTP_HOST: \"\""
+	rm -f "$envf.norelay"
+	# A password is written as the provider gives it; single quotes keep $, # and spaces literal.
+	cp "$envf" "$envf.quoted"
+	printf '%s\n' "SMTP_USER=relay@example.com" "SMTP_PASSWORD='p@ss w#rd \$x %41:/'" >>"$envf.quoted"
+	assert_contains "a quoted password reaches the service byte for byte" \
+		"$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf.quoted" config 2>&1)" 'SMTP_PASSWORD: p@ss w#rd $$x %41:/'
+	rm -f "$envf.quoted"
 	echo "HTTPS_PORT=5543" >>"$envf"
 	ported=$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf" config 2>&1)
 	assert_contains "HTTPS_PORT: WEB_ORIGIN has it" "$ported" "WEB_ORIGIN: https://pilot.example.com:5543"

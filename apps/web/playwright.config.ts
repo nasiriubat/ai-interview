@@ -59,7 +59,9 @@ export default defineConfig({
         AUTH_SECRET: E2E_AUTH_SECRET,
         AUTH_TRUST_HOST: "true",
         // Required at start-up; nothing is sent, the fake API never asks for a mail.
-        EMAIL_SERVER: "smtp://localhost:1025",
+        SMTP_HOST: "localhost",
+        SMTP_PORT: "1025",
+        SMTP_SECURITY: "none",
         EMAIL_FROM: "e2e@localhost",
         NEXTAUTH_URL: `http://localhost:${String(WEB_PORT)}`,
         // The pass runs the policy the way production does: blocking. A page that would be broken

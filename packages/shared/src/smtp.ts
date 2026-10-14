@@ -241,7 +241,9 @@ export const SMTP_ENV_REQUIRED_MESSAGE =
  * start without one (D-448): a stack without a relay looks healthy and admits nobody. The result
  * carries the password: never log it.
  */
-export function smtpRelayUrlFromEnv(env: SmtpEnvInput & { NODE_ENV?: string | undefined }): string | undefined {
+export function smtpRelayUrlFromEnv(
+  env: SmtpEnvInput & { NODE_ENV?: string | undefined },
+): string | undefined {
   const relay = resolveSmtpEnv(env);
   if (relay.source !== "none") return relay.url;
   if (env.NODE_ENV === "production") throw new SmtpEnvError(SMTP_ENV_REQUIRED_MESSAGE);

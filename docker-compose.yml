@@ -89,7 +89,12 @@ services:
       PORT: 4000
       WEB_ORIGIN: http://localhost:3000
       PUBLIC_WEB_URL: http://localhost:3000
-      EMAIL_SMTP_URL: smtp://mailpit:1025
+      # Mailpit, the development mail catcher (D-449): plain SMTP, no credentials.
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURITY: none
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
       # Platform providers may reach these local services; a tenant never can (D-83).
       EGRESS_ALLOW_HOSTS: kroki,minio,mailpit,host.docker.internal
       # Present only with `--profile extras`; without it a diagram is printed as source.
@@ -115,7 +120,12 @@ services:
     environment:
       UPLOAD_DIR: /uploads
       DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
-      EMAIL_SMTP_URL: smtp://mailpit:1025
+      # Mailpit, the development mail catcher (D-449): plain SMTP, no credentials.
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURITY: none
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
       EGRESS_ALLOW_HOSTS: kroki,minio,mailpit,host.docker.internal
     volumes:
       - uploads:/uploads
@@ -139,7 +149,12 @@ services:
       API_URL: http://api:4000
       AUTH_URL: http://localhost:3000
       AUTH_TRUST_HOST: "true"
-      EMAIL_SERVER: smtp://mailpit:1025
+      # Mailpit, the development mail catcher (D-449): plain SMTP, no credentials.
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURITY: none
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
       EMAIL_FROM: no-reply@example.com
     ports:
       - "3000:3000"

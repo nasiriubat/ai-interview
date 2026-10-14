@@ -141,7 +141,7 @@ describe("server pages follow the lang cookie", () => {
     const { default: ErrorPage } = await import("@/app/auth/error/page");
     await renderPage(ErrorPage({ searchParams: Promise.resolve({ error: "EmailSignin" }) }));
     expect(screen.getByText(fi.kit.authPages.errorMailBody)).toBeInTheDocument();
-    expect(fi.kit.authPages.errorMailBody).toContain("EMAIL_SMTP_URL");
+    expect(fi.kit.authPages.errorMailBody).toContain("SMTP_HOST");
     expect(screen.queryByText(fi.kit.authPages.errorBody)).not.toBeInTheDocument();
   });
 
