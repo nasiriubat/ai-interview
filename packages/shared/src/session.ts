@@ -224,6 +224,15 @@ export const StaffSessionViewSchema = z.object({
   state: z.record(z.string(), z.unknown()),
   /** Null when the viewer may not read the transcript. */
   messages: z.array(z.unknown()).nullable(),
+  /** The engine flagged the interview for hostility or distress (D-173). */
+  flagged: z.boolean(),
+  flaggedAt: z.date().nullable(),
+  flagAckedAt: z.date().nullable(),
+  /**
+   * Model prose about the participant, so it is shown only to a viewer who may read the
+   * transcript; everyone else gets `flagged: true` and no reason.
+   */
+  flagReason: z.string().nullable(),
   transcriptVisible: z.boolean(),
 });
 export type StaffSessionView = z.infer<typeof StaffSessionViewSchema>;

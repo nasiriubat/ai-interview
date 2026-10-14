@@ -7,6 +7,7 @@ import { issuesPromptV2 } from "../../spec/prompts/issues.v2.js";
 import { specPromptV1 } from "../../spec/prompts/spec.v1.js";
 import { extractionPromptV1 } from "./extraction.v1.js";
 import { interviewerPromptV4 } from "./interviewer.v4.js";
+import { recapPromptV1 } from "./recap.v1.js";
 import { summaryPromptV1 } from "./summary.v1.js";
 
 export interface PromptDefinition {
@@ -19,6 +20,7 @@ export interface PromptDefinition {
 export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
   interviewer: interviewerPromptV4,
   summary: summaryPromptV1,
+  recap: recapPromptV1,
   extraction: extractionPromptV1,
   clustering: clusteringPromptV1,
   opportunity: opportunityPromptV1,

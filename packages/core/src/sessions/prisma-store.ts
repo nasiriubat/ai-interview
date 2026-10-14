@@ -15,6 +15,7 @@ import {
   WidgetSchema,
   type InterviewTemplate,
   type Modality,
+  type RecapCache,
   type Path,
   type SessionState,
 } from "@aidp/shared";
@@ -119,6 +120,19 @@ export class PrismaSessionStore implements SessionStore {
         SET summary = ${summary},
             state = jsonb_set(state, '{summaryUpToSeq}', to_jsonb(
               GREATEST(COALESCE((state->>'summaryUpToSeq')::int, 0), ${upToSeq}::int)))
+        WHERE id = ${sessionId} AND status <> 'deleted'`;
+    });
+  }
+
+  /**
+   * Caches the resume recap in the state document (D-172). One key is patched, so a turn or a
+   * background job running beside a page load is not undone.
+   */
+  async commitRecap(sessionId: string, recap: RecapCache): Promise<void> {
+    await tenantTransaction(this.db, async (tx) => {
+      await tx.$executeRaw`
+        UPDATE "Session"
+        SET state = jsonb_set(COALESCE(state, '{}'::jsonb), '{recap}', ${JSON.stringify(recap)}::jsonb)
         WHERE id = ${sessionId} AND status <> 'deleted'`;
     });
   }

@@ -21,7 +21,7 @@ import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
-import { isFiltered, statusFilter } from "@/lib/admin/toolbar";
+import { enumFilter, isFiltered, statusFilter } from "@/lib/admin/toolbar";
 import { isApiError } from "@/lib/api/errors";
 import { LISTS } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
@@ -153,7 +153,12 @@ export default async function CampaignPage({ params, searchParams }: Props): Pro
               <>
                 <ListToolbar
                   searchLabel={t.admin.list.searchSessions}
-                  filters={[statusFilter(LISTS.campaignSessions)]}
+                  filters={[
+                    statusFilter(LISTS.campaignSessions),
+                    enumFilter(LISTS.campaignSessions, "flagged", s.flagFilterLabel, s.flagFilterAll, (v) =>
+                      v === "true" ? s.flagFilterOn : s.flagFilterOff,
+                    ),
+                  ]}
                   sort={{ list: LISTS.campaignSessions, labels: t.admin.list.fields }}
                 />
                 {sessions.data.items.length === 0 && isFiltered(lp.q, lp.filters) ? (

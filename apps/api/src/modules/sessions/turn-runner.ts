@@ -148,6 +148,20 @@ export async function* streamTurn(
           };
         } else if (ev.type === "turn") {
           ended = ev.turn.endInterview;
+          // The engine flagged this interview on this turn: tell the tenant's admins once, with
+          // ids only (the reason is model prose about a person and stays on the session). The key
+          // is per session, so a later flag on the same interview is not a second notice.
+          if (ev.state.flaggedForAdmin && !snapshot.state.flaggedForAdmin) {
+            void ctx.alerts.raise({
+              kind: "session.flagged",
+              key: `session.flagged:${sessionId}`,
+              companyId: row.companyId,
+              title: "An interview needs a person to look at it",
+              message:
+                "The interviewer flagged an interview for hostility or distress. Open the campaign's interviews and filter on flagged to review it.",
+              context: { sessionId, ...(row.campaignId ? { campaignId: row.campaignId } : {}) },
+            });
+          }
           yield {
             event: "turn",
             data: {

@@ -235,9 +235,23 @@ export const ParticipantSessionSchema = z.looseObject({
   /** The session's attachments, so the first render needs no second request. */
   attachments: z.array(AttachmentSchema).default([]),
   summary: z.string().nullish(),
+  /**
+   * Two sentences on where the participant left off, written by the API when they have been away
+   * (spec 06). Not a message: it is shown in a banner and never enters the transcript.
+   */
+  recap: z
+    .looseObject({ text: z.string().min(1), source: z.enum(["model", "fallback"]).catch("fallback") })
+    .nullish(),
 });
 export type ParticipantSession = z.infer<typeof ParticipantSessionSchema>;
 export const ParticipantSessionEnvelopeSchema = z.looseObject({ session: ParticipantSessionSchema });
+
+/** `DELETE /p/session`: whether a confirmation email was queued (only identified participants have one). */
+export const DeleteResultSchema = z.looseObject({
+  ok: z.literal(true),
+  emailSent: z.boolean().default(false),
+});
+export type DeleteResult = z.infer<typeof DeleteResultSchema>;
 
 export const SummarySchema = z.looseObject({
   summary: z.string().default(""),
@@ -372,6 +386,9 @@ export const SessionListItemSchema = z.looseObject({
   updatedAt: iso.nullish(),
   /** The last write to the session; the `lastActivity` sort. */
   lastActivityAt: iso.nullish(),
+  /** The engine flagged the interview for hostility or distress (D-173). The reason is only on the detail. */
+  flagged: z.boolean().default(false),
+  flagAckedAt: iso.nullish(),
 });
 export type SessionListItem = z.infer<typeof SessionListItemSchema>;
 export const SessionPageSchema = pagedOf(SessionListItemSchema, "sessions");
@@ -388,6 +405,11 @@ export const StaffSessionSchema = z.looseObject({
   state: z.unknown().nullish(),
   createdAt: iso.nullish(),
   updatedAt: iso.nullish(),
+  flagged: z.boolean().default(false),
+  flaggedAt: iso.nullish(),
+  flagAckedAt: iso.nullish(),
+  /** Null unless the viewer may read the transcript the reason was written from. */
+  flagReason: z.string().nullish(),
 });
 export type StaffSession = z.infer<typeof StaffSessionSchema>;
 export const StaffSessionEnvelopeSchema = z.preprocess(

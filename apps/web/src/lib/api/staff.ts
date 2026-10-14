@@ -6,6 +6,7 @@ import type {
   PageInput,
   Path,
   Route,
+  TurnControl,
 } from "@aidp/shared";
 import { type z } from "zod";
 import { request, requestStream, type Transport } from "./http";
@@ -297,6 +298,14 @@ export function staffApi(transport: Transport): StaffApi {
       get: (id) =>
         request(transport, { path: `/sessions/${id}`, schema: envelope(StaffSessionEnvelopeSchema) }),
       events: (id) => request(transport, { path: `/sessions/${id}/events`, schema: SessionEventListSchema }),
+      acknowledgeFlag: (id, note) =>
+        ok(
+          request(transport, {
+            method: "POST",
+            path: `/sessions/${id}/flag/ack`,
+            body: note ? { note } : {},
+          }),
+        ),
     },
 
     analyses: {
@@ -462,6 +471,13 @@ export function staffApi(transport: Transport): StaffApi {
           ...(input ? { body: input } : {}),
           signal,
         }),
+      sendControl: (id, control, signal) =>
+        requestStream(transport, {
+          method: "POST",
+          path: `/requirements/${id}/turns`,
+          body: { control },
+          signal,
+        }),
       versions: {
         create: (id, label) =>
           request(transport, {
@@ -624,6 +640,8 @@ export interface RequirementsApi {
   settleFinding(id: string, findingId: string, outcome: FindingOutcome, note?: string): Promise<LiveSpec>;
   /** Same SSE stream as the participant turn, plus `event: spec` after each turn. */
   sendTurn(id: string, input: TurnInput | undefined, signal?: AbortSignal): Promise<Response>;
+  /** "I'm done" and the other participant controls, as a state operation rather than a message (D-170). */
+  sendControl(id: string, control: TurnControl, signal?: AbortSignal): Promise<Response>;
   versions: {
     create(id: string, label?: string): Promise<SpecVersionSummary>;
     list(id: string): Promise<SpecVersionSummary[]>;
@@ -675,6 +693,8 @@ export interface StaffApi {
   sessions: {
     get(id: string): Promise<StaffSession>;
     events(id: string): Promise<SessionEvent[]>;
+    /** A person has looked at a flagged interview; audited, and idempotent. */
+    acknowledgeFlag(id: string, note?: string): Promise<void>;
   };
   /** Contract 17: analysis runs are versioned per campaign. */
   analyses: {

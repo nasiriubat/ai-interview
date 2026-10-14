@@ -1,6 +1,6 @@
 "use client";
 
-import { widgetResponseToText, type Widget, type WidgetResponse } from "@aidp/shared";
+import { widgetResponseToText, type TurnControl, type Widget, type WidgetResponse } from "@aidp/shared";
 import * as React from "react";
 import { isApiError } from "@/lib/api/errors";
 import type { ParticipantApi, TurnInput } from "@/lib/api/participant";
@@ -27,6 +27,38 @@ export interface Announcement {
   text: string;
   /** The widget under the message, so the announcement can say a question has options. */
   widget?: Widget | undefined;
+}
+
+/**
+ * What a control leaves in the conversation: a quiet system chip ("You skipped Tools"), not a
+ * participant bubble. It is local to this screen and never stored as a message (D-170), so it is
+ * gone after a reload, which is right: it is feedback, not a record.
+ */
+export interface ControlChip {
+  kind: "skip_area" | "return_area" | "finish";
+  areaKey?: string | undefined;
+  areaName?: string | undefined;
+}
+
+const CHIP_PREFIX = "control-";
+
+function chipMessage(chip: ControlChip, at: string): Message {
+  return {
+    id: `${CHIP_PREFIX}${at || Date.now()}-${chip.kind}-${chip.areaKey ?? ""}`,
+    seq: 0,
+    role: "system",
+    modality: "text",
+    content: "",
+    createdAt: at,
+    control: chip,
+  };
+}
+
+/** The chip a message carries, or undefined when it is an ordinary message. */
+export function controlChipOf(message: Message): ControlChip | undefined {
+  if (message.role !== "system" || !message.id.startsWith(CHIP_PREFIX)) return undefined;
+  const chip = (message as { control?: ControlChip }).control;
+  return chip?.kind ? chip : undefined;
 }
 
 function announce(previous: Announcement | null, message: Message): Announcement {
@@ -90,6 +122,11 @@ export interface InterviewController {
    * becomes the participant's own message, before the interviewer answers it.
    */
   sendVoice: (audio: Blob, durationMs?: number) => Promise<boolean>;
+  /**
+   * Skip an area, come back to one, or finish: a state operation on the interview, not something
+   * said (D-170). The engine acknowledges it in its next turn.
+   */
+  sendControl: (control: TurnControl) => Promise<boolean>;
   /** Re-sends the last failed input, or the first turn when nothing was sent yet. */
   retry: () => Promise<boolean>;
   clearError: () => void;
@@ -99,6 +136,7 @@ export interface InterviewController {
 type Attempt =
   | { kind: "first" }
   | { kind: "turn"; input: TurnInput }
+  | { kind: "control"; control: TurnControl }
   | { kind: "voice"; audio: Blob; durationMs?: number | undefined };
 
 const isCompleted = (status: string): boolean => status === "completed" || status === "deleted";
@@ -188,6 +226,17 @@ export function useInterview(
             case "text":
               setState((s) => ({ ...s, streaming: (s.streaming ?? "") + ev.delta }));
               break;
+            case "control": {
+              const area = ev.progress.areas.find((a) => a.key === ev.areaKey);
+              const chip = chipMessage({ kind: ev.kind, areaKey: ev.areaKey, areaName: area?.name }, ev.at);
+              // The chips move at once; the interviewer's turn follows.
+              setState((s) => ({
+                ...s,
+                progress: ev.progress.areas.length > 0 ? ev.progress : s.progress,
+                messages: s.messages.some((m) => m.id === chip.id) ? s.messages : [...s.messages, chip],
+              }));
+              break;
+            }
             case "transcript": {
               // The participant never typed this, so it is shown as their turn before the reply.
               const heard = heardMessage(ev.text);
@@ -294,6 +343,14 @@ export function useInterview(
     [api, run],
   );
 
+  const sendControl = React.useCallback(
+    (control: TurnControl): Promise<boolean> => {
+      lastAttemptRef.current = { kind: "control", control };
+      return run((signal) => api.sendControl(control, signal), undefined);
+    },
+    [api, run],
+  );
+
   // Abort an in-flight stream only when the component unmounts. The first-turn guard is
   // reset too, so React's development double-mount (StrictMode) restarts the aborted turn.
   React.useEffect(() => {
@@ -334,8 +391,9 @@ export function useInterview(
     // Drop the optimistic copy before re-sending so it is not shown twice.
     setState((s) => ({ ...s, messages: s.messages.filter((m) => !m.id.startsWith("local-")) }));
     if (last.kind === "voice") return sendVoice(last.audio, last.durationMs);
+    if (last.kind === "control") return sendControl(last.control);
     return send(last.input);
-  }, [send, sendVoice]);
+  }, [send, sendVoice, sendControl]);
   const clearError = React.useCallback(() => {
     setState((s) => ({ ...s, error: null }));
   }, []);
@@ -378,5 +436,16 @@ export function useInterview(
     [],
   );
 
-  return { state, live, activeWidget, send, sendText, sendWidget, sendVoice, retry, clearError };
+  return {
+    state,
+    live,
+    activeWidget,
+    send,
+    sendText,
+    sendWidget,
+    sendVoice,
+    sendControl,
+    retry,
+    clearError,
+  };
 }

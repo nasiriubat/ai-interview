@@ -101,6 +101,20 @@ export const SETTINGS = {
     category: "engine",
     description: "Hard cap on interviewer turns",
   }),
+  "engine.resumeRecap": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["platform", "tenant", "template"],
+    category: "engine",
+    description: "Show a short recap when a participant comes back to an interview",
+  }),
+  "engine.recapAfterMinutes": def({
+    schema: z.number().int().min(0).max(1440),
+    default: 5,
+    scopes: ["platform", "tenant", "template"],
+    category: "engine",
+    description: "Minutes away before the recap is shown (0 shows it whenever the interview is reopened)",
+  }),
   // Campaign
   "campaign.completionThreshold": def({
     schema: z.number().int().min(1).max(10000),

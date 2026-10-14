@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import * as React from "react";
+import { FlagCallout } from "@/components/admin/campaigns/FlagCallout";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { StatTile } from "@/components/admin/StatTile";
@@ -14,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
-import { requireMe } from "@/lib/admin/me";
+import { hasRole, requireMe } from "@/lib/admin/me";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
 import { formatCents, formatDate } from "@/lib/utils";
@@ -29,7 +30,7 @@ interface Props {
 
 export default async function SessionPage({ params }: Props): Promise<React.JSX.Element> {
   await requestLocale();
-  await requireMe();
+  const me = await requireMe();
   const { id } = await params;
   const api = await staffServer();
   const [sessionR, eventsR] = await Promise.allSettled([api.sessions.get(id), api.sessions.events(id)]);
@@ -64,6 +65,14 @@ export default async function SessionPage({ params }: Props): Promise<React.JSX.
         }
       />
       <div className="grid gap-6">
+        {session.flagged ? (
+          <FlagCallout
+            sessionId={session.id}
+            reason={session.flagReason}
+            acknowledgedAt={session.flagAckedAt}
+            canAcknowledge={hasRole(me, ["admin", "platform_operator"])}
+          />
+        ) : null}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatTile label={s.cost} value={formatCents(session.costCents)} />
           <StatTile

@@ -1,8 +1,10 @@
-import type { Path, WidgetResponse } from "@aidp/shared";
+import type { Path, TurnControl, WidgetResponse } from "@aidp/shared";
 import { request, requestBlob, requestStream, type Transport } from "./http";
 import {
   type Attachment,
   AttachmentEnvelopeSchema,
+  DeleteResultSchema,
+  type DeleteResult,
   AttachmentListSchema,
   type InviteArrival,
   InviteArrivalSchema,
@@ -49,6 +51,9 @@ function uploadForm(file: Blob, filename: string, durationMs?: number): FormData
   if (durationMs !== undefined) form.append("durationMs", String(Math.round(durationMs)));
   return form;
 }
+
+/** Why the answer mode changed when the participant did not pick it (contract 16). */
+export type ModeSwitchReason = "participant" | "fallback_captions" | "fallback_typing" | "unavailable";
 
 export interface ConsentInput {
   consentVersion: string;
@@ -107,15 +112,25 @@ export function participantApi(transport: Transport): ParticipantApi {
       request(transport, { method: "POST", path: "/p/session/path", body: { path }, schema: OkSchema }).then(
         () => undefined,
       ),
-    setMode: (mode) =>
-      request(transport, { method: "POST", path: "/p/session/mode", body: { mode }, schema: OkSchema }).then(
-        () => undefined,
-      ),
+    setMode: (mode, reason) =>
+      request(transport, {
+        method: "POST",
+        path: "/p/session/mode",
+        body: reason ? { mode, reason } : { mode },
+        schema: OkSchema,
+      }).then(() => undefined),
     sendTurn: (input, signal) =>
       requestStream(transport, {
         method: "POST",
         path: "/p/session/turns",
         ...(input ? { body: input } : {}),
+        signal,
+      }),
+    sendControl: (control, signal) =>
+      requestStream(transport, {
+        method: "POST",
+        path: "/p/session/turns",
+        body: { control },
         signal,
       }),
     sendVoice: (audio, durationMs, signal) =>
@@ -146,12 +161,8 @@ export function participantApi(transport: Transport): ParticipantApi {
       request(transport, { method: "POST", path: "/p/session/pause", schema: OkSchema }).then(
         () => undefined,
       ),
-    complete: () =>
-      request(transport, { method: "POST", path: "/p/session/complete", schema: OkSchema }).then(
-        () => undefined,
-      ),
     deleteData: () =>
-      request(transport, { method: "DELETE", path: "/p/session", schema: OkSchema }).then(() => undefined),
+      request(transport, { method: "DELETE", path: "/p/session", schema: DeleteResultSchema }),
     getSummary: () => request(transport, { path: "/p/session/summary", schema: SummarySchema }),
     putSummary: (summary) =>
       request(transport, {
@@ -175,9 +186,19 @@ export interface ParticipantApi {
   getSession(): Promise<ParticipantSession>;
   consent(input: ConsentInput): Promise<void>;
   setPath(path: Path): Promise<void>;
-  setMode(mode: ModePreference): Promise<void>;
+  /**
+   * `reason` is why the mode changed when it was not the participant's own choice, so the
+   * transcript can say so (`mode_switch` event, D-171). Omitted means the participant chose it.
+   */
+  setMode(mode: ModePreference, reason?: ModeSwitchReason): Promise<void>;
   /** First turn: pass `undefined` to send an empty body. Returns the SSE response. */
   sendTurn(input: TurnInput | undefined, signal?: AbortSignal): Promise<Response>;
+  /**
+   * A participant control (skip an area, come back to one, finish): applied by the engine as a
+   * state operation and never stored as something the participant said (D-170). The response is a
+   * turn stream that opens with a `control` event.
+   */
+  sendControl(control: TurnControl, signal?: AbortSignal): Promise<Response>;
   /**
    * Recorded voice (FR-30): uploads the recording and takes the turn in one request. The SSE
    * response is a turn stream that opens with a `transcript` event.
@@ -190,8 +211,8 @@ export interface ParticipantApi {
   attachmentBytes(attachmentId: string): Promise<Blob>;
   deleteAttachment(attachmentId: string): Promise<void>;
   pause(): Promise<void>;
-  complete(): Promise<void>;
-  deleteData(): Promise<void>;
+  /** `emailSent` is true when a deletion confirmation was queued, which only an identified participant gets. */
+  deleteData(): Promise<DeleteResult>;
   getSummary(): Promise<Summary>;
   putSummary(summary: string): Promise<void>;
 }

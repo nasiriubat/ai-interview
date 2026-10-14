@@ -72,9 +72,11 @@ export function ConversationPane({
 }): React.JSX.Element {
   const s = t.admin.requirements.workspace;
   const p = t.participant.session;
-  const { state, activeWidget, sendText, sendWidget, retry, clearError } = useInterview(api, initial, {
-    onSpec,
-  });
+  const { state, activeWidget, sendText, sendWidget, sendControl, retry, clearError } = useInterview(
+    api,
+    initial,
+    { onSpec },
+  );
   const [path, setPath] = React.useState<Path | null>(initial.path ?? null);
   const [busy, setBusy] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
@@ -105,9 +107,10 @@ export function ConversationPane({
     });
   };
   const done = (): void => {
+    // A control on the turn request, not a message the owner "said" (D-170): the closing question
+    // streams straight away and the transcript stays what was actually said.
     void run(async () => {
-      await api.complete();
-      await sendText(p.doneMessage);
+      await sendControl({ type: "finish" });
     });
   };
 

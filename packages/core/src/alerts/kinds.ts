@@ -39,6 +39,12 @@ export const ALERT_KINDS = {
     repeatMinutes: 1440,
     summary: "A budget is used up and interviews under it are paused",
   },
+  "session.flagged": {
+    severity: "warning",
+    audience: ["tenant_admins"],
+    repeatMinutes: 1440,
+    summary: "An interview was flagged for hostility or distress and needs a person to look at it",
+  },
   "job.dead_lettered": {
     severity: "critical",
     audience: ["operator"],
