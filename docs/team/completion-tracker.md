@@ -63,9 +63,9 @@ Nothing running; follow-up wave being launched (see Left).
 
 ## Left, in order
 
-1. **Full-stack follow-ups:** voice first sentence before metadata (p95 1.76 s at 60 tok/s vs 1.5 s target), fail orphaned active jobs at worker start, turn-lock TTL after API kill (82-90 s), disk-full upload message, full k6 run under default abuse limits, Playwright journeys against the stack.
+1. **Full-stack follow-ups:** full k6 run under default abuse limits, Playwright journeys against the stack. Done (D-280 to D-283): voice first sentence before metadata (p95 1.79 s to 1.04 s at 250 chars/s), orphaned active jobs reclaimed by the next worker, turn-lock TTL 10 s, disk-full upload answers `storage_full`.
 2. **Requirement quality follow-ups (D-249):** grouped merge pass, regenerate fresh interviews, read-back eval; duplicates 18% to under 5%.
-3. **M4 remainder:** requirements/version pages in axe inventory, two drifted e2e fixtures, scheduled model-backed evals, Lighthouse budgets, tenant-scoped sweeps in retention tests, re-run `pnpm live:run` on the merged tip, `scripts/live-run/README.md`, cold-build ordering fix.
+3. **M4 remainder:** scheduled model-backed evals, Lighthouse budgets, tenant-scoped sweeps in retention tests, re-run `pnpm live:run` on the merged tip. Done: requirements/version pages in the axe inventory, the two drifted e2e fixtures, `scripts/live-run/README.md`, cold-build ordering (D-284).
 4. **Owner-only:** pen test budget, counsel review of DPA and consent, security contact, product name, usability tests with real people, restore and chaos drills, live voice on a phone, rotation drill on staging, make security workflow a required check.
 5. **M5 close:** phase plan marked Done with evidence links, release notes.
 
@@ -78,7 +78,7 @@ Nothing running; follow-up wave being launched (see Left).
 - Realtime voice sockets have no deadlines or retries.
 - Quote redaction after deletion is exact-match only; analyses are flagged stale instead.
 - `branding.primaryColor` has no consumer; the consent default is English-only.
-- A cold `pnpm -r build` is order-fragile (db and core depend on each other); `pnpm check` handles it.
+- `@aidp/db` and `@aidp/core` still depend on each other (the seeds import core); a cold `pnpm -r build` is ordered by `scripts/with-lock.mjs` (D-284), not by the dependency graph.
 
 ## Decisions waiting for the owner
 

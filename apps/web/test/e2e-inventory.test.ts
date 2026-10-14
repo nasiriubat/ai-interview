@@ -9,8 +9,13 @@ import {
   InvitationSchema,
   LinkInfoSchema,
   MeSchema,
+  InviteArrivalSchema,
   ParticipantSessionSchema,
+  RequirementsDetailSchema,
+  RoutesResponseSchema,
   SessionListItemSchema,
+  SpecVersionDetailSchema,
+  SpecVersionListSchema,
   TemplateRecordSchema,
 } from "@/lib/api/schemas";
 
@@ -60,6 +65,18 @@ describe("fixtures are the shapes the pages parse", () => {
     for (const i of f.invitations) expect(() => InvitationSchema.parse(i)).not.toThrow();
     for (const s of f.sessions) expect(() => SessionListItemSchema.parse(s)).not.toThrow();
     expect(() => AnalysisSchema.parse(f.analysis)).not.toThrow();
+  });
+
+  it("parses the routes, the invitation arrival and the requirements pages", () => {
+    // These three drifted once and the pages rendered their error states, which axe passed.
+    expect(() => RoutesResponseSchema.parse({ routes: f.routes })).not.toThrow();
+    expect(InviteArrivalSchema.parse(f.inviteArrival).status).toBe("open");
+    const detail = RequirementsDetailSchema.parse(f.requirementsDetail);
+    expect(detail.spec.findings).toHaveLength(1);
+    expect(detail.versions).toHaveLength(2);
+    expect(() => SpecVersionListSchema.parse({ versions: f.specVersions })).not.toThrow();
+    const version = SpecVersionDetailSchema.parse(f.specVersionDetail);
+    expect(version.bundle?.files.length).toBeGreaterThan(0);
   });
 
   it("parses the participant link and session", () => {

@@ -20,6 +20,8 @@ export interface Entry {
   prepare?: (page: Page) => Promise<void>;
   /** The `app/**` route this entry covers, for the inventory test. */
   route: string;
+  /** The page is itself an error page, so showing the error wording is correct. */
+  isErrorPage?: boolean;
 }
 
 const publicPage = (id: string, path: string, route: string, prepare?: Entry["prepare"]): Entry => ({
@@ -59,7 +61,10 @@ export const PAGES: Entry[] = [
   }),
   publicPage("signin", "/auth/signin", "app/auth/signin/page.tsx"),
   publicPage("verify-request", "/auth/verify", "app/auth/verify/page.tsx"),
-  publicPage("auth-error", "/auth/error?error=Configuration", "app/auth/error/page.tsx"),
+  {
+    ...publicPage("auth-error", "/auth/error?error=Configuration", "app/auth/error/page.tsx"),
+    isErrorPage: true,
+  },
   publicPage("not-found", "/no-such-page", "app/not-found.tsx"),
   publicPage("participant-not-found", "/p/missing-link", "app/p/not-found.tsx"),
   publicPage("link-closed", "/p/closed-link", "app/p/[linkToken]/page.tsx"),
@@ -117,6 +122,12 @@ export const PAGES: Entry[] = [
   admin("template-new", "/admin/templates/new", "app/admin/templates/new/page.tsx"),
   admin("requirements", "/admin/requirements", "app/admin/requirements/page.tsx"),
   admin("requirements-new", "/admin/requirements/new", "app/admin/requirements/new/page.tsx"),
+  admin("requirements-session", "/admin/requirements/req1", "app/admin/requirements/[id]/page.tsx"),
+  admin(
+    "requirements-version",
+    "/admin/requirements/req1/versions/2",
+    "app/admin/requirements/[id]/versions/[v]/page.tsx",
+  ),
   admin("settings", "/admin/settings", "app/admin/settings/page.tsx"),
   admin("settings-privacy", "/admin/settings?scope=tenant&category=privacy", "app/admin/settings/page.tsx"),
   admin("providers", "/admin/providers", "app/admin/providers/page.tsx"),
@@ -167,9 +178,4 @@ export const NOT_DOCUMENTS = new Set([
  * Routes that exist but are not covered by an entry above yet, each with the reason. An entry
  * here is a debt: the inventory test lists them so they stay visible.
  */
-export const NOT_YET: Record<string, string> = {
-  "app/admin/requirements/[id]/page.tsx":
-    "the workspace needs the requirements detail, live spec and findings fixtures (contract 18)",
-  "app/admin/requirements/[id]/versions/[v]/page.tsx":
-    "needs a spec version with its bundle and diff fixtures; owned by the exports work in flight",
-};
+export const NOT_YET: Record<string, string> = {};
