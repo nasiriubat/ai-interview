@@ -176,7 +176,9 @@ suite("abuse controls on open links", () => {
       });
       expect(world.email.sent.filter((m) => m.to === "honest@bomb.test")).toHaveLength(1);
 
-      const limited = world.alerts.ofKind("abuse.limit_hit").filter((a) => a.context?.limit === "address_emails");
+      const limited = world.alerts
+        .ofKind("abuse.limit_hit")
+        .filter((a) => a.context?.limit === "address_emails");
       expect(limited.length).toBeGreaterThanOrEqual(1);
       await setting("tenant", "", { "abuse.distinctEmailsPerAddressPerHour": 5 });
     });

@@ -72,7 +72,9 @@ suite("audit rows for access and sensitive reads", () => {
 
   it("declares reads only for GET routes that exist", () => {
     const gets = new Set(
-      world.app.routeTable.filter((r) => r.method === "GET").map((r) => `GET ${r.url.replace("/api/v1", "")}`),
+      world.app.routeTable
+        .filter((r) => r.method === "GET")
+        .map((r) => `GET ${r.url.replace("/api/v1", "")}`),
     );
     const unknown = Object.keys(AUDIT_READS).filter((k) => !gets.has(k));
     expect(unknown, "an AUDIT_READS entry for a route that no longer exists").toEqual([]);
@@ -127,9 +129,11 @@ suite("audit rows for access and sensitive reads", () => {
       headers: as(world.adminToken),
     });
     expect(list.statusCode).toBe(200);
-    expect(await world.db.auditLog.count({
-      where: { companyId: world.companyId, action: "session.list_read", targetId: campaignId },
-    })).toBe(1);
+    expect(
+      await world.db.auditLog.count({
+        where: { companyId: world.companyId, action: "session.list_read", targetId: campaignId },
+      }),
+    ).toBe(1);
 
     const before = await world.db.auditLog.count({ where: { companyId: world.companyId } });
     const missing = await world.app.inject({
@@ -179,8 +183,8 @@ suite("audit rows for access and sensitive reads", () => {
       headers: as(world.operatorToken, { "x-company-id": "no-such-tenant" }),
     });
     expect(ghost.statusCode).toBeLessThan(500);
-    expect(await world.db.auditLog.count({ where: { companyId: own.companyId, action: "operator.access" } })).toBe(
-      0,
-    );
+    expect(
+      await world.db.auditLog.count({ where: { companyId: own.companyId, action: "operator.access" } }),
+    ).toBe(0);
   });
 });

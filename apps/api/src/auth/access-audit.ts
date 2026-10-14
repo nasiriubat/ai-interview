@@ -69,7 +69,10 @@ export function installAccessAudit(app: FastifyInstance, audit: AuditService): v
         action: "operator.access",
         targetType: "tenant",
         targetId: override,
-        diff: { method: request.method, route: declarationKey(request.method, request.routeOptions.url ?? "") },
+        diff: {
+          method: request.method,
+          route: declarationKey(request.method, request.routeOptions.url ?? ""),
+        },
       },
       OPERATOR_ACCESS_DEDUPE_MS,
       { requireTenant: true },
