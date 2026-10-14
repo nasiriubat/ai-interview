@@ -50,7 +50,8 @@ export async function participant(index, maxTurns = 30) {
   const arrival = await p.ok("GET", `/api/participant/p/${campaign.linkToken}`);
   if (arrival.status !== "open") throw new Error(`campaign link is ${arrival.status}`);
   await p.ok("POST", `/api/participant/p/${campaign.linkToken}/open`, {});
-  if (![...p.jar.keys()].some((k) => k.includes("aidp_participant"))) throw new Error("no participant cookie after open");
+  if (![...p.jar.keys()].some((k) => k.includes("aidp_participant")))
+    throw new Error("no participant cookie after open");
   await p.ok("POST", "/api/participant/p/session/consent", {
     consentVersion: arrival.campaign.consentVersion ?? "v1",
     participantFields: { name: `Drill ${index}`, role: "clerk" },

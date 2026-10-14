@@ -68,10 +68,20 @@ log(`provider test: ${JSON.stringify(test).slice(0, 160)}`);
 // A load run starts a few hundred interviews, and the tenant's default ceiling is 1000 a month
 // (ceiling.maxSessionsPerMonth). The first 4 GB-limits run hit it: the product refused every open
 // with limit_reached, correctly. The rehearsal platform has no ceiling; a real one keeps its own.
+// The abuse limits on open links (D-261) are raised to their maximum for the same reason: one
+// campaign may start 120 interviews an hour by default, and a full load run starts about 290 in
+// five minutes, from the load generator's addresses. They are the thing the single-address control
+// (load/k6/single-ip.js) shows working; the full run is about the platform's capacity.
 await staff(operator, "PUT", "/settings?scope=platform", {
-  values: { "ceiling.maxSessionsPerMonth": 0, "ceiling.voiceMinutes": 0 },
+  values: {
+    "ceiling.maxSessionsPerMonth": 0,
+    "ceiling.voiceMinutes": 0,
+    "abuse.campaignSessionsPerHour": 100000,
+    "abuse.campaignSessionsTotal": 1000000,
+    "abuse.tenantSessionsPerHour": 100000,
+  },
 });
-log("platform ceilings for the rehearsal: sessions per month and voice minutes set to none");
+log("platform ceilings and abuse limits for the rehearsal raised to their maximum");
 const admin = await signIn(ADMIN_EMAIL, "admin");
 log("tenant admin signed in");
 // Live voice is off until a tenant turns it on (features.realtimeVoice, default false).
