@@ -24,6 +24,7 @@ import { usePathname } from "next/navigation";
 import * as React from "react";
 import { DirtyGuardProvider } from "@/components/common/DirtyGuard";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
+import { ThemeSwitch } from "@/components/common/ThemeSwitch";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import type { Me } from "@/lib/api/schemas";
@@ -174,7 +175,7 @@ function Brand(): React.JSX.Element {
     <Link href="/admin" className="flex items-center gap-2.5 px-2.5 text-[15px] font-semibold tracking-tight">
       <span
         aria-hidden="true"
-        className="grid size-7 place-items-center rounded-md bg-brand-gradient text-xs font-bold text-white shadow-sm"
+        className="grid size-7 place-items-center rounded-md bg-brand-gradient text-xs font-bold text-brand-text shadow-sm"
       >
         D
       </span>
@@ -246,6 +247,9 @@ function UserBox({
           </div>
         </div>
       ) : null}
+      <div className="px-1.5">
+        <ThemeSwitch />
+      </div>
       <div className="flex items-center justify-between gap-2 px-1.5">
         <div className="hidden md:block">
           <LanguageSwitch />

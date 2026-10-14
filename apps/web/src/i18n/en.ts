@@ -9,6 +9,7 @@ export const en = {
     name: "Discovery",
     description: "AI discovery interviews",
     skipToContent: "Skip to main content",
+    theme: { label: "Appearance", system: "System", light: "Light", dark: "Dark" },
     loading: "Loading…",
     close: "Close",
     cancel: "Cancel",

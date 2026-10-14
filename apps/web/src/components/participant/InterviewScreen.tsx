@@ -283,7 +283,7 @@ export function InterviewScreen({
           <div className="flex min-w-0 items-center gap-2.5">
             <span
               aria-hidden="true"
-              className="hidden size-7 shrink-0 place-items-center rounded-md bg-brand-gradient text-xs font-bold text-white sm:grid"
+              className="hidden size-7 shrink-0 place-items-center rounded-md bg-brand-gradient text-xs font-bold text-brand-text sm:grid"
             >
               D
             </span>
