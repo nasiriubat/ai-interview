@@ -331,6 +331,56 @@ describe("OpenAICompatibleProvider deadlines and retries", () => {
     expect(body?.cancelled()).toBe(true);
   });
 
+  it("holds a stream that never sends headers to the first-token deadline, not to the ceiling", async () => {
+    // The stream guard only starts once a response exists, so a provider that accepts the request
+    // and says nothing used to be held to the (two-minute) ceiling instead. The full-stack drill
+    // saw 30 s against an 8 s deadline.
+    let calls = 0;
+    const p = make(
+      (u, init) => {
+        calls++;
+        return hangingFetch(u, init);
+      },
+      { totalMs: 2000, firstTokenMs: 80, idleMs: 60, maxRetries: 2 },
+    );
+    const started = Date.now();
+    const failure = await (async () => {
+      try {
+        await drain(p.chat("m", req));
+      } catch (e) {
+        return e;
+      }
+      return undefined;
+    })();
+    expect(failure).toMatchObject({ code: "timeout", retryable: true });
+    expect((failure as Error).message).toContain("first output");
+    expect(Date.now() - started).toBeLessThan(1000);
+    // Not run again inside the same request: that would be three deadlines in a row.
+    expect(calls).toBe(1);
+  });
+
+  it("does not cut a body that started after the first-token deadline has passed", async () => {
+    // The header timer is cleared the moment the headers arrive; a slow stream is the idle guard's.
+    const p = make(
+      async (_u, init) => {
+        const body = liveBody(init?.signal);
+        body.push({ choices: [{ delta: { content: "hello" } }] });
+        setTimeout(() => {
+          body.push({
+            choices: [{ delta: {}, finish_reason: "stop" }],
+            usage: { prompt_tokens: 1, completion_tokens: 1 },
+          });
+          body.close();
+        }, 30);
+        return body.response;
+      },
+      { totalMs: 2000, firstTokenMs: 500, idleMs: 400, maxRetries: 0 },
+    );
+    const events: string[] = [];
+    for await (const e of p.chat("m", req)) events.push(e.type);
+    expect(events).toEqual(["text", "done"]);
+  });
+
   it("fails a stream that goes quiet after it started, keeping what it had sent", async () => {
     const texts: string[] = [];
     const p = make(async (_u, init) => {

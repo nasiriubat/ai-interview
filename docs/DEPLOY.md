@@ -54,9 +54,11 @@ and would put tokens in the browser, for no capability the product uses. So the 
 
 ## Prerequisites
 
-- A VPS in the EU (NFR-02). 2 vCPU, 4 GB RAM, 40 GB disk is the floor; the resource limits in
-  `deploy/compose.prod.yml` are sized for that. Postgres and the two Node services are the
-  memory-hungry parts.
+- A VPS in the EU (NFR-02). 2 vCPU, 4 GB RAM, 40 GB disk is the floor, and 4 GB needs the 4 GB
+  preset: the limits in `deploy/compose.prod.yml` are the 8 GB ones (their sum is about 7.5 GB, most
+  of it headroom for the on-host Whisper model), and `generate-env.sh <host> <email> --size 4gb`
+  writes limits that fit. What the stack really uses is in [Capacity and load](#capacity-and-load).
+  Postgres and the two Node services are the memory-hungry parts.
 - Docker Engine 24+ with the Compose plugin. `docker compose version` must work.
 - A DNS `A` record (and `AAAA` if the host has IPv6) for your hostname pointing at the VPS, already
   resolving. Caddy cannot get a certificate before this is true.
@@ -639,6 +641,118 @@ If the certificate does not appear, the cause is almost always DNS or port 80:
 dig +short pilot.example.com            # must be this host's IP
 dc logs caddy | grep -i acme
 ```
+
+## Rehearsing a deployment
+
+Everything above has also been run, end to end, on one machine with throwaway secrets, a scripted
+model and a mail catcher, so that a script change can be tried before it meets a pilot's data. The
+rehearsal is test-only and never touches `deploy/.env`:
+
+```bash
+deploy/drill/stack.sh up            # generate a scratch env outside the repo, then upgrade.sh
+deploy/drill/stack.sh configure     # point the platform at the fake provider, open a campaign
+deploy/drill/stack.sh run node deploy/drill/journey.mjs all     # interviews, analysis, specification, PDF
+deploy/drill/stack.sh run node deploy/drill/voice.mjs 3         # the live voice socket through Caddy
+load/run.sh smoke                   # k6, from inside the stack's network (full: `load/run.sh full`)
+deploy/chaos/run.sh                 # provider 5xx and hang, Postgres restart, kills, Caddy, full disks
+deploy/drill/stack.sh down          # containers, volumes and images; the scratch directory stays
+```
+
+What it is made of: [`deploy/compose.fake.yml`](../deploy/compose.fake.yml) adds the fake provider
+(`tools/fake-provider`, an OpenAI-compatible server with scripted interviews and a control endpoint
+for latency and failure injection) and a mail catcher to the production file; nothing in
+`compose.prod.yml` knows about them. The scratch directory (`$TMPDIR/aidpfull`, mode 700) holds the
+generated env, the version record and the results; the project is `aidpfull`, the ports 18080 and
+18443, the hostname `aidp.localhost`, Caddy's own CA. The development stack has the same fake as an
+overlay: `docker compose -f docker-compose.yml -f docker-compose.fake.yml up -d`.
+
+Things this taught, which are why the rehearsal exists (dated records:
+[`docs/team/drills/2026-10-14-full-stack.md`](team/drills/2026-10-14-full-stack.md) and
+[`-chaos.md`](team/drills/2026-10-14-chaos.md)):
+
+- A sign-in link in a test install points at `https://<host>` without the port. With `HTTPS_PORT`
+  set, `PUBLIC_WEB_URL`, `WEB_ORIGIN` and `AUTH_URL` now carry it too.
+- `docker kill` is a manual stop, and a manual stop switches the restart policy off. A crash is a
+  signal from outside the container's PID namespace; `deploy/chaos/lib.mjs` (`crash`) does that.
+- A Docker host that has run many Compose projects can be out of address pools
+  ("all predefined address pools have been fully subnetted"): the overlay gives the diagram network
+  a fixed subnet for that reason. A VPS running only this stack does not need it.
+
+## Capacity and load
+
+Measured on 2026-10-14 with `load/run.sh full` against the rehearsal stack (an 8 GB Docker VM with
+14 CPUs, shared with other work; version `ffd17ea6ce11`; fake provider at 400 ms plus up to 100 ms
+of jitter, 400 characters a second, so the numbers are the platform's own overhead on top of a
+provider with that latency):
+
+| Scenario (all at once)                                           | Result                                                    |
+| ---------------------------------------------------------------- | --------------------------------------------------------- |
+| 40 concurrent interviews of 20 turns, think time 3 to 8 s        | 1 600 turns, 0 errors, 0 5xx                              |
+| First token (response headers of the SSE turn, through Caddy)    | p50 481 ms, p95 532 ms, p99 608 ms, max 1.03 s            |
+| Whole turn                                                       | p50 1.05 s, p95 1.13 s                                    |
+| 5 live voice sessions, 4 exchanges each, 316 exchanges in all    | 0 errors; first word p95 1.44 s (target 1.5 s, see below) |
+| Campaign launch: 100 link opens in a minute from 100 addresses   | 0 errors, 0 rate-limited, open p95 61 ms                  |
+| The same opens from one address (the limiter's negative control) | 30 accepted, 30 answered 429                              |
+| Admin reading dashboards (2 readers, 180 reads)                  | 0 errors                                                  |
+
+Peak use per container during that run (`docker stats` every 5 s) against the limit it has:
+
+| Service       | Peak memory                       | Limit | Peak CPU (of one core) |
+| ------------- | --------------------------------- | ----- | ---------------------- |
+| postgres      | 199 MiB                           | 1536M | 28 %                   |
+| api           | 182 MiB                           | 2560M | 71 %                   |
+| web           | 128 MiB                           | 768M  | 19 %                   |
+| worker        | 121 MiB                           | 1024M | 39 %                   |
+| kroki         | 113 MiB                           | 320M  | 2 %                    |
+| kroki-mermaid | 104 MiB (about 300 while drawing) | 512M  | 21 %                   |
+| caddy         | 45 MiB                            | 256M  | 3 %                    |
+| backup        | 1 MiB (a dump adds a few)         | 512M  | 9 %                    |
+| ops-notify    | 2 MiB                             | 32M   | 0 %                    |
+
+About 0.9 GB in total at that load. The limits are ceilings that keep one runaway process from
+taking the host, and the API's is large because the on-host Whisper model needs about 2 GB while it
+transcribes; with transcription routed to a provider 1024M is plenty. They are variables
+(`API_MEMORY_LIMIT`, `POSTGRES_MEMORY_LIMIT`, and so on, in `deploy/.env`), with two presets:
+`deploy/sizes/4gb.env` (about 3.7 GB of limits) and `deploy/sizes/8gb.env` (the defaults).
+**The 4 GB preset was run, not assumed**: the same full run with `deploy/sizes/4gb.env` applied
+(api 1024M, postgres 768M with 192 MB of buffers, worker 512M, web 384M, caddy 128M, backup 256M,
+kroki 256M, kroki-mermaid 384M) finished with 0 errors and 0 5xx, first token p95 519 ms, voice first
+word p95 1.42 s, and no container killed for memory or restarted (kroki-mermaid peaked at 236 MiB
+of its 384M, the largest share of any limit; the rest used a fifth or less). The sum of those limits
+is 3.7 GB, so a 4 GB host runs this stack with the OS in what is left only if nothing else shares it
+and the build is not run on top of it.
+
+**A launch is counted in sessions the moment the link is opened.** Each open creates a session, and
+`ceiling.maxSessionsPerMonth` (default 1000) counts it whether or not the person ever answers. The
+rehearsal's own load runs (about 300 interviews each) used a tenant's month up in four runs, and the
+product answered every further open with `403 limit_reached`, as designed. The abuse limits on open
+links (D-261: 120 interviews an hour per campaign, 500 per tenant, 2000 per campaign in all) sit in
+front of that and were merged after the load runs recorded here, so they were **not** in play for
+those numbers: `configure.mjs` raises the rehearsal platform's ceilings and abuse limits to their
+maximum, because a full run starts about 290 interviews in five minutes, and the single-address
+control (`load/k6/single-ip.js`) is what shows the per-address limiter. A real launch of more than
+120 people in an hour on one campaign needs `abuse.campaignSessionsPerHour` raised first.
+
+**What the numbers do not say**: they are one tenant, a fake provider, a 40 MB database and a
+machine with plenty of CPU. A pilot's own data (transcripts of real length, a real model's
+streaming speed, a real embedding route) is the next measurement; run `load/run.sh full` on the
+host before the pilot, in a quiet hour, with `FAKE_*` set to the latency of the provider you chose.
+
+**Voice first word is bounded by the whole reply, not by its first sentence.** The live call speaks
+a turn only when the model's reply, metadata included, has arrived and been stored
+(`apps/api/src/modules/participant/voice-live/turn.ts`): the streamed text is not used for speech.
+With a provider that has no latency at all the platform's own overhead is 55 ms median (p95 90 ms).
+With the fake at 400 ms to first byte, 250 ms to the first audio byte and 400 characters a second,
+the first word is 1.35 s; at 250 characters a second (about 60 tokens a second) it is 1.67 s, past
+the 1.5 s target. A model that streams slowly, or a long metadata block, moves it one for one.
+Speaking the first complete sentence while the metadata finishes is the change that would decouple
+the two; it is an engine change and is not made here (docs/team/drills/2026-10-14-full-stack.md).
+
+**One harness caveat.** The launch burst opens 100 connections from 100 source addresses added to
+the load generator's container. The first connection from each new address to Caddy took about 20 s
+in that Docker network (ARP resolution for new neighbours on the bridge), and 0.1 ms afterwards, so
+`load/run.sh` warms the addresses first. That is the test network, not the product, and a real
+campaign arrives from routed addresses.
 
 ## Before you go live
 

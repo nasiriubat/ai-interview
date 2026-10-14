@@ -1,0 +1,23 @@
+{
+  "name": "@aidp/fake-provider",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A scripted, deterministic OpenAI-compatible model server for load tests, chaos drills and the full-stack drill. Never used in production.",
+  "bin": {
+    "fake-provider": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node dist/main.js"
+  },
+  "devDependencies": {
+    "@aidp/shared": "workspace:*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0",
+    "zod": "^4.0.0"
+  }
+}

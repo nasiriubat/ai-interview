@@ -34,11 +34,12 @@ versions_file="${VERSIONS_FILE_PATH:-$here/versions.env}"
 
 # The same invocation deploy/dc makes: versions.env carries the image tag compose substitutes.
 dc() {
-	if [ -f "$versions_file" ]; then
-		docker compose -f "$compose_file" --env-file "$env_file" --env-file "$versions_file" "$@"
-	else
-		docker compose -f "$compose_file" --env-file "$env_file" "$@"
-	fi
+	local args=(-f "$compose_file") extra
+	# COMPOSE_OVERRIDE_FILES: the full-stack drill's fake-provider overlay; empty on a real host.
+	for extra in ${COMPOSE_OVERRIDE_FILES:-}; do args+=(-f "$extra"); done
+	args+=(--env-file "$env_file")
+	[ -f "$versions_file" ] && args+=(--env-file "$versions_file")
+	docker compose "${args[@]}" "$@"
 }
 psql_owner() { dc exec -T postgres psql -v ON_ERROR_STOP=1 -tAX -U app "$@"; }
 
