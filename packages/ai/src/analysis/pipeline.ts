@@ -8,7 +8,12 @@ import type {
   SolutionClass,
   Weights,
 } from "@aidp/shared";
-import { ClusterMergeResultSchema, OpportunityDraftSchema, rankScore } from "@aidp/shared";
+import {
+  ClusterMergeResultSchema,
+  OPPORTUNITY_TEXT_MAX,
+  OpportunityDraftSchema,
+  rankScore,
+} from "@aidp/shared";
 import { z } from "zod";
 import type { CallContext, ModelCallerPort } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";
@@ -260,9 +265,9 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     opportunities.push({
       clusterKey: c.key,
       title: override?.title ?? c.title ?? draft.title,
-      summary: override?.summary ?? draft.summary,
+      summary: override?.summary ?? clampText(draft.summary, OPPORTUNITY_TEXT_MAX),
       solutionClass: override?.solutionClass ?? draft.solutionClass,
-      rationale: draft.rationale,
+      rationale: clampText(draft.rationale, OPPORTUNITY_TEXT_MAX),
       factors,
       rankScore: rankScore(factors, input.weights),
       stats,
@@ -721,4 +726,13 @@ async function clusterFacts(
   }));
   const clusters = await mergeAndName(deps, ctx, input, facts, drafts, versions);
   return { clusters, embedding };
+}
+
+/** Cuts a model's text to a length at a word boundary, with an ellipsis; shorter text is returned as is. */
+export function clampText(text: string, max: number): string {
+  const t = text.trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max - 1);
+  const at = cut.lastIndexOf(" ");
+  return `${(at > max * 0.6 ? cut.slice(0, at) : cut).trimEnd()}\u2026`;
 }

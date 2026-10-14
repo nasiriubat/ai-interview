@@ -1,0 +1,120 @@
+{
+  "capabilities": [
+    {
+      "text": "Integrate with Azure Active Directory for single sign-on",
+      "kind": "feature",
+      "quote": "we’re already fully integrated with Azure Active Directory for single sign-on across all hospital systems"
+    },
+    {
+      "text": "Run on Azure App Services",
+      "kind": "constraint",
+      "quote": "we’ll build this new tool using Azure App Services"
+    },
+    { "text": "Use Azure SQL Database", "kind": "constraint", "quote": "and Azure SQL Database" },
+    {
+      "text": "Leverage Azure AD B2C for external access",
+      "kind": "feature",
+      "quote": "and leverage Azure AD B2C for any potential external access"
+    },
+    {
+      "text": "Integrate with Epic EMR system via FHIR API (STU3)",
+      "kind": "feature",
+      "quote": "The tool must integrate with two systems: our existing Electronic Medical Record (EMR) system, Epic, via its FHIR API (version STU3)"
+    },
+    {
+      "text": "Integrate with ward-level nurse scheduling and shift management system via REST API",
+      "kind": "feature",
+      "quote": "and our ward-level nurse scheduling and shift management system, which uses a REST API hosted on Azure."
+    },
+    {
+      "text": "Use Azure API Management to proxy and secure integrations",
+      "kind": "constraint",
+      "quote": "We’ll use Azure API Management to proxy and secure these integrations"
+    },
+    {
+      "text": "Provide patient demographics and current admission status from Epic FHIR API",
+      "kind": "feature",
+      "quote": "The FHIR API will provide patient demographics and current admission status"
+    },
+    {
+      "text": "Provide real-time ward staffing data from nurse shift system",
+      "kind": "feature",
+      "quote": "and the nurse shift system will provide real-time ward staffing data to validate who’s authorized to enter notes."
+    },
+    {
+      "text": "Use Azure DevOps for CI/CD pipelines",
+      "kind": "constraint",
+      "quote": "We’re using Azure DevOps for CI/CD pipelines"
+    },
+    {
+      "text": "Use Terraform for infrastructure-as-code",
+      "kind": "constraint",
+      "quote": "with infrastructure-as-code via Terraform"
+    },
+    {
+      "text": "Follow hospital secure coding standards",
+      "kind": "constraint",
+      "quote": "we’ll follow our hospital’s secure coding standards"
+    },
+    {
+      "text": "Perform static analysis with SonarQube",
+      "kind": "constraint",
+      "quote": "including static analysis with SonarQube"
+    },
+    {
+      "text": "Perform dependency scanning with Snyk",
+      "kind": "constraint",
+      "quote": "and dependency scanning with Snyk."
+    },
+    {
+      "text": "Allow ward nurses to log in via Azure AD SSO",
+      "kind": "feature",
+      "quote": "the ward nurse, who needs to log in via Azure AD SSO"
+    },
+    {
+      "text": "Allow ward nurses to select a patient from their assigned shift roster",
+      "kind": "feature",
+      "quote": "select a patient from their assigned shift roster (pulled from the ward scheduling API)"
+    },
+    {
+      "text": "Allow ward nurses to enter free-text clinical notes",
+      "kind": "feature",
+      "quote": "and enter a free-text clinical note"
+    },
+    {
+      "text": "Provide a clean, mobile-responsive form for note entry",
+      "kind": "feature",
+      "quote": "using a clean, mobile-responsive form"
+    },
+    {
+      "text": "Auto-save notes every 30 seconds",
+      "kind": "feature",
+      "quote": "that auto-saves every 30 seconds."
+    },
+    {
+      "text": "Allow charge nurses to view a real-time dashboard of entered notes",
+      "kind": "feature",
+      "quote": "The secondary user is the charge nurse, who needs to view a real-time dashboard of all entered notes per ward"
+    },
+    {
+      "text": "Allow charge nurses to filter notes by patient or nurse",
+      "kind": "feature",
+      "quote": "filter by patient or nurse"
+    },
+    {
+      "text": "Allow charge nurses to export a summary to PDF",
+      "kind": "feature",
+      "quote": "and export a summary to PDF for shift handoff."
+    },
+    {
+      "text": "Allow clinical informatics lead to audit note distribution and duplication rates",
+      "kind": "feature",
+      "quote": "The tertiary user is the clinical informatics lead, who occasionally audits note distribution and duplication rates via a secure admin portal"
+    },
+    {
+      "text": "Implement role-based access control via Azure AD",
+      "kind": "constraint",
+      "quote": "with role-based access control. All access is governed by Azure AD roles"
+    }
+  ]
+}

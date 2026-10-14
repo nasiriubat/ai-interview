@@ -1,0 +1,125 @@
+{
+  "capabilities": [
+    {
+      "text": "Integrate with Cerner Millennium via HL7 v2.5.1 over TCP",
+      "kind": "feature",
+      "quote": "this tool must integrate with Cerner Millennium (via its HL7 v2.5.1 messaging interface over TCP)"
+    },
+    {
+      "text": "Integrate with the bedside kiosk app via custom REST API over HTTPS",
+      "kind": "feature",
+      "quote": "and the bedside kiosk app (via a custom REST API over HTTPS, using Azure AD Bearer tokens)"
+    },
+    {
+      "text": "Use Azure AD Bearer tokens for authentication",
+      "kind": "feature",
+      "quote": "using Azure AD Bearer tokens"
+    },
+    {
+      "text": "Validate Azure AD tokens using OpenID Connect metadata endpoint",
+      "kind": "feature",
+      "quote": "The tool will validate tokens via Azure AD’s OpenID Connect metadata endpoint"
+    },
+    {
+      "text": "Validate 'aud' claim for audience in Azure AD tokens",
+      "kind": "feature",
+      "quote": "using the `aud` claim to verify the audience is `https://wardnote-sync.it.hospital.local`"
+    },
+    {
+      "text": "Validate 'roles' claim for Nurse role in Azure AD tokens",
+      "kind": "feature",
+      "quote": "and the `roles` claim to check that the user has the `Nurse` role in the `Ward4B` group"
+    },
+    {
+      "text": "Cache Azure AD certificates locally for 60 minutes",
+      "kind": "feature",
+      "quote": "we’ll cache the certificates locally for 60 minutes to reduce latency"
+    },
+    { "text": "Nurse login via Azure AD", "kind": "feature", "quote": "nurse login via Azure AD" },
+    {
+      "text": "Form entry for 12 required fields",
+      "kind": "feature",
+      "quote": "form entry for the 12 required fields"
+    },
+    {
+      "text": "Idempotent writes to Cerner using HL7 ADT^A01",
+      "kind": "feature",
+      "quote": "idempotent writes to both Cerner (HL7 ADT^A01) and the kiosk app (REST POST)"
+    },
+    {
+      "text": "Idempotent writes to the kiosk app using REST POST",
+      "kind": "feature",
+      "quote": "idempotent writes to both Cerner (HL7 ADT^A01) and the kiosk app (REST POST)"
+    },
+    {
+      "text": "Display success confirmation screen with audit ID",
+      "kind": "feature",
+      "quote": "a success confirmation screen"
+    },
+    {
+      "text": "Log all actions with audit trail",
+      "kind": "feature",
+      "quote": "logging of all actions with audit trail"
+    },
+    {
+      "text": "Nurse can edit or delete a note within 15 minutes of submission",
+      "kind": "feature",
+      "quote": "The tool will allow a nurse to edit or delete a note within 15 minutes of submission"
+    },
+    {
+      "text": "Nurse can edit or delete a note only within the current shift",
+      "kind": "feature",
+      "quote": "but only for the current shift"
+    },
+    {
+      "text": "Charge nurse views ward summary at handover",
+      "kind": "feature",
+      "quote": "Charge nurse views the ward summary at handover"
+    },
+    {
+      "text": "Ward summary displays assessments from the last 24 hours",
+      "kind": "feature",
+      "quote": "The screen must display all assessments from the last 24 hours"
+    },
+    {
+      "text": "Ward summary is read-only",
+      "kind": "feature",
+      "quote": "It must be read-only, with no edit or delete options"
+    },
+    {
+      "text": "Ward summary includes filter for high-risk patients (score >= 7)",
+      "kind": "feature",
+      "quote": "and include a filter for high-risk patients (score ≥7)"
+    },
+    {
+      "text": "Ward summary includes count of total notes",
+      "kind": "feature",
+      "quote": "and a count of total notes"
+    },
+    {
+      "text": "Nurse sees a green confirmation banner with audit ID on success",
+      "kind": "feature",
+      "quote": "the nurse sees a green confirmation banner with the message \"Note successfully sent to Cerner and the kiosk app\" and the unique audit ID"
+    },
+    {
+      "text": "Nurse sees a red error banner with retry button on partial failure",
+      "kind": "feature",
+      "quote": "it shows a red error banner with a retry button"
+    },
+    {
+      "text": "Nurse must confirm or change each pre-filled field before submitting a new note",
+      "kind": "feature",
+      "quote": "the nurse must confirm or change each field before submitting, so nothing is saved from the old values by default"
+    },
+    {
+      "text": "Delete note sends a cancellation signal via HL7 MDM^T02 to Cerner",
+      "kind": "feature",
+      "quote": "The \"Delete\" action sends a cancellation signal via a new HL7 MDM^T02 message to Cerner"
+    },
+    {
+      "text": "Delete note sends a DELETE request to the kiosk API",
+      "kind": "feature",
+      "quote": "and a DELETE request to the kiosk API"
+    }
+  ]
+}

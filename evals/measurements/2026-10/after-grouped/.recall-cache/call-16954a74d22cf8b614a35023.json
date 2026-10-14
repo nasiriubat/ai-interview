@@ -1,0 +1,124 @@
+{
+  "capabilities": [
+    {
+      "text": "Run on Azure App Service with a dedicated virtual network",
+      "kind": "constraint",
+      "quote": "The application will run on Azure App Service with a dedicated virtual network"
+    },
+    {
+      "text": "Use Azure Cosmos DB for ward notes data",
+      "kind": "constraint",
+      "quote": "we'll use Azure Cosmos DB for the ward notes data"
+    },
+    {
+      "text": "Integrate with hospital's FHIR-compliant EHR system",
+      "kind": "feature",
+      "quote": "I need to integrate with two existing systems: the hospital’s FHIR-compliant electronic health record (EHR) system"
+    },
+    {
+      "text": "Integrate with legacy spreadsheet-based event log system",
+      "kind": "feature",
+      "quote": "and the legacy spreadsheet-based event log system that nurses currently use for shift handovers."
+    },
+    {
+      "text": "Write ward notes directly to FHIR Observation resource",
+      "kind": "feature",
+      "quote": "and we’ll write ward notes directly to the FHIR Observation resource under the patient’s record."
+    },
+    {
+      "text": "Synchronize note entries via daily batch export from legacy spreadsheet",
+      "kind": "feature",
+      "quote": "The legacy spreadsheet will be replaced by synchronizing note entries via a daily batch export"
+    },
+    {
+      "text": "Use Azure Logic Apps to trigger reprocessing if errors occur",
+      "kind": "feature",
+      "quote": "and Azure Logic Apps to trigger reprocessing if errors occur."
+    },
+    {
+      "text": "Create or update FHIR Observation resources for ward notes with structured payload",
+      "kind": "feature",
+      "quote": "I’ll use the FHIR API to create or update Observation resources for ward notes, with a structured payload"
+    },
+    {
+      "text": "Use OAuth 2.0 with Azure AD for integration",
+      "kind": "constraint",
+      "quote": "The integration will use OAuth 2.0 with Azure AD as the authorization server"
+    },
+    {
+      "text": "Implement automated ingestion pipeline for legacy spreadsheet data",
+      "kind": "feature",
+      "quote": "we’ll implement an automated ingestion pipeline: each night, an Azure Function polls the event log’s CSV file"
+    },
+    {
+      "text": "Upsert notes into FHIR server using 'conditionally create' pattern",
+      "kind": "feature",
+      "quote": "and upserts notes into the FHIR server using the `conditionally create` pattern to avoid duplicates."
+    },
+    {
+      "text": "Implement application using a microservices architecture",
+      "kind": "constraint",
+      "quote": "The team will implement the application using a microservices architecture"
+    },
+    {
+      "text": "Deploy core note ingestion service as stateless Azure App Service instance",
+      "kind": "constraint",
+      "quote": "with the core note ingestion service deployed as a stateless Azure App Service instance"
+    },
+    {
+      "text": "Enforce strict authentication via Azure AD B2C",
+      "kind": "constraint",
+      "quote": "We’ll enforce strict authentication via Azure AD B2C"
+    },
+    {
+      "text": "Encrypt all data in transit using TLS 1.3",
+      "kind": "constraint",
+      "quote": "and all data in transit will be encrypted using TLS 1.3."
+    },
+    {
+      "text": "Log every note creation or update in Azure Monitor",
+      "kind": "feature",
+      "quote": "every note creation or update will trigger a log entry in Azure Monitor"
+    },
+    {
+      "text": "Retain audit logs for 7 years",
+      "kind": "constraint",
+      "quote": "retained for 7 years in compliance with HIPAA."
+    },
+    {
+      "text": "Store ward notes in Azure Cosmos DB using SQL API",
+      "kind": "constraint",
+      "quote": "I’ll store ward notes in Azure Cosmos DB using the SQL API"
+    },
+    {
+      "text": "Use a dedicated database and container named WardNotes in Cosmos DB",
+      "kind": "constraint",
+      "quote": "with a dedicated database and container named `WardNotes`."
+    },
+    {
+      "text": "Configure Cosmos DB container with partition key of patientId",
+      "kind": "constraint",
+      "quote": "The container will be configured with a partition key of `patientId`"
+    },
+    {
+      "text": "Enable automatic indexing on timestamp, authorId, and noteText in Cosmos DB",
+      "kind": "constraint",
+      "quote": "and we’ll enable automatic indexing on `timestamp`, `authorId`, and `noteText`"
+    },
+    {
+      "text": "Deploy Cosmos DB database in dedicated Azure region (East US 2)",
+      "kind": "constraint",
+      "quote": "the database will be deployed in a dedicated Azure region (East US 2)"
+    },
+    {
+      "text": "Encrypt Cosmos DB data at rest using customer-managed keys",
+      "kind": "constraint",
+      "quote": "with encryption at rest using customer-managed keys"
+    },
+    {
+      "text": "Restrict Cosmos DB network access via Azure Private Link",
+      "kind": "constraint",
+      "quote": "and network access restricted via Azure Private Link."
+    }
+  ]
+}

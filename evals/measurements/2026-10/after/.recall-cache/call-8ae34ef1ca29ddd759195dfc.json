@@ -1,0 +1,15 @@
+{
+  "answers": [
+    { "key": "c5", "by": "S-data/ward_note_retention" },
+    { "key": "c6", "by": "S-security/login" },
+    { "key": "c7", "by": "S-security/login" },
+    { "key": "c8", "by": "S-security/login" },
+    { "key": "c10", "by": "S-admin/ward_manager" },
+    { "key": "c11", "by": "S-admin/it_lead" },
+    { "key": "c14", "by": "S-security/no_local_storage" },
+    { "key": "c19", "by": "S-rules/draft_expiry_24h" },
+    { "key": "c21", "by": "S-users/save_feedback" },
+    { "key": "c22", "by": "S-users/save_feedback" },
+    { "key": "c24", "by": "S-open_questions/both-systems-off" }
+  ]
+}

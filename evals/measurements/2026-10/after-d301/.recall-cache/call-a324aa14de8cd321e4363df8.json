@@ -1,0 +1,124 @@
+{
+  "capabilities": [
+    {
+      "text": "Type a note once and have it saved to CareCom and the ward flow sheet",
+      "kind": "feature",
+      "quote": "I’d prefer the nurse to type the note into the new tool once, and have it saved to both CareCom and the ward flow sheet."
+    },
+    {
+      "text": "Print a clean copy of the note for the ward board",
+      "kind": "feature",
+      "quote": "The tool would print a clean, legible copy for the ward board, and send the exact same text to CareCom."
+    },
+    {
+      "text": "Connect to CareCom",
+      "kind": "feature",
+      "quote": "I’m pretty sure it needs to connect to CareCom—the main electronic health record—and the ward flow sheet"
+    },
+    {
+      "text": "Connect to the ward flow sheet",
+      "kind": "feature",
+      "quote": "and the ward flow sheet, which is a printed and manually updated form used by all nurses on the shift."
+    },
+    {
+      "text": "Capture the note on the ward flow sheet and push it to CareCom automatically",
+      "kind": "feature",
+      "quote": "so the new tool should capture the note there and push it to CareCom automatically."
+    },
+    {
+      "text": "Display a list of patients on the ward with names, bed numbers, and last note date/time",
+      "kind": "feature",
+      "quote": "When a nurse opens the tool, they see a list of the patients on their ward, with their names, bed numbers, and the last note date and time."
+    },
+    {
+      "text": "Allow nurse to tap a patient to start writing a note",
+      "kind": "feature",
+      "quote": "They tap the patient they’re writing for—say, Mr. Patel in bed 3A—and then they’re taken to a clean, simple text box with a timestamp already filled in."
+    },
+    {
+      "text": "Provide a clean, simple text box with a timestamp already filled in for note entry",
+      "kind": "feature",
+      "quote": "and then they’re taken to a clean, simple text box with a timestamp already filled in."
+    },
+    {
+      "text": "Include a 'Save and Print' button",
+      "kind": "feature",
+      "quote": "There’s a “Save and Print” button at the bottom, and no other fields or menus—just the space to type"
+    },
+    {
+      "text": "Run on a tablet via a web browser",
+      "kind": "feature",
+      "quote": "So I’d say the tool should run on a tablet via a web browser, like the other systems they use"
+    },
+    {
+      "text": "Work even if the Wi-Fi is a bit slow",
+      "kind": "feature",
+      "quote": "and it should work even if the Wi-Fi is a bit slow."
+    },
+    {
+      "text": "Be reliable and fast",
+      "kind": "constraint",
+      "quote": "I don’t need it to be fancy, just reliable and fast."
+    },
+    {
+      "text": "Note is locked once saved",
+      "kind": "feature",
+      "quote": "so I'll record that the note is locked once saved, and a correction would need a separate process."
+    },
+    {
+      "text": "Version one ready by June 14th",
+      "kind": "constraint",
+      "quote": "I need version one by the end of next month—specifically, by Friday, June 14th"
+    },
+    {
+      "text": "Budget capped at £10,000",
+      "kind": "constraint",
+      "quote": "we can’t spend more than £10,000 on the tool"
+    },
+    {
+      "text": "Prefer off-the-shelf option if it meets needs",
+      "kind": "feature",
+      "quote": "If the off-the-shelf option fits within that and works with CareCom and the printer, I’d go with that."
+    },
+    {
+      "text": "Handle 60 active users simultaneously without slowing down",
+      "kind": "feature",
+      "quote": "The tool should handle 60 active users at the same time without slowing down"
+    },
+    {
+      "text": "Encrypt data in transit",
+      "kind": "feature",
+      "quote": "that means the tool must encrypt the data both in transit and at rest"
+    },
+    {
+      "text": "Encrypt data at rest",
+      "kind": "feature",
+      "quote": "that means the tool must encrypt the data both in transit and at rest"
+    },
+    {
+      "text": "Keep access logs",
+      "kind": "feature",
+      "quote": "keep access logs, and only allow authorised staff to view or edit notes."
+    },
+    {
+      "text": "Allow only authorised staff to view or edit notes",
+      "kind": "feature",
+      "quote": "and only allow authorised staff to view or edit notes."
+    },
+    {
+      "text": "Nurses see only patients on their assigned ward",
+      "kind": "feature",
+      "quote": "She only sees the patients on her assigned ward—no access to other wards’ patients"
+    },
+    {
+      "text": "Allow nurse to tap a patient's name and see a list of all past notes, sorted by date and time",
+      "kind": "feature",
+      "quote": "So the tool must let a nurse tap a patient’s name and see a list of all past notes, sorted by date and time."
+    },
+    {
+      "text": "Print a standard page with patient name, bed, timestamp, and note text",
+      "kind": "feature",
+      "quote": "standard page with patient name, bed, timestamp, and note text."
+    }
+  ]
+}

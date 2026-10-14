@@ -1,0 +1,11 @@
+{
+  "answers": [
+    { "key": "c1", "by": "FR-3" },
+    { "key": "c5", "by": "FR-8" },
+    { "key": "c6", "by": "FR-8" },
+    { "key": "c7", "by": "pass-test" },
+    { "key": "c8", "by": "pass-test" },
+    { "key": "c12", "by": "FR-1" },
+    { "key": "c13", "by": "FR-1" }
+  ]
+}

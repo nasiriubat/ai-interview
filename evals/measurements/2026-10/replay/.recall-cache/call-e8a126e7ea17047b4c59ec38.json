@@ -1,0 +1,124 @@
+{
+  "capabilities": [
+    {
+      "text": "Automatically trigger spreadsheet step when nurse saves ward note",
+      "kind": "feature",
+      "quote": "The spreadsheet step is automatically triggered when the nurse saves the ward note in the system — no extra action needed."
+    },
+    {
+      "text": "Send email alert to ward manager daily at 7:30 a.m. with patient list and note link",
+      "kind": "feature",
+      "quote": "The ward manager gets an email alert every morning at 7:30 a.m. with a list of patients who have new notes since the previous day, including a link to view the note and download the updated spreadsheet."
+    },
+    {
+      "text": "Send reminder to nurse and team leader at 10 a.m. the next day if a note is forgotten",
+      "kind": "feature",
+      "quote": "If a nurse forgets to enter a note, the system sends a reminder to them and their team leader at 10 a.m. the next day."
+    },
+    {
+      "text": "Connect to existing patient management system (InHealth)",
+      "kind": "feature",
+      "quote": "It needs to connect to the existing patient management system — which we call InHealth"
+    },
+    {
+      "text": "Connect to central reporting spreadsheet system (ShareSheet)",
+      "kind": "feature",
+      "quote": "and the central reporting spreadsheet system, which is called ShareSheet."
+    },
+    {
+      "text": "Update ShareSheet with nurse's note by 8 a.m. the next day",
+      "kind": "feature",
+      "quote": "and the same note must appear in ShareSheet by 8 a.m. the next day."
+    },
+    {
+      "text": "Flag connection failures to IT team via email",
+      "kind": "feature",
+      "quote": "If one connection fails, the system should flag it to the IT team via email"
+    },
+    {
+      "text": "Allow nurse to enter note even if connection fails",
+      "kind": "feature",
+      "quote": "but the nurse can still enter the note — we’d rather have the note than lose it because of a connection issue."
+    },
+    {
+      "text": "Care coordinator uses ShareSheet daily to plan tasks",
+      "kind": "feature",
+      "quote": "The care coordinator opens ShareSheet every morning to plan the day’s tasks, like who needs medication changes or physiotherapy."
+    },
+    {
+      "text": "Quality team downloads ShareSheet weekly to check note entry deadlines",
+      "kind": "feature",
+      "quote": "The regional quality team downloads it weekly to check if all notes are being entered within 24 hours"
+    },
+    {
+      "text": "Finance supervisor uses ShareSheet monthly to match nurse hours with patient interactions",
+      "kind": "feature",
+      "quote": "The finance supervisor also uses it once a month to match nurse hours with documented patient interactions."
+    },
+    {
+      "text": "Log missed notes as delays in quality team's weekly report after second offense in a week",
+      "kind": "feature",
+      "quote": "If the note still isn’t entered by 11 a.m., the system logs it as a delay in the quality team’s weekly report — but only if it's the second time in a week for that nurse."
+    },
+    {
+      "text": "Team leader gets alert at 10:15 a.m. for pending notes, including nurse and patient name",
+      "kind": "feature",
+      "quote": "the team leader gets an alert at 10:15 a.m. with the nurse’s name and patient full name."
+    },
+    {
+      "text": "Alert includes direct link to the note entry page",
+      "kind": "feature",
+      "quote": "The alert includes a direct link to the note entry page."
+    },
+    {
+      "text": "Use JavaScript and .NET for development",
+      "kind": "constraint",
+      "quote": "I’ll make sure the build team uses JavaScript and .NET"
+    },
+    {
+      "text": "Use secure internal APIs for system connections",
+      "kind": "constraint",
+      "quote": "and the secure internal APIs they already know."
+    },
+    {
+      "text": "Use the same login system as InHealth",
+      "kind": "feature",
+      "quote": "I’d also want them to use the same login system as InHealth — no extra passwords for nurses."
+    },
+    {
+      "text": "Log sync delays with timestamp and alert IT within 5 minutes",
+      "kind": "feature",
+      "quote": "If there’s any delay in syncing the note to ShareSheet, the system should log it with a timestamp and alert the IT team within 5 minutes"
+    },
+    {
+      "text": "Version one ready by start of next quarterly review cycle (six weeks)",
+      "kind": "constraint",
+      "quote": "I’d say version one needs to be ready by the start of the next quarterly review cycle — that’s in six weeks."
+    },
+    {
+      "text": "Core functionality (note entry, sync by 8 a.m., 10:15 a.m. alert) ready by week five",
+      "kind": "constraint",
+      "quote": "That means the build team has to finish the core functionality — note entry, sync to ShareSheet by 8 a.m., and the 10:15 a.m. alert — by week five."
+    },
+    {
+      "text": "Note must appear in ShareSheet by 8 a.m. reliably",
+      "kind": "feature",
+      "quote": "The most important thing is that the note they type once in InHealth must appear in ShareSheet by 8 a.m. the next day — no exceptions, no delays."
+    },
+    {
+      "text": "Display clear error message on silent failure",
+      "kind": "feature",
+      "quote": "I’d rather the system show a clear error message than silently fail."
+    },
+    {
+      "text": "Provide clear instructions on how to handle failures",
+      "kind": "feature",
+      "quote": "And if it does fail, the nurse must know exactly what to do — like retry or contact IT — not just wonder if it worked."
+    },
+    {
+      "text": "Handle approximately 400 to 640 note entries daily without slowing down",
+      "kind": "feature",
+      "quote": "so we’re looking at roughly 400 to 640 note entries daily. The system must handle that load without slowing down"
+    }
+  ]
+}

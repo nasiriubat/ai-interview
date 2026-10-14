@@ -133,6 +133,48 @@ describeDb("PrismaSessionStore extraction commit", () => {
     expect(await db.fact.count({ where: { sessionId: id } })).toBe(0);
   });
 
+  it("files a requirement the turn recorded meanwhile once, and renumbers a different one on a taken id (D-302)", async () => {
+    const fr = (path: string, title: string) => ({
+      kind: "spec_field" as const,
+      section: "functional",
+      path,
+      value: { title, scope: "mvp", acceptance: ["a"] },
+      source: "user" as const,
+    });
+    // The interviewer filed FR-3 and FR-4 in its turn while the extractor, working from an older
+    // snapshot, found the same FR-3 and a different capability it also numbered FR-4.
+    const id = await newSession({
+      facts: [
+        fr("FR-3", "Department manager can dispute an invoice"),
+        fr("FR-4", "Controller returns an invoice with a note"),
+      ],
+    });
+    const batch = {
+      companyId,
+      fromSeq: 0,
+      toSeq: 24,
+      facts: [
+        fr("FR-3", "Department manager can dispute an invoice"),
+        fr("FR-4", "Director approval above ten thousand"),
+      ],
+      extractorVersion: "extraction@1",
+      event: { count: 2, upToSeq: 24, promptVersion: "extraction@1" },
+    };
+
+    expect(await store.commitExtraction(id, batch)).toBe("committed");
+
+    const row = await db.session.findUniqueOrThrow({ where: { id } });
+    const facts = (row.state as { facts: { path: string; value: { title: string } }[] }).facts;
+    expect(facts.map((f) => f.path)).toEqual(["FR-3", "FR-4", "FR-5"]);
+    expect(facts[2]?.value.title).toBe("Director approval above ten thousand");
+    const rows = await db.fact.findMany({ where: { sessionId: id } });
+    expect(rows).toHaveLength(1);
+    const event = await db.sessionEvent.findFirstOrThrow({
+      where: { sessionId: id, type: "facts_extracted" },
+    });
+    expect(event.payload).toMatchObject({ count: 1, droppedAtCommit: 1 });
+  });
+
   it("a whole-state write from a turn that started earlier cannot move the cursors backwards", async () => {
     const id = await newSession();
     await store.commitExtraction(id, commit(0, 24, ["a"]));

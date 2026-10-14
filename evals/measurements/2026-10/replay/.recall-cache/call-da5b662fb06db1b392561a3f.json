@@ -1,0 +1,129 @@
+{
+  "capabilities": [
+    {
+      "text": "Capture notes with timestamps and nurse identifiers",
+      "kind": "feature",
+      "quote": "details that must be captured with time stamps and nurse identifiers for audit purposes."
+    },
+    {
+      "text": "Ensure data integrity by capturing the note once",
+      "kind": "feature",
+      "quote": "the tool must ensure data integrity by capturing the note once in the system"
+    },
+    {
+      "text": "Sync notes to the spreadsheet via a secure, idempotent API call every 15 minutes",
+      "kind": "feature",
+      "quote": "syncing it to the spreadsheet via a secure, idempotent API call every 15 minutes."
+    },
+    {
+      "text": "Integrate with FHIR-compliant electronic health record (EHR) via HL7 FHIR API v4.0.2",
+      "kind": "feature",
+      "quote": "The system must integrate with the hospital’s FHIR-compliant electronic health record (EHR), specifically the Patient Administration System (PAS) via HL7 FHIR API v4.0.2"
+    },
+    {
+      "text": "Pull patient identifiers and bed assignments in real time from EHR/PAS",
+      "kind": "feature",
+      "quote": "to pull patient identifiers and bed assignments in real time."
+    },
+    {
+      "text": "Connect to Azure AD tenant to authenticate nurses via SSO",
+      "kind": "feature",
+      "quote": "It also needs to connect to the Azure AD tenant to authenticate nurses via SSO"
+    },
+    {
+      "text": "Ensure nurse IDs and timestamps are tied to verified identities",
+      "kind": "feature",
+      "quote": "ensuring that nurse IDs and timestamps are tied to verified identities."
+    },
+    {
+      "text": "Feed spreadsheet via a dedicated Azure Logic App triggered by FHIR resource update",
+      "kind": "feature",
+      "quote": "and the spreadsheet feed is handled via a dedicated Azure Logic App triggered by the FHIR resource update."
+    },
+    {
+      "text": "Use Azure AD OAuth 2.0 for SSO-authenticated access",
+      "kind": "feature",
+      "quote": "Azure AD OAuth 2.0 for SSO-authenticated access"
+    },
+    {
+      "text": "Push encrypted, timestamped notes to the shared spreadsheet via Azure Logic Apps",
+      "kind": "feature",
+      "quote": "push encrypted, timestamped notes to the shared spreadsheet via Azure Logic Apps"
+    },
+    {
+      "text": "Log all data flows with immutable audit trails in Azure Monitor",
+      "kind": "feature",
+      "quote": "All data flows are logged with immutable audit trails in Azure Monitor."
+    },
+    {
+      "text": "Manage OAuth 2.0 client registration in Azure AD with scope User.Read and Fhir.ReadWrite",
+      "kind": "feature",
+      "quote": "The specification will assume the team manages OAuth 2.0 client registration in Azure AD with a scope of `User.Read` and `Fhir.ReadWrite`"
+    },
+    {
+      "text": "Use Azure Key Vault to store and rotate FHIR API client secret",
+      "kind": "feature",
+      "quote": "uses Azure Key Vault to store and rotate the FHIR API client secret"
+    },
+    {
+      "text": "Implement FHIR resource validation using the official HL7 FHIR validator against the R4 profile",
+      "kind": "feature",
+      "quote": "implements FHIR resource validation using the official HL7 FHIR validator against the R4 profile."
+    },
+    {
+      "text": "Deploy using the hospital’s GitOps pipeline using Azure DevOps with approval gates",
+      "kind": "constraint",
+      "quote": "All deployments will follow the hospital’s GitOps pipeline using Azure DevOps with approval gates."
+    },
+    {
+      "text": "Use .NET 6 with C# for the service layer",
+      "kind": "constraint",
+      "quote": "The specification will use .NET 6 with C# for the service layer"
+    },
+    {
+      "text": "Host backend on Azure App Service with managed identity",
+      "kind": "constraint",
+      "quote": "hosted on Azure App Service with managed identity for secure access to Azure Key Vault."
+    },
+    {
+      "text": "Store ward notes in Azure SQL with schema including NoteId, PatientId, NurseId, Timestamp, and Content",
+      "kind": "constraint",
+      "quote": "Azure SQL will store ward notes with a schema that includes `NoteId`, `PatientId`, `NurseId`, `Timestamp`, and `Content`"
+    },
+    {
+      "text": "Validate notes against FHIR Observation resources",
+      "kind": "feature",
+      "quote": "all validated against FHIR Observation resources."
+    },
+    {
+      "text": "Trigger Azure Functions every 15 minutes to query new notes and invoke Logic App",
+      "kind": "feature",
+      "quote": "Azure Functions will trigger every 15 minutes to query new notes and invoke the Logic App"
+    },
+    {
+      "text": "Invoke Logic App via a secure HTTP POST with a bearer token from Key Vault",
+      "kind": "feature",
+      "quote": "via a secure HTTP POST with a bearer token from Key Vault."
+    },
+    {
+      "text": "Document all APIs using Swagger (OpenAPI 3.0)",
+      "kind": "feature",
+      "quote": "All APIs will be documented using Swagger (OpenAPI 3.0)"
+    },
+    {
+      "text": "Provision infrastructure via Terraform modules",
+      "kind": "constraint",
+      "quote": "infrastructure will be provisioned via Terraform modules in the hospital’s shared Azure subscription."
+    },
+    {
+      "text": "Target deployment date of October 15, 2024 for version one",
+      "kind": "constraint",
+      "quote": "I’ve set a target deployment date of six weeks from today—October 15, 2024—for version one to go live"
+    },
+    {
+      "text": "MVP must include nurse authentication via Azure AD",
+      "kind": "feature",
+      "quote": "the MVP must include nurse authentication via Azure AD"
+    }
+  ]
+}

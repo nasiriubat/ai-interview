@@ -1,0 +1,125 @@
+{
+  "capabilities": [
+    {
+      "text": "Real-time synchronization of notes to patient and spreadsheet systems within three seconds",
+      "kind": "feature",
+      "quote": "It needs to go to both systems at the same moment—specifically, within three seconds of the nurse hitting \"save.\""
+    },
+    {
+      "text": "Notes appear in CareFlow exactly as typed, with no formatting changes",
+      "kind": "feature",
+      "quote": "the note must appear in CareFlow exactly as typed, with no formatting changes"
+    },
+    {
+      "text": "Notes saved in WardSync under patient name, shift, and date in a pre-defined cell range (column D, from row 100)",
+      "kind": "feature",
+      "quote": "in WardSync, it must be saved under the patient’s name, shift, and date, in a pre-defined cell range—specifically, column D, starting from row 100 for the current shift."
+    },
+    {
+      "text": "Notes must be kept for seven years",
+      "kind": "constraint",
+      "quote": "Notes must be kept for seven years, in line with the hospital’s medical records retention policy."
+    },
+    {
+      "text": "Notes must be searchable by patient name, date, or nurse",
+      "kind": "feature",
+      "quote": "it must be searchable by patient name, date, or nurse."
+    },
+    {
+      "text": "Nurses must log in with their unique hospital ID and password before typing a note",
+      "kind": "feature",
+      "quote": "each nurse must log in with their unique hospital ID and password before typing a note"
+    },
+    {
+      "text": "System automatically tags notes with author's name, role, and shift upon login",
+      "kind": "feature",
+      "quote": "the system automatically tags the note with their name, role, and shift"
+    },
+    {
+      "text": "System blocks saving without login and shows error message",
+      "kind": "feature",
+      "quote": "If someone tries to save without logging in, the system blocks it and shows a clear error: “Please log in to record a note.”"
+    },
+    {
+      "text": "Version one needed by October 7th",
+      "kind": "constraint",
+      "quote": "We need version one by the start of next month—specifically, October 7th."
+    },
+    {
+      "text": "Admin: Ward manager can add/remove nurses, view daily note log, and see sync failures",
+      "kind": "feature",
+      "quote": "The ward manager can add or remove nurses from the system, view a log of all notes saved each day, and see if any notes failed to sync."
+    },
+    {
+      "text": "Admin: IT lead can view system performance, check sync status, and reset failed connections",
+      "kind": "feature",
+      "quote": "The IT lead can view system performance, check sync status, and reset failed connections"
+    },
+    {
+      "text": "No admin access to edit or delete notes",
+      "kind": "constraint",
+      "quote": "but they can’t edit or delete notes. No one else should have admin access."
+    },
+    {
+      "text": "System must not store any notes locally on the nurse’s device",
+      "kind": "constraint",
+      "quote": "the system must not store any notes locally on the nurse’s device? Not in the app cache, not in the browser, not anywhere."
+    },
+    {
+      "text": "Temporary note copies deleted immediately after sync",
+      "kind": "feature",
+      "quote": "So the app must delete any temporary copy immediately after sync."
+    },
+    {
+      "text": "Data must be encrypted both in transit and at rest",
+      "kind": "constraint",
+      "quote": "That means the data must be encrypted both in transit and at rest"
+    },
+    { "text": "Access to data must be logged", "kind": "constraint", "quote": "access must be logged" },
+    {
+      "text": "No data can leave the UK without approval",
+      "kind": "constraint",
+      "quote": "and no data can leave the UK without approval."
+    },
+    {
+      "text": "Cloud account must be in a UK-based region",
+      "kind": "constraint",
+      "quote": "The cloud account must be in a UK-based region"
+    },
+    {
+      "text": "System must be auditable by the hospital’s data protection officer",
+      "kind": "constraint",
+      "quote": "and the system must be auditable by the hospital’s data protection officer."
+    },
+    {
+      "text": "Keep drafts from previous shift, tagged with \"Previous Shift Draft\" and date",
+      "kind": "feature",
+      "quote": "any unsaved draft from the previous shift is kept on the system—visible when they log in again—so they can finish it. The system tags it with “Previous Shift Draft” and the date."
+    },
+    {
+      "text": "Drafts disappear if not saved within 24 hours",
+      "kind": "constraint",
+      "quote": "But the draft disappears if not saved within 24 hours."
+    },
+    {
+      "text": "Green checkmark with \"Note saved in both systems\" appears instantly upon save, visible for five seconds",
+      "kind": "feature",
+      "quote": "They should see a green checkmark with the words “Note saved in both systems” appear instantly after they press save—no delay, no extra clicks. The message must stay visible for five seconds, then fade out."
+    },
+    {
+      "text": "Red alert shown if save fails, naming the specific failed system (CareFlow or WardSync)",
+      "kind": "feature",
+      "quote": "If it fails, the screen shows a red alert: “Note failed to send to WardSync.” And they can tap it to see the error details."
+    },
+    {
+      "text": "Progress bar \"Syncing note...\" visible after three seconds delay",
+      "kind": "feature",
+      "quote": "If the save takes longer than three seconds, the system must show the nurse a progress bar that says “Syncing note…”"
+    },
+    {
+      "text": "Red alert shown after ten seconds if note not confirmed in both systems",
+      "kind": "feature",
+      "quote": "If it still hasn’t synced after 10 seconds, the system shows a red alert: “Note not sent to CareFlow and WardSync. Please check your connection.”"
+    }
+  ]
+}

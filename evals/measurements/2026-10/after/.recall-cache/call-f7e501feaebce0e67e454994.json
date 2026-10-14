@@ -1,0 +1,10 @@
+{
+  "answers": [
+    { "key": "c6", "by": "S-integrations/epic-ehr" },
+    { "key": "c7", "by": "S-integrations/clinical-messaging" },
+    { "key": "c8", "by": "S-integrations/clinical-messaging" },
+    { "key": "c12", "by": "S-integrations/clinical-messaging" },
+    { "key": "c21", "by": null },
+    { "key": "c23", "by": "S-mvp/scope" }
+  ]
+}

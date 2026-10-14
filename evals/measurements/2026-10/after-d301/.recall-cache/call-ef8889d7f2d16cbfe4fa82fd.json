@@ -1,0 +1,13 @@
+{
+  "answers": [
+    { "key": "c3", "by": "S-integrations/epiccare" },
+    { "key": "c4", "by": "S-integrations/sensus" },
+    { "key": "c5", "by": "S-integrations/epiccare" },
+    { "key": "c9", "by": "S-stories/US-1" },
+    { "key": "c10", "by": "null" },
+    { "key": "c11", "by": "S-users/nurse" },
+    { "key": "c13", "by": "null" },
+    { "key": "c18", "by": "S-nfr/sync_retry" },
+    { "key": "c19", "by": "S-nfr/concurrency" }
+  ]
+}

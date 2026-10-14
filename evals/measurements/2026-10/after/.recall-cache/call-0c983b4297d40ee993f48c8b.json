@@ -1,0 +1,17 @@
+{
+  "answers": [
+    { "key": "c1", "by": "FR-13" },
+    { "key": "c2", "by": "meditech_contract" },
+    { "key": "c11", "by": null },
+    { "key": "c12", "by": null },
+    { "key": "c13", "by": "FR-13" },
+    { "key": "c14", "by": "FR-13" },
+    { "key": "c15", "by": "retry_limit_end_state" },
+    { "key": "c16", "by": "retry_limit_end_state" },
+    { "key": "c17", "by": "retry_limit_end_state" },
+    { "key": "c20", "by": "send_attempts" },
+    { "key": "c22", "by": "ward_nurse_assistant" },
+    { "key": "c23", "by": "ward_nurse_assistant" },
+    { "key": "c24", "by": "US-1" }
+  ]
+}

@@ -1,4 +1,5 @@
 import {
+  addExtractedFacts,
   reconcileBackgroundProgress,
   type ExtractionCommit,
   type NewMessage,
@@ -13,6 +14,7 @@ import {
   SessionStateSchema,
   WidgetResponseSchema,
   WidgetSchema,
+  type Fact,
   type InterviewTemplate,
   type Modality,
   type RecapCache,
@@ -160,22 +162,33 @@ export class PrismaSessionStore implements SessionStore {
    */
   async commitExtraction(sessionId: string, c: ExtractionCommit): Promise<"committed" | "stale"> {
     return tenantTransaction(this.db, async (tx) => {
-      const patched = await tx.$executeRaw`
+      // The row lock first: the cursor compare below and the write after it are one critical
+      // section, and the facts the batch is added to are the ones stored now (D-302).
+      const rows = await tx.$queryRaw<{ facts: unknown; cursor: number }[]>`
+        SELECT COALESCE(state->'facts', '[]'::jsonb) AS facts,
+               COALESCE((state->>'lastExtractedSeq')::int, 0) AS cursor
+        FROM "Session"
+        WHERE id = ${sessionId} AND status <> 'deleted'
+        FOR UPDATE`;
+      const row = rows[0];
+      if (row?.cursor !== c.fromSeq) return "stale";
+      const stored = Array.isArray(row.facts) ? (row.facts as Fact[]) : [];
+      // A spec field already held under the same id is not appended a second time, and a
+      // different capability under a taken id is renumbered, so no id lists two things.
+      const added = addExtractedFacts(stored, c.facts);
+      await tx.$executeRaw`
         UPDATE "Session"
         SET state = jsonb_set(
               jsonb_set(state, '{lastExtractedSeq}', to_jsonb(${c.toSeq}::int)),
               '{facts}',
-              COALESCE(state->'facts', '[]'::jsonb) || ${JSON.stringify(c.facts)}::jsonb)
-        WHERE id = ${sessionId}
-          AND status <> 'deleted'
-          AND COALESCE((state->>'lastExtractedSeq')::int, 0) = ${c.fromSeq}::int`;
-      if (patched === 0) return "stale";
-      if (c.facts.length > 0) {
+              ${JSON.stringify(added.facts)}::jsonb)
+        WHERE id = ${sessionId}`;
+      if (added.accepted.length > 0) {
         // (sessionId, batchEndSeq, ordinal) is unique: a batch that somehow commits twice
         // writes its rows once.
         await tx.fact.createMany({
           skipDuplicates: true,
-          data: c.facts.map((f, ordinal) => ({
+          data: added.accepted.map((f, ordinal) => ({
             companyId: c.companyId,
             sessionId,
             kind: f.kind,
@@ -187,7 +200,11 @@ export class PrismaSessionStore implements SessionStore {
           })),
         });
       }
-      await appendEventIn(tx, sessionId, "facts_extracted", c.event);
+      await appendEventIn(tx, sessionId, "facts_extracted", {
+        ...c.event,
+        count: added.accepted.length,
+        ...(added.dropped > 0 ? { droppedAtCommit: added.dropped } : {}),
+      });
       return "committed";
     });
   }

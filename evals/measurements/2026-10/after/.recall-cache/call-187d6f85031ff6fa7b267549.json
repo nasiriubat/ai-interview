@@ -1,0 +1,17 @@
+{
+  "answers": [
+    { "key": "c1", "by": "FR-1" },
+    { "key": "c2", "by": "FR-3" },
+    { "key": "c3", "by": "FR-4" },
+    { "key": "c6", "by": "FR-6" },
+    { "key": "c7", "by": "FR-6" },
+    { "key": "c8", "by": "FR-6" },
+    { "key": "c10", "by": null },
+    { "key": "c14", "by": "FR-1" },
+    { "key": "c19", "by": null },
+    { "key": "c21", "by": "FR-10" },
+    { "key": "c22", "by": "FR-18" },
+    { "key": "c23", "by": "FR-12" },
+    { "key": "c24", "by": "FR-12" }
+  ]
+}

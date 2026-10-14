@@ -1,0 +1,1415 @@
+{
+  "extractor": "google/gemini-2.5-flash-lite",
+  "matcher": "google/gemini-2.5-flash-lite",
+  "usd": 0.058,
+  "final": [
+    {
+      "persona": "nontechnical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.897,
+        "low": 0.802,
+        "high": 0.949,
+        "k": 61,
+        "n": 68,
+        "bootstrap": {
+          "low": 0.837,
+          "high": 0.925
+        }
+      },
+      "precision": {
+        "rate": 0.6,
+        "low": 0.455,
+        "high": 0.73,
+        "k": 27,
+        "n": 45,
+        "bootstrap": {
+          "low": 0.449,
+          "high": 0.929
+        }
+      },
+      "perInterviewRecall": [0.925, 0.923, 0.8]
+    },
+    {
+      "persona": "technical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.659,
+        "low": 0.505,
+        "high": 0.784,
+        "k": 27,
+        "n": 41,
+        "bootstrap": {
+          "low": 0.559,
+          "high": 0.769
+        }
+      },
+      "precision": {
+        "rate": 0.452,
+        "low": 0.292,
+        "high": 0.622,
+        "k": 14,
+        "n": 31,
+        "bootstrap": {
+          "low": 0.3,
+          "high": 0.7
+        }
+      },
+      "perInterviewRecall": [0.682, 0.769, 0.333]
+    },
+    {
+      "persona": "all",
+      "interviews": 6,
+      "recall": {
+        "rate": 0.807,
+        "low": 0.723,
+        "high": 0.87,
+        "k": 88,
+        "n": 109,
+        "bootstrap": {
+          "low": 0.667,
+          "high": 0.896
+        }
+      },
+      "precision": {
+        "rate": 0.539,
+        "low": 0.428,
+        "high": 0.647,
+        "k": 41,
+        "n": 76,
+        "bootstrap": {
+          "low": 0.387,
+          "high": 0.731
+        }
+      },
+      "perInterviewRecall": [0.925, 0.923, 0.8, 0.682, 0.769, 0.333]
+    }
+  ],
+  "recorded": [
+    {
+      "persona": "nontechnical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.882,
+        "low": 0.785,
+        "high": 0.939,
+        "k": 60,
+        "n": 68,
+        "bootstrap": {
+          "low": 0.837,
+          "high": 0.923
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.076,
+        "k": 0,
+        "n": 47,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.9, 0.923, 0.8]
+    },
+    {
+      "persona": "technical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.659,
+        "low": 0.505,
+        "high": 0.784,
+        "k": 27,
+        "n": 41,
+        "bootstrap": {
+          "low": 0.559,
+          "high": 0.769
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.096,
+        "k": 0,
+        "n": 36,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.682, 0.769, 0.333]
+    },
+    {
+      "persona": "all",
+      "interviews": 6,
+      "recall": {
+        "rate": 0.798,
+        "low": 0.713,
+        "high": 0.863,
+        "k": 87,
+        "n": 109,
+        "bootstrap": {
+          "low": 0.667,
+          "high": 0.881
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.044,
+        "k": 0,
+        "n": 83,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.9, 0.923, 0.8, 0.682, 0.769, 0.333]
+    }
+  ],
+  "anywhere": [
+    {
+      "persona": "nontechnical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.985,
+        "low": 0.921,
+        "high": 0.997,
+        "k": 67,
+        "n": 68,
+        "bootstrap": {
+          "low": 0.923,
+          "high": 1
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.079,
+        "k": 0,
+        "n": 45,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [1, 0.923, 1]
+    },
+    {
+      "persona": "technical",
+      "interviews": 3,
+      "recall": {
+        "rate": 1,
+        "low": 0.914,
+        "high": 1,
+        "k": 41,
+        "n": 41,
+        "bootstrap": {
+          "low": 1,
+          "high": 1
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.11,
+        "k": 0,
+        "n": 31,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [1, 1, 1]
+    },
+    {
+      "persona": "all",
+      "interviews": 6,
+      "recall": {
+        "rate": 0.991,
+        "low": 0.95,
+        "high": 0.998,
+        "k": 108,
+        "n": 109,
+        "bootstrap": {
+          "low": 0.963,
+          "high": 1
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.048,
+        "k": 0,
+        "n": 76,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [1, 0.923, 1, 1, 1, 1]
+    }
+  ],
+  "details": [
+    {
+      "spec": "nontechnical-1",
+      "persona": "nontechnical",
+      "ownerMessages": 40,
+      "extracted": 50,
+      "verified": 40,
+      "constraintsExcluded": 8,
+      "rejected": [
+        {
+          "reason": "quote not in the owner's words",
+          "text": "Keep only the most recent draft if a nurse has two unsaved drafts open for the same patient, ask for confirmation before discarding older one"
+        },
+        {
+          "reason": "duplicate of an earlier capability",
+          "text": "Developer uses SQL databases"
+        }
+      ],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 14,
+      "requirementsRecorded": 14,
+      "coverFinal": {
+        "model": 33,
+        "words": 4,
+        "none": 3
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Enter a single ward note into both the electronic health record (EHR) system and the internal nursing documentation tool (CareTrack)",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter ward note once and have it appear in both systems"
+        },
+        {
+          "key": "c2",
+          "text": "Automatically push note from Medix to CareTrack without confirmation",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Nurse's Medix save reaches CareTrack with overwrite confirmation when CareTrack holds a different version"
+        },
+        {
+          "key": "c3",
+          "text": "Flag existing different note in CareTrack with a clear warning and require nurse confirmation to overwrite",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Nurse's Medix save reaches CareTrack with overwrite confirmation for conflicts"
+        },
+        {
+          "key": "c4",
+          "text": "Prevent accidental overwrites of CareTrack notes",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Nurse's Medix save reaches CareTrack with overwrite confirmation when CareTrack holds a different version"
+        },
+        {
+          "key": "c5",
+          "text": "Enter a note once and have it appear in both Medix and CareTrack",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter ward note once and have it appear in both systems"
+        },
+        {
+          "key": "c6",
+          "text": "Nurse selects patient from a list tied to their assigned ward, auto-filled from Medix",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse selects a patient from ward list"
+        },
+        {
+          "key": "c7",
+          "text": "Ward manager reviews all notes entered that day and checks for discrepancies",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Ward manager sees a 24-hour note dashboard with conflict flags"
+        },
+        {
+          "key": "c8",
+          "text": "Ward manager sees a simple dashboard with a list of patients and a date filter",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Ward manager sees a 24-hour note dashboard with conflict flags"
+        },
+        {
+          "key": "c9",
+          "text": "Ward manager sees timestamps and conflict flags only on the dashboard, with click-through to full record",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Ward manager sees a 24-hour note dashboard with conflict flags"
+        },
+        {
+          "key": "c10",
+          "text": "Generate a daily summary including total notes per ward, number of conflicts, and list of patients involved",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "System generates a daily summary PDF for the ward manager"
+        },
+        {
+          "key": "c11",
+          "text": "Daily summary appears in the ward manager’s dashboard as a PDF they can download or view on screen",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "System generates a daily summary PDF for the ward manager"
+        },
+        {
+          "key": "c12",
+          "text": "Nurse enters a new note, hits save, system sends to Medix and CareTrack",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter ward note once and have it appear in both systems"
+        },
+        {
+          "key": "c13",
+          "text": "System prompts nurse with overwrite confirmation if CareTrack has a different version of the note",
+          "how": "words",
+          "by": "FR-2",
+          "byTitle": "Nurse's Medix save reaches CareTrack with overwrite confirmation when CareTrack holds a different version"
+        },
+        {
+          "key": "c14",
+          "text": "System shows a green checkmark and message 'Note saved and synced to both systems' after successful save",
+          "how": "model",
+          "by": "FR-13",
+          "byTitle": "Nurse's note stays on screen with clear message and is kept locally; system retries syncing"
+        },
+        {
+          "key": "c15",
+          "text": "Nurse can amend their own note within the same shift",
+          "how": "words",
+          "by": "FR-12",
+          "byTitle": "Nurse amends their own note within the same shift and change syncs to both systems"
+        },
+        {
+          "key": "c16",
+          "text": "Amended note is treated as a new version and sent to both Medix and CareTrack",
+          "how": "model",
+          "by": "FR-8",
+          "byTitle": "Nurse amends their own note within the same shift and change syncs to both systems with overwrite confirmation"
+        },
+        {
+          "key": "c17",
+          "text": "Conflict flag clears automatically after the next sync if the nurse corrected and resubmitted the note",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Ward manager sees a 24-hour note dashboard with conflict flags"
+        },
+        {
+          "key": "c18",
+          "text": "Conflict flag stays flagged until the nurse or shift lead takes action or manager marks it as resolved",
+          "how": "model",
+          "by": "FR-9",
+          "byTitle": "Ward manager sees conflict details and can tag for follow-up"
+        },
+        {
+          "key": "c19",
+          "text": "Manager can tag a conflict for follow-up by sending a message to the nurse through the system",
+          "how": "model",
+          "by": "FR-9",
+          "byTitle": "Ward manager sees conflict details and can tag for follow-up"
+        },
+        {
+          "key": "c20",
+          "text": "Nurse enters a note once in the tool, and it successfully appears in both Medix and CareTrack on the first try",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter ward note once and have it appear in both systems"
+        },
+        {
+          "key": "c22",
+          "text": "App accessible from any browser on ward stations, no downloads or installations needed",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c23",
+          "text": "Keep the latest note text locally on the ward station and sync when the connection returns",
+          "how": "model",
+          "by": "FR-13",
+          "byTitle": "Nurse's note stays on screen with clear message and is kept locally; system retries syncing"
+        },
+        {
+          "key": "c24",
+          "text": "If CareTrack is unreachable, note stays on screen with clear message, draft kept until sync succeeds, system retries automatically",
+          "how": "model",
+          "by": "FR-13",
+          "byTitle": "Nurse's note stays on screen with clear message and is kept locally; system retries syncing"
+        },
+        {
+          "key": "c25",
+          "text": "After 15 minutes of failed sync, note stays pending and flagged, system stops retrying automatically",
+          "how": "model",
+          "by": "FR-13",
+          "byTitle": "Nurse's note stays on screen with clear message and is kept locally; system retries syncing"
+        },
+        {
+          "key": "c26",
+          "text": "Same text, same timestamp, both systems, within 30 seconds, and no errors in logs for core loop pass condition",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter ward note once and have it appear in both systems"
+        },
+        {
+          "key": "c27",
+          "text": "Prevent saving a note for a patient who has been discharged or moved to another ward",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "Nurse sees only notes for patients on their own ward"
+        },
+        {
+          "key": "c28",
+          "text": "If patient transferred mid-entry, keep draft, disable save button, display message, and do not link note to wrong ward",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c29",
+          "text": "Returning patient's draft reappears in the list automatically, marked 'Draft: Incomplete Note'",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse selects a patient from ward list"
+        },
+        {
+          "key": "c30",
+          "text": "Ward manager dashboard shows patient list, last-note timestamps, green checkmark for sync success, red flag for conflict/failed sync",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Ward manager sees a 24-hour note dashboard with conflict flags"
+        },
+        {
+          "key": "c31",
+          "text": "Dashboard loads in under 5 seconds, even with 30+ patients",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Ward manager sees a 24-hour note dashboard with conflict flags"
+        },
+        {
+          "key": "c32",
+          "text": "Dashboard shows a rolling 24-hour window of notes",
+          "how": "words",
+          "by": "dashboard-window",
+          "byTitle": "Dashboard shows rolling 24-hour window; daily summary covers previous calendar day"
+        },
+        {
+          "key": "c33",
+          "text": "Daily summary PDF covers calendar day (00:00-23:59) and appears at 8 a.m.",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "System generates a daily summary PDF for the ward manager"
+        },
+        {
+          "key": "c34",
+          "text": "Daily summary PDF includes total notes, number of conflicts, and list of patients involved, marked as open or resolved",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "System generates a daily summary PDF for the ward manager"
+        },
+        {
+          "key": "c42",
+          "text": "System handles up to 25 concurrent users without lag or crashes",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c43",
+          "text": "Only nurses on the same ward can see notes for patients on that ward",
+          "how": "words",
+          "by": "FR-4",
+          "byTitle": "Nurse sees only notes for patients on their own ward"
+        },
+        {
+          "key": "c44",
+          "text": "Ward-level access enforced at the data layer",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "Nurse sees only notes for patients on their own ward"
+        },
+        {
+          "key": "c45",
+          "text": "Note sent as JSON object containing patient ID, timestamp, nurse ID, and note text",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter ward note once and have it appear in both systems"
+        },
+        {
+          "key": "c46",
+          "text": "System logs error, shows clear message to nurse, and retries once on failure during CareTrack sync",
+          "how": "model",
+          "by": "FR-11",
+          "byTitle": "Nurse's note stays on screen with a clear message and is kept locally when CareTrack is unreachable"
+        },
+        {
+          "key": "c47",
+          "text": "Keep a local draft until the sync is confirmed",
+          "how": "model",
+          "by": "FR-13",
+          "byTitle": "Nurse's note stays on screen with clear message and is kept locally; system retries syncing"
+        },
+        {
+          "key": "c48",
+          "text": "Manager marks conflict as resolved in the system",
+          "how": "model",
+          "by": "FR-9",
+          "byTitle": "Ward manager sees conflict details and can tag for follow-up"
+        }
+      ],
+      "coverRecorded": {
+        "model": 20,
+        "evidence": 15,
+        "none": 4,
+        "words": 1
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c22",
+          "text": "App accessible from any browser on ward stations, no downloads or installations needed",
+          "quote": "I’d just want to make sure the app is accessible from any browser on the ward stations, and that it works even if the internet is slow. No need for downloads or installations—just log in and go.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c28",
+          "text": "If patient transferred mid-entry, keep draft, disable save button, display message, and do not link note to wrong ward",
+          "quote": "If a patient is transferred mid-entry—say, while the nurse is typing a note for J. Smith on Ward 3B—the system keeps the draft in the editor window, but disables the save button and displays a message: “This patient has been moved to another ward. You can continue editing, but cannot save until the patient is assigned to this ward again.”",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c42",
+          "text": "System handles up to 25 concurrent users without lag or crashes",
+          "quote": "The system doesn’t need to support 120 at once, but it should handle 25 concurrent users without lag or crashes.",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c22", "c28", "c42"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": ["c14"]
+      },
+      "unsupportedRequirements": ["FR-10"]
+    },
+    {
+      "spec": "nontechnical-2",
+      "persona": "nontechnical",
+      "ownerMessages": 40,
+      "extracted": 25,
+      "verified": 13,
+      "constraintsExcluded": 11,
+      "rejected": [
+        {
+          "reason": "quote not in the owner's words",
+          "text": "Nurse confirms note before sending to CareTrack"
+        }
+      ],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 13,
+      "requirementsRecorded": 15,
+      "coverFinal": {
+        "model": 11,
+        "words": 1,
+        "none": 1
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Copy progress note from Meditech to CareTrack",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Nurse can send a confirmed Meditech progress note to CareTrack"
+        },
+        {
+          "key": "c2",
+          "text": "Connect Meditech and CareTrack systems",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Nurse can send a confirmed Meditech progress note to CareTrack"
+        },
+        {
+          "key": "c11",
+          "text": "Add 'Send to CareTrack' button in Meditech toolbar",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Nurse can send a confirmed Meditech progress note to CareTrack"
+        },
+        {
+          "key": "c12",
+          "text": "Confirm note send with pop-up preview",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Nurse can send a confirmed Meditech progress note to CareTrack"
+        },
+        {
+          "key": "c13",
+          "text": "Note appears in CareTrack with current time stamp",
+          "how": "model",
+          "by": "FR-10",
+          "byTitle": "Nurse sees the synced note in CareTrack under the patient's record"
+        },
+        {
+          "key": "c14",
+          "text": "Flag sent note in red for 30 seconds in CareTrack",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "CareTrack shows the auto-synced note with a timestamp and temporary red flag"
+        },
+        {
+          "key": "c15",
+          "text": "Handle send failures with error message and retry option",
+          "how": "model",
+          "by": "FR-15",
+          "byTitle": "Nurse sees a red error box in Meditech when a note fails to send"
+        },
+        {
+          "key": "c16",
+          "text": "Note remains in Meditech if send fails",
+          "how": "model",
+          "by": "FR-15",
+          "byTitle": "Nurse sees a red error box in Meditech when a note fails to send"
+        },
+        {
+          "key": "c17",
+          "text": "Log send failures and alert IT helpdesk after three consecutive failures",
+          "how": "words",
+          "by": "FR-5",
+          "byTitle": "System alerts IT helpdesk after three consecutive send failures on the same note"
+        },
+        {
+          "key": "c20",
+          "text": "Log every send attempt with user, time, and outcome",
+          "how": "model",
+          "by": "FR-15",
+          "byTitle": "Nurse sees a red error box in Meditech when a note fails to send"
+        },
+        {
+          "key": "c22",
+          "text": "Single user role: 'Ward Nurse/Assistant'",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c23",
+          "text": "Users can only view and send their own notes",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Nurse can send a confirmed Meditech progress note to CareTrack"
+        },
+        {
+          "key": "c24",
+          "text": "Check last progress note in Meditech before writing new one",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse checks the last progress note in Meditech to see the patient's status from the previous shift"
+        }
+      ],
+      "coverRecorded": {
+        "model": 8,
+        "evidence": 3,
+        "words": 1,
+        "none": 1
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c22",
+          "text": "Single user role: 'Ward Nurse/Assistant'",
+          "quote": "Just one role: “Ward Nurse/Assistant.”",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c22"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": ["FR-1", "FR-4", "FR-9", "FR-11", "FR-12", "FR-14", "FR-16"]
+    },
+    {
+      "spec": "nontechnical-3",
+      "persona": "nontechnical",
+      "ownerMessages": 40,
+      "extracted": 25,
+      "verified": 15,
+      "constraintsExcluded": 9,
+      "rejected": [
+        {
+          "reason": "quote too short",
+          "text": "Access to data must be logged"
+        }
+      ],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 18,
+      "requirementsRecorded": 18,
+      "coverFinal": {
+        "model": 11,
+        "words": 1,
+        "none": 3
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Real-time synchronization of notes to patient and spreadsheet systems within three seconds",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "A nurse's ward note saved once appears in both the patient system and the spreadsheet"
+        },
+        {
+          "key": "c2",
+          "text": "Notes appear in CareFlow exactly as typed, with no formatting changes",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "CareFlow stores a ward note exactly as typed"
+        },
+        {
+          "key": "c3",
+          "text": "Notes saved in WardSync under patient name, shift, and date in a pre-defined cell range (column D, from row 100)",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "WardSync places a ward note under the right patient, shift and date"
+        },
+        {
+          "key": "c5",
+          "text": "Notes must be searchable by patient name, date, or nurse",
+          "how": "words",
+          "by": "FR-8",
+          "byTitle": "A nurse's ward note saved once is searchable by patient name, date, or nurse"
+        },
+        {
+          "key": "c6",
+          "text": "Nurses must log in with their unique hospital ID and password before typing a note",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "A nurse must log in before saving a ward note"
+        },
+        {
+          "key": "c7",
+          "text": "System automatically tags notes with author's name, role, and shift upon login",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "A nurse must log in before saving a ward note"
+        },
+        {
+          "key": "c8",
+          "text": "System blocks saving without login and shows error message",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "A nurse must log in before saving a ward note"
+        },
+        {
+          "key": "c10",
+          "text": "Admin: Ward manager can add/remove nurses, view daily note log, and see sync failures",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c11",
+          "text": "Admin: IT lead can view system performance, check sync status, and reset failed connections",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c14",
+          "text": "Temporary note copies deleted immediately after sync",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "A nurse's ward note saved once appears in both the patient system and the spreadsheet"
+        },
+        {
+          "key": "c19",
+          "text": "Keep drafts from previous shift, tagged with \"Previous Shift Draft\" and date",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c21",
+          "text": "Green checkmark with \"Note saved in both systems\" appears instantly upon save, visible for five seconds",
+          "how": "model",
+          "by": "FR-10",
+          "byTitle": "A nurse sees a confirmation or an alert after saving a ward note"
+        },
+        {
+          "key": "c22",
+          "text": "Red alert shown if save fails, naming the specific failed system (CareFlow or WardSync)",
+          "how": "model",
+          "by": "FR-18",
+          "byTitle": "Nurse sees a red alert naming the failed system when a note cannot be saved"
+        },
+        {
+          "key": "c23",
+          "text": "Progress bar \"Syncing note...\" visible after three seconds delay",
+          "how": "model",
+          "by": "FR-12",
+          "byTitle": "A nurse sees progress while a note is syncing and an alert if it is not confirmed"
+        },
+        {
+          "key": "c24",
+          "text": "Red alert shown after ten seconds if note not confirmed in both systems",
+          "how": "model",
+          "by": "FR-12",
+          "byTitle": "A nurse sees progress while a note is syncing and an alert if it is not confirmed"
+        }
+      ],
+      "coverRecorded": {
+        "evidence": 8,
+        "model": 4,
+        "none": 3
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c10",
+          "text": "Admin: Ward manager can add/remove nurses, view daily note log, and see sync failures",
+          "quote": "The ward manager can add or remove nurses from the system, view a log of all notes saved each day, and see if any notes failed to sync.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c11",
+          "text": "Admin: IT lead can view system performance, check sync status, and reset failed connections",
+          "quote": "The IT lead can view system performance, check sync status, and reset failed connections",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c19",
+          "text": "Keep drafts from previous shift, tagged with \"Previous Shift Draft\" and date",
+          "quote": "any unsaved draft from the previous shift is kept on the system—visible when they log in again—so they can finish it. The system tags it with “Previous Shift Draft” and the date.",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c10", "c11", "c19"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": [
+        "FR-2",
+        "FR-5",
+        "FR-7",
+        "FR-9",
+        "FR-11",
+        "FR-14",
+        "FR-15",
+        "FR-16",
+        "FR-17",
+        "FR-19"
+      ]
+    },
+    {
+      "spec": "technical-1",
+      "persona": "technical",
+      "ownerMessages": 40,
+      "extracted": 25,
+      "verified": 22,
+      "constraintsExcluded": 0,
+      "rejected": [
+        {
+          "reason": "duplicate of an earlier capability",
+          "text": "Idempotent writes to the kiosk app using REST POST"
+        },
+        {
+          "reason": "quote too short",
+          "text": "Display success confirmation screen with audit ID"
+        },
+        {
+          "reason": "quote not in the owner's words",
+          "text": "Nurse must confirm or change each pre-filled field before submitting a new note"
+        }
+      ],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 10,
+      "requirementsRecorded": 14,
+      "coverFinal": {
+        "model": 10,
+        "none": 7,
+        "words": 5
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Integrate with Cerner Millennium via HL7 v2.5.1 over TCP",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse can submit an assessment that is sent to Cerner and the kiosk app"
+        },
+        {
+          "key": "c2",
+          "text": "Integrate with the bedside kiosk app via custom REST API over HTTPS",
+          "how": "model",
+          "by": "FR-10",
+          "byTitle": "Nurse records a bedside fall risk assessment and sends it to Cerner and the kiosk app"
+        },
+        {
+          "key": "c3",
+          "text": "Use Azure AD Bearer tokens for authentication",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c4",
+          "text": "Validate Azure AD tokens using OpenID Connect metadata endpoint",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c5",
+          "text": "Validate 'aud' claim for audience in Azure AD tokens",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c6",
+          "text": "Validate 'roles' claim for Nurse role in Azure AD tokens",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c7",
+          "text": "Cache Azure AD certificates locally for 60 minutes",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c8",
+          "text": "Nurse login via Azure AD",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c9",
+          "text": "Form entry for 12 required fields",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c10",
+          "text": "Idempotent writes to Cerner using HL7 ADT^A01",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse can submit an assessment that is sent to Cerner and the kiosk app"
+        },
+        {
+          "key": "c11",
+          "text": "Log all actions with audit trail",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse can submit an assessment that is sent to Cerner and the kiosk app"
+        },
+        {
+          "key": "c12",
+          "text": "Nurse can edit or delete a note within 15 minutes of submission",
+          "how": "words",
+          "by": "FR-4",
+          "byTitle": "Nurse edits or deletes a submitted note within 15 minutes"
+        },
+        {
+          "key": "c13",
+          "text": "Nurse can edit or delete a note only within the current shift",
+          "how": "words",
+          "by": "FR-11",
+          "byTitle": "Nurse edits or deletes a submitted note within 15 minutes, same shift only"
+        },
+        {
+          "key": "c14",
+          "text": "Charge nurse views ward summary at handover",
+          "how": "words",
+          "by": "FR-12",
+          "byTitle": "Charge nurse views the Ward 4B summary of the last 24 hours at handover, read-only"
+        },
+        {
+          "key": "c15",
+          "text": "Ward summary displays assessments from the last 24 hours",
+          "how": "words",
+          "by": "FR-6",
+          "byTitle": "Charge nurse views fall risk assessments on Ward 4B in the last 24 hours"
+        },
+        {
+          "key": "c16",
+          "text": "Ward summary is read-only",
+          "how": "words",
+          "by": "FR-12",
+          "byTitle": "Charge nurse views the Ward 4B summary of the last 24 hours at handover, read-only"
+        },
+        {
+          "key": "c17",
+          "text": "Ward summary includes filter for high-risk patients (score >= 7)",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "Charge nurse views fall risk assessments on Ward 4B in the last 24 hours"
+        },
+        {
+          "key": "c18",
+          "text": "Ward summary includes count of total notes",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Charge nurse views ward summary at handover"
+        },
+        {
+          "key": "c19",
+          "text": "Nurse sees a green confirmation banner with audit ID on success",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse can submit an assessment that is sent to Cerner and the kiosk app"
+        },
+        {
+          "key": "c20",
+          "text": "Nurse sees a red error banner with retry button on partial failure",
+          "how": "model",
+          "by": "FR-10",
+          "byTitle": "Nurse records a bedside fall risk assessment and sends it to Cerner and the kiosk app"
+        },
+        {
+          "key": "c21",
+          "text": "Delete note sends a cancellation signal via HL7 MDM^T02 to Cerner",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "Nurse edits or deletes a submitted note within 15 minutes"
+        },
+        {
+          "key": "c22",
+          "text": "Delete note sends a DELETE request to the kiosk API",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "Nurse edits or deletes a submitted note within 15 minutes"
+        }
+      ],
+      "coverRecorded": {
+        "none": 7,
+        "model": 6,
+        "evidence": 8,
+        "words": 1
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c3",
+          "text": "Use Azure AD Bearer tokens for authentication",
+          "quote": "using Azure AD Bearer tokens",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c4",
+          "text": "Validate Azure AD tokens using OpenID Connect metadata endpoint",
+          "quote": "The tool will validate tokens via Azure AD’s OpenID Connect metadata endpoint",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c5",
+          "text": "Validate 'aud' claim for audience in Azure AD tokens",
+          "quote": "using the `aud` claim to verify the audience is `https://wardnote-sync.it.hospital.local`",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c6",
+          "text": "Validate 'roles' claim for Nurse role in Azure AD tokens",
+          "quote": "and the `roles` claim to check that the user has the `Nurse` role in the `Ward4B` group",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c7",
+          "text": "Cache Azure AD certificates locally for 60 minutes",
+          "quote": "we’ll cache the certificates locally for 60 minutes to reduce latency",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c8",
+          "text": "Nurse login via Azure AD",
+          "quote": "nurse login via Azure AD",
+          "kind": "feature",
+          "stage": "lost after capture"
+        },
+        {
+          "key": "c9",
+          "text": "Form entry for 12 required fields",
+          "quote": "form entry for the 12 required fields",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c3", "c4", "c5", "c6", "c7", "c9"],
+        "lostAfterCapture": ["c8"],
+        "gainedAfterCapture": ["c1"]
+      },
+      "unsupportedRequirements": ["FR-2", "FR-13", "FR-14"]
+    },
+    {
+      "spec": "technical-2",
+      "persona": "technical",
+      "ownerMessages": 40,
+      "extracted": 22,
+      "verified": 13,
+      "constraintsExcluded": 8,
+      "rejected": [
+        {
+          "reason": "duplicate of an earlier capability",
+          "text": "Tag notes with UTC timestamp"
+        }
+      ],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 12,
+      "requirementsRecorded": 13,
+      "coverFinal": {
+        "words": 5,
+        "model": 5,
+        "none": 3
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Enter nurse notes once",
+          "how": "words",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter a ward note once"
+        },
+        {
+          "key": "c2",
+          "text": "Sync notes to Epic EHR",
+          "how": "words",
+          "by": "FR-2",
+          "byTitle": "Note appears in Epic EHR immediately"
+        },
+        {
+          "key": "c3",
+          "text": "Sync notes to SharePoint handover spreadsheet",
+          "how": "words",
+          "by": "FR-3",
+          "byTitle": "Note syncs to SharePoint handover spreadsheet within 15 minutes"
+        },
+        {
+          "key": "c4",
+          "text": "Read-only access for charge nurses and ward managers to notes on their assigned wards",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "Charge nurse or ward manager views a live ward dashboard"
+        },
+        {
+          "key": "c5",
+          "text": "Administrator access to audit logs and system settings",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c6",
+          "text": "Web app accessible via Azure AD single sign-on",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c7",
+          "text": "Role-based access control for ward notes",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter a ward note once"
+        },
+        {
+          "key": "c11",
+          "text": "Tag notes with nurse's Azure AD identity",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter a ward note once"
+        },
+        {
+          "key": "c13",
+          "text": "Real-time dashboard for charge nurses and ward managers",
+          "how": "words",
+          "by": "FR-4",
+          "byTitle": "Charge nurse or ward manager views a live ward dashboard"
+        },
+        {
+          "key": "c14",
+          "text": "Dashboard shows visual indicator for pending/incomplete notes",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "Charge nurse or ward manager views a live ward dashboard"
+        },
+        {
+          "key": "c15",
+          "text": "Drill down into ward to view recent notes",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "Charge nurse or ward manager views a live ward dashboard"
+        },
+        {
+          "key": "c16",
+          "text": "Filter notes by status (entered, synced, failed)",
+          "how": "words",
+          "by": "FR-5",
+          "byTitle": "Charge nurse or ward manager views notes filtered by shift nurse and status"
+        },
+        {
+          "key": "c20",
+          "text": "Log and audit all access to patient data via Azure Monitor",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        }
+      ],
+      "coverRecorded": {
+        "words": 4,
+        "model": 3,
+        "none": 3,
+        "evidence": 3
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c5",
+          "text": "Administrator access to audit logs and system settings",
+          "quote": "Administrators will have full access to audit logs and system settings, but only for troubleshooting and compliance reporting.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c6",
+          "text": "Web app accessible via Azure AD single sign-on",
+          "quote": "They’ll use the system via a web app accessible through the hospital’s Azure AD single sign-on",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c20",
+          "text": "Log and audit all access to patient data via Azure Monitor",
+          "quote": "All access to patient data must be logged and audited via Azure Monitor",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c5", "c6", "c20"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": ["FR-6", "FR-7", "FR-8", "FR-9", "FR-10", "FR-11", "FR-12"]
+    },
+    {
+      "spec": "technical-3",
+      "persona": "technical",
+      "ownerMessages": 40,
+      "extracted": 25,
+      "verified": 6,
+      "constraintsExcluded": 19,
+      "rejected": [],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 9,
+      "requirementsRecorded": 9,
+      "coverFinal": {
+        "none": 4,
+        "model": 2
+      },
+      "assignments": [
+        {
+          "key": "c6",
+          "text": "Integrate with Epic EHR system via FHIR API",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c7",
+          "text": "Integrate with clinical messaging system using HL7 v2.5 over TCP",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c8",
+          "text": "Push notes to the patient’s chart",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter a ward note"
+        },
+        {
+          "key": "c12",
+          "text": "Generate HL7 messages from structured note data in a standardized format",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c21",
+          "text": "Use custom telemetry for note submission events",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Nurse can enter a ward note once and it reaches both systems"
+        },
+        {
+          "key": "c23",
+          "text": "Minimal viable product with core note entry, EHR sync via FHIR, HL7 message generation, and SSO via Azure AD",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        }
+      ],
+      "coverRecorded": {
+        "none": 4,
+        "model": 2
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c6",
+          "text": "Integrate with Epic EHR system via FHIR API",
+          "quote": "The tool must integrate with two systems: our electronic health record (EHR) system, Epic, via its FHIR API",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c7",
+          "text": "Integrate with clinical messaging system using HL7 v2.5 over TCP",
+          "quote": "and our clinical messaging system, which uses HL7 v2.5 over TCP",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c12",
+          "text": "Generate HL7 messages from structured note data in a standardized format",
+          "quote": "while HL7 messages will be generated from structured note data in a standardized format.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c23",
+          "text": "Minimal viable product with core note entry, EHR sync via FHIR, HL7 message generation, and SSO via Azure AD",
+          "quote": "to deliver a minimal viable product with core note entry, EHR sync via FHIR, HL7 message generation, and SSO via Azure AD.",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c6", "c7", "c12", "c23"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": ["FR-2", "FR-4", "FR-5", "FR-6", "FR-7", "FR-8", "FR-9"]
+    }
+  ],
+  "unreadable": []
+}

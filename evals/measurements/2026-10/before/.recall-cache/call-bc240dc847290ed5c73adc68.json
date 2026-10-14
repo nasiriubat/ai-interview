@@ -1,0 +1,19 @@
+{
+  "answers": [
+    { "key": "c1", "by": "FR-3" },
+    { "key": "c3", "by": "S-users/team_leader" },
+    { "key": "c6", "by": "S-integrations/INT-2-InHealth-to-ShareSheet" },
+    { "key": "c7", "by": "S-integrations/INT-2-InHealth-to-ShareSheet" },
+    { "key": "c8", "by": "S-integrations/INT-2-InHealth-to-ShareSheet" },
+    { "key": "c9", "by": "S-users/care_coordinator" },
+    { "key": "c10", "by": "S-users/regional_quality_team" },
+    { "key": "c11", "by": "S-users/finance_supervisor" },
+    { "key": "c12", "by": "S-rules/missed-note-escalation" },
+    { "key": "c13", "by": "S-rules/unsynced-at-8am" },
+    { "key": "c14", "by": "S-data/alerts" },
+    { "key": "c17", "by": "S-security/login" },
+    { "key": "c18", "by": "S-integrations/sync-failure-alerting" },
+    { "key": "c21", "by": "S-integrations/INT-2-InHealth-to-ShareSheet" },
+    { "key": "c24", "by": "S-nfr/load" }
+  ]
+}

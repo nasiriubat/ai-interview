@@ -101,6 +101,28 @@ describe("merging a group of duplicates", () => {
     expect(merged.mergedFrom).toEqual(["FR-4", "FR-12"]);
   });
 
+  it("keeps the title of a merged requirement that names behavior the survivor's words do not (D-301)", () => {
+    const merged = mergeGroup([
+      req("FR-1", "Nurse saves a note once to both systems", { acceptance: ["Note reaches both"] }),
+      req("FR-2", "Nurse opens the patient history from a View History button", { acceptance: [] }),
+      req("FR-3", "Nurse saves a note once to both systems", { acceptance: [] }),
+    ]);
+    expect(merged.id).toBe("FR-1");
+    expect(merged.acceptance).toEqual([
+      "Note reaches both",
+      "Nurse opens the patient history from a View History button",
+    ]);
+    expect(merged.mergedFrom).toEqual(["FR-2", "FR-3"]);
+  });
+
+  it("does not repeat a title the survivor already holds", () => {
+    const merged = mergeGroup([
+      req("FR-1", "Show a green confirmation after saving the note", { acceptance: ["Message appears"] }),
+      req("FR-2", "Green confirmation after saving", { acceptance: [] }),
+    ]);
+    expect(merged.acceptance).toEqual(["Message appears"]);
+  });
+
   it("lets the owner's recorded decision decide scope, and otherwise prefers mvp", () => {
     expect(
       mergeGroup([

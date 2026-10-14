@@ -1,0 +1,1424 @@
+{
+  "persona": "technical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Where will this run? Options are company servers, a cloud account, a managed platform, or nothing decided yet. It matters because it changes the architecture, cost, and compliance defaults we set later. If you're not sure, we can leave it open for now."
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks, that's recorded. Since you're on a cloud account, the next thing to pin down is the problem itself. When a nurse types a note twice, what is the spreadsheet used for, and who reads it? Knowing that tells us what the single entry has to feed."
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "The spreadsheet is used by the ward manager for shift handovers and incident reporting, and it’s typically reviewed by the clinical lead and nursing supervisor during daily huddles. It contains notes on patient behavior, medication administration delays, and staff concerns—details that must be captured with time stamps and nurse identifiers for audit purposes. Since the spreadsheet is not version-controlled and often updated manually, the tool must ensure data integrity by capturing the note once in the system and syncing it to the spreadsheet via a secure, idempotent API call every 15 minutes."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "That's useful: the spreadsheet is the audit trail for handovers and incidents, so timestamps and nurse IDs matter. Next, which existing systems must this work with? Apart from the patient system and the spreadsheet, is anything else involved? This matters because each system we connect to changes the data we store and how much work the build takes. If nothing else is involved, we can default to none."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "The system must integrate with the hospital’s FHIR-compliant electronic health record (EHR), specifically the Patient Administration System (PAS) via HL7 FHIR API v4.0.2, to pull patient identifiers and bed assignments in real time. It also needs to connect to the Azure AD tenant to authenticate nurses via SSO, ensuring that nurse IDs and timestamps are tied to verified identities. No other systems are involved—no lab or pharmacy interfaces, and the spreadsheet feed is handled via a dedicated Azure Logic App triggered by the FHIR resource update."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "Thanks, that answers the question. I've recorded the EHR/PAS connection over FHIR, Azure AD SSO for nurse identity, and the Logic App feed to the spreadsheet."
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "Understood. I’ve confirmed the core integrations: FHIR API v4.0.2 for patient context, Azure AD OAuth 2.0 for SSO-authenticated access, and Azure Logic Apps with a scheduled trigger to push encrypted, timestamped notes to the shared spreadsheet. All data flows are logged with immutable audit trails in Azure Monitor."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "Who will build this? It shapes how I phrase the specification and plan: a coding agent needs more explicit, step-by-step detail than an in-house team. If you're unsure, the default is a coding agent."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": "I’m assigning this to an in-house team of three developers—two full-stack engineers and one DevOps engineer—because the integration requires tight coordination with Azure AD, FHIR data modeling, and secure deployment within the hospital’s compliance framework. They’re familiar with the existing Azure environment and the hospital’s data governance policies, so the specification can assume they’ll handle OAuth 2.0 client registration, FHIR resource validation, and secure key management using Azure Key Vault."
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "Thanks, I have the builder answer: an in-house team of three developers, two full-stack and one DevOps. Since they already know the Azure environment and hospital governance, we can assume OAuth client registration, FHIR validation, and Key Vault key management are theirs to handle."
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": "Confirmed. The specification will assume the team manages OAuth 2.0 client registration in Azure AD with a scope of `User.Read` and `Fhir.ReadWrite`, uses Azure Key Vault to store and rotate the FHIR API client secret, and implements FHIR resource validation using the official HL7 FHIR validator against the R4 profile. All deployments will follow the hospital’s GitOps pipeline using Azure DevOps with approval gates."
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "Before we choose any technology, what does the team know best? A stack the team already knows will beat a slightly better one they'd have to learn, so this decides our technical defaults. If you're not sure, I'll record it as unknown."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "The team has deep experience with .NET 6, C# for backend services, and Azure Functions for event-driven logic. They’re proficient with Azure App Services for hosting, Azure SQL for relational data, and have built multiple FHIR integrations using the Hl7.Fhir.NetApi library. They also use Swagger for API documentation and are comfortable with Terraform for infrastructure-as-code. I’ll default to a .NET 6 backend hosted on Azure App Service, with Azure SQL for the note storage layer and Azure Functions to trigger the Logic App feed."
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "Thanks, the team's skills are clear: .NET 6 and C#, Azure App Service, Azure SQL, Azure Functions, Hl7.Fhir.NetApi, Swagger, and Terraform. I've recorded that as the team's stack."
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "Confirmed. The specification will use .NET 6 with C# for the service layer, hosted on Azure App Service with managed identity for secure access to Azure Key Vault. Azure SQL will store ward notes with a schema that includes `NoteId`, `PatientId`, `NurseId`, `Timestamp`, and `Content`, all validated against FHIR Observation resources. Azure Functions will trigger every 15 minutes to query new notes and invoke the Logic App via a secure HTTP POST with a bearer token from Key Vault. All APIs will be documented using Swagger (OpenAPI 3.0), and infrastructure will be provisioned via Terraform modules in the hospital’s shared Azure subscription."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "When does version one need to be live? A fixed date tells us how much to cut from the first release, so it shapes what we include in the MVP. If there's no fixed date, we'll assume none."
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": "I’ve set a target deployment date of six weeks from today—October 15, 2024—for version one to go live, based on the upcoming quarterly clinical workflow review. That means the MVP must include nurse authentication via Azure AD, secure note entry with timestamp and nurse ID, FHIR-based patient context lookup, and a 15-minute sync to the spreadsheet via Azure Logic App. We’ll exclude audit logs and role-based access control for now, as those can be added in v1.1."
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Got it: the target is six weeks from today, October 15, 2024, tied to the quarterly clinical workflow review. I'll record that as the timeline."
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "Confirmed. The specification is scoped to deliver the MVP by October 15, 2024, with all core functionality—secure nurse login, note creation with FHIR context, Azure SQL persistence, and scheduled Logic App sync—tested and deployed via the existing GitOps pipeline. Rollback and monitoring configurations are included in the Terraform plan to meet compliance requirements."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "Is there a budget range for this build and its ongoing running costs? It decides whether we lean toward building everything in-house or using managed services, which affects the technical choices still ahead. If there's no firm number, we'll record it as not decided."
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": "The budget is capped at $18,000 for development and deployment, with an ongoing monthly run cost limit of $1,200. This means we’ll prioritize managed services where possible—Azure App Service, Azure SQL, and Azure Logic Apps—to minimize operational overhead. We’ll avoid custom infrastructure or long-running containers, and use serverless Azure Functions for the sync logic to keep costs predictable. All resources will be tagged for cost allocation and monitored via Azure Cost Management."
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "Thanks, the budget is noted: $18,000 for build and deployment, and $1,200 a month to run. I'll keep the managed Azure services and serverless sync as the defaults."
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "Understood. The technical design will use Azure App Service (Standard tier), Azure SQL (Basic tier), and Azure Functions (Consumption plan) to stay within budget. All services will be provisioned via Terraform with tagging for cost tracking, and the Logic App will use the free tier for the first 500 runs/month. No custom monitoring agents will be deployed—Azure Monitor and Application Insights will handle observability."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "Thanks, I've noted the technical design: App Service Standard, Azure SQL Basic, Consumption Functions, and Terraform, with monitoring through Azure Monitor and Application Insights.\n\nRoughly how many nurses will use this at launch? Scale decides our hosting and database defaults, so it matters here. If you're unsure, we'll assume under 100."
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "Approximately 85 nurses across three main wards will use the tool at launch, with peak concurrent usage of around 25 during shift change. This means the Azure App Service can stay in Standard tier (S1), and Azure SQL Basic (50 DTUs) will handle the expected load of ~120 notes per day, with room to grow. We’ll implement connection pooling and query optimization in the .NET backend to prevent throttling."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "Thanks, that's clear: about 85 nurses across three wards, with roughly 25 concurrent at shift change and about 120 notes a day."
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "Confirmed. The system is designed for 85 active users with peak concurrency of 25, supporting ~120 notes per day. The .NET backend will use connection pooling with Entity Framework Core, and Azure SQL Basic will be monitored via Azure Monitor for CPU and DTU usage, with auto-scaling to Standard tier if sustained load exceeds 70% for three consecutive days."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "Thanks, the 85-user load and the scaling trigger are noted. Next, does this system fall under any compliance regime? It changes our data handling, hosting, and security requirements. If you're unsure, I'll default to personal data under GDPR, though this is patient health data, so HIPAA or a local health-data law may apply instead."
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Thanks, HIPAA is noted for compliance. That means PHI handling, access controls, audit requirements, and BAAs with vendors all come into scope."
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": "Confirmed. All notes containing patient identifiers or clinical observations will be treated as PHI under HIPAA. The system will enforce encryption at rest using Azure SQL Transparent Data Encryption (TDE) and in transit via TLS 1.2+. Access will be restricted via Azure AD roles with least-privilege permissions, and all write operations will be logged in Azure Monitor with a retention of 180 days. A Business Associate Agreement (BAA) is already in place for Azure App Service, Azure SQL, and Logic Apps, and we’ll use Azure Key Vault to manage FHIR API credentials with strict access policies."
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "Thanks for the compliance details. One gap remains on the EHR/PAS integration: we haven't set how the app authenticates to the hospital's FHIR server. Default: OAuth 2.0 client credentials, with the client secret or certificate held in Azure Key Vault. That means the service gets its own tokens without a user signing in. Do you want to keep that default?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": "Yes, I’ll keep the default: OAuth 2.0 client credentials with a client secret stored in Azure Key Vault. The service will authenticate as a machine-to-machine app using the FHIR server’s OAuth 2.0 authorization endpoint, with a scope of `fhir.*` to read patient context and observation resources. The client secret will be rotated every 90 days via a scheduled Azure Function that updates Key Vault and restarts the App Service. This avoids requiring nurses to authenticate twice and aligns with the hospital’s FHIR server configuration."
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "Thanks, the EHR/PAS authentication is settled: OAuth 2.0 client credentials with the secret in Key Vault. Next, who uses this tool day to day? Which nurse roles will create notes, and which people will read the spreadsheet?"
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": "Only registered ward nurses in the acute care units—specifically staff nurses and charge nurses—will create notes. The spreadsheet is read daily by the ward manager, clinical lead, and nursing supervisor during handover huddles. Access to the note entry interface is restricted via Azure AD groups: only users in the \"Nurses - Acute Care\" group can create notes, and the spreadsheet is shared via Azure AD group permissions to ensure only authorized roles can view the data."
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "Thanks for the detail. Staff nurses and charge nurses will create notes, and the ward manager, clinical lead, and nursing supervisor will read the spreadsheet. Could you walk through a typical shift for a staff nurse: when they open the tool, which patient they pick, and what they type? Let's keep it to one realistic example."
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "During a 12-hour shift, a staff nurse logs in via Azure AD SSO at 07:00, opens the tool from the hospital’s internal portal, and selects a patient from the list pulled via FHIR Patient/Practitioner lookup. The patient is Mr. James Wilson, admitted for pneumonia, bed 4B, with a current observation of SpO2 92%. The nurse types: “Patient restless during night, required reassessment at 02:15. Mild agitation, denied pain but requested quiet. Did not take evening meds; staff later confirmed resident handover.” The timestamp is auto-generated, the nurse ID is linked via SSO, and the note is saved to Azure SQL. At 07:15, the Logic App syncs this to the spreadsheet, where it’s visible to the ward manager for the morning huddle."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "That walkthrough is useful. Before we move on, what does a charge nurse need to do differently from a staff nurse? For example, do they assign patients, review other nurses' notes, or only enter their own?"
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "A charge nurse has the same note entry capability as a staff nurse but can also view all notes from their assigned wards in a consolidated timeline view. They can filter by patient, nurse, or time range, and flag notes for follow-up via a status tag (e.g., “Pending Action”) that appears in the spreadsheet column. However, they do not assign patients or modify other nurses’ notes—only add supplemental comments. Access to this view is granted via an Azure AD group membership check, and all actions are logged with audit trails."
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Thanks, the charge nurse role is clear now: they can enter notes, view all notes on their wards, filter them, and add a follow-up tag and supplemental comments. Before we look at the ward manager, clinical lead, and nursing supervisor, can you confirm whether a charge nurse can also mark a follow-up as resolved, or does only the original author or a reviewer clear the \"Pending Action\" tag?"
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "Understood, so no one can clear the Pending Action tag from the charge nurse role. That leaves a gap: who should be able to clear it? Default: the original note author clears it, and the charge nurse can only escalate it."
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": "Confirmed. Only the original nurse who created the note can clear the \"Pending Action\" tag by updating the note’s status via a dedicated API endpoint. The charge nurse can escalate the action by changing the status to “Escalated” and adding a comment, but they cannot resolve it. This ensures accountability and aligns with the hospital’s incident reporting policy—only the nurse who observed the issue can confirm it’s been addressed."
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Thanks, the rule is clear: only the original author clears Pending Action, and charge nurses can escalate it. Next, what does a ward manager do with the spreadsheet during the morning huddle, and what would they need from the tool that the spreadsheet can't give them today?"
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": "During the morning huddle, the ward manager reviews the spreadsheet to track patterns in patient behavior, medication delays, and staffing gaps across shifts. Today, they manually scan through notes to spot recurring issues—like multiple nurses noting agitation in a patient after 2 a.m. The tool should provide a summary dashboard within the app showing top recurring themes (e.g., “3 notes on agitation post-2am”) and a heat map of note frequency by hour and nurse, so the manager can identify systemic issues without sifting through raw data. This summary will be generated by an Azure Function that analyzes the Azure SQL notes table every 10 minutes and stores aggregated insights in a read-only view."
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "Thanks, the dashboard need is clear. I'll record it as a story for the ward manager. Before I do, one check: should the dashboard be available in version one, or can it wait for a later release? Default: it waits, so version one covers note entry, charge nurse review, and the spreadsheet sync."
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "I’ll confirm the default: the dashboard is deferred to v1.1. Version one will focus exclusively on secure note entry, FHIR integration, Azure AD SSO, and the 15-minute sync to the spreadsheet via Logic App. The summarization and visualization logic will be developed later, after verifying stable data flow and user adoption. This keeps the MVP scope tight and avoids delaying the October 15 launch."
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "Confirmed: the dashboard moves to v1.1. Next, the clinical lead and nursing supervisor are still missing from our user stories. What does the clinical lead need from the spreadsheet during a huddle, and what do they do with it afterward?"
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": "The clinical lead uses the spreadsheet during the daily huddle to identify recurring clinical issues—like repeated falls, medication non-adherence, or patient agitation—across multiple wards. They flag high-risk patterns by marking notes with a “Clinical Review” tag in the spreadsheet, which triggers a notification to the nursing supervisor. After the huddle, they escalate these to the clinical governance team via a secure email template integrated with Azure Logic Apps, including the original note text and timestamp. This ensures timely intervention and audit trail continuity."
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "Thanks, that gives me the clinical lead's review and escalation path. Now we'll turn the requirements into a numbered list, starting with the simplest one: when a nurse saves a note, should the system require a patient to be selected first, or can a note be saved without one? Default: a patient must be selected before saving, because every note needs a patient identifier for handover and audit."
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "Confirmed: a patient must be selected before a note can be saved. I'll record that as a functional requirement.\n\nNext, the note entry itself: when a nurse saves a note and the patient is linked, should the saved note be editable by its author afterward, or locked once saved? Default: editable by the author only until the next Logic App sync runs, then locked, so the spreadsheet and the database never disagree about what was recorded."
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"yes_no\",\"value\":true})"
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "The participant selected \"yes\" to the previous question, which I took to mean that a saved note stays editable by its author until the next Logic App sync, then locks. I'll record that as a requirement and confirm it before we continue.\n\nNext, when an author edits a note, should the earlier wording be kept as a visible history for the charge nurse and the audit trail, or is it simply overwritten?"
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": "The original content must be preserved as a visible history in the audit trail. Every edit triggers a new version in Azure SQL with a `VersionId`, `PreviousContent`, `EditTimestamp`, and `EditorId`, all logged with immutable timestamps. The charge nurse can view the edit history via a dropdown in the UI, and the spreadsheet will only reflect the latest version—no versioning in the sheet itself. This ensures transparency and supports compliance with HIPAA audit requirements."
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "Edit history is clear: the original wording is kept, each edit creates a version, the charge nurse can view it, and the spreadsheet shows only the latest version. I'll record that as a requirement.\n\nNext, is the edit history visible only to charge nurses, or should the original author see their own earlier versions too?"
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "Thanks, so the author and charge nurses can both view edit history. Now the rules area. Easy first one: when a note is escalated by a charge nurse, what should happen to the Pending Action tag: does it stay on, or is it replaced by \"Escalated\"?"
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": "The “Pending Action” tag is replaced with “Escalated” when a charge nurse updates the note status. The original tag is preserved in the audit log along with the timestamp and the user ID of the charge nurse who made the change. The spreadsheet will reflect the new status, and the transition is triggered via a PATCH request to the Azure SQL note record, which also fires an Azure Function to update the Logic App payload. This maintains clear traceability in both the database and the spreadsheet."
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "Thanks, that settles the status change: \"Pending Action\" becomes \"Escalated,\" the original tag stays in the audit log with the charge nurse's ID and timestamp, and the spreadsheet shows the new status.\n\nOne question to pin down the rule: once a note is \"Escalated,\" can the original author still clear it, or does the escalation stay open until someone else acts? Default: the author can still clear it, because the rule is that only the original author resolves a Pending Action."
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": "I’ll confirm the default: the original author can still clear the “Escalated” status by changing it back to “Resolved” and adding a comment, but the system will log the transition and preserve the escalation history. This ensures accountability—any change is traceable—and respects the principle that only the nurse who observed the issue can mark it as resolved, even after escalation. The charge nurse cannot clear it, but they can re-escalate if needed."
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "Thanks, the escalated-note rule is now recorded: the author can clear an escalated note back to Resolved, and the history is kept.\n\nOne open gap in the clearing rule: it doesn't say which failures are permanent, so the system can't tell whether a failed clear attempt should be retried or stopped. Default: invalid requests, such as a clear from someone other than the author, are treated as permanent and rejected without retry, while transient errors like a timeout are retried. Do you want to keep that default?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": "Yes, I’ll keep the default: invalid requests—such as a non-author attempting to clear the note—are rejected with a 403 Forbidden response and treated as permanent, with no retry. Transient errors like HTTP 503 or network timeouts during the API call will be retried up to three times with exponential backoff using Azure Functions’ built-in retry policy. All failures are logged in Application Insights with diagnostic correlation IDs for traceability. This balances resilience with security and audit integrity."
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "Thanks, the permanent-versus-retryable rule for clear attempts is now settled. Invalid requests get a 403 and are not retried, and transient errors are retried up to three times with backoff.\n\nGoing one level deeper on the rules: if a charge nurse tries to clear a note they escalated, is that a 403 as well, and does the system tell them why it was refused?"
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": "Yes, if a charge nurse attempts to clear a note they escalated, the system will return a 403 Forbidden with a clear error message: “Only the original author can resolve this note.” This is enforced at the API level via Azure AD group claims and role checks—specifically, the `nurseId` in the JWT token is compared against the `AuthorId` in the note record. The error is logged with the request ID and user context in Application Insights to support audit and troubleshooting."
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "Clear: a charge nurse who tries to clear a note they escalated gets a 403 with the message \"Only the original author can resolve this note,\" and the attempt is logged.\n\nOne case is still open: a charge nurse escalates a note, and later the original author is off shift and can't clear it. Should the charge nurse be able to re-escalate it, or does the note stay escalated until the author returns?"
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "The charge nurse can re-escalate the note if the original author does not resolve it within 24 hours of escalation. The system will track the escalation timestamp and trigger a reminder via Azure Logic Apps to the charge nurse if no resolution occurs. Re-escalation updates the status to “Re-Escalated” and logs the new timestamp and user ID. This allows operational continuity while preserving the rule that only the author can resolve, ensuring accountability even when the author is unavailable."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "Thanks, that covers the unavailable-author case: after 24 hours the charge nurse can re-escalate, and the status becomes \"Re-Escalated.\"\n\nWe're moving on to acceptance criteria, which tell us how each feature is verified. Let's start with the simplest one: when a nurse saves a note without selecting a patient, what should the system show them?"
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": "The system should display a client-side validation error: “Patient must be selected before saving.” This message appears inline beneath the patient selection dropdown with a red border and icon. The save button is disabled until a valid patient is selected, and the error is not sent to the server—client-side validation prevents submission. The message is localized to English and French, as per hospital UI standards."
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Thanks, the inline message, disabled save button, and client-side check are clear. One detail to confirm: the French localization is a new requirement, and you haven't said whether the hospital requires it at launch. Default: English only for version one, with French deferred to v1.1, because the launch wards are English-speaking and it keeps scope tight.\n\nDo you want to keep that default?"
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "Thanks for confirming English only at launch. Next, the Note entity still has no defined fields or relationships, and the build needs them. Default: content, timestamp, nurse identifier, patient identifier, status, and version history, with each note linked to one patient and one author, and each version linked to its note. That means the database can record who wrote what, when, and how it changed.\n\nShould we keep that default?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": "Yes, I’ll confirm the default: the Note entity will include `NoteId` (UUID), `PatientId` (FHIR Patient ID), `NurseId` (Azure AD Object ID), `Content` (nvarchar(4000)), `Timestamp` (datetime2 with UTC), `Status` (enum: Draft, PendingAction, Escalated, Resolved), and `VersionHistory` (json column storing a list of versions with `VersionId`, `EditTimestamp`, `EditorId`, and `Content`). Each note is linked to one patient and one author via foreign keys, and version history is stored as JSON in Azure SQL for flexibility and auditability. This structure supports all current and planned functionality."
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Thanks, the Note entity is now defined, so that finding is resolved. One gap to close: the Note fields include a JSON version history, but the spreadsheet and the charge nurse's dropdown both need to show the latest version. Default: the spreadsheet and the note view always display the latest version, and the full history stays available only in the version list.\n\nDo you want to keep that default?"
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": "Yes, I’ll keep the default. The spreadsheet and the charge nurse’s UI dropdown will always display the latest version of the note content, with the version history stored in the JSON field but only accessible via an explicit “View History” button. This ensures clarity during huddles while preserving the audit trail. The latest version is derived from the `VersionHistory` array by selecting the most recent `EditTimestamp`."
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "Thanks, the latest-version display and the \"View History\" button are recorded. Now the acceptance check for that feature: if a nurse edits a note at 08:00 and the spreadsheet syncs at 08:15, what should the spreadsheet show, and what should the author see if they open \"View History\" afterward?"
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": "The spreadsheet will show the updated content from the 08:00 edit, as the sync at 08:15 pulls the latest version from Azure SQL. If the author opens “View History” afterward, they will see a list of all versions, including the original draft and the 08:00 edit, each with its timestamp, editor ID, and content. The history will be sorted chronologically, and the most recent version will be highlighted. This ensures the spreadsheet reflects the current state while preserving full auditability in the system."
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "Thanks, that confirms the spreadsheet and history behavior. Now I'd like to close the open thread on French localization. Earlier we set English only for launch with French in v1.1, and that's already recorded, so I need to confirm it's settled for version one. Is English-only at launch final, or does the hospital require French on day one?"
+    },
+    {
+      "seq": 80,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 81,
+      "role": "assistant",
+      "content": "Thanks, English-only at launch is confirmed. Now let's confirm the version one scope. The draft includes secure note entry, patient selection before save, the 15-minute spreadsheet sync, Azure AD sign-in, and the escalation and clearing rules. If version one shipped without the escalation flow, what breaks for the ward team?"
+    },
+    {
+      "seq": 82,
+      "role": "user",
+      "content": "If version one shipped without the escalation flow, the ward team would lose the ability to flag urgent issues during handovers—charge nurses couldn’t escalate a note to the clinical lead, and the original author would be left with no way to mark an action as pending unless they waited for a supervisor to intervene. This would create a gap in incident tracking, reduce visibility into escalating concerns, and weaken the audit trail for follow-up. The escalation path is essential for operational continuity, so it must be in v1.0."
+    },
+    {
+      "seq": 83,
+      "role": "assistant",
+      "content": "Thanks, that's a clear case for keeping escalation in version one. Next I'll confirm the rest of the MVP set. The remaining candidate is the 24-hour re-escalation reminder. If it shipped in v1.1 instead, what would the charge nurse have to do when an author is off shift?"
+    },
+    {
+      "seq": 84,
+      "role": "user",
+      "content": "If the 24-hour re-escalation reminder were deferred to v1.1, the charge nurse would have to manually monitor the note’s status after 24 hours and initiate re-escalation themselves—there would be no automated alert or alerting mechanism. This increases cognitive load, risks missed follow-ups, and introduces a delay in addressing time-sensitive clinical concerns. Given that shift changes occur daily, this gap would undermine the tool’s value for incident management, so the reminder must be in v1.0."
+    },
+    {
+      "seq": 85,
+      "role": "assistant",
+      "content": "Thanks, that settles it: the 24-hour re-escalation reminder goes into version one. Here's where the MVP set now stands: note entry with required patient selection, the 15-minute spreadsheet sync, Azure AD sign-in, the escalation and clear rules, the 24-hour reminder, and English only. Is there anything in that list you'd drop to ship sooner?"
+    },
+    {
+      "seq": 86,
+      "role": "user",
+      "content": "No, I would not drop any items from the current MVP list. All components are essential for the tool to meet its core purpose: eliminating redundant note entry, enabling timely escalation of concerns, and maintaining a compliant audit trail. Removing any—such as the 24-hour reminder—would compromise the workflow for non-urgent but time-sensitive issues. The scope is already tight and aligned with the October 15 launch, so we will deliver all items as defined."
+    },
+    {
+      "seq": 87,
+      "role": "assistant",
+      "content": "Thanks, the MVP list is locked for version one. Now the technical side. Your team already knows .NET 6 and Azure App Service, so the first decision is where the backend service runs. Default: Azure App Service on the Standard tier (S1), which fits the expected load of about 25 concurrent users at shift change and keeps run cost within your $1,200 monthly limit.\n\nDo you want to keep that default?"
+    },
+    {
+      "seq": 88,
+      "role": "user",
+      "content": "Yes, I’ll keep the default: the backend runs on Azure App Service Standard S1 tier. It provides consistent performance for the expected load—85 users, ~120 notes/day, peak concurrency of 25—and integrates seamlessly with Azure AD, Key Vault, and Application Insights. The S1 tier supports auto-scaling to S2 if CPU usage exceeds 70% for 10 minutes, with a cost cap maintained under $1,200/month. This aligns with the team’s experience and the project’s compliance and budget constraints."
+    },
+    {
+      "seq": 89,
+      "role": "assistant",
+      "content": "Thanks, App Service Standard S1 is recorded. Next is the database tier. Default: Azure SQL Basic (50 DTUs), which handles roughly 120 notes a day with room to grow, and Azure Monitor will watch DTU use so you know when to step up.\n\nDo you want to keep that default?"
+    },
+    {
+      "seq": 90,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 91,
+      "role": "assistant",
+      "content": "Thanks, Azure SQL Basic is recorded. Next is monitoring. Default: Azure Monitor and Application Insights for logs, DTU and CPU alerts, and the 180-day write-operation log, with no custom monitoring agents. That means you can see failed syncs and clear requests in one place without adding infrastructure.\n\nDo you want to keep that default?"
+    },
+    {
+      "seq": 92,
+      "role": "user",
+      "content": "Yes, I’ll keep the default. Azure Monitor and Application Insights will collect all logs, metrics, and traces—including failed API calls, sync timeouts, and authentication errors—with a retention of 180 days. The team will set up alerts for 5xx errors, high CPU (>70% for 5 min), and missing sync events (if no new notes in 30 minutes). No custom agents or third-party tools will be used, keeping costs low and compliance aligned with HIPAA."
+    },
+    {
+      "seq": 93,
+      "role": "assistant",
+      "content": "Thanks, monitoring is recorded. The technical picture now covers the backend, database, and monitoring. One remaining piece is the sync itself: the Logic App pulls notes from Azure SQL every 15 minutes. How should the sync avoid duplicate rows in the spreadsheet if a run fails halfway and retries?"
+    },
+    {
+      "seq": 94,
+      "role": "user",
+      "content": "The Logic App will use a deterministic sync ID based on the last processed `Timestamp` and `NoteId` from the previous run, stored in Azure App Configuration. Each sync starts by querying Azure SQL for notes updated since that marker, then writes the results to the spreadsheet using a unique row ID derived from the `NoteId` and `Timestamp`. If a run fails and retries, it will resume from the same marker, avoiding duplicates. The Logic App will also check for existing row IDs in the spreadsheet before writing, ensuring idempotency. All sync attempts are logged in Application Insights with correlation IDs."
+    },
+    {
+      "seq": 95,
+      "role": "assistant",
+      "content": "Thanks, the sync design is clear: a stored marker, a deterministic row ID, and a check for existing rows before writing. Now security. Default: staff access is limited to members of the \"Nurses - Acute Care\" Azure AD group, with charge nurses in a separate group that can view all ward notes. That means a nurse outside those groups can't sign in to the tool at all.\n\nDo you want to keep that default?"
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "Azure App Service Standard S1",
+        "alternatives": ["Azure App Service Standard S2"],
+        "reason": "Covers expected load of about 25 concurrent users and about 120 notes per day within the $1,200 monthly run cost limit, with Azure AD, Key Vault and Application Insights integration.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem",
+      "value": "Nurses double-enter every patient note into the patient system and a shared spreadsheet. The spreadsheet is the audit trail for shift handovers and incident reporting, reviewed daily by the ward manager, clinical lead and nursing supervisor. Goal: capture each note once and sync it to the spreadsheet.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "sync",
+      "value": {
+        "choice": "Sync spreadsheet every 15 minutes via secure, idempotent API call",
+        "alternatives": [],
+        "reason": "Single entry while keeping the spreadsheet current; idempotency prevents duplicate rows on retry.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "Note",
+      "value": {
+        "fields": [
+          "NoteId (UUID)",
+          "PatientId (FHIR Patient ID)",
+          "NurseId (Azure AD Object ID)",
+          "Content (nvarchar(4000))",
+          "Timestamp (datetime2 UTC)",
+          "Status (Draft, PendingAction, Escalated, Resolved)",
+          "VersionHistory (JSON: VersionId, EditTimestamp, EditorId, Content)"
+        ],
+        "relations": ["One patient per note", "One author per note"]
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "ehr-pas",
+      "value": {
+        "direction": "inbound",
+        "data": "patient identifiers and bed assignments",
+        "auth": "not yet specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "azure-ad",
+      "value": {
+        "direction": "inbound",
+        "data": "nurse identity for SSO",
+        "auth": "Azure AD SSO"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "spreadsheet-feed",
+      "value": {
+        "direction": "outbound",
+        "data": "notes with timestamps and nurse identifiers, every 15 minutes",
+        "auth": "secure API via Azure Logic App"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "builder",
+      "value": "In-house team of three developers",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "integration_auth_scopes",
+      "value": {
+        "choice": "Azure AD OAuth 2.0 with scopes User.Read and Fhir.ReadWrite; client secret held in Azure Key Vault and rotated",
+        "alternatives": [],
+        "reason": "Participant specified these to match the hospital's Azure AD and FHIR setup.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "fhir_validation",
+      "value": {
+        "choice": "Official HL7 FHIR validator against the R4 profile",
+        "alternatives": [],
+        "reason": "Participant specified this for resource validation.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "deployment",
+      "value": {
+        "choice": "Hospital GitOps pipeline on Azure DevOps with approval gates",
+        "alternatives": [],
+        "reason": "Participant specified this to follow the hospital's compliance process.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "auth",
+      "value": {
+        "choice": "Azure AD OAuth 2.0",
+        "alternatives": [],
+        "reason": "The in-house team is familiar with Azure AD and the hospital's data governance policies.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "fhir",
+      "value": {
+        "choice": "FHIR API v4.0.2",
+        "alternatives": [],
+        "reason": "The in-house team is familiar with FHIR data modeling and the hospital's compliance framework.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "audit_logging",
+      "value": {
+        "choice": "Azure Monitor",
+        "alternatives": [],
+        "reason": "The in-house team is familiar with Azure Monitor and the hospital's compliance framework.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": ".NET 6 / C# on Azure App Service Standard, Azure SQL Basic, Azure Functions Consumption, Terraform",
+        "alternatives": [],
+        "reason": "Matches team skills and the $1,200 monthly run budget.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "scope_v1",
+      "value": "Nurse authentication via Azure AD, secure note entry with timestamp and nurse ID, FHIR-based patient context lookup, 15-minute sync to spreadsheet via Azure Logic App.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "future",
+      "path": "audit_logs_and_rbac",
+      "value": "Audit logs and role-based access control deferred to v1.1.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "phases",
+      "path": "timeline",
+      "value": "October 15, 2024",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "cost_approach",
+      "value": {
+        "choice": "Managed Azure services (App Service, Azure SQL, Logic Apps) and serverless Azure Functions for sync; no custom infrastructure or long-running containers",
+        "alternatives": ["Custom infrastructure", "Long-running containers"],
+        "reason": "Budget cap of $18,000 build and $1,200 per month run cost favours predictable managed costs",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "monitoring",
+      "value": {
+        "choice": "Azure Monitor and Application Insights",
+        "alternatives": ["Custom monitoring agents", "Third-party monitoring tools"],
+        "reason": "Covers logs, metrics, and traces including failed calls and sync timeouts without added infrastructure cost; 180-day retention matches compliance needs.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "cost_management",
+      "value": "Azure Cost Management",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "scale_at_launch",
+      "value": {
+        "nurses": 85,
+        "peak_concurrent": 25,
+        "notes_per_day": 120
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": "HIPAA. PHI includes patient identifiers and clinical observations. Encryption at rest via TDE, in transit via TLS 1.2+. BAAs in place for App Service, Azure SQL and Logic Apps.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "load",
+      "value": "The system is designed for 85 active users with peak concurrency of 25, supporting ~120 notes per day.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "backend",
+      "value": {
+        "choice": ".NET backend with connection pooling and Entity Framework Core",
+        "reason": "To prevent throttling and optimize query performance.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "database",
+      "value": {
+        "choice": "Azure SQL Basic (50 DTUs)",
+        "alternatives": ["Azure SQL Standard"],
+        "reason": "Handles roughly 120 notes per day with room to grow; DTU use monitored in Azure Monitor",
+        "status": "specified"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "access_control",
+      "value": "Azure AD roles with least-privilege permissions for nurses and the app.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "audit_logging",
+      "value": "All write operations logged in Azure Monitor, retained 180 days.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "ehr-pas-auth",
+      "value": {
+        "choice": "OAuth 2.0 client credentials, secret in Azure Key Vault, rotated every 90 days",
+        "reason": "Lets the service call the FHIR server without nurses signing in twice."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "staff_nurse",
+      "value": {
+        "role": "Staff nurse",
+        "needs": "Log in via Azure AD SSO, select a patient from the FHIR lookup, and record a timestamped shift note linked to their identity."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "charge_nurse",
+      "value": {
+        "role": "Charge nurse",
+        "needs": "Enter notes like a staff nurse; view and filter all notes on assigned wards in a consolidated timeline; flag notes with a Pending Action tag; add supplemental comments without modifying others' notes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_manager",
+      "value": {
+        "role": "Ward manager",
+        "needs": "Spot recurring patient, medication, and staffing issues across shifts without manually scanning notes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "clinical_lead",
+      "value": {
+        "role": "Clinical lead",
+        "needs": "Identify recurring clinical issues across wards during huddles and escalate high-risk patterns to clinical governance."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "nursing_supervisor",
+      "value": {
+        "role": "Nursing supervisor",
+        "needs": "Read the spreadsheet audit trail in daily huddles"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "encryption",
+      "value": "The system will enforce encryption at rest using Azure SQL Transparent Data Encryption (TDE) and in transit via TLS 1.2+.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "credentials",
+      "value": "Azure Key Vault to manage FHIR API credentials with strict access policies.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a staff nurse, I want to record a shift note for a patient so that the handover and incident record is captured once and visible to my ward manager.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-2",
+      "value": "As a charge nurse, I want to view and filter all notes on my wards in one timeline so that I can follow up on pending actions.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "pending_action_clear",
+      "value": "Only the original note author can clear Pending Action via a dedicated API endpoint; charge nurses may set status to Escalated and add a comment but cannot resolve it",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-3",
+      "value": "As a charge nurse, I want to escalate a Pending Action note to 'Escalated' with a comment so that the issue is visible without clearing it",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-4",
+      "value": "As a ward manager, I want a summary dashboard of recurring note themes and a heat map of note frequency by hour and nurse so that I can spot systemic issues without reading raw notes.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "dashboard",
+      "value": {
+        "scope": "future",
+        "reason": "Deferred to v1.1 to keep the MVP focused on note entry, FHIR integration, SSO, and the spreadsheet sync"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "future",
+      "path": "ward_manager_dashboard",
+      "value": "Summary dashboard of recurring themes and a heat map of note frequency by hour and nurse, generated from the notes table every 10 minutes",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "Ward manager huddle dashboard",
+        "scope": "future",
+        "acceptance": [
+          "The dashboard shows top recurring themes",
+          "The dashboard shows a heat map of note frequency by hour and nurse"
+        ],
+        "description": "A summary dashboard showing top recurring themes and a heat map of note frequency by hour and nurse",
+        "reason": "To identify systemic issues without sifting through raw data"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "Automatic dashboard generation",
+        "scope": "future",
+        "acceptance": [
+          "The Azure Function analyzes the Azure SQL notes table every 10 minutes",
+          "The Azure Function stores aggregated insights in a read-only view"
+        ],
+        "description": "An Azure Function that analyzes the Azure SQL notes table every 10 minutes and stores aggregated insights in a read-only view",
+        "reason": "To provide a summary dashboard within the app"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-5",
+      "value": "As a clinical lead, I want to flag high-risk note patterns for Clinical Review so that the nursing supervisor is notified and issues can be escalated to clinical governance.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "Require patient selection before saving a note",
+        "scope": "mvp",
+        "acceptance": [
+          "Save action is disabled or rejected when no patient is selected",
+          "A saved note always carries a valid patient identifier"
+        ],
+        "description": "A note cannot be saved until a patient has been selected from the FHIR patient lookup."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "Editable note window",
+        "scope": "mvp",
+        "acceptance": [
+          "Author can edit a note before the next sync",
+          "Edits after the sync are rejected",
+          "Locked notes remain unchanged in the spreadsheet"
+        ],
+        "description": "A note can be edited by its author until the next 15-minute Logic App sync, after which it is locked."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "Require a patient to be selected before saving a note",
+        "scope": "mvp",
+        "acceptance": ["The system prevents saving a note without a patient selected."],
+        "description": "The system must require a patient to be selected before a note can be saved, because every note needs a patient identifier for handover and audit."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "Allow a saved note to be editable by its author until the next Logic App sync, then lock",
+        "scope": "mvp",
+        "acceptance": [
+          "The system allows a note to be edited by its author until the next Logic App sync, then locks it."
+        ],
+        "description": "A saved note should be editable by its author only until the next Logic App sync runs, then locked, so the spreadsheet and the database never disagree about what was recorded."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "Preserve note edit history",
+        "scope": "mvp",
+        "acceptance": [
+          "Each edit creates a version record with VersionId, PreviousContent, EditTimestamp and EditorId",
+          "Charge nurse can view the edit history of a note via a dropdown in the UI",
+          "Spreadsheet reflects only the latest version"
+        ],
+        "description": "Every edit creates a new version preserving the previous content, editor and timestamp; charge nurse can view history via a dropdown; spreadsheet shows only the latest version.",
+        "reason": "Transparency and HIPAA audit requirements"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-8",
+      "value": {
+        "title": "Edit history visibility",
+        "scope": "mvp",
+        "acceptance": [
+          "The author can open the version history of their own note",
+          "The charge nurse can open the version history of any note on their ward",
+          "Other roles cannot see the version history"
+        ],
+        "description": "The note author and the charge nurse can view the version history of a note."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "escalation_status",
+      "value": "Charge nurse escalation replaces Pending Action with Escalated; the original tag and the charge nurse's ID and timestamp are kept in the audit log; the spreadsheet shows the new status.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "Escalate Pending Action note",
+        "scope": "mvp",
+        "acceptance": [
+          "Charge nurse can set status to Escalated and add a comment",
+          "Pending Action tag is replaced by Escalated",
+          "Original tag, charge nurse ID and timestamp are kept in the audit log"
+        ],
+        "description": "A charge nurse can change a note's status from Pending Action to Escalated and add a comment."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-10",
+      "value": {
+        "title": "Edit history",
+        "scope": "mvp",
+        "acceptance": [
+          "The original content is preserved in the audit trail.",
+          "Every edit creates a new version in Azure SQL with VersionId, PreviousContent, EditTimestamp, and EditorId.",
+          "The charge nurse can view the edit history via a dropdown in the UI.",
+          "The spreadsheet reflects only the latest version."
+        ],
+        "description": "Preserve original content as a visible history in the audit trail. Every edit triggers a new version in Azure SQL with a VersionId, PreviousContent, EditTimestamp, and EditorId, all logged with immutable timestamps. The charge nurse can view the edit history via a dropdown in the UI, and the spreadsheet will only reflect the latest version—no versioning in the sheet itself. This ensures transparency and supports compliance with HIPAA audit requirements."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-11",
+      "value": {
+        "title": "Edit history visibility",
+        "scope": "mvp",
+        "acceptance": [
+          "The author can view their own edit history.",
+          "The charge nurse can view the edit history."
+        ],
+        "description": "The author and charge nurses can both view edit history."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "escalation_clear",
+      "value": "Author may clear an Escalated note back to Resolved with a comment; transition and escalation history are logged. Charge nurse cannot clear, but may re-escalate.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "clear_failure_handling",
+      "value": "Invalid clear requests return 403 Forbidden and are not retried; transient errors (HTTP 503, timeouts) are retried up to three times with exponential backoff via Azure Functions retry policy; all failures logged in Application Insights with correlation IDs.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "clear_forbidden_message",
+      "value": "Charge nurse clear attempt on own escalation returns 403 with message 'Only the original author can resolve this note.' and is logged",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "escalation_clear_retry",
+      "value": "A charge nurse can re-escalate a note if the original author is unavailable to clear it.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "re_escalation",
+      "value": "If the original author does not resolve an escalated note within 24 hours, the charge nurse can re-escalate it. Status becomes Re-Escalated, with the new timestamp and user ID logged. A reminder is sent to the charge nurse via Azure Logic Apps when no resolution occurs.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-12",
+      "value": {
+        "title": "Client-side patient validation on save",
+        "scope": "mvp",
+        "acceptance": [
+          "Save button is disabled until a valid patient is selected",
+          "Inline error 'Patient must be selected before saving.' appears beneath the dropdown with red border and icon",
+          "No request is sent to the server when no patient is selected"
+        ],
+        "description": "Save is blocked client-side when no patient is selected; inline error shown beneath the patient dropdown."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "localization",
+      "value": "Resolved: English only at launch; French deferred to v1.1.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-13",
+      "value": {
+        "title": "Re-escalate a note",
+        "scope": "mvp",
+        "acceptance": [
+          "The system tracks the escalation timestamp and triggers a reminder via Azure Logic Apps to the charge nurse if no resolution occurs within 24 hours."
+        ],
+        "description": "The charge nurse can re-escalate a note if the original author does not resolve it within 24 hours of escalation. The system will track the escalation timestamp and trigger a reminder via Azure Logic Apps to the charge nurse if no resolution occurs. Re-escalation updates the status to “Re-Escalated” and logs the new timestamp and user ID.",
+        "reason": "Allows operational continuity while preserving the rule that only the author can resolve, ensuring accountability even when the author is unavailable."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-14",
+      "value": {
+        "title": "Validate patient selection before saving a note",
+        "scope": "mvp",
+        "acceptance": [
+          "The system displays a client-side validation error message “Patient must be selected before saving” when a nurse attempts to save a note without selecting a patient.",
+          "The error message appears inline beneath the patient selection dropdown with a red border and icon.",
+          "The save button is disabled until a valid patient is selected.",
+          "The error is not sent to the server."
+        ],
+        "description": "The system should display a client-side validation error: “Patient must be selected before saving.” This message appears inline beneath the patient selection dropdown with a red border and icon. The save button is disabled until a valid patient is selected, and the error is not sent to the server—client-side validation prevents submission. The message is localized to English and French, as per hospital UI standards.",
+        "reason": "Ensures that a note is not saved without a valid patient selection, improving data integrity and user experience."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-15",
+      "value": {
+        "title": "Show latest note version",
+        "scope": "mvp",
+        "acceptance": [
+          "The spreadsheet shows the version with the most recent EditTimestamp",
+          "Full version history is visible only via View History"
+        ],
+        "description": "The spreadsheet and the charge nurse dropdown display the latest version of a note; full history is available only through a View History button."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-16",
+      "value": {
+        "title": "Spreadsheet reflects latest version",
+        "scope": "mvp",
+        "acceptance": [
+          "After the 08:00 edit, the spreadsheet shows the updated content following the 08:15 sync"
+        ],
+        "description": "The spreadsheet shows the updated content from the most recent edit, synced from Azure SQL at 08:15."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-17",
+      "value": {
+        "title": "Version history view",
+        "scope": "mvp",
+        "acceptance": [
+          "View History lists all versions with timestamp, editor ID and content",
+          "Versions are sorted chronologically and the latest version is highlighted"
+        ],
+        "description": "The author can open View History to see all versions, including the original draft, each with timestamp, editor ID and content, sorted chronologically with the most recent highlighted."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "localization",
+      "value": "English only at launch; French deferred to v1.1",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "escalation_flow",
+      "value": {
+        "scope": "mvp",
+        "reason": "Without it, charge nurses cannot escalate urgent handover issues and the audit trail for follow-up weakens."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "reescalation_reminder",
+      "value": {
+        "scope": "mvp",
+        "reason": "Without it charge nurses must manually track 24-hour follow-ups, risking missed actions."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting_tier",
+      "value": {
+        "choice": "Azure App Service Standard (S1)",
+        "alternatives": ["Azure App Service Basic"],
+        "reason": "Fits about 25 concurrent users at shift change within the $1,200 monthly run budget.",
+        "status": "recommended"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "sync_idempotency",
+      "value": {
+        "choice": "Stored marker, deterministic row ID from NoteId and Timestamp, existence check before write, correlation IDs in Application Insights",
+        "reason": "Retries must not duplicate spreadsheet rows",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "access_groups",
+      "value": "Pending confirmation: Nurses - Acute Care group for staff; charge nurse group for ward-wide view",
+      "source": "recommended"
+    }
+  ],
+  "summary": "The system will run on a cloud account. The spreadsheet is used for shift handovers, incident reporting, and audits by ward managers, clinical leads, and nursing supervisors. It contains patient behavior notes, medication delays, and staff concerns, requiring timestamps and nurse identifiers. The tool must ensure data integrity by capturing notes once and syncing to the spreadsheet via a secure, idempotent API call every 15 minutes.\n\nThe system must integrate with the hospital’s FHIR-compliant electronic health record (EHR), specifically the Patient Administration System (PAS) via HL7 FHIR API v4.0.2, for real-time patient identifiers and bed assignments. It also needs to connect to the Azure AD tenant for nurse authentication via SSO. Data flows are logged with immutable audit trails in Azure Monitor.\n\nThe build will be handled by an in-house team of three developers—two full-stack engineers and one DevOps engineer. The team will manage OAuth 2.0 client registration in Azure AD with scopes `User.Read` and `Fhir.ReadWrite`, use Azure Key Vault for FHIR API client secret storage and rotation, and implement FHIR resource validation using the official HL7 FHIR validator against the R4 profile. Deployments will follow the hospital’s GitOps pipeline using Azure DevOps with approval gates.\n\nThe team has deep experience with .NET 6, C# for backend services, and Azure Functions for event-driven logic. They’re proficient with Azure App Services for hosting, Azure SQL for relational data, and have built multiple FHIR integrations using the Hl7.Fhir.NetApi library. They also use Swagger for API documentation and are comfortable with Terraform for infrastructure-as-code. The specification will use .NET 6 with C# for the service layer, hosted on Azure App Service with managed identity for secure access to Azure Key Vault. Azure SQL will store ward notes with a schema that includes `NoteId`, `PatientId`, `NurseId`, `Timestamp`, and `Content`, all validated against FHIR Observation resources. Azure Functions will trigger every 15 minutes to query new notes and invoke the Logic App via a secure HTTP POST with a bearer token from Key Vault. All APIs will be documented using Swagger (OpenAPI 3.0), and infrastructure will be provisioned via Terraform modules in the hospital’s shared Azure subscription.\n\nThe target deployment date is six weeks from today—October 15, 2024—for version one to go live, based on the upcoming quarterly clinical workflow review. The MVP must include nurse authentication via Azure AD, secure note entry with timestamp and nurse ID, FHIR-based patient context lookup, and a 15-minute sync to the spreadsheet via Azure Logic App. Audit logs and role-based access control will be excluded for now, as those can be added in v1.1. The specification is scoped to deliver the MVP by October 15, 2024, with all core functionality—secure nurse login, note creation with FHIR context, Azure SQL persistence, and scheduled Logic App sync—tested and deployed via the existing GitOps pipeline. Rollback and monitoring configurations are included in the Terraform plan to meet compliance requirements.\n\nThe budget is capped at $18,000 for development and deployment, with an ongoing monthly run cost limit of $1,200. The technical design will use Azure App Service (Standard tier), Azure SQL (Basic tier), and Azure Functions (Consumption plan) to stay within budget. All services will be provisioned via Terraform with tagging for cost tracking, and the Logic App will use the free tier for the first 500 runs/month. No custom monitoring agents will be deployed—Azure Monitor and Application Insights will handle observability.\n\nApproximately 85 nurses across three main wards will use the tool at launch, with peak concurrent usage of around 25 during shift change. This means the Azure App Service can stay in Standard tier (S1), and Azure SQL Basic (50 DTUs) will handle the expected load of ~120 notes per day, with room to grow. The .NET backend will use connection pooling with Entity Framework Core, and Azure SQL Basic will be monitored via Azure Monitor for CPU and DTU usage, with auto-scaling to Standard tier if sustained load exceeds 70% for three consecutive days.\n\nThe system falls under HIPAA compliance. All notes containing patient identifiers or clinical observations will be treated as PHI under HIPAA. The system will enforce encryption at rest using Azure SQL Transparent Data Encryption (TDE) and in transit via TLS 1.2+. Access will be restricted via Azure AD roles with least-privilege permissions, and all write operations will be logged in Azure Monitor with a retention of 180 days. A Business Associate Agreement (BAA) is already in place for Azure App Service, Azure SQL, and Logic Apps, and Azure Key Vault will manage FHIR API credentials with strict access policies.\n\nThe app authenticates to the hospital's FHIR server using OAuth 2.0 client credentials with a client secret stored in Azure Key Vault. The service will authenticate as a machine-to-machine app using the FHIR server’s OAuth 2.0 authorization endpoint, with a scope of `fhir.*` to read patient context and observation resources. The client secret will be rotated every 90 days via a scheduled Azure Function that updates Key Vault and restarts the App Service.\n\nOnly registered ward nurses in the acute care units—specifically staff nurses and charge nurses—will create notes. The spreadsheet is read daily by the ward manager, clinical lead, and nursing supervisor during handover huddles. Access to the note entry interface is restricted via Azure AD groups: only users in the \"Nurses - Acute Care\" group can create notes, and the spreadsheet is shared via Azure AD group permissions to ensure only authorized roles can view the data.\n\nDuring a 12-hour shift, a staff nurse logs in via Azure AD SSO at 07:00, opens the tool from the hospital’s internal portal, and selects a patient from the list pulled via FHIR Patient/Practitioner lookup. The patient is Mr. James Wilson, admitted for pneumonia, bed 4B, with a current observation of SpO2 92%. The nurse types: “Patient restless during night, required reassessment at 02:15. Mild agitation, denied pain but requested quiet. Did not take evening meds; staff later confirmed resident handover.” The timestamp is auto-generated, the nurse ID is linked via SSO, and the note is saved to Azure SQL. At 07:15, the Logic App syncs this to the spreadsheet, where it’s visible to the ward manager for the morning huddle.\n\nA charge nurse has the same note entry capability as a staff nurse but can also view all notes from their assigned wards in a consolidated timeline view. They can filter by patient, nurse, or time range, and flag notes for follow-up via a status tag (e.g., “Pending Action”) that appears in the spreadsheet column. However, they do not assign patients or modify other nurses’ notes—only add supplemental comments. Access to this view is granted via an Azure AD group membership check, and all actions are logged with audit trails. Only the original nurse who created the note can clear the \"Pending Action\" tag by updating the note’s status via a dedicated API endpoint. The charge nurse can escalate the action by changing the status to “Escalated” and adding a comment, but they cannot resolve it. This ensures accountability and aligns with the hospital’s incident reporting policy—only the nurse who observed the issue can confirm it’s been addressed.\n\nDuring the morning huddle, the ward manager reviews the spreadsheet to track patterns in patient behavior, medication delays, and staffing gaps across shifts. Today, they manually scan through notes to spot recurring issues—like multiple nurses noting agitation in a patient after 2 a.m. The tool should provide a summary dashboard within the app showing top recurring themes (e.g., “3 notes on agitation post-2am”) and a heat map of note frequency by hour and nurse, so the manager can identify systemic issues without sifting through raw data. This summary will be generated by an Azure Function that analyzes the Azure SQL notes table every 10 minutes and stores aggregated insights in a read-only view. The dashboard is deferred to v1.1. Version one will focus exclusively on secure note entry, FHIR integration, Azure AD SSO, and the 15-minute sync to the spreadsheet via Logic App. The summarization and visualization logic will be developed later, after verifying stable data flow and user adoption. This keeps the MVP scope tight and avoids delaying the October 15 launch.\n\nThe clinical lead uses the spreadsheet during the daily huddle to identify recurring clinical issues—like repeated falls, medication non-adherence, or patient agitation—across multiple wards. They flag high-risk patterns by marking notes with a “Clinical Review” tag in the spreadsheet, which triggers a notification to the nursing supervisor. After the huddle, they escalate these to the clinical governance team via a secure email template integrated with Azure Logic Apps, including the original note text and timestamp. This ensures timely intervention and audit trail continuity.\n\nThe original author can still clear the “Escalated” status by changing it back to “Resolved” and adding a comment, but the system will log the transition and preserve the escalation history. This ensures accountability—any change is traceable—and respects the principle that only the nurse who observed the issue can mark it as resolved, even after escalation. The charge nurse cannot clear it, but they can re-escalate if needed. Invalid requests—such as a non-author attempting to clear the note—are rejected with a 403 Forbidden response and treated as permanent,",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "Ward manager huddle dashboard",
+      "scope": "future",
+      "acceptance": [
+        "The dashboard shows top recurring themes",
+        "The dashboard shows a heat map of note frequency by hour and nurse"
+      ],
+      "reason": "To identify systemic issues without sifting through raw data"
+    },
+    {
+      "id": "FR-2",
+      "title": "Automatic dashboard generation",
+      "scope": "future",
+      "acceptance": [
+        "The Azure Function analyzes the Azure SQL notes table every 10 minutes",
+        "The Azure Function stores aggregated insights in a read-only view"
+      ],
+      "reason": "To provide a summary dashboard within the app"
+    },
+    {
+      "id": "FR-4",
+      "title": "Editable note window",
+      "scope": "mvp",
+      "acceptance": [
+        "Author can edit a note before the next sync",
+        "Edits after the sync are rejected",
+        "Locked notes remain unchanged in the spreadsheet",
+        "The system allows a note to be edited by its author until the next Logic App sync, then locks it."
+      ],
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-6"]
+    },
+    {
+      "id": "FR-8",
+      "title": "Edit history visibility",
+      "scope": "mvp",
+      "acceptance": [
+        "The author can open the version history of their own note",
+        "The charge nurse can open the version history of any note on their ward",
+        "Other roles cannot see the version history",
+        "The author can view their own edit history.",
+        "The charge nurse can view the edit history.",
+        "The original content is preserved in the audit trail.",
+        "Every edit creates a new version in Azure SQL with VersionId, PreviousContent, EditTimestamp, and EditorId.",
+        "The charge nurse can view the edit history via a dropdown in the UI.",
+        "The spreadsheet reflects only the latest version.",
+        "Each edit creates a version record with VersionId, PreviousContent, EditTimestamp and EditorId",
+        "Charge nurse can view the edit history of a note via a dropdown in the UI",
+        "Spreadsheet reflects only the latest version",
+        "View History lists all versions with timestamp, editor ID and content",
+        "Versions are sorted chronologically and the latest version is highlighted"
+      ],
+      "reason": "Transparency and HIPAA audit requirements",
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-7", "FR-10", "FR-11", "FR-17"]
+    },
+    {
+      "id": "FR-9",
+      "title": "Escalate Pending Action note",
+      "scope": "mvp",
+      "acceptance": [
+        "Charge nurse can set status to Escalated and add a comment",
+        "Pending Action tag is replaced by Escalated",
+        "Original tag, charge nurse ID and timestamp are kept in the audit log"
+      ]
+    },
+    {
+      "id": "FR-13",
+      "title": "Re-escalate a note",
+      "scope": "mvp",
+      "acceptance": [
+        "The system tracks the escalation timestamp and triggers a reminder via Azure Logic Apps to the charge nurse if no resolution occurs within 24 hours."
+      ],
+      "reason": "Allows operational continuity while preserving the rule that only the author can resolve, ensuring accountability even when the author is unavailable."
+    },
+    {
+      "id": "FR-14",
+      "title": "Validate patient selection before saving a note",
+      "scope": "mvp",
+      "acceptance": [
+        "The system displays a client-side validation error message “Patient must be selected before saving” when a nurse attempts to save a note without selecting a patient.",
+        "The error message appears inline beneath the patient selection dropdown with a red border and icon.",
+        "The save button is disabled until a valid patient is selected.",
+        "The error is not sent to the server.",
+        "Save button is disabled until a valid patient is selected",
+        "Inline error 'Patient must be selected before saving.' appears beneath the dropdown with red border and icon",
+        "No request is sent to the server when no patient is selected",
+        "Save action is disabled or rejected when no patient is selected",
+        "A saved note always carries a valid patient identifier",
+        "The system prevents saving a note without a patient selected."
+      ],
+      "reason": "Ensures that a note is not saved without a valid patient selection, improving data integrity and user experience.",
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-3", "FR-5", "FR-12"]
+    },
+    {
+      "id": "FR-15",
+      "title": "Show latest note version",
+      "scope": "mvp",
+      "acceptance": [
+        "The spreadsheet shows the version with the most recent EditTimestamp",
+        "Full version history is visible only via View History"
+      ]
+    },
+    {
+      "id": "FR-16",
+      "title": "Spreadsheet reflects latest version",
+      "scope": "mvp",
+      "acceptance": [
+        "After the 08:00 edit, the spreadsheet shows the updated content following the 08:15 sync"
+      ]
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: technical · Generated: 2026-10-14T12:21:48.604Z\n\n## Product overview and problem\n\n### Product overview and problem\n\nThis product aims to eliminate double data entry by nurses on the ward. Currently, nurses enter patient notes both into the hospital patient system and separately into a spreadsheet used for shift handovers and incident reporting. The spreadsheet is reviewed daily by ward management staff, clinical leads, and nursing supervisors. The goal is to capture each note once and synchronize it automatically to the spreadsheet to maintain an accurate audit trail and improve efficiency.\n\n## Target users and roles\n\n### Target users and roles\n\n- **Staff nurse**: Logs in via Azure AD SSO, selects patients through FHIR lookup, and records timestamped shift notes linked to their identity.\n- **Charge nurse**: Performs all staff nurse functions; additionally views and filters notes for assigned wards, flags notes with Pending Action, and adds comments without modifying original notes.\n- **Ward manager**: Reviews note summaries to spot recurring patient, medication, and staffing issues.\n- **Clinical lead**: Identifies recurring clinical issues across wards and escalates high-risk patterns to clinical governance.\n- **Nursing supervisor**: Reads spreadsheet audit trails during daily handover meetings.\n\n## User stories\n\n### User stories\n\n- **US-1**: Staff nurse records shift note for a patient once for handover and incident records.\n- **US-2**: Charge nurse views and filters notes in a consolidated timeline.\n- **US-3**: Charge nurse escalates Pending Action notes with comments without clearing them.\n- **US-4**: Ward manager views a summary dashboard for recurring issues and note frequency heat map.\n- **US-5**: Clinical lead flags high-risk note patterns for review and escalation.\n\n## Functional requirements\n\n### Functional requirements\n\nThis section details all recorded functional requirements for the system, including MVP requirements and future enhancements. Each describes a discrete capability with acceptance criteria enabling verifiable testing.\n\n### MVP\n\n- **FR-4** Editable note window\n  - Acceptance: Author can edit a note before the next sync\n  - Acceptance: Edits after the sync are rejected\n  - Acceptance: Locked notes remain unchanged in the spreadsheet\n  - Acceptance: The system allows a note to be edited by its author until the next Logic App sync, then locks it.\n- **FR-8** Edit history visibility\n  - Acceptance: The author can open the version history of their own note\n  - Acceptance: The charge nurse can open the version history of any note on their ward\n  - Acceptance: Other roles cannot see the version history\n  - Acceptance: The author can view their own edit history.\n  - Acceptance: The charge nurse can view the edit history.\n  - Acceptance: The original content is preserved in the audit trail.\n  - Acceptance: Every edit creates a new version in Azure SQL with VersionId, PreviousContent, EditTimestamp, and EditorId.\n  - Acceptance: The charge nurse can view the edit history via a dropdown in the UI.\n  - Acceptance: The spreadsheet reflects only the latest version.\n  - Acceptance: Each edit creates a version record with VersionId, PreviousContent, EditTimestamp and EditorId\n  - Acceptance: Charge nurse can view the edit history of a note via a dropdown in the UI\n  - Acceptance: Spreadsheet reflects only the latest version\n  - Acceptance: View History lists all versions with timestamp, editor ID and content\n  - Acceptance: Versions are sorted chronologically and the latest version is highlighted\n  - Reason: Transparency and HIPAA audit requirements\n- **FR-9** Escalate Pending Action note\n  - Acceptance: Charge nurse can set status to Escalated and add a comment\n  - Acceptance: Pending Action tag is replaced by Escalated\n  - Acceptance: Original tag, charge nurse ID and timestamp are kept in the audit log\n- **FR-13** Re-escalate a note\n  - Acceptance: The system tracks the escalation timestamp and triggers a reminder via Azure Logic Apps to the charge nurse if no resolution occurs within 24 hours.\n  - Reason: Allows operational continuity while preserving the rule that only the author can resolve, ensuring accountability even when the author is unavailable.\n- **FR-14** Validate patient selection before saving a note\n  - Acceptance: The system displays a client-side validation error message “Patient must be selected before saving” when a nurse attempts to save a note without selecting a patient.\n  - Acceptance: The error message appears inline beneath the patient selection dropdown with a red border and icon.\n  - Acceptance: The save button is disabled until a valid patient is selected.\n  - Acceptance: The error is not sent to the server.\n  - Acceptance: Save button is disabled until a valid patient is selected\n  - Acceptance: Inline error 'Patient must be selected before saving.' appears beneath the dropdown with red border and icon\n  - Acceptance: No request is sent to the server when no patient is selected\n  - Acceptance: Save action is disabled or rejected when no patient is selected\n  - Acceptance: A saved note always carries a valid patient identifier\n  - Acceptance: The system prevents saving a note without a patient selected.\n  - Reason: Ensures that a note is not saved without a valid patient selection, improving data integrity and user experience.\n- **FR-15** Show latest note version\n  - Acceptance: The spreadsheet shows the version with the most recent EditTimestamp\n  - Acceptance: Full version history is visible only via View History\n- **FR-16** Spreadsheet reflects latest version\n  - Acceptance: After the 08:00 edit, the spreadsheet shows the updated content following the 08:15 sync\n\n### Future\n\n- **FR-1** Ward manager huddle dashboard\n  - Acceptance: The dashboard shows top recurring themes\n  - Acceptance: The dashboard shows a heat map of note frequency by hour and nurse\n  - Reason: To identify systemic issues without sifting through raw data\n- **FR-2** Automatic dashboard generation\n  - Acceptance: The Azure Function analyzes the Azure SQL notes table every 10 minutes\n  - Acceptance: The Azure Function stores aggregated insights in a read-only view\n  - Reason: To provide a summary dashboard within the app\n\n## Business rules\n\n### Business rules\n\n- Only the original note author may clear Pending Action status via a dedicated API.\n- Charge nurses can escalate notes to Escalated status with a comment but cannot clear them.\n- Authors may clear Escalated notes to Resolved with a comment; this transition and prior escalations are logged.\n- Invalid clear attempts are rejected with a 403 Forbidden and logged; transient errors are retried.\n- If authors do not clear escalated notes within 24 hours, charge nurses may re-escalate with logged timestamps.\n- Escalation replaces Pending Action tags and records charge nurse ID and timestamp in audit logs.\n\n## Technical requirements\n\n### Technical requirements\n\nThe application will run on Azure using managed services. Key choices:\n\n- Hosting on Azure App Service Standard S1 tier to support ~25 concurrent users within budget.\n- Sync spreadsheet every 15 minutes using a secure, idempotent API call to avoid duplicate rows.\n- Authentication and authorization using Azure AD OAuth 2.0 with User.Read and Fhir.ReadWrite scopes; secrets stored and rotated via Azure Key Vault.\n- Integration with hospital FHIR API v4.0.2 for patient data, validated against HL7 FHIR R4 profile.\n- Backend developed in .NET 6 / C# with Entity Framework Core and connection pooling.\n- Use Azure SQL Basic tier (50 DTUs) to handle roughly 120 notes per day, monitored via Azure Monitor.\n- Audit logging via Azure Monitor with 180-day retention.\n- Deployment through hospital GitOps pipeline with Azure DevOps and approval gates.\n- Cost controlled via managed Azure services and serverless Azure Functions to meet budget cap.\n- Monitoring by Azure Monitor and Application Insights with logs and metrics.\n\n## Data requirements\n\n### Data requirements\n\nThe central entity is Note, with fields:\n\n| Field          | Type         | Description                            |\n|----------------|--------------|------------------------------------|\n| NoteId         | UUID         | Unique identifier for each note      |\n| PatientId      | FHIR Patient ID | Links note to patient               |\n| NurseId        | Azure AD Object ID | Identifies the note's author       |\n| Content        | nvarchar(4000) | Text content of the note             |\n| Timestamp      | datetime2 UTC | UTC timestamp of note creation/edit |\n| Status         | Enum (Draft, PendingAction, Escalated, Resolved) | Current note state |\n| VersionHistory | JSON         | History of edits including VersionId, EditTimestamp, EditorId, Content |\n\nRelations:\n- One patient per note.\n- One author (nurse) per note.\n\n## Integrations\n\n### Integrations\n\n- **EHR/PAS**: Inbound integration providing patient identifiers and bed assignments via FHIR API.\n- **Azure AD**: Inbound integration for nurse identity and SSO authentication using Azure AD OAuth 2.0.\n- **Spreadsheet feed**: Outbound integration syncing notes every 15 minutes through a secure API called by an Azure Logic App.\n- **EHR/PAS Authentication**: Service-to-service OAuth 2.0 client credentials flow with secrets stored in Azure Key Vault and rotated every 90 days.\n\n## Security and privacy\n\n### Security and privacy\n\n- Compliance with HIPAA; all patient identifiers and clinical observations treated as PHI.\n- Encryption at rest using Azure SQL Transparent Data Encryption and in transit via TLS 1.2+.\n- Access controlled by Azure AD roles with least privilege for nurses and app components.\n- Audit logging of all writes in Azure Monitor with 180-day retention.\n- Credentials managed in Azure Key Vault with strict access controls.\n- Pending confirmation of Nurse - Acute Care and Charge Nurse groups for access segregation.\n\n## Non-functional requirements\n\n### Non-functional requirements\n\n- Support 85 active nurses and peak concurrency of 25 users.\n- Handle approximately 120 note entries daily.\n- Responsive system capable of quick data entry and retrieval during peak shift times.\n- Designed for high availability and security consistent with hospital standards.\n\n## Administrative surface\n\n## MVP scope\n\n### MVP scope\n\nThe MVP focuses on core note capture and synchronization with these capabilities:\n\n- Nurse authentication via Azure AD.\n- Secure note entry linked to patient's FHIR record.\n- 15-minute incremental sync of latest notes to the shared spreadsheet via Azure Logic App.\n- Edit locking after synchronization.\n- View of note edit history for authors and charge nurses.\n- Charge nurse escalation and re-escalation workflow with reminders.\n- Patient selection validated client-side prior to note save.\n\nDashboard features, full localization beyond English, and RBAC audit logs are deferred.\n\nIn version one:\n- FR-4\n- FR-8\n- FR-9\n- FR-13\n- FR-14\n- FR-15\n- FR-16\n\nMoved to future scope:\n- FR-1: Dashboard deferred to version 1.1 to focus MVP on note entry, SSO, and sync.\n- FR-2: Automatic dashboard generation deferred to version 1.1.\n\n## Future scope\n\n### Future scope\n\n- Ward manager dashboard summarizing recurring themes and displaying heat maps.\n- Automated insight generation using Azure Functions analyzing notes every 10 minutes.\n- Enhanced role-based access control and detailed audit logging.\n- Full French localization.\n\n## Implementation phases\n\n### Implementation phases\n\nThe project has a clear timeline with phases focused on delivering a secure, functional MVP by October 15, 2024. Each phase has defined goals and tasks with acceptance criteria.\n\n### Phase 1: MVP Core Development\n\nGoals:\n- Implement nurse authentication via Azure AD\n- Develop secure note entry with FHIR-based patient lookup\n- Implement note storage and versioning in Azure SQL\n- Develop 15-minute sync with spreadsheet via Azure Logic App\n- Implement client-side patient selection validation\n- Enable note edit locking post sync\n- Allow charge nurse escalation and re-escalation workflows with reminders\n\nTasks:\n- Implement Azure AD authentication and FHIR patient lookup\n  - Acceptance: Nurses can authenticate via Azure AD SSO\n  - Acceptance: Patient selection uses live FHIR lookup\n- Develop note creation, editing, and versioning\n  - Acceptance: A nurse can create and edit notes before sync\n  - Acceptance: Edit history is stored and visible to author and charge nurse\n- Build 15-minute sync with spreadsheet using Azure Logic App\n  - Acceptance: Notes sync to spreadsheet every 15 minutes\n  - Acceptance: Spreadsheet always shows latest note version\n- Implement client-side validation for patient selection\n  - Acceptance: Patient must be selected before note can be saved\n  - Acceptance: Validation error is shown inline and disables save\n- Implement escalation and re-escalation features\n  - Acceptance: Charge nurse can escalate notes with comments\n  - Acceptance: System sends reminder if no resolution within 24 hours\n  - Acceptance: Charge nurse can re-escalate notes\n\nPhase acceptance:\n- All MVP functional requirements are implemented and tested\n- System deployed and accessible in hospital environment\n- Basic monitoring and logging enabled\n\n### Phase 2: Dashboard and Localization\n\nGoals:\n- Develop ward manager summary dashboard\n- Add French localization\n- Implement automatic dashboard data aggregation\n\nTasks:\n- Implement Azure Function to analyze notes every 10 minutes\n  - Acceptance: Azure Function aggregates insights from notes table\n  - Acceptance: Aggregated data is stored in a read-only view\n- Build ward manager dashboard UI\n  - Acceptance: Dashboard displays top recurring themes\n  - Acceptance: Dashboard displays heat map of note frequency\n- Add French UI localization\n  - Acceptance: UI elements display text in French when selected\n\nDepends on: phase1\n\nPhase acceptance:\n- Dashboard and localization deployed and tested\n- Data aggregation functions run as expected\n\n## Open questions\n\n### Open questions\n\n- Localization decision: English only at launch; French support deferred to v1.1 (resolved).\n\n- What user roles and permissions are required for access to the patient data in EHR/PAS? _Default taken: Nurse roles require least privilege; permissions managed by Azure AD groups as specified._\n- Is there a requirement to support other languages at launch besides English? _Default taken: English only at launch; French deferred to v1.1._\n- Should escalation comments be editable after submission by charge nurses? _Default taken: Escalation comments are immutable after submission to preserve audit trail._\n- The participant did not review the requirement list: the interview ended before it was read back and confirmed. Is anything on it wrong or missing? _Default taken: The list is built as recorded._\n",
+  "curation": {
+    "merged": [
+      {
+        "into": "FR-8",
+        "from": ["FR-11"],
+        "via": "exact"
+      },
+      {
+        "into": "FR-14",
+        "from": ["FR-3", "FR-5", "FR-12"],
+        "via": "model"
+      },
+      {
+        "into": "FR-4",
+        "from": ["FR-6"],
+        "via": "model"
+      },
+      {
+        "into": "FR-8",
+        "from": ["FR-7", "FR-10", "FR-17"],
+        "via": "model"
+      }
+    ],
+    "rerouted": [],
+    "withdrawn": [],
+    "renumbered": [],
+    "folded": [],
+    "candidates": []
+  }
+}

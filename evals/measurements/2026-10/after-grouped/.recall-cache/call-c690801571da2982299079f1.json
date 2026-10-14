@@ -1,0 +1,12 @@
+{
+  "answers": [
+    { "key": "c3", "by": "S-integrations/ehr_fhir" },
+    { "key": "c4", "by": "S-integrations/legacy_spreadsheet" },
+    { "key": "c5", "by": "S-integrations/ehr_fhir" },
+    { "key": "c6", "by": "S-integrations/legacy_spreadsheet" },
+    { "key": "c7", "by": "S-integrations/legacy_spreadsheet" },
+    { "key": "c8", "by": "S-integrations/ehr_fhir" },
+    { "key": "c10", "by": "S-integrations/legacy_spreadsheet_ingestion" },
+    { "key": "c16", "by": "S-nfr/audit_retention" }
+  ]
+}
