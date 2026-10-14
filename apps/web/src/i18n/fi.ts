@@ -1,4 +1,5 @@
 import type { Strings } from "./en";
+import { landingFi } from "./landing.fi";
 
 /**
  * Finnish. Declared as `Strings` so every key of `en.ts` must exist here with the same
@@ -419,6 +420,7 @@ export const fi: Strings = {
       invalidBody: "Tarkista osoite tai pyydä kutsujalta uusi linkki.",
     },
   },
+  landing: landingFi,
   admin: {
     nav: {
       dashboard: "Yleiskatsaus",
@@ -1273,7 +1275,7 @@ export const fi: Strings = {
     },
     report: {
       title: "Raportti",
-      subtitle: "Analyysin tuottama organisaation raportti prosessikarttoineen.",
+      subtitle: "Mitä haastattelut paljastivat, analysoituna yhdessä. Mitään ei kohdisteta yhteen ihmiseen.",
       backToResults: "Takaisin tuloksiin",
       download: "Lataa Markdown",
       print: "Tulosta tai tallenna PDF:nä",
@@ -1295,7 +1297,8 @@ export const fi: Strings = {
       diagram: "Prosessikartta",
       diagramLoading: "Piirretään kaaviota…",
       diagramError: "Kaaviota ei voitu piirtää. Sen sijaan näytetään lähdekoodi.",
-      preliminaryNote: "Tämä raportti on alustava: se tuotettiin ennen valmistumisrajaa.",
+      preliminaryNote:
+        "Alustava: haastatteluja on vähemmän kuin valmistumisraja edellyttää. Määrät voivat muuttua, joten pidä järjestystä suuntaa antavana.",
     },
     sessions: {
       title: (id: string): string => `Haastattelu ${id}`,

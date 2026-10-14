@@ -154,7 +154,7 @@ export class AnalysisService {
       throw new Error("AnalysisService.run must be called inside a tenant context (withTenant)");
     const analysis = await db.analysis.findUniqueOrThrow({
       where: { id: analysisId },
-      include: { campaign: true },
+      include: { campaign: { include: { template: { select: { key: true, version: true } } } } },
     });
     if (analysis.status === "done") return;
     await db.analysis.update({
@@ -238,6 +238,11 @@ export class AnalysisService {
           anchoredOverrides,
           edits,
           departmentComparison: values["analysis.departmentComparison"] !== false,
+          provenance: {
+            templateKey: analysis.campaign.template.key,
+            templateVersion: analysis.campaign.template.version,
+            weightsPreset: values["analysis.weightsPreset"] as string,
+          },
           ...(seed ? { seed } : {}),
         },
       );
