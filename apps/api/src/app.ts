@@ -30,6 +30,7 @@ import { errorHandler } from "./lib/errors.js";
 import { principalKey, RATE_LIMIT_WINDOW } from "./lib/rate-limit.js";
 import { analysisRoutes } from "./modules/analysis/routes.js";
 import { auditRoutes } from "./modules/audit/routes.js";
+import { brandingRoutes } from "./modules/branding/routes.js";
 import { campaignRoutes } from "./modules/campaigns/routes.js";
 import { exportsRoutes } from "./modules/exports/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
@@ -189,6 +190,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
     async (api) => {
       const a = api as unknown as App;
       await healthRoutes(a, routes);
+      await brandingRoutes(a, routes);
       await internalAuthRoutes(a, routes);
       await userRoutes(a, routes);
       await templateRoutes(a, routes);

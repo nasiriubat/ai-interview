@@ -10,6 +10,7 @@ import { navFor } from "@/components/admin/shell/nav";
 import { Brand, SideNav } from "@/components/admin/shell/Sidebar";
 import { sidebarCookie } from "@/components/admin/shell/sidebar-state";
 import { TopBar } from "@/components/admin/shell/TopBar";
+import { useBranding } from "@/components/common/Branding";
 import { DirtyGuardProvider } from "@/components/common/DirtyGuard";
 import { t } from "@/i18n";
 import type { Me } from "@/lib/api/schemas";
@@ -36,6 +37,7 @@ export function AdminShell({
   const [drawer, setDrawer] = React.useState(false);
   const [search, setSearch] = React.useState(false);
   const groups = navFor(me?.user.role);
+  const branding = useBranding();
 
   // A route change closes the drawer: the link that was tapped is the reason it was open.
   React.useEffect(() => {
@@ -62,6 +64,19 @@ export function AdminShell({
     });
   };
 
+  // Without a logo the collapsed sidebar holds the expand button and the top bar's toggle goes
+  // away (D-430), so the button that was just pressed may no longer exist. Focus follows the
+  // toggle to wherever it now is, instead of dropping to the page.
+  const firstRender = React.useRef(true);
+  React.useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    if (document.activeElement && document.activeElement !== document.body) return;
+    document.querySelector<HTMLElement>("[data-sidebar-toggle] button")?.focus();
+  }, [collapsed]);
+
   return (
     <DirtyGuardProvider>
       <CrumbProvider>
@@ -74,7 +89,7 @@ export function AdminShell({
               collapsed ? "w-16" : "w-60",
             )}
           >
-            <Brand collapsed={collapsed} />
+            <Brand collapsed={collapsed} onExpand={toggle} />
             <div className="mt-5 min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
               <SideNav groups={groups} pathname={pathname} collapsed={collapsed} />
             </div>
@@ -112,6 +127,7 @@ export function AdminShell({
             <TopBar
               me={me}
               collapsed={collapsed}
+              toggleInSidebar={collapsed && !branding.logoUrl}
               onToggleSidebar={toggle}
               onOpenDrawer={() => {
                 setDrawer(true);

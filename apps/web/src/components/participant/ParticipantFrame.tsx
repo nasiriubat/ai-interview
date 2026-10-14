@@ -3,6 +3,7 @@
 import { InfoIcon, PanelRightIcon, PauseIcon } from "lucide-react";
 import * as React from "react";
 import { IconButton } from "@/components/admin/IconButton";
+import { useBranding } from "@/components/common/Branding";
 import { LanguageMenu, ThemeMenu } from "@/components/common/PreferenceMenus";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -37,11 +38,23 @@ export function ParticipantBrand({
   title: string;
   productName?: string | undefined;
 }): React.JSX.Element {
-  const product = productName !== undefined && productName !== "" ? productName : t.app.name;
+  const platform = useBranding();
+  const product = productName !== undefined && productName !== "" ? productName : platform.productName;
+  // The platform logo stands for the platform's name only: an organization that named its own
+  // interviews keeps its name in text (D-436).
+  const logo = platform.logoUrl && product === platform.productName ? platform.logoUrl : null;
   return (
     <div className="min-w-0 leading-tight">
       <p className="text-foreground truncate text-[15px] font-semibold tracking-tight">{title}</p>
-      {product !== title ? <p className="text-muted-foreground truncate text-xs">{product}</p> : null}
+      {product === title ? null : logo ? (
+        <img
+          src={logo}
+          alt={product}
+          className="mt-0.5 block h-4 w-auto max-w-[8rem] object-contain object-left"
+        />
+      ) : (
+        <p className="text-muted-foreground truncate text-xs">{product}</p>
+      )}
     </div>
   );
 }
@@ -95,9 +108,10 @@ export function ParticipantPage({
   card?: boolean;
   className?: string | undefined;
 }): React.JSX.Element {
+  const brandName = useBranding().productName;
   return (
     <div className={cn("flex min-h-dvh flex-col", PAGE_BG)}>
-      <Header title={title ?? t.app.name} subtitle={subtitle} actions={<PreferenceMenus />} />
+      <Header title={title ?? brandName} subtitle={subtitle} actions={<PreferenceMenus />} />
       <main
         id="main"
         className="flex flex-1 items-start justify-center px-3 py-6 sm:px-6 sm:py-10 lg:items-center lg:py-14"

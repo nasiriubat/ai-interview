@@ -408,6 +408,7 @@ export const PAGES: Entry[] = [
 /** Routes that serve no document (JSON or redirects), so there is nothing for axe to read. */
 export const NOT_DOCUMENTS = new Set([
   "app/api/auth/[...nextauth]/route.ts",
+  "app/api/branding/logo/route.ts",
   "app/api/csp-report/route.ts",
   "app/api/health/route.ts",
   "app/api/participant/[...path]/route.ts",

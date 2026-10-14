@@ -5,6 +5,7 @@ import { Landing } from "@/components/landing/Landing";
 import { stringsFor } from "@/i18n";
 import { requestLocale } from "@/i18n/server";
 import { staffTokenFromCookies } from "@/lib/api/server";
+import { getBranding } from "@/lib/branding";
 import { contactEmail, publicOrigin } from "@/lib/landing";
 
 /**
@@ -23,7 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const s = stringsFor(locale);
   const h = await headers();
   const origin = publicOrigin({ host: h.get("host"), forwardedProto: h.get("x-forwarded-proto") });
-  const title = `${s.app.name}: ${s.landing.meta.titleTail}`;
+  const { productName } = await getBranding();
+  const title = `${productName}: ${s.landing.meta.titleTail}`;
   return {
     metadataBase: new URL(origin),
     title: { absolute: title },
@@ -34,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
     // another host, and it carries no text, so a rename of the product does not date it.
     openGraph: {
       type: "website",
-      siteName: s.app.name,
+      siteName: productName,
       title,
       description: s.landing.meta.description,
       locale: locale === "fi" ? "fi_FI" : "en_GB",
@@ -54,5 +56,14 @@ export default async function HomePage(): Promise<React.JSX.Element> {
   const locale = await requestLocale();
   const s = stringsFor(locale);
   const signedIn = Boolean(await staffTokenFromCookies());
-  return <Landing strings={s.landing} appName={s.app.name} signedIn={signedIn} contact={contactEmail()} />;
+  const { productName, logoUrl } = await getBranding();
+  return (
+    <Landing
+      strings={s.landing}
+      appName={productName}
+      logoUrl={logoUrl}
+      signedIn={signedIn}
+      contact={contactEmail()}
+    />
+  );
 }
