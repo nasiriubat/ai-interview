@@ -107,6 +107,10 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
         invitations: [{ id: "inv_1", email: canary, status: "sent", tokenHash: `ih-${tag}` }],
         state: { participantSummary: canary, facts: [{ quote }] },
         summary: `Summary mentioning ${canary}`,
+        // The flag's reason is model prose about the person, so the scan must find it gone (D-173).
+        flagged: true,
+        flagReason: `the participant ${canary} sounded distressed`,
+        flaggedAt: new Date(),
         consentVersion: "v1",
         consentedAt: new Date(),
         ...(opts.createdAt ? { createdAt: opts.createdAt } : {}),
@@ -396,6 +400,10 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
         specEdits: {},
         invitations: [],
         handoff: Prisma.DbNull,
+        // That shape predates the flag columns, so a session deleted then never had them set.
+        flagged: false,
+        flagReason: null,
+        flaggedAt: null,
       },
     });
     await db.report.deleteMany({ where: { analysisId: s.analysisId } });

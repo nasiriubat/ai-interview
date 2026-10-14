@@ -1,4 +1,4 @@
-import { CallAbortedError, type EngineEvent, type UserAnswer } from "@aidp/ai";
+import { CallAbortedError, type EngineEvent, type TurnAnswer } from "@aidp/ai";
 import type { SessionState } from "@aidp/shared";
 import type { FastifyReply } from "fastify";
 import type { RouteContext } from "../../context.js";
@@ -53,7 +53,7 @@ export interface TurnEvent {
 export async function* streamTurn(
   ctx: RouteContext,
   sessionId: string,
-  answer: UserAnswer | undefined,
+  answer: TurnAnswer | undefined,
   options?: RunTurnOptions,
 ): AsyncGenerator<TurnEvent, void> {
   const turns = ctx.services.turns;
@@ -105,6 +105,13 @@ export async function* streamTurn(
     ];
     const bundle = await ctx.engines.forSession(row.companyId, chain, sessionId);
     const snapshot = await bundle.store.snapshot(sessionId);
+    // A control names an area of this interview's template. An unknown one is a malformed request,
+    // not something to skip over quietly, so it is refused before the turn takes any state.
+    if (answer && "control" in answer && answer.control.type !== "finish") {
+      const wanted = answer.control.areaKey;
+      if (!snapshot.template.coverageAreas.some((a) => a.key === wanted))
+        throw new AppError("validation", "Unknown interview area");
+    }
     if (row.campaignId) {
       const maxTurns = await turns.campaignMaxTurns(row.companyId, row.campaignId);
       bundle.settings.maxTurns = Math.min(bundle.settings.maxTurns, maxTurns);
@@ -127,7 +134,19 @@ export async function* streamTurn(
       while (!next.done) {
         const ev: EngineEvent = next.value;
         if (ev.type === "text") yield { event: "text", data: { delta: ev.text } };
-        else if (ev.type === "turn") {
+        else if (ev.type === "control") {
+          // Echoed before the interviewer's turn so the client can show what it asked for and
+          // move the progress chips at once. Never a message (D-170).
+          yield {
+            event: "control",
+            data: {
+              kind: ev.control.kind,
+              ...(ev.control.areaKey ? { areaKey: ev.control.areaKey } : {}),
+              at: ev.at,
+              progress: { areas: progress(ev.state) },
+            },
+          };
+        } else if (ev.type === "turn") {
           ended = ev.turn.endInterview;
           yield {
             event: "turn",
@@ -232,7 +251,7 @@ export async function* streamTurn(
 export async function runTurn(
   ctx: RouteContext,
   sessionId: string,
-  answer: UserAnswer | undefined,
+  answer: TurnAnswer | undefined,
   reply: FastifyReply,
   options?: RunTurnOptions,
 ): Promise<void> {

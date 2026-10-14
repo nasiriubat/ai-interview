@@ -1,20 +1,15 @@
 import { InviteNotOpenError, RequirementsNotFoundError } from "@aidp/core";
-import { WidgetResponseSchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { participant } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
 import { AppError, notFound } from "../../lib/errors.js";
+import { answerFromBody, parseTurnBody } from "../sessions/turn-body.js";
 import { runTurn } from "../sessions/turn-runner.js";
 
 const Link = z.object({ linkToken: z.string().min(8) });
 const publicLimit = guard.public({ config: { rateLimit: { max: 30, timeWindow: "1 minute" } } });
-const TurnBody = z.object({
-  content: z.string().max(8000).default(""),
-  modality: z.enum(["text", "widget", "voice"]).default("text"),
-  widgetResponse: WidgetResponseSchema.optional(),
-});
 
 export async function participantRoutes(app: App, ctx: RouteContext): Promise<void> {
   const svc = ctx.services.participant;
@@ -122,9 +117,19 @@ export async function participantRoutes(app: App, ctx: RouteContext): Promise<vo
 
   app.post(
     "/p/session/mode",
-    { ...authed, schema: { body: z.object({ mode: z.enum(["chat", "options", "voice"]) }) } },
+    {
+      ...authed,
+      schema: {
+        body: z.object({
+          mode: z.enum(["chat", "options", "voice"]),
+          reason: z
+            .enum(["participant", "fallback_captions", "fallback_typing", "unavailable"])
+            .default("participant"),
+        }),
+      },
+    },
     async (req) => {
-      await svc.setMode(participant(req).sessionId, req.body.mode);
+      await svc.setMode(participant(req).sessionId, req.body.mode, req.body.reason);
       return { ok: true as const };
     },
   );
@@ -137,16 +142,8 @@ export async function participantRoutes(app: App, ctx: RouteContext): Promise<vo
     async (req, reply) => {
       const p = participant(req);
       // The first turn has no body at all, so the body is validated here rather than by the route schema.
-      const body = TurnBody.parse(req.body ?? {});
-      const answer =
-        body.content.trim() || body.widgetResponse
-          ? {
-              content: body.content,
-              modality: body.modality,
-              ...(body.widgetResponse ? { widgetResponse: body.widgetResponse } : {}),
-            }
-          : undefined;
-      await runTurn(ctx, p.sessionId, answer, reply);
+      const body = parseTurnBody(req.body);
+      await runTurn(ctx, p.sessionId, answerFromBody(body), reply);
     },
   );
 
@@ -155,16 +152,33 @@ export async function participantRoutes(app: App, ctx: RouteContext): Promise<vo
     return { ok: true as const };
   });
 
-  app.post("/p/session/complete", authed, async (req) => {
+  // Deprecated: "I'm done" is a `finish` control on the turn request now. Kept for one release so a
+  // client installed before that keeps working.
+  app.post("/p/session/complete", authed, async (req, reply) => {
+    reply.header("Deprecation", "true");
     await svc.requestCompletion(participant(req).sessionId);
     return { ok: true as const };
   });
 
   app.delete("/p/session", authed, async (req) => {
     const p = participant(req);
-    await svc.deleteData(p.sessionId);
+    const notice = await svc.deleteData(p.sessionId);
     await ctx.jobs.publish("privacy.delete-session", { sessionId: p.sessionId, companyId: p.companyId });
-    return { ok: true as const };
+    // After the erase has finished, and never a reason to fail it: a participant whose data is gone
+    // must not be told it failed because a mail could not be queued. `emailSent` is what the
+    // screen's wording rests on, so it is true only when the confirmation really is queued.
+    let emailSent = false;
+    if (notice) {
+      try {
+        await ctx.jobs.publish("privacy.confirm-deletion", notice, {
+          singletonKey: `deletion-notice:${p.sessionId}`,
+        });
+        emailSent = true;
+      } catch (err) {
+        ctx.log.warn({ err, sessionId: p.sessionId }, "could not queue the deletion confirmation");
+      }
+    }
+    return { ok: true as const, emailSent };
   });
 
   app.get("/p/session/summary", authed, async (req) => svc.summary(participant(req).sessionId));

@@ -5,13 +5,14 @@ import {
   newNumericCode,
   newToken,
   normalizeEmail,
+  PrismaSessionStore,
+  requestFinish,
   type Crypto,
   type EmailPort,
   type SettingsService,
   type TenantGate,
 } from "@aidp/core";
 import { tenantTransaction } from "@aidp/db";
-import { COMPLETION_REQUESTED_TURN_COUNT } from "@aidp/shared";
 import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
@@ -30,6 +31,19 @@ export interface LinkView {
   pathSelection: string;
   status: "open" | "closed" | "expired";
 }
+
+/** What the confirmation job is given; the address is encrypted and nothing else identifies the person. */
+export interface DeletionNotice {
+  companyId: string;
+  sessionId: string;
+  toEnc: string;
+  campaignName: string;
+  language: string;
+  deletedAt: string;
+}
+
+/** Why the answer mode changed: the participant chose it, or the client fell back (contract 16). */
+export type ModeSwitchReason = "participant" | "fallback_captions" | "fallback_typing" | "unavailable";
 
 /** A counted abuse signal. Carries ids only, never an address (D-82). */
 export type AbuseEvent = "abuse.code_request_capped" | "abuse.code_confirm_locked";
@@ -403,7 +417,7 @@ export class ParticipantService {
   }
 
   private async createParticipantAndSession(
-    db: Pick<PrismaClient, "participant" | "session">,
+    db: Pick<PrismaClient, "participant" | "session" | "interviewTemplate">,
     campaign: Campaign,
     emailHash: string | null,
     email: string | null = null,
@@ -423,6 +437,12 @@ export class ParticipantService {
         tokenHash: this.crypto.hashToken(token),
       },
     });
+    // The campaign names one template row, and a template row is one version of it (FR-62): the
+    // session pins the version it will be interviewed under rather than a constant.
+    const { version } = await db.interviewTemplate.findUniqueOrThrow({
+      where: { id: campaign.templateId },
+      select: { version: true },
+    });
     const session = await db.session.create({
       data: {
         companyId: campaign.companyId,
@@ -431,7 +451,7 @@ export class ParticipantService {
         participantId: participant.id,
         sourceKind: "campaign",
         status: "created",
-        templateVersion: 1,
+        templateVersion: version,
       },
     });
     return { participantToken: token, sessionId: session.id, participantId: participant.id };
@@ -487,8 +507,27 @@ export class ParticipantService {
     await this.db.session.update({ where: { id: sessionId }, data: { path } });
   }
 
-  async setMode(sessionId: string, mode: "chat" | "options" | "voice"): Promise<void> {
+  /**
+   * Records the answer-mode preference and, when it actually changed, a `mode_switch` event so the
+   * transcript can show where the participant moved from typing to speaking (D-171). `reason` says
+   * whether the participant chose it or the client fell back.
+   */
+  async setMode(
+    sessionId: string,
+    mode: "chat" | "options" | "voice",
+    reason: ModeSwitchReason = "participant",
+  ): Promise<void> {
+    const before = await this.db.session.findUniqueOrThrow({
+      where: { id: sessionId },
+      select: { modePreference: true },
+    });
     await this.db.session.update({ where: { id: sessionId }, data: { modePreference: mode } });
+    if (before.modePreference !== mode)
+      await new PrismaSessionStore(this.db).appendEvent(sessionId, "mode_switch", {
+        from: before.modePreference,
+        to: mode,
+        reason,
+      });
   }
 
   async pause(sessionId: string): Promise<void> {
@@ -498,16 +537,52 @@ export class ParticipantService {
     });
   }
 
-  /** "I'm done": the next turn asks the closing question. */
+  /**
+   * "I'm done": the next turn asks the closing question.
+   *
+   * Legacy path: the web sends a `finish` control with the turn instead (D-170); this endpoint stays
+   * for clients installed before it, and now sets the same flag rather than the old turn-count
+   * sentinel.
+   */
   async requestCompletion(sessionId: string): Promise<void> {
-    const s = await this.db.session.findUniqueOrThrow({ where: { id: sessionId } });
-    const state = { ...(s.state as Record<string, unknown>), turnCount: COMPLETION_REQUESTED_TURN_COUNT };
-    await this.db.session.update({ where: { id: sessionId }, data: { state } });
+    await requestFinish(this.db, sessionId);
   }
 
-  /** "Delete my data" (FR-13): one definition of deletion, shared with the retention sweep. */
-  async deleteData(sessionId: string): Promise<void> {
+  /**
+   * "Delete my data" (FR-13): one definition of deletion, shared with the retention sweep.
+   *
+   * Answers what the route needs to confirm by email, or null when there is nobody to tell. The
+   * address is read before the erase (the participant row goes with it) and leaves this method
+   * encrypted, for a job; nothing here stores it. Only an identified participant has one: an
+   * anonymous response keeps no address on the participant row at all (D-142).
+   */
+  async deleteData(sessionId: string): Promise<DeletionNotice | null> {
+    const session = await this.db.session.findUnique({
+      where: { id: sessionId },
+      include: {
+        participant: { select: { fields: true } },
+        campaign: { select: { name: true, participationMode: true } },
+        template: { select: { language: true } },
+      },
+    });
+    const fields = (session?.participant?.fields ?? {}) as Record<string, unknown>;
+    const address =
+      session?.campaign &&
+      session.campaign.participationMode !== "anonymous" &&
+      typeof fields.email === "string"
+        ? fields.email.trim()
+        : "";
+    const alreadyDeleted = session?.status === "deleted";
     await deleteSessionData(this.db, sessionId, { markEnded: true, crypto: this.crypto });
+    if (!session?.campaign || alreadyDeleted || address === "") return null;
+    return {
+      companyId: session.companyId,
+      sessionId,
+      toEnc: this.crypto.encrypt(address),
+      campaignName: session.campaign.name,
+      language: session.template.language,
+      deletedAt: new Date().toISOString(),
+    };
   }
 
   async summary(sessionId: string): Promise<{ summary: string; facts: unknown[] }> {

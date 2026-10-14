@@ -2,7 +2,7 @@ import { SessionStateSchema } from "@aidp/shared";
 import { describeDb } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { PrismaSessionStore } from "../src/sessions/prisma-store.js";
+import { PrismaSessionStore, requestFinish } from "../src/sessions/prisma-store.js";
 
 /**
  * The Postgres half of the extraction contract (D-100). The in-memory store proves the logic; this
@@ -160,5 +160,45 @@ describeDb("PrismaSessionStore extraction commit", () => {
     await db.fact.create({ data });
 
     await expect(db.fact.create({ data })).rejects.toThrow(/Unique constraint/);
+  });
+
+  it("stores the interview's language on each fact row (D-177)", async () => {
+    const id = await newSession();
+    await store.commitExtraction(id, { ...commit(0, 24, ["a", "b"]), language: "fi" });
+    const rows = await db.fact.findMany({ where: { sessionId: id } });
+    expect(rows.map((r) => r.language)).toEqual(["fi", "fi"]);
+  });
+
+  it("flags a session once: the first reason stays, later flags are events only (D-173)", async () => {
+    const id = await newSession();
+    await store.appendEvent(id, "flag", { reason: "the participant sounds distressed" });
+    await store.appendEvent(id, "flag", { reason: "a second, later reason" });
+
+    const row = await db.session.findUniqueOrThrow({ where: { id } });
+    expect(row.flagged).toBe(true);
+    expect(row.flagReason).toBe("the participant sounds distressed");
+    expect(row.flaggedAt).not.toBeNull();
+    expect(row.flagAckedAt).toBeNull();
+    expect(await db.sessionEvent.count({ where: { sessionId: id, type: "flag" } })).toBe(2);
+  });
+
+  it("requestFinish patches one key and leaves the turn count and the cursors alone (D-170)", async () => {
+    const id = await newSession({
+      turnCount: 7,
+      lastExtractedSeq: 4,
+      coverage: { x: { status: "partial" } },
+    });
+    await requestFinish(db, id);
+
+    const state = (await db.session.findUniqueOrThrow({ where: { id } })).state as Record<string, unknown>;
+    expect(state).toMatchObject({ finishRequested: true, turnCount: 7, lastExtractedSeq: 4 });
+    expect(SessionStateSchema.parse(state).finishRequested).toBe(true);
+  });
+
+  it("does not request a finish on a completed session", async () => {
+    const id = await newSession({ turnCount: 7 }, "completed");
+    await requestFinish(db, id);
+    const state = (await db.session.findUniqueOrThrow({ where: { id } })).state as Record<string, unknown>;
+    expect(state.finishRequested).toBeUndefined();
   });
 });
