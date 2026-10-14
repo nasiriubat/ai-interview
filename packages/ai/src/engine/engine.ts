@@ -254,7 +254,8 @@ export class InterviewEngine {
       ...(meta.voiceShortForm ? { voiceShortForm: meta.voiceShortForm } : {}),
       areaKey: "areaKey" in focus ? focus.areaKey : focus.mode,
       stateDelta: delta,
-      reason: meta.reason ?? "",
+      // The schema caps it at 300; a verbose model once failed a whole turn on this field.
+      reason: (meta.reason ?? "").slice(0, 300),
       endInterview: ended,
     });
 

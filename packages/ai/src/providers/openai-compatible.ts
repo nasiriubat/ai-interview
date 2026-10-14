@@ -248,6 +248,9 @@ export class OpenAICompatibleProvider implements Provider {
     const instruction = `Respond with a single JSON value only, no prose and no code fences, matching this JSON schema exactly:\n${JSON.stringify(jsonSchema)}`;
     const messages = [{ role: "system", content: instruction }, ...toOpenAIMessages(req)];
     const reasoningFields = this.reasoningFields(model, req);
+    /** Re-read on every attempt: a refusal during this call turns the control off for the retry. */
+    const reasoningOn = (): boolean =>
+      Object.keys(reasoningFields).length > 0 && this.accepts.get(model)?.reasoningOff !== false;
     const base = (withReasoning: boolean) => ({
       model,
       messages,
@@ -284,12 +287,11 @@ export class OpenAICompatibleProvider implements Provider {
         });
       let res: Response;
       try {
-        res = await send(Object.keys(reasoningFields).length > 0);
+        res = await send(reasoningOn());
       } catch (e) {
         report({ usage: emptyUsage(), ok: false, note: "rejected", started });
         if (
-          Object.keys(reasoningFields).length > 0 &&
-          this.accepts.get(model)?.reasoningOff !== false &&
+          reasoningOn() &&
           e instanceof ProviderError &&
           (e.code === "bad_request" || e.code === "not_found")
         ) {
@@ -299,7 +301,7 @@ export class OpenAICompatibleProvider implements Provider {
         }
         throw e;
       }
-      if (allowStatuses.includes(res.status) && Object.keys(reasoningFields).length > 0) {
+      if (allowStatuses.includes(res.status) && reasoningOn()) {
         // A 400 may be the strict schema or the reasoning control. Ask again without the control:
         // if that is accepted the control was the cause and is remembered as unsupported; if the
         // same status comes back the schema was, and the control stays untested.
