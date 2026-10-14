@@ -35,6 +35,18 @@ for (const entry of PAGES) {
         { name: "aidp_participant", value: "e2e-participant-token", domain: origin.hostname, path: "/" },
       ]);
     }
+    // Every Content-Security-Policy violation the page raises, from the first script onward. The
+    // policy is enforced in this run (CSP_MODE=enforce in playwright.config.ts), so an entry here
+    // is something production would block (D-264).
+    await page.addInitScript(() => {
+      const w = window as unknown as { __cspViolations: string[] };
+      w.__cspViolations = [];
+      document.addEventListener("securitypolicyviolation", (e) => {
+        w.__cspViolations.push(
+          `${e.effectiveDirective} blocked ${e.blockedURI || "inline"} at ${e.sourceFile || "page"}:${String(e.lineNumber)}`,
+        );
+      });
+    });
     // The role header reaches the fake API through the web server only when it is forwarded; the
     // operator pages are served by the same fake, which answers every role the same way.
     const response = await page.goto(entry.path, { waitUntil: "networkidle" });
@@ -60,6 +72,10 @@ for (const entry of PAGES) {
         })}\n`,
       );
     }
+    const violations = await page.evaluate(
+      () => (window as unknown as { __cspViolations?: string[] }).__cspViolations ?? [],
+    );
+    expect(violations, `${entry.path} raised Content-Security-Policy violations`).toEqual([]);
     const blocking = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     expect(
       blocking.map((v) => `${v.id} (${v.impact ?? "?"}): ${v.help} - ${v.nodes[0]?.target.join(" ") ?? ""}`),

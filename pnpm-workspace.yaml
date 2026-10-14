@@ -3,25 +3,31 @@ packages:
   - "packages/*"
   - "evals"
   - "scripts/*"
-onlyBuiltDependencies:
-  - "@prisma/client"
-  - "@prisma/engines"
-  - prisma
-  - esbuild
 # Deliberately not run (D-75). onnxruntime-node ships its CPU binaries for linux x64/arm64 and
 # macOS inside the package; its postinstall only downloads the CUDA provider from NuGet on
 # linux/x64, which a CPU-only VPS never uses. sharp needs no script either: its binaries come as
 # prebuilt @img/* optional dependencies.
 ignoredBuiltDependencies:
   - onnxruntime-node
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - prisma
+  - esbuild
 # Transitive advisories (pnpm audit --prod) that the direct dependency bumps do not reach. Each
 # override is the lowest patched version; remove it when the parent package ships a fix, and keep
 # `audit-ignore.json` for anything that genuinely cannot be fixed (docs/discovery/decisions.md D-85).
 overrides:
   # next-auth's peer range stops at nodemailer 8; 10.x carries the fixes (D-85).
+  "@grpc/grpc-js@<1.14.5": "^1.14.5"
+  "brace-expansion@<1.1.20": "^1.1.20"
+  "deepmerge-ts@<8.0.0": "^8.0.0"
   "nodemailer@<10.1.0": "^10.1.0"
   "sharp@<0.35.5": "^0.35.5"
   "source-map-js@<1.2.2": "^1.2.2"
-  "brace-expansion@<1.1.20": "^1.1.20"
-  "deepmerge-ts@<8.0.0": "^8.0.0"
-  "@grpc/grpc-js@<1.14.5": "^1.14.5"
+  # Vitest's worker pool. 1.x carries a prototype-pollution RCE in worker options (found by the
+  # Trivy filesystem scan, D-267); it is a test-time dependency and never ships, but the gate has no
+  # reason to carry it.
+  "tinypool@<2.1.2": "^2.1.2"
+patchedDependencies:
+  sonner: patches/sonner.patch

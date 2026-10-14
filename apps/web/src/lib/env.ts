@@ -36,7 +36,17 @@ export function voiceSocketUrl(): string {
   return `${protocol}//${window.location.host}${VOICE_LIVE_PATH}`;
 }
 
-export const PARTICIPANT_COOKIE = "aidp_participant";
+/**
+ * The participant credential cookie (D-263). In production it carries the `__Host-` prefix, which
+ * the browser only accepts when the cookie is `Secure`, has `Path=/` and names no `Domain`: a
+ * sibling subdomain, or a man in the middle on a downgraded connection, cannot plant or shadow it.
+ * Development runs over plain http, where a `__Host-` cookie cannot be set, so it keeps the bare
+ * name. {@link PARTICIPANT_COOKIE_LEGACY} is still read, and cleared on the next write, for the
+ * 30 days an old cookie can live.
+ */
+export const PARTICIPANT_COOKIE_LEGACY = "aidp_participant";
+export const PARTICIPANT_COOKIE =
+  process.env.NODE_ENV === "production" ? `__Host-${PARTICIPANT_COOKIE_LEGACY}` : PARTICIPANT_COOKIE_LEGACY;
 
 /** Auth.js stores the session JWT in one of these cookies depending on the scheme. */
 export const AUTHJS_COOKIES = ["__Secure-authjs.session-token", "authjs.session-token"] as const;
