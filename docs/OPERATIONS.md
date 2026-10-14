@@ -256,7 +256,12 @@ or the uploads archive could not be written. The backup container is `unhealthy`
 
 **Look at** `deploy/dc logs --tail 50 backup`, and the reason in
 `deploy/dc exec -T backup cat /ops-state/status/backup.json`. Disk space (`df -h`, the
-[`disk.high`](#diskhigh) alert) and Postgres health are the usual causes.
+[`disk.high`](#diskhigh) alert) and Postgres health are the usual causes. One more, since the
+backup stopped running as root (D-312): `Permission denied` on `/backups` or an unreadable upload
+means the volume's ownership was not set. `deploy/dc up -d` runs `ops-state-init`, which sets it
+(`/backups` to uid 999, the alert and watchdog directories to 10001); the container must show
+`groups=...,1000` in `deploy/dc exec -T backup id`, which the `group_add` in `compose.prod.yml`
+gives it.
 
 **Do** Fix the cause, then take one now: `deploy/dc exec -T backup /usr/local/bin/backup.sh once`.
 Until a backup succeeds, **do not upgrade**: `upgrade.sh` refuses without a fresh one.
@@ -500,6 +505,11 @@ tenant's admins and you are told, once an hour per campaign and limit.
 `deploy/dc exec -T postgres psql -U app -d ai_discovery -c "select \"key\", \"count\", \"windowStart\" from \"UsageCounter\" where \"windowStart\" > now() - interval '3 hours' order by \"count\" desc limit 20"`
 (the keys name campaigns and keyed address hashes, never addresses). The API log lines
 `abuse signal` carry the campaign id and the limit. Interviews already created are not removed.
+
+The defaults (D-311) are 300 new interviews an hour per campaign, 1000 an hour per organization and
+2000 per campaign in all; the per-address bucket on the link routes (`RATE_LIMIT_PUBLIC_MAX`, 120 a
+minute) is separate, answers a plain 429 and raises no alert. A second drill showed what 120 an
+hour did to a launch concentrated on one campaign: 311 of 499 open attempts refused inside five minutes (retries counted).
 
 **Do** Demand: raise the limit (Settings, category Privacy, at the campaign or tenant scope).
 Attack: close the campaign (`Admin → Campaigns → Close`) and issue a new link or switch it to

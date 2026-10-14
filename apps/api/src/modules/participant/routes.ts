@@ -11,10 +11,14 @@ import { answerFromBody, parseTurnBody } from "../sessions/turn-body.js";
 import { runTurn } from "../sessions/turn-runner.js";
 
 const Link = z.object({ linkToken: z.string().min(8) });
-const publicLimit = guard.public({ config: { rateLimit: { max: 30, timeWindow: "1 minute" } } });
 
 export async function participantRoutes(app: App, ctx: RouteContext): Promise<void> {
   const svc = ctx.services.participant;
+  // Per client address (RATE_LIMIT_PUBLIC_MAX, 120, D-310). What a link may cost is bounded by the
+  // campaign and tenant caps (D-261), not by this bucket.
+  const publicLimit = guard.public({
+    config: { rateLimit: { max: ctx.config.RATE_LIMIT_PUBLIC_MAX, timeWindow: "1 minute" } },
+  });
 
   app.get("/p/:linkToken", { ...publicLimit, schema: { params: Link } }, async (req) => {
     const { view } = await svc.resolveLink(req.params.linkToken);

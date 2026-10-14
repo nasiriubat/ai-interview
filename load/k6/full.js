@@ -65,6 +65,8 @@ export const options = {
     turn_errors: ["rate<0.01"],
     first_token_ms: ["p(95)<2000"],
     http_5xx: ["count==0"],
+    // Nobody legitimate is turned away by an abuse limit (D-310).
+    legit_throttled: ["count==0"],
     link_open_errors: ["rate<0.01"],
     admin_errors: ["rate<0.01"],
     voice_first_word_ms: ["p(95)<1500"],

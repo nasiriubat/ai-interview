@@ -42,6 +42,7 @@ COPY evals/package.json evals/
 FROM manifests AS build
 RUN --mount=type=cache,id=aidp-pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter @aidp/api... --filter @aidp/worker... --ignore-scripts
+COPY scripts/with-lock.mjs ./scripts/with-lock.mjs
 COPY packages ./packages
 COPY apps/api ./apps/api
 COPY apps/worker ./apps/worker

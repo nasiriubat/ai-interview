@@ -157,15 +157,15 @@ the Auth.js default same-origin check, read not run), and nothing was fuzzed.
 
 ## Open items for the owner
 
-| Ref | Item                                                                                                                               | Why it is not done here                      |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| O1  | Replace `security@<your-domain>` in `security.txt` and `docs/SECURITY.md`; create the mailbox; enable GitHub private reporting     | A real address is the owner's (D5)           |
-| O2  | Make the `security` workflow a required check; require Code Owner review; confirm the handle in `.github/CODEOWNERS`               | Repository settings, not repository content  |
-| O3  | One rotation drill on staging, written into `OPERATIONS.md`                                                                        | Needs the real stack                         |
-| O4  | `deploy/backup.Dockerfile` and `deploy/ops-notify.Dockerfile` run as root (Trivy DS-0002, HIGH when scanned as config)             | In `deploy/`, owned by the operations stream |
-| O5  | Consent text variables, a `/privacy` cookie page, counsel review of the DPA template                                               | Counsel writes the words (D4); plan A4       |
-| O6  | A model-backed injection run with a key, and an agreed threshold (suggested 2 percent)                                             | Needs a provider key                         |
-| O7  | HSTS `preload` once every subdomain is verified                                                                                    | Irreversible; the owner's call               |
-| O8  | An external penetration test (D2)                                                                                                  | Cannot be self-assessed                      |
-| O9  | Counters are fixed one-hour windows, so a burst across a boundary can reach twice a limit; accepted for one upsert per hit         | Design trade-off (D-261)                     |
-| O10 | `session.read` is recorded for a `GET /sessions/:id` even when the response withheld the transcript (the record is of the session) | Cheap to refine; says "read the session"     |
+| Ref | Item                                                                                                                                                            | Why it is not done here                      |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| O1  | Replace `security@<your-domain>` in `security.txt` and `docs/SECURITY.md`; create the mailbox; enable GitHub private reporting                                  | A real address is the owner's (D5)           |
+| O2  | Make the `security` workflow a required check; require Code Owner review; confirm the handle in `.github/CODEOWNERS`                                            | Repository settings, not repository content  |
+| O3  | One rotation drill on staging, written into `OPERATIONS.md`                                                                                                     | Needs the real stack                         |
+| O4  | **Closed 2026-10-14 (D-312):** `deploy/backup.Dockerfile` and `deploy/ops-notify.Dockerfile` run as uid 999 and 10001; backup and restore verified in the stack | [drill 2](drills/2026-10-14-full-stack-2.md) |
+| O5  | Consent text variables, a `/privacy` cookie page, counsel review of the DPA template                                                                            | Counsel writes the words (D4); plan A4       |
+| O6  | A model-backed injection run with a key, and an agreed threshold (suggested 2 percent)                                                                          | Needs a provider key                         |
+| O7  | HSTS `preload` once every subdomain is verified                                                                                                                 | Irreversible; the owner's call               |
+| O8  | An external penetration test (D2)                                                                                                                               | Cannot be self-assessed                      |
+| O9  | Counters are fixed one-hour windows, so a burst across a boundary can reach twice a limit; accepted for one upsert per hit                                      | Design trade-off (D-261)                     |
+| O10 | `session.read` is recorded for a `GET /sessions/:id` even when the response withheld the transcript (the record is of the session)                              | Cheap to refine; says "read the session"     |

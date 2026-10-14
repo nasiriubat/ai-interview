@@ -4,7 +4,10 @@
 #
 #   load/run.sh smoke          # 4 interviews, 1 voice call, 12 link opens: about two minutes
 #   load/run.sh full           # 40 interviews x 20 turns, 5 voice calls, 100 opens, admin reads
-#   load/run.sh single-ip      # negative control: 60 opens from ONE address must hit the limiter
+#   load/run.sh single-ip      # negative control: 200 opens from ONE address must hit the limiter
+#   load/run.sh office         # 40 colleagues behind ONE office address open the link in two minutes
+#
+#   LINKS=1 load/run.sh full   # everything through one campaign's link (default: all of them)
 #
 #   PARTICIPANTS=20 HOLD=2m load/run.sh full      # knobs: see load/k6/full.js
 #   FAKE_LATENCY_MS=400                           # the provider's own latency (docs/DEPLOY.md)
@@ -31,12 +34,17 @@ smoke) script=smoke.js ;;
 full) script=full.js ;;
 single-ip) script=single-ip.js ;;
 connect) script=connect.js ;;
-*) echo "usage: $0 smoke|full|single-ip" >&2; exit 64 ;;
+office) script=office.js ;;
+*) echo "usage: $0 smoke|full|single-ip|office" >&2; exit 64 ;;
 esac
 
 [ -f "$AIDP_DRILL_DIR/campaign.json" ] || "$repo/deploy/drill/stack.sh" configure
 link=$(jq -r .linkToken "$AIDP_DRILL_DIR/campaign.json")
 campaign=$(jq -r .campaignId "$AIDP_DRILL_DIR/campaign.json")
+# Every campaign's link, comma separated: a launch is spread over several (D-310). LINKS=1 is the
+# concentrated case, everything through one campaign's link.
+links=$(jq -r --argjson n "${LINKS:-0}" '[.campaigns[]?.linkToken] | (if $n > 0 then .[:$n] else . end) | join(",")' "$AIDP_DRILL_DIR/campaign.json")
+[ -n "$links" ] || links=$link
 cookie=$(node "$repo/deploy/drill/session.mjs" admin)
 
 caddy_id=$(docker ps -q --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.service=caddy")
@@ -70,15 +78,16 @@ fake=$(curl -fsS "$AIDP_FAKE_URL/__control" | jq -c .behaviour)
 	echo "host_cpus=$(docker info --format '{{.NCPU}}')"
 	echo "host_memory_bytes=$(docker info --format '{{.MemTotal}}')"
 	echo "k6_image=$K6_IMAGE"
+	echo "links=$(echo "$links" | tr ',' '\n' | grep -c .)"
 } >"$out/run.txt"
 
 set +e
 docker run --rm --network "$network" --cap-add NET_ADMIN --user root \
 	--add-host "aidp.localhost:$caddy_ip" \
 	--entrypoint sh \
-	-e BASE_URL=https://aidp.localhost -e LINK_TOKEN="$link" -e CAMPAIGN_ID="$campaign" -e ADMIN_COOKIE="$cookie" \
+	-e BASE_URL=https://aidp.localhost -e LINK_TOKEN="$link" -e LINK_TOKENS="$links" -e CAMPAIGN_ID="$campaign" -e ADMIN_COOKIE="$cookie" \
 	-e PARTICIPANTS -e VOICE_SESSIONS -e BURST_OPENS -e HOLD -e INTERVIEW_TURNS -e THINK_MIN -e THINK_MAX \
-	-e VOICE_EXCHANGES -e SINGLE_IP_OPENS -e ONLY \
+	-e VOICE_EXCHANGES -e SINGLE_IP_OPENS -e ONLY -e OFFICE_PEOPLE -e OFFICE_MINUTES \
 	-v "$repo/load/k6:/scripts:ro" -v "$out:/out" \
 	"$K6_IMAGE" -c "
 		for i in \$(seq $first $last); do ip addr add $prefix.\$i/24 dev eth0 2>/dev/null; done

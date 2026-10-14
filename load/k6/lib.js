@@ -16,6 +16,12 @@ http.setResponseCallback(http.expectedStatuses({ min: 200, max: 299 }, 101));
 
 export const BASE = __ENV.BASE_URL || "https://aidp.localhost:18443";
 export const LINK = __ENV.LINK_TOKEN || "";
+// A launch is spread over the campaigns a company runs at once (load/run.sh, LINKS).
+export const LINKS = (__ENV.LINK_TOKENS || LINK).split(",").filter(Boolean);
+/** The link of the i-th campaign (round robin), by virtual user when no index is given. */
+export function linkFor(i) {
+  return LINKS[(i === undefined ? __VU : i) % LINKS.length];
+}
 export const THINK_MIN = Number(__ENV.THINK_MIN || 3);
 export const THINK_MAX = Number(__ENV.THINK_MAX || 8);
 
@@ -29,6 +35,10 @@ export const interviewsCompleted = new Counter("interviews_completed");
 export const linkOpens = new Trend("link_open_ms", true);
 export const linkOpenErrors = new Rate("link_open_errors");
 export const fiveHundreds = new Counter("http_5xx");
+/** A 429 on a link landing or open: a person who was turned away. Not a fault of the platform, and
+ * the number the abuse limits are judged by (D-310). */
+export const throttled = new Counter("legit_throttled");
+export const opened200 = new Counter("link_opened_ok");
 
 const ANSWERS = [
   "I am a ward clerk on a cardiology ward. Most of my day is keeping bed status current.",
@@ -53,15 +63,18 @@ export function think() {
 }
 
 /** The participant's arrival: the link, the cookie, consent. Returns true when a session exists. */
-export function arrive(name) {
+export function arrive(name, link = linkFor()) {
   const t0 = Date.now();
-  const landing = http.get(`${BASE}/api/participant/p/${LINK}`, { tags: { name: "link" } });
+  const landing = http.get(`${BASE}/api/participant/p/${link}`, { tags: { name: "link" } });
   note5xx(landing);
-  const opened = http.post(`${BASE}/api/participant/p/${LINK}/open`, "{}", {
+  if (landing.status === 429) throttled.add(1);
+  const opened = http.post(`${BASE}/api/participant/p/${link}/open`, "{}", {
     headers: JSON_HEADERS,
     tags: { name: "open" },
   });
   note5xx(opened);
+  if (opened.status === 429) throttled.add(1);
+  if (opened.status === 200) opened200.add(1);
   linkOpens.add(Date.now() - t0);
   const ok = check(opened, { "link opened": (r) => r.status === 200 });
   linkOpenErrors.add(!ok);

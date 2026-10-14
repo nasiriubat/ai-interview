@@ -86,10 +86,51 @@ export class StorageFull extends Error {
   }
 }
 
-/** Whether a failure from the file system or the network is "no room left". */
+/**
+ * S3-compatible stores report "no room" under a few names, none of them standard: AWS and Hetzner
+ * say `QuotaExceeded` or `StorageQuotaExceeded`, Backblaze B2 `storage_cap_exceeded`, some
+ * gateways `InsufficientStorage` or `NoSpaceLeft`; WebDAV-style gateways answer HTTP 507. The
+ * match is on the error's code or name, never its message (free text that may carry a bucket
+ * name), so an SDK error and a plain `{ code }` object are both recognised.
+ */
+const OUT_OF_SPACE_CODES = new Set(
+  [
+    "ENOSPC",
+    "EDQUOT",
+    "QuotaExceeded",
+    "StorageQuotaExceeded",
+    "BucketQuotaExceeded",
+    "AccountQuotaExceeded",
+    "storage_cap_exceeded",
+    "InsufficientStorage",
+    "NoSpaceLeft",
+  ].map((c) => c.toLowerCase()),
+);
+
+function labelsOf(err: object): string[] {
+  const e = err as { code?: unknown; Code?: unknown; name?: unknown };
+  return [e.code, e.Code, e.name].filter((v): v is string => typeof v === "string");
+}
+
+/**
+ * Whether a failure from the file system, an object store or the network is "no room left":
+ * `ENOSPC` and `EDQUOT` from a disk, a quota code from an S3-compatible store, or HTTP 507. Looks
+ * through `cause` (bounded) because adapters wrap what they catch.
+ */
 export function isOutOfSpace(err: unknown): boolean {
-  const code = (err as { code?: unknown } | null)?.code;
-  return code === "ENOSPC" || code === "EDQUOT";
+  let current: unknown = err;
+  for (let depth = 0; depth < 4 && current !== null && typeof current === "object"; depth += 1) {
+    if (labelsOf(current).some((l) => OUT_OF_SPACE_CODES.has(l.toLowerCase()))) return true;
+    const e = current as {
+      statusCode?: unknown;
+      status?: unknown;
+      $metadata?: { httpStatusCode?: unknown };
+      cause?: unknown;
+    };
+    if ([e.statusCode, e.status, e.$metadata?.httpStatusCode].includes(507)) return true;
+    current = e.cause;
+  }
+  return false;
 }
 
 /**

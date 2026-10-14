@@ -10,6 +10,7 @@ import {
   FilesystemStorage,
   MemoryStorage,
   ObjectNotFound,
+  isOutOfSpace,
   ObjectTooLarge,
   sessionPrefix,
   StorageFull,
@@ -257,6 +258,59 @@ describe("a full disk (D-283)", () => {
       },
     });
     await expect(storage.put("t1/s1/a2", body, { contentType: "audio/webm" })).rejects.not.toBeInstanceOf(
+      StorageFull,
+    );
+  });
+});
+
+describe("an object store's quota error is the same typed failure (D-313)", () => {
+  const s3 = (name: string, status?: number) =>
+    Object.assign(new Error(`${name}: raised by the store`), {
+      name,
+      ...(status === undefined ? {} : { $metadata: { httpStatusCode: status } }),
+    });
+
+  it.each([
+    ["AWS-style QuotaExceeded", s3("QuotaExceeded", 403)],
+    ["StorageQuotaExceeded", s3("StorageQuotaExceeded", 403)],
+    ["Backblaze storage_cap_exceeded", Object.assign(new Error("cap"), { code: "storage_cap_exceeded" })],
+    [
+      "a Code field as the XML body carries it",
+      Object.assign(new Error("x"), { Code: "InsufficientStorage" }),
+    ],
+    ["HTTP 507 whatever it is called", s3("ServiceException", 507)],
+    ["507 as statusCode", Object.assign(new Error("x"), { statusCode: 507 })],
+    ["EDQUOT", Object.assign(new Error("x"), { code: "EDQUOT" })],
+    ["a wrapped cause", new Error("upload failed", { cause: s3("QuotaExceeded") })],
+  ])("recognises %s", (_label, err) => {
+    expect(isOutOfSpace(err)).toBe(true);
+  });
+
+  it.each([
+    ["a throttle", s3("SlowDown", 503)],
+    ["access denied", s3("AccessDenied", 403)],
+    ["a message that merely mentions it", new Error("quota exceeded somewhere")],
+    ["a reset", Object.assign(new Error("x"), { code: "ECONNRESET" })],
+    ["a string", "QuotaExceeded"],
+    ["null", null],
+  ])("does not mistake %s for a full store", (_label, err) => {
+    expect(isOutOfSpace(err)).toBe(false);
+  });
+
+  it("terminates on a cyclic cause chain", () => {
+    const a: { cause?: unknown } = {};
+    a.cause = a;
+    expect(isOutOfSpace(a)).toBe(false);
+  });
+
+  it("is mapped by the filesystem adapter too, so one classifier serves every adapter", async () => {
+    const storage = new FilesystemStorage(join(dir, "quota"));
+    const body = new Readable({
+      read() {
+        this.destroy(s3("QuotaExceeded", 403));
+      },
+    });
+    await expect(storage.put("t1/s1/q1", body, { contentType: "audio/webm" })).rejects.toBeInstanceOf(
       StorageFull,
     );
   });
