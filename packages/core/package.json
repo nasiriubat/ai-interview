@@ -12,6 +12,7 @@
     }
   },
   "scripts": {
+    "prebuild": "node ../../scripts/with-lock.mjs db-build -- pnpm --filter @aidp/db run build:lib",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
