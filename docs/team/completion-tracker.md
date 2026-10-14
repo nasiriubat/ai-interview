@@ -27,13 +27,13 @@ is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026
 
 ## Grades against the starting point
 
-| Dimension          | Start | Now (estimate) | Target | Evidence for the movement                                                                  |
-| ------------------ | ----- | -------------- | ------ | ------------------------------------------------------------------------------------------ |
-| Security           | C+    | B+/A-          | A      | Guards, rate identity, erasure, SSRF, dependencies, suspension, staff identity merged      |
-| Operations         | C+    | B              | A      | Alerting, job admin, heartbeat, timeouts, encrypted backups, rollback scripts merged       |
-| Engineering health | B     | B+             | A      | Extraction transaction, retention GC, abort plumbing, honest gate merged; evals still thin |
-| Usability          | 6.5-7 | 7.5-8          | 9.5    | Locale fix, contrast, announcer, confirmations, error focus, copy pass merged              |
-| Spec coverage      | ~85%  | ~97%           | 100%   | Data model and features in M3                                                              |
+| Dimension          | Start | Now (estimate)                                                 | Target | Evidence for the movement                                                                  |
+| ------------------ | ----- | -------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| Security           | C+    | B+/A-                                                          | A      | Guards, rate identity, erasure, SSRF, dependencies, suspension, staff identity merged      |
+| Operations         | C+    | B                                                              | A      | Alerting, job admin, heartbeat, timeouts, encrypted backups, rollback scripts merged       |
+| Engineering health | B     | B+                                                             | A      | Extraction transaction, retention GC, abort plumbing, honest gate merged; evals still thin |
+| Usability          | 6.5-7 | 7 (owner review: visual design was poor; redesign in progress) | 9.5    | Locale fix, contrast, announcer, confirmations, error focus, copy pass merged              |
+| Spec coverage      | ~85%  | ~97%                                                           | 100%   | Data model and features in M3                                                              |
 
 ## Done (merged on the main branch, verified by `pnpm check` with a database)
 
@@ -130,3 +130,5 @@ contact address, live voice in the first pilot (default: behind its flag).
 - 2026-10-14 — Demo-defect fixes merged (D-320..326): diagrams illegible was prefers-reduced-motion CSS forcing .01ms transitions during mermaid measuring (fixed, PDF diagrams verified with real Kroki); layout clipping; MVP challenge state truthful; branding.currency; analysis auto-run debounce; summary endpoint returns status and never the last reply; voice screen in axe. e2e 408/408, axe clean. Merge also tripped the double-cast ratchet (49 vs 45), fixed by typing the tests. Gate green. All agent waves done; remaining items are owner-only or measured follow-ups.
 
 - 2026-10-14 — Follow-up closure (D-330..D-335): `upgrade.sh` waits for a healthy backup container and fails on a crash loop (D-330); `live:run` isolated by `LIVE_RUN_ID` with a lock for the default names (D-331); retention tests sweep only their own tenants, so the gate no longer depends on leftover test tenants (D-332); tests log in as their own role instead of re-passwording `app_api`, which ends the P1000 cross-process flake (D-333); scope tags `"Future"`, `"later"` and the like were read as MVP, fixed with four read-back eval cases (D-334); duplicates re-judged on the final merge code: 24% judge, 12% hand, still over 5% (D-335).
+
+- 2026-10-14 — Owner reviewed the UI and rejected it as low effort (bare landing, no admin topbar/breadcrumbs/profile, content floating, no pagination/filter/upload/toast/loading standards, not responsive). Accepted: tests and axe were not a design bar. Landing redesign merged (D-350..359, Lighthouse a11y/BP/SEO 100), admin shell + UI kit merged (D-340..349: shell, DataTable, form kit, upload, toasts, account page; 6 pages converted), engineering leftovers merged (D-330..335; duplicates still 12-24%). Page conversion wave launched for all remaining pages. Demo re-record paused until UI settles.
