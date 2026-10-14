@@ -235,6 +235,7 @@ export function staffApi(transport: Transport): StaffApi {
       list: (q) => request(transport, { path: "/users", query: { ...q }, schema: UserPageSchema }),
       create: (input) => request(transport, { method: "POST", path: "/users", body: input }),
       update: (id, input) => request(transport, { method: "PATCH", path: `/users/${id}`, body: input }),
+      remove: (id) => ok(request(transport, { method: "DELETE", path: `/users/${id}` })),
     },
 
     templates: {
@@ -700,7 +701,8 @@ export interface StaffApi {
   users: {
     list(q?: UserListQuery): Promise<Paged<User>>;
     create(input: UserInput): Promise<unknown>;
-    update(id: string, input: Partial<UserInput>): Promise<unknown>;
+    update(id: string, input: Partial<UserInput> & { disabled?: boolean }): Promise<unknown>;
+    remove(id: string): Promise<void>;
   };
   templates: {
     /** Every usable template in one call, for pickers; archived versions only when asked for. */

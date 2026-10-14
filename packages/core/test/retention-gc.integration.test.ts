@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { currentTenant } from "@aidp/db";
-import { describeDb } from "@aidp/testing";
+import { describeDb, purgeAuditLog } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { Crypto } from "../src/crypto.js";
@@ -97,7 +97,7 @@ describeDb("retention sweep storage GC", () => {
       await db.attachment.deleteMany({ where: { companyId: id } });
       await db.session.deleteMany({ where: { companyId: id } });
       await db.interviewTemplate.deleteMany({ where: { companyId: id } });
-      await db.auditLog.deleteMany({ where: { companyId: id } });
+      await purgeAuditLog(db, [id]);
       await db.company.delete({ where: { id } });
     }
     await db.$disconnect();

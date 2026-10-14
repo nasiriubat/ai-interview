@@ -101,7 +101,7 @@ export function buildContext(input: {
 }): AppContext {
   const { config, db, log } = input;
   const speech = input.speech ?? localSpeechRunner();
-  const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
+  const crypto = Crypto.fromEnv(config);
   const settings = new SettingsService(db, crypto, {
     warn: (message, meta) => {
       log.warn(meta ?? {}, message);

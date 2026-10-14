@@ -109,6 +109,23 @@ describe.each(adapters)("StoragePort: %s", (_name, make) => {
     expect(await s.head(key)).toBeNull();
   });
 
+  it("stops reading an endless stream at the cap instead of buffering it", async () => {
+    const storage = make();
+    let pulled = 0;
+    const endless = new Readable({
+      read() {
+        pulled += 1024 * 1024;
+        this.push(Buffer.alloc(1024 * 1024, 0x61));
+      },
+    });
+    await expect(
+      storage.put("c1/s1/endless", endless, { contentType: "text/plain", maxBytes: 4 * 1024 * 1024 }),
+    ).rejects.toBeInstanceOf(ObjectTooLarge);
+    // Backpressure means the source is asked for little more than the cap, not for everything.
+    expect(pulled).toBeLessThan(64 * 1024 * 1024);
+    expect(await storage.head("c1/s1/endless")).toBeNull();
+  });
+
   it("deletes a session's objects together, and leaves other sessions alone", async () => {
     const s = make();
     await s.put(attachmentKey("c1", "s1", "a1"), Buffer.from("1"), { contentType: "text/plain" });

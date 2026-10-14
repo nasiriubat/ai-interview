@@ -13,6 +13,7 @@ const UserOut = z.object({
   role: z.string(),
   companyId: z.string(),
   createdAt: z.date(),
+  disabledAt: z.date().nullable(),
 });
 
 export async function userRoutes(app: App, ctx: RouteContext): Promise<void> {
@@ -57,9 +58,22 @@ export async function userRoutes(app: App, ctx: RouteContext): Promise<void> {
       ...guard.admin(),
       schema: {
         params: z.object({ id: z.string() }),
-        body: z.object({ name: z.string().optional(), role: z.enum(["admin", "member"]).optional() }),
+        body: z.object({
+          name: z.string().optional(),
+          role: z.enum(["admin", "member"]).optional(),
+          disabled: z.boolean().optional(),
+        }),
       },
     },
     async (req) => ({ user: await users.update(req.companyId, staff(req).userId, req.params.id, req.body) }),
+  );
+
+  app.delete(
+    "/users/:id",
+    { ...guard.admin(), schema: { params: z.object({ id: z.string() }) } },
+    async (req) => {
+      await users.remove(req.companyId, staff(req).userId, req.params.id);
+      return { ok: true as const };
+    },
   );
 }

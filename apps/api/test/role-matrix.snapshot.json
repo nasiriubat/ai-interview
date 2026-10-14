@@ -59,6 +59,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "DELETE /users/:id": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "GET /admin/voice/readiness": {
     "access": "admin",
     "isolation": false,
@@ -239,6 +251,18 @@
       "crossTenantAdmin": 200
     }
   },
+  "GET /operator/crypto/status": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
   "GET /operator/jobs": {
     "access": "operator",
     "isolation": false,
@@ -389,6 +413,18 @@
     "statuses": {
       "anonymous": 401,
       "participant": 404,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "GET /p/session/export": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
       "member": 401,
       "admin": 401,
       "operator": 401,
@@ -875,6 +911,18 @@
       "crossTenantAdmin": 200
     }
   },
+  "HEAD /operator/crypto/status": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
   "HEAD /operator/jobs": {
     "access": "operator",
     "isolation": false,
@@ -1025,6 +1073,18 @@
     "statuses": {
       "anonymous": 401,
       "participant": 404,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
+  "HEAD /p/session/export": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 200,
       "member": 401,
       "admin": 401,
       "operator": 401,
@@ -1545,6 +1605,18 @@
       "admin": 200,
       "operator": 200,
       "crossTenantAdmin": 200
+    }
+  },
+  "POST /operator/crypto/rekey": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
     }
   },
   "POST /operator/jobs/dead/:queue/:id/discard": {

@@ -131,7 +131,7 @@ suite("provider addresses under the strict egress policy", () => {
           kind: "openai_compatible",
           name: "legacy",
           baseUrl: `http://127.0.0.1:${upstreamPort}/v1`,
-          apiKeyEnc: world.crypto.encrypt("k"),
+          apiKeyEnc: world.crypto.encrypt("k", "provider.apiKey"),
           headers: {},
         },
       });

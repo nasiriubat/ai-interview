@@ -89,7 +89,7 @@ describeDb("provider test through ModelCaller", () => {
         kind: "openai_compatible",
         name: "theirs",
         baseUrl: model.url,
-        apiKeyEnc: world.crypto.encrypt("k"),
+        apiKeyEnc: world.crypto.encrypt("k", "provider.apiKey"),
       },
     });
     try {

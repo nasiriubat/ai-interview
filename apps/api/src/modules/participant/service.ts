@@ -138,7 +138,7 @@ export class ParticipantService {
     // already asked for, and the attacker learns nothing by hitting the cap.
     const { requests } = await this.codeLimits(campaign.companyId);
     const since = new Date(Date.now() - HOUR_MS);
-    const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, legacy] } };
+    const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, ...legacy] } };
     await this.db.emailCode.deleteMany({ where: { ...mine, createdAt: { lt: since } } });
     const recent = await this.db.emailCode.count({ where: mine });
     if (recent >= requests) {
@@ -172,7 +172,7 @@ export class ParticipantService {
     const { campaign, view } = await this.resolveLink(linkToken);
     if (view.status !== "open") throw new AppError("conflict", "This interview is not open");
     const { hash: emailHash, legacy } = this.hashes(campaign.id, email);
-    const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, legacy] } };
+    const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, ...legacy] } };
     // Guessing is bounded per address, not only per code: the six-digit space is small, and a
     // fresh code resets a per-code counter.
     const { failures } = await this.codeLimits(campaign.companyId);
@@ -195,16 +195,21 @@ export class ParticipantService {
     await this.db.emailCode.delete({ where: { id: row.id } });
     return this.bind(campaign, {
       hash: emailHash,
-      legacyHashes: [legacy],
+      legacyHashes: legacy,
       // Typing the address again is what opens the pointer to the earlier session.
       resumeKey: this.crypto.resumeKeyForEmail(email, campaign.id),
+      resumeKeys: this.crypto.resumeKeysForEmail(email, campaign.id),
       email: campaign.participationMode === "anonymous" ? null : normalizeEmail(email),
     });
   }
 
-  /** The campaign-salted hash of an address, and the platform-wide one older rows carry. */
-  private hashes(campaignId: string, email: string): { hash: string; legacy: string } {
-    return { hash: this.crypto.campaignEmailHash(email, campaignId), legacy: this.crypto.hashEmail(email) };
+  /**
+   * The campaign-salted hash of an address under the active key, and every other value an older
+   * row may carry: the same hash under a previous key, and the platform-wide one (D-142, D-164).
+   */
+  private hashes(campaignId: string, email: string): { hash: string; legacy: string[] } {
+    const [hash = "", ...previous] = this.crypto.campaignEmailHashCandidates(email, campaignId);
+    return { hash, legacy: [...previous, ...this.crypto.hashEmailCandidates(email)] };
   }
 
   private async codeLimits(companyId: string): Promise<{ requests: number; failures: number }> {
@@ -237,6 +242,7 @@ export class ParticipantService {
         // The invitation token is the secret that only this person holds; the database keeps its
         // hash, so the pointer to their session cannot be opened from the database alone.
         resumeKey: this.crypto.resumeKeyForToken(invitationToken, campaign.id),
+        resumeKeys: this.crypto.resumeKeysForToken(invitationToken, campaign.id),
         email: inv.email,
         // A bound invitation whose answers cannot be found again must not start a second interview.
         alreadyUsed: inv.status === "bound",
@@ -279,6 +285,8 @@ export class ParticipantService {
       hash: string;
       legacyHashes: string[];
       resumeKey: Buffer;
+      /** Every key a pointer sealed before a rotation may open with, active first. */
+      resumeKeys: Buffer[];
       email: string | null;
       alreadyUsed?: boolean;
     },
@@ -288,7 +296,7 @@ export class ParticipantService {
       where: { campaignId: campaign.id, emailHash: { in: accepted } },
     });
     if (existing) {
-      const found = await this.findResponse(campaign, existing, accepted, who.resumeKey);
+      const found = await this.findResponse(campaign, existing, accepted, who.resumeKeys);
       if (found) {
         if (found.session.status === "deleted")
           throw new AppError("conflict", "Your answers were deleted; this link cannot be reused");
@@ -367,9 +375,9 @@ export class ParticipantService {
     campaign: Campaign,
     row: { resumeSeal: string | null },
     accepted: string[],
-    resumeKey: Buffer,
+    resumeKeys: Buffer[],
   ): Promise<{ participant: Participant; session: Session } | null> {
-    const sealed = row.resumeSeal ? this.crypto.unseal(resumeKey, row.resumeSeal) : null;
+    const sealed = row.resumeSeal ? this.crypto.unsealAny(resumeKeys, row.resumeSeal) : null;
     const participant = sealed
       ? await this.db.participant.findFirst({ where: { id: sealed, campaignId: campaign.id } })
       : // Rows written before D-142: the pointer was the hash itself, on the participant row.
@@ -401,7 +409,10 @@ export class ParticipantService {
   ): Promise<void> {
     const anonymous = campaign.participationMode === "anonymous";
     const rehash = row.emailHash !== who.hash && who.hash.startsWith("h2:");
-    const needsSeal = row.resumeSeal === null || row.ownerTag === null;
+    // Also when the pointer was sealed and tagged under a previous platform key (D-164): the person
+    // is here, so it is brought under the active one.
+    const needsSeal =
+      row.resumeSeal === null || row.ownerTag !== this.crypto.participantTag(campaign.id, participantId);
     const day = startOfUtcDay(row.createdAt);
     const coarsen = anonymous && day.getTime() !== row.createdAt.getTime();
     if (!rehash && !needsSeal && !coarsen) return;

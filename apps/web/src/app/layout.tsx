@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { headers } from "next/headers";
 import * as React from "react";
 import { NavigationProgress } from "@/components/common/NavigationProgress";
 import { Toaster } from "@/components/ui/sonner";
@@ -33,8 +34,12 @@ export default async function RootLayout({
 }): Promise<React.JSX.Element> {
   const locale = await requestLocale();
   const t = await getStrings();
+  // Set by proxy.ts for this request (D-165). Read by MermaidDiagram, whose SVG carries a <style>
+  // element that a nonce-only style-src would otherwise refuse.
+  const nonce = (await headers()).get("x-nonce") ?? "";
   return (
     <html lang={locale} className={inter.variable}>
+      <head>{nonce ? <meta name="csp-nonce" content={nonce} /> : null}</head>
       <body className="min-h-dvh">
         <LocaleProvider locale={locale}>
           <React.Suspense fallback={null}>

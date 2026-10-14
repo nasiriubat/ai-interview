@@ -38,7 +38,7 @@ async function main(): Promise<void> {
   // Every query goes through the tenant scope: it pairs the statement with the Postgres setting
   // the row-level security policies read (packages/db/src/tenancy.ts).
   const db = withTenantScope(new PrismaClient());
-  const crypto = new Crypto(config.PLATFORM_ENCRYPTION_KEY);
+  const crypto = Crypto.fromEnv(config);
   const settings = new SettingsService(db, crypto, {
     warn: (message, meta) => {
       log.warn(meta ?? {}, message);

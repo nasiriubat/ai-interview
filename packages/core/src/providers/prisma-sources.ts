@@ -67,7 +67,7 @@ export class PrismaProviderConfigSource implements ProviderConfigSource {
  * "Key set" in the admin screen stays true only for providers that actually hold a secret.
  */
 export function decryptApiKey(crypto: Crypto, apiKeyEnc: string): string {
-  return apiKeyEnc === "" ? "" : crypto.decrypt(apiKeyEnc);
+  return apiKeyEnc === "" ? "" : crypto.decrypt(apiKeyEnc, "provider.apiKey");
 }
 
 /** Ledger rows and spend queries (FR-45, FR-47). */

@@ -25,7 +25,7 @@ describeDb("platform rows behind row-level security", () => {
           kind: "openai_compatible",
           name: `platform ${Date.now()}`,
           baseUrl: model.url,
-          apiKeyEnc: world.crypto.encrypt("k"),
+          apiKeyEnc: world.crypto.encrypt("k", "provider.apiKey"),
         },
       })
     ).id;

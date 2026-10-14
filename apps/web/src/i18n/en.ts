@@ -251,6 +251,11 @@ export const en = {
         "The interviewer asks one closing question, then shows you a summary you can edit. You can still delete your answers afterwards.",
       doneConfirm: "Finish",
       deleteData: "Delete my data",
+      downloadReadable: "Download my data (readable)",
+      downloadJson: "Download my data (JSON)",
+      downloadBusy: "Preparing your data…",
+      downloadDone: "Your data was downloaded.",
+      downloadFailed: "We could not prepare your data. Try again in a moment.",
       deleteTitle: "Delete your answers?",
       deleteBody:
         "This removes your answers, recordings, files and everything noted from them right away. It cannot be undone.",
@@ -1517,6 +1522,29 @@ export const en = {
       roleBodyGrant: "Admins can change settings, providers, budgets and users in your organization.",
       roleBodyRevoke: "They will lose access to settings, providers, budgets and user management.",
       roleConfirm: (role: string): string => `Change to ${role}`,
+      status: "Status",
+      active: "Active",
+      disabled: "Disabled",
+      you: "You",
+      actions: "Actions",
+      disable: "Disable",
+      enable: "Enable",
+      delete: "Delete",
+      rowActions: (email: string): string => `Actions for ${email}`,
+      disableTitle: (email: string): string => `Disable ${email}?`,
+      disableBody:
+        "They are signed out of every device at once and cannot sign in again until you enable them. Their campaigns and interviews stay as they are.",
+      disableConfirm: "Disable user",
+      enableTitle: (email: string): string => `Enable ${email}?`,
+      enableBody: "They can sign in again. They will need to sign in anew; earlier sessions stay ended.",
+      enableConfirm: "Enable user",
+      deleteTitle: (email: string): string => `Delete ${email}?`,
+      deleteBody:
+        "This removes the person from your organization and cannot be undone. Campaigns and interviews they owned become yours. To keep them on record without access, disable them instead.",
+      deleteConfirm: "Delete user",
+      disabledDone: "User disabled",
+      enabledDone: "User enabled",
+      deletedDone: "User deleted",
     },
     operator: {
       title: "Platform operator",
@@ -1978,6 +2006,44 @@ export const en = {
         label: "Largest file (MB)",
         description:
           "The most one uploaded file may weigh. The platform sets a ceiling this cannot go above.",
+      },
+      "files.maxPerSession": {
+        label: "Attachments per interview",
+        description: "The most files and recordings one interview may hold.",
+      },
+      "files.maxSessionMb": {
+        label: "Attachment total per interview (MB)",
+        description: "The most all of one interview's attachments may weigh together.",
+      },
+      "files.tenantQuotaMb": {
+        label: "Attachment storage for the organization (MB)",
+        description:
+          "The most all attachments across the organization may weigh. New uploads are refused beyond it.",
+      },
+      "files.maxExtractedChars": {
+        label: "Text kept per file (characters)",
+        description: "How much text is read from one file. Anything beyond is left out.",
+      },
+      "files.maxPdfPages": {
+        label: "Longest PDF (pages)",
+        description: "A PDF with more pages than this is refused rather than read.",
+      },
+      "files.maxZipRatio": {
+        label: "Packing ratio limit",
+        description:
+          "Word and Excel files are zip containers. A part that unpacks to more than this many times its packed size is refused.",
+      },
+      "files.maxSheetCells": {
+        label: "Largest workbook (cells)",
+        description: "A workbook with more cells than this is refused rather than read.",
+      },
+      "files.maxZipEntries": {
+        label: "Parts per Word or Excel file",
+        description: "A Word or Excel file with more parts than this is refused.",
+      },
+      "files.maxUncompressedMb": {
+        label: "Unpacked size of a Word or Excel file (MB)",
+        description: "A Word or Excel file that unpacks to more than this is refused.",
       },
       "files.allowedTypes": {
         label: "Accepted file types",

@@ -48,7 +48,12 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
     ).id;
     providerId = (
       await db.provider.create({
-        data: { companyId, kind: "openai_compatible", name: "fake", apiKeyEnc: crypto.encrypt("k") },
+        data: {
+          companyId,
+          kind: "openai_compatible",
+          name: "fake",
+          apiKeyEnc: crypto.encrypt("k", "provider.apiKey"),
+        },
       })
     ).id;
   });

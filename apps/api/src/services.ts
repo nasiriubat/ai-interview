@@ -20,6 +20,7 @@ import { AuditService } from "./modules/audit/service.js";
 import { CampaignService } from "./modules/campaigns/service.js";
 import { HealthService } from "./modules/health/service.js";
 import { VerificationTokenService } from "./modules/internal-auth/service.js";
+import { CryptoAdminService } from "./modules/operator/crypto.js";
 import { OperatorService } from "./modules/operator/service.js";
 import { RecordingStore } from "./modules/participant/recordings.js";
 import { ParticipantService } from "./modules/participant/service.js";
@@ -57,6 +58,7 @@ export interface Services {
   settingsAdmin: SettingsAdminService;
   analysisQueries: AnalysisQueryService;
   operator: OperatorService;
+  cryptoAdmin: CryptoAdminService;
   voiceSetup: VoiceSetupService;
   participant: ParticipantService;
   participantSession: ParticipantSessionReader;
@@ -117,6 +119,7 @@ export function buildServices(d: ServiceDeps): Services {
       },
     }),
     analysisQueries: new AnalysisQueryService(d.db, d.analysis, d.settings),
+    cryptoAdmin: new CryptoAdminService(d.db, d.crypto, audit),
     operator: new OperatorService(d.db, d.settings, d.tenants, audit, {
       jobs: d.jobs,
       ceilings: d.ceilings,

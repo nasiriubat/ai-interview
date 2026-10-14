@@ -1,3 +1,6 @@
+import { DEFAULT_INGEST_LIMITS, IngestRejected, type IngestLimits } from "./limits.js";
+import { inspectZip } from "./zip-guard.js";
+
 /**
  * Turning an uploaded file into text (FR-31).
  *
@@ -58,16 +61,37 @@ export function kindForMime(mime: string): "document" | "image" | "audio" | null
 /** Below this many characters a parse is treated as having found nothing worth keeping. */
 const EMPTY_BELOW = 20;
 
-export async function extractText(bytes: Buffer, mime: string): Promise<Extracted> {
+/**
+ * Reads one file. Every parser sits behind a limit (P11, D-160): zip containers are inflated and
+ * counted before a parser sees them, a PDF's page count is checked before any page is parsed, a
+ * workbook is read as a stream with a cell budget, and output is cut at `maxExtractedChars`.
+ *
+ * This function runs in the caller's thread. Production callers use `extractIsolated`, which runs
+ * it in a worker with a heap limit and a deadline; the limits here are what keep that worker's
+ * work, and its memory, proportionate.
+ */
+export async function extractText(
+  bytes: Buffer,
+  mime: string,
+  limits: IngestLimits = DEFAULT_INGEST_LIMITS,
+): Promise<Extracted> {
+  const out = await extractRaw(bytes, mime, limits);
+  const text =
+    out.text.length > limits.maxExtractedChars ? out.text.slice(0, limits.maxExtractedChars) : out.text;
+  return { ...out, text, empty: text.length < EMPTY_BELOW };
+}
+
+async function extractRaw(bytes: Buffer, mime: string, limits: IngestLimits): Promise<Extracted> {
   switch (mime) {
     case "application/pdf":
-      return await extractPdf(bytes);
+      return await extractPdf(bytes, limits);
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      await inspectZip(bytes, limits, "docx");
       return await extractDocx(bytes);
     case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-      return await extractXlsx(bytes);
+      await inspectZip(bytes, limits, "xlsx");
+      return await extractXlsx(bytes, limits);
     case "text/csv":
-      return plain(decodeText(bytes));
     case "text/markdown":
     case "text/plain":
       return plain(decodeText(bytes));
@@ -76,10 +100,27 @@ export async function extractText(bytes: Buffer, mime: string): Promise<Extracte
   }
 }
 
-async function extractPdf(bytes: Buffer): Promise<Extracted> {
+async function extractPdf(bytes: Buffer, limits: IngestLimits): Promise<Extracted> {
   const { extractText: pdfText, getDocumentProxy } = await import("unpdf");
-  const doc = await getDocumentProxy(new Uint8Array(bytes));
+  let doc;
+  try {
+    // No XFA forms, no system fonts, bounded images: a PDF is read as data, never run.
+    doc = await getDocumentProxy(new Uint8Array(bytes), {
+      maxImageSize: 16_777_216,
+      enableXfa: false,
+      useSystemFonts: false,
+      disableFontFace: true,
+    });
+  } catch {
+    throw new IngestRejected("pdf_malformed", "That PDF could not be read");
+  }
+  if (doc.numPages > limits.maxPdfPages) {
+    const pages = doc.numPages;
+    await doc.cleanup();
+    throw new IngestRejected("pdf_pages", `That PDF has ${pages} pages; the limit is ${limits.maxPdfPages}`);
+  }
   const { text, totalPages } = await pdfText(doc, { mergePages: true });
+  await doc.cleanup();
   const merged = normalizeText(Array.isArray(text) ? text.join("\n\n") : text);
   return { text: merged, parts: totalPages, empty: merged.length < EMPTY_BELOW };
 }
@@ -98,28 +139,57 @@ async function extractDocx(bytes: Buffer): Promise<Extracted> {
  * and numbers in reading order — "which systems does this team use", "how long does this step
  * take" — and a layout-preserving dump costs many more tokens to say the same thing. Formulas are
  * rendered as their last computed result, which is what a person reading the sheet would see.
+ *
+ * Bounded before it is parsed rather than while: exceljs's streaming reader fails on ordinary
+ * files whose parts are not in the order it assumes, so the workbook is loaded whole, after the
+ * zip guard has capped the inflated size and each sheet's XML has been held to `maxSheetCells`
+ * times a generous per-cell byte budget. What remains is bounded by the worker's heap limit.
  */
-async function extractXlsx(bytes: Buffer): Promise<Extracted> {
+async function extractXlsx(bytes: Buffer, limits: IngestLimits): Promise<Extracted> {
+  const report = await inspectZip(bytes, limits, "xlsx");
+  const sheetXmlBytes = report.parts
+    .filter((p) => /^xl\/worksheets\/[^/]+\.xml$/i.test(p.name))
+    .reduce((n, p) => Math.max(n, p.bytes), 0);
+  if (sheetXmlBytes > limits.maxSheetCells * BYTES_PER_CELL_BUDGET) {
+    throw new IngestRejected("sheet_cells", "That workbook has more cells than can be read");
+  }
   const ExcelJS = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
   // exceljs wants an ArrayBuffer; a Buffer is a view onto a possibly larger pooled one, so copy.
   await workbook.xlsx.load(new Uint8Array(bytes).buffer);
   const out: string[] = [];
   let sheets = 0;
-  workbook.eachSheet((sheet) => {
+  let cells = 0;
+  let chars = 0;
+  for (const sheet of workbook.worksheets) {
     sheets++;
     out.push(`## ${sheet.name}`);
+    const state = { stop: false };
     sheet.eachRow({ includeEmpty: false }, (row) => {
-      const cells: string[] = [];
-      row.eachCell({ includeEmpty: true }, (cell) => cells.push(cellText(cell.value)));
-      const line = cells.join("\t").trimEnd();
-      if (line.length > 0) out.push(line);
+      if (state.stop) return;
+      const parts: string[] = [];
+      row.eachCell({ includeEmpty: true }, (cell) => parts.push(cellText(cell.value)));
+      cells += parts.length;
+      const line = parts.join("\t").trimEnd();
+      if (line.length > 0) {
+        out.push(line);
+        chars += line.length + 1;
+      }
+      // Text past the cap would be discarded anyway; stop collecting rather than finish the sheet.
+      if (chars > limits.maxExtractedChars) state.stop = true;
     });
+    if (cells > limits.maxSheetCells) {
+      throw new IngestRejected("sheet_cells", "That workbook has more cells than can be read");
+    }
     out.push("");
-  });
+    if (state.stop) break;
+  }
   const text = normalizeText(out.join("\n"));
   return { text, parts: sheets, empty: text.length < EMPTY_BELOW };
 }
+
+/** Upper bound for the bytes one cell takes in worksheet XML, with its reference and style. */
+const BYTES_PER_CELL_BUDGET = 100;
 
 /** ExcelJS cell values are a union of a dozen shapes; this flattens them to what a reader sees. */
 function cellText(value: unknown): string {

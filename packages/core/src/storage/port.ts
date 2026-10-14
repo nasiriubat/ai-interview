@@ -1,4 +1,4 @@
-import type { Readable } from "node:stream";
+import { Transform, type Readable, type TransformCallback } from "node:stream";
 
 /**
  * Where uploaded bytes live: recorded audio, and the documents and images a participant attaches
@@ -72,6 +72,28 @@ export class ObjectTooLarge extends Error {
     super(`Object is ${sizeBytes} bytes, over the ${maxBytes}-byte limit`);
     this.name = "ObjectTooLarge";
   }
+}
+
+/**
+ * Passes bytes through and fails the pipeline the moment more than `maxBytes` have gone by.
+ *
+ * Used by every adapter so the cap is one implementation, applied with backpressure: a pipeline
+ * built on this reads no faster than it writes, so an upload that is larger than its cap never
+ * sits in memory, however fast the sender is. The caller finds out at `maxBytes + 1`, not after
+ * the last byte.
+ */
+export function byteLimit(maxBytes: number | undefined): Transform {
+  let total = 0;
+  return new Transform({
+    transform(chunk: Buffer, _enc: BufferEncoding, cb: TransformCallback): void {
+      total += chunk.byteLength;
+      if (maxBytes !== undefined && total > maxBytes) {
+        cb(new ObjectTooLarge(maxBytes, total));
+        return;
+      }
+      cb(null, chunk);
+    },
+  });
 }
 
 /**
