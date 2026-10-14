@@ -1,3 +1,4 @@
+import { runWithLogBindings } from "@aidp/core";
 import { SYSTEM_TENANT, withSystemTenant, withTenant } from "@aidp/db";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
@@ -42,6 +43,14 @@ export const authPlugin = fp(
           : p.kind === "staff" && p.role === "platform_operator" && typeof override === "string"
             ? override
             : p.companyId;
+      // Every line this request writes carries who and which tenant (D-223). Fastify's per-request
+      // logger already has the request id; this adds the rest to it.
+      request.log = request.log.child({
+        ...(request.companyId ? { tenantId: request.companyId } : {}),
+        principal: p.kind,
+        ...(p.kind === "staff" ? { userId: p.userId } : {}),
+        ...(p.kind === "participant" ? { sessionId: p.sessionId } : {}),
+      });
       const operator = p.kind === "staff" && p.role === "platform_operator";
       const operatorRoute = request.routeOptions.config.access === "operator";
       const acrossTenants = operator && (typeof override !== "string" || operatorRoute);
@@ -58,9 +67,21 @@ export const authPlugin = fp(
         (tenant) => {
           const run =
             tenant === SYSTEM_TENANT ? withSystemTenant : (fn: () => Promise<void>) => withTenant(tenant, fn);
-          void run(async () => {
-            done();
-          });
+          const p = request.principal;
+          // The log scope is entered inside the same callback as the tenant, for the same reason:
+          // the handler only sees a context that `done` was called within.
+          void run(async () => { runWithLogBindings(
+              {
+                tenantId: request.companyId || undefined,
+                principal: p.kind,
+                userId: p.kind === "staff" ? p.userId : undefined,
+                sessionId: p.kind === "participant" ? p.sessionId : undefined,
+              },
+              () => {
+                done();
+              },
+            ); },
+          );
         },
         (err: unknown) => {
           done(err instanceof Error ? err : new Error(String(err)));

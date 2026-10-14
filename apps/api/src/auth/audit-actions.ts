@@ -75,6 +75,10 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   // operator
   "POST /operator/tenants": ["tenant.create"],
   "PATCH /operator/tenants/:id": ["tenant.update"],
+  // Filed under the operator's own company, not the tenant's: the tenant's trail is what
+  // offboarding removes, and who took a copy of its data and who removed it must outlive that.
+  "POST /operator/tenants/:id/export": ["tenant.export_requested"],
+  "POST /operator/tenants/:id/offboard": ["tenant.offboard_requested"],
   "POST /operator/providers": ["provider.create"],
   "PATCH /operator/providers/:id": ["provider.update"],
   "DELETE /operator/providers/:id": ["provider.delete"],

@@ -10,7 +10,7 @@ export class SpeechOutput {
    * answering should not have to wait for the interviewer to finish a sentence.
    */
   barge(): void {
-    this.host.metrics.interruptions++;
+    this.host.metrics.interruption();
     this.host.state.speaking?.abort();
     this.host.send({ type: "speech_end", interrupted: true });
   }
@@ -45,7 +45,7 @@ export class SpeechOutput {
         if (state.closed || controller.signal.aborted) break;
         if (first) {
           const ms = Date.now() - askedAt;
-          host.metrics.firstWord(ms);
+          host.metrics.firstWord(ms, state.mode);
           host.send({ type: "first_word", ms });
           first = false;
         }

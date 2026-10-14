@@ -18,6 +18,18 @@ const Env = z.object({
   EMAIL_SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
+  /**
+   * Port of the Prometheus scrape endpoint (D-222), on the compose network and in no proxy route.
+   * Unset or 0 turns it off. Compose passes an unset variable through as "".
+   */
+  METRICS_PORT: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.coerce.number().int().min(0).max(65535).default(0),
+  ),
+  /** The running release, shown on the operator health page. Set by compose from AIDP_VERSION. */
+  AIDP_VERSION: z.string().optional(),
+  /** The shared `ops_state` volume: backup status, worker heartbeat, the erasure file (D-92). */
+  OPS_STATE_DIR: z.string().optional(),
   LOG_LEVEL: z.string().default("info"),
   // Operator alerting (D-90). Both are optional fallbacks: the settings catalog (`ops.alertEmail`,
   // `ops.alertWebhookUrl`) wins when set, and `deploy/ops/notify.sh` reads these two directly

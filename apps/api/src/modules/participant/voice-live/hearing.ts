@@ -38,7 +38,7 @@ export class Hearing {
       host.state.mode = "stream";
       void this.pump(stt);
     } catch (err) {
-      host.metrics.streamFallbacks++;
+      host.metrics.streamFallback();
       host.ctx.log.warn(
         { err, sessionId: host.scope.sessionId },
         "live voice: streaming transcription unavailable, transcribing per utterance",
@@ -92,7 +92,7 @@ export class Hearing {
       case "partial":
         if (!state.partialSeen && state.speechStartedAt !== undefined) {
           state.partialSeen = true;
-          host.metrics.firstPartial(Date.now() - state.speechStartedAt);
+          host.metrics.firstPartial(Date.now() - state.speechStartedAt, state.mode);
         }
         if (state.opts.captions) host.send({ type: "caption_partial", text: ev.text });
         return;
@@ -146,7 +146,7 @@ export class Hearing {
     const stt = state.stt;
     state.stt = undefined;
     stt?.close();
-    host.metrics.streamFallbacks++;
+    host.metrics.streamFallback();
     // Tenant route first, platform second, as the resolver reads them.
     if (await host.ctx.services.turns.hasTranscriptionRoute(host.scope.companyId)) {
       state.mode = "utterance";
