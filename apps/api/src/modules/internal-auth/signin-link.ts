@@ -11,7 +11,7 @@ import { VerificationTokenService } from "./service.js";
  * would have mailed, for a staff user who already exists, and reads it off the terminal. It exists
  * for the morning the relay is wrong: a fresh install whose `EMAIL_SMTP_URL` was mistyped, or a
  * relay that is down while the only admin is signed out. Shell access to the server is already full
- * control (it reads `deploy/.env`, which holds `AUTH_SECRET`), so this adds no privilege; it only
+ * control (it reads the root `.env`, which holds `AUTH_SECRET`), so this adds no privilege; it only
  * saves that person from forging a token by hand.
  *
  * What it does is exactly what `@auth/core`'s `sendToken` does, minus the email:

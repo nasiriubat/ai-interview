@@ -17,8 +17,9 @@ set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
 export AIDP_DEPLOY_DIR="$here"
-# shellcheck source=deploy/lib.sh
-. "$here/lib.sh"
+# shellcheck source=deploy/lib/lib.sh
+. "$here/lib/lib.sh"
+refuse_legacy_env rollback
 
 assume_yes=0
 while [ $# -gt 0 ]; do

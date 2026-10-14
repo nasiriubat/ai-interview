@@ -25,11 +25,14 @@ This file is for coding agents and new engineers. It is the short version of
 | `apps/worker`      | pg-boss consumers                                                                                                          |
 | `apps/web`         | Next.js app: participant flow, admin, requirements workspace                                                               |
 | `packages/testing` | Dev-only fakes and gates: `MemorySessionStore`, `ScriptedModel`, `describeDb`, the network guard                           |
-| `evals`            | Deterministic engine replays; model-backed evals later                                                                     |
+| `deploy`           | Production stack (`compose.yml`, `Caddyfile`) and operator commands; `backup/`, `lib/`, `ops/`, `observability/`, `test/`  |
+| `tools`            | `evals` (engine replays), `live-run`, `load` (k6), `rehearsal` (drill, chaos), `fake-provider`, `eslint-rules`, `patches`  |
+| `scripts`          | Repository scripts: `check.ts` (the gate), env-file loader and `env:migrate`, security and migration gates                 |
 
 ## Conventions
 
 - TypeScript strict with `exactOptionalPropertyTypes`; build partial objects with spreads or `defined()` rather than passing `undefined`.
 - Route handlers validate with zod schemas and return plain objects; services throw `AppError` with a code from `apps/api/src/lib/errors.ts`.
 - Admin actions write to the audit log.
+- One env file: the repository-root `.env`, for development and production alike; `.env.example` documents every key (D-450). Add a new variable there, in its section.
 - Commit messages say what changed and why, referencing requirement ids where they apply.

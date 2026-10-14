@@ -83,7 +83,7 @@ Each boundary lists the threats considered (STRIDE), the control, and the test o
 
 | Threat                                       | Control                                                                                                                                                                                       | Evidence                                      |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| Reaching the API directly                    | The API is not published; only the voice WebSocket path is forwarded, and it authenticates with the participant cookie                                                                        | `deploy/compose.prod.yml`, `deploy/Caddyfile` |
+| Reaching the API directly                    | The API is not published; only the voice WebSocket path is forwarded, and it authenticates with the participant cookie                                                                        | `deploy/compose.yml`, `deploy/Caddyfile`      |
 | Calling a route without the right role       | Every route declares `public`, `participant`, `staff`, `admin`, `operator` or `internal`; the guard runs in `onRequest`, before the body is parsed; an undeclared route stops the boot (D-88) | `role-matrix.e2e.test.ts` and its snapshot    |
 | Forging the machine credential               | The internal secret is an HKDF derivation of `AUTH_SECRET`, compared in constant time; `AUTH_SECRET` itself does not open internal routes (D-260)                                             | `internal-auth.e2e.test.ts`                   |
 | Reading another tenant's object by id        | Every tenant-owned query is scoped by `companyId` and fenced again by row-level security (below)                                                                                              | `rls-conformance.integration.test.ts`; probes |
@@ -92,13 +92,13 @@ Each boundary lists the threats considered (STRIDE), the control, and the test o
 
 ### 4. API and worker to Postgres
 
-| Threat                                 | Control                                                                                                                                                                                                | Evidence                                                     |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| A query that forgets the tenant filter | The application connects as `app_api`, which cannot bypass RLS; each table has a `tenant_isolation` policy on `app.company_id`; the preflight refuses to start the stack when a table has none (D-140) | `rls-conformance.integration.test.ts`, `deploy/preflight.sh` |
-| Editing or removing audit rows         | `AuditLog` is append-only for every role by trigger and privilege, and hash-chained per tenant; `audit_chain_verify()` runs daily (D-163)                                                              | `audit-append-only.integration.test.ts`                      |
-| Writing content into a deleted session | Insert triggers on content tables refuse a deleted session (D-89)                                                                                                                                      | `erasure.e2e.test.ts`                                        |
-| Secrets at rest                        | AES-256-GCM, HKDF-derived key, purpose-bound AAD, key id in the ciphertext; rotation by `crypto.rekey` (D-164)                                                                                         | `crypto-admin.e2e.test.ts`, `rekey.integration.test.ts`      |
-| Identity of staff                      | One tenant per address, globally unique, lower-case (D-84); disabled users and revoked sessions are refused on every request (D-161)                                                                   | `staff-identity.e2e.test.ts`, `user-offboarding.e2e.test.ts` |
+| Threat                                 | Control                                                                                                                                                                                                | Evidence                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| A query that forgets the tenant filter | The application connects as `app_api`, which cannot bypass RLS; each table has a `tenant_isolation` policy on `app.company_id`; the preflight refuses to start the stack when a table has none (D-140) | `rls-conformance.integration.test.ts`, `deploy/lib/preflight.sh` |
+| Editing or removing audit rows         | `AuditLog` is append-only for every role by trigger and privilege, and hash-chained per tenant; `audit_chain_verify()` runs daily (D-163)                                                              | `audit-append-only.integration.test.ts`                          |
+| Writing content into a deleted session | Insert triggers on content tables refuse a deleted session (D-89)                                                                                                                                      | `erasure.e2e.test.ts`                                            |
+| Secrets at rest                        | AES-256-GCM, HKDF-derived key, purpose-bound AAD, key id in the ciphertext; rotation by `crypto.rekey` (D-164)                                                                                         | `crypto-admin.e2e.test.ts`, `rekey.integration.test.ts`          |
+| Identity of staff                      | One tenant per address, globally unique, lower-case (D-84); disabled users and revoked sessions are refused on every request (D-161)                                                                   | `staff-identity.e2e.test.ts`, `user-offboarding.e2e.test.ts`     |
 
 ### 5. API and worker to the outside (model providers, SMTP, GitHub, Kroki)
 
@@ -114,18 +114,18 @@ Each boundary lists the threats considered (STRIDE), the control, and the test o
 | Threat                                                | Control                                                                                                                                                                               | Evidence                                                 |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | A malicious file (bomb, polyglot, renamed executable) | Streamed to a cap before it is stored; signatures checked by type; archives inflated and counted (entries, size, ratio, DOCTYPE/ENTITY); quotas per interview and per tenant (D-160)  | `upload-hardening.e2e.test.ts`, `ingest/hostile.test.ts` |
-| Prompt injection from a participant or a document     | Untrusted text is delimited and never in the instruction position; extraction output is verified (quotes must exist in the source); the report renderer cannot load a remote resource | `evals/src/injection.eval.ts`                            |
+| Prompt injection from a participant or a document     | Untrusted text is delimited and never in the instruction position; extraction output is verified (quotes must exist in the source); the report renderer cannot load a remote resource | `tools/evals/src/injection.eval.ts`                      |
 | Re-identification of an anonymous participant         | Per-campaign salted email hash, no stored pointer from a response to an address, day-resolution times, k-anonymity on quotes, evidence and groups (D-142)                             | `anonymity.e2e.test.ts`                                  |
 | Data kept after a deletion request                    | One definition of deletion (`eraseSession`) for the participant, the job and the retention sweep; an erasure ledger re-applies deletions after a restore (D-81, D-226)                | `erasure.e2e.test.ts`, `privacy-retention.e2e.test.ts`   |
 
 ### 7. Supply chain and build
 
-| Threat                                    | Control                                                                                                                                                                                      | Evidence                                                          |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| A vulnerable dependency                   | `pnpm audit --prod --audit-level=high` with expiring, justified ignores; Trivy over the lockfile and over both images, failing on fixable HIGH and CRITICAL; weekly Dependabot (D-85, D-267) | `.github/workflows/security.yml`, `ci.yml`                        |
-| A leaked secret in history                | `gitleaks` over the full history with a committed configuration (D-267)                                                                                                                      | `.gitleaks.toml`                                                  |
-| A compromised GitHub Action               | Every action is pinned by commit SHA, with minimal workflow permissions; Dependabot raises the update                                                                                        | `scripts/security-gates.mjs workflows`                            |
-| A model or network call outside the guard | ESLint fences: no provider adapter outside `packages/ai/src/providers`, no global `fetch` outside the egress-guarded modules (a shrinking ratchet lists what remains)                        | `scripts/architecture-lint.test.mjs`, `eslint-rules/ratchet.json` |
+| Threat                                    | Control                                                                                                                                                                                      | Evidence                                                                |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| A vulnerable dependency                   | `pnpm audit --prod --audit-level=high` with expiring, justified ignores; Trivy over the lockfile and over both images, failing on fixable HIGH and CRITICAL; weekly Dependabot (D-85, D-267) | `.github/workflows/security.yml`, `ci.yml`                              |
+| A leaked secret in history                | `gitleaks` over the full history with a committed configuration (D-267)                                                                                                                      | `.github/security/.gitleaks.toml`                                       |
+| A compromised GitHub Action               | Every action is pinned by commit SHA, with minimal workflow permissions; Dependabot raises the update                                                                                        | `scripts/security-gates.mjs workflows`                                  |
+| A model or network call outside the guard | ESLint fences: no provider adapter outside `packages/ai/src/providers`, no global `fetch` outside the egress-guarded modules (a shrinking ratchet lists what remains)                        | `scripts/architecture-lint.test.mjs`, `tools/eslint-rules/ratchet.json` |
 
 ## What is not defended against
 
@@ -161,7 +161,7 @@ State these to a customer plainly.
 Tracked, with severity and status, in the verification report. The ones an outside reviewer should
 know: the platform has had no external penetration test (criterion 15 of the programme); the
 operator can link participants to hashes with the platform key; model-backed injection rates are
-recorded by `evals/` only when run with a key.
+recorded by `tools/evals/` only when run with a key.
 
 ## Verifying it yourself
 
@@ -171,7 +171,7 @@ pnpm audit --prod --audit-level=high         # dependency advisories in what shi
 node scripts/security-gates.mjs workflows    # actions pinned by commit SHA
 node scripts/security-gates.mjs security-txt # security.txt present and unexpired
 pnpm --filter @aidp/web e2e                  # Playwright: axe and the CSP-violation assertion, enforced
-docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.28.0 detect --source /repo --config /repo/.gitleaks.toml --log-opts="--all"
+docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.28.0 detect --source /repo --config /repo/.github/security/.gitleaks.toml --log-opts="--all"
 ```
 
 The `security` workflow runs the scanners on every push and weekly: Trivy over the lockfile, over

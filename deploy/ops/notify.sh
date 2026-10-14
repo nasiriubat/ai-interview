@@ -17,7 +17,7 @@
 #   5. While the worker is down: the backup status and the disk, because the sweep that normally
 #      reads them is the worker.
 #
-# Configuration, all from deploy/.env through compose:
+# Configuration, all from .env through compose:
 #   ALERT_WEBHOOK_URL, ALERT_WEBHOOK_FORMAT (ntfy|slack|generic, default ntfy)
 #   ALERT_EMAIL (falls back to BOOTSTRAP_OPERATOR_EMAIL), EMAIL_FROM, and the relay:
 #     SMTP_HOST, SMTP_PORT, SMTP_SECURITY (none|starttls|tls, default starttls), SMTP_USER,

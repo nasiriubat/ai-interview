@@ -6,16 +6,17 @@ Prerequisites: Node 22, pnpm 10, Docker.
 
 ## Configuration
 
-One file configures development: the **root `.env`** (copy `.env.example`, which documents every
-variable and tags it required, bootstrap, fallback or runtime). There is nothing to copy into
-`apps/api` or `apps/web`.
+One file configures the repository, development and production alike: the **root `.env`** (copy
+`.env.example`, which documents every variable, tags it required, bootstrap, fallback or runtime,
+and groups it: required everywhere, required for production only, optional, development defaults;
+D-450). There is nothing to copy into `apps/api`, `apps/web` or `deploy/`.
 
 | Where you run                                                | What reads the root `.env`                                              |
 | ------------------------------------------------------------ | ----------------------------------------------------------------------- |
 | `pnpm stack:up` (Docker)                                     | every service, through `env_file`, and compose's own `${...}` expansion |
 | `pnpm --filter @aidp/{api,worker,web} dev`, `@aidp/db` tools | `scripts/with-env.mjs`, which loads it before starting the command      |
 | `pnpm check`, tests, `pnpm live:run`                         | tests never read it; `live:run` looks for the OpenRouter key in it      |
-| Production                                                   | **not read.** `deploy/.env` (generated, every variable named) instead   |
+| Production (`deploy/dc`, `deploy/upgrade.sh`, ...)           | `--env-file` with the root `.env`, written by `deploy/generate-env.sh`  |
 
 **Precedence**, highest first: a variable set in the shell, then the root `.env`, then (only while
 it still exists) the legacy `apps/api/.env`, then the code's default. In Docker, values the compose
@@ -64,7 +65,7 @@ filtered to this project, so the image list does not grow with every build.
 
 The production-shaped rehearsal runs the whole stack against `tools/fake-provider`, an
 OpenAI-compatible server with scripted interviews and a control endpoint for latency and failure
-injection: see [DEPLOY.md](DEPLOY.md#rehearsing-a-deployment) (`deploy/drill/stack.sh`).
+injection: see [DEPLOY.md](DEPLOY.md#rehearsing-a-deployment) (`tools/rehearsal/drill/stack.sh`).
 
 ## How the first admin signs in
 
@@ -74,7 +75,7 @@ inbox at `http://localhost:8025`. Without the Docker stack the web app falls bac
 
 Mailpit is not part of a production deployment. There the relay is a real SMTP server set at deploy
 time as `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER` and `SMTP_PASSWORD` in
-`deploy/.env` (the stack refuses to start without `SMTP_HOST`), the first admin is
+the root `.env` (the stack refuses to start without `SMTP_HOST`), the first admin is
 `BOOTSTRAP_ADMIN_EMAIL`, and Google sign-in (`AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`) is the
 alternative. Tenant admins can then set their own mail server under Settings, Email, which covers
 the mail a tenant sends but not the deployment's sign-in links. The full explanation is in

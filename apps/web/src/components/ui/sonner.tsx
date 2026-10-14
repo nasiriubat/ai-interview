@@ -4,7 +4,7 @@ import { CircleAlertIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon } from "l
 import * as React from "react";
 import { Toaster as Sonner, toast } from "sonner";
 // The library injected this as a <style> element at runtime, which a nonce-only style-src blocks;
-// the package is patched not to (patches/sonner.patch) and the same CSS is served as a file (D-264).
+// the package is patched not to (tools/patches/sonner.patch) and the same CSS is served as a file (D-264).
 import "sonner/dist/styles.css";
 
 /**

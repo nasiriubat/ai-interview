@@ -40,8 +40,10 @@ packages/db       Prisma schema, migrations, scoped client, seeds
 packages/ai       Provider layer, cost control, engine, extractors, analysis, spec generation, prompts
 packages/shared   Zod contracts, settings catalog, fact and widget schemas
 packages/ui       Shared components: chat, widgets, voice, diagrams
-evals/            Fixed transcripts and checks
-infra/            Compose files, Kroki, MinIO, Grafana stack
+packages/core     Server infrastructure shared by API and worker
+deploy/           Production stack: compose.yml, Caddyfile, operator scripts, backups, observability
+tools/            Evals, live-run harness, load tests, rehearsal stack, fake provider, lint rules
+scripts/          Repository scripts: quality gate, env-file loader, security gates
 docs/             Discovery, spec, team
 ```
 

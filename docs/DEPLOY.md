@@ -55,7 +55,7 @@ and would put tokens in the browser, for no capability the product uses. So the 
 ## Prerequisites
 
 - A VPS in the EU (NFR-02). 2 vCPU, 4 GB RAM, 40 GB disk is the floor, and 4 GB needs the 4 GB
-  preset: the limits in `deploy/compose.prod.yml` are the 8 GB ones (their sum is about 7.5 GB, most
+  preset: the limits in `deploy/compose.yml` are the 8 GB ones (their sum is about 7.5 GB, most
   of it headroom for the on-host Whisper model), and `generate-env.sh <host> <email> --size 4gb`
   writes limits that fit. What the stack really uses is in [Capacity and load](#capacity-and-load).
   Postgres and the two Node services are the memory-hungry parts.
@@ -74,26 +74,34 @@ and would put tokens in the browser, for no capability the product uses. So the 
 
 ## First deployment
 
-Production configuration is `deploy/.env` and only that file: it is generated, every variable is
-named in `deploy/compose.prod.yml`, and a missing one stops the stack. The root `.env` described in
-[RUNNING.md](RUNNING.md#configuration) is the development file and is never read here.
+Production configuration is the repository-root `.env`, the same one env file development uses
+([RUNNING.md](RUNNING.md#configuration)) and documented key by key in `.env.example`, whose
+sections say which keys production requires (D-450). On the server it is generated, every variable
+is named in `deploy/compose.yml`, and a missing one stops the stack. Run the stack through
+`deploy/dc` and the scripts beside it, never the development `docker compose` in the repository
+root, which would read the same file for a different stack.
+
+**An install from before D-450** kept this file inside `deploy/`. `deploy/dc`, `upgrade.sh`,
+`rollback.sh`, `restore.sh` and `generate-env.sh` stop at once when they find it there, change
+nothing, and print the one `mv` that moves it to the repository root.
 
 Run these as a user in the `docker` group, from the repository root.
 
 ```bash
 git clone <your-remote> ai-interview && cd ai-interview
 
-# 1. Secrets and settings. Writes deploy/.env, mode 600, including a backup encryption key pair
-#    (when age-keygen is on this machine; upgrade.sh makes it otherwise). Refuses to overwrite.
+# 1. Secrets and settings. Writes .env, mode 600, including a backup encryption key pair
+#    (when age-keygen is on this machine; upgrade.sh makes it otherwise). Prints key names only.
+#    Refuses to overwrite an existing .env; --force replaces it and keeps the old one beside it.
 ./deploy/generate-env.sh pilot.example.com ops@example.com
 
 # 2. Fill in what it cannot invent. The stack does not start until SMTP_HOST (with SMTP_PORT,
 #    SMTP_SECURITY, SMTP_USER, SMTP_PASSWORD) names a real mail relay, and a failure reaches nobody until ALERT_EMAIL or ALERT_WEBHOOK_URL is set. (And if you have
 #    an ANTHROPIC_API_KEY or OPENROUTER_API_KEY, add it now so first boot seeds a provider with
 #    default routes; you can also do it in the admin UI later.)
-$EDITOR deploy/.env
+$EDITOR .env
 
-# 3. COPY deploy/.env TO YOUR PASSWORD MANAGER NOW. It holds the keys to the database, to the
+# 3. COPY .env TO YOUR PASSWORD MANAGER NOW. It holds the keys to the database, to the
 #    stored provider keys and to every backup. It is not in the repository and not in the volumes.
 
 # 4. Build, migrate, start, and check. The images are tagged with the git SHA; the backup image
@@ -128,11 +136,11 @@ Because the commands are long, the rest of this document uses:
 alias dc='./deploy/dc'
 ```
 
-`deploy/dc` supplies the compose file, `deploy/.env` and `deploy/versions.env` (the image tag
+`deploy/dc` supplies the compose file, the root `.env` and `deploy/versions.env` (the image tag
 `upgrade.sh` recorded). Run through it, and never `docker compose up` by hand.
 
 An install made before the images were versioned has volumes named `deploy_pgdata` and so on; it
-must put `COMPOSE_PROJECT_NAME=deploy` in `deploy/.env`, and `upgrade.sh` refuses to continue
+must put `COMPOSE_PROJECT_NAME=deploy` in the root `.env`, and `upgrade.sh` refuses to continue
 without it rather than start on an empty database.
 
 ## How the first admin signs in
@@ -140,7 +148,7 @@ without it rather than start on an empty database.
 Mailpit is a development tool (`docker-compose.yml`, mail on `:8025`); it is not in the production
 stack and never receives anything there. In production the first admin signs in like this:
 
-1. **The relay is set at deploy time, not in the admin.** Five lines in `deploy/.env`, the same
+1. **The relay is set at deploy time, not in the admin.** Five lines in the root `.env`, the same
    fields as the admin's mail server form, each written exactly as your mail provider gives it
    (nothing is URL-encoded):
 
@@ -160,13 +168,13 @@ stack and never receives anything there. In production the first admin signs in 
 
    An install from before this change may still have `EMAIL_SMTP_URL`; it keeps working while
    `SMTP_HOST` is empty and is ignored once it is set. `node scripts/migrate-env.mjs --file
-deploy/.env` splits it into the five lines (it prints key names only and keeps a `.bak`).
+.env` splits it into the five lines (it prints key names only and keeps a `.bak`).
 
 2. **The first admin is `BOOTSTRAP_ADMIN_EMAIL`.** `generate-env.sh <host> <admin-email>` writes it.
    The `migrate` step creates the tenant and that user, and `/auth/signin` mails a one-time link to
    exactly that address.
 3. **Google sign-in is the alternative.** Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` in
-   `deploy/.env` and the sign-in page offers "Continue with Google" beside the email link. Google
+   the root `.env` and the sign-in page offers "Continue with Google" beside the email link. Google
    does not need the relay to sign in, but invitations and reports still do, and the stack still
    requires `SMTP_HOST`.
 4. **Afterwards, tenant admins configure their own mail** in Settings, Email: mail server host,
@@ -205,7 +213,7 @@ the browser that should be signed in. The link:
 - is recorded: an audit row `auth.signin_link_issued` in the user's organization, actor `cli`,
   target the user, with the expiry and never the token, plus a warning line on stderr.
 
-This adds no privilege. A shell on the server already reads `deploy/.env`, which holds
+This adds no privilege. A shell on the server already reads the root `.env`, which holds
 `AUTH_SECRET` and the database password; the command only spares that person from forging a token
 by hand. It prints nothing secret except the link itself, so do not paste its output into a ticket.
 
@@ -215,7 +223,7 @@ service that gives you a host, port and credentials will do, a transactional ema
 SMTP submission service of the mailbox provider your organization already uses, or your own mail
 server; use port 587 with STARTTLS or 465 with TLS, and a sender address on a domain whose SPF and
 DKIM records allow that relay, or the mail lands in spam. Once you are in, fix `EMAIL_SMTP_URL` in
-`deploy/.env`, run `./deploy/dc up -d`, and send yourself a test from Settings, Email.
+the root `.env`, run `./deploy/dc up -d`, and send yourself a test from Settings, Email.
 [OPERATIONS.md](OPERATIONS.md#locked-out--email-not-working) has the checklist.
 
 ## Model configuration, and the one route that is easy to miss
@@ -230,7 +238,7 @@ purposes to models; Admin → Settings holds the defaults.
 
 Every call to a provider has a deadline and a bounded number of retries, so a provider that goes
 quiet fails the turn after two minutes at most instead of hanging it. The limits are
-`PROVIDER_*` variables in `deploy/.env`; [OPERATIONS.md](OPERATIONS.md#provider-timeouts-and-retries)
+`PROVIDER_*` variables in the root `.env`; [OPERATIONS.md](OPERATIONS.md#provider-timeouts-and-retries)
 has the table.
 
 `interview_turn` is the one that blocks everything: with no route, no interview can start.
@@ -276,7 +284,7 @@ endpoints, and OpenRouter proxies chat models only. Without a third key you get 
 work, recorded answers transcribed on the server, clustering that falls back to word overlap, and
 no spoken interviewer.
 
-Setting `OPENAI_API_KEY` in `deploy/.env` closes all three at once: first boot adds a platform
+Setting `OPENAI_API_KEY` in the root `.env` closes all three at once: first boot adds a platform
 OpenAI provider and routes `transcription`, `stt_stream`, `tts` and `embedding` to it, leaving every
 conversation purpose on whichever provider you chose. Transcription then goes to OpenAI rather
 than the local model; the local provider is still created, so you can switch back.
@@ -381,7 +389,7 @@ is no logo upload. A document is composed in about half a second at 135 pages (m
 characters of Markdown, twelve diagrams over the cap shown as source), one at a time per API
 process; a second request waits and a fourth is turned away with a 429.
 
-**Diagrams are drawn by Kroki**, two containers in `deploy/compose.prod.yml`:
+**Diagrams are drawn by Kroki**, two containers in `deploy/compose.yml`:
 
 | Service         | Image                           | Limit  | Resident, measured             | What it is                               |
 | --------------- | ------------------------------- | ------ | ------------------------------ | ---------------------------------------- |
@@ -407,7 +415,7 @@ ceilings that stop a runaway render taking the host with it.
   `x-export-warnings: diagram_unrendered:<n>`, which the exports panel shows. Saving a diagram in
   the editor still works and is marked "not verified".
 - **Turning it off** (a 2 GB host, or no use for diagrams): put `KROKI_URL=` (empty) in
-  `deploy/.env` and `deploy/dc stop kroki kroki-mermaid`. An upgrade starts them again, so
+  the root `.env` and `deploy/dc stop kroki kroki-mermaid`. An upgrade starts them again, so
   also remove the two services from a local copy of the compose file if you want them gone.
 - **Checking it.** `deploy/dc ps` shows both as `healthy`. To draw one by hand from the API's
   network: `deploy/dc exec -T api node -e "fetch('http://kroki:8000/mermaid/svg',{method:'POST',body:'flowchart LR\n A-->B'}).then(r=>console.log(r.status))"`.
@@ -435,7 +443,7 @@ live there, not in Postgres, so a database-only backup would restore a system wh
 rows all point at bytes that are gone — and nothing would say so until somebody pressed play. The
 nightly job takes both, stamped identically, and `restore.sh` puts both back.
 
-The prefix is the compose project name, pinned to `aidp` by `COMPOSE_PROJECT_NAME` in `deploy/.env`
+The prefix is the compose project name, pinned to `aidp` by `COMPOSE_PROJECT_NAME` in the root `.env`
 (`generate-env.sh` writes it). An install made before it was pinned has the prefix `deploy`, and
 keeps it by setting `COMPOSE_PROJECT_NAME=deploy`. `docker volume ls` shows the real names.
 
@@ -443,10 +451,10 @@ Every container that faces the network runs unprivileged: the API, the worker an
 run as uid 1000 (`node`, in both images) over a root-owned, read-only
 application tree. Confirm with `dc exec api id`.
 
-`deploy/.env` is the sixth thing that matters and it is not in a volume. It is mode 600 in the
+the root `.env` is the sixth thing that matters and it is not in a volume. It is mode 600 in the
 checkout, `.gitignore`d, and **not** baked into any image — the root `.dockerignore` excludes every
 `.env` from the build context, and the images take their configuration from compose `environment:`
-entries at run time. Back `deploy/.env` up somewhere other than this VPS: a database dump without
+entries at run time. Back the root `.env` up somewhere other than this VPS: a database dump without
 `PLATFORM_ENCRYPTION_KEY` cannot decrypt the provider keys or SMTP settings inside it.
 
 ## Database roles
@@ -458,7 +466,7 @@ tenant data leaks only once two tenants exist. That is the failure this deployme
 make impossible:
 
 - `api` and `worker` have `postgresql://app_api:...` written literally into
-  `deploy/compose.prod.yml`. Only the password comes from the environment, so there is no variable
+  `deploy/compose.yml`. Only the password comes from the environment, so there is no variable
   an operator can point back at the owner.
 - `migrate` keeps the owner URL, because only the owner may change the schema, and it is handed
   `APP_DB_PASSWORD` so `bootstrap` gives `app_api` a login.
@@ -501,7 +509,7 @@ still owns no application table.
 The second cannot be a migration, because it repairs state only a restore can produce, at a moment
 when migrations have already run: `pg_restore` returns the pg-boss tables under the owner role with
 nothing granted to `app_api`, and the API dies on "permission denied for table version". That is
-what `deploy/grants.sql` and the `db-grants` service are for. It is idempotent and a no-op on a
+what `deploy/lib/grants.sql` and the `db-grants` service are for. It is idempotent and a no-op on a
 healthy system.
 
 ## Backups
@@ -534,12 +542,12 @@ manual `chown`. Checked in the rehearsal stack: `dc exec -T backup id` prints `u
 a dump with an upload in the archive, the restore drill, a scratch restore and a live
 `restore.sh --force` all work as that user.
 
-**Encryption.** The key pair is `BACKUP_AGE_RECIPIENT` and `BACKUP_AGE_IDENTITY` in `deploy/.env`,
+**Encryption.** The key pair is `BACKUP_AGE_RECIPIENT` and `BACKUP_AGE_IDENTITY` in the root `.env`,
 made once by `generate-env.sh` or `upgrade.sh`. Lose the identity and every backup is unreadable;
-that is why `deploy/.env` goes to your password manager on day one.
+that is why the root `.env` goes to your password manager on day one.
 
 **Offsite.** The volume is on the same disk as the database, so on its own it protects against a
-dropped table and not against a dead host. Set `RCLONE_REMOTE` and its credentials in `deploy/.env`
+dropped table and not against a dead host. Set `RCLONE_REMOTE` and its credentials in the root `.env`
 (a commented block there shows an S3-compatible bucket and Backblaze B2, three lines each) and each
 run copies the pair offsite, keeping 30 daily, 13 weekly and 13 monthly copies. Unset, the status
 file says `offsite: not_configured`; the go-live list below asks you to decide that on purpose.
@@ -595,7 +603,7 @@ without losing anything, in four steps with a rollback at each; the full procedu
 what to check are in [the key rotation runbook](OPERATIONS.md#cryptorekey). In short:
 
 1. Generate a new key and set it as `PLATFORM_ENCRYPTION_KEY`, moving the old value to
-   `PLATFORM_ENCRYPTION_KEY_PREVIOUS` in `deploy/.env`. Restart. Everything still reads; new values
+   `PLATFORM_ENCRYPTION_KEY_PREVIOUS` in the root `.env`. Restart. Everything still reads; new values
    are written under the new key.
 2. As the platform operator, start the re-encryption (`POST /operator/crypto/rekey`, or the
    operator jobs page). It is safe to run twice.
@@ -608,16 +616,16 @@ rather than merely old, also rotate the provider keys themselves at the provider
 ciphertext was exposed.
 
 `AUTH_SECRET` signs session JWTs and is shared by the web app and the API. Changing it is safe and
-signs everyone out; both services must get the same new value, so change it in `deploy/.env` and
+signs everyone out; both services must get the same new value, so change it in the root `.env` and
 recreate both.
 
 `POSTGRES_PASSWORD` and `APP_DB_PASSWORD` are ordinary passwords. To change `APP_DB_PASSWORD`, edit
-`deploy/.env` and run `dc up -d --force-recreate`: `migrate` re-runs `bootstrap`, which applies the
+the root `.env` and run `dc up -d --force-recreate`: `migrate` re-runs `bootstrap`, which applies the
 new password to the role, and the app picks up the same value from the same variable.
 `POSTGRES_PASSWORD` is set by the Postgres image only on first initialisation, so changing it later
 also needs `dc exec postgres psql -U app -c "alter role app password '<new>'"` before the recreate.
 
-Back up `deploy/.env`. A database dump without it is only half a backup.
+Back up the root `.env`. A database dump without it is only half a backup.
 
 ## Upgrading and rolling back
 
@@ -703,14 +711,14 @@ docker builder prune -f                  # BuildKit cache
 
 `docker image prune -a` also removes the previous version's images, which `rollback.sh` needs; it
 only does so for images no container uses, so run it after you have decided not to roll back.
-Then lower `BACKUP_RETENTION_DAYS` in `deploy/.env` and `dc up -d backup`. If the database itself is
+Then lower `BACKUP_RETENTION_DAYS` in the root `.env` and `dc up -d backup`. If the database itself is
 the size, that is a capacity decision, not a cleanup: grow the volume or move to a bigger host.
 Check `dc exec -T postgres psql -U app -d ai_discovery -c "\l+"` for the real figure.
 
 ## Testing without a public domain
 
 You cannot get a real certificate without a domain that resolves to the host, so Caddy is told to
-issue from its own CA instead. Three variables in `deploy/.env`:
+issue from its own CA instead. Three variables in the root `.env`:
 
 ```bash
 PUBLIC_HOSTNAME=localhost
@@ -722,7 +730,7 @@ HTTPS_PORT=5543
 Then the ordinary commands work, with `curl -k` to accept the self-signed certificate:
 
 ```bash
-./deploy/upgrade.sh                   # or, to change only deploy/.env: dc up -d
+./deploy/upgrade.sh                   # or, to change only .env: dc up -d
 curl -k -o /dev/null -w '%{http_code}\n' https://localhost:5543/auth/signin     # 200
 ```
 
@@ -743,22 +751,22 @@ dc logs caddy | grep -i acme
 
 Everything above has also been run, end to end, on one machine with throwaway secrets, a scripted
 model and a mail catcher, so that a script change can be tried before it meets a pilot's data. The
-rehearsal is test-only and never touches `deploy/.env`:
+rehearsal is test-only and never touches the root `.env`:
 
 ```bash
-deploy/drill/stack.sh up            # generate a scratch env outside the repo, then upgrade.sh
-deploy/drill/stack.sh configure     # point the platform at the fake provider, open a campaign
-deploy/drill/stack.sh run node deploy/drill/journey.mjs all     # interviews, analysis, specification, PDF
-deploy/drill/stack.sh run node deploy/drill/voice.mjs 3         # the live voice socket through Caddy
-load/run.sh smoke                   # k6, from inside the stack's network (full: `load/run.sh full`)
-deploy/chaos/run.sh                 # provider 5xx and hang, Postgres restart, kills, Caddy, full disks
-deploy/drill/stack.sh down          # containers, volumes and images; the scratch directory stays
+tools/rehearsal/drill/stack.sh up            # generate a scratch env outside the repo, then upgrade.sh
+tools/rehearsal/drill/stack.sh configure     # point the platform at the fake provider, open a campaign
+tools/rehearsal/drill/stack.sh run node tools/rehearsal/drill/journey.mjs all     # interviews, analysis, specification, PDF
+tools/rehearsal/drill/stack.sh run node tools/rehearsal/drill/voice.mjs 3         # the live voice socket through Caddy
+tools/load/run.sh smoke                   # k6, from inside the stack's network (full: `tools/load/run.sh full`)
+tools/rehearsal/chaos/run.sh                 # provider 5xx and hang, Postgres restart, kills, Caddy, full disks
+tools/rehearsal/drill/stack.sh down          # containers, volumes and images; the scratch directory stays
 ```
 
-What it is made of: [`deploy/compose.fake.yml`](../deploy/compose.fake.yml) adds the fake provider
+What it is made of: [`tools/rehearsal/compose.fake.yml`](../tools/rehearsal/compose.fake.yml) adds the fake provider
 (`tools/fake-provider`, an OpenAI-compatible server with scripted interviews and a control endpoint
 for latency and failure injection) and a mail catcher to the production file; nothing in
-`compose.prod.yml` knows about them. The scratch directory (`$TMPDIR/aidpfull`, mode 700) holds the
+`compose.yml` knows about them. The scratch directory (`$TMPDIR/aidpfull`, mode 700) holds the
 generated env, the version record and the results; the project is `aidpfull`, the ports 18080 and
 18443, the hostname `aidp.localhost`, Caddy's own CA.
 
@@ -769,14 +777,14 @@ Things this taught, which are why the rehearsal exists (dated records:
 - A sign-in link in a test install points at `https://<host>` without the port. With `HTTPS_PORT`
   set, `PUBLIC_WEB_URL`, `WEB_ORIGIN` and `AUTH_URL` now carry it too.
 - `docker kill` is a manual stop, and a manual stop switches the restart policy off. A crash is a
-  signal from outside the container's PID namespace; `deploy/chaos/lib.mjs` (`crash`) does that.
+  signal from outside the container's PID namespace; `tools/rehearsal/chaos/lib.mjs` (`crash`) does that.
 - A Docker host that has run many Compose projects can be out of address pools
   ("all predefined address pools have been fully subnetted"): the overlay gives the diagram network
   a fixed subnet for that reason. A VPS running only this stack does not need it.
 
 ## Capacity and load
 
-Measured on 2026-10-14 with `load/run.sh full` against the rehearsal stack (an 8 GB Docker VM with
+Measured on 2026-10-14 with `tools/load/run.sh full` against the rehearsal stack (an 8 GB Docker VM with
 14 CPUs, shared with other work; version `ffd17ea6ce11`; fake provider at 400 ms plus up to 100 ms
 of jitter, 400 characters a second, so the numbers are the platform's own overhead on top of a
 provider with that latency):
@@ -808,7 +816,7 @@ Peak use per container during that run (`docker stats` every 5 s) against the li
 About 0.9 GB in total at that load. The limits are ceilings that keep one runaway process from
 taking the host, and the API's is large because the on-host Whisper model needs about 2 GB while it
 transcribes; with transcription routed to a provider 1024M is plenty. They are variables
-(`API_MEMORY_LIMIT`, `POSTGRES_MEMORY_LIMIT`, and so on, in `deploy/.env`), with two presets:
+(`API_MEMORY_LIMIT`, `POSTGRES_MEMORY_LIMIT`, and so on, in the root `.env`), with two presets:
 `deploy/sizes/4gb.env` (about 3.7 GB of limits) and `deploy/sizes/8gb.env` (the defaults).
 **The 4 GB preset was run, not assumed**: the same full run with `deploy/sizes/4gb.env` applied
 (api 1024M, postgres 768M with 192 MB of buffers, worker 512M, web 384M, caddy 128M, backup 256M,
@@ -846,7 +854,7 @@ attempt is counted too, so a person who keeps retrying keeps the window shut unt
 
 **What the numbers do not say**: they are one tenant, a fake provider, a 40 MB database and a
 machine with plenty of CPU. A pilot's own data (transcripts of real length, a real model's
-streaming speed, a real embedding route) is the next measurement; run `load/run.sh full` on the
+streaming speed, a real embedding route) is the next measurement; run `tools/load/run.sh full` on the
 host before the pilot, in a quiet hour, with `FAKE_*` set to the latency of the provider you chose.
 
 **Voice first word is bounded by the whole reply, not by its first sentence.** The live call speaks
@@ -862,7 +870,7 @@ the two; it is an engine change and is not made here (docs/team/drills/2026-10-1
 **One harness caveat.** The launch burst opens 100 connections from 100 source addresses added to
 the load generator's container. The first connection from each new address to Caddy took about 20 s
 in that Docker network (ARP resolution for new neighbours on the bridge), and 0.1 ms afterwards, so
-`load/run.sh` warms the addresses first. That is the test network, not the product, and a real
+`tools/load/run.sh` warms the addresses first. That is the test network, not the product, and a real
 campaign arrives from routed addresses.
 
 ## Before you go live
@@ -884,7 +892,7 @@ campaign arrives from routed addresses.
 - [ ] `pnpm audit --prod --audit-level=high` is clean on the commit you deployed.
 - [ ] `dc exec -T backup cat /ops-state/status/backup.json` says `lastResult: ok`, and you have
       restored that dump into `ai_discovery_check` and compared the row counts with its `counts`.
-- [ ] `deploy/.env` is copied somewhere off this host, and you know it contains
+- [ ] the root `.env` is copied somewhere off this host, and you know it contains
       `PLATFORM_ENCRYPTION_KEY` and `BACKUP_AGE_IDENTITY`: the backups are unreadable without them.
 - [ ] `RCLONE_REMOTE` is set and `offsite` in the status file is `ok`, or you have written down
       that it is not and accepted that.
@@ -901,10 +909,10 @@ campaign arrives from routed addresses.
 
 - **Dashboards on a 4 GB host.** First-token and voice p95s, queue age and the platform signals are
   on Operator → Platform health and in `/stats` with nothing extra running. Grafana, Prometheus and
-  Tempo are an optional profile (`infra/observability`): Prometheus and Grafana add 416 MB of
+  Tempo are an optional profile (`deploy/observability`): Prometheus and Grafana add 416 MB of
   limits, which fits the 4 GB preset with about 450 MB left for the OS; Tempo adds 192 MB and
   belongs on 8 GB, or point `OTEL_EXPORTER_OTLP_ENDPOINT` at a hosted OTLP receiver. How to start
-  it is in [infra/observability/README.md](../infra/observability/README.md). Both the API and the
+  it is in [deploy/observability/README.md](../deploy/observability/README.md). Both the API and the
   worker export spans when `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 - **Multi-host, high availability, zero-downtime deploys.** One host, one replica of each service,
   a few seconds of downtime per upgrade behind a maintenance page. Blue-green (`12-operations.md`)

@@ -5,11 +5,11 @@
 # server-side (apps/web/src/lib/api/proxy.ts). Publishing the API would put a second origin on
 # the internet that has to be CORS-configured, rate-limited and token-exposed for no gain.
 #
-# Every placeholder below is supplied by compose.prod.yml, so none of them needs a default here.
+# Every placeholder below is supplied by compose.yml, so none of them needs a default here.
 # CADDY_LOCAL_CERTS is empty in production, which leaves Caddy on Let's Encrypt via ACME. A test
 # run without a public domain sets it, and Caddy issues from its own internal CA instead. The only
 # value Caddy accepts on line 15 is the literal directive `local_certs`, so the compose service
-# normalizes `1`, `true` and friends to that before starting — write either in deploy/.env.
+# normalizes `1`, `true` and friends to that before starting — write either in .env.
 {
 	email {$ACME_EMAIL}
 	admin off

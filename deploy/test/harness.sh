@@ -55,12 +55,13 @@ finish() {
 
 new_sandbox() {
 	SB=$(mktemp -d "${TMPDIR:-/tmp}/aidp-deploy-test.XXXXXX")
-	mkdir -p "$SB/bin" "$SB/state" "$SB/repo/deploy/ops"
-	for f in lib.sh upgrade.sh rollback.sh ensure-backup-key.sh dc backup.Dockerfile ops-notify.Dockerfile compose.prod.yml; do
+	mkdir -p "$SB/bin" "$SB/state" "$SB/repo/deploy/ops" "$SB/repo/deploy/lib" "$SB/repo/deploy/backup" "$SB/repo/deploy/images"
+	for f in upgrade.sh rollback.sh dc compose.yml lib/lib.sh backup/ensure-backup-key.sh backup/backup.Dockerfile images/ops-notify.Dockerfile; do
 		cp "$DEPLOY_DIR/$f" "$SB/repo/deploy/$f"
 	done
-	chmod +x "$SB/repo/deploy/"*.sh "$SB/repo/deploy/dc"
-	cat >"$SB/repo/deploy/.env" <<EOF
+	chmod +x "$SB/repo/deploy/"*.sh "$SB/repo/deploy/"*/*.sh "$SB/repo/deploy/dc"
+	# The one env file is the repository root's (D-450).
+	cat >"$SB/repo/.env" <<EOF
 COMPOSE_PROJECT_NAME=aidp
 PUBLIC_HOSTNAME=pilot.example.com
 HTTPS_PORT=443
