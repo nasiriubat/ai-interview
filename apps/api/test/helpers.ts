@@ -5,6 +5,7 @@ import {
   type Crypto,
   type EgressGuard,
   type GitHubPort,
+  type KrokiPort,
   MemoryAlerts,
   MemoryEmail,
   MemoryJobAdmin,
@@ -271,7 +272,7 @@ export async function testWorld(
   modelUrl: string,
   env: Record<string, string> = {},
   /** A guard with a fake resolver, for the suites that exercise the egress policy. */
-  overrides: { egress?: EgressGuard; github?: GitHubPort } = {},
+  overrides: { egress?: EgressGuard; github?: GitHubPort; kroki?: KrokiPort | null } = {},
 ): Promise<TestWorld> {
   const key = randomBytes(32).toString("base64");
   const config = loadConfig({
@@ -310,6 +311,7 @@ export async function testWorld(
     storage,
     ...(overrides.egress ? { egress: overrides.egress } : {}),
     ...(overrides.github ? { github: overrides.github } : {}),
+    ...(overrides.kroki !== undefined ? { kroki: overrides.kroki } : {}),
     speech: new SpeechRunner(speech),
     alerts,
     jobAdmin,

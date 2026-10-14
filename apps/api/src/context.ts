@@ -8,8 +8,10 @@ import {
   EgressGuard,
   EngineFactory,
   GitHubApi,
+  HttpKroki,
   MemoryEmail,
   MemoryJobAdmin,
+  PdfExporter,
   PrismaAlertState,
   RequirementsService,
   SettingsEmail,
@@ -25,6 +27,7 @@ import {
   type GitHubPort,
   type JobAdminPort,
   type JobPublisher,
+  type KrokiPort,
   type StoragePort,
 } from "@aidp/core";
 import type { PrismaClient } from "@prisma/client";
@@ -54,6 +57,8 @@ export interface AppContext {
   analysis: AnalysisService;
   requirements: RequirementsService;
   github: GitHubPort;
+  /** PDF composition and diagram checks; its renderer is `KROKI_URL` through the egress guard. */
+  exporter: PdfExporter;
   storage: StoragePort;
   attachments: AttachmentService;
   /** Whether a tenant may act at all (suspension, S8). */
@@ -88,6 +93,8 @@ export function buildContext(input: {
   jobs: JobPublisher;
   email?: EmailPort;
   github?: GitHubPort;
+  /** Tests pass a FakeKroki (or null for "no renderer"); production builds one from KROKI_URL. */
+  kroki?: KrokiPort | null;
   /** Tests pass a MemoryStorage; production passes nothing and gets one from UPLOAD_DIR. */
   storage?: StoragePort;
   /** Tests pass a guard with a fake resolver; production builds one from the environment. */
@@ -195,6 +202,23 @@ export function buildContext(input: {
     notices,
   });
   const github = input.github ?? new GitHubApi();
+  // The diagram renderer is the one outbound call PDF export and the diagram editor make. It goes
+  // through the egress guard as a platform address (D-210): the host must be allow-listed.
+  const kroki =
+    input.kroki !== undefined
+      ? input.kroki
+      : config.KROKI_URL
+        ? new HttpKroki({ baseUrl: config.KROKI_URL, fetch: egress.fetchFor("platform") })
+        : null;
+  const exporter = new PdfExporter({
+    settings,
+    kroki,
+    log: {
+      warn: (message, meta) => {
+        log.warn(meta ?? {}, message);
+      },
+    },
+  });
   // The API stores uploads and hands them to the worker to read; it never ingests them itself,
   // so it needs no model caller here.
   const storage = input.storage ?? createStorage(config.UPLOAD_DIR);
@@ -210,6 +234,7 @@ export function buildContext(input: {
     crypto,
     github,
     notices,
+    exporter,
   });
   const services = buildServices({
     db,
@@ -227,6 +252,7 @@ export function buildContext(input: {
     jobs: input.jobs,
     ceilings,
     onboarding,
+    exporter,
   });
   return {
     config,
@@ -242,6 +268,7 @@ export function buildContext(input: {
     analysis,
     requirements,
     github,
+    exporter,
     storage,
     attachments,
     tenants,

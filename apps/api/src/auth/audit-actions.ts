@@ -65,6 +65,12 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /requirements/:id/reopen": ["requirements.reopen"],
   "PUT /requirements/:id/sections/:key": ["requirements.section_edit"],
   "POST /requirements/:id/findings/:findingId": ["requirements.finding"],
+  "PUT /requirements/:id/spec/diagrams/:key": ["requirements.diagram_edit"],
+  "POST /requirements/:id/spec/diagrams": ["requirements.diagram_add"],
+  "DELETE /requirements/:id/spec/diagrams/:key": ["requirements.diagram_reset"],
+  "POST /requirements/:id/diagrams/preview": {
+    none: "A preview renders text the editor already holds and stores nothing; saving the diagram is the audited step.",
+  },
   "POST /requirements/:id/versions": ["requirements.version"],
   "POST /requirements/:id/versions/:v/github": ["requirements.github_push"],
   "POST /requirements/:id/invitations": ["requirements.invite"],

@@ -37,6 +37,14 @@ const Env = z.object({
   /** Comma-separated hostnames a platform provider may reach on a private address (compose services). */
   EGRESS_ALLOW_HOSTS: z.string().default(""),
   /**
+   * The diagram renderer (Kroki, with its Mermaid companion) used by PDF export and by the diagram
+   * editor (D-210). From the environment only, never a tenant setting, and reached through the
+   * egress guard, so its host must be in EGRESS_ALLOW_HOSTS when it is a compose service name. Unset
+   * means no renderer: diagrams are printed as source and saved unverified. Compose passes an unset
+   * variable as the empty string, which is "not set" here.
+   */
+  KROKI_URL: z.preprocess((v) => (v === "" ? undefined : v), z.url().optional()),
+  /**
    * Reverse proxies between the internet and this process that set X-Forwarded-For, counted from
    * this side. Caddy in front of the web app (which forwards the one address Caddy wrote) is one
    * hop; the live-voice socket reaches the API straight from Caddy, also one. Anything other than
