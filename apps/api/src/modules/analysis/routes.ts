@@ -103,6 +103,12 @@ export async function analysisRoutes(app: App, ctx: RouteContext): Promise<void>
 
   app.post("/opportunities/:id/promote", { ...guard.admin(), schema: { params: Id } }, async (req) => {
     const p = staff(req);
+    // Promoting an opportunity starts one template from another's output: that is chaining (D-187).
+    const chaining = await ctx.settings.get("features.chaining", [
+      { scope: "tenant", scopeId: req.companyId },
+    ]);
+    if (!chaining)
+      throw new AppError("feature_disabled", "Promoting opportunities is turned off for this organization");
     const { sessionId, handoff } = await wrapNotFound(() =>
       svc.promote(req.companyId, req.params.id, p.userId),
     );

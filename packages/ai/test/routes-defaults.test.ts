@@ -1,4 +1,4 @@
-import { PURPOSES, ROUTABLE_PURPOSES, RouteSchema } from "@aidp/shared";
+import { PLANNED_PURPOSES, PURPOSES, ROUTABLE_PURPOSES, RouteSchema } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import {
   defaultAnthropicRoutes,
@@ -77,7 +77,8 @@ describe("platform default routes", () => {
   it("exempts probe: a purpose, never routable, never given a default route", () => {
     expect(PURPOSES).toContain("probe");
     expect(ROUTABLE_PURPOSES).not.toContain("probe");
-    expect(ROUTABLE_PURPOSES).toHaveLength(PURPOSES.length - 1);
+    // The planned purposes (D-187) are the only other exemption.
+    expect(ROUTABLE_PURPOSES).toHaveLength(PURPOSES.length - 1 - PLANNED_PURPOSES.length);
     for (const rows of [
       defaultAnthropicRoutes("p"),
       defaultOpenRouterRoutes("p"),
