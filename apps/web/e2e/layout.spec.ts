@@ -28,18 +28,17 @@ async function signInStaff(page: Page, hostname: string): Promise<void> {
   await page.context().addCookies([{ name: "authjs.session-token", value, domain: hostname, path: "/" }]);
 }
 
-test("department panel: no text leaves its card", async ({ page }, info) => {
+test("department cards: no text leaves its card (D-321, D-374)", async ({ page }, info) => {
   await signInStaff(page, new URL(info.project.use.baseURL ?? "http://localhost:3100").hostname);
-  await page.goto("/admin/campaigns/camp1/results", { waitUntil: "networkidle" });
-  const panel = page.locator("section[aria-labelledby$='-title']").filter({
-    has: page.getByRole("heading", { name: /by department|osastoittain/i }),
-  });
-  await expect(panel).toBeVisible();
+  await page.goto("/admin/campaigns/camp1/results?tab=departments", { waitUntil: "networkidle" });
+  const cards = page.locator("ul[aria-label] > li").filter({ hasText: /Automatic reminder messages/ });
+  await expect(cards.first()).toBeVisible();
+  const card = cards.first();
 
-  const longTitle = panel.getByText(/Automatic reminder messages for appointments/);
+  const longTitle = card.getByText(/Automatic reminder messages for appointments/);
   await expect(longTitle).toBeVisible();
 
-  const offenders = await panel.evaluate((root) => {
+  const offenders = await card.evaluate((root) => {
     const box = root.getBoundingClientRect();
     const out: string[] = [];
     for (const el of root.querySelectorAll<HTMLElement>("*")) {
@@ -59,12 +58,13 @@ test("department panel: no text leaves its card", async ({ page }, info) => {
   });
   expect(offenders).toEqual([]);
 
-  // And no word is squeezed into a strip: the sentence's box is at least a third of the card.
+  // And no word is squeezed into a strip: the sentence's box is at least a third of the card, so
+  // the "Most shared" list is not the one-word-wide column the demo had.
   const sentence = await longTitle.evaluate((el) => {
-    const p = el.closest("p") ?? el;
-    return { width: p.getBoundingClientRect().width };
+    const li = el.closest("li") ?? el;
+    return { width: li.getBoundingClientRect().width };
   });
-  const cardWidth = await panel.evaluate((el) => el.getBoundingClientRect().width);
+  const cardWidth = await card.evaluate((el) => el.getBoundingClientRect().width);
   expect(sentence.width).toBeGreaterThan(cardWidth / 3);
 });
 

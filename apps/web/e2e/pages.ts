@@ -16,6 +16,8 @@ export interface Entry {
   path: string;
   auth: "none" | "staff" | "participant";
   role?: "admin" | "member" | "platform_operator";
+  /** The fake API's state for this page (`e2e/review-data.ts`): empty, withheld, error, long text. */
+  scenario?: string;
   /** Gets the page into the state worth checking (a dialog open, a step reached). */
   prepare?: (page: Page) => Promise<void>;
   /** The `app/**` route this entry covers, for the inventory test. */
@@ -46,12 +48,23 @@ const admin = (id: string, path: string, route: string, prepare?: Entry["prepare
   role: "admin",
   ...(prepare ? { prepare } : {}),
 });
-const operator = (id: string, path: string, route: string): Entry => ({
+const operator = (id: string, path: string, route: string, scenario?: string): Entry => ({
   id,
   path,
   route,
   auth: "staff",
   role: "platform_operator",
+  ...(scenario ? { scenario } : {}),
+});
+
+/** An admin page in one of the fake API's other states (empty, withheld, error, long text). */
+const adminIn = (id: string, path: string, route: string, scenario: string): Entry => ({
+  id,
+  path,
+  route,
+  auth: "staff",
+  role: "admin",
+  scenario,
 });
 
 const click = async (page: Page, name: RegExp | string): Promise<void> => {
@@ -202,6 +215,58 @@ export const PAGES: Entry[] = [
   admin("campaign-edit", "/admin/campaigns/camp1/edit", "app/admin/campaigns/[id]/edit/page.tsx"),
   admin("campaign-results", "/admin/campaigns/camp1/results", "app/admin/campaigns/[id]/results/page.tsx"),
   admin("campaign-report", "/admin/campaigns/camp1/report", "app/admin/campaigns/[id]/report/page.tsx"),
+  // The analysis workspace in every state it has (D-370 to D-374).
+  admin(
+    "results-opportunities",
+    "/admin/campaigns/camp1/results?tab=opportunities",
+    "app/admin/campaigns/[id]/results/page.tsx",
+  ),
+  admin(
+    "results-opportunity-panel",
+    "/admin/campaigns/camp1/results?tab=opportunities",
+    "app/admin/campaigns/[id]/results/page.tsx",
+    async (page) => {
+      await page
+        .getByRole("button", { name: /^(Open details|Avaa tiedot)/ })
+        .first()
+        .click();
+      await page.getByRole("dialog").waitFor();
+    },
+  ),
+  admin(
+    "results-departments",
+    "/admin/campaigns/camp1/results?tab=departments",
+    "app/admin/campaigns/[id]/results/page.tsx",
+  ),
+  admin(
+    "results-history",
+    "/admin/campaigns/camp1/results?tab=history",
+    "app/admin/campaigns/[id]/results/page.tsx",
+  ),
+  adminIn(
+    "results-withheld",
+    "/admin/campaigns/camp1/results?tab=departments",
+    "app/admin/campaigns/[id]/results/page.tsx",
+    "withheld",
+  ),
+  adminIn(
+    "results-long",
+    "/admin/campaigns/camp1/results?tab=opportunities",
+    "app/admin/campaigns/[id]/results/page.tsx",
+    "long",
+  ),
+  adminIn(
+    "results-running",
+    "/admin/campaigns/camp1/results",
+    "app/admin/campaigns/[id]/results/page.tsx",
+    "running",
+  ),
+  adminIn(
+    "results-empty",
+    "/admin/campaigns/camp1/results",
+    "app/admin/campaigns/[id]/results/page.tsx",
+    "empty",
+  ),
   admin("sessions-detail", "/admin/sessions/sess0001abcdef", "app/admin/sessions/[id]/page.tsx"),
   admin("templates", "/admin/templates", "app/admin/templates/page.tsx"),
   admin("template", "/admin/templates/tpl1", "app/admin/templates/[id]/page.tsx"),
@@ -221,6 +286,10 @@ export const PAGES: Entry[] = [
   admin("provider", "/admin/providers/p1", "app/admin/providers/[id]/page.tsx"),
   admin("routes", "/admin/routes", "app/admin/routes/page.tsx"),
   admin("budgets", "/admin/budgets", "app/admin/budgets/page.tsx"),
+  admin("statements", "/admin/budgets/statements", "app/admin/budgets/statements/page.tsx"),
+  admin("statement", "/admin/budgets/statements/2026-09", "app/admin/budgets/statements/[month]/page.tsx"),
+  adminIn("providers-empty", "/admin/providers", "app/admin/providers/page.tsx", "empty"),
+  adminIn("budgets-error", "/admin/budgets", "app/admin/budgets/page.tsx", "error"),
   admin("users", "/admin/users", "app/admin/users/page.tsx"),
   admin("audit", "/admin/audit", "app/admin/audit/page.tsx"),
   admin("account", "/admin/account", "app/admin/account/page.tsx"),
@@ -245,6 +314,10 @@ export const PAGES: Entry[] = [
   operator("operator-stats", "/admin/operator/stats", "app/admin/operator/stats/page.tsx"),
   operator("operator-jobs", "/admin/operator/jobs", "app/admin/operator/jobs/page.tsx"),
   operator("operator-health", "/admin/operator/health", "app/admin/operator/health/page.tsx"),
+  operator("operator-tenant", "/admin/operator/tenants/c2", "app/admin/operator/tenants/[id]/page.tsx"),
+  operator("operator-statements", "/admin/operator/statements", "app/admin/operator/statements/page.tsx"),
+  operator("operator-health-empty", "/admin/operator/health", "app/admin/operator/health/page.tsx", "empty"),
+  operator("operator-tenants-empty", "/admin/operator", "app/admin/operator/page.tsx", "empty"),
 ];
 
 /** Routes that serve no document (JSON or redirects), so there is nothing for axe to read. */

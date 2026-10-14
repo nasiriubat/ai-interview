@@ -4,7 +4,7 @@ import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 import * as React from "react";
 import { ClassBadge, RankMeter } from "./ClassBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Panel } from "@/components/admin/Panel";
 import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -72,12 +72,8 @@ export function CompareVersions({
 
   const empty = diff && diff.added.length + diff.removed.length + diff.changed.length === 0;
   return (
-    <Card className="gap-4 py-5 print:hidden">
-      <CardHeader className="px-5">
-        <CardTitle>{s.title}</CardTitle>
-        <CardDescription>{s.body}</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4 px-5">
+    <Panel title={s.title} description={s.body} headingLevel={3} className="print:hidden">
+      <div className="grid gap-4 px-5 py-4">
         {others.length === 0 ? (
           <p className="text-muted-foreground text-sm">{s.noOther}</p>
         ) : (
@@ -199,7 +195,7 @@ export function CompareVersions({
             </Table>
           </section>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   );
 }

@@ -21,9 +21,15 @@ export const FINDINGS_FILE = path.join(RESULTS, "findings.jsonl");
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
-async function staffCookie(): Promise<string> {
+/** The role and the scenario ride in the token, so every context has its own (D-370). */
+async function staffCookie(role?: string, scenario?: string): Promise<string> {
   return encode({
-    token: { email: "ada@acme.test", sub: "u1" },
+    token: {
+      email: "ada@acme.test",
+      sub: "u1",
+      ...(role ? { role } : {}),
+      ...(scenario ? { scenario } : {}),
+    },
     secret: AUTH_SECRET,
     salt: "authjs.session-token",
   });
@@ -34,7 +40,12 @@ for (const entry of PAGES) {
     const origin = new URL(info.project.use.baseURL ?? "http://localhost:3100");
     if (entry.auth === "staff") {
       await context.addCookies([
-        { name: "authjs.session-token", value: await staffCookie(), domain: origin.hostname, path: "/" },
+        {
+          name: "authjs.session-token",
+          value: await staffCookie(entry.role, entry.scenario),
+          domain: origin.hostname,
+          path: "/",
+        },
       ]);
       if (entry.role && entry.role !== "admin") {
         await context.setExtraHTTPHeaders({ "x-e2e-role": entry.role });

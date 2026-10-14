@@ -1,18 +1,24 @@
-import { ArrowLeftIcon, FileTextIcon } from "lucide-react";
+import { EyeIcon, FileTextIcon, MegaphoneIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import * as React from "react";
+import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { LoadError, settled } from "@/components/admin/LoadError";
+import { AnalysisStatusBadge } from "@/components/admin/results/AnalysisHeader";
+import { DataTable } from "@/components/data/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { RefreshButton } from "@/components/admin/RefreshButton";
 import { ResultsView } from "@/components/admin/results/ResultsView";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { isWeightsPreset, parseWeights } from "@/lib/analysis/rank";
+import { RESULTS_TABS } from "@/lib/analysis/tabs";
 import { isApiError } from "@/lib/api/errors";
 import type { AnalysisDetail } from "@/lib/api/schemas";
+import { formatDate } from "@/lib/utils";
 import { staffServer } from "@/lib/api/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,6 +36,7 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
   const { id } = await params;
   const sp = await searchParams;
   const requested = typeof sp.version === "string" ? sp.version : undefined;
+  const tab = RESULTS_TABS.find((x) => x === sp.tab) ?? "overview";
   const api = await staffServer();
   const [campaignR, analysesR, settingsR, tenantR] = await Promise.allSettled([
     api.campaigns.get(id),
@@ -77,38 +84,110 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
         crumbLabels={{ [id]: campaign.name }}
         title={`${campaign.name} · ${s.title}`}
         subtitle={s.subtitle}
+        secondaryActions={
+          <Button asChild variant="outline">
+            <Link href={`/admin/campaigns/${campaign.id}`}>
+              <MegaphoneIcon /> {s.backToCampaign}
+            </Link>
+          </Button>
+        }
         actions={
-          <>
-            <Button asChild variant="outline">
-              <Link href={`/admin/campaigns/${campaign.id}`}>
-                <ArrowLeftIcon /> {s.backToCampaign}
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/admin/campaigns/${campaign.id}/report`}>
-                <FileTextIcon /> {s.openReport}
-              </Link>
-            </Button>
-          </>
+          <Button asChild>
+            <Link href={`/admin/campaigns/${campaign.id}/report${selected ? `?version=${selected.id}` : ""}`}>
+              <FileTextIcon /> {s.openReport}
+            </Link>
+          </Button>
         }
       />
-      {analyses.error ? <LoadError error={analyses.error} /> : null}
-      {detailError ? <LoadError error={detailError} /> : null}
-      <ResultsView
-        key={selected?.id ?? "none"}
-        campaignId={campaign.id}
-        analyses={list}
-        selectedId={selected?.id}
-        detail={detail}
-        initialPreset={isWeightsPreset(rawPreset) ? rawPreset : "balanced"}
-        initialWeights={parseWeights(values["analysis.weights"])}
-        canPromote={settled(tenantR).data?.effective?.["features.chaining"] !== false}
-        canEdit={canEdit}
-        k={typeof k === "number" ? k : 3}
-        departments={departmentsR.status === "fulfilled" ? departmentsR.value : null}
-        departmentsFailed={wantsExtras && departmentsR.status === "rejected"}
-        edits={editsR.status === "fulfilled" ? editsR.value : []}
-      />
+      {analyses.error ? (
+        <div className="grid justify-items-start gap-3">
+          <LoadError error={analyses.error} />
+          <RefreshButton />
+        </div>
+      ) : (
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
+          {detailError ? <LoadError error={detailError} /> : null}
+          <ResultsView
+            key={selected?.id ?? "none"}
+            campaignId={campaign.id}
+            analyses={list}
+            selectedId={selected?.id}
+            detail={detail}
+            initialPreset={isWeightsPreset(rawPreset) ? rawPreset : "balanced"}
+            initialWeights={parseWeights(values["analysis.weights"])}
+            canPromote={settled(tenantR).data?.effective?.["features.chaining"] !== false}
+            canEdit={canEdit}
+            k={typeof k === "number" ? k : 3}
+            departments={departmentsR.status === "fulfilled" ? departmentsR.value : null}
+            departmentsFailed={wantsExtras && departmentsR.status === "rejected"}
+            edits={editsR.status === "fulfilled" ? editsR.value : []}
+            initialTab={tab}
+            versions={
+              <DataTable
+                id="analysis-versions"
+                label={t.ws.history.title}
+                columns={[
+                  { id: "version", header: t.ws.history.version, primary: true, locked: true },
+                  { id: "status", header: s.statusLabel },
+                  { id: "trigger", header: t.ws.history.trigger },
+                  { id: "sessions", header: s.stats.sessions, align: "end" },
+                  { id: "clusters", header: s.stats.clusters, align: "end" },
+                  { id: "finished", header: t.ws.history.finished },
+                ]}
+                rows={list.map((a, i) => ({
+                  id: a.id,
+                  label: s.versionOption(a.version, s.status[a.status]),
+                  cells: {
+                    version: (
+                      <span className="font-medium">
+                        {`v${String(a.version)}`}
+                        {i === 0 ? (
+                          <span className="text-muted-foreground font-normal">{` · ${s.latest}`}</span>
+                        ) : null}
+                        {a.id === selected?.id ? (
+                          <span className="text-primary font-normal">{` · ${t.ws.history.shown}`}</span>
+                        ) : null}
+                      </span>
+                    ),
+                    status: <AnalysisStatusBadge status={a.status} />,
+                    trigger: (
+                      <span className="text-muted-foreground">
+                        {a.stats.trigger ? s.trigger[a.stats.trigger] : t.admin.common.dash}
+                      </span>
+                    ),
+                    sessions: a.stats.sessions,
+                    clusters: a.stats.clusters,
+                    finished: (
+                      <span className="text-muted-foreground">{formatDate(a.finishedAt ?? a.createdAt)}</span>
+                    ),
+                  },
+                  actions: (
+                    <RowActions>
+                      {a.status === "done" ? (
+                        <>
+                          <IconButton
+                            label={`${t.ws.history.showResults}: v${String(a.version)}`}
+                            icon={<EyeIcon />}
+                            href={`/admin/campaigns/${campaign.id}/results?version=${a.id}&tab=overview`}
+                          />
+                          <IconButton
+                            label={`${t.ws.history.showReport}: v${String(a.version)}`}
+                            icon={<FileTextIcon />}
+                            href={`/admin/campaigns/${campaign.id}/report?version=${a.id}`}
+                          />
+                        </>
+                      ) : null}
+                    </RowActions>
+                  ),
+                }))}
+                page={{ page: 1, limit: 200, count: list.length, total: analyses.data?.total ?? list.length }}
+                error={analyses.error ? t.app.unknownError : undefined}
+                empty={{ title: s.noAnalyses }}
+              />
+            }
+          />
+        </div>
+      )}
     </>
   );
 }

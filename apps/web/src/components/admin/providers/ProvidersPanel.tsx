@@ -1,32 +1,31 @@
 "use client";
 
 import { PROVIDER_KINDS } from "@aidp/shared";
-import { ListIcon, PlusIcon, Trash2Icon, ZapIcon } from "lucide-react";
+import {
+  CheckCircle2Icon,
+  ListIcon,
+  Loader2Icon,
+  PlusIcon,
+  ServerIcon,
+  Trash2Icon,
+  XCircleIcon,
+  ZapIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { EmptyState } from "@/components/admin/EmptyState";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { SelectField, SwitchField, TextAreaField, TextField } from "@/components/admin/forms";
-import { IconButton, IconTooltip, RowActions } from "@/components/admin/IconButton";
+import { IconButton, RowActions } from "@/components/admin/IconButton";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { notify } from "@/components/common/notify";
+import { DataTable } from "@/components/data/DataTable";
+import { SecretField } from "@/components/form/controls";
 import { EnumLabel } from "@/components/common/EnumLabel";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { Provider, ProviderTest } from "@/lib/api/schemas";
@@ -53,14 +52,17 @@ function parseHeaders(text: string): Record<string, string> {
 export function ProvidersPanel({
   providers,
   scope,
+  error,
 }: {
   providers: Provider[];
   scope: ProviderScope;
+  error?: string | undefined;
 }): React.JSX.Element {
   const router = useRouter();
   const api = providersApiFor(scope);
   const action = useAction();
   const [tests, setTests] = React.useState<Record<string, ProviderTest | "running">>({});
+  const [deleting, setDeleting] = React.useState<Provider | null>(null);
   const base = scope === "platform" ? "/admin/operator/providers" : "/admin/providers";
 
   const test = (id: string): void => {
@@ -73,7 +75,7 @@ export function ProvidersPanel({
         // the cell may be off screen on a phone. A failure is only inline: it has to be read.
         if (r.ok) {
           const name = providers.find((pr) => pr.id === id)?.name ?? id;
-          toast.success(s.testToast(name, r.model ?? "", r.latencyMs ?? 0));
+          notify.success(s.testToast(name, r.model ?? "", r.latencyMs ?? 0));
         }
       })
       .catch((e: unknown) => {
@@ -85,159 +87,153 @@ export function ProvidersPanel({
   };
 
   return (
-    <div className="grid gap-4">
-      <div className="flex justify-end">
-        <AddProviderDialog scope={scope} />
-      </div>
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
       <Flash flash={action.flash} />
-      {providers.length === 0 ? (
-        <EmptyState text={s.empty} />
-      ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{s.name}</TableHead>
-                <TableHead>{s.kind}</TableHead>
-                <TableHead>{s.level}</TableHead>
-                <TableHead>{s.apiKey}</TableHead>
-                <TableHead>{s.enabled}</TableHead>
-                <TableHead>{s.test}</TableHead>
-                <TableHead className="text-right">{t.admin.common.actions}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {providers.map((p) => {
-                const tr = tests[p.id];
-                return (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">
-                      <Link href={`${base}/${p.id}`} className="hover:underline">
-                        {p.name}
-                      </Link>
-                      {p.baseUrl ? (
-                        <p className="text-muted-foreground font-mono text-xs">{p.baseUrl}</p>
-                      ) : null}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        <EnumLabel kind="providerKind" value={p.kind} />
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{p.companyId ? s.tenantLevel : s.platformLevel}</TableCell>
-                    <TableCell>
-                      {p.kind === "local" ? (
-                        // Whisper on this server has no key to set (D-75); "No key" would read as a fault.
-                        <Badge variant="outline">{s.keyNotNeeded}</Badge>
-                      ) : (
-                        <Badge variant={p.hasKey ? "success" : "warning"}>
-                          {p.hasKey ? s.hasKey : s.noKey}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={p.enabled}
-                        aria-label={`${s.enabled}: ${p.name}`}
-                        disabled={action.busy || (p.companyId === null && scope === "tenant")}
-                        onCheckedChange={(v) => {
-                          void action.run(async () => {
-                            await api.update(p.id, { enabled: v });
-                            router.refresh();
-                          }, s.updated);
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <IconButton
-                          label={tr === "running" ? s.testing : `${s.test}: ${p.name}`}
-                          icon={<ZapIcon />}
-                          variant="outline"
-                          disabled={tr === "running"}
-                          onClick={() => {
-                            test(p.id);
-                          }}
-                        />
-                        {tr === "running" ? (
-                          <span role="status" className="text-muted-foreground text-xs">
-                            {s.testing}
-                          </span>
-                        ) : null}
-                        {tr && tr !== "running" ? (
-                          <span
-                            className={
-                              tr.ok ? "text-success-soft-foreground text-xs" : "text-destructive text-xs"
-                            }
-                            role="status"
-                          >
-                            {tr.ok
-                              ? [
-                                  s.testResult(
-                                    tr.latencyMs ?? 0,
-                                    tr.tokens ?? 0,
-                                    formatCents(tr.costCents ?? 0),
-                                  ),
-                                  tr.model ? s.testModel(tr.model) : null,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ")
-                              : s.testFailed(tr.error ?? t.app.unknownError)}
-                          </span>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <RowActions>
-                        <IconButton label={s.models} icon={<ListIcon />} href={`${base}/${p.id}`} />
-                        <AlertDialog>
-                          <IconTooltip label={`${s.delete}: ${p.name}`}>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                type="button"
-                                size="icon-sm"
-                                variant="ghost"
-                                className="text-destructive hover:text-destructive"
-                                aria-label={`${s.delete}: ${p.name}`}
-                              >
-                                <Trash2Icon aria-hidden="true" />
-                              </Button>
-                            </AlertDialogTrigger>
-                          </IconTooltip>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>{s.delete}</AlertDialogTitle>
-                              <AlertDialogDescription>{s.deleteConfirm}</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>{t.app.cancel}</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => {
-                                  void action.run(async () => {
-                                    await api.remove(p.id);
-                                    router.refresh();
-                                  }, s.deleted);
-                                }}
-                              >
-                                {t.app.delete}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </RowActions>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <DataTable
+        id={`providers-${scope}`}
+        label={s.title}
+        error={error}
+        columns={[
+          { id: "name", header: s.name, primary: true, locked: true },
+          { id: "kind", header: s.kind },
+          { id: "level", header: s.level, defaultHidden: scope === "tenant" },
+          { id: "key", header: s.apiKey },
+          { id: "enabled", header: s.enabled },
+          { id: "test", header: t.ws.providers.connection },
+        ]}
+        rows={providers.map((p) => {
+          const tr = tests[p.id];
+          return {
+            id: p.id,
+            label: p.name,
+            cells: {
+              name: (
+                <div className="min-w-0">
+                  <Link href={`${base}/${p.id}`} className="text-foreground font-medium hover:underline">
+                    {p.name}
+                  </Link>
+                  {p.baseUrl ? (
+                    <p className="text-muted-foreground font-mono text-xs break-all">{p.baseUrl}</p>
+                  ) : null}
+                </div>
+              ),
+              kind: (
+                <Badge variant="outline" className="max-w-56 text-left whitespace-normal">
+                  <EnumLabel kind="providerKind" value={p.kind} />
+                </Badge>
+              ),
+              level: (
+                <span className="text-muted-foreground">{p.companyId ? s.tenantLevel : s.platformLevel}</span>
+              ),
+              key:
+                p.kind === "local" ? (
+                  // Whisper on this server has no key to set (D-75); "No key" would read as a fault.
+                  <Badge variant="outline">{t.ws.providers.keyNotNeeded}</Badge>
+                ) : (
+                  <Badge variant={p.hasKey ? "success" : "warning"}>{p.hasKey ? s.hasKey : s.noKey}</Badge>
+                ),
+              enabled: (
+                <Switch
+                  checked={p.enabled}
+                  aria-label={`${s.enabled}: ${p.name}`}
+                  disabled={action.busy || (p.companyId === null && scope === "tenant")}
+                  onCheckedChange={(v) => {
+                    void action.run(async () => {
+                      await api.update(p.id, { enabled: v });
+                      router.refresh();
+                    }, s.updated);
+                  }}
+                />
+              ),
+              test:
+                tr === "running" ? (
+                  <span role="status" className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                    <Loader2Icon
+                      className="size-3.5 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                    {s.testing}
+                  </span>
+                ) : tr ? (
+                  <span
+                    role="status"
+                    className={
+                      tr.ok
+                        ? "text-success-soft-foreground flex items-start gap-1.5 text-xs"
+                        : "text-destructive flex items-start gap-1.5 text-xs"
+                    }
+                  >
+                    {tr.ok ? (
+                      <CheckCircle2Icon className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+                    ) : (
+                      <XCircleIcon className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+                    )}
+                    {tr.ok
+                      ? [
+                          s.testResult(tr.latencyMs ?? 0, tr.tokens ?? 0, formatCents(tr.costCents ?? 0)),
+                          tr.model ? s.testModel(tr.model) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")
+                      : s.testFailed(tr.error ?? t.app.unknownError)}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground text-xs">{t.ws.providers.notTested}</span>
+                ),
+            },
+            actions: (
+              <RowActions>
+                <IconButton
+                  label={tr === "running" ? s.testing : `${s.test}: ${p.name}`}
+                  icon={<ZapIcon />}
+                  disabled={tr === "running"}
+                  onClick={() => {
+                    test(p.id);
+                  }}
+                />
+                <IconButton label={`${s.models}: ${p.name}`} icon={<ListIcon />} href={`${base}/${p.id}`} />
+                <IconButton
+                  label={`${s.delete}: ${p.name}`}
+                  icon={<Trash2Icon />}
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => {
+                    setDeleting(p);
+                  }}
+                />
+              </RowActions>
+            ),
+          };
+        })}
+        page={{ page: 1, limit: 200, count: providers.length, total: providers.length }}
+        empty={{
+          icon: <ServerIcon className="size-5" aria-hidden="true" />,
+          title: t.ws.providers.emptyTitle,
+          description: s.empty,
+          action: <AddProviderDialog scope={scope} />,
+        }}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title={t.ws.providers.deleteTitle(deleting?.name ?? "")}
+        description={<p>{s.deleteConfirm}</p>}
+        confirmLabel={t.app.delete}
+        onConfirm={() => {
+          const p = deleting;
+          if (!p) return;
+          void action.run(async () => {
+            await api.remove(p.id);
+            router.refresh();
+          }, s.deleted);
+        }}
+      />
     </div>
   );
 }
 
-function AddProviderDialog({ scope }: { scope: ProviderScope }): React.JSX.Element {
+export function AddProviderDialog({ scope }: { scope: ProviderScope }): React.JSX.Element {
   const router = useRouter();
   const api = providersApiFor(scope);
   const action = useAction();
@@ -304,11 +300,10 @@ function AddProviderDialog({ scope }: { scope: ProviderScope }): React.JSX.Eleme
             onChange={setBaseUrl}
           />
           {kind === "local" ? null : (
-            <TextField
+            <SecretField
               id="apiKey"
               label={s.apiKey}
               value={apiKey}
-              type="password"
               hint={s.apiKeyHint}
               onChange={setApiKey}
             />

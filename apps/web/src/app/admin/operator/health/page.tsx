@@ -3,6 +3,7 @@ import * as React from "react";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { HealthPanel } from "@/components/admin/operator/HealthPanel";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { RefreshButton } from "@/components/admin/RefreshButton";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
@@ -25,7 +26,11 @@ export default async function PlatformHealthPage(): Promise<React.JSX.Element> {
   const health = settled(healthR);
   return (
     <>
-      <PageHeader title={t.admin.operator.health.title} subtitle={t.admin.operator.health.subtitle} />
+      <PageHeader
+        title={t.admin.operator.health.title}
+        subtitle={t.admin.operator.health.subtitle}
+        actions={<RefreshButton />}
+      />
       {health.data ? <HealthPanel health={health.data} /> : <LoadError error={health.error} />}
     </>
   );

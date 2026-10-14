@@ -73,7 +73,7 @@ describe("testing a provider connection", () => {
     render(<ProvidersPanel providers={[provider()]} scope="tenant" />);
     await user.click(screen.getByRole("button", { name: "Test: Anthropic" }));
     await waitFor(() => {
-      expect(toastSuccess).toHaveBeenCalledWith("Connected to Anthropic · m-1 · 420 ms");
+      expect(toastSuccess).toHaveBeenCalledWith("Connected to Anthropic · m-1 · 420 ms", expect.anything());
     });
     expect(await screen.findByText(/420 ms/, { selector: "span[role=status]" })).toBeInTheDocument();
   });
@@ -142,7 +142,7 @@ describe("budgets show how much is spent", () => {
   });
 });
 
-describe("model assignment on a phone", () => {
+describe("model assignment", () => {
   const routes: RouteRecord[] = [
     {
       companyId: "c1",
@@ -154,23 +154,9 @@ describe("model assignment on a phone", () => {
     },
   ];
 
-  const matchMedia = (narrow: boolean) =>
-    vi.fn().mockImplementation((query: string) => ({
-      matches: narrow && query.includes("max-width: 767px"),
-      media: query,
-      addEventListener: () => undefined,
-      removeEventListener: () => undefined,
-    }));
-
-  it("is a table where there is room", () => {
-    vi.stubGlobal("matchMedia", matchMedia(false));
-    render(<RoutesForm routes={routes} providers={[provider()]} scope="tenant" companyId="c1" />);
-    expect(screen.getByRole("table")).toBeInTheDocument();
-    vi.unstubAllGlobals();
-  });
-
-  it("is one card per task on a narrow screen, with every control still named", () => {
-    vi.stubGlobal("matchMedia", matchMedia(true));
+  // One layout at every width (D-374): the cards reflow with CSS, so there is no table to fall
+  // back from and nothing that depends on a media query at render time.
+  it("is one card per task, with every control still named", () => {
     render(<RoutesForm routes={routes} providers={[provider()]} scope="tenant" companyId="c1" />);
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     const cards = screen.getAllByRole("listitem");
@@ -179,7 +165,6 @@ describe("model assignment on a phone", () => {
     expect(first.getByRole("heading", { level: 3 })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^Provider: / })[0]).toBeInTheDocument();
     expect(screen.getAllByRole("spinbutton", { name: /Max output tokens: / })[0]).toBeInTheDocument();
-    vi.unstubAllGlobals();
   });
 });
 

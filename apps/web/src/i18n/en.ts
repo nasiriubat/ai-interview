@@ -4,6 +4,7 @@
  */
 import type { BudgetScope, CallStatus, Effort, ProviderKind, Purpose, SettingKey } from "@aidp/shared";
 import { kitEn } from "./kit.en";
+import { wsEn } from "./ws.en";
 import { landingEn } from "./landing.en";
 
 export const en = {
@@ -438,6 +439,7 @@ export const en = {
   },
   landing: landingEn,
   kit: kitEn,
+  ws: wsEn,
   admin: {
     nav: {
       dashboard: "Overview",
@@ -1295,6 +1297,11 @@ export const en = {
       backToResults: "Back to results",
       download: "Download Markdown",
       print: "Print or save as PDF",
+      optionsLabel: "Report options",
+      optionsTitle: "Report",
+      pdfHint: "Composed on the server, paginated",
+      markdownHint: "The sections shown, as text",
+      paperHint: "Preview of the printed page. Print and PDF use the same sections and type.",
       sections: "Sections",
       sectionsHint: "Hidden sections are left out of the next generated report too.",
       sectionsSaved: "Sections saved",

@@ -1283,3 +1283,88 @@ export const InviteArrivalSchema = z.looseObject({
   status: InviteStatusSchema,
 });
 export type InviteArrival = z.infer<typeof InviteArrivalSchema>;
+
+// Statements, tenant exports and offboarding (D-224 to D-226; D-376)
+
+export const StatementLineSchema = z.looseObject({
+  providerId: z.string().default(""),
+  providerName: z.string().default(""),
+  model: z.string().default(""),
+  purpose: z.string().default(""),
+  calls: z.number().default(0),
+  inputTokens: z.number().default(0),
+  cacheReadTokens: z.number().default(0),
+  cacheWriteTokens: z.number().default(0),
+  outputTokens: z.number().default(0),
+  audioSeconds: z.number().default(0),
+  ttsCharacters: z.number().default(0),
+  costCents: z.number().default(0),
+  estimatedCents: z.number().default(0),
+});
+export type StatementLine = z.infer<typeof StatementLineSchema>;
+
+const StatementCountsSchema = z.looseObject({
+  sessionsStarted: z.number().default(0),
+  sessionsCompleted: z.number().default(0),
+  participants: z.number().default(0),
+  voiceMinutes: z.number().default(0),
+  storageBytes: z.number().default(0),
+  campaignsActive: z.number().default(0),
+  analysesRun: z.number().default(0),
+  specVersions: z.number().default(0),
+});
+
+export const StatementSchema = z.looseObject({
+  companyId: z.string(),
+  month: z.string(),
+  generatedAt: iso.nullish(),
+  currency: z.string().default("USD"),
+  lines: z.array(StatementLineSchema).default([]),
+  totals: z.looseObject({
+    costCents: z.number().default(0),
+    estimatedCents: z.number().default(0),
+    calls: z.number().default(0),
+    byPurpose: z.record(z.string(), z.number()).default({}),
+    byProvider: z.record(z.string(), z.number()).default({}),
+    budgets: z
+      .array(
+        z.looseObject({
+          scope: z.string(),
+          scopeId: z.string(),
+          name: z.string().nullable().default(null),
+          period: z.string(),
+          limitCents: z.number(),
+          spentCents: z.number(),
+          hit: z.boolean().default(false),
+        }),
+      )
+      .default([]),
+  }),
+  counts: StatementCountsSchema.default(StatementCountsSchema.parse({})),
+});
+export type Statement = z.infer<typeof StatementSchema>;
+export const StatementListSchema = z.looseObject({ statements: z.array(StatementSchema).default([]) });
+export const StatementEnvelopeSchema = z.looseObject({ statement: StatementSchema });
+export const OperatorStatementsSchema = z.looseObject({
+  month: z.string(),
+  statements: z.array(StatementSchema).default([]),
+});
+
+export const TenantExportSchema = z.looseObject({
+  stamp: z.string(),
+  companyId: z.string(),
+  createdAt: iso,
+  requestedBy: z.string().nullish(),
+  bytes: z.number().default(0),
+  sha256: z.string().default(""),
+  files: z.number().default(0),
+  skippedFiles: z.number().default(0),
+  rows: z.record(z.string(), z.number()).default({}),
+});
+export type TenantExport = z.infer<typeof TenantExportSchema>;
+export const TenantExportListSchema = z.looseObject({ exports: z.array(TenantExportSchema).default([]) });
+export const OffboardResultSchema = z.looseObject({
+  queued: z.boolean().default(true),
+  purgeAfter: z.string().nullish(),
+});
+export type OffboardResult = z.infer<typeof OffboardResultSchema>;

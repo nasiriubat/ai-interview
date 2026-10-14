@@ -301,6 +301,7 @@ describe("reversible actions take effect and offer Undo", () => {
         detail={{ analysis, opportunities: [opportunity(status)], report: null }}
         initialPreset="balanced"
         initialWeights={{} as never}
+        initialTab="opportunities"
       />,
     );
   }
@@ -311,7 +312,7 @@ describe("reversible actions take effect and offer Undo", () => {
     );
     const user = userEvent.setup();
     renderResults("new");
-    await user.click(screen.getByRole("button", { name: "Shortlist" }));
+    await user.click(screen.getByRole("button", { name: "Shortlist: Triage tickets" }));
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(staff.opportunities.setStatus).toHaveBeenLastCalledWith("o1", "shortlisted");
     await waitFor(() => {
@@ -338,11 +339,11 @@ describe("reversible actions take effect and offer Undo", () => {
     );
     const user = userEvent.setup();
     renderResults("new");
-    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    await user.click(screen.getByRole("button", { name: "Dismiss: Triage tickets" }));
     await waitFor(() => {
       expect(toasts.calls.at(-1)?.text).toBe("Dismissed “Triage tickets”.");
     });
-    await user.click(await screen.findByRole("button", { name: "Restore" }));
+    await user.click(await screen.findByRole("button", { name: "Restore: Triage tickets" }));
     await waitFor(() => {
       expect(toasts.calls.at(-1)?.text).toBe("Restored “Triage tickets”.");
     });
