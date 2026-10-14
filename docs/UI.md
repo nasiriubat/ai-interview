@@ -245,3 +245,13 @@ The participant has one frame (D-420 to D-425), `components/participant/Particip
 - Failures a person can retry (provider, offline, session expiry) are `Alert variant="warning"`; red is for what is wrong with their input.
 - `DiagramViewer` (`components/report/`) is the only way a diagram is shown: zoom, pan, full screen, source.
 - `ExportMenu labelled` is the page-header form of the export menu; the icon form is for table toolbars.
+
+## The product mark (D-430 to D-439)
+
+The brand renders through `ProductMark` (`components/common/Branding.tsx`) and nothing else: the
+platform logo with the name as `alt`, or the name in type. No letter tile. The name and logo come
+from `GET /public/branding` in the root layout (`lib/branding.ts`) and reach client components via
+`useBranding()`. The logo is uploaded under Settings, Branding, at platform level (operator only).
+Participant screens go through `ParticipantBrand`, which uses the logo only for the platform's own
+name. Review with a logo: start the fake API with `FAKE_BRAND_LOGO=1` and the web with
+`BRANDING_CACHE_SECONDS=0`.

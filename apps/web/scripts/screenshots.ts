@@ -26,7 +26,8 @@ const COLLAPSED = process.env.COLLAPSED === "1";
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 const token = await encode({
-  token: { email: "ada@acme.test", sub: "u1" },
+  // ROLE=platform_operator shows the operator's pages and the platform scope (the fake API reads the claim).
+  token: { email: "ada@acme.test", sub: "u1", ...(process.env.ROLE ? { role: process.env.ROLE } : {}) },
   secret: SECRET,
   salt: "authjs.session-token",
 });

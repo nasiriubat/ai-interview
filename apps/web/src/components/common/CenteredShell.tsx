@@ -1,5 +1,5 @@
 import * as React from "react";
-import { t } from "@/i18n";
+import { ProductMark } from "@/components/common/Branding";
 import { cn } from "@/lib/utils";
 
 /**
@@ -28,7 +28,7 @@ export function CenteredShell({
         className="absolute inset-x-0 -top-40 h-[26rem] origin-top-left -skew-y-6 bg-brand-band print:hidden"
       />
       <header className="relative flex items-center justify-between gap-3 px-5 py-4 sm:px-8">
-        <span className="text-[17px] font-semibold tracking-tight text-white">{t.app.name}</span>
+        <ProductMark onBrand />
         {aside ? <div className="rounded-md bg-white/90 px-1.5 py-1 shadow-sm">{aside}</div> : null}
       </header>
       <main

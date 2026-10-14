@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { pathToFileURL } from "node:url";
 import { decode } from "next-auth/jwt";
@@ -591,6 +592,28 @@ export function startFakeApi(port: number): Promise<FakeApi> {
     }
     if (path === "/__health") {
       send(res, 200, { ok: true });
+      return;
+    }
+    // The platform's name and logo (D-430). No logo unless FAKE_BRAND_LOGO=1, which the visual
+    // review sets on a second fake API to shoot the same pages with one.
+    if (path === "/public/branding") {
+      const logo = process.env.FAKE_BRAND_LOGO === "1";
+      send(res, 200, { productName: "Discovery", hasLogo: logo, logoVersion: logo ? "e2e1" : null });
+      return;
+    }
+    if (path === "/public/branding/logo") {
+      if (process.env.FAKE_BRAND_LOGO !== "1") {
+        send(res, 404, { error: { code: "not_found", message: "Logo not found" } });
+        return;
+      }
+      const bytes = readFileSync(new URL("./logo-fixture.png", import.meta.url));
+      res.writeHead(200, {
+        "content-type": "image/png",
+        "content-length": bytes.length,
+        "cache-control": "public, max-age=60",
+        etag: '"e2e1"',
+      });
+      res.end(bytes);
       return;
     }
     const method = req.method ?? "GET";

@@ -212,6 +212,14 @@ export const settingsCatalog = [
     secret: false,
   },
   {
+    key: "branding.productName",
+    category: "branding",
+    description: "Product name shown on the site and to participants",
+    default: "Discovery",
+    scopes: ["platform", "tenant"],
+    secret: false,
+  },
+  {
     key: "engine.maxTurns",
     category: "engine",
     description: "Turns at most",
