@@ -420,7 +420,8 @@ suite("tenancy operations", () => {
     const report = await purger.run(t.id, "operator");
     expect(report.rows.Message).toBe(1);
     expect(report.auditRows).toBeGreaterThanOrEqual(1);
-    expect(await tenantRows(t.id)).toEqual({});
+    // Only the erasure record itself remains, which is its purpose.
+    expect(await tenantRows(t.id)).toEqual({ ErasureLedger: 1 });
     expect((await world.storage.listPrefixes(t.id)).length).toBe(0);
     expect((await world.storage.listPrefixes(`exports/${t.id}`)).length).toBe(0);
     expect((await world.db.company.findUniqueOrThrow({ where: { id: t.id } })).status).toBe("deleted");
