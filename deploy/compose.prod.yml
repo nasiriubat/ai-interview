@@ -140,22 +140,34 @@ services:
       ops-state-init: { condition: service_completed_successfully }
     logging: *logging
 
-  # One-shot. Creates the directories of the shared ops_state volume with the permissions its
-  # writers need: preflight runs as the postgres user, the worker as uid 1000 and the backup as
-  # root, and a named volume starts out root-owned, so nobody but root could create their own.
-  # Sticky world-writable: anyone may write a file, only its owner (or root) may delete it.
+  # One-shot, and the only container of the stack that is told to run as root besides Caddy's
+  # setup. Creates the directories of the shared ops_state volume with the permissions its writers
+  # need: preflight runs as the postgres user (999), the worker as uid 1000, the backup as 999 with
+  # group 1000 and ops-notify as 10001 (D-312), and a named volume starts out root-owned, so nobody
+  # but root could create their own.
+  # Sticky world-writable: anyone may write a file, only its owner (or the directory's owner, which
+  # is ops-notify for alerts and the watchdog) may delete it. Files a previous release's root
+  # processes left behind are handed to the user that now writes them, and the backups volume to
+  # the backup's user, so an upgrade from a root-running release needs no manual step.
   ops-state-init:
     image: aidp-ops-notify:${AIDP_VERSION:?}
     pull_policy: never
     restart: "no"
+    user: "0:0"
     entrypoint:
       - sh
       - -c
       - |
         mkdir -p /ops-state/alerts/sent /ops-state/status /ops-state/heartbeat /ops-state/watchdog
         chmod 1777 /ops-state /ops-state/alerts /ops-state/alerts/sent /ops-state/status /ops-state/heartbeat /ops-state/watchdog
+        chown 10001:10001 /ops-state/alerts /ops-state/alerts/sent /ops-state/watchdog
+        find /ops-state/alerts /ops-state/watchdog -user 0 -exec chown 10001:10001 {} +
+        find /ops-state/status /ops-state/heartbeat -user 0 -type f -exec chown 999:999 {} +
+        chown -R 999:999 /backups
+        chmod 0700 /backups
     volumes:
       - ops_state:/ops-state
+      - backups:/backups
     logging: *logging
 
   api:
@@ -421,6 +433,9 @@ services:
       context: .
       dockerfile: backup.Dockerfile
     restart: unless-stopped
+    # The image runs as postgres (999); the uploaded files are 0640 owned by the application's uid
+    # and gid 1000, so the archive can be read by joining that group and no wider (D-312).
+    group_add: ["1000"]
     environment:
       PGURL: postgresql://app:${POSTGRES_PASSWORD:?}@postgres:5432/ai_discovery
       BACKUP_AT: ${BACKUP_AT:-03:20}
