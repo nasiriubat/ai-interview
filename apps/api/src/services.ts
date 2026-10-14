@@ -27,7 +27,7 @@ import { VerificationTokenService } from "./modules/internal-auth/service.js";
 import { CryptoAdminService } from "./modules/operator/crypto.js";
 import { OperatorService } from "./modules/operator/service.js";
 import { RecordingStore } from "./modules/participant/recordings.js";
-import { ParticipantService } from "./modules/participant/service.js";
+import { ParticipantService, type AbuseControls } from "./modules/participant/service.js";
 import { ParticipantSessionReader } from "./modules/participant/session-view.js";
 import { PrivacyService } from "./modules/privacy/service.js";
 import { PromptAdminService } from "./modules/prompts/service.js";
@@ -99,6 +99,8 @@ export interface ServiceDeps {
   exporter: PdfExporter;
   /** Queue depth and dead letters, for the health tiles. */
   jobAdmin: JobAdminPort;
+  /** Abuse counters and the alert port for open links (D-261). Absent in tools that do not alert. */
+  abuse?: AbuseControls;
 }
 
 export function buildServices(d: ServiceDeps): Services {
@@ -115,6 +117,7 @@ export function buildServices(d: ServiceDeps): Services {
       d.log.warn({ event, ...meta }, "abuse signal");
     },
     d.ceilings,
+    d.abuse,
   );
   return {
     audit,
