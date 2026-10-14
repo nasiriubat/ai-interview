@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   SpecDocumentSchema,
   SpecDiagramSchema,
@@ -19,6 +20,7 @@ import type { ModelCallerPort } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";
 import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js";
 import { languageName } from "../util/language.js";
+import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { renderBundle } from "./bundle.js";
 import {
   asObject,
@@ -98,6 +100,23 @@ export function requirementsFromState(state: SessionState): SpecDocument["requir
   });
 }
 
+/** The fingerprint a section is written from: the deterministic live rendering of its facts and edit. */
+export function sectionBases(input: SpecGenerationInput): Map<string, string> {
+  const live = renderLiveSpec({
+    title: input.title,
+    path: input.path ?? null,
+    state: input.state,
+    edits: input.edits,
+    sections: input.sections,
+  });
+  return new Map(
+    live.sections.map((s) => [
+      s.key,
+      createHash("sha256").update(`${s.status}\n${s.markdown.trim()}`).digest("hex").slice(0, 16),
+    ]),
+  );
+}
+
 /** The document built without a model: the live spec's sections verbatim, every section marked fallback. */
 export function fallbackDocument(input: SpecGenerationInput, now: Date): SpecDocument {
   const live = renderLiveSpec({
@@ -108,6 +127,7 @@ export function fallbackDocument(input: SpecGenerationInput, now: Date): SpecDoc
     sections: input.sections,
   });
   const requirements = requirementsFromState(input.state);
+  const bases = sectionBases(input);
   return SpecDocumentSchema.parse({
     title: input.title,
     language: input.language,
@@ -121,6 +141,7 @@ export function fallbackDocument(input: SpecGenerationInput, now: Date): SpecDoc
         title: s.title,
         markdown: s.key === "functional" && s.status !== "edited" ? "" : s.markdown,
         source: s.status === "edited" ? "edited" : "fallback",
+        ...(bases.get(s.key) ? { basis: bases.get(s.key) } : {}),
       })),
     requirements,
     mvp: {
@@ -131,6 +152,42 @@ export function fallbackDocument(input: SpecGenerationInput, now: Date): SpecDoc
       next: requirements.filter((r) => r.scope === "future").map((r) => r.id),
     },
   });
+}
+
+/** Languages written in a script other than Latin; no script check applies to them. */
+const NON_LATIN_LANGUAGES = new Set([
+  "zh",
+  "ja",
+  "ko",
+  "ru",
+  "uk",
+  "bg",
+  "sr",
+  "ar",
+  "fa",
+  "he",
+  "el",
+  "th",
+  "hi",
+]);
+const FOREIGN_SCRIPT =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Cyrillic}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Thai}\p{Script=Devanagari}\p{Script=Greek}\p{Extended_Pictographic}]/u;
+
+/** Whether `text` holds letters from a script the document's language is not written in. */
+export function hasForeignScript(text: string, language: string): boolean {
+  if (NON_LATIN_LANGUAGES.has(language.toLowerCase().split("-")[0] ?? "")) return false;
+  return FOREIGN_SCRIPT.test(text);
+}
+
+/** Replaces Markdown heading lines written in a foreign script with the section's own title. */
+export function cleanHeadings(markdown: string, title: string, language: string): string {
+  return markdown
+    .split("\n")
+    .map((line) => {
+      const m = /^(#{1,6})\s+(.*)$/.exec(line);
+      return m && hasForeignScript(m[2] ?? "", language) ? `${m[1]} ${title}` : line;
+    })
+    .join("\n");
 }
 
 function openIssues(state: SessionState): Finding[] {
@@ -202,12 +259,16 @@ export async function generateSpec(
       .replace("{{language}}", languageName(input.language))
       .replace("{{sections}}", input.sections.map((k) => `${k} (${sectionTitle(k)})`).join(", "))
       .replace("{{diagramTypes}}", input.diagramTypes.join(", ") || "none");
+    const nonce = newNonce();
     const user = [
-      `Title: ${input.title || "(untitled)"}`,
-      input.handoff ? `Started from a discovery hand-off: ${input.handoff.problem}` : "",
+      `Title: ${wrapUntrusted("title", input.title || "(untitled)", { nonce })}`,
+      input.handoff
+        ? `Started from a discovery hand-off: ${wrapUntrusted("handoff", input.handoff.problem, { nonce })}`
+        : "",
       "",
-      renderSpecState(input.state, input.path, input.edits),
-      input.summary ? `\nConversation summary:\n${input.summary}` : "",
+      "Specification state:",
+      wrapUntrusted("spec_state", renderSpecState(input.state, input.path, input.edits), { nonce }),
+      input.summary ? `\nConversation summary:\n${wrapUntrusted("summary", input.summary, { nonce })}` : "",
     ]
       .filter((l) => l !== "")
       .join("\n");
@@ -219,14 +280,20 @@ export async function generateSpec(
         promptVersion,
         ref: { type: "session", id: input.sessionId },
       },
-      { system, messages: [{ role: "user", content: user }], maxOutputTokens: 32000 },
+      { system, messages: [{ role: "user", content: user }] },
       SpecGenerationOutputSchema,
       "specification",
     );
-    const modelSections = new Map(out.sections.map((s) => [s.key, s.markdown]));
+    // Headings in another script than the document's language are replaced with the section's own
+    // title: a model once answered an English interview with Chinese headings.
+    const modelSections = new Map(
+      out.sections.map((s) => [s.key, cleanHeadings(s.markdown, sectionTitle(s.key), input.language)]),
+    );
     const requirements = out.requirements.length ? out.requirements : requirementsFromState(input.state);
+    const bases = sectionBases(input);
+    const basisOf = (key: string) => (bases.get(key) ? { basis: bases.get(key) } : {});
     const document = SpecDocumentSchema.parse({
-      title: out.title.trim() || input.title,
+      title: hasForeignScript(out.title, input.language) ? input.title : out.title.trim() || input.title,
       language: input.language,
       path: input.path ?? null,
       generatedAt: now.toISOString(),
@@ -234,8 +301,20 @@ export async function generateSpec(
       sections: input.sections.map((key) => {
         const edit = input.edits[key];
         if (edit?.markdown.trim())
-          return { key, title: sectionTitle(key), markdown: edit.markdown, source: "edited" };
-        return { key, title: sectionTitle(key), markdown: modelSections.get(key) ?? "", source: "generated" };
+          return {
+            key,
+            title: sectionTitle(key),
+            markdown: edit.markdown,
+            source: "edited",
+            ...basisOf(key),
+          };
+        return {
+          key,
+          title: sectionTitle(key),
+          markdown: modelSections.get(key) ?? "",
+          source: "generated",
+          ...basisOf(key),
+        };
       }),
       requirements,
       phases: out.phases,

@@ -12,7 +12,7 @@
 const REPLACEMENTS: [RegExp, string][] = [
   // HTML tags and comments.
   [/<!--[\s\S]*?-->/g, ""],
-  [/<\/?[a-z][^>]*>/gi, ""],
+  [/<\s*\/?\s*[a-z][^>]*>/gi, ""],
   // Markdown links and images keep their visible text only.
   [/!?\[([^\]]*)\]\([^)]*\)/g, "$1"],
   // Addresses before URLs: `name@host.tld` must not be eaten as a host.

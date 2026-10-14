@@ -1,4 +1,5 @@
 import type {
+  AttemptReport,
   ChatEvent,
   ChatMessage,
   ChatRequest,
@@ -187,6 +188,7 @@ export class ModelCaller implements ModelCallerPort {
         throw e instanceof CallAbortedError ? e : new CallAbortedError(e);
       }
       status = e instanceof ProviderError && e.code === "refusal" ? "refused" : "error";
+      usage = this.failedUsage(req, e, streamed, fullReq.maxOutputTokens);
       throw e;
     } finally {
       // The consumer abandoning the generator (an early `return`, a barge-in) lands here with the
@@ -220,23 +222,79 @@ export class ModelCaller implements ModelCallerPort {
     const { route, provider, price } = await this.prepare(purpose, ctx, req);
     const fullReq = this.applyRoute(route, provider, req);
     const started = this.now();
-    let usage = emptyUsage();
-    let status: LedgerEntry["status"] = "ok";
+    // Every HTTP attempt the adapter makes reports itself here, so each one is its own ledger row:
+    // the rejected strict-schema first attempt, the answer that failed validation, and the retry
+    // that succeeded. An adapter that does not report (Anthropic's SDK parses internally) leaves
+    // this empty and the outcome is booked as one row, as before.
+    const attempts: AttemptReport[] = [];
+    const observed: ChatRequest = { ...fullReq, onAttempt: (a) => attempts.push(a) };
     try {
-      const res = await provider.complete(route.model, fullReq, schema, schemaName);
-      usage = res.usage;
+      const res = await provider.complete(route.model, observed, schema, schemaName);
+      if (attempts.length === 0) {
+        await this.record(purpose, ctx, route, price, res.usage, "ok", started);
+      } else {
+        for (const a of attempts)
+          await this.record(purpose, ctx, route, price, a.usage, a.ok ? "ok" : "error", started, a.latencyMs);
+      }
       return res.value;
     } catch (e) {
       if (req.signal?.aborted) {
-        status = "aborted";
-        usage = this.abortedUsage(req, "");
+        await this.record(purpose, ctx, route, price, this.abortedUsage(req, ""), "aborted", started);
         throw e instanceof CallAbortedError ? e : new CallAbortedError(e);
       }
-      status = e instanceof ProviderError && e.code === "refusal" ? "refused" : "error";
+      const status: LedgerEntry["status"] =
+        e instanceof ProviderError && e.code === "refusal" ? "refused" : "error";
+      if (attempts.length === 0) {
+        await this.record(
+          purpose,
+          ctx,
+          route,
+          price,
+          this.failedUsage(req, e, "", fullReq.maxOutputTokens),
+          status,
+          started,
+        );
+      } else {
+        // The last attempt carries the call's final status; earlier ones are plain errors.
+        for (const [i, a] of attempts.entries())
+          await this.record(
+            purpose,
+            ctx,
+            route,
+            price,
+            a.usage,
+            i === attempts.length - 1 && !a.ok ? status : a.ok ? "ok" : "error",
+            started,
+            a.latencyMs,
+          );
+      }
       throw e;
-    } finally {
-      await this.record(purpose, ctx, route, price, usage, status, started);
     }
+  }
+
+  /**
+   * What a failed call is booked at when the provider reported nothing. A provider that rejected
+   * the request outright (bad key, bad request, unsupported, rate limited) did no work and is
+   * booked at zero; anything else may have run, so the prompt is booked, and for an answer that
+   * came back unusable the whole output allowance, which is the most it could have cost. Booking
+   * zero here is how failed calls used to look free (live run 2026-10-14, bug 7).
+   */
+  private failedUsage(req: CallRequest, e: unknown, streamed: string, maxOutputTokens: number): Usage {
+    const code = e instanceof ProviderError ? e.code : "server";
+    if (
+      code === "auth" ||
+      code === "bad_request" ||
+      code === "not_found" ||
+      code === "unsupported" ||
+      code === "rate_limit"
+    )
+      return emptyUsage();
+    return {
+      inputTokens: estimateTokens((req.system ?? "") + JSON.stringify(req.messages)),
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      outputTokens: code === "parse" ? maxOutputTokens : estimateTokens(streamed),
+    };
   }
 
   /**
@@ -480,6 +538,11 @@ export class ModelCaller implements ModelCallerPort {
     if (req.signal) out.signal = req.signal;
     if (req.temperature !== undefined) out.temperature = req.temperature;
     if (effort && provider.capabilities.effort) out.effort = effort;
+    // Hidden reasoning is spent from the same output allowance as the answer and is billed as
+    // output. Interview turns, extraction, clustering and the rest are bounded transformations
+    // that do not want it; only a route that asks for high effort keeps it. Adapters without the
+    // control ignore the field.
+    if (!effort || !["high", "xhigh", "max"].includes(effort)) out.reasoning = "off";
     return out;
   }
 
@@ -533,6 +596,7 @@ export class ModelCaller implements ModelCallerPort {
     usage: Usage,
     status: LedgerEntry["status"],
     started: Date,
+    latencyMs?: number,
   ): Promise<void> {
     const entry: LedgerEntry = {
       companyId: ctx.companyId,
@@ -540,7 +604,7 @@ export class ModelCaller implements ModelCallerPort {
       providerId: route.providerId,
       model: route.model,
       usage,
-      latencyMs: Math.max(0, this.now().getTime() - started.getTime()),
+      latencyMs: latencyMs ?? Math.max(0, this.now().getTime() - started.getTime()),
       status,
       costCents: price ? costCents(price, usage) : 0,
       createdAt: this.now(),

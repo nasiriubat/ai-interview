@@ -4,7 +4,7 @@ import type { ModelCallerPort } from "../callModel.js";
 import { detectIssues, shouldScanIssues } from "../spec/issues.js";
 import { nextMvpItem } from "../spec/live.js";
 import { resolvePolicy } from "../spec/policy.js";
-import { assembleContext } from "./context.js";
+import { assembleContext, renderFocus, renderStoredMessage } from "./context.js";
 import { applyControl, controlNote, type AppliedControl } from "./controls.js";
 import type {
   EngineSettings,
@@ -18,6 +18,7 @@ import { promptVersionTag, type PromptSource } from "./prompts/index.js";
 import { areasComplete, chooseFocus, contextComplete, type Focus } from "./selection.js";
 import { admitWidget, applyDelta, isMinimalAnswer, noteUserAnswer } from "./state.js";
 import { parseStateDelta, TurnParser } from "./turn-parser.js";
+import { repairTurnMeta } from "./turn-repair.js";
 
 /**
  * A context question asked twice without the model recording the answer is answered with
@@ -242,10 +243,32 @@ export class InterviewEngine {
         if (out) yield { type: "text", text: out };
       }
     }
-    const { message, meta, rest, error } = parser.finish();
+    const { message, meta: parsedMeta, rest, error } = parser.finish();
+    let meta = parsedMeta;
     if (rest) yield { type: "text", text: rest };
     if (error)
       logger.warn("turn metadata not parsed; continuing with message only", { sessionId: session.id, error });
+    // Nothing recoverable in the reply: ask for the metadata once, so the turn's coverage and facts
+    // are not lost with it (29 of them were in the live run of 2026-10-14).
+    if (error && message && Object.keys(meta).length === 0) {
+      const lastUser = [...recent].reverse().find((m) => m.role === "user");
+      const repaired = await repairTurnMeta(
+        { caller: this.deps.caller, prompts: this.deps.prompts },
+        {
+          companyId: session.companyId,
+          sessionId: session.id,
+          campaignId: session.campaignId,
+          areas: session.template.coverageAreas
+            .map((a) => `- ${a.key}: ${a.name}. Covered when: ${a.doneWhen}`)
+            .join("\n"),
+          focus: renderFocus(focus, session.template, session.path, state),
+          participantAnswer: lastUser ? renderStoredMessage(lastUser) : "",
+          interviewerMessage: message,
+          signal,
+        },
+      );
+      if (repaired) meta = repaired;
+    }
 
     const { delta, dropped } = parseStateDelta(meta.stateDelta);
     if (dropped.length) logger.warn("state delta fields dropped", { sessionId: session.id, dropped });
@@ -271,7 +294,8 @@ export class InterviewEngine {
       ...(meta.voiceShortForm ? { voiceShortForm: meta.voiceShortForm } : {}),
       areaKey: "areaKey" in focus ? focus.areaKey : focus.mode,
       stateDelta: delta,
-      reason: meta.reason ?? "",
+      // The schema caps it at 300; a verbose model once failed a whole turn on this field.
+      reason: (meta.reason ?? "").slice(0, 300),
       endInterview: ended,
     });
 

@@ -47,11 +47,37 @@ export function lineDiff(before: string, after: string): DiffLine[] {
   return out;
 }
 
+/**
+ * Prose reduced to what a reader would call "the same": case, punctuation, markup and spacing are
+ * ignored. A regenerated document differs from the last one in all of those and in nothing a
+ * reviewer cares about.
+ */
+export function normalizeProse(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[`*_>#~|\\[\]()]/g, " ")
+    .replace(/[.,;:!?'"\u2018\u2019\u201c\u201d-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const sameRequirement = (x: SpecRequirement, y: SpecRequirement): boolean =>
-  x.title === y.title &&
+  normalizeProse(x.title) === normalizeProse(y.title) &&
   x.scope === y.scope &&
-  x.acceptance.join("\n") === y.acceptance.join("\n") &&
-  (x.reason ?? "") === (y.reason ?? "");
+  x.acceptance.map(normalizeProse).join("\n") === y.acceptance.map(normalizeProse).join("\n") &&
+  normalizeProse(x.reason ?? "") === normalizeProse(y.reason ?? "");
+
+/**
+ * Whether a section changed. Two versions that both carry a basis are compared on it (what the
+ * section was written from); the prose is only compared, normalized, when one of them predates it.
+ */
+const sectionChanged = (
+  prev: SpecDocument["sections"][number],
+  next: SpecDocument["sections"][number],
+): boolean => {
+  if (prev.basis && next.basis) return prev.basis !== next.basis || prev.source !== next.source;
+  return normalizeProse(prev.markdown) !== normalizeProse(next.markdown);
+};
 
 /** Section-level and requirement-level differences between two versions (FR-26). */
 export function diffSpecs(before: SpecDocument, after: SpecDocument): SpecDiff {
@@ -62,7 +88,7 @@ export function diffSpecs(before: SpecDocument, after: SpecDocument): SpecDiff {
     const prev = beforeByKey.get(s.key);
     if (!prev) {
       sections.push({ key: s.key, title: s.title, change: "added", lines: lineDiff("", s.markdown) });
-    } else if (prev.markdown !== s.markdown) {
+    } else if (sectionChanged(prev, s)) {
       sections.push({
         key: s.key,
         title: s.title,

@@ -2,6 +2,7 @@ import type { Fact, ReportSection } from "@aidp/shared";
 import { WEIGHT_PRESETS } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import type { z } from "zod";
+import { stableClusterKey } from "../../src/analysis/clustering.js";
 import { clusterStats, runAnalysis, type AnalysisFact } from "../../src/analysis/pipeline.js";
 import { sanitizeSnippet } from "../../src/analysis/sanitize.js";
 import type { CallRequest } from "../../src/callModel.js";
@@ -60,11 +61,19 @@ const facts: AnalysisFact[] = [
   member("trio3", "p6", "Double charting", ["WardChart"], "**double** work every shift"),
 ];
 
-const clusters = [
-  { key: "solo", name: "Lab chasing", summary: "About this.", factIds: ["solo1"] },
-  { key: "duo", name: "Pharmacy re-keying", summary: "About this.", factIds: ["duo1", "duo2"] },
-  { key: "trio", name: "Charting twice", summary: "About this.", factIds: ["trio1", "trio2", "trio3"] },
-];
+/** Cluster keys are derived from member fact ids (stableClusterKey), so the tests name them the same way. */
+const KEY = {
+  solo: stableClusterKey(["solo1"]),
+  duo: stableClusterKey(["duo1", "duo2"]),
+  trio: stableClusterKey(["trio1", "trio2", "trio3"]),
+};
+
+/** The draft clusters the model was shown, read back out of the delimited blocks. */
+function draftsIn(content: string): { id: string; text: string }[] {
+  return [
+    ...content.matchAll(/<untrusted-[0-9a-f]+ kind="draft_cluster" id="(\w+)">\n([\s\S]*?)\n<\/untrusted-/g),
+  ].map((m) => ({ id: m[1]!, text: m[2]! }));
+}
 
 class Model {
   /** Every user message sent for each schema name, so the prompts can be inspected. */
@@ -81,7 +90,21 @@ class Model {
   ): Promise<T> {
     const content = String(req.messages[0]?.content ?? "");
     this.sent.push({ name: name ?? "", content });
-    if (name === "clusters") return schema.parse({ clusters });
+    if (name === "cluster_merges") {
+      // Merge the drafts of one topic, whatever ids the pipeline gave them.
+      const drafts = draftsIn(content);
+      const merges = [];
+      const names = [];
+      for (const [word, label] of [
+        ["pharmacy", "Pharmacy re-keying"],
+        ["chart", "Charting twice"],
+      ] as const) {
+        const ids = drafts.filter((d) => d.text.toLowerCase().includes(word)).map((d) => d.id);
+        if (ids.length >= 2) merges.push({ ids, name: label, summary: "About this." });
+        else if (ids[0]) names.push({ id: ids[0], name: label, summary: "About this." });
+      }
+      return schema.parse({ merges, names });
+    }
     if (name === "opportunity") {
       return schema.parse({
         title: "T",
@@ -142,7 +165,7 @@ async function run(k = K) {
 describe("evidence snippets", () => {
   it("withholds the text for a cluster of one", async () => {
     const { byCluster } = await run();
-    const solo = byCluster("solo");
+    const solo = byCluster(KEY.solo);
 
     expect(solo.stats.participants).toBe(1);
     expect(solo.evidence.map((e) => e.snippet)).toEqual([""]);
@@ -151,7 +174,7 @@ describe("evidence snippets", () => {
 
   it("withholds the text for a cluster of two, one short of k", async () => {
     const { byCluster } = await run();
-    const duo = byCluster("duo");
+    const duo = byCluster(KEY.duo);
 
     expect(duo.stats.participants).toBe(2);
     expect(duo.evidence.map((e) => e.snippet)).toEqual(["", ""]);
@@ -160,7 +183,7 @@ describe("evidence snippets", () => {
 
   it("shows the quotes, cleaned, for a cluster of exactly k", async () => {
     const { byCluster } = await run();
-    const trio = byCluster("trio");
+    const trio = byCluster(KEY.trio);
 
     expect(trio.stats.participants).toBe(3);
     expect(trio.evidence.map((e) => e.snippet).sort()).toEqual([
@@ -175,9 +198,9 @@ describe("evidence snippets", () => {
     const two = await run(2);
     const four = await run(4);
 
-    expect(two.byCluster("duo").evidence.every((e) => e.snippet !== "")).toBe(true);
-    expect(two.byCluster("solo").evidence.every((e) => e.snippet === "")).toBe(true);
-    expect(four.byCluster("trio").evidence.every((e) => e.snippet === "")).toBe(true);
+    expect(two.byCluster(KEY.duo).evidence.every((e) => e.snippet !== "")).toBe(true);
+    expect(two.byCluster(KEY.solo).evidence.every((e) => e.snippet === "")).toBe(true);
+    expect(four.byCluster(KEY.trio).evidence.every((e) => e.snippet === "")).toBe(true);
   });
 });
 
@@ -185,9 +208,9 @@ describe("tools", () => {
   it("are a breakdown, so they are held back below k like roles and departments", async () => {
     const { byCluster } = await run();
 
-    expect(byCluster("solo").stats.tools).toEqual([]);
-    expect(byCluster("duo").stats.tools).toEqual([]);
-    expect(byCluster("trio").stats.tools).toEqual(["WardChart"]);
+    expect(byCluster(KEY.solo).stats.tools).toEqual([]);
+    expect(byCluster(KEY.duo).stats.tools).toEqual([]);
+    expect(byCluster(KEY.trio).stats.tools).toEqual(["WardChart"]);
     expect(clusterStats(facts.slice(0, 1), K).tools).toEqual([]);
     expect(clusterStats(facts.slice(3, 6), K).tools).toEqual(["WardChart"]);
   });
@@ -212,7 +235,7 @@ describe("what the model is shown", () => {
   it("is not told a participant's words when the cluster is below k", async () => {
     const { model } = await run();
     const prompts = model.sent.filter((m) => m.name === "opportunity").map((m) => m.content);
-    const solo = prompts.find((p) => p.includes("Lab chasing"))!;
+    const solo = prompts.find((p) => p.includes("Chasing the lab"))!;
     const duo = prompts.find((p) => p.includes("Pharmacy re-keying"))!;
     const trio = prompts.find((p) => p.includes("Charting twice"))!;
 
@@ -224,7 +247,7 @@ describe("what the model is shown", () => {
 
   it("is never told quotes when it names clusters, because naming happens before membership is known", async () => {
     const { model } = await run();
-    const naming = model.sent.find((m) => m.name === "clusters")!.content;
+    const naming = model.sent.find((m) => m.name === "cluster_merges")!.content;
 
     expect(naming).not.toContain("my wrists hurt");
     expect(naming).not.toContain("same numbers twice");

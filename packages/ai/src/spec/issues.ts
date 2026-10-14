@@ -14,6 +14,7 @@ import type { Logger } from "../engine/ports.js";
 import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js";
 import { areasComplete, contextComplete } from "../engine/selection.js";
 import { languageName } from "../util/language.js";
+import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { renderSpecState, specFacts } from "./live.js";
 import type { RequirementsPolicy } from "./policy.js";
 
@@ -132,10 +133,9 @@ export async function detectIssues(
         messages: [
           {
             role: "user",
-            content: `${input.reason === "final" ? "Final pass before the specification is closed." : "Periodic pass."}\n\nSpecification state:\n${renderSpecState(input.state, input.path)}`,
+            content: `${input.reason === "final" ? "Final pass before the specification is closed." : "Periodic pass."}\n\nSpecification state:\n${wrapUntrusted("spec_state", renderSpecState(input.state, input.path), { nonce: newNonce() })}`,
           },
         ],
-        maxOutputTokens: 4000,
         ...(input.signal ? { signal: input.signal } : {}),
       },
       IssueDetectionResultSchema,

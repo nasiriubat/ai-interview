@@ -4,6 +4,7 @@ import {
   SpecVersionStatsSchema,
   type Path,
   type SessionInvitation,
+  type SessionState,
   type SpecEdits,
 } from "@aidp/shared";
 import type { SpecVersion } from "@prisma/client";
@@ -72,4 +73,34 @@ export function slug(text: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
   return s || "spec";
+}
+
+/** Turns a reopened session is given to continue in, scaled to the cap but never fewer than 5 nor more than 15. */
+export function reopenRoom(maxTurns: number): number {
+  return Math.min(15, Math.max(5, Math.round(maxTurns * 0.2)));
+}
+
+/**
+ * The state a completed session resumes from (FR-26).
+ *
+ * Reopening used to keep `min(turnCount, assistantMessages)`. A session that ended by hitting the
+ * cap, or by "I'm done" (which writes `COMPLETION_REQUESTED_TURN_COUNT`), came back at or above
+ * `maxTurns`, so the engine's next focus was "closing" and the session re-closed on its first turn
+ * (live run 2026-10-14, bug 6). The count is brought below the cap by `reopenRoom`, the request to
+ * finish is cleared with it, and the walks that ended are allowed to run again for new material:
+ * the issue scan, the closing question, and the MVP challenge (items already asked stay asked).
+ */
+export function reopenedState(state: SessionState, assistantTurns: number, maxTurns: number): SessionState {
+  const working = Math.max(0, Math.min(state.turnCount, assistantTurns, maxTurns - reopenRoom(maxTurns)));
+  return {
+    ...state,
+    phase: "areas",
+    closingAsked: false,
+    finishRequested: false,
+    finalIssueScanDone: false,
+    turnCount: working,
+    lastIssueScanTurn: Math.min(state.lastIssueScanTurn, working),
+    lastWidgetTurn: Math.min(state.lastWidgetTurn, working),
+    mvpChallenge: { ...state.mvpChallenge, done: false },
+  };
 }

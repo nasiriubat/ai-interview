@@ -1,5 +1,6 @@
 import type { CallContext, ModelCaller } from "../callModel.js";
 import type { PromptSource } from "../engine/prompts/index.js";
+import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { chunkText, type ChunkOptions } from "./chunk.js";
 import { extractText, isImageMime, isTextMime, type Extracted, type ImageMime } from "./extract.js";
 import { DEFAULT_INGEST_LIMITS, type IngestLimits } from "./limits.js";
@@ -141,7 +142,12 @@ async function summarize(
   let out = "";
   for await (const ev of deps.caller.chat("file_ingest", withPrompt(ctx, prompt), {
     system: prompt.body,
-    messages: [{ role: "user", content: `File name: ${input.filename}\n\n---\n${excerpt}\n---${language}` }],
+    messages: [
+      {
+        role: "user",
+        content: `${wrapUntrusted("document", `File name: ${input.filename}\n\n${excerpt}`, { nonce: newNonce() })}${language}`,
+      },
+    ],
   })) {
     if (ev.type === "text") out += ev.text;
   }
