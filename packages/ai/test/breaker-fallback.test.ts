@@ -73,10 +73,7 @@ function setup(options: { withFallback: boolean }) {
   const primary = new FailingProvider("primary");
   const backup = new FailingProvider("backup");
   backup.mode = "ok";
-  const registry = new ProviderRegistry();
-  const cache = (registry as unknown as { cache: Map<string, unknown> }).cache;
-  cache.set("primary", { config: cfg("primary"), provider: primary });
-  cache.set("backup", { config: cfg("backup"), provider: backup });
+  const registry = new ProviderRegistry({ build: (c) => (c.id === "primary" ? primary : backup) });
   const ledger = new InMemoryLedger();
   const clock = { t: 0 };
   const notices: FallbackNotice[] = [];

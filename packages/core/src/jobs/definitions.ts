@@ -10,7 +10,7 @@ import { currentCarrier } from "../telemetry/trace.js";
  * attempt was still working, so the report was built twice and billed twice. Each value is the
  * job's honest worst case with headroom, and a handler that outlives it is by definition stuck.
  */
-const JOB_DEFINITIONS = {
+export const JOBS = {
   "session.summarize": {
     schema: z.object({ sessionId: z.string(), companyId: z.string() }),
     retryLimit: 3,
@@ -146,24 +146,6 @@ const JOB_DEFINITIONS = {
     expireInSeconds: 3600,
   },
 } as const;
-
-/**
- * Every payload may carry the W3C trace context of the span that published it (D-222), so a job
- * joins the trace of the request or session that caused it. Added here, once, rather than in each
- * definition: the keys are infrastructure, not part of any job's contract, and `JobPayload` stays
- * the producer's shape. Without these the schemas would strip the fields on parse.
- */
-const TRACE_FIELDS = {
-  traceparent: z.string().max(256).optional(),
-  tracestate: z.string().max(2048).optional(),
-};
-
-export const JOBS = Object.fromEntries(
-  Object.entries(JOB_DEFINITIONS).map(([name, def]) => [
-    name,
-    { ...def, schema: def.schema.extend(TRACE_FIELDS) },
-  ]),
-) as unknown as typeof JOB_DEFINITIONS;
 
 /** How long a dead-lettered job is kept for the operator to look at before pg-boss drops it. */
 export const DEAD_LETTER_RETENTION_DAYS = 30;

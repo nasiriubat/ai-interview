@@ -53,6 +53,7 @@ export * from "./cost/budget.js";
 export * from "./callModel.js";
 export {
   CircuitBreaker,
+  breakerOptionsFromEnv,
   countsAgainstProvider,
   type BreakerOptions,
   type BreakerState,

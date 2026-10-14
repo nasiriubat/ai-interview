@@ -142,3 +142,25 @@ export class CircuitBreaker {
     return out;
   }
 }
+
+/**
+ * Breaker options from the environment, so a slow gateway or a test can change them without a
+ * release: `PROVIDER_CIRCUIT_FAILURES`, `PROVIDER_CIRCUIT_WINDOW_MS`, `PROVIDER_CIRCUIT_OPEN_MS`.
+ * An unreadable value falls back to the default.
+ */
+export function breakerOptionsFromEnv(
+  env: Record<string, string | undefined> = process.env,
+): Pick<BreakerOptions, "failures" | "windowMs" | "openMs"> {
+  const num = (raw: string | undefined, min: number, max: number): number | undefined => {
+    const n = raw === undefined || raw.trim() === "" ? Number.NaN : Number(raw);
+    return Number.isInteger(n) && n >= min && n <= max ? n : undefined;
+  };
+  const failures = num(env.PROVIDER_CIRCUIT_FAILURES, 1, 100);
+  const windowMs = num(env.PROVIDER_CIRCUIT_WINDOW_MS, 100, 3_600_000);
+  const openMs = num(env.PROVIDER_CIRCUIT_OPEN_MS, 10, 3_600_000);
+  return {
+    ...(failures === undefined ? {} : { failures }),
+    ...(windowMs === undefined ? {} : { windowMs }),
+    ...(openMs === undefined ? {} : { openMs }),
+  };
+}

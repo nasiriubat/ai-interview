@@ -51,6 +51,8 @@ export interface TenantPurgerDeps {
   ledger: ErasureLedger;
   alerts?: AlertPort | undefined;
   now?: () => Date;
+  /** Runs after the rows are deleted and before the scan: a test seam for a row that reappears. */
+  beforeScan?: (companyId: string) => Promise<void>;
   log?: { info: (m: string, meta?: Record<string, unknown>) => void };
 }
 
@@ -121,6 +123,8 @@ export class TenantPurger {
       );
       report.auditRows = removed[0]?.n ?? 0;
     }
+
+    await this.deps.beforeScan?.(companyId);
 
     // 5. The scan.
     const leftovers = await this.leftovers(companyId, ordered);

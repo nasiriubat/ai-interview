@@ -54,14 +54,23 @@ export async function runBatch<N extends JobName>(
       hooks.onStart?.(job.id);
       const began = Date.now();
       try {
-        const parsed = JOBS[name].schema.safeParse(job.data);
+        // The trace context rides beside the payload, not in its contract: it is read here and
+        // taken off before the payload is validated (D-222).
+        const { traceparent, tracestate, ...body } = (
+          job.data !== null && typeof job.data === "object" ? job.data : {}
+        ) as Record<string, unknown>;
+        const parsed = JOBS[name].schema.safeParse(body);
         if (!parsed.success) {
           // No retry can fix a payload that does not parse, so this attempt is the last.
           hooks.onError?.(job.id, parsed.error, failure(job, true));
           return { id: job.id, status: "deadletter", output: { message: "payload failed validation" } };
         }
         const payload = parsed.data as JobPayload<N>;
-        await runJob(name, job, payload, () => handler(payload, job.id, job.signal));
+        const carrier: TraceCarrier = {
+          ...(typeof traceparent === "string" ? { traceparent } : {}),
+          ...(typeof tracestate === "string" ? { tracestate } : {}),
+        };
+        await runJob(name, job, payload, carrier, () => handler(payload, job.id, job.signal));
         hooks.onResult?.({ name, jobId: job.id, ok: true, durationMs: Date.now() - began, final: false });
         return { id: job.id, status: "completed" };
       } catch (err) {
@@ -96,8 +105,14 @@ const SUBJECT_KEYS = ["sessionId", "analysisId", "versionId", "attachmentId", "c
  * log bindings for the tenant, the session and the attempt, so a line written deep inside a
  * handler is still filterable.
  */
-function runJob(name: string, job: BatchJob, payload: unknown, fn: () => Promise<void>): Promise<void> {
-  const p = payload as Record<string, unknown> & TraceCarrier;
+function runJob(
+  name: string,
+  job: BatchJob,
+  payload: unknown,
+  carrier: TraceCarrier,
+  fn: () => Promise<void>,
+): Promise<void> {
+  const p = payload as Record<string, unknown>;
   const companyId = typeof p.companyId === "string" ? p.companyId : undefined;
   const subjectKey = SUBJECT_KEYS.find((k) => typeof p[k] === "string");
   const subject = subjectKey ? (p[subjectKey] as string) : undefined;
@@ -121,7 +136,7 @@ function runJob(name: string, job: BatchJob, payload: unknown, fn: () => Promise
           ...(subjectKey && subject ? { [`${subjectKey.replace(/Id$/, "")}.id`]: subject } : {}),
         },
         fn,
-        { kind: SpanKind.CONSUMER, parent: contextFrom(p) },
+        { kind: SpanKind.CONSUMER, parent: contextFrom(carrier) },
       ),
   );
 }

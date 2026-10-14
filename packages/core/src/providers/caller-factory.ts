@@ -2,6 +2,7 @@ import {
   BudgetGuard,
   CircuitBreaker,
   ModelCaller,
+  breakerOptionsFromEnv,
   PriceTable,
   ProviderError,
   ProviderRegistry,
@@ -73,6 +74,7 @@ export class CallerFactory {
     this.breaker =
       deps.breaker ??
       new CircuitBreaker({
+        ...breakerOptionsFromEnv(),
         ...(deps.now ? { now: () => (deps.now as () => Date)().getTime() } : {}),
         onChange: (providerId, _from, to) => {
           deps.metrics?.circuit(providerId, to);

@@ -411,20 +411,21 @@ describeDb("tenant export and offboarding", () => {
     const ledger = new ErasureLedger({ db });
     // A storage that cannot delete is not what is under test; a row that reappears is. Insert a
     // user from another connection while the purge is mid-flight by wrapping the ledger call.
-    const purger = new TenantPurger({ db, storage, ledger });
-    const real = purger as unknown as {
-      leftovers: (id: string, tables: string[]) => Promise<Record<string, number>>;
-    };
-    const original = real.leftovers.bind(purger);
-    real.leftovers = async (id, tables) => {
-      await db.user.create({ data: { companyId: id, email: `late-${Date.now()}@x.test`, role: "member" } });
-      return original(id, tables);
-    };
+    let late = true;
+    const purger = new TenantPurger({
+      db,
+      storage,
+      ledger,
+      beforeScan: async (id) => {
+        if (!late) return;
+        await db.user.create({ data: { companyId: id, email: `late-${Date.now()}@x.test`, role: "member" } });
+      },
+    });
     await expect(purger.run(t.companyId, "op")).rejects.toBeInstanceOf(PurgeIncompleteError);
     // Not recorded as erased, and the company is not marked deleted: the next run finishes it.
     expect((await db.company.findUniqueOrThrow({ where: { id: t.companyId } })).status).toBe("offboarding");
     expect(await db.erasureLedger.count({ where: { targetId: t.companyId } })).toBe(0);
-    real.leftovers = original;
+    late = false;
     await purger.run(t.companyId, "op");
     expect((await db.company.findUniqueOrThrow({ where: { id: t.companyId } })).status).toBe("deleted");
   });
