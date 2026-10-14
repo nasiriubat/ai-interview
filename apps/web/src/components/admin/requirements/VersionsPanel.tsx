@@ -2,6 +2,7 @@
 
 import { Loader2Icon, SparklesIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { InvitationsSection } from "./InvitationsSection";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -30,6 +31,7 @@ export function VersionsPanel({
 }): React.JSX.Element {
   const s = t.admin.requirements.versions;
   const action = useAction();
+  const router = useRouter();
   const [versions, setVersions] = useSpecVersions(sessionId, initialVersions);
   const [label, setLabel] = React.useState("");
   const pending = versions.some(isPendingVersion);
@@ -104,7 +106,16 @@ export function VersionsPanel({
               </TableHeader>
               <TableBody>
                 {versions.map((v) => (
-                  <TableRow key={v.id}>
+                  <TableRow
+                    key={v.id}
+                    // The whole row opens the version; the link in the first cell stays for the
+                    // keyboard and screen readers.
+                    className="hover:bg-muted/60 cursor-pointer"
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest("a,button")) return;
+                      router.push(`/admin/requirements/${sessionId}/versions/${String(v.version)}`);
+                    }}
+                  >
                     <TableCell className="font-medium">
                       <Link
                         href={`/admin/requirements/${sessionId}/versions/${v.version}`}
