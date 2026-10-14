@@ -2,7 +2,7 @@ import { SessionStateSchema } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import { ShippedPromptSource } from "../../src/engine/prompts/index.js";
 import { generateSpec, type SpecGenerationInput } from "../../src/spec/generate.js";
-import { judgeCandidatePairs, MAX_MERGE_PAIRS } from "../../src/spec/merge.js";
+import { judgeCandidatePairs, MAX_MERGE_CALLS, MAX_MERGE_PAIRS } from "../../src/spec/merge.js";
 import type { DuplicatePair, ReqView } from "../../src/spec/quality.js";
 import { ScriptedCaller } from "../engine/helpers.js";
 
@@ -47,28 +47,62 @@ describe("the merge pass over near-duplicate candidates (D-241)", () => {
     expect(r.different).toEqual([{ a: "FR-3", b: "FR-4" }]);
   });
 
-  it("makes no call when no pair needs one, and bounds the pairs it does send", async () => {
+  it("makes no call when no pair needs one, batches the pairs, and stops at the call limit", async () => {
     const none = new ScriptedCaller([]);
     await judgeCandidatePairs(
       { caller: none.asCaller(), prompts: new ShippedPromptSource(), logger },
       { companyId: "c", sessionId: "s", reqs: [], pairs: [pair("FR-1", "FR-2", "exact")] },
     );
     expect(none.requests).toHaveLength(0);
-    const many = new ScriptedCaller([JSON.stringify({ pairs: [] })]);
-    const pairs = Array.from({ length: MAX_MERGE_PAIRS + 10 }, (_, i) => pair(`FR-${i}`, `FR-${i + 100}`));
+    const many = new ScriptedCaller(
+      Array.from({ length: MAX_MERGE_CALLS + 2 }, () => JSON.stringify({ pairs: [] })),
+    );
+    const pairs = Array.from({ length: MAX_MERGE_PAIRS * (MAX_MERGE_CALLS + 1) }, (_, i) =>
+      pair(`FR-${i}`, `FR-${i + 1000}`),
+    );
     await judgeCandidatePairs(
       { caller: many.asCaller(), prompts: new ShippedPromptSource(), logger },
       { companyId: "c", sessionId: "s", reqs: [], pairs },
     );
+    expect(many.requests).toHaveLength(MAX_MERGE_CALLS);
     const sent = String(many.requests[0]?.req.messages[0]?.content).match(/Pair \d+/g) ?? [];
     expect(sent).toHaveLength(MAX_MERGE_PAIRS);
+  });
+
+  it("reads the id from a verdict that echoes the whole line it was shown (seen live)", async () => {
+    const caller = new ScriptedCaller([
+      JSON.stringify({
+        pairs: [
+          {
+            a: "FR-1: Confirm note before Epic | acceptance: a note is not sent until confirmed",
+            b: "FR-2: Nurse review of notes before sending | acceptance: one review",
+            same: true,
+          },
+        ],
+      }),
+    ]);
+    const r = await judgeCandidatePairs(
+      { caller: caller.asCaller(), prompts: new ShippedPromptSource(), logger },
+      {
+        companyId: "c",
+        sessionId: "s",
+        reqs: [view("FR-1", "Confirm note before Epic"), view("FR-2", "Nurse review of notes")],
+        pairs: [pair("FR-1", "FR-2")],
+      },
+    );
+    expect(r.same).toEqual([{ a: "FR-1", b: "FR-2" }]);
   });
 
   it("keeps the candidates apart when the call fails instead of failing the specification", async () => {
     const caller = new ScriptedCaller(["{ not json"]);
     const r = await judgeCandidatePairs(
       { caller: caller.asCaller(), prompts: new ShippedPromptSource(), logger },
-      { companyId: "c", sessionId: "s", reqs: [view("FR-1", "A"), view("FR-2", "B")], pairs: [pair("FR-1", "FR-2")] },
+      {
+        companyId: "c",
+        sessionId: "s",
+        reqs: [view("FR-1", "A"), view("FR-2", "B")],
+        pairs: [pair("FR-1", "FR-2")],
+      },
     );
     expect(r).toEqual({ same: [], different: [] });
   });
