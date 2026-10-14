@@ -133,3 +133,19 @@ there is no motion the shell needs that a transition does not do, and it would c
 `pnpm --filter @aidp/web exec tsx scripts/screenshots.ts` writes screenshots of any pages at any
 widths, themes and languages (see the header of the script); `scripts/overflow.ts` names what sticks
 out past the viewport.
+
+## Auth, states and empty states (D-390 to D-396)
+
+- `AuthShell variant="split" | "centered"` and `AuthHeading` (`components/common/AuthShell.tsx`) frame
+  every staff-facing page that is not inside the admin shell. Put one `h1` in it.
+- `StateView` (`components/common/StateView.tsx`) says one state: `illustration`, `code`, `title`,
+  `body`, `actions`, `detail`; `size="page"` on `AuthShell`, `size="panel"` inside a page.
+- Illustrations: `components/ui/illustrations.tsx`. Add one by adding a name and a case; keep the
+  viewBox, the stroke weights and token colours. `/dev/states` shows them all.
+- `DataTable` `empty={{ illustration: "campaign", title, description, action }}`; `EmptyState`
+  takes `illustration` and `title`. First-run copy is in `kit.emptyStates`.
+- The session-expired, forbidden, suspended and maintenance states come from `getMe()` in the admin
+  layout; to show one elsewhere use `StateView`.
+- Settings: `SettingsCategories` groups the sections (`GROUPS`); a category not listed lands in
+  "other". `SettingsNav` is the grouped links (desktop) and the select (below 1024 px).
+- `ListToolbar`, `Pagination` and `ui/table` are still used by pages on main and were not removed.
