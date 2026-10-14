@@ -26,7 +26,24 @@ Factor keys: `expected_impact, affected_employees, frequency, implementation_com
 | POST   | `/opportunities/:id/status`  | `{ status: "new" \| "shortlisted" \| "dismissed" }`                             | `{ opportunity }`                                                                                         |
 | POST   | `/opportunities/:id/promote` | `{}`                                                                            | `{ session: { id, templateKey: "requirements_discovery" }, handoff: Handoff }`; status becomes `promoted` |
 
-Overrides are keyed by `clusterKey` and reapplied on later runs of the same campaign.
+Overrides are anchored to the fact ids of the opportunity they were made on and re-attached to whichever cluster holds those facts on a later run (D-151). A title or summary override is the rename of FR-18.
+
+## Cluster edits (FR-18, D-200 to D-202)
+
+| Method | Path                                   | Body                                          | Response                                                                                          |
+| ------ | -------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| POST   | `/analyses/:id/opportunities/merge`    | `{ opportunityIds: string[2..6], title? }`    | `202 { analysis, editId }`: the queued edit run                                                   |
+| GET    | `/opportunities/:id/split-proposal`    |                                               | `{ facts: [{ id, text, part }], parts }`: fact text only, grouped by similarity                   |
+| POST   | `/opportunities/:id/split`             | `{ parts: string[][] }` (2 or 3, a partition) | `202 { analysis, editId }`                                                                        |
+| GET    | `/campaigns/:id/cluster-edits`         |                                               | `{ edits: [{ id, op, createdAt, revokedAt, clusters?, parts?, title? }] }`                        |
+| DELETE | `/campaigns/:id/cluster-edits/:editId` |                                               | `202 { analysis }`: undo is one more edit run                                                     |
+| GET    | `/analyses/:id/departments`            |                                               | `DepartmentComparison`: `{ shown, k, reason?, departments[], belowK }`; groups below k are absent |
+
+Refusals are `409` with `details.reason` of `stale_analysis`, `rerun_required`, `in_progress`, `below_k` or `promoted`; a partition that does not place every fact exactly once is `400`.
+
+## Statistics (spec 07, D-206)
+
+`GET /stats` keeps its shape and gains `discovery: { byClass, notAi, top, evidence }`. Segments, each taking `from`, `to`, `campaignId`: `GET /stats/participation`, `/stats/discovery`, `/stats/requirements`, `/stats/ai`, and `/stats/health` (admins). Schemas are in `packages/shared/src/stats.ts`.
 
 ## Weights and report settings
 
