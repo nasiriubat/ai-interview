@@ -81,6 +81,14 @@ const Env = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(600),
   /** Requests per minute per principal on routes that call a model or a provider. */
   RATE_LIMIT_EXPENSIVE_MAX: z.coerce.number().int().positive().default(20),
+  /**
+   * Requests per minute per client address on the public participant routes that resolve and open
+   * an interview link (D-310). Two requests make one arrival (landing, open), so the default of 120
+   * lets an office of sixty colleagues behind one address open the link in the same minute. It was
+   * 30, which the second drill showed refusing a fifteenth person in a minute. This bucket is
+   * about one client flooding; what a link may cost is the campaign caps' job (`abuse.*`).
+   */
+  RATE_LIMIT_PUBLIC_MAX: z.coerce.number().int().positive().default(120),
   /** Requests per minute per caller on the internal shared-secret routes. */
   RATE_LIMIT_INTERNAL_MAX: z.coerce.number().int().positive().default(120),
 });
