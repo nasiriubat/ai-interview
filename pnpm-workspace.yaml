@@ -3,6 +3,7 @@ packages:
   - "packages/*"
   - "evals"
   - "scripts/*"
+  - "tools/*"
 onlyBuiltDependencies:
   - "@prisma/client"
   - "@prisma/engines"

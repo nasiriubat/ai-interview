@@ -13,7 +13,9 @@
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
-target="$here/.env"
+# ENV_FILE_PATH lets a drill write somewhere other than the repository; it is the same variable
+# dc, upgrade.sh and ensure-backup-key.sh read.
+target="${ENV_FILE_PATH:-$here/.env}"
 
 usage() {
 	echo "usage: $0 <public-hostname> <operator-email> [admin-email]" >&2

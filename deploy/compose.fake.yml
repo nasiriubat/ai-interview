@@ -1,0 +1,53 @@
+# TEST-ONLY overlay on compose.prod.yml. Never part of a deployment.
+#
+# It adds the two things the production stack deliberately does not have, so that the stack can be
+# exercised end to end on one machine with no internet and no secrets worth protecting:
+#
+#   fake-provider   a scripted OpenAI-compatible model server (tools/fake-provider), with a control
+#                   endpoint for latency and failure injection and a webhook sink for alerts
+#   mailpit         a mail catcher: sign-in links and alert mails land here, readable over HTTP
+#
+# Used by deploy/drill/stack.sh (the full-stack drill, load tests and chaos scripts). The overlay is
+# listed in COMPOSE_OVERRIDE_FILES, which deploy/dc, upgrade.sh and rollback.sh all honour.
+#
+# The scratch env file those scripts generate points EMAIL_SMTP_URL at mailpit, ALERT_WEBHOOK_URL at
+# the fake provider's sink and EGRESS_ALLOW_HOSTS at both, so no application code changes: the
+# platform reaches the fake the way it reaches any model gateway on a private network.
+services:
+  fake-provider:
+    image: aidp-fake-provider:${AIDP_VERSION:?}
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: tools/fake-provider/Dockerfile
+    restart: unless-stopped
+    environment:
+      FAKE_LATENCY_MS: ${FAKE_LATENCY_MS:-400}
+      FAKE_JITTER_MS: ${FAKE_JITTER_MS:-100}
+      FAKE_FIRST_TOKEN_MS: ${FAKE_FIRST_TOKEN_MS:-0}
+      FAKE_CHARS_PER_S: ${FAKE_CHARS_PER_S:-400}
+      FAKE_ERROR_RATE: ${FAKE_ERROR_RATE:-0}
+      FAKE_STT_UTTERANCE_MS: ${FAKE_STT_UTTERANCE_MS:-1000}
+    # Loopback only, for the drill scripts on the host: the control endpoint, the sink and /v1.
+    ports:
+      - "127.0.0.1:${FAKE_PROVIDER_PORT:-14010}:4010"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 192M
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      MP_MAX_MESSAGES: "5000"
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-18025}:8025"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M

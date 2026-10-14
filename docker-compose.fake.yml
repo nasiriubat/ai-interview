@@ -1,0 +1,33 @@
+# Development overlay: the platform against a scripted model, with no keys and no internet.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.fake.yml up -d --build
+#   node deploy/drill/configure.mjs        # points the platform provider at it and routes every purpose
+#
+# Adds the fake provider (tools/fake-provider) to the development stack and lets the API and worker
+# reach it. The provider row itself is data, not configuration: configure.mjs creates it through the
+# operator API, the way an operator would, so there is no path in the product that exists only for
+# tests. The production-shaped counterpart is deploy/compose.fake.yml.
+#
+# Control endpoint (latency, errors, hangs) and alert sink: http://localhost:14010/__control and
+# /__sink. See tools/fake-provider/src/config.ts for every knob.
+services:
+  fake-provider:
+    image: aidp-fake-provider:dev
+    build:
+      context: .
+      dockerfile: tools/fake-provider/Dockerfile
+    environment:
+      FAKE_LATENCY_MS: ${FAKE_LATENCY_MS:-400}
+      FAKE_JITTER_MS: ${FAKE_JITTER_MS:-100}
+    ports:
+      - "14010:4010"
+
+  api:
+    environment:
+      EGRESS_ALLOW_HOSTS: kroki,minio,mailpit,host.docker.internal,fake-provider
+    depends_on:
+      fake-provider: { condition: service_started }
+
+  worker:
+    environment:
+      EGRESS_ALLOW_HOSTS: kroki,minio,mailpit,host.docker.internal,fake-provider
