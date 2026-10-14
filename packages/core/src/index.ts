@@ -10,6 +10,7 @@ export * from "./sessions/engine-factory.js";
 export * from "./alerts/index.js";
 export * from "./jobs/definitions.js";
 export * from "./jobs/pg-boss.js";
+export * from "./jobs/recovery.js";
 export * from "./jobs/admin.js";
 export * from "./telemetry/index.js";
 export * from "./billing/index.js";

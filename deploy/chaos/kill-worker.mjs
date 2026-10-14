@@ -1,13 +1,10 @@
 #!/usr/bin/env node
 // The worker is killed with SIGKILL (no graceful drain) in the middle of an analysis job
 // (docs/OPERATIONS.md, "Background jobs", job.stuck). Expected: Docker restarts the worker, the
-// job is not lost, and once the queue's own expiry has passed it is retried and finishes exactly
-// once, with one result.
-//
-// pg-boss fails an active job only after its `expireInSeconds` (analysis.run: 3600), so waiting
-// for that is an hour. The script says what it observes in the meantime, then moves the job's
-// start time back by two hours, which is what the passage of the expiry is to the queue, and
-// watches the retry. That step is a simulation of time, and is labelled as one.
+// job is not lost, the restarted worker notices that the process which owned the job is gone (its
+// lease stopped being refreshed) and fails the job so the queue retries it within about a minute,
+// not after `expireInSeconds` (analysis.run: 3600), and it finishes exactly once, with one result
+// (D-281). Nothing about time is simulated.
 import {
   ADMIN_EMAIL,
   alertsLike,
@@ -63,15 +60,18 @@ await scenario("kill-worker", async () => {
     `${Math.round((Date.now() - startedAt) / 1000)} s`,
   );
 
-  // What the platform does on its own in the next minute.
-  await sleep(20_000);
-  const state = psql(
-    `select state || ' / retry ' || retry_count || ' of ' || retry_limit from pgboss.job where id = '${jobId}'`,
+  // What the platform does on its own: the lease of the killed process goes stale (45 s) and the
+  // next recovery pass fails its job, which the queue then retries.
+  await fakeControl({ latencyMs: 100, jitterMs: 0 });
+  const reclaimedAfter = await waitFor(
+    "the queue to retry the job without waiting for its expiry",
+    () => {
+      const s = psql(`select retry_count from pgboss.job where id = '${jobId}'`);
+      return Number(s) >= 1 ? Number(s) : null;
+    },
+    { timeoutMs: 150_000, everyMs: 2000 },
   );
-  const analysisState = psql(`select status from "Analysis" where id = '${analysisId}'`);
-  note(
-    `twenty seconds after the restart the job is: ${state}; the analysis row is: ${analysisState} (pg-boss fails an active job at expireInSeconds, 3600 for analysis.run)`,
-  );
+  check("the job was retried within minutes of the kill", Boolean(reclaimedAfter), `${reclaimedAfter}`);
   check(
     "nothing has run it twice in the meantime",
     Number(
@@ -81,11 +81,6 @@ await scenario("kill-worker", async () => {
     ) === 1,
     "",
   );
-
-  // Simulated: the expiry has passed.
-  log("simulating the expiry: moving the job's start time back two hours");
-  psql(`update pgboss.job set started_on = now() - interval '2 hours' where id = '${jobId}'`);
-  await fakeControl({ latencyMs: 100, jitterMs: 0 });
   const finished = await waitFor(
     "the retried analysis to finish",
     () => {
@@ -94,7 +89,7 @@ await scenario("kill-worker", async () => {
     },
     { timeoutMs: 300_000, everyMs: 3000 },
   );
-  check("after the expiry the job is retried and the analysis completes", finished === "done", finished);
+  check("the job is retried and the analysis completes", finished === "done", finished);
   const rows = Number(psql(`select count(*) from "Analysis" where id = '${analysisId}'`));
   check("one analysis row, not two", rows === 1, `${rows}`);
   const completed = Number(

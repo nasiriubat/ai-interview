@@ -1,10 +1,10 @@
-import { speechLanguages, toSpokenTurn } from "@aidp/ai";
+import { firstSpokenSentence, remainingSpoken, speechLanguages, toSpokenTurn } from "@aidp/ai";
 import type { Widget } from "@aidp/shared";
 import { streamTurn } from "../../sessions/turn-runner.js";
 import { onProviderFailure } from "./degrade.js";
 import type { LiveHost } from "./host.js";
 import { CLOSE_POLICY, MAX_ANSWER_CHARS } from "./protocol.js";
-import type { SpeechOutput } from "./speech.js";
+import type { SpeechOutput, SpokenReply } from "./speech.js";
 
 /** What the engine is given as the participant's answer; absent for the opening question. */
 export interface VoiceAnswer {
@@ -90,10 +90,22 @@ export class TurnDriver {
       return;
     }
     const askedAt = Date.now();
+    // Speech starts on the first complete sentence of the streamed message, while the model is
+    // still writing its metadata (D-280). `heard` is the text so far; `early` the reply it began.
+    let heard = "";
+    let early: { reply: SpokenReply; text: string } | undefined;
     try {
       for await (const item of streamTurn(host.ctx, host.scope.sessionId, answer, { signal: host.gone })) {
         if (state.closed) return;
-        if (item.event === "turn") {
+        if (item.event === "text" && !early) {
+          heard += (item.data as { delta?: string }).delta ?? "";
+          const sentence = firstSpokenSentence(heard);
+          if (sentence) {
+            const reply = this.speech.reply(askedAt);
+            early = { reply, text: sentence };
+            void reply.say(sentence, false, false);
+          }
+        } else if (item.event === "turn") {
           const data = item.data as {
             message: { content: string };
             ended: boolean;
@@ -103,22 +115,38 @@ export class TurnDriver {
           };
           host.metrics.turns++;
           host.send({ type: "turn", ...data });
-          const spoken = toSpokenTurn(data.message.content, data.widget, data.voiceShortForm);
           if (state.opts.captions) {
             host.send({ type: "caption", role: "assistant", text: data.message.content });
           }
-          await this.speech.speak(spoken.text, askedAt, spoken.shortened);
+          if (early) {
+            // What was said is the written message's own opening, so the rest is cut from the
+            // same rendering and the spoken words stay the displayed words. The model's short form
+            // would replace the message and repeat what was already heard, so it is not used here.
+            const rest = remainingSpoken(toSpokenTurn(data.message.content, data.widget), early.text);
+            const reply = early.reply;
+            early = undefined;
+            await reply.say(rest.text, rest.shortened, true);
+          } else {
+            const spoken = toSpokenTurn(data.message.content, data.widget, data.voiceShortForm);
+            await this.speech.speak(spoken.text, askedAt, spoken.shortened);
+          }
         } else if (item.event === "ended") {
           host.send({ type: "ended", ...(item.data as object) });
         } else if (item.event === "error") {
+          // A sentence already spoken for a turn that did not complete is not in the transcript.
+          early?.reply.cancel();
+          early = undefined;
           host.send({ type: "error", ...(item.data as object) });
         }
-        // `text` deltas are not forwarded: the participant is listening, not reading a stream, and
-        // speech cannot begin until the sentence is complete anyway.
+        // Other `text` deltas are not forwarded: the participant is listening, not reading a stream.
       }
     } catch (err) {
+      early?.reply.cancel();
       onProviderFailure(host, err, "turn");
     } finally {
+      // A turn that ended without its `turn` event (the caller left, the lock was lost) leaves no
+      // sentence in the transcript, so nothing of it is left playing.
+      early?.reply.cancel();
       if (!alreadyBusy) {
         state.busy = false;
         await this.drainPending();

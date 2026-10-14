@@ -75,6 +75,24 @@ export class ObjectTooLarge extends Error {
 }
 
 /**
+ * Thrown when the store has no room left for the object (D-283): a full disk or an exceeded quota.
+ * The caller can tell the participant what happened instead of answering a bare 500; the operator
+ * is told separately by the `disk.high` alert.
+ */
+export class StorageFull extends Error {
+  constructor() {
+    super("The object store has no space left");
+    this.name = "StorageFull";
+  }
+}
+
+/** Whether a failure from the file system or the network is "no room left". */
+export function isOutOfSpace(err: unknown): boolean {
+  const code = (err as { code?: unknown } | null)?.code;
+  return code === "ENOSPC" || code === "EDQUOT";
+}
+
+/**
  * Passes bytes through and fails the pipeline the moment more than `maxBytes` have gone by.
  *
  * Used by every adapter so the cap is one implementation, applied with backpressure: a pipeline

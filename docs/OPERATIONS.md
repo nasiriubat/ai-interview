@@ -221,12 +221,21 @@ should have failed them, is not running. Work in that queue is not moving.
 or dead-letters them.
 
 **After a crash, not a hang.** A worker killed outright (the OOM killer, a host reboot, `kill -9`)
-leaves the jobs it was running `active` on the queue; nothing in the process is left to say so, and
-the queue fails them only when their time limit passes: `analysis.run` is an hour, `spec.generate`
-half an hour, `session.extract` three minutes. Meanwhile the analysis shows as running and "Run
-analysis" answers that one is already queued (rehearsed on 2026-10-14: the worker was back and healthy
-in 7 s, the analysis was not retried until the limit). The handlers are idempotent, so the quick
-way out is to tell the queue the time limit has passed:
+leaves the jobs it was running `active` on the queue; nothing in the process can say so, and the
+queue's own expiry fails them only when their time limit passes: `analysis.run` is an hour,
+`spec.generate` half an hour, `session.extract` three minutes. The worker therefore keeps a lease
+(refreshed every 15 s) and records which job it is running (tables `pgboss.aidp_worker_lease` and
+`pgboss.aidp_job_claim`, D-281). At start and every 15 s, each worker fails the `active` jobs that
+are claimed by a worker whose lease has not been refreshed for 45 s; the queue then retries them
+with its usual backoff, or dead-letters them when their attempts are spent. The restarted worker
+takes over its predecessor's job about a minute after the kill (rehearsed by
+`deploy/chaos/kill-worker.mjs`). It is safe with several workers: a job held by a live worker, or
+with no claim at all, is never touched, and the claim is removed before the job is failed, so two
+workers cannot both fail it. The handlers are idempotent, which is what makes a retry safe.
+
+Nothing to do by hand in that case. If a job is still `active` past its limit **and the worker has
+been healthy for a few minutes** (the recovery tables could not be created, which the worker logs as
+"job recovery disabled"), tell the queue the limit has passed:
 
 ```bash
 deploy/dc exec -T postgres psql -U app -d ai_discovery -c \
@@ -234,8 +243,8 @@ deploy/dc exec -T postgres psql -U app -d ai_discovery -c \
 ```
 
 The queue's maintenance (every minute) fails the job and the retry policy runs it again; it
-completes once, with one result (checked by `deploy/chaos/kill-worker.mjs`). Do this only when the
-worker has really been restarted: an `active` job on a worker that is still alive is working.
+completes once, with one result. Do this only when the worker has really been restarted: an
+`active` job on a worker that is still alive is working.
 
 **Fixed when** The active count drops and the next sweep resolves the alert (within five minutes).
 Check for a dead letter afterwards.
@@ -305,7 +314,9 @@ the previous backups as good until a drill has passed against one of them.
 
 **Symptom** The disk holding the database, the uploads and the backups is above 80 percent
 (warning) or 90 (critical). At 100 Postgres stops accepting writes and the API returns 500s while
-every container still looks fine.
+every container still looks fine. An upload that does not fit is answered `507 storage_full`, which
+the participant sees as "the service cannot store files right now" (en and fi) with their answers
+kept; the interview carries on in writing. This alert is how you learn of it.
 
 **Look at** `df -h /`, `docker system df`, `deploy/dc exec -T backup du -sh /backups`.
 
@@ -470,9 +481,9 @@ the product (the web app answers, and every call behind it fails).
 **What a participant sees when the API process is killed mid-turn** (rehearsed with `kill -9` on
 2026-10-14, `deploy/chaos/kill-api.mjs`): the stream ends, their answer is already saved (one copy),
 Docker restarts the API in seconds, and the session is intact. The turn lock belongs to a process
-that no longer exists and is released by its TTL, 90 s; until then every retry is refused with
-`conflict` (82 s in the rehearsal). Nothing to do; it is the cost of not releasing a lock on a
-guess. A graceful stop (`deploy/dc restart api`, an upgrade) drains turns first and releases them.
+that no longer exists and is released by its TTL, 10 s (it is renewed every 2 s while a turn runs,
+D-282); until then every retry is refused with `conflict` (82 s in the rehearsal, with the earlier
+90 s TTL). Nothing to do; it is the cost of not releasing a lock on a guess. A graceful stop (`deploy/dc restart api`, an upgrade) drains turns first and releases them.
 
 ### abuse.limit_hit
 

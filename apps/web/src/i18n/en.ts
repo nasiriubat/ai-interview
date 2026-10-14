@@ -177,6 +177,10 @@ export const en = {
         what: "That file is larger than this interview accepts.",
         next: "Try a smaller file.",
       },
+      storageFull: {
+        what: "The service cannot store files right now.",
+        next: "Answer in writing for now, or try the file again later.",
+      },
       conflict: {
         what: "Something else was happening at the same moment.",
         next: "Try again in a moment.",
@@ -353,6 +357,8 @@ export const en = {
         `That file is too large. The most this interview takes is ${mb} MB.`,
       attachForbidden: "Files cannot be attached to this interview.",
       attachFailed: "The file could not be sent. Please try again.",
+      attachStorageFull:
+        "The service cannot store files right now. Your answers so far are kept. Answer in writing, or try again later.",
       recapLabel: "Where you left off",
       messagesLabel: "Conversation",
       newMessage: "New message from the interviewer",

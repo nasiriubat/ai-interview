@@ -279,6 +279,7 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
           () => {
             dispatch({ type: "playback_refused" });
           },
+          effect.more,
         );
         return;
       case "begin_utterance":
