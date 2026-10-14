@@ -2,15 +2,8 @@
  * Every user-facing string of the web app. Phase 2 adds languages by adding a sibling
  * file with the same shape; components only ever import `t` from `@/i18n`.
  */
-import {
-  DEFAULT_WELCOME_TEXT,
-  type BudgetScope,
-  type CallStatus,
-  type Effort,
-  type ProviderKind,
-  type Purpose,
-  type SettingKey,
-} from "@aidp/shared";
+import type { BudgetScope, CallStatus, Effort, ProviderKind, Purpose, SettingKey } from "@aidp/shared";
+import { DEFAULT_WELCOME_TEXT } from "@aidp/shared/welcome";
 import { kitEn } from "./kit.en";
 import { landingEn } from "./landing.en";
 import { wsEn } from "./ws.en";

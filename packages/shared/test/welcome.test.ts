@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { SETTINGS } from "../src/settings.js";
 import {
   DEFAULT_WELCOME_TEXT,
   defaultWelcomeText,
   participantWelcome,
-  SETTINGS,
   welcomeKindOf,
-} from "../src/settings.js";
+} from "../src/welcome.js";
 
 /* The participant welcome (D-460, D-461): never the template objective, which is for the AI. */
 describe("participant welcome", () => {
@@ -51,5 +51,13 @@ describe("code requests from one office address (D-468)", () => {
     const def = SETTINGS["abuse.distinctEmailsPerAddressPerHour"];
     expect(def.default).toBeGreaterThanOrEqual(50);
     expect(def.schema.safeParse(500).success).toBe(true);
+  });
+});
+
+describe("the welcome module stays free of zod (it is imported by every page's strings)", () => {
+  it("imports nothing", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync(new URL("../src/welcome.ts", import.meta.url), "utf8");
+    expect(source).not.toMatch(/^import /m);
   });
 });
