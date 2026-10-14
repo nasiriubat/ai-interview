@@ -1,0 +1,763 @@
+{
+  "model": "openai/gpt-4.1-mini",
+  "usd": 0.002,
+  "rows": [
+    {
+      "name": "nontechnical",
+      "count": 45,
+      "groundedRate": 0.889,
+      "groundedClaimedRate": 0.911,
+      "duplicateRate": 0.289,
+      "overGranularRate": 0.067,
+      "nonRequirementRate": 0.044,
+      "testableRate": 0.956,
+      "scopeAccuracy": 1,
+      "flaggedUnconfirmed": 0
+    },
+    {
+      "name": "all",
+      "count": 45,
+      "groundedRate": 0.889,
+      "groundedClaimedRate": 0.911,
+      "duplicateRate": 0.289,
+      "overGranularRate": 0.067,
+      "nonRequirementRate": 0.044,
+      "testableRate": 0.956,
+      "scopeAccuracy": 1,
+      "flaggedUnconfirmed": 0
+    }
+  ],
+  "perSpec": [
+    {
+      "spec": "nontechnical-1",
+      "persona": "nontechnical",
+      "score": {
+        "count": 14,
+        "groundedRate": 0.857,
+        "groundedClaimedRate": 0.929,
+        "duplicateRate": 0.286,
+        "overGranularRate": 0.143,
+        "nonRequirementRate": 0.071,
+        "testableRate": 0.929,
+        "scopeAccuracy": 1,
+        "flaggedUnconfirmed": 1
+      },
+      "verdicts": [
+        {
+          "id": "FR-1",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Yes, the absolute must-have is that a nurse enters a note once in the tool, and it successfully appears in both Medix and CareTrack—without retyping—on the first try.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-2",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If the note already exists in CareTrack and is different, the system should flag it with a clear warning: “This note already exists in CareTrack with a different version. Do you want to overwrite it?”",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-3",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If the note already exists in CareTrack and is different, the system should flag it with a clear warning... The nurse would have to confirm before replacing it. If they don’t confirm, the save fails and they’re prompted to review the discrepancy.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-2",
+          "adjustments": []
+        },
+        {
+          "id": "FR-4",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Only nurses on the same ward can see the notes for patients on that ward. ... The system should enforce this at the data level, not just in the user interface, so no nurse can accidentally access a note they shouldn’t.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-5",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "After a set of notes has been entered the day before, the tester should see on the ward manager’s dashboard for Ward 3B a list of all patients from that ward who had a note entered, each showing the timestamp of the last note and a green checkmark if it synced successfully. If there was a conflict... the system should show a red flag...",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-6",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Yes, the PDF should cover the full calendar day—from 00:00 to 23:59 yesterday—and include every conflict that occurred during that time, regardless of whether it was later resolved.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-7",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The nurse is the primary user—when they open the tool, they start by selecting a patient from a list tied to their assigned ward. That list auto-fills from Medix, and they can search by name, ID, or bed number.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-8",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Yes, a nurse can amend their own note as long as it’s within the same shift... the system treats it as a new version and sends the updated text to both Medix and CareTrack. If CareTrack already has a different version, they’re prompted again...",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-4",
+          "adjustments": []
+        },
+        {
+          "id": "FR-9",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "When a ward manager sees a conflict on the dashboard, they can click on it to see the details—patient name, timestamp, and which system had the different version... they can tag it for follow-up by sending a message to the nurse through the system.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-3",
+          "adjustments": []
+        },
+        {
+          "id": "FR-10",
+          "grounded": "partial",
+          "groundedClaimed": "yes",
+          "groundedVerified": false,
+          "quote": "Thanks, the resolver's name and time will be recorded with every manual resolution.",
+          "granularity": "too_fine",
+          "kind": "detail",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": ["quote not in the participant's words"]
+        },
+        {
+          "id": "FR-11",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If CareTrack is unreachable when the nurse saves, the system shows a clear message: “Cannot sync to CareTrack at this time. Your note is saved locally and will be sent when the connection is restored.” The draft stays on screen... retries every 2 minutes for up to 15 minutes... then logs and alerts ward manager.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-12",
+          "grounded": "partial",
+          "groundedClaimed": "partial",
+          "groundedVerified": false,
+          "quote": "Yes, a nurse can amend their own note as long as it’s within the same shift... the system treats it as a new version and sends the updated text to both Medix and CareTrack.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-13",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If CareTrack is unreachable, the note should stay on screen with a clear message: “Cannot sync to CareTrack. Your note is saved locally and will be sent when the connection returns.” The system should keep trying automatically every 2 minutes for up to 15 minutes... dashboard flags the failed sync.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-11",
+          "adjustments": []
+        },
+        {
+          "id": "dashboard-window",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Yes, the dashboard should show a rolling 24-hour window... The daily summary, however, runs on the calendar day—so it covers 00:00 to 23:59 on the previous day and appears automatically at 8 a.m. each morning.",
+          "granularity": "too_fine",
+          "kind": "decision",
+          "testable": "no",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        }
+      ],
+      "capabilities": 20,
+      "missing": [
+        {
+          "key": "c6",
+          "text": "Prevent saving notes for patients who have been discharged or transferred to another ward, while keeping drafts editable but unsavable until patient returns."
+        },
+        {
+          "key": "c7",
+          "text": "Automatically re-display unsaved drafts for patients who return to a nurse’s ward, marked clearly as incomplete notes."
+        },
+        {
+          "key": "c8",
+          "text": "Keep only the most recent draft for a patient and prompt the nurse to confirm before discarding any older duplicate drafts."
+        },
+        {
+          "key": "c16",
+          "text": "Keep the tool running as a cloud-hosted web application in a UK region, accessible via browsers on ward Windows desktops, including legacy support for Internet Explorer 11."
+        },
+        {
+          "key": "c18",
+          "text": "Send notes to CareTrack as JSON objects containing patient ID, timestamp, nurse ID, and note text, with secure authentication and error handling."
+        },
+        {
+          "key": "c20",
+          "text": "Ensure no software installs or auto-updates are required on ward desktops; the app must be stable and self-contained once deployed."
+        }
+      ],
+      "unconfirmed": 1,
+      "mergedAway": 0
+    },
+    {
+      "spec": "nontechnical-2",
+      "persona": "nontechnical",
+      "score": {
+        "count": 13,
+        "groundedRate": 1,
+        "groundedClaimedRate": 1,
+        "duplicateRate": 0.231,
+        "overGranularRate": 0.077,
+        "nonRequirementRate": 0,
+        "testableRate": 1,
+        "scopeAccuracy": 1,
+        "flaggedUnconfirmed": 0
+      },
+      "verdicts": [
+        {
+          "id": "FR-1",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The nurse opens the patient’s record in Meditech, types the progress note as usual, then clicks a new “Send to CareTrack” button ... A pop-up appears asking: “Send this note to CareTrack?” ... The note then appears in CareTrack ... Nurse sees the corrected note ... with label “(Re-sent correction)” in blue text ... original ... label “Original — auto-sent.”",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-2",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The nurse opens the patient’s record in Meditech, types the progress note as usual, then clicks a new “Send to CareTrack” button that appears in the bottom toolbar. A pop-up appears asking: “Send this note to CareTrack?” with the exact text of the note previewed.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-3",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The note then appears in CareTrack under the same patient’s record, timestamped with the current time, and is flagged in red for 30 seconds to show it was auto-synced ... 30 seconds felt just right.",
+          "granularity": "ok",
+          "kind": "detail",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-4",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If a note fails to send, the nurse should see a clear error message on screen: “Failed to send to CareTrack — check connection and try again.” ... The nurse can retry immediately or later. If it fails three times in a row, the system logs the error automatically and sends an alert to the IT helpdesk ... After three failed retries, retries are blocked and the message 'Maximum retries reached. IT has been notified.' appears.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-5",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If it fails three times in a row, the system logs the error automatically and sends an alert to the IT helpdesk ... The alert should show the note ID, patient name, the time the note was written in Meditech, the time of the last send attempt, and the reason code ... nurse’s name and badge number ... No other details.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-7",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The first thing they do is check the last progress note in Meditech to see how the patient was doing at the end of the previous shift — that helps them start writing the new note with the right context.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-9",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "She didn’t have to check the text again — the note stayed exactly as she had typed it in Meditech. The retry sent the same version, unchanged, because the tool preserved the note in Meditech until it was successfully sent.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-3",
+          "adjustments": []
+        },
+        {
+          "id": "FR-10",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "She expects to see the full note appear under the patient’s record in CareTrack, with the same text she wrote in Meditech, including the date and time she completed it. It shows up with a red highlight for 30 seconds ... she can click on it to read it.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-11",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "One thing’s missing: the tool should show the time the note was sent to CareTrack ... the system should display the send time alongside the note in CareTrack, and we’ll make sure it’s shown in the audit log too.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-12",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If she tries to send it again after it’s already in CareTrack, the system should block the second send and show a message: “This note has already been sent to CareTrack — no need to resend.” The note remains unchanged in Meditech, and no new entry is created in CareTrack.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-14",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "She should see a green confirmation box pop up in Meditech: “Note sent successfully to CareTrack at 10:43.” The box stays for 5 seconds, and the note remains in Meditech, unchanged.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-3",
+          "adjustments": []
+        },
+        {
+          "id": "FR-15",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "When a send fails, the tester should see a red error box in Meditech: “Failed to send to CareTrack — check connection and try again.” The note stays in Meditech exactly as typed, with no changes, and the nurse can retry immediately. The failed attempt is logged in the system audit trail with a failure status.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-4",
+          "adjustments": []
+        },
+        {
+          "id": "FR-16",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "After the third failure, she sees a message: “Maximum retries reached. IT has been notified.” ... She can’t send it again from there, but she can close the screen and come back later. ... After the retry limit is reached, the nurse can send the same note again later, and the counter starts fresh.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        }
+      ],
+      "capabilities": 20,
+      "missing": [
+        {
+          "key": "c13",
+          "text": "Use single user role 'Ward Nurse/Assistant' with permissions to view and send only their own notes."
+        },
+        {
+          "key": "c14",
+          "text": "Ensure all patient data remains on on-premises servers, encrypted at rest and in transit, complying with UK GDPR."
+        },
+        {
+          "key": "c15",
+          "text": "Store notes and send attempt logs in SQL Server with retention of 12 months."
+        },
+        {
+          "key": "c16",
+          "text": "Integrate authentication via Windows sign-in using existing Active Directory credentials."
+        },
+        {
+          "key": "c17",
+          "text": "Prevent any blocking pop-ups or alerts that disrupt nurse workflow during normal or failure states."
+        }
+      ],
+      "unconfirmed": 0,
+      "mergedAway": 0
+    },
+    {
+      "spec": "nontechnical-3",
+      "persona": "nontechnical",
+      "score": {
+        "count": 18,
+        "groundedRate": 0.833,
+        "groundedClaimedRate": 0.833,
+        "duplicateRate": 0.333,
+        "overGranularRate": 0,
+        "nonRequirementRate": 0.056,
+        "testableRate": 0.944,
+        "scopeAccuracy": 1,
+        "flaggedUnconfirmed": 0
+      },
+      "verdicts": [
+        {
+          "id": "FR-1",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "It needs to go to both systems at the same moment—specifically, within three seconds of the nurse hitting \"save.\" If the note isn't in both places by then, it’s too late for that shift",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-2",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "It needs to go to both systems at the same moment—specifically, within three seconds of the nurse hitting \"save.\"",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-1",
+          "adjustments": []
+        },
+        {
+          "id": "FR-3",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "the note must appear in CareFlow exactly as typed, with no formatting changes",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-4",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "in WardSync, it must be saved under the patient’s name, shift, and date, in a pre-defined cell range—specifically, column D, starting from row 100 for the current shift",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-5",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The system must make it clear whose note it is and when it was written—no ambiguity. That’s critical for accountability and safety.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-6",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "each nurse must log in with their unique hospital ID and password before typing a note—no exceptions. That way, the system automatically tags the note with their name, role, and shift",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-7",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Notes must be kept for seven years, in line with the hospital’s medical records retention policy. That means the system must store every note securely, with the author, timestamp, and patient ID, and it must be searchable",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-8",
+          "grounded": "partial",
+          "groundedClaimed": "partial",
+          "groundedVerified": false,
+          "quote": "it must be searchable by patient name, date, or nurse",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-4",
+          "adjustments": []
+        },
+        {
+          "id": "FR-9",
+          "grounded": "partial",
+          "groundedClaimed": "partial",
+          "groundedVerified": false,
+          "quote": "Once a nurse has saved a note, what should they see on screen to know it reached both systems? They should see a green checkmark with the words “Note saved in both systems” appear instantly after they press save",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-3",
+          "adjustments": []
+        },
+        {
+          "id": "FR-10",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If it fails, the screen shows a red alert: “Note failed to send to WardSync. Please check connection.” And they can tap it to see the error details",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-11",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "the alert must name the specific system that failed—CareFlow or WardSync—because the nurse needs to know exactly what went wrong",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-12",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If the save takes longer than three seconds, the system must show the nurse a progress bar that says “Syncing note…” and keep it visible until the note is confirmed in both systems. If it still hasn’t synced after 10 seconds, the system shows a red alert",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-14",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "After ten seconds without confirmation from both systems, a red alert appears naming CareFlow or WardSync as the failed system. The nurse can tap the alert to retry the save manually.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-3",
+          "adjustments": []
+        },
+        {
+          "id": "FR-15",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "if a nurse types only “...” or “---” or any sequence of symbols with no letters or numbers, the system must block the save and show the same red message: “Please enter at least one sentence before saving.”",
+          "granularity": "ok",
+          "kind": "constraint",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-16",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The test is: a nurse writes a valid note—say, “Pain 2/10, medication given”—types it in, hits save, and within three seconds, confirms it appears in both CareFlow and WardSync",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-1",
+          "adjustments": []
+        },
+        {
+          "id": "FR-17",
+          "grounded": "no",
+          "groundedClaimed": "no",
+          "groundedVerified": false,
+          "quote": "",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "no",
+          "scope": "unclear",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-18",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "With WardSync switched off, saving a note shows a red alert naming WardSync within ten seconds. Then, turn off CareFlow and try again—alert must name CareFlow",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-11",
+          "adjustments": []
+        },
+        {
+          "id": "FR-19",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "if both systems are down, the alert must say: “Note failed to send to CareFlow and WardSync.” It names both, clearly and immediately—no delay, no ambiguity",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        }
+      ],
+      "capabilities": 20,
+      "missing": [
+        {
+          "key": "c8",
+          "text": "Keep unsaved note drafts on the system, including drafts from previous shifts tagged as 'Previous Shift Draft' and remove them after 24 hours if not saved"
+        },
+        {
+          "key": "c9",
+          "text": "Require nurses to manually log out at the end of their shift and show a warning if they try to start a new shift while still logged in"
+        },
+        {
+          "key": "c10",
+          "text": "Store all notes securely in a UK-based cloud database with encryption in transit and at rest, compliant with GDPR"
+        },
+        {
+          "key": "c12",
+          "text": "Prevent any editing or deletion of saved notes at both the application and database levels"
+        },
+        {
+          "key": "c13",
+          "text": "Allow ward managers to add or remove nurses and view logs of saved notes and sync failures"
+        },
+        {
+          "key": "c14",
+          "text": "Allow IT support leads to monitor system performance, check sync status, and reset failed connections without editing notes"
+        },
+        {
+          "key": "c15",
+          "text": "Do not store any notes locally on nurse devices; delete any temporary copies immediately after successful sync"
+        },
+        {
+          "key": "c18",
+          "text": "Support a user base of 14 nurses and senior care assistants on a single ward and shift, with no remote access"
+        },
+        {
+          "key": "c19",
+          "text": "Delay product build technology choice until the in-house team’s preferred technology stack is known"
+        }
+      ],
+      "unconfirmed": 0,
+      "mergedAway": 0
+    }
+  ]
+}

@@ -1,0 +1,1274 @@
+{
+  "persona": "nontechnical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Before we get into the details of the note-taking, one practical question: do you already have somewhere this would run, such as company servers or a cloud account, or is that still open? It matters because it shapes the technical approach, the running cost, and the privacy rules we need to follow. If you're not sure, we can leave it open for now."
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks, a cloud account it is. Next, the notes themselves: when a nurse types a ward note once, should it go to the patient system and the spreadsheet at the same moment, or is it enough that it reaches both before the shift ends?"
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "It needs to go to both systems at the same moment—specifically, within three seconds of the nurse hitting \"save.\" If the note isn't in both places by then, it’s too late for that shift, and the team can’t rely on it for handover or reporting. I’ve seen delays cause miscommunication during shift changes, and we can’t afford that. So real-time sync is non-negotiable—no buffering, no queuing, no retries."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "That three-second, no-retry requirement is clear, and I'll record it as a requirement. Next: which systems does this need to connect to? The patient system and the spreadsheet are the two we know about. Are there others, or only those two? This matters because each connection adds data and access work. If you're not sure, I'll assume just those two."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "Just those two—our electronic patient record (EPR) system, which we call CareFlow, and the ward operations spreadsheet called WardSync. No other systems. I’ve checked with the IT team, and they’ve confirmed nothing else needs to be updated. We’re not integrating with pharmacy, lab, or admin systems—just CareFlow and WardSync. That keeps it simple and secure."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "Thanks for checking with IT. Two systems it is: CareFlow and WardSync."
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "Good—just to confirm, the note must appear in CareFlow exactly as typed, with no formatting changes, and in WardSync, it must be saved under the patient’s name, shift, and date, in a pre-defined cell range—specifically, column D, starting from row 100 for the current shift. If the nurse enters a note at 14:05, it must land in the right spot by 14:08 at the latest, even if the system is busy. No exceptions."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "Noted: CareFlow must receive the note exactly as typed, and WardSync must place it under the patient's name, shift and date in column D from row 100. Those are the next requirements I'll record.\n\nWho will build this? It shapes how I phrase the specification and plan. If you're not sure, I'll assume a coding agent."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "Thanks, an in-house team. I'll write the specification for them to build from.\n\nNext, the nurses who will use this: who types ward notes, and who reads them afterwards? A short list of roles is enough."
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": "The nurses who type the notes are the registered nurses and senior care assistants on the 8–4 shift in Ward B, which has 12 beds. They’re the only ones who enter notes during their shift. After that, the notes are read by the oncoming shift’s lead nurse, the ward manager, and the clinical supervisor during daily handover. The system must make it clear whose note it is and when it was written—no ambiguity. That’s critical for accountability and safety."
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "Thanks for the detail on who types and who reads the notes. Next, for the technical side: what does your in-house team usually work with? For example, a language or a platform. A stack the team already knows is usually safer to build on than a slightly better option they'd have to learn. If you're not sure, I'll assume it's unknown and we'll choose later."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"single_choice\",\"key\":\"unknown\"})"
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "Thanks, we'll leave the technology open for now and decide it with the team later.\n\nNext, the nurses' login: should each nurse sign in with their own hospital account before they can save a note, so the note's author is recorded automatically? Default: yes."
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "Yes, each nurse must log in with their unique hospital ID and password before typing a note—no exceptions. That way, the system automatically tags the note with their name, role, and shift, and we avoid any confusion about who wrote what. If someone tries to save without logging in, the system blocks it and shows a clear error: “Please log in to record a note.” It’s a safety rule."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "Thanks, a login before every note, with the author tagged automatically, is clear. I'll record it as a requirement.\n\nWhen does version one need to exist? The answer shapes which features must ship first. If there's no fixed date, we can plan without one."
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": "We need version one by the start of next month—specifically, October 7th. That’s when the new ward management protocol launches, and the team will be trained to use the tool. If it’s not ready by then, the whole rollout stalls, and we risk going back to double entry. So October 7th is firm. We can’t delay."
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Thanks, October 7th is noted as a firm date.\n\nNext, the notes themselves need to be kept somewhere after they're written. How long should each note be kept in the system? Default: as long as the hospital's records policy requires."
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "Notes must be kept for seven years, in line with the hospital’s medical records retention policy. That means the system must store every note securely, with the author, timestamp, and patient ID, and it must be searchable by patient name, date, or nurse. If the system ever fails to keep a note for that full period, it’s a compliance breach—no exceptions. I’ve checked with the compliance team, and they confirmed this is non-negotiable."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "Thanks, seven-year retention with search by patient, date or nurse is recorded. One thing I still need: is there a budget range for this? It matters because it decides whether we lean towards building in-house or buying an off-the-shelf product. If you're not sure, we'll leave it undecided."
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"single_choice\",\"key\":\"unknown\"})"
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "Budget is recorded as undecided, so we'll plan without a budget cap.\n\nNext, the admin side: who needs to manage the system once it's running, and what should they be able to see or change? For example, adding or removing nurses, or viewing a log of saved notes. A short list is enough."
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "The ward manager and the IT support lead for the clinical systems are the only admins. The ward manager can add or remove nurses from the system, view a log of all notes saved each day, and see if any notes failed to sync. The IT lead can view system performance, check sync status, and reset failed connections—but they can’t edit or delete notes. No one else should have admin access. If a nurse is leaving, the ward manager removes them from the system within 24 hours, and the system logs that change. That’s the rule."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "Thanks, the admin rules are clear: the ward manager handles nurse access and monitoring, the IT lead handles system health, and nobody can edit or delete notes. I'll record that.\n\nHow many people will use this at launch, roughly? It decides how much capacity to plan for. If you're not sure, we'll assume under 100."
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "Exactly 14 people will use it at launch—12 nurses and 2 senior care assistants on the 8–4 shift in Ward B. We’re starting with just one ward to test the flow before rolling it out to the other six wards in the hospital. If it works well, we’ll expand. But for now, it’s 14 users, all on the same shift, same location. No remote access needed."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "Thanks, 14 users on one shift in one ward, with no remote access, is clear. I'll record that."
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "One final thing: if a nurse types a note and the system fails to send it to one of the two systems—CareFlow or WardSync—what should happen? Should the system try again, or just show an alert? Default: retry once, then alert."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "Thanks for the failure rule. I'll note it: retry once, then alert.\n\nBefore we go further, one question about compliance: does this system handle personal data such as patient health information, and does any regulation apply beyond the hospital's own records policy? It matters because it changes the hosting, security and data requirements. Default if you're unsure: personal data under GDPR."
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": "Yes, it handles personal health data—specifically, patient names, medical conditions, and clinical observations—and it’s fully governed by GDPR. That means the data must be encrypted both in transit and at rest, access must be logged, and no data can leave the UK without approval. The cloud account must be in a UK-based region, and the system must be auditable by the hospital’s data protection officer. We can’t risk a breach—this isn’t just about records, it’s about patient safety and law."
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Thanks, that's clear: the data is personal health data under GDPR, encrypted in transit and at rest, access logged, UK-only hosting in a UK region, and auditable by the data protection officer. I've recorded it."
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": "One last thing: if a nurse starts typing a note but leaves before saving—say, they get called to another patient—does the system keep a draft, or is it lost? Default: keep the draft."
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "Good question about drafts. I'll record a default of keeping the draft, so an interrupted note can be picked up again.\n\nNow let's look at the people using the system. Which of these tasks matters most to the nurses on their shift: writing notes, reading the handover notes, or looking up an earlier note for a patient?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "Writing notes is the core job, so I'll make sure that flow is right. Walk me through one recent example: when a nurse finished with a patient, what did they do, step by step, and roughly how long did it take to get the note recorded in both systems?"
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": "Last Tuesday, after checking on Mr. Patel in bed 6, I wrote a note at 15:32 saying “Stable, pain 2/10, took medication on time.” I opened the ward note app, typed it in, hit save—done in 12 seconds. But then I had to go back to the EPR to enter the same thing again because the app wasn’t connected yet. That took another 45 seconds. So in total, it took 57 seconds to get it in both systems—double entry, completely manual. I could’ve spent that time checking another patient. That’s why this tool is urgent."
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "That example makes the target clear: today the note takes about 57 seconds across both systems, and the new tool should bring that down to one save. Once a nurse has saved a note, what should they see on screen to know it reached both systems?"
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "They should see a green checkmark with the words “Note saved in both systems” appear instantly after they press save—no delay, no extra clicks. The message must stay visible for five seconds, then fade out. If it fails, the screen shows a red alert: “Note failed to send to WardSync. Please check connection.” And they can tap it to see the error details. No guesswork—just clear feedback. That’s how we prevent double entry."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "Thanks, the feedback on save is clear: a green confirmation for five seconds, and a red alert with details if either system fails. I'll record it.\n\nThe feedback message names only WardSync. If CareFlow is the one that fails, should the alert name that system too? Default: yes, the alert names whichever system failed."
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "Yes, the alert must name the specific system that failed—CareFlow or WardSync—because the nurse needs to know exactly what went wrong. If it’s CareFlow, the alert says “Note failed to send to CareFlow,” and if it’s WardSync, it says “Note failed to send to WardSync.” That way, the nurse knows whether to call IT or just retry manually. No guessing. It’s a safety requirement."
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Thanks, I'll record that the alert names the failed system, CareFlow or WardSync, so the nurse knows whether to call IT or retry.\n\nNext, I'd like to pin down how the nurses use this day to day. In a single sentence, what does a nurse do with the tool from the moment they start a shift?"
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": "From the moment they start their shift, a nurse logs in, opens the ward note tool, and uses it to type every clinical update for their patients—saving each note once, knowing it automatically appears in both CareFlow and WardSync, with instant confirmation on screen."
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "That's a clear picture of a shift: log in, save each note once, and see confirmation straight away. One part I want to check is what happens at the end of the shift, when the oncoming nurse picks up the ward. Do they read the notes in the tool, or in CareFlow and WardSync? Default: they read them in the tool."
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": "No, they don’t read them in the tool—at the end of the shift, the oncoming nurse checks the notes in CareFlow and WardSync, just like they always have. The tool is only for writing, not for reading. The system doesn’t need to show a summary or handover log—just the live sync to both systems is enough. The incoming nurse uses the same apps they’ve always used. The tool just removes the duplicate entry."
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Thanks, so handover reading stays in CareFlow and WardSync, and the tool is for writing only. I'll record that the oncoming nurse uses the existing systems.\n\nLet's check the end-of-shift path next. When a nurse finishes their last note, what do they do to end their session: log out, or just close the app? Default: log out."
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": "They must log out manually by clicking a \"Log Out\" button at the top right of the screen. The system doesn’t auto-log them out after 30 minutes—or ever. If they don’t log out, the system will show a warning screen when they try to start another shift: “You’re still logged in. Please log out to protect patient data.” That’s a compliance rule. No exceptions."
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "Thanks, a manual log-out button, with no automatic timeout, and a warning if they try to start a new shift while still logged in. I'll record that.\n\nNow a check on the end-of-shift path: if a nurse forgets to log out and the warning appears at the start of their next shift, what should happen to any draft they left unsaved? Default: keep the draft until they log in again."
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "If a nurse forgets to log out and sees the warning at the start of their next shift, any unsaved draft from the previous shift is kept on the system—visible when they log in again—so they can finish it. The system tags it with “Previous Shift Draft” and the date. But the draft disappears if not saved within 24 hours. That’s to prevent outdated or accidental entries from lingering."
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "Thanks for the draft rule: an unsaved draft is kept and tagged \"Previous Shift Draft\" with its date, and it's removed after 24 hours without saving. I'll record that.\n\nNext, I'd like to turn what we've covered into a clear list of what the tool must do. Is there anything a nurse needs the tool to do that we haven't discussed yet, such as attaching a photo or sending a note to a specific colleague? Default: no, nothing else for version one."
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": "No, nothing else for version one. The tool must only let nurses type a note once and have it appear instantly in both CareFlow and WardSync. No photos, no alerts to colleagues, no file attachments. Just the note, saved once, synced real-time. That’s it. We’re not adding features until we’ve proven this one works flawlessly."
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "Thanks, that settles the scope: version one is just typing a note once and having it appear in both systems, with no photos, alerts or attachments.\n\nBefore we confirm the full list, I want to check the requirement that covers the instant sync. A nurse saves a note and it appears in CareFlow and WardSync within three seconds. What should happen if the save takes longer than three seconds because the network is slow: keep waiting, or show the nurse the alert?"
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": "If the save takes longer than three seconds, the system must show the nurse a progress bar that says “Syncing note…” and keep it visible until the note is confirmed in both systems. If it still hasn’t synced after 10 seconds, the system shows a red alert: “Note not sent to CareFlow and WardSync. Please check your connection.” The nurse can then retry manually. The system never hides the delay—it must be visible, so they know it’s not working. No silent failures."
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "Thanks, that adds a new requirement: a visible \"Syncing note...\" progress bar after three seconds, and a red alert after ten seconds if the note still hasn't reached both systems, with a manual retry.\n\nKeeping the progress visible after three seconds and alerting after ten means the note could take up to ten seconds to confirm, which goes beyond the three-second target. Default: keep the three-second target as the goal and treat the ten-second alert as the failure point. That means the nurse sees progress until ten seconds. Shall I keep it that way?"
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": "Yes, keep the three-second target as the goal—no delays allowed. If it takes longer than three seconds, the system shows the progress bar immediately, but the warning after ten seconds is still the failure point. The nurse must not be left guessing. The tool must aim for three seconds, but if it fails, they need to know fast. We can’t accept late syncs—this is about patient safety. So the three-second goal stays, and the ten-second alert remains. No compromise."
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "Understood: the three-second target stays, the progress bar shows from the start of any delay, and the red alert appears at ten seconds if the note isn't confirmed in both systems.\n\nBefore we confirm the full requirements list, I want to check the three-second target against the ten-second alert. The current rule can't be met if a sync takes longer than three seconds, so I need to know which one wins. Does a note that confirms at 4 seconds count as a failure, or is it acceptable as long as no alert appears?"
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "Got it: a note that's confirmed after three seconds counts as a failure, so that rule is now on record.\n\nNext, I'd like to set out the rules that decide how the tool behaves in ordinary use. When a nurse saves a note, what should happen if the note is empty: should the save be blocked? Default: yes, a note needs some text before it can be saved."
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": "Yes, if a nurse tries to save a note with no text—just a blank form—the system must block the save and show a red message: “Please enter at least one sentence before saving.” It can’t be overridden. That’s to prevent accidental blank entries that might confuse handover or trigger false alarms. The nurse must type something meaningful before the save succeeds. No exceptions."
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "Thanks, I'll record that a blank note is blocked with the red message \"Please enter at least one sentence before saving.\" Blocking it outright may be too strict if a nurse legitimately needs to save something short, such as a single observation. Could you give an example of a short but valid note, so we can see whether one sentence is the right threshold?"
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": "Okay, fair point—I’ve seen nurses write things like “BP 130/80, stable” or “Patient ambulated with support” as complete, valid notes. Those are one sentence, but they’re clinically meaningful. So the rule shouldn’t block a note that’s just two or three words long—only if it’s truly empty or only spaces. The system should allow any note with at least one alphabetical character or number, as long as it’s not just a space or symbol. If the nurse types “”—it blocks. If they type “BP 130/80”, it’s okay. Let me clarify: the system must block only truly blank entries, not short but valid observations. That’s what we need."
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "Thanks, that clears it up: the block applies only to empty or whitespace-only notes, and a note with at least one letter or number is allowed. I'll correct the rule and the message to match.\n\nNext, a question on the same rule: when a nurse types something like \"...\" or \"---\", which has no letters or numbers, should the save be blocked? Default: yes, it's blocked."
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": "Yes, if a nurse types only “...” or “---” or any sequence of symbols with no letters or numbers, the system must block the save and show the same red message: “Please enter at least one sentence before saving.” These aren’t valid clinical notes—they’re placeholders or mistakes. We’ve had incidents where nurses left those in by accident, and it caused confusion during handover. So the rule stands: no symbols-only entries. The note must contain at least one letter or number to be saved."
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "Thanks, I've noted that symbol-only entries are blocked with the same message.\n\nI also found a duplicate in the requirements list. FR-12 and FR-13 both say a save that takes longer than three seconds shows a progress bar. Default: remove FR-13, so the progress bar is described once, in FR-12. That means nothing changes for the nurse. Shall I keep that?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "Thanks, I've removed the duplicate, so the progress bar is described once, in FR-12.\n\nNext, the rules for the save itself. If a nurse saves a note and CareFlow confirms but WardSync does not, what should the nurse see right now: the red alert naming WardSync, or a partial confirmation first? Default: the red alert naming WardSync, with no partial confirmation."
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": "The nurse sees the red alert immediately: “Note failed to send to WardSync.” There is no partial confirmation—no green checkmark, no “sent to CareFlow” message. The system waits for both systems to confirm before showing any success. If one fails, the alert shows the failed system right away. That’s critical—nurses can’t be misled into thinking it’s done when it’s not. We’ve had too many near-misses from that. So no partial feedback—only full success or clear failure."
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "Thanks, I've recorded that a partial result shows no success at all, and the red alert names the failed system straight away.\n\nNext, the acceptance checks. How would you know the tool works on the ward? Default: a test where a nurse saves a note on a normal connection and checks that it appears in both CareFlow and WardSync within three seconds."
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "Yes, exactly. The test is: a nurse writes a valid note—say, “Pain 2/10, medication given”—types it in, hits save, and within three seconds, confirms it appears in both CareFlow and WardSync. The note must show the same text, with the same timestamp and author. If it’s not there within three seconds, the tool fails the test. We’ll run this test three times in a row on the same shift, with no failures allowed. If it passes, the tool is approved. That’s the only test we need."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "Thanks, that test is clear: a valid note saved once must show the same text, timestamp and author in both CareFlow and WardSync within three seconds, and you'll run it three times in a row with no failures.\n\nYou said that's the only test you need, but the failure path also needs checking. Should we add a test where one system is switched off, to confirm the red alert names the right system within ten seconds? Default: yes, one failure test with each system switched off in turn."
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": "Yes, we need that test—specifically, we’ll run two failure tests: first, turn off WardSync and try to save a note; the system must show the red alert naming WardSync within ten seconds. Then, turn off CareFlow and try again—alert must name CareFlow. The nurse should never see a generic message. If the alert is wrong or delayed, it’s a failure. We run each test once, but both must pass. That’s part of acceptance. Without this, we can’t trust the alert system."
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Thanks, the two failure tests are now part of acceptance: with WardSync switched off, the red alert must name WardSync within ten seconds, and with CareFlow switched off, it must name CareFlow. Each test runs once and both must pass.\n\nOne gap remains: what happens if both systems are switched off at the same time? Should the red alert name both systems, or is that outside version one? Default: the alert names both systems."
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": "Yes, if both systems are down, the alert must say: “Note failed to send to CareFlow and WardSync.” It names both, clearly and immediately—no delay, no ambiguity. The nurse sees both systems listed, and they know it’s a system-wide issue. We’re not hiding the problem. The tool must not try to guess what’s wrong—it just tells them the truth. This is critical during outages. So the alert shows both systems, and we’ll test it once during acceptance. That’s part of version one."
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "Thanks, the both-systems alert is now recorded: it names CareFlow and WardSync together, immediately, and is tested once during acceptance.\n\nOne decision is still open: the technology the tool is built with. We don't yet know what skills the in-house team has, so we can't pick a tool they already know. Default: leave this undecided until we know the team's skills, then choose a technology they are familiar with. That means the build can't start until that choice is made. Shall I keep it that way?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": "Yes, keep it that way—don’t start building until we know the team’s skills. We can’t risk choosing a tech they don’t know, especially with a tight deadline. The tool must be built by the team that will maintain it. So we’ll hold off on the tech choice until we’ve met with the team lead and reviewed their stack. Once we know what they use—whether it’s .NET, Python, React, or something else—we’ll pick the one they’re strongest in. No shortcuts."
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Thanks, I've noted that the stack waits for your meeting with the team lead, and that the team chooses from what they already know.\n\nNext, the technical recommendations. Hosting is already set to a UK cloud region. Would you like the system to be built with a managed database service rather than one the team runs itself? Default: a managed database service, because the team doesn't have to maintain the server and patching is handled for them."
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "Thanks, the managed database service is confirmed as the recommendation.\n\nNext, the team will need to store notes securely for seven years, and the database has to keep a record of who wrote each note and when. Should that record be kept in the same database as the notes, or in a separate log? Default: the same database, so the author and timestamp stay with each note."
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": "Yes, the author and timestamp must be stored in the same database as the note itself—not in a separate log. That way, the full record stays intact and can’t be mismatched. If the note is retrieved later, the system shows exactly who wrote it and when, even after seven years. A separate log would risk losing that link, and we can’t afford that. The database must include the nurse’s ID, role, shift, and save time as part of the note record. That’s non-negotiable."
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "Thanks, I've recorded that the author, role, shift and save time are stored in the same database record as each note.\n\nNext, the remaining technology choice that affects this record is how the database handles deleted or edited notes. Since no one can edit or delete a note, should the system block changes at the database level as well as in the application? Default: yes, enforced at the database level too, so a note can't be changed even by a bug or a direct database command."
+    },
+    {
+      "seq": 80,
+      "role": "assistant",
+      "content": "I haven't had an answer yet on whether notes should be blocked from changes at the database level as well as in the application, so I'll keep that as a default for now.\n\nIs there anything about this product we have not covered that a developer would need to know?"
+    },
+    {
+      "seq": 81,
+      "role": "user",
+      "content": "Yes—there’s one thing: the system must not store any notes locally on the nurse’s device. Not in the app cache, not in the browser, not anywhere. If the device crashes or is lost, there’s no risk of data being recovered. The note only exists in the cloud, and only after it’s confirmed in both systems. That’s a hard rule—no local storage, ever. We’ve had devices stolen before, and that’s how data leaked. So the app must delete any temporary copy immediately after sync. That’s critical."
+    },
+    {
+      "seq": 82,
+      "role": "assistant",
+      "content": "Thanks, I've recorded the no-local-storage rule: notes never stay on the device, and any temporary copy is deleted straight after sync.\n\nHere is what I captured: notes are typed once and must reach CareFlow and WardSync within three seconds, with a red alert naming any failed system and nothing shown as success unless both confirm. Nurses log in, log out manually, and see drafts from the previous shift for 24 hours. Notes are kept seven years with author, role, shift and time in the same record, and no one can edit or delete them. Data stays in a UK cloud region, and the stack waits for your meeting with the team lead.\n\nPlease tell me if anything is wrong or missing."
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "Cloud account",
+        "reason": "Participant already has a cloud account.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "A nurse's ward note saved once appears in both the patient system and the spreadsheet",
+        "scope": "mvp",
+        "acceptance": [
+          "When a nurse saves a ward note, the note is present in the patient system and the spreadsheet within three seconds.",
+          "If a note is not in both places within three seconds, the failure is visible to the nurse, not silently queued."
+        ],
+        "description": "Real-time sync with no buffering, queuing or retries.",
+        "reason": "Delays during shift changes cause miscommunication and the notes cannot be relied on for handover or reporting.",
+        "evidence": "It needs to go to both systems at the same moment—specifically, within three seconds of the nurse hitting \"save.\""
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "scope",
+      "value": "Connects to CareFlow (EPR) and WardSync (ward operations spreadsheet) only",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "A nurse's ward note saved once appears in both CareFlow and WardSync within three seconds",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse hits 'save' on a ward note",
+          "The note appears in CareFlow within three seconds",
+          "The note appears in WardSync within three seconds",
+          "The nurse can see the note in both systems within three seconds"
+        ],
+        "description": "The note must be available in both systems within three seconds of the nurse hitting 'save' to ensure real-time reliability for shift handover and reporting.",
+        "reason": "To prevent miscommunication during shift changes and ensure real-time reliability.",
+        "evidence": "It needs to go to both systems at the same moment—specifically, within three seconds of the nurse hitting \"save.\" If the note isn't in both places by then, it’s too late for that shift, and the team can’t rely on it for handover or reporting. I’ve seen delays cause miscommunication during shift changes, and we can’t afford that. So real-time sync is non-negotiable—no buffering, no queuing, no retries."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "CareFlow stores a ward note exactly as typed",
+        "scope": "mvp",
+        "acceptance": [
+          "When a nurse saves a ward note, the note in CareFlow matches the typed text with no formatting changes."
+        ],
+        "evidence": "the note must appear in CareFlow exactly as typed, with no formatting changes"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "WardSync places a ward note under the right patient, shift and date",
+        "scope": "mvp",
+        "acceptance": [
+          "When a nurse saves a note at 14:05, it appears in WardSync column D from row 100 for the current shift, labelled with the patient's name and date, by 14:08."
+        ],
+        "evidence": "it must be saved under the patient's name, shift, and date, in a pre-defined cell range—specifically, column D, starting from row 100 for the current shift"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "nurse",
+      "value": {
+        "role": "Nurse writing ward notes",
+        "needs": "Save a note once so it reaches CareFlow and WardSync, instead of typing it twice (today about 57 seconds total)."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_nurse",
+      "value": {
+        "role": "Registered nurse or senior care assistant, 8-4 shift, Ward B",
+        "needs": "Enter a ward note once during their shift"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "handover_reader",
+      "value": {
+        "role": "Oncoming lead nurse, ward manager, clinical supervisor",
+        "needs": "Read notes at daily handover, with clear author and time"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "Each ward note shows its author and the time it was written",
+        "scope": "mvp",
+        "acceptance": [
+          "A note shown in CareFlow or WardSync displays the author's name and the save time",
+          "No note appears without an author and time"
+        ],
+        "description": "Ward notes must make clear whose note it is and when it was written.",
+        "evidence": "The system must make it clear whose note it is and when it was written—no ambiguity."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": "Undecided",
+        "alternatives": [],
+        "reason": "Team skills unknown; choose a stack the team already knows.",
+        "status": "recommended"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "login",
+      "value": "Each nurse logs in with a unique hospital ID and password before saving; the author, role and shift are tagged automatically; saves without login are blocked with 'Please log in to record a note.'",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "A nurse must log in before saving a ward note",
+        "scope": "mvp",
+        "acceptance": [
+          "A save attempt without login is blocked and shows 'Please log in to record a note.'",
+          "A saved note carries the logged-in nurse's name, role and shift."
+        ],
+        "description": "Each nurse signs in with a unique hospital ID and password; the note is tagged with their name, role and shift automatically.",
+        "reason": "Accountability and safety: the note's author must be clear.",
+        "evidence": "Yes, each nurse must log in with their unique hospital ID and password before typing a note—no exceptions."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "deadline",
+      "value": "Version one must be ready by October 7th; the rollout depends on it.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "ward_note_retention",
+      "value": {
+        "retention": "seven years",
+        "stored": ["author", "timestamp", "patient ID", "note text"],
+        "searchableBy": ["patient name", "date", "nurse"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "Ward notes are kept for seven years and are searchable",
+        "scope": "mvp",
+        "acceptance": [
+          "A note saved today can still be retrieved after seven years",
+          "A search by patient name, date or nurse returns the matching notes"
+        ],
+        "reason": "Compliance requirement; a lost note is a compliance breach.",
+        "evidence": "Notes must be kept for seven years, in line with the hospital's medical records retention policy."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "admin",
+      "path": "ward_manager",
+      "value": {
+        "role": "ward manager",
+        "needs": "Add or remove nurses, view daily log of saved notes, see failed syncs; removes leavers within 24 hours, logged."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "admin",
+      "path": "it_lead",
+      "value": {
+        "role": "IT support lead for clinical systems",
+        "needs": "View performance, check sync status, reset failed connections; cannot edit or delete notes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "admin",
+      "path": "note_immutability",
+      "value": "No one can edit or delete a saved note; only the two admin roles above have admin access.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-8",
+      "value": {
+        "title": "A nurse's ward note saved once is searchable by patient name, date, or nurse",
+        "scope": "mvp",
+        "acceptance": [
+          "A nurse can search for a note by patient name and find it",
+          "A nurse can search for a note by date and find it",
+          "A nurse can search for a note by nurse name and find it"
+        ],
+        "description": "The system must allow searching for notes by patient name, date, or nurse.",
+        "evidence": "Notes must be kept for seven years, in line with the hospital’s medical records retention policy. That means the system must store every note securely, with the author, timestamp, and patient ID, and it must be searchable by patient name, date, or nurse."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sync_failure",
+      "value": {
+        "behaviour": "Retry once, then alert"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": {
+        "regime": "GDPR",
+        "data_classes": ["patient names", "medical conditions", "clinical observations"],
+        "requirements": [
+          "encryption in transit and at rest",
+          "access logging",
+          "no data leaves UK without approval",
+          "UK-based cloud region",
+          "auditable by data protection officer"
+        ]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "senior_care_assistant",
+      "value": {
+        "role": "senior_care_assistant",
+        "needs": "2 senior care assistants on the 8–4 shift in Ward B need to save and access ward notes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_b_users",
+      "value": "14 users (12 nurses and 2 senior care assistants) on the 8–4 shift in Ward B will use the system at launch.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "gdpr",
+      "value": "The system handles personal health data under GDPR, including patient names, medical conditions, and clinical observations.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "encryption",
+      "value": "Data must be encrypted both in transit and at rest.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "access_logging",
+      "value": "Access must be logged.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "data_location",
+      "value": "No data can leave the UK without approval.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "auditability",
+      "value": "The system must be auditable by the hospital’s data protection officer.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting_region",
+      "value": "The cloud account must be in a UK-based region.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "draft_kept",
+      "value": "An unfinished note is kept as a draft if the nurse leaves before saving.",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a nurse, I want to save a ward note once so that it reaches both CareFlow and WardSync without double entry",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "A nurse can save a ward note once and see that it reached both systems",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse saves the note in CareFlow",
+          "The nurse sees a confirmation message that the note was saved to both CareFlow and WardSync"
+        ],
+        "evidence": "Last Tuesday, after checking on Mr. Patel in bed 6, I wrote a note at 15:32 saying “Stable, pain 2/10, took medication on time.” I opened the ward note app, typed it in, hit save—done in 12 seconds. But then I had to go back to the EPR to enter the same thing again because the app wasn’t connected yet. That took another 45 seconds. So in total, it took 57 seconds to get it in both systems—double entry, completely manual. I could’ve spent that time checking another patient. That’s why this tool is urgent."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "save_feedback",
+      "value": {
+        "success": "Green checkmark with 'Note saved in both systems', visible five seconds then fades",
+        "failure": "Red alert 'Note failed to send to WardSync. Please check connection.', tappable for error details"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-10",
+      "value": {
+        "title": "A nurse sees a confirmation or an alert after saving a ward note",
+        "scope": "mvp",
+        "acceptance": [
+          "After saving, a green 'Note saved in both systems' message appears immediately and stays for five seconds",
+          "If a system fails, a red alert appears; tapping it shows the error details"
+        ],
+        "description": "Feedback on whether the note reached both systems",
+        "evidence": "They should see a green checkmark with the words “Note saved in both systems” appear instantly after they press save"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-11",
+      "value": {
+        "title": "A nurse sees which system failed when a note fails to send",
+        "scope": "mvp",
+        "acceptance": [
+          "When CareFlow fails, the alert reads 'Note failed to send to CareFlow'.",
+          "When WardSync fails, the alert reads 'Note failed to send to WardSync'.",
+          "Tapping the alert shows the error details."
+        ],
+        "description": "The red alert names CareFlow or WardSync so the nurse knows whether to call IT or retry.",
+        "reason": "Safety: the nurse must know whether to call IT or retry",
+        "evidence": "the alert must name the specific system that failed—CareFlow or WardSync"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-2",
+      "value": "As a nurse, I want to log in at shift start and save each clinical note once so that it reaches both CareFlow and WardSync with instant confirmation.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-3",
+      "value": "As a nurse, I want to save each clinical update for my patients once, knowing it automatically appears in both CareFlow and WardSync, with instant confirmation on screen so that I can focus on patient care without worrying about data entry errors.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "handover_out_of_scope",
+      "value": "The tool is for writing notes only; handover reading stays in CareFlow and WardSync.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-4",
+      "value": "As a nurse, I want to log out manually at the end of my shift so that patient data is protected, and see a warning if I try to start another shift while still logged in.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "session_logout",
+      "value": "Manual Log Out button top right; no automatic timeout; warning 'You're still logged in. Please log out to protect patient data.' at next shift start if still logged in",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "draft_expiry_24h",
+      "value": "Unsaved drafts from a missed log-out are kept, tagged 'Previous Shift Draft' with the date, and removed after 24 hours if not saved",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "handover_reading_out_of_scope",
+      "value": "Oncoming nurses read handover notes in CareFlow and WardSync; the tool is for writing only",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "future",
+      "path": "photos_attachments_alerts",
+      "value": {
+        "scope": "future",
+        "reason": "Not needed until the core save-once sync is proven; participant said no features until then."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-12",
+      "value": {
+        "title": "A nurse sees progress while a note is syncing and an alert if it is not confirmed",
+        "scope": "mvp",
+        "acceptance": [
+          "Given a save that takes more than three seconds, the 'Syncing note...' progress bar is visible until confirmation.",
+          "Given a note not confirmed in both systems after ten seconds, the red alert 'Note not sent to CareFlow and WardSync. Please check your connection.' is shown and a manual retry is offered."
+        ],
+        "description": "If the save takes longer than three seconds, show 'Syncing note...' until both systems confirm. If not confirmed after ten seconds, show a red alert and allow manual retry.",
+        "reason": "Avoid silent failures during slow saves.",
+        "evidence": "If the save takes longer than three seconds, the system must show the nurse a progress bar that says “Syncing note...” and keep it visible until the note is confirmed in both systems."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-13",
+      "value": {
+        "title": "A nurse sees a progress bar while a note is syncing",
+        "scope": "mvp",
+        "acceptance": [
+          "When a save takes longer than three seconds, a 'Syncing note...' progress bar is shown immediately and stays visible until both systems confirm.",
+          "When a save completes within three seconds, no progress bar appears."
+        ],
+        "description": "If a note takes longer than three seconds to reach both systems, the screen shows a 'Syncing note...' progress bar until confirmation.",
+        "evidence": "The system shows the progress bar immediately, but the warning after ten seconds is still the failure point.",
+        "withdrawn": true
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-14",
+      "value": {
+        "title": "A nurse sees a red alert naming the failed system when a note is not confirmed in ten seconds",
+        "scope": "mvp",
+        "acceptance": [
+          "After ten seconds without confirmation from both systems, a red alert appears naming CareFlow or WardSync as the failed system.",
+          "The nurse can tap the alert to retry the save manually."
+        ],
+        "description": "If a note is not confirmed in both systems after ten seconds, a red alert names the system that failed and offers a manual retry.",
+        "evidence": "If it still hasn't synced after 10 seconds, the system shows a red alert: \"Note not sent to CareFlow and WardSync. Please check your connection.\" The nurse can then retry manually."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "late_sync",
+      "value": {
+        "rule": "A note confirmed after three seconds counts as a failure."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "empty_note_blocked",
+      "value": {
+        "rule": "Save is blocked when the note is empty, whitespace-only, or contains no letters or numbers. Message: 'Please enter at least one sentence before saving.' The block cannot be overridden."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "partial_sync",
+      "value": {
+        "rule": "If one system confirms and the other does not, the nurse sees only a red alert naming the failed system immediately, with no partial success shown."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "empty_note_message",
+      "value": {
+        "rule": "Blank, whitespace-only and symbol-only notes are blocked with the message 'Please enter at least one sentence before saving.'"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-15",
+      "value": {
+        "title": "A nurse cannot save a note that contains only symbols",
+        "scope": "mvp",
+        "acceptance": [
+          "A nurse who types a sequence of symbols with no letters or numbers cannot save the note",
+          "The nurse sees the message “Please enter at least one sentence before saving.”"
+        ],
+        "reason": "These aren’t valid clinical notes—thethey’re placeholders or mistakes. We’ve had incidents where nurses left those in by accident, and it caused confusion during handover. So the rule stands: no symbols-only entries. The note must contain at least one letter or number to be saved.",
+        "evidence": "if a nurse types only “...” or “---” or any sequence of symbols with no letters or numbers, the system must block the save and show the same red message: “Please enter at least one sentence before saving.”"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-16",
+      "value": {
+        "title": "Valid note reaches both systems within three seconds",
+        "scope": "mvp",
+        "acceptance": [
+          "A nurse saves a valid note once on a normal connection",
+          "The note appears in CareFlow and WardSync within three seconds with the same text, timestamp and author",
+          "The test passes three times in a row on the same shift with no failures"
+        ],
+        "needsConfirmation": true
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-17",
+      "value": {
+        "title": "no failures across three runs in a row",
+        "scope": "mvp",
+        "acceptance": [],
+        "needsConfirmation": true
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-18",
+      "value": {
+        "title": "Nurse sees a red alert naming the failed system when a note cannot be saved",
+        "scope": "mvp",
+        "acceptance": [
+          "With WardSync switched off, saving a note shows a red alert naming WardSync within ten seconds.",
+          "With CareFlow switched off, saving a note shows a red alert naming CareFlow within ten seconds.",
+          "The nurse never sees a generic message in place of the named alert.",
+          "Each test runs once and both must pass."
+        ],
+        "description": "When a note cannot reach a connected system, the nurse sees a red alert that names that system.",
+        "reason": "Participant defined failure tests that establish trust in the alert system.",
+        "evidence": "Yes, we need that test—specifically, we’ll run two failure tests: first, turn off WardSync and try to save a note; the system must show the red alert naming WardSync within ten seconds."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "both-systems-off",
+      "value": "Should the red alert name both systems when WardSync and CareFlow are both switched off, or is this outside version one? Default proposed: the alert names both systems.",
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "both_systems_down_alert",
+      "value": "Alert reads 'Note failed to send to CareFlow and WardSync' immediately; no guessing of cause.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "stack",
+      "value": "Technology stack undecided until the in-house team's skills are known.",
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-19",
+      "value": {
+        "title": "A nurse sees a red alert naming both systems when both systems are down",
+        "scope": "mvp",
+        "acceptance": [
+          "A nurse sees a red alert saying: “Note failed to send to CareFlow and WardSync.” within ten seconds when both systems are down"
+        ],
+        "reason": "This is a failure test requirement.",
+        "evidence": "Yes, if both systems are down, the alert must say: “Note failed to send to CareFlow and WardSync.” It names both, clearly and immediately—no delay, no ambiguity. The nurse sees both systems listed, and they know it’s a system-wide issue. We’re not hiding the problem. The tool must not try to guess what’s wrong—it just tells them the truth. This is critical during outages. So the alert shows both systems, and we’ll test it once during acceptance. That’s part of version one."
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "database",
+      "value": {
+        "choice": "Managed database service",
+        "reason": "The team does not have to maintain the server and patching is handled for them.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "author_timestamp_storage",
+      "value": {
+        "choice": "Same database record as the note",
+        "alternatives": ["Separate audit log"],
+        "reason": "Keeps the author and timestamp linked to the note for seven years and prevents mismatch.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "no_local_storage",
+      "value": "Notes must never be stored on the nurse's device, in app cache, browser or elsewhere; any temporary copy is deleted immediately after sync; note exists only in the cloud after both systems confirm.",
+      "source": "user"
+    }
+  ],
+  "summary": "The system will run in a UK-based cloud account, handling personal health data under GDPR. The notes must sync to both the patient system (CareFlow) and the ward operations spreadsheet (WardSync) within three seconds of saving, with one retry and an alert if it fails. The in-house team will build the system. The nurses who type the notes are the 12 registered nurses and 2 senior care assistants on the 8–4 shift in Ward B (12 beds). The notes are read by the oncoming shift’s lead nurse, the ward manager, and the clinical supervisor. The system must clearly show who wrote the note and when.\n\nEach nurse must log in with their unique hospital ID and password before typing a note. The system automatically tags the note with the nurse's name, role, and shift. If a nurse tries to save without logging in, the system blocks it and shows the error: “Please log in to record a note.” Version one needs to exist by October 7th. Notes must be kept for seven years, in line with the hospital’s medical records retention policy. The system must store every note securely, with the author, timestamp, and patient ID, and it must be searchable by patient name, date, or nurse. The ward manager and the IT support lead for the clinical systems are the only admins. The ward manager can add or remove nurses from the system, view a log of all notes saved each day, and see if any notes failed to sync. The IT lead can view system performance, check sync status, and reset failed connections—but they can’t edit or delete notes. The budget is undecided.\n\nThe system must encrypt data in transit and at rest, log access, and be auditable by the hospital’s data protection officer. No data can leave the UK without approval. The system will keep drafts of unsaved notes. Writing notes is the core task for nurses. The current process takes about 57 seconds, with double entry into the ward note app and the EPR. The new tool should reduce this to one save. The participant asked the interviewer to ensure that nurses see confirmation on screen that a note has reached both systems.\n\nFrom the moment they start their shift, a nurse logs in, opens the ward note tool, and uses it to type every clinical update for their patients—saving each note once, knowing it automatically appears in both CareFlow and WardSync, with instant confirmation on screen. The feedback on save is clear: a green confirmation for five seconds, and a red alert with details if either system fails. The alert must name the specific system that failed—CareFlow or WardSync—because the nurse needs to know exactly what went wrong. At the end of the shift, the oncoming nurse checks the notes in CareFlow and WardSync, just like they always have. The tool is only for writing, not for reading. The system doesn’t need to show a summary or handover log—just the live sync to both systems is enough. The incoming nurse uses the same apps they’ve always used. The tool just removes the duplicate entry.\n\nThey must log out manually by clicking a \"Log Out\" button at the top right of the screen. The system doesn’t auto-log them out after 30 minutes—or ever. If they don’t log out, the system will show a warning screen when they try to start another shift: “You’re still logged in. Please log out to protect patient data.” That’s a compliance rule. No exceptions. If a nurse forgets to log out and sees the warning at the start of their next shift, any unsaved draft from the previous shift is kept on the system—visible when they log in again—so they can finish it. The system tags it with “Previous Shift Draft” and the date. But the draft disappears if not saved within 24 hours. That’s to prevent outdated or accidental entries from lingering.",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "A nurse's ward note saved once appears in both the patient system and the spreadsheet",
+      "scope": "mvp",
+      "acceptance": [
+        "When a nurse saves a ward note, the note is present in the patient system and the spreadsheet within three seconds.",
+        "If a note is not in both places within three seconds, the failure is visible to the nurse, not silently queued."
+      ],
+      "reason": "Delays during shift changes cause miscommunication and the notes cannot be relied on for handover or reporting."
+    },
+    {
+      "id": "FR-2",
+      "title": "A nurse's ward note saved once appears in both CareFlow and WardSync within three seconds",
+      "scope": "mvp",
+      "acceptance": [
+        "The nurse hits 'save' on a ward note.",
+        "The note appears in CareFlow within three seconds.",
+        "The note appears in WardSync within three seconds.",
+        "The nurse can see the note in both systems within three seconds."
+      ],
+      "reason": "To prevent miscommunication during shift changes and ensure real-time reliability."
+    },
+    {
+      "id": "FR-3",
+      "title": "CareFlow stores a ward note exactly as typed",
+      "scope": "mvp",
+      "acceptance": [
+        "When a nurse saves a ward note, the note in CareFlow matches the typed text with no formatting changes."
+      ]
+    },
+    {
+      "id": "FR-4",
+      "title": "WardSync places a ward note under the right patient, shift and date",
+      "scope": "mvp",
+      "acceptance": [
+        "When a nurse saves a note at 14:05, it appears in WardSync column D from row 100 for the current shift, labelled with the patient's name and date, by 14:08."
+      ]
+    },
+    {
+      "id": "FR-5",
+      "title": "Each ward note shows its author and the time it was written",
+      "scope": "mvp",
+      "acceptance": [
+        "A note shown in CareFlow or WardSync displays the author's name and the save time.",
+        "No note appears without an author and time."
+      ]
+    },
+    {
+      "id": "FR-6",
+      "title": "A nurse must log in before saving a ward note",
+      "scope": "mvp",
+      "acceptance": [
+        "A save attempt without login is blocked and shows 'Please log in to record a note.'",
+        "A saved note carries the logged-in nurse's name, role and shift."
+      ],
+      "reason": "Accountability and safety: the note's author must be clear."
+    },
+    {
+      "id": "FR-7",
+      "title": "Ward notes are kept for seven years and are searchable",
+      "scope": "mvp",
+      "acceptance": [
+        "A note saved today can still be retrieved after seven years.",
+        "A search by patient name, date or nurse returns the matching notes."
+      ],
+      "reason": "Compliance requirement; a lost note is a compliance breach."
+    },
+    {
+      "id": "FR-8",
+      "title": "A nurse's ward note saved once is searchable by patient name, date, or nurse",
+      "scope": "mvp",
+      "acceptance": [
+        "A nurse can search for a note by patient name and find it.",
+        "A nurse can search for a note by date and find it.",
+        "A nurse can search for a note by nurse name and find it."
+      ]
+    },
+    {
+      "id": "FR-9",
+      "title": "A nurse can save a ward note once and see that it reached both systems",
+      "scope": "mvp",
+      "acceptance": [
+        "The nurse saves the note in CareFlow.",
+        "The nurse sees a confirmation message that the note was saved to both CareFlow and WardSync."
+      ]
+    },
+    {
+      "id": "FR-10",
+      "title": "A nurse sees a confirmation or an alert after saving a ward note",
+      "scope": "mvp",
+      "acceptance": [
+        "After saving, a green 'Note saved in both systems' message appears immediately and stays for five seconds.",
+        "If a system fails, a red alert appears; tapping it shows the error details."
+      ]
+    },
+    {
+      "id": "FR-11",
+      "title": "A nurse sees which system failed when a note fails to send",
+      "scope": "mvp",
+      "acceptance": [
+        "When CareFlow fails, the alert reads 'Note failed to send to CareFlow'.",
+        "When WardSync fails, the alert reads 'Note failed to send to WardSync'.",
+        "Tapping the alert shows the error details."
+      ],
+      "reason": "Safety: the nurse must know whether to call IT or retry"
+    },
+    {
+      "id": "FR-12",
+      "title": "A nurse sees progress while a note is syncing and an alert if it is not confirmed",
+      "scope": "mvp",
+      "acceptance": [
+        "Given a save that takes more than three seconds, the 'Syncing note...' progress bar is visible until confirmation.",
+        "Given a note not confirmed in both systems after ten seconds, the red alert 'Note not sent to CareFlow and WardSync. Please check your connection.' is shown and a manual retry is offered."
+      ],
+      "reason": "Avoid silent failures during slow saves."
+    },
+    {
+      "id": "FR-14",
+      "title": "A nurse sees a red alert naming the failed system when a note is not confirmed in ten seconds",
+      "scope": "mvp",
+      "acceptance": [
+        "After ten seconds without confirmation from both systems, a red alert appears naming CareFlow or WardSync as the failed system.",
+        "The nurse can tap the alert to retry the save manually."
+      ]
+    },
+    {
+      "id": "FR-15",
+      "title": "A nurse cannot save a note that contains only symbols",
+      "scope": "mvp",
+      "acceptance": [
+        "A nurse who types a sequence of symbols with no letters or numbers cannot save the note.",
+        "The nurse sees the message “Please enter at least one sentence before saving.”"
+      ],
+      "reason": "These aren’t valid clinical notes—thethey’re placeholders or mistakes. We’ve had incidents where nurses left those in by accident, and it caused confusion during handover. So the rule stands: no symbols-only entries. The note must contain at least one letter or number to be saved."
+    },
+    {
+      "id": "FR-16",
+      "title": "Valid note reaches both systems within three seconds",
+      "scope": "mvp",
+      "acceptance": [
+        "A nurse saves a valid note once on a normal connection.",
+        "The note appears in CareFlow and WardSync within three seconds with the same text, timestamp and author.",
+        "The test passes three times in a row on the same shift with no failures."
+      ]
+    },
+    {
+      "id": "FR-17",
+      "title": "No failures across three runs in a row",
+      "scope": "mvp",
+      "acceptance": []
+    },
+    {
+      "id": "FR-18",
+      "title": "Nurse sees a red alert naming the failed system when a note cannot be saved",
+      "scope": "mvp",
+      "acceptance": [
+        "With WardSync switched off, saving a note shows a red alert naming WardSync within ten seconds.",
+        "With CareFlow switched off, saving a note shows a red alert naming CareFlow within ten seconds.",
+        "The nurse never sees a generic message instead of the named alert.",
+        "Each test runs once and both must pass."
+      ],
+      "reason": "Participant defined failure tests that establish trust in the alert system."
+    },
+    {
+      "id": "FR-19",
+      "title": "A nurse sees a red alert naming both systems when both systems are down",
+      "scope": "mvp",
+      "acceptance": [
+        "A nurse sees a red alert saying: “Note failed to send to CareFlow and WardSync.” within ten seconds when both systems are down."
+      ],
+      "reason": "This is a failure test requirement."
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: nontechnical · Generated: 2026-10-14T07:09:28.120Z\n\n## Context\n\n| Question | Answer |\n| --- | --- |\n| hosting | cloud |\n| existing_systems | CareFlow (electronic patient record) and WardSync (ward operations spreadsheet) only |\n| builder | team |\n| team_skills | unknown |\n| timeline | Version one needed by October 7th |\n| budget | unknown (undecided) |\n| users_at_launch | 14 users at launch: 12 nurses and 2 senior care assistants on the 8-4 shift in Ward B, same location, no remote access |\n| compliance | Personal health data under GDPR: patient names, medical conditions, clinical observations. Encrypt in transit and at rest, log all access, no data leaves the UK without approval, UK-based cloud region, auditable by the data protection officer. |\n\n## Product overview and problem\n\n### Product overview and problem\n\nNurses on our ward currently type every note twice: once into the patient system and once into a spreadsheet. This system lets them type the note once and have it appear in both places simultaneously.\n\n## Target users and roles\n\n### Target users and roles\n\n- **Nurse:** Writes ward notes, needs to save a note once so it reaches both CareFlow and WardSync without double entry.\n- **Ward Nurse:** Registered nurses or senior care assistants on the 8-4 shift in Ward B; need to enter ward notes once during their shift.\n- **Handover Reader:** Oncoming lead nurse, ward manager, clinical supervisor; reads notes at daily handover with clear author and time.\n- **Senior Care Assistant:** Two senior care assistants on the 8-4 shift in Ward B who save and access ward notes.\n- **Ward B Users:** 14 users at launch (12 nurses and 2 senior care assistants) on the 8-4 shift in Ward B, no remote access.\n- **Save Feedback:** Success shows a green checkmark with \"Note saved in both systems\" for five seconds; failure shows a red alert naming the failed system with error details.\n\n## User stories\n\n### User stories\n\n- As a nurse, I want to save a ward note once so that it reaches both CareFlow and WardSync without double entry.\n- As a nurse, I want to log in at shift start and save each clinical note once so that it reaches both CareFlow and WardSync with instant confirmation.\n- As a nurse, I want to save each clinical update once, knowing it appears in both systems with instant confirmation so I can focus on patient care.\n- As a nurse, I want to log out manually at shift end so patient data is protected and receive a warning if I try to start another shift while still logged in.\n\n## Functional requirements\n\n### Functional requirements\n\nThe following list of functional requirements describe the capabilities the system must deliver to meet the users' needs and ensure compliance and data integrity.\n\n### MVP\n\n- **FR-1** A nurse's ward note saved once appears in both the patient system and the spreadsheet\n  - Acceptance: When a nurse saves a ward note, the note is present in the patient system and the spreadsheet within three seconds.\n  - Acceptance: If a note is not in both places within three seconds, the failure is visible to the nurse, not silently queued.\n  - Reason: Delays during shift changes cause miscommunication and the notes cannot be relied on for handover or reporting.\n- **FR-2** A nurse's ward note saved once appears in both CareFlow and WardSync within three seconds\n  - Acceptance: The nurse hits 'save' on a ward note.\n  - Acceptance: The note appears in CareFlow within three seconds.\n  - Acceptance: The note appears in WardSync within three seconds.\n  - Acceptance: The nurse can see the note in both systems within three seconds.\n  - Reason: To prevent miscommunication during shift changes and ensure real-time reliability.\n- **FR-3** CareFlow stores a ward note exactly as typed\n  - Acceptance: When a nurse saves a ward note, the note in CareFlow matches the typed text with no formatting changes.\n- **FR-4** WardSync places a ward note under the right patient, shift and date\n  - Acceptance: When a nurse saves a note at 14:05, it appears in WardSync column D from row 100 for the current shift, labelled with the patient's name and date, by 14:08.\n- **FR-5** Each ward note shows its author and the time it was written\n  - Acceptance: A note shown in CareFlow or WardSync displays the author's name and the save time.\n  - Acceptance: No note appears without an author and time.\n- **FR-6** A nurse must log in before saving a ward note\n  - Acceptance: A save attempt without login is blocked and shows 'Please log in to record a note.'\n  - Acceptance: A saved note carries the logged-in nurse's name, role and shift.\n  - Reason: Accountability and safety: the note's author must be clear.\n- **FR-7** Ward notes are kept for seven years and are searchable\n  - Acceptance: A note saved today can still be retrieved after seven years.\n  - Acceptance: A search by patient name, date or nurse returns the matching notes.\n  - Reason: Compliance requirement; a lost note is a compliance breach.\n- **FR-8** A nurse's ward note saved once is searchable by patient name, date, or nurse\n  - Acceptance: A nurse can search for a note by patient name and find it.\n  - Acceptance: A nurse can search for a note by date and find it.\n  - Acceptance: A nurse can search for a note by nurse name and find it.\n- **FR-9** A nurse can save a ward note once and see that it reached both systems\n  - Acceptance: The nurse saves the note in CareFlow.\n  - Acceptance: The nurse sees a confirmation message that the note was saved to both CareFlow and WardSync.\n- **FR-10** A nurse sees a confirmation or an alert after saving a ward note\n  - Acceptance: After saving, a green 'Note saved in both systems' message appears immediately and stays for five seconds.\n  - Acceptance: If a system fails, a red alert appears; tapping it shows the error details.\n- **FR-11** A nurse sees which system failed when a note fails to send\n  - Acceptance: When CareFlow fails, the alert reads 'Note failed to send to CareFlow'.\n  - Acceptance: When WardSync fails, the alert reads 'Note failed to send to WardSync'.\n  - Acceptance: Tapping the alert shows the error details.\n  - Reason: Safety: the nurse must know whether to call IT or retry\n- **FR-12** A nurse sees progress while a note is syncing and an alert if it is not confirmed\n  - Acceptance: Given a save that takes more than three seconds, the 'Syncing note...' progress bar is visible until confirmation.\n  - Acceptance: Given a note not confirmed in both systems after ten seconds, the red alert 'Note not sent to CareFlow and WardSync. Please check your connection.' is shown and a manual retry is offered.\n  - Reason: Avoid silent failures during slow saves.\n- **FR-14** A nurse sees a red alert naming the failed system when a note is not confirmed in ten seconds\n  - Acceptance: After ten seconds without confirmation from both systems, a red alert appears naming CareFlow or WardSync as the failed system.\n  - Acceptance: The nurse can tap the alert to retry the save manually.\n- **FR-15** A nurse cannot save a note that contains only symbols\n  - Acceptance: A nurse who types a sequence of symbols with no letters or numbers cannot save the note.\n  - Acceptance: The nurse sees the message “Please enter at least one sentence before saving.”\n  - Reason: These aren’t valid clinical notes—thethey’re placeholders or mistakes. We’ve had incidents where nurses left those in by accident, and it caused confusion during handover. So the rule stands: no symbols-only entries. The note must contain at least one letter or number to be saved.\n- **FR-16** Valid note reaches both systems within three seconds\n  - Acceptance: A nurse saves a valid note once on a normal connection.\n  - Acceptance: The note appears in CareFlow and WardSync within three seconds with the same text, timestamp and author.\n  - Acceptance: The test passes three times in a row on the same shift with no failures.\n- **FR-17** No failures across three runs in a row\n- **FR-18** Nurse sees a red alert naming the failed system when a note cannot be saved\n  - Acceptance: With WardSync switched off, saving a note shows a red alert naming WardSync within ten seconds.\n  - Acceptance: With CareFlow switched off, saving a note shows a red alert naming CareFlow within ten seconds.\n  - Acceptance: The nurse never sees a generic message instead of the named alert.\n  - Acceptance: Each test runs once and both must pass.\n  - Reason: Participant defined failure tests that establish trust in the alert system.\n- **FR-19** A nurse sees a red alert naming both systems when both systems are down\n  - Acceptance: A nurse sees a red alert saying: “Note failed to send to CareFlow and WardSync.” within ten seconds when both systems are down.\n  - Reason: This is a failure test requirement.\n\n## Business rules\n\n### Business rules\n\n1. Unfinished notes are kept as drafts if the nurse leaves without saving.\n2. The tool is for writing notes only; reading for handover remains in CareFlow and WardSync.\n3. Unsaved drafts from missed log-outs are tagged \"Previous Shift Draft\" and removed after 24 hours if not saved.\n4. Notes confirmed after three seconds count as failures.\n5. Saving empty, whitespace-only, or symbol-only notes is blocked with a message \"Please enter at least one sentence before saving.\"\n6. Partial successes are not shown; failures name the system that failed immediately.\n7. When both systems are down, alerts name both systems immediately.\n\n## Technical requirements\n\n### Technical requirements\n\n- Hosting is cloud-based in a UK region.\n- The team skills are currently unknown; the technology stack is undecided but should match the in-house team skills.\n- A managed database service is used to avoid server maintenance.\n- Author name, role, shift, and timestamp are stored in the same database record as the note for consistency and auditability.\n\n## Data requirements\n\n### Data requirements\n\n- Ward notes are retained for seven years according to hospital policy.\n- Each note stores author, timestamp, patient ID, and note text.\n- Notes are searchable by patient name, date, or nurse.\n\n## Integrations\n\n### Integrations\n\n- The system integrates with CareFlow (electronic patient record) and WardSync (ward operations spreadsheet) only.\n- On failure to sync, the system retries once and then alerts the user.\n\n## Security and privacy\n\n### Security and privacy\n\n- Nurses must log in with a unique hospital ID and password before saving. Saves without login are blocked with a clear message.\n- Notes are tagged automatically with nurse name, role, and shift.\n- Data is GDPR compliant: patient names, medical conditions, clinical observations are encrypted in transit and at rest.\n- Access is logged and auditable by the hospital's data protection officer.\n- Data must remain within the UK unless approval is given for export.\n- Notes are never stored locally on nurse devices; temporary copies are deleted immediately after syncing.\n- Manual logout is required; no automatic timeout. If still logged in at next shift start, a warning is shown.\n\n## Non-functional requirements\n\n### Non-functional requirements\n\n- The first version must be delivered by October 7th to meet rollout deadlines.\n\n## Administrative surface\n\n### Administrative surface\n\n- Ward manager can add or remove nurses, view daily logs of saved notes, and see failed sync attempts; removals are logged and completed within 24 hours.\n- IT support lead can view system performance, check sync status, and reset failed connections.\n- Neither admin can edit or delete saved notes.\n- Notes are immutable once saved.\n\n## MVP scope\n\n### MVP scope\n\nThe MVP includes the ability for a nurse to type and save a ward note once and have it instantly appear in both CareFlow and WardSync with visible confirmation and error alerts. It includes login, note saving, real-time syncing, failure alerts naming the system, manual logout, draft saving and expiry, and retention for seven years. It excludes photos, attachments, colleague alerts, or other future features.\n\nIn version one:\n- FR-1\n- FR-2\n- FR-3\n- FR-4\n- FR-5\n- FR-6\n- FR-7\n- FR-8\n- FR-9\n- FR-10\n- FR-11\n- FR-12\n- FR-14\n- FR-15\n- FR-16\n- FR-17\n- FR-18\n- FR-19\n\nMoved to future scope:\n- photos_attachments_alerts: Not needed until the core save-once sync is proven.\n\n## Future scope\n\n### Future scope\n\nAdding support for photos, attachments, and alerts is explicitly deferred until after the core save-once sync feature is proven.\n\n## Implementation phases\n\n### Implementation phases\n\nThe project will be delivered in multiple phases with clear goals, tasks and acceptance criteria, ensuring the MVP is deployable by October 7th. Each phase builds upon completed earlier ones.\n\n### Phase 1: Basic Sync Functionality\n\nGoals:\n- Enable nurses to log in with unique hospital IDs.\n- Allow a nurse to type and save a ward note once.\n- Ensure the note appears in CareFlow and WardSync within three seconds.\n- Display green confirmation or red alerts naming failed systems.\n\nTasks:\n- Implement secure nurse login with hospital ID and password.\n  - Acceptance: Login is required before saving a note.\n  - Acceptance: Save attempts without login are blocked with an error message.\n- Implement note saving to both CareFlow and WardSync with real-time sync.\n  - Acceptance: A saved note appears in both systems within three seconds.\n  - Acceptance: Failures are immediately visible with named alerts.\n- Show confirmation messages or alerts after save attempts.\n  - Acceptance: Green confirmation message appears for five seconds on success.\n  - Acceptance: Red alert names failed system(s) on failure.\n\nPhase acceptance:\n- A nurse successfully logs in and saves a ward note once.\n- The note appears in both systems with the same text, timestamp, and author within three seconds.\n- Green success and red failure messages display correctly.\n\n### Phase 2: Draft Handling and Logout Management\n\nGoals:\n- Keep drafts of unfinished notes tagged 'Previous Shift Draft'.\n- Expire drafts after 24 hours if not saved.\n- Implement manual logout and warning on shift start if still logged in.\n\nTasks:\n- Persist unfinished notes as drafts with appropriate tagging.\n  - Acceptance: Unsaved drafts are saved on logout or interruption.\n  - Acceptance: Drafts older than 24 hours are removed automatically.\n- Add manual log out button and warning on next shift if not logged out.\n  - Acceptance: Manual logout required; no auto logout.\n  - Acceptance: Warning shown at next shift start if still logged in.\n\nDepends on: phase-1\n\nPhase acceptance:\n- Drafts persist correctly and expire as required.\n- Logout warning and manual logout function as specified.\n\n### Phase 3: Search and Compliance Features\n\nGoals:\n- Enable searching saved notes by patient name, date, or nurse.\n- Ensure retention of notes for seven years.\n- Implement full audit and logging for compliance.\n\nTasks:\n- Implement note search functionality with required filters.\n  - Acceptance: Nurses can search by patient name, date, and nurse.\n  - Acceptance: Matching notes are returned accurately.\n- Ensure notes and related metadata are stored for seven years.\n  - Acceptance: Notes saved today are retrievable after seven years.\n- Implement required audit logging and encryption controls.\n  - Acceptance: Access to data is logged.\n  - Acceptance: Data is encrypted at rest and in transit.\n  - Acceptance: Data storage remains within UK hosting region.\n\nDepends on: phase-2\n\nPhase acceptance:\n- Search returns accurate results by all filters.\n- Retention and compliance controls meet policy.\n\n## Open questions\n\n### Open questions\n\n- Should the red alert name both systems when both CareFlow and WardSync are offline simultaneously, or is this outside version one? The default taken is to name both systems.\n- What technology stack should be chosen? This is undecided until the in-house team skills are known.\n\n- Should the red alert name both systems when CareFlow and WardSync are both switched off simultaneously, or is this outside version one? _Default taken: The alert names both systems._\n- What technology stack should be chosen for the build given the in-house team skills are unknown? _Default taken: Undecided until the in-house team's skills are known._\n"
+}

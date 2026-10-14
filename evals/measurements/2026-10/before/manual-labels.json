@@ -1,0 +1,962 @@
+[
+  {
+    "spec": "technical-2",
+    "id": "FR-1",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-2",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-3",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-4",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "unclear",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-5",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "unclear",
+    "duplicateOf": "FR-4"
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-6",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-7",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "unclear",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-8",
+    "grounded": "no",
+    "granularity": "too_fine",
+    "kind": "detail",
+    "testable": "no",
+    "scope": "unclear",
+    "duplicateOf": "FR-6"
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-9",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "unclear",
+    "duplicateOf": "FR-6"
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-10",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "wrong",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-11",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "detail",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-2",
+    "id": "FR-12",
+    "grounded": "no",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "unclear",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-1",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-2",
+    "grounded": "partial",
+    "granularity": "too_fine",
+    "kind": "detail",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-1"
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-3",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-4",
+    "grounded": "partial",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "unclear",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-5",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-3"
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-6",
+    "grounded": "partial",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "unclear",
+    "duplicateOf": "FR-4"
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-7",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-8",
+    "grounded": "partial",
+    "granularity": "too_fine",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "unclear",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-9",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-10",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-7"
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-11",
+    "grounded": "partial",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "unclear",
+    "duplicateOf": "FR-8"
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-12",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-3"
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-13",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-14",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-3"
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-15",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-16",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-15"
+  },
+  {
+    "spec": "technical-1",
+    "id": "FR-17",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-8"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-1",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "no",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-2",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-3",
+    "grounded": "yes",
+    "granularity": "too_coarse",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-5",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-3"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-7",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-8",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-7"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-9",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-2"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-10",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-9"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-12",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-14",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-12"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-15",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-16",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-15"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-18",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-19",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-18"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-20",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-21",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-23",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-18"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-24",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-20"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-25",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-21"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-26",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-27",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-29",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-27"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-30",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-26"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-33",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "constraint",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-26"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-35",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-31"
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-36",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "technical-3",
+    "id": "FR-37",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-31"
+  },
+  {
+    "spec": "technical-3",
+    "id": "roster_membership",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-26"
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-1",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-2",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-1"
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-3",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-4",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-3"
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-5",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-3"
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-6",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-8",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-9",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-6"
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-10",
+    "grounded": "partial",
+    "granularity": "too_fine",
+    "kind": "detail",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-11",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-14",
+    "grounded": "partial",
+    "granularity": "too_fine",
+    "kind": "detail",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-10"
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-15",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-11"
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-20",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-6"
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-21",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-25",
+    "grounded": "partial",
+    "granularity": "too_fine",
+    "kind": "detail",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-26",
+    "grounded": "partial",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-25"
+  },
+  {
+    "spec": "nontechnical-2",
+    "id": "FR-28",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "detail",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-11"
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-1",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-2",
+    "grounded": "no",
+    "granularity": "too_fine",
+    "kind": "detail",
+    "testable": "no",
+    "scope": "unclear",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-3",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-6",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-7",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-8",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-9",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-6"
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-10",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-3"
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-11",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-12",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-13",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-14",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-15",
+    "grounded": "yes",
+    "granularity": "too_fine",
+    "kind": "capability",
+    "testable": "no",
+    "scope": "correct",
+    "duplicateOf": "FR-1"
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-16",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-13"
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-17",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-14"
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-18",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-19",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-6"
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-20",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "FR-21",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "capability",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "FR-20"
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "pilot-pass-test",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "constraint",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "major-error-definition",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "constraint",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": null
+  },
+  {
+    "spec": "nontechnical-3",
+    "id": "pass-test",
+    "grounded": "yes",
+    "granularity": "ok",
+    "kind": "constraint",
+    "testable": "yes",
+    "scope": "correct",
+    "duplicateOf": "pilot-pass-test"
+  }
+]
