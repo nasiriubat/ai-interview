@@ -234,6 +234,11 @@ export const fi: Strings = {
       doneConfirm: "Päätä",
       doneMessage: "Olen valmis",
       deleteData: "Poista tietoni",
+      downloadReadable: "Lataa tietoni (luettava)",
+      downloadJson: "Lataa tietoni (JSON)",
+      downloadBusy: "Valmistellaan tietojasi…",
+      downloadDone: "Tietosi on ladattu.",
+      downloadFailed: "Tietojen valmistelu ei onnistunut. Yritä hetken kuluttua uudelleen.",
       deleteTitle: "Poistetaanko vastauksesi?",
       deleteBody:
         "Tämä poistaa heti vastauksesi, tallenteesi, tiedostosi ja kaiken niistä kirjatun. Poistoa ei voi perua.",

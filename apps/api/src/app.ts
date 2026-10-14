@@ -33,6 +33,7 @@ import { healthRoutes } from "./modules/health/routes.js";
 import { internalAuthRoutes } from "./modules/internal-auth/routes.js";
 import { operatorRoutes } from "./modules/operator/routes.js";
 import { participantAttachmentRoutes } from "./modules/participant/attachments.js";
+import { participantExportRoutes } from "./modules/participant/export.js";
 import { participantRoutes } from "./modules/participant/routes.js";
 import { participantVoiceLiveRoutes } from "./modules/participant/voice-live/routes.js";
 import { participantVoiceRoutes } from "./modules/participant/voice.js";
@@ -164,6 +165,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await campaignRoutes(a, routes);
       await participantRoutes(a, routes);
       await participantAttachmentRoutes(a, routes);
+      await participantExportRoutes(a, routes);
       await participantVoiceRoutes(a, routes);
       await participantVoiceLiveRoutes(a, routes);
       await sessionRoutes(a, routes);

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2Icon, MoreHorizontalIcon, PauseIcon, Trash2Icon } from "lucide-react";
+import { CheckCircle2Icon, DownloadIcon, MoreHorizontalIcon, PauseIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
@@ -17,7 +17,28 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { t } from "@/i18n";
 
-/** Pause, "I'm done" and "Delete my data": always one tap away. */
+type Download = "idle" | "busy" | "done" | "failed";
+
+/**
+ * Fetches the participant's own data through the web proxy and hands it to the browser as a
+ * file. The proxy attaches the session cookie, so nothing here names a session (D-162).
+ */
+async function saveMyData(format: "json" | "md"): Promise<void> {
+  const res = await fetch(`/api/participant/p/session/export?format=${format}`, {
+    credentials: "same-origin",
+  });
+  if (!res.ok) throw new Error(`export ${res.status}`);
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = format === "md" ? "my-interview-data.md" : "my-interview-data.json";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Pause, "I'm done", "Download my data" and "Delete my data": always one tap away. */
 export function SessionMenu({
   onPause,
   onDone,
@@ -32,6 +53,14 @@ export function SessionMenu({
   const [open, setOpen] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [confirmDone, setConfirmDone] = React.useState(false);
+  const [download, setDownload] = React.useState<Download>("idle");
+  const download_ = (format: "json" | "md"): void => {
+    setDownload("busy");
+    saveMyData(format).then(
+      () => { setDownload("done"); },
+      () => { setDownload("failed"); },
+    );
+  };
   return (
     <>
       <Popover open={open} onOpenChange={setOpen}>
@@ -68,6 +97,22 @@ export function SessionMenu({
             </Button>
             <Button
               variant="ghost"
+              className="justify-start"
+              disabled={download === "busy"}
+              onClick={() => { download_("md"); }}
+            >
+              <DownloadIcon /> {t.participant.session.downloadReadable}
+            </Button>
+            <Button
+              variant="ghost"
+              className="justify-start"
+              disabled={download === "busy"}
+              onClick={() => { download_("json"); }}
+            >
+              <DownloadIcon /> {t.participant.session.downloadJson}
+            </Button>
+            <Button
+              variant="ghost"
               className="text-destructive hover:text-destructive justify-start"
               onClick={() => {
                 setOpen(false);
@@ -77,6 +122,16 @@ export function SessionMenu({
               <Trash2Icon /> {t.participant.session.deleteData}
             </Button>
           </div>
+          {/* Announced to a screen reader as it changes, so a slow export is not silent. */}
+          <p role="status" aria-live="polite" className="text-muted-foreground px-2 pt-2 text-xs">
+            {download === "busy"
+              ? t.participant.session.downloadBusy
+              : download === "done"
+                ? t.participant.session.downloadDone
+                : download === "failed"
+                  ? t.participant.session.downloadFailed
+                  : ""}
+          </p>
         </PopoverContent>
       </Popover>
       <ConfirmDialog

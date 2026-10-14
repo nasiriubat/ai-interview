@@ -17,7 +17,7 @@ import type { User } from "@/lib/api/schemas";
 const s = t.admin.users;
 const ROLES = ["admin", "member"] as const;
 
-type Offboarding = { user: User; kind: "disable" | "enable" | "delete" };
+interface Offboarding { user: User; kind: "disable" | "enable" | "delete" }
 
 export function UsersPanel({
   users,
@@ -134,8 +134,7 @@ export function UsersPanel({
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() =>
-                            setOffboarding({ user: u, kind: u.disabledAt ? "enable" : "disable" })
+                          onClick={() => { setOffboarding({ user: u, kind: u.disabledAt ? "enable" : "disable" }); }
                           }
                         >
                           {u.disabledAt ? s.enable : s.disable}
@@ -144,7 +143,7 @@ export function UsersPanel({
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => setOffboarding({ user: u, kind: "delete" })}
+                          onClick={() => { setOffboarding({ user: u, kind: "delete" }); }}
                         >
                           {s.delete}
                         </Button>

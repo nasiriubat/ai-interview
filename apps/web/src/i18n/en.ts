@@ -238,6 +238,11 @@ export const en = {
         "The interviewer asks one closing question, then shows you a summary you can edit. You can still delete your answers afterwards.",
       doneConfirm: "Finish",
       deleteData: "Delete my data",
+      downloadReadable: "Download my data (readable)",
+      downloadJson: "Download my data (JSON)",
+      downloadBusy: "Preparing your data…",
+      downloadDone: "Your data was downloaded.",
+      downloadFailed: "We could not prepare your data. Try again in a moment.",
       deleteTitle: "Delete your answers?",
       deleteBody:
         "This removes your answers, recordings, files and everything noted from them right away. It cannot be undone.",
