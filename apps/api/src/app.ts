@@ -125,6 +125,17 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   await app.register(websocket, {
     options: { maxPayload: 1024 * 1024, clientTracking: false },
   });
+  // Request duration by route pattern, never by URL: a pattern has a handful of values, a URL has
+  // one per participant token (D-222).
+  app.addHook("onResponse", (request, reply, done) => {
+    ctx.metrics.http(
+      request.routeOptions.url ?? "unmatched",
+      request.method,
+      reply.statusCode,
+      reply.elapsedTime,
+    );
+    done();
+  });
   // The auth plugin first, so the limiter below can key on the principal it resolves. Its hook is
   // instance-level and the limiter's is route-level, which settles the order regardless, but the
   // dependency is real and reads better stated.

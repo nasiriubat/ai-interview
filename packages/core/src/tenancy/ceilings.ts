@@ -21,8 +21,12 @@ const METRIC_KEY: Record<CeilingMetric, SettingKey> = {
 
 export const CEILING_METRICS = Object.keys(METRIC_KEY) as CeilingMetric[];
 
-/** The ceilings that refuse. The other two are reported and announced, not yet enforced. */
-export type EnforcedCeiling = Extract<CeilingMetric, "maxActiveCampaigns" | "maxSessionsPerMonth">;
+/**
+ * The ceilings that refuse. All four are enforced where the thing is created: a campaign, an
+ * interview, an upload (`storageBytes`, which also caps the upload's own size to what is left) and
+ * a voice answer or live call (`voiceMinutes`, D-229).
+ */
+export type EnforcedCeiling = CeilingMetric;
 
 /** Campaigns that count against `maxActiveCampaigns`: anything not closed. */
 export const ACTIVE_CAMPAIGN_STATUSES = ["draft", "open", "analyzing"] as const;
@@ -95,7 +99,7 @@ export class TenantCeilings {
     const { db } = this.deps;
     const since = this.monthStart();
     const want = new Set(only);
-    const [campaigns, sessions, storage, voice] = await Promise.all([
+    const [campaigns, sessions, storage, voice, ledgerAudio] = await Promise.all([
       want.has("maxActiveCampaigns")
         ? db.campaign.count({ where: { companyId, status: { in: [...ACTIVE_CAMPAIGN_STATUSES] } } })
         : 0,
@@ -111,12 +115,28 @@ export class TenantCeilings {
             _sum: { durationMs: true },
           })
         : null,
+      // What the speech models were actually sent (D-220): recorded answers and live calls both
+      // land in the ledger as audio seconds, so a live call that stored no attachment still counts.
+      want.has("voiceMinutes")
+        ? db.llmCall.aggregate({
+            where: {
+              companyId,
+              createdAt: { gte: since },
+              purpose: { in: ["transcription", "stt_stream", "realtime_voice"] },
+            },
+            _sum: { audioSeconds: true },
+          })
+        : null,
     ]);
     return {
       maxActiveCampaigns: campaigns,
       maxSessionsPerMonth: sessions,
       storageBytes: storage?._sum.sizeBytes ?? 0,
-      voiceMinutes: Math.ceil((voice?._sum.durationMs ?? 0) / 60_000),
+      // The larger of the two readings, never their sum: a recorded answer is both an attachment
+      // with a duration and a transcription in the ledger, and counting it twice would refuse early.
+      voiceMinutes: Math.ceil(
+        Math.max((voice?._sum.durationMs ?? 0) / 1000, ledgerAudio?._sum.audioSeconds ?? 0) / 60,
+      ),
     };
   }
 
@@ -167,6 +187,36 @@ export class TenantCeilings {
     } catch {
       // Measuring failed; the next change measures again.
     }
+  }
+
+  /**
+   * Where a tenant stands on one metric: the ceiling and what is used. For an enforcement point
+   * that needs the room itself (an upload is capped to what is left), not only a yes or no.
+   */
+  async standing(companyId: string, metric: CeilingMetric): Promise<{ max: number; used: number }> {
+    const max = (await this.limits(companyId))[metric];
+    if (max <= 0) return { max, used: 0 };
+    return { max, used: (await this.usage(companyId, [metric]))[metric] };
+  }
+
+  /** Tells the tenant and the operator the ceiling was hit, and returns the error to throw. */
+  async reached(
+    companyId: string,
+    metric: CeilingMetric,
+    used: number,
+    max: number,
+  ): Promise<CeilingReachedError> {
+    // `reached` is stated, not derived from the numbers: an upload that does not fit in what is
+    // left refused the tenant at 62 percent used, and that is still a refusal to announce.
+    await this.deps.notices?.ceiling({
+      companyId,
+      metric,
+      used,
+      max,
+      reached: true,
+      ...(MONTHLY.has(metric) ? { month: this.month() } : {}),
+    });
+    return new CeilingReachedError(metric, used, max);
   }
 
   private async announce(companyId: string, metric: CeilingMetric, used: number, max: number): Promise<void> {

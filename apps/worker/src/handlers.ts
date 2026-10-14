@@ -17,6 +17,7 @@ import {
   TenantNotices,
   deleteSessionData,
   deletionNotice,
+  previousMonth,
   rekeyAll,
   runRetentionSweep,
   verifyAuditChain,
@@ -26,13 +27,17 @@ import {
   type Crypto,
   type EmailOutbox,
   type EmailPort,
+  type ErasureLedger,
   type HealthSweep,
   type JobName,
   type JobPayload,
   type JobPublisher,
   type SettingsService,
+  type StatementService,
   type StoragePort,
+  type TenantExporter,
   type TenantGate,
+  type TenantPurger,
 } from "@aidp/core";
 import { withSystemTenant, withTenant } from "@aidp/db";
 import type { PrismaClient } from "@prisma/client";
@@ -60,6 +65,13 @@ export interface HandlerDeps {
   tenants: TenantGate;
   /** The `ops.health-sweep` job (D-92). */
   health?: HealthSweep;
+  /** The monthly statement (D-224). Without it the `billing.statement` job fails loudly. */
+  statements?: StatementService;
+  /** Tenant export and offboarding (D-225, D-226). */
+  exporter?: TenantExporter;
+  purger?: TenantPurger;
+  /** Where erasures are recorded so a restore can re-apply them (D-226). */
+  erasures?: ErasureLedger;
 }
 
 /** The session store a job needs: the engine's port plus loading a snapshot with its status. */
@@ -223,6 +235,9 @@ export function handlers(deps: HandlerDeps): Handlers {
         // The rows are gone and re-running is harmless, so a failed file delete is retried by the
         // queue (with backoff) instead of waiting for the nightly storage GC to notice it.
         if (bytesFailed > 0) throw new Error(`could not delete the stored files of session ${sessionId}`);
+        // After the bytes: the entry says the session is gone, which is true only now. A restore
+        // from an older backup finds it in the file and queues this job again (D-226).
+        await deps.erasures?.record({ kind: "session", targetId: sessionId, companyId: companyId });
         deps.log.info("session data deleted", { sessionId });
       },
     ),
@@ -353,6 +368,66 @@ export function handlers(deps: HandlerDeps): Handlers {
       if (!deps.health) throw new Error("ops.health-sweep ran without a HealthSweep configured");
       const r = await deps.health.run();
       deps.log.info("health sweep finished", { raised: r.raised.length, resolved: r.resolved.length });
+    }),
+
+    /**
+     * Freezes a month of every tenant's usage and cost (D-224). With no month it is the one that
+     * just ended, so the cron on the 1st needs no argument; with `force` it redoes one. One
+     * tenant failing is reported and does not stop the others, and fails the job so it is retried
+     * (statements that exist are left alone, so a retry only does what is missing).
+     */
+    "billing.statement": scoped(async (p: JobPayload<"billing.statement">): Promise<void> => {
+      if (!deps.statements) throw new Error("billing.statement ran without a StatementService configured");
+      const month = p.month ?? previousMonth(new Date());
+      const r = await deps.statements.freezeAll(month, {
+        ...(p.force ? { force: true } : {}),
+        ...(p.companyId ? { companyId: p.companyId } : {}),
+        onError: (companyId, err) => {
+          deps.log.warn("statement failed", { companyId, month, error: String(err) });
+        },
+      });
+      deps.log.info("statements frozen", {
+        month,
+        created: r.created.length,
+        existing: r.existing.length,
+        failed: r.failed.length,
+      });
+      if (r.failed.length > 0) throw new Error(`statements failed for ${r.failed.length} tenant(s)`);
+    }),
+
+    /** A signed, sealed archive of a tenant's data (D-225). Read-only; runs for a suspended tenant too. */
+    "tenant.export": scoped(async (p: JobPayload<"tenant.export">): Promise<void> => {
+      if (!deps.exporter) throw new Error("tenant.export ran without a TenantExporter configured");
+      const meta = await deps.exporter.run(p.companyId, p.requestedBy);
+      deps.log.info("tenant export written", {
+        stamp: meta.stamp,
+        bytes: meta.bytes,
+        files: meta.files,
+        skippedFiles: meta.skippedFiles,
+      });
+    }),
+
+    /**
+     * Removes a tenant's data (D-226). Not behind `active`: the tenant is suspended by design, and
+     * an erasure obligation does not pause with the account.
+     */
+    "tenant.offboard": scoped(async (p: JobPayload<"tenant.offboard">): Promise<void> => {
+      if (!deps.purger) throw new Error("tenant.offboard ran without a TenantPurger configured");
+      if (p.graceCheck) {
+        const c = await withSystemTenant(async () =>
+          deps.db.company.findUnique({ where: { id: p.companyId }, select: { status: true } }),
+        );
+        if (c?.status !== "suspended") {
+          // Reactivated during the grace period: the operator changed their mind, which is the
+          // cancellation. Nothing is removed and nothing is retried.
+          deps.log.info("offboarding cancelled: the tenant is no longer suspended", {
+            companyId: p.companyId,
+            status: c?.status ?? "missing",
+          });
+          return;
+        }
+      }
+      await deps.purger.run(p.companyId, p.requestedBy);
     }),
   };
 }

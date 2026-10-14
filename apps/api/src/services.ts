@@ -11,6 +11,7 @@ import type {
   JobPublisher,
   SettingsService,
   TenantCeilings,
+  TenantExporter,
   TenantGate,
   TenantOnboarding,
 } from "@aidp/core";
@@ -91,6 +92,7 @@ export interface ServiceDeps {
   jobs: JobPublisher;
   ceilings: TenantCeilings;
   onboarding: TenantOnboarding;
+  tenantExporter?: TenantExporter;
   exporter: PdfExporter;
   /** Queue depth and dead letters, for the health tiles. */
   jobAdmin: JobAdminPort;
@@ -160,6 +162,7 @@ export function buildServices(d: ServiceDeps): Services {
       ceilings: d.ceilings,
       onboarding: d.onboarding,
       publicWebUrl: d.config.PUBLIC_WEB_URL,
+      ...(d.tenantExporter ? { exporter: d.tenantExporter } : {}),
     }),
     voiceSetup: new VoiceSetupService({
       db: d.db,

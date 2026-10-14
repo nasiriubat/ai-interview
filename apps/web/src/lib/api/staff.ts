@@ -69,6 +69,8 @@ import {
   type Campaign,
   DeadJobListSchema,
   type DeadJob,
+  PlatformHealthSchema,
+  type PlatformHealth,
   QueueListSchema,
   type QueueSummary,
   type EmailTest,
@@ -728,6 +730,7 @@ export function staffApi(transport: Transport): StaffApi {
           ok(request(transport, { method: "PUT", path: "/operator/routes", body: { routes } })),
       },
       stats: () => request(transport, { path: "/operator/stats", schema: StatsSchema }),
+      health: () => request(transport, { path: "/operator/health", schema: PlatformHealthSchema }),
       jobs: {
         list: () =>
           request(transport, { path: "/operator/jobs", schema: QueueListSchema }).then((r) => r.queues),
@@ -933,6 +936,8 @@ export interface StaffApi {
     providers: ProvidersApi;
     routes: RoutesApi;
     stats(): Promise<Stats>;
+    /** Every platform signal and each tenant's utilisation on one page (D-222). */
+    health(): Promise<PlatformHealth>;
     /** The background queue: counters, dead letters, and the verbs that act on them (D-92). */
     jobs: {
       list(): Promise<QueueSummary[]>;

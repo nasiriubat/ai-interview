@@ -6,17 +6,30 @@ import {
   Crypto,
   EgressGuard,
   egressConfigFromEnv,
+  ErasureLedger,
   HealthSweep,
   MemoryEmail,
+  NoopMetrics,
+  pinoRedact,
+  pinoSerializers,
   PgBossJobAdmin,
   PrismaAlertState,
   PrismaHealthInputs,
+  PromMetrics,
+  reapplyErasures,
   SettingsEmail,
   SettingsService,
+  startMetricsServer,
+  startTelemetry,
+  StatementService,
   storageKind,
+  TenantExporter,
   TenantGate,
+  TenantPurger,
+  withLogBindings,
   type JobFailure,
   type JobName,
+  type Metrics,
 } from "@aidp/core";
 import { withTenantScope } from "@aidp/db";
 import { PrismaClient } from "@prisma/client";
@@ -30,10 +43,35 @@ import { createShutdown } from "./shutdown.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  // Same redaction as the API: a connection string or key must not reach the log aggregator.
+  // Before anything that should be instrumented is constructed: auto-instrumentation patches
+  // modules as they load, so this precedes `PrismaClient` (D-222). A no-op without an endpoint.
+  const telemetry = await startTelemetry("aidp-worker", config.OTEL_EXPORTER_OTLP_ENDPOINT);
+  // The same redaction as the API, from one module: tokens, message text, addresses and secrets
+  // never reach the log aggregator (D-223).
   const log = pino({
     level: config.LOG_LEVEL,
-    redact: ["*.apiKey", "*.password", "*.smtpUrl", "*.apiKeyEnc"],
+    redact: pinoRedact({ development: config.NODE_ENV === "development" }),
+    serializers: pinoSerializers(),
+  });
+  const metrics: Metrics = config.METRICS_PORT > 0 ? new PromMetrics() : new NoopMetrics();
+  if (config.METRICS_PORT > 0) {
+    await startMetricsServer(metrics, {
+      port: config.METRICS_PORT,
+      onError: (err) => {
+        log.warn({ err }, "metrics server error");
+      },
+    });
+    log.info({ port: config.METRICS_PORT }, "metrics endpoint listening");
+  }
+  // Every line a handler writes carries the tenant, session and job it is for (D-223): the
+  // bindings come from the job wrapper's async-local scope, so handlers need no logger parameter.
+  const jobLog = withLogBindings({
+    info: (m: string, meta?: Record<string, unknown>) => {
+      log.info(meta ?? {}, m);
+    },
+    warn: (m: string, meta?: Record<string, unknown>) => {
+      log.warn(meta ?? {}, m);
+    },
   });
   // Every query goes through the tenant scope: it pairs the statement with the Postgres setting
   // the row-level security policies read (packages/db/src/tenancy.ts).
@@ -89,6 +127,7 @@ async function main(): Promise<void> {
     settings,
     egress,
     alerts,
+    metrics,
     publicWebUrl: config.PUBLIC_WEB_URL,
     onBudgetWarning: (ctx, warnings) => {
       log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
@@ -98,6 +137,7 @@ async function main(): Promise<void> {
     onError: (err) => {
       log.error({ err }, "job queue error");
     },
+    metrics,
   });
   await jobs.start();
   const jobAdmin = new PgBossJobAdmin(jobs.boss, db);
@@ -109,6 +149,7 @@ async function main(): Promise<void> {
       diskPath: config.UPLOAD_DIR ?? config.OPS_STATE_DIR,
     }),
     alerts,
+    metrics,
     thresholds: async () => {
       const v = await settings.resolveMany(
         [
@@ -135,6 +176,16 @@ async function main(): Promise<void> {
 
   const storage = createStorage(config.UPLOAD_DIR);
   log.info({ storage: storageKind(storage) }, "upload store");
+  // What was erased on purpose, kept outside the database as well so a restore can re-apply it.
+  const erasures = new ErasureLedger({
+    db,
+    filePath: config.OPS_STATE_DIR ? `${config.OPS_STATE_DIR}/erasures.jsonl` : undefined,
+  });
+  const exportLog = {
+    info: (m: string, meta?: Record<string, unknown>) => {
+      jobLog.info(m, meta);
+    },
+  };
 
   const h = handlers({
     db,
@@ -148,14 +199,11 @@ async function main(): Promise<void> {
     health,
     alerts,
     publicWebUrl: config.PUBLIC_WEB_URL,
-    log: {
-      info: (m, meta) => {
-        log.info(meta ?? {}, m);
-      },
-      warn: (m, meta) => {
-        log.warn(meta ?? {}, m);
-      },
-    },
+    statements: new StatementService({ db }),
+    exporter: new TenantExporter({ db, storage, crypto, log: exportLog }),
+    purger: new TenantPurger({ db, storage, ledger: erasures, alerts, log: exportLog }),
+    erasures,
+    log: jobLog,
   });
   const failed = (name: JobName) => (jobId: string, err: unknown, failure: JobFailure) => {
     log.error({ err, job: name, jobId, attempt: failure.attempt, final: failure.final }, "job failed");
@@ -209,6 +257,14 @@ async function main(): Promise<void> {
   });
   log.info("worker started");
 
+  // A restored database may hold what was erased after its backup was taken. The erasure file is
+  // outside the backup, so compare it to the database and queue the erasures again (D-226).
+  try {
+    await reapplyErasures({ db, ledger: erasures, jobs, log: jobLog });
+  } catch (err) {
+    log.warn({ err }, "could not re-apply recorded erasures");
+  }
+
   // Proof of life for the container healthcheck, and the self-restart when the queue is gone
   // (D-92). Started last: a healthy file means the consumers above are registered.
   const heartbeatFile =
@@ -243,7 +299,10 @@ async function main(): Promise<void> {
       heartbeat?.stop();
       return jobs.stop({ timeoutMs });
     },
-    disconnect: () => db.$disconnect(),
+    disconnect: async () => {
+      await db.$disconnect();
+      await telemetry?.shutdown();
+    },
     inFlight: () => jobs.inFlight(),
     exit: (code) => process.exit(code),
     graceMs: config.WORKER_SHUTDOWN_GRACE_SECONDS * 1000,

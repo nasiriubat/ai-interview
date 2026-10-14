@@ -1,6 +1,8 @@
 import {
   BudgetGuard,
+  CircuitBreaker,
   ModelCaller,
+  breakerOptionsFromEnv,
   PriceTable,
   ProviderError,
   ProviderRegistry,
@@ -17,7 +19,9 @@ import type { AlertPort } from "../alerts/port.js";
 import type { Crypto } from "../crypto.js";
 import { EgressBlockedError, validateTenantHeaders, type EgressGuard } from "../net/egress.js";
 import type { SettingsService } from "../settings/service.js";
+import type { Metrics } from "../telemetry/metrics.js";
 import {
+  PrismaFallbackRouteResolver,
   PrismaBudgetLimits,
   PrismaLedger,
   PrismaProbeGuard,
@@ -48,6 +52,10 @@ export interface CallerFactoryDeps {
   /** The on-server Whisper runner (D-75); the process-wide one when absent. Tests pass a fake. */
   speech?: SpeechRunner;
   now?: () => Date;
+  /** Where call, circuit and budget numbers go (D-222). Absent in tests that do not measure. */
+  metrics?: Metrics;
+  /** The process-wide circuit breaker (D-228). The factory builds one when none is passed. */
+  breaker?: CircuitBreaker;
 }
 
 /**
@@ -58,9 +66,36 @@ export class CallerFactory {
   private readonly registry: ProviderRegistry;
   private readonly ledger: PrismaLedger;
   private readonly budgetAlerts: BudgetAlerts | undefined;
+  /** One breaker per process, shared by every caller this factory builds. */
+  readonly breaker: CircuitBreaker;
 
   constructor(private readonly deps: CallerFactoryDeps) {
     this.ledger = new PrismaLedger(deps.db);
+    this.breaker =
+      deps.breaker ??
+      new CircuitBreaker({
+        ...breakerOptionsFromEnv(),
+        ...(deps.now ? { now: () => (deps.now as () => Date)().getTime() } : {}),
+        onChange: (providerId, _from, to) => {
+          deps.metrics?.circuit(providerId, to);
+          const key = `provider.circuit:${providerId}`;
+          if (to === "open") {
+            void deps.alerts
+              ?.raise({
+                kind: "provider.error_rate",
+                key,
+                title: "Provider circuit open",
+                message: `Calls to provider '${providerId}' are failing and its circuit is open: new calls are refused or sent to a fallback route until a probe succeeds.`,
+                context: { providerId },
+                audience: ["operator"],
+              })
+              .catch(() => undefined);
+          } else if (to === "closed") {
+            void deps.alerts?.resolve(key).catch(() => undefined);
+            void deps.alerts?.resolve(`provider.fallback_active:${providerId}`).catch(() => undefined);
+          }
+        },
+      });
     this.registry = new ProviderRegistry({
       ...(deps.speech ? { speech: deps.speech } : {}),
       fetchFor: (cfg) => this.fetchFor(cfg),
@@ -126,7 +161,45 @@ export class CallerFactory {
     ]);
     const alerts = this.budgetAlerts;
     const observe = this.deps.onBudgetWarning;
+    const { metrics } = this.deps;
+    const alertPort = this.deps.alerts;
     return new ModelCaller({
+      breaker: this.breaker,
+      fallbackRoutes: new PrismaFallbackRouteResolver(this.deps.db),
+      onFallback: (n) => {
+        void alertPort
+          ?.raise({
+            kind: "provider.fallback_active",
+            key: `provider.fallback_active:${n.fromProviderId}`,
+            title: `Fallback route active for ${n.purpose}`,
+            message: `Calls for purpose '${n.purpose}' are being served by provider '${n.toProviderId}' because '${n.fromProviderId}' ${n.reason === "circuit_open" ? "is failing and its circuit is open" : "failed"}.`,
+            context: { purpose: n.purpose, from: n.fromProviderId, to: n.toProviderId, reason: n.reason },
+            audience: ["operator"],
+          })
+          .catch(() => undefined);
+      },
+      ...(metrics
+        ? {
+            observer: {
+              recorded: (e) => {
+                metrics.modelCall({
+                  purpose: e.purpose,
+                  provider: e.providerId,
+                  model: e.model,
+                  tenant: e.companyId,
+                  status: e.status,
+                  latencyMs: e.latencyMs,
+                  firstTokenMs: e.firstTokenMs,
+                  inputTokens: e.usage.inputTokens,
+                  cacheReadTokens: e.usage.cacheReadTokens,
+                  outputTokens: e.usage.outputTokens,
+                  costCents: e.costCents,
+                  audioSeconds: e.usage.audioSeconds,
+                });
+              },
+            },
+          }
+        : {}),
       probeGuard: new PrismaProbeGuard(this.deps.db, probeMaxPerDay),
       routes: new PrismaRouteResolver(this.deps.db),
       providerConfigs: new PrismaProviderConfigSource(this.deps.db, this.deps.crypto),
@@ -143,7 +216,14 @@ export class CallerFactory {
             },
           }
         : {}),
-      ...(alerts ? { onBudgetExceeded: (ctx, check) => alerts.exceeded(ctx, check) } : {}),
+      ...(alerts || metrics
+        ? {
+            onBudgetExceeded: async (ctx, check) => {
+              metrics?.budgetBlocked(ctx.companyId, check.blockedBy?.scope ?? "tenant");
+              return alerts?.exceeded(ctx, check);
+            },
+          }
+        : {}),
     });
   }
 

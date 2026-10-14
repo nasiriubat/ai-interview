@@ -32,6 +32,8 @@ model Company {
   providers    Provider[]
   routes       Route[]
   budgets      Budget[]
+  fallbackRoutes FallbackRoute[]
+  statements   TenantStatement[]
   llmCalls     LlmCall[]
   auditLogs    AuditLog[]
   opsAlerts    OpsAlert[]
@@ -589,6 +591,7 @@ model Provider {
   company  Company?     @relation(fields: [companyId], references: [id])
   prices   ModelPrice[]
   routes   Route[]
+  fallbackRoutes FallbackRoute[]
   llmCalls LlmCall[]
 
   @@index([companyId])
@@ -603,6 +606,10 @@ model ModelPrice {
   inputPerMtok       Float
   cachedInputPerMtok Float
   outputPerMtok      Float
+  /// USD per minute of audio (speech-to-text). Migration 0023.
+  audioPerMinute     Float?
+  /// USD per million characters (text-to-speech). Migration 0023.
+  ttsPerMChars       Float?
   source             String // seed | admin | provider
   updatedAt          DateTime @updatedAt
 
@@ -626,6 +633,53 @@ model Route {
   provider Provider @relation(fields: [providerId], references: [id])
 
   @@unique([companyId, purpose])
+}
+
+/// The route used when a purpose's primary provider is down (D-228). A sibling of Route rather than
+/// a tier column on it: every existing reader of Route assumes one row per (company, purpose).
+model FallbackRoute {
+  id              String  @id @default(cuid())
+  companyId       String? // null = platform default
+  purpose         String
+  providerId      String
+  model           String
+  effort          String?
+  maxOutputTokens Int
+
+  company  Company? @relation(fields: [companyId], references: [id])
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, purpose])
+}
+
+/// One month of a tenant's usage and cost, frozen when the month closes (D-224). Invoicing reads
+/// this, so it survives the retention sweep that later purges the ledger rows it summarises.
+model TenantStatement {
+  id          String   @id @default(cuid())
+  companyId   String
+  month       String // yyyy-mm
+  generatedAt DateTime @default(now())
+  currency    String   @default("USD")
+  lines       Json
+  totals      Json
+  counts      Json
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, month])
+}
+
+/// What was erased on purpose, so that a restore from an older backup can erase it again (D-226).
+/// Ids only. `companyId` is a plain column, not a relation: the row outlives the tenant.
+model ErasureLedger {
+  id          String   @id @default(cuid())
+  kind        String // tenant | session
+  targetId    String
+  companyId   String
+  erasedAt    DateTime @default(now())
+  requestedBy String?
+
+  @@unique([kind, targetId])
 }
 
 model Budget {
@@ -660,6 +714,16 @@ model LlmCall {
   sessionId        String?
   campaignId       String?
   createdAt        DateTime @default(now())
+  /// Time to the first streamed text event (NFR-01); null for calls that do not stream. Migration 0023.
+  firstTokenMs     Int?
+  /// Speech-to-text input, in seconds (D-220).
+  audioSeconds     Float    @default(0)
+  /// Characters sent to text-to-speech (D-220).
+  ttsCharacters    Int      @default(0)
+  /// The usage is our estimate (abandoned stream, died before a usage report), not the provider's (D-221).
+  estimated        Boolean  @default(false)
+  /// primary | fallback: which route served the call (D-228).
+  routeTier        String   @default("primary")
 
   company  Company   @relation(fields: [companyId], references: [id])
   provider Provider  @relation(fields: [providerId], references: [id])
@@ -667,6 +731,7 @@ model LlmCall {
   campaign Campaign? @relation(fields: [campaignId], references: [id])
 
   @@index([companyId, createdAt])
+  @@index([companyId, purpose, createdAt])
   @@index([campaignId])
   @@index([sessionId])
 }
