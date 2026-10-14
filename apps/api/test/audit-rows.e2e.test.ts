@@ -1,4 +1,5 @@
 import type { Server } from "node:http";
+import { SHIPPED_PROMPTS } from "@aidp/ai";
 import { shippedTemplates } from "@aidp/db";
 import { describeDb } from "@aidp/testing";
 import { encode } from "@auth/core/jwt";
@@ -772,6 +773,41 @@ suite("audit rows: every administrative mutation writes one", () => {
     );
   });
 
+  it("export and offboarding requests are filed under the operator's company, not the tenant's (D-225, D-226)", async () => {
+    const name = `Audit offboard ${Date.now().toString(36)}`;
+    const created = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/operator/tenants",
+      headers: { ...as(tokens.operator), "content-type": "application/json" },
+      payload: JSON.stringify({ name, adminEmail: `audit-off-${Date.now().toString(36)}@test.io` }),
+    });
+    const id = created.json<{ tenant: { id: string } }>().tenant.id;
+    await audited("POST /operator/tenants/:id/export", `/operator/tenants/${id}/export`, undefined, {
+      action: "tenant.export_requested",
+      targetType: "company",
+      targetId: id,
+      actor: "operator",
+    });
+    // Offboarding starts from a suspended tenant and the typed name.
+    await world.app.inject({
+      method: "PATCH",
+      url: `/api/v1/operator/tenants/${id}`,
+      headers: { ...as(tokens.operator), "content-type": "application/json" },
+      payload: JSON.stringify({ status: "suspended" }),
+    });
+    await audited(
+      "POST /operator/tenants/:id/offboard",
+      `/operator/tenants/${id}/offboard`,
+      { confirmName: name },
+      {
+        action: "tenant.offboard_requested",
+        targetType: "company",
+        targetId: id,
+        actor: "operator",
+      },
+    );
+  });
+
   it("the operator's job verbs are filed under the job's tenant", async () => {
     const dead = world.jobAdmin.addDead("analysis.run", {
       id: "33333333-3333-4333-8333-333333333333",
@@ -845,6 +881,65 @@ suite("audit rows: every administrative mutation writes one", () => {
         secrets: ["SECRET-REASON", "SECRET-NOTE"],
       },
     );
+  });
+
+  // ---------- prompts ----------
+
+  it("prompt versions, canary, activation, rollback and reset", async () => {
+    const body = SHIPPED_PROMPTS.interviewer!.body.replace("Warm, brief, specific.", "SECRET-PROMPT-WORDS.");
+    const created = await audited(
+      "POST /prompts/:key/versions",
+      "/prompts/interviewer/versions",
+      { body, note: "audit scenario" },
+      {
+        action: "prompt.create",
+        targetType: "prompt",
+        targetId: "interviewer",
+        actor: "admin",
+        secrets: ["SECRET-PROMPT-WORDS"],
+      },
+    );
+    const v = created.json<{ version: number }>().version;
+    await audited(
+      "POST /prompts/:key/versions/:v/activate",
+      `/prompts/interviewer/versions/${v}/activate`,
+      { canaryShare: 0.25 },
+      { action: "prompt.canary", targetType: "prompt", targetId: "interviewer", actor: "admin" },
+    );
+    await audited("DELETE /prompts/:key/canary", "/prompts/interviewer/canary", undefined, {
+      action: "prompt.canary_stop",
+      targetType: "prompt",
+      targetId: "interviewer",
+      actor: "admin",
+    });
+    await audited(
+      "POST /prompts/:key/versions/:v/activate",
+      `/prompts/interviewer/versions/${v}/activate`,
+      { canaryShare: 1 },
+      { action: "prompt.activate", targetType: "prompt", targetId: "interviewer", actor: "admin" },
+    );
+    await audited("POST /prompts/:key/reset", "/prompts/interviewer/reset", undefined, {
+      action: "prompt.reset",
+      targetType: "prompt",
+      targetId: "interviewer",
+      actor: "admin",
+    });
+    await audited("POST /prompts/:key/rollback", "/prompts/interviewer/rollback", undefined, {
+      action: "prompt.rollback",
+      targetType: "prompt",
+      targetId: "interviewer",
+      actor: "admin",
+    });
+    // The check route is exempt by declaration; it must really leave nothing behind.
+    const before = await world.db.auditLog.count({ where: { companyId: world.companyId } });
+    const checked = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/prompts/interviewer/check",
+      headers: { ...as(tokens.admin), "content-type": "application/json" },
+      payload: JSON.stringify({ body }),
+    });
+    expect(checked.statusCode).toBe(200);
+    expect(await world.db.auditLog.count({ where: { companyId: world.companyId } })).toBe(before);
   });
 
   // ---------- completeness ----------

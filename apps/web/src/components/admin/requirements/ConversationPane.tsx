@@ -154,7 +154,7 @@ export function ConversationPane({
       <div className="flex-1 overflow-y-auto px-4 py-4 lg:max-h-[65dvh]">
         <MessageList messages={state.messages} streaming={state.streaming} pending={state.pending}>
           {showWidget ? (
-            <div aria-label={p.widgetAnswer} className="bg-background mt-1 rounded-2xl border p-4">
+            <div aria-label={p.widgetAnswer} className="bg-card shadow-card mt-1 rounded-2xl p-4">
               <WidgetRenderer
                 key={lastId}
                 widget={activeWidget}

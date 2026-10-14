@@ -1,0 +1,24 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+
+  # Present whether or not the `traces` profile is up: a datasource that cannot be reached is an
+  # empty panel, not an error, and enabling traces later then needs no change here.
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToMetrics:
+        datasourceUid: prometheus
+      serviceMap:
+        datasourceUid: prometheus

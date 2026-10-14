@@ -345,6 +345,110 @@ export const TemplateDiffSchema = z.looseObject({
 });
 export type TemplateDiff = z.infer<typeof TemplateDiffSchema>;
 
+/*
+ * Prompt administration (D-230 to D-235). The groups, states and sources are closed sets of the
+ * API; an unknown one falls back so a newer API does not blank the page.
+ */
+export const PromptStatsSchema = z.looseObject({
+  calls: z.number().default(0),
+  errors: z.number().default(0),
+  errorRate: z.number().default(0),
+  meanLatencyMs: z.number().default(0),
+  meanCostCents: z.number().default(0),
+});
+export type PromptStats = z.infer<typeof PromptStatsSchema>;
+const PromptSourceSchema = z.enum(["shipped", "platform", "tenant"]).catch("shipped");
+const PromptEffectiveSchema = z.looseObject({
+  source: PromptSourceSchema,
+  version: z.number().int(),
+  tag: z.string(),
+});
+const PromptCanarySchema = z.looseObject({ version: z.number().int(), share: z.number() }).nullish();
+export const PROMPT_GROUPS = ["interview", "analysis", "requirements", "files"] as const;
+export type PromptGroup = (typeof PROMPT_GROUPS)[number];
+export const PromptSummarySchema = z.looseObject({
+  key: z.string(),
+  group: z.enum(PROMPT_GROUPS).catch("interview"),
+  shipped: z.looseObject({ version: z.number().int(), tag: z.string(), chars: z.number() }),
+  effective: PromptEffectiveSchema,
+  canary: PromptCanarySchema,
+  versions: z.number().int().default(0),
+  stats: PromptStatsSchema,
+});
+export type PromptSummary = z.infer<typeof PromptSummarySchema>;
+export const PromptListSchema = z.looseObject({
+  prompts: z.array(PromptSummarySchema).default([]),
+  windowDays: z.number().default(30),
+});
+export type PromptList = z.infer<typeof PromptListSchema>;
+
+export const PromptVersionSchema = z.looseObject({
+  version: z.number().int(),
+  tag: z.string(),
+  note: z.string().nullish(),
+  body: z.string(),
+  state: z.enum(["stable", "canary", "inactive"]).catch("inactive"),
+  canaryShare: z.number().default(0),
+  parentVersion: z.number().int().nullish(),
+  createdAt: iso,
+  createdBy: z.looseObject({ id: z.string(), name: z.string().nullish(), email: z.string() }).nullish(),
+  activatedAt: iso.nullish(),
+  deactivatedAt: iso.nullish(),
+  stats: PromptStatsSchema,
+});
+export type PromptVersion = z.infer<typeof PromptVersionSchema>;
+export const PromptDetailSchema = z.looseObject({
+  key: z.string(),
+  group: z.enum(PROMPT_GROUPS).catch("interview"),
+  shipped: z.looseObject({
+    version: z.number().int(),
+    tag: z.string(),
+    body: z.string(),
+    stats: PromptStatsSchema,
+  }),
+  contract: z.looseObject({
+    requiredPlaceholders: z.array(z.string()).default([]),
+    untrustedRules: z.boolean().default(false),
+    contractTokens: z.array(z.string()).default([]),
+    maxChars: z.number().default(30000),
+  }),
+  effective: PromptEffectiveSchema,
+  canary: PromptCanarySchema,
+  platform: z.looseObject({ version: z.number().int() }).nullish(),
+  versions: z.array(PromptVersionSchema).default([]),
+  windowDays: z.number().default(30),
+});
+export type PromptDetail = z.infer<typeof PromptDetailSchema>;
+export const PromptIssueSchema = z.looseObject({
+  code: z.string(),
+  detail: z.string().nullish(),
+  message: z.string().default(""),
+});
+export type PromptIssue = z.infer<typeof PromptIssueSchema>;
+export const PromptCheckSchema = z.looseObject({
+  ok: z.boolean(),
+  issues: z.array(PromptIssueSchema).default([]),
+  renders: z
+    .array(
+      z.looseObject({
+        template: z.string(),
+        ok: z.boolean(),
+        leftover: z.array(z.string()).default([]),
+        chars: z.number().default(0),
+      }),
+    )
+    .default([]),
+});
+export type PromptCheck = z.infer<typeof PromptCheckSchema>;
+export const PromptDiffSchema = z.looseObject({
+  from: z.string(),
+  to: z.string(),
+  lines: z.array(z.looseObject({ type: z.enum(["same", "add", "del"]), text: z.string() })).default([]),
+  added: z.number().default(0),
+  removed: z.number().default(0),
+});
+export type PromptDiff = z.infer<typeof PromptDiffSchema>;
+
 export const PreviewSessionSchema = z.looseObject({ participantToken: z.string(), sessionId: z.string() });
 
 export const CampaignStatsSchema = z.looseObject({
@@ -768,6 +872,73 @@ export type DeadJob = z.infer<typeof DeadJobSchema>;
 export const DeadJobListSchema = z.looseObject({ queue: z.string(), jobs: z.array(DeadJobSchema) });
 
 export const HealthSchema = z.looseObject({ ok: z.boolean().optional(), status: z.string().optional() });
+
+/** `GET /operator/health` (D-222): every platform signal and each tenant's utilisation. */
+export const HealthSignalSchema = z.looseObject({
+  key: z.string(),
+  status: z.enum(["ok", "warn", "critical", "unknown"]),
+  detail: z.string(),
+  value: z.union([z.number(), z.string()]).nullish(),
+});
+export const CeilingUseSchema = z.looseObject({
+  metric: z.string(),
+  used: z.number(),
+  max: z.number(),
+  percent: z.number().nullable(),
+});
+export const TenantHealthSchema = z.looseObject({
+  companyId: z.string(),
+  name: z.string(),
+  status: z.string(),
+  sessionsThisMonth: z.number(),
+  activeSessions: z.number(),
+  spendCents: z.number(),
+  budgetLimitCents: z.number().nullable(),
+  budgetFraction: z.number().nullable(),
+  storageBytes: z.number(),
+  voiceMinutes: z.number(),
+  lastActivityAt: z.string().nullable(),
+  openCampaigns: z.number(),
+  deadLetters24h: z.number(),
+  firstTokenP95Ms: z.number().nullable(),
+  utilisation: z.array(CeilingUseSchema),
+});
+export const PlatformHealthSchema = z.looseObject({
+  generatedAt: z.string(),
+  version: z.string().nullable(),
+  signals: z.array(HealthSignalSchema),
+  providers: z.array(
+    z.looseObject({
+      providerId: z.string(),
+      name: z.string(),
+      calls: z.number(),
+      failed: z.number(),
+      errorRate: z.number(),
+      circuit: z.enum(["closed", "half_open", "open"]),
+    }),
+  ),
+  latency: z.looseObject({
+    firstTokenP50Ms24h: z.number().nullable(),
+    firstTokenP95Ms24h: z.number().nullable(),
+    firstTokenTargetMs: z.number(),
+    voiceFirstWordP95Ms24h: z.number().nullable(),
+    voiceFirstWordTargetMs: z.number(),
+  }),
+  backup: z.looseObject({
+    lastResult: z.string().nullable(),
+    lastSuccessAt: z.string().nullable(),
+    ageHours: z.number().nullable(),
+    offsite: z.string().nullable(),
+    drill: z.looseObject({
+      result: z.string().nullable(),
+      at: z.string().nullable(),
+      error: z.string().nullable(),
+      durationS: z.number().nullable(),
+    }),
+  }),
+  tenants: z.array(TenantHealthSchema),
+});
+export type PlatformHealth = z.infer<typeof PlatformHealthSchema>;
 
 // Phase 2: analysis and report (docs/spec/17)
 

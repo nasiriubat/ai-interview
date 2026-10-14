@@ -35,7 +35,7 @@ export function SpecPanel({
         <TabsTrigger value="findings">
           {s.findings}
           {openFindings > 0 ? (
-            <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-[10px] tabular-nums">
+            <span className="bg-primary text-primary-foreground rounded-full px-1.5 text-xs tabular-nums">
               {openFindings}
             </span>
           ) : null}
@@ -43,7 +43,7 @@ export function SpecPanel({
         <TabsTrigger value="versions">
           {s.versions}
           {versions.length > 0 ? (
-            <span className="text-muted-foreground text-[10px] tabular-nums">{versions.length}</span>
+            <span className="text-muted-foreground text-xs tabular-nums">{versions.length}</span>
           ) : null}
         </TabsTrigger>
       </TabsList>

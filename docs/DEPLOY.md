@@ -445,6 +445,12 @@ dropped table and not against a dead host. Set `RCLONE_REMOTE` and its credentia
 run copies the pair offsite, keeping 30 daily, 13 weekly and 13 monthly copies. Unset, the status
 file says `offsite: not_configured`; the go-live list below asks you to decide that on purpose.
 
+**Restore drill.** Every Sunday at 04:40 UTC the container restores the newest dump into a scratch
+database and checks it against the manifest written beside the dump (row counts, and the files in
+the uploads archive); a mismatch raises `backup.drill_failed` and makes the container unhealthy.
+`BACKUP_DRILL=off`, `BACKUP_DRILL_DAY` (1 to 7, default 7) and `BACKUP_DRILL_AT` (default 04:40)
+tune it.
+
 Restoring, the restore drill, the upgrade and rollback flow, and what every alert means are in
 [OPERATIONS.md](OPERATIONS.md#backups).
 
@@ -563,6 +569,15 @@ dc logs --no-log-prefix api | grep '^{' | jq -c '{t:.time, lvl:.level, msg:.msg,
 ```
 
 Caddy logs access in JSON on stderr; `dc logs caddy` shows every request with status and duration.
+Link tokens in the path and the secret keys of a query string are filtered out of it.
+
+Every API and worker line carries `tenantId` (and `sessionId`, `userId`, `jobId`, `traceId` where
+they apply), and none carries a token, message text, an address, a key or a filename: the list is
+in [OPERATIONS.md](OPERATIONS.md#what-is-never-logged).
+
+```bash
+dc logs --no-log-prefix api | grep '^{' | jq -c 'select(.tenantId == "<company id>")'
+```
 
 Every service uses the `json-file` driver capped at **3 files of 10 MB**, so container logs can
 never consume more than about 180 MB across the stack. This is the single most boring way to lose a
@@ -659,11 +674,13 @@ dc logs caddy | grep -i acme
 
 ## What this deliberately does not cover
 
-- **Dashboards, tracing and p95s.** Failures are alerted (see [OPERATIONS.md](OPERATIONS.md)); what
-  is not built yet is the picture: worker traces, request and session ids in log lines, first-token
-  and voice latency percentiles, Grafana. `docs/spec/12-operations.md` describes the
-  OpenTelemetry setup the platform is built for; the API exports spans when
-  `OTEL_EXPORTER_OTLP_ENDPOINT` is set and the worker does not export any yet.
+- **Dashboards on a 4 GB host.** First-token and voice p95s, queue age and the platform signals are
+  on Operator → Platform health and in `/stats` with nothing extra running. Grafana, Prometheus and
+  Tempo are an optional profile (`infra/observability`): Prometheus and Grafana add 416 MB of
+  limits, which fits the 4 GB preset with about 450 MB left for the OS; Tempo adds 192 MB and
+  belongs on 8 GB, or point `OTEL_EXPORTER_OTLP_ENDPOINT` at a hosted OTLP receiver. How to start
+  it is in [infra/observability/README.md](../infra/observability/README.md). Both the API and the
+  worker export spans when `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 - **Multi-host, high availability, zero-downtime deploys.** One host, one replica of each service,
   a few seconds of downtime per upgrade behind a maintenance page. Blue-green (`12-operations.md`)
   needs somewhere to be green.

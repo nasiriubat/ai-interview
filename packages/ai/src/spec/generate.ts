@@ -388,7 +388,7 @@ export async function generateSpec(
 
   let prompt;
   try {
-    prompt = await deps.prompts.get(input.companyId, "spec");
+    prompt = await deps.prompts.get(input.companyId, "spec", input.sessionId);
   } catch (e) {
     return finish(fallbackDocument(input, now), "fallback", [], e instanceof Error ? e.message : String(e));
   }

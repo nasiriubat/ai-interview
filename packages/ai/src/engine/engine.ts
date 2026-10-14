@@ -209,7 +209,7 @@ export class InterviewEngine {
       return { ended: true, state, followUps: { summarize: false, extract: true } };
     }
 
-    const prompt = await this.deps.prompts.get(session.companyId, "interviewer");
+    const prompt = await this.deps.prompts.get(session.companyId, "interviewer", session.id);
     const recent = await store.recentMessages(session.id, settings.recentWindowTurns * 2);
     const recallQuery = "areaKey" in focus ? `${focus.areaKey} ${"topic" in focus ? focus.topic : ""}` : "";
     const recalled =

@@ -74,6 +74,7 @@ function apiWith(sendTurn: ParticipantApi["sendTurn"]): ParticipantApi {
   return {
     sendTurn,
     sendVoice: unused,
+    transcribe: unused,
     uploadAttachment: unused,
     listAttachments: () => Promise.resolve([]),
     attachmentBytes: unused,

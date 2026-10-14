@@ -7,10 +7,12 @@ import {
   ClipboardListIcon,
   CoinsIcon,
   FileTextIcon,
+  HeartPulseIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
   MegaphoneIcon,
   MenuIcon,
+  MessageSquareTextIcon,
   RouteIcon,
   ScrollTextIcon,
   ServerIcon,
@@ -23,6 +25,7 @@ import { usePathname } from "next/navigation";
 import * as React from "react";
 import { DirtyGuardProvider } from "@/components/common/DirtyGuard";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
+import { ThemeSwitch } from "@/components/common/ThemeSwitch";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import type { Me } from "@/lib/api/schemas";
@@ -62,6 +65,7 @@ function mainNav(): NavGroup[] {
         { href: "/admin/providers", label: t.admin.nav.providers, icon: ServerIcon },
         { href: "/admin/routes", label: t.admin.nav.routes, icon: RouteIcon },
         { href: "/admin/budgets", label: t.admin.nav.budgets, icon: CoinsIcon },
+        { href: "/admin/prompts", label: t.admin.nav.prompts, icon: MessageSquareTextIcon },
       ],
     },
     {
@@ -80,6 +84,7 @@ function operatorNav(): NavItem[] {
     { href: "/admin/operator/providers", label: t.admin.nav.platformProviders, icon: ServerIcon },
     { href: "/admin/operator/routes", label: t.admin.nav.platformRoutes, icon: RouteIcon },
     { href: "/admin/operator/stats", label: t.admin.nav.platformStats, icon: ActivityIcon },
+    { href: "/admin/operator/health", label: t.admin.nav.platformHealth, icon: HeartPulseIcon },
     { href: "/admin/operator/jobs", label: t.admin.nav.platformJobs, icon: ListChecksIcon },
   ];
 }
@@ -108,7 +113,7 @@ export function AdminShell({
     <nav aria-label={t.admin.nav.menu} className="grid gap-5 text-sm">
       {groups.map((group) => (
         <div key={group.label} className="grid gap-0.5">
-          <p className="text-muted-foreground mb-1 px-2.5 text-[11px] font-semibold tracking-wider uppercase">
+          <p className="text-muted-foreground mb-1 px-2.5 text-xs font-semibold tracking-wider uppercase">
             {group.label}
           </p>
           {group.items.map((item) => (
@@ -172,7 +177,7 @@ function Brand(): React.JSX.Element {
     <Link href="/admin" className="flex items-center gap-2.5 px-2.5 text-[15px] font-semibold tracking-tight">
       <span
         aria-hidden="true"
-        className="grid size-7 place-items-center rounded-md bg-brand-gradient text-xs font-bold text-white shadow-sm"
+        className="grid size-7 place-items-center rounded-md bg-brand-gradient text-xs font-bold text-brand-text shadow-sm"
       >
         D
       </span>
@@ -228,7 +233,7 @@ function UserBox({
         <div className="flex items-center gap-2.5 px-1.5">
           <span
             aria-hidden="true"
-            className="bg-accent text-accent-foreground grid size-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
+            className="bg-accent text-accent-foreground grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold"
           >
             {initials(me.user.email)}
           </span>
@@ -244,6 +249,9 @@ function UserBox({
           </div>
         </div>
       ) : null}
+      <div className="px-1.5">
+        <ThemeSwitch />
+      </div>
       <div className="flex items-center justify-between gap-2 px-1.5">
         <div className="hidden md:block">
           <LanguageSwitch />

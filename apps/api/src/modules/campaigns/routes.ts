@@ -222,6 +222,27 @@ export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void>
     },
   );
 
+  /**
+   * The sessions as a spreadsheet (D-236). Administrators only, because it is a bulk copy of who
+   * took part; each download is a row in the audit log with the number of rows and nothing of the
+   * content.
+   */
+  app.get("/campaigns/:id/sessions.csv", { ...guard.admin(), schema: { params: Id } }, async (req, reply) => {
+    const out = await svc.sessionsCsv(req.companyId, req.params.id);
+    await ctx.services.audit.record(req.companyId, {
+      actorId: staff(req).userId,
+      action: "campaign.sessions_export",
+      targetType: "campaign",
+      targetId: req.params.id,
+      diff: { rows: out.rows },
+    });
+    return reply
+      .header("content-type", "text/csv; charset=utf-8")
+      .header("content-disposition", `attachment; filename="${out.filename}"`)
+      .header("cache-control", "no-store")
+      .send(out.body);
+  });
+
   app.get(
     "/campaigns/:id/sessions",
     {

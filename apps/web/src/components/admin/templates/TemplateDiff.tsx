@@ -1,5 +1,6 @@
 import * as React from "react";
 import { EnumLabel } from "@/components/common/EnumLabel";
+import { Inset } from "@/components/ui/inset";
 import { t } from "@/i18n";
 import type { TemplateDiff as Diff } from "@/lib/api/schemas";
 
@@ -25,7 +26,7 @@ export function TemplateDiff({ diff }: { diff: Diff }): React.JSX.Element {
     <div className="grid gap-3">
       <p className="text-muted-foreground text-sm">{s.diffChanged(diff.changedFields.length)}</p>
       {diff.changedFields.map((field) => (
-        <div key={field} className="grid gap-2 rounded-lg border p-3 md:grid-cols-2">
+        <Inset key={field} className="grid gap-2 md:grid-cols-2">
           <p className="text-sm font-medium md:col-span-2">
             <EnumLabel kind="templateField" value={field} />
           </p>
@@ -41,7 +42,7 @@ export function TemplateDiff({ diff }: { diff: Diff }): React.JSX.Element {
               {show(pick(diff.current, field))}
             </pre>
           </div>
-        </div>
+        </Inset>
       ))}
     </div>
   );

@@ -164,7 +164,7 @@ export async function detectIssues(
       : [];
   }
   try {
-    const prompt = await deps.prompts.get(input.companyId, "issues");
+    const prompt = await deps.prompts.get(input.companyId, "issues", input.sessionId);
     const res = await deps.caller.complete(
       "issue_detection",
       {

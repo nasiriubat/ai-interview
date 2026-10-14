@@ -1,6 +1,14 @@
 "use client";
 
-import { LoaderCircleIcon, MicIcon, PhoneIcon, PhoneOffIcon, SquareIcon, Volume2Icon } from "lucide-react";
+import {
+  LoaderCircleIcon,
+  MicIcon,
+  MicOffIcon,
+  PhoneIcon,
+  PhoneOffIcon,
+  SquareIcon,
+  Volume2Icon,
+} from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { METER_STEPS, type LiveVoiceController, type LiveVoiceProblem } from "@/hooks/useLiveVoice";
@@ -18,12 +26,12 @@ import { cn } from "@/lib/utils";
  * chain is not only about what the server can do.
  */
 
-function problemMessage(problem: LiveVoiceProblem): string {
+export function problemMessage(problem: LiveVoiceProblem): string {
   return problem === "lost" ? t.participant.session.liveLost : recorderProblemMessage(problem);
 }
 
 /** Microphone loudness. Decorative: `aria-hidden`, because the status text already carries it. */
-function LevelMeter({ level }: { level: number }): React.JSX.Element {
+export function LevelMeter({ level }: { level: number }): React.JSX.Element {
   const filled = Math.round(level * METER_STEPS);
   return (
     <span className="flex h-5 items-end gap-0.5" aria-hidden="true">
@@ -42,14 +50,32 @@ function LevelMeter({ level }: { level: number }): React.JSX.Element {
   );
 }
 
+/** The phase of the call in words. The word is the message; the meter only confirms it. */
+export function statusLabel(status: LiveVoiceController["status"]): string {
+  const s = t.participant.session;
+  return status === "connecting"
+    ? s.liveConnecting
+    : status === "speaking"
+      ? s.liveSpeaking
+      : status === "thinking"
+        ? s.liveThinking
+        : s.liveListening;
+}
+
 export function LiveVoiceCall({
   live,
   disabled = false,
+  fullScreen = false,
   onStart,
 }: {
   live: LiveVoiceController;
   /** The interview cannot take a turn right now (busy elsewhere, or over). */
   disabled?: boolean;
+  /**
+   * A call is shown by `LiveVoiceScreen` (phones). This panel then shows nothing while the call is
+   * up and leaves focus alone: the screen owns focus for the duration and gives it back.
+   */
+  fullScreen?: boolean;
   onStart: () => void;
 }): React.JSX.Element {
   const s = t.participant.session;
@@ -62,14 +88,17 @@ export function LiveVoiceCall({
   const wasLive = React.useRef(false);
   const isLive = status !== "idle" && status !== "unavailable";
   React.useEffect(() => {
-    if (isLive && !wasLive.current) endRef.current?.focus();
-    else if (!isLive && wasLive.current) startRef.current?.focus();
+    if (!fullScreen) {
+      if (isLive && !wasLive.current) endRef.current?.focus();
+      else if (!isLive && wasLive.current) startRef.current?.focus();
+    }
     wasLive.current = isLive;
-  }, [isLive]);
+  }, [isLive, fullScreen]);
 
   // A call that gave up says nothing here: which rung of the chain is left is the screen's to
   // answer, because only it knows whether the microphone is still worth offering.
   if (status === "unavailable") return <></>;
+  if (fullScreen && isLive) return <></>;
 
   if (status === "idle") {
     return (
@@ -88,14 +117,7 @@ export function LiveVoiceCall({
     );
   }
 
-  const label =
-    status === "connecting"
-      ? s.liveConnecting
-      : status === "speaking"
-        ? s.liveSpeaking
-        : status === "thinking"
-          ? s.liveThinking
-          : s.liveListening;
+  const label = statusLabel(status);
   const Icon = status === "speaking" ? Volume2Icon : status === "listening" ? MicIcon : LoaderCircleIcon;
 
   return (
@@ -120,6 +142,23 @@ export function LiveVoiceCall({
           </Button>
         ) : null}
         <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="min-h-9"
+          aria-pressed={live.muted}
+          onClick={() => {
+            live.setMuted(!live.muted);
+          }}
+        >
+          {live.muted ? (
+            <MicOffIcon className="size-4" aria-hidden="true" />
+          ) : (
+            <MicIcon className="size-4" aria-hidden="true" />
+          )}
+          {live.muted ? s.liveUnmute : s.liveMute}
+        </Button>
+        <Button
           ref={endRef}
           type="button"
           size="sm"
@@ -143,6 +182,11 @@ export function LiveVoiceCall({
         <p className="text-sm" aria-live="off">
           <span className="text-muted-foreground">{s.livePartial}: </span>
           <span className="italic">{live.partial}</span>
+        </p>
+      ) : null}
+      {live.muted ? (
+        <p className="text-xs" role="status">
+          {s.liveMuted}
         </p>
       ) : null}
       {live.notHeard ? (
