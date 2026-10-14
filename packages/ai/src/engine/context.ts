@@ -1,12 +1,13 @@
 import type { ChatMessage, InterviewTemplate, SessionState } from "@aidp/shared";
 import { widgetResponseToText } from "@aidp/shared";
 import { estimateTokens } from "../cost/pricing.js";
+import { nextRequirementNumber } from "../spec/delta-validation.js";
 import { mvpItems, specFacts } from "../spec/live.js";
 import { languageName } from "../util/language.js";
 import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js";
 import type { PromptDefinition } from "./prompts/index.js";
-import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v5.js";
+import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v6.js";
 import type { Focus } from "./selection.js";
 
 export interface AssembledContext {
@@ -110,6 +111,10 @@ export function renderState(
     const bySection = new Map<string, string[]>();
     for (const f of spec) bySection.set(f.sectionKey, [...(bySection.get(f.sectionKey) ?? []), f.path]);
     for (const [k, paths] of bySection) lines.push(`- ${k}: ${paths.slice(-12).join(", ")}`);
+    const requirements = specFacts(state).filter((f) => /^FR-\d+$/.test(f.path)).length;
+    lines.push(
+      `Functional requirements recorded: ${requirements}; the next one is FR-${nextRequirementNumber(state)}`,
+    );
     const mvp = mvpItems(state);
     if (mvp.length) lines.push(`MVP items: ${mvp.map((i) => `${i.path} ${i.title}`).join("; ")}`);
   }

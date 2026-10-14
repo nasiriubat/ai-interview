@@ -73,6 +73,12 @@ export interface SpecGenerationInput {
   sections: readonly string[];
   diagramTypes: readonly DiagramType[];
   bundleFormat: BundleFormat;
+  /**
+   * Fewest functional requirements a version may have (template `completeness.minRequirements`).
+   * A version with fewer is returned with `failure` set instead of being passed off as a
+   * specification (D-191).
+   */
+  minRequirements?: number;
 }
 
 export interface SpecGenerationResult {
@@ -84,6 +90,43 @@ export interface SpecGenerationResult {
   stats: SpecVersionStats;
   generated: "model" | "fallback";
   error?: string;
+  /**
+   * Set when the version must not be offered as a specification: fewer requirements than the
+   * template's minimum. The caller stores the document and marks the version failed with this reason.
+   */
+  failure?: string;
+}
+
+/**
+ * The requirements of a version: every one the interview recorded (the owner's scope and reason are
+ * authoritative), improved by the model's wording where it wrote one, plus any the model added. A
+ * version can never hold fewer requirements than the interview recorded (D-191).
+ */
+export function mergeRequirements(
+  fromModel: SpecDocument["requirements"],
+  fromState: SpecDocument["requirements"],
+): SpecDocument["requirements"] {
+  const model = new Map(fromModel.map((r) => [r.id.toUpperCase(), r]));
+  const seen = new Set<string>();
+  const out: SpecDocument["requirements"] = [];
+  for (const s of fromState) {
+    const key = s.id.toUpperCase();
+    seen.add(key);
+    const m = model.get(key);
+    out.push(
+      m
+        ? {
+            ...m,
+            id: s.id,
+            scope: s.scope,
+            ...(s.reason ? { reason: s.reason } : {}),
+            acceptance: m.acceptance.length ? m.acceptance : s.acceptance,
+          }
+        : s,
+    );
+  }
+  for (const m of fromModel) if (!seen.has(m.id.toUpperCase())) out.push(m);
+  return out;
 }
 
 /** Requirements recorded in state, for the fallback document and to fill gaps in the model's list. */
@@ -235,6 +278,11 @@ export async function generateSpec(
   ): SpecGenerationResult => {
     const markdown = renderSpecMarkdown(document);
     const bundle = renderBundle(document, input.bundleFormat, markdown);
+    const min = input.minRequirements ?? 0;
+    const failure =
+      document.requirements.length < min
+        ? `The specification has ${document.requirements.length} functional requirement${document.requirements.length === 1 ? "" : "s"}; at least ${min} are needed to build from. Reopen the interview and describe what the product must do, then generate again.`
+        : undefined;
     return {
       document,
       markdown,
@@ -243,6 +291,7 @@ export async function generateSpec(
       stats: statsOf(document, issues, promptVersions, generated),
       generated,
       ...(error ? { error } : {}),
+      ...(failure ? { failure } : {}),
     };
   };
 
@@ -289,7 +338,7 @@ export async function generateSpec(
     const modelSections = new Map(
       out.sections.map((s) => [s.key, cleanHeadings(s.markdown, sectionTitle(s.key), input.language)]),
     );
-    const requirements = out.requirements.length ? out.requirements : requirementsFromState(input.state);
+    const requirements = mergeRequirements(out.requirements, requirementsFromState(input.state));
     const bases = sectionBases(input);
     const basisOf = (key: string) => (bases.get(key) ? { basis: bases.get(key) } : {});
     const document = SpecDocumentSchema.parse({

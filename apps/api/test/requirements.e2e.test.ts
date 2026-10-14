@@ -34,6 +34,20 @@ const turnReply = `Who is the main user of this, and what do they do today?\n${T
           },
           source: "user",
         },
+        {
+          kind: "spec_field",
+          section: "functional",
+          path: "FR-2",
+          value: { title: "Edit a note", scope: "mvp", acceptance: ["An edit shows in both systems"] },
+          source: "user",
+        },
+        {
+          kind: "spec_field",
+          section: "functional",
+          path: "FR-3",
+          value: { title: "Export notes", scope: "future", acceptance: ["A CSV downloads"] },
+          source: "user",
+        },
       ],
     },
   },
@@ -189,7 +203,7 @@ suite("requirements interview end to end", () => {
         spec: { sections: { key: string; fields: unknown[]; status: string }[]; stats: { fields: number } };
       }
     ).spec;
-    expect(spec.stats.fields).toBe(3);
+    expect(spec.stats.fields).toBe(5);
     expect(spec.sections.find((s) => s.key === "users")?.fields).toHaveLength(1);
     expect(spec.sections.find((s) => s.key === "functional")?.status).toBe("draft");
 
@@ -289,7 +303,7 @@ suite("requirements interview end to end", () => {
     }>();
     expect(body.version.status).toBe("done");
     expect(body.version.error).toBeUndefined();
-    expect(body.version.stats).toMatchObject({ requirements: 1, phases: 1, generated: "model" });
+    expect(body.version.stats).toMatchObject({ requirements: 3, phases: 1, generated: "model" });
     expect(body.document.sections.find((s) => s.key === "users")).toMatchObject({ source: "edited" });
     expect(body.document.sections.find((s) => s.key === "overview")).toMatchObject({ source: "generated" });
     expect(body.markdown).toContain("charge nurse");
@@ -426,6 +440,70 @@ suite("requirements interview end to end", () => {
         "requirements.revoke",
       ]),
     );
+  });
+
+  it("fails a version loudly when the interview recorded fewer requirements than the template needs (D-191)", async () => {
+    const { app, adminToken, db } = world;
+    const h = { authorization: `Bearer ${adminToken}` };
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/requirements",
+      headers: h,
+      payload: { title: "Thin idea", prompt: "A button that does a thing." },
+    });
+    const id = created.json<{ session: { id: string } }>().session.id;
+    await db.session.update({
+      where: { id },
+      data: {
+        state: {
+          facts: [
+            {
+              kind: "spec_field",
+              section: "functional",
+              path: "FR-1",
+              value: { title: "The one thing", scope: "mvp", acceptance: [] },
+              source: "user",
+            },
+          ],
+        },
+      },
+    });
+    const queued = await app.inject({
+      method: "POST",
+      url: `/api/v1/requirements/${id}/versions`,
+      headers: h,
+      payload: {},
+    });
+    const { version } = queued.json<{ version: { id: string } }>();
+    const silent = pino({ level: "silent" });
+    const h2 = handlers({
+      db,
+      callers: world.ctx.callers,
+      settings: world.ctx.settings,
+      email: world.email,
+      jobs: world.jobs,
+      crypto: world.crypto,
+      storage: world.storage,
+      tenants: world.ctx.tenants,
+      alerts: world.alerts,
+      publicWebUrl: "http://web.test",
+      log: {
+        info: (m, meta) => {
+          silent.info(meta ?? {}, m);
+        },
+        warn: (m, meta) => {
+          silent.warn(meta ?? {}, m);
+        },
+      },
+    });
+    await h2["spec.generate"]({ versionId: version.id, companyId: world.companyId });
+    const got = await app.inject({ method: "GET", url: `/api/v1/requirements/${id}/versions/1`, headers: h });
+    const body = got.json<{ version: { status: string; error?: string } }>();
+    expect(body.version.status).toBe("failed");
+    expect(body.version.error).toMatch(/1 functional requirement; at least 3/);
+    expect(
+      world.alerts.ofKind("spec.ready").filter((a) => a.key === `spec.ready:${version.id}`),
+    ).toHaveLength(0);
   });
 
   it("previews a template when the request carries no body at all, as the web client sends it", async () => {
