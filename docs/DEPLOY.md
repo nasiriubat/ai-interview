@@ -74,6 +74,10 @@ and would put tokens in the browser, for no capability the product uses. So the 
 
 ## First deployment
 
+Production configuration is `deploy/.env` and only that file: it is generated, every variable is
+named in `deploy/compose.prod.yml`, and a missing one stops the stack. The root `.env` described in
+[RUNNING.md](RUNNING.md#configuration) is the development file and is never read here.
+
 Run these as a user in the `docker` group, from the repository root.
 
 ```bash

@@ -12,7 +12,7 @@
 # and a compose overlay can neither unpublish a port nor remove a service. Keeping them apart
 # means the production file can be read top to bottom and believed.
 #
-# Nothing here reads apps/api/.env. Every value is named explicitly and comes from the
+# Nothing here reads the root .env (the development file; docs/RUNNING.md#configuration). Every value is named explicitly and comes from the
 # --env-file, so a variable that is missing stops the stack instead of silently defaulting.
 
 # Pinned, so the volume names (aidp_pgdata ...) do not depend on the name of the directory the

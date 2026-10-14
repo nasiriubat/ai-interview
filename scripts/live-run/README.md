@@ -48,7 +48,7 @@ outside the repository.
 ### The key
 
 `OPENROUTER_API_KEY` is read from the environment, or from `LIVE_ENV_FILE`, or from the first
-`.env` or `apps/api/.env` found walking up from the worktree. It is held in memory, registered for
+`.env` (the root file) or, for installs that have not migrated, `apps/api/.env` found walking up from the worktree. It is held in memory, registered for
 redaction, and handed to child processes through their environment. It is never written to
 `out/`, a log or a command line. Do not paste it into an issue or a transcript.
 

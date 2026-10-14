@@ -3,6 +3,8 @@
 #   docker compose -f docker-compose.yml -f docker-compose.fake.yml up -d --build
 #   node deploy/drill/configure.mjs        # points the platform provider at it and routes every purpose
 #
+# Configuration still comes from the root .env (see docker-compose.yml).
+#
 # Adds the fake provider (tools/fake-provider) to the development stack and lets the API and worker
 # reach it. The provider row itself is data, not configuration: configure.mjs creates it through the
 # operator API, the way an operator would, so there is no path in the product that exists only for

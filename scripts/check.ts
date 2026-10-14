@@ -63,6 +63,8 @@ const steps: [string, string[]][] = [
   ["workflow pins", ["node", "scripts/security-gates.mjs", "workflows"]],
   ["security.txt", ["node", "scripts/security-gates.mjs", "security-txt"]],
   ["security gate tests", ["node", "--test", "scripts/security-gates.test.mjs"]],
+  // One root .env (D-400): the loader, the migration and proof that no value is printed.
+  ["env file tests", ["node", "--test", "scripts/env-files.test.mjs"]],
 ];
 for (const [label, command] of steps) {
   const { code } = await run(label, command);
