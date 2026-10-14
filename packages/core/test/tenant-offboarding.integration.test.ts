@@ -375,7 +375,7 @@ describeDb("tenant export and offboarding", () => {
     const file = (await readFile(ledgerFile, "utf8"))
       .trim()
       .split("\n")
-      .map((l) => JSON.parse(l));
+      .map((l) => JSON.parse(l) as Record<string, unknown>);
     expect(file.at(-1)).toMatchObject({ kind: "tenant", targetId: t.companyId });
     // Ids only: no name, no address, no count of anything.
     expect(Object.keys(file.at(-1)).sort()).toEqual([

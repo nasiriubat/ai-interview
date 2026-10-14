@@ -37,8 +37,6 @@ suite("tenancy operations", () => {
     model.server.close();
   });
 
-  const json = <T>(res: { json: () => unknown }): T => res.json() as T;
-
   async function secondTenant(): Promise<{ id: string; name: string; adminToken: string }> {
     const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
     const name = `Leaving ${suffix}`;
@@ -124,12 +122,12 @@ suite("tenancy operations", () => {
       headers: operator(),
     });
     expect(res.statusCode).toBe(200);
-    const body = json<{
+    const body = res.json<{
       signals: { key: string; status: string }[];
       tenants: { companyId: string; utilisation: { metric: string }[] }[];
       latency: { firstTokenTargetMs: number; voiceFirstWordTargetMs: number };
       queues: unknown[];
-    }>(res);
+    }>();
     const keys = body.signals.map((s) => s.key);
     for (const k of [
       "queue.depth",
@@ -215,7 +213,7 @@ suite("tenancy operations", () => {
       },
     });
 
-    const stats = json<{
+    const stats = (await world.app.inject({ method: "GET", url: "/api/v1/stats", headers: admin() })).json<{
       ai: {
         month: {
           firstTokenP50Ms: number | null;
@@ -224,26 +222,30 @@ suite("tenancy operations", () => {
           estimatedCostShare: number;
         };
       };
-    }>(await world.app.inject({ method: "GET", url: "/api/v1/stats", headers: admin() }));
+    }>();
     // p95 of 200, 400, 600, 800, 3000 by linear interpolation: 800 + 0.8 * 2200.
     expect(stats.ai.month.firstTokenP50Ms).toBe(600);
     expect(stats.ai.month.firstTokenP95Ms).toBe(2560);
     expect(stats.ai.month.audioMinutes).toBeCloseTo(1.5, 5);
     expect(stats.ai.month.estimatedCostShare).toBeGreaterThan(0);
 
-    const byProvider = json<{
+    const byProvider = (
+      await world.app.inject({ method: "GET", url: "/api/v1/spend?groupBy=provider", headers: admin() })
+    ).json<{
       rows: { key: string; label?: string; audioSeconds: number; estimatedCents: number }[];
-    }>(await world.app.inject({ method: "GET", url: "/api/v1/spend?groupBy=provider", headers: admin() }));
+    }>();
     const row = byProvider.rows.find((r) => r.key === provider.id);
     expect(row?.label).toBe("fake");
     expect(row?.audioSeconds).toBe(90);
     expect(row?.estimatedCents).toBe(5);
-    const byStatus = json<{ rows: { key: string }[] }>(
-      await world.app.inject({ method: "GET", url: "/api/v1/spend?groupBy=status", headers: admin() }),
-    );
+    const byStatus = (
+      await world.app.inject({ method: "GET", url: "/api/v1/spend?groupBy=status", headers: admin() })
+    ).json<{ rows: { key: string }[] }>();
     expect(byStatus.rows.map((r) => r.key)).toContain("ok");
 
-    const budgets = json<{
+    const budgets = (
+      await world.app.inject({ method: "GET", url: "/api/v1/spend/budgets", headers: admin() })
+    ).json<{
       budgets: {
         scope: string;
         name: string | null;
@@ -251,7 +253,7 @@ suite("tenancy operations", () => {
         spentCents: number;
         state: string;
       }[];
-    }>(await world.app.inject({ method: "GET", url: "/api/v1/spend/budgets", headers: admin() })).budgets;
+    }>().budgets;
     const line = budgets.find((b) => b.scope === "campaign" && b.name === "Budgeted");
     expect(line).toMatchObject({ limitCents: 100, spentCents: 55, state: "ok" });
     expect(budgets.some((b) => b.scope === "tenant")).toBe(true);
@@ -262,18 +264,20 @@ suite("tenancy operations", () => {
     const { created } = await world.ctx.statements.freeze(world.companyId, month);
     expect(created).toBe(true);
 
-    const list = json<{ statements: { month: string; costCents: number }[] }>(
-      await world.app.inject({ method: "GET", url: "/api/v1/spend/statements", headers: admin() }),
-    );
+    const list = (
+      await world.app.inject({ method: "GET", url: "/api/v1/spend/statements", headers: admin() })
+    ).json<{ statements: { month: string; costCents: number }[] }>();
     expect(list.statements.map((s) => s.month)).toContain(month);
 
-    const one = json<{
+    const one = (
+      await world.app.inject({ method: "GET", url: `/api/v1/spend/statements/${month}`, headers: admin() })
+    ).json<{
       statement: {
         lines: { providerName: string; purpose: string; audioSeconds: number; estimatedCents: number }[];
         totals: { costCents: number; estimatedCents: number; budgets: { scope: string }[] };
         counts: { voiceMinutes: number };
       };
-    }>(await world.app.inject({ method: "GET", url: `/api/v1/spend/statements/${month}`, headers: admin() }));
+    }>();
     const stt = one.statement.lines.find((l) => l.purpose === "stt_stream");
     expect(stt).toMatchObject({ providerName: "fake", audioSeconds: 90, estimatedCents: 5 });
     expect(one.statement.totals.costCents).toBeGreaterThanOrEqual(55);
@@ -318,13 +322,13 @@ suite("tenancy operations", () => {
 
     // Another tenant's admin does not see this tenant's statement.
     const other = await secondTenant();
-    const theirs = json<{ statements: unknown[] }>(
+    const theirs = (
       await world.app.inject({
         method: "GET",
         url: "/api/v1/spend/statements",
         headers: { authorization: `Bearer ${other.adminToken}` },
-      }),
-    );
+      })
+    ).json<{ statements: unknown[] }>();
     expect(theirs.statements).toEqual([]);
     const notTheirs = await world.app.inject({
       method: "GET",
@@ -350,9 +354,9 @@ suite("tenancy operations", () => {
     expect(queued.statusCode).toBe(202);
     expect(world.jobs.published.some((j) => j.name === "tenant.export")).toBe(true);
     const meta = await world.ctx.exporter.run(t.id, "operator");
-    const listed = json<{ exports: { stamp: string }[] }>(
-      await world.app.inject({ method: "GET", url: `/api/v1/operator/tenants/${t.id}/exports`, headers }),
-    );
+    const listed = (
+      await world.app.inject({ method: "GET", url: `/api/v1/operator/tenants/${t.id}/exports`, headers })
+    ).json<{ exports: { stamp: string }[] }>();
     expect(listed.exports.map((e) => e.stamp)).toEqual([meta.stamp]);
     const download = await world.app.inject({
       method: "GET",
@@ -452,7 +456,7 @@ suite("tenancy operations", () => {
       headers: admin(),
       payload: { templateId: world.templateId, name: `Storage ${Date.now()}`, verification: "open" },
     });
-    const { campaign, link } = json<{ campaign: { id: string }; link: { url: string } }>(created);
+    const { campaign, link } = created.json<{ campaign: { id: string }; link: { url: string } }>();
     await world.app.inject({
       method: "POST",
       url: `/api/v1/campaigns/${campaign.id}/open`,
@@ -463,7 +467,7 @@ suite("tenancy operations", () => {
       url: `/api/v1/p/${link.url.split("/p/")[1]}/open`,
       payload: {},
     });
-    const token = `Bearer pt.${json<{ participantToken: string }>(open).participantToken}`;
+    const token = `Bearer pt.${open.json<{ participantToken: string }>().participantToken}`;
     await world.app.inject({
       method: "POST",
       url: "/api/v1/p/session/consent",
@@ -531,7 +535,7 @@ suite("tenancy operations", () => {
       headers: admin(),
       payload: { templateId: world.templateId, name: `Voice ${Date.now()}`, verification: "open" },
     });
-    const { campaign, link } = json<{ campaign: { id: string }; link: { url: string } }>(created);
+    const { campaign, link } = created.json<{ campaign: { id: string }; link: { url: string } }>();
     await world.app.inject({
       method: "POST",
       url: `/api/v1/campaigns/${campaign.id}/open`,
@@ -542,7 +546,7 @@ suite("tenancy operations", () => {
       url: `/api/v1/p/${link.url.split("/p/")[1]}/open`,
       payload: {},
     });
-    const token = `Bearer pt.${json<{ participantToken: string }>(open).participantToken}`;
+    const token = `Bearer pt.${open.json<{ participantToken: string }>().participantToken}`;
     await world.app.inject({
       method: "POST",
       url: "/api/v1/p/session/consent",
@@ -610,9 +614,11 @@ suite("tenancy operations", () => {
       },
     });
     expect(set.statusCode).toBe(200);
-    const row = json<{
-      routes: { purpose: string; fallback: { providerId: string; model: string } | null }[];
-    }>(set).routes.find((r) => r.purpose === "interview_turn");
+    const row = set
+      .json<{
+        routes: { purpose: string; fallback: { providerId: string; model: string } | null }[];
+      }>()
+      .routes.find((r) => r.purpose === "interview_turn");
     expect(row?.fallback).toEqual({ providerId: backup.id, model: "backup-model" });
 
     // The same provider as the primary would route a failing provider back to itself.
@@ -642,9 +648,9 @@ suite("tenancy operations", () => {
       },
     });
     expect(
-      json<{ routes: { purpose: string; fallback: unknown }[] }>(cleared).routes.find(
-        (r) => r.purpose === "interview_turn",
-      )?.fallback,
+      cleared
+        .json<{ routes: { purpose: string; fallback: unknown }[] }>()
+        .routes.find((r) => r.purpose === "interview_turn")?.fallback,
     ).toBeNull();
   });
 });

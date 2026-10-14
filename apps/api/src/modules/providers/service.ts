@@ -696,7 +696,7 @@ export class ProviderService {
     const primary =
       (await this.db.route.findFirst({ where: { companyId, purpose } })) ??
       (await this.db.route.findFirst({ where: { companyId: null, purpose } }));
-    if (primary && primary.providerId === fallback.providerId)
+    if (primary?.providerId === fallback.providerId)
       throw new AppError("validation", "The fallback must use a different provider than the primary route");
     const data = {
       providerId: fallback.providerId,

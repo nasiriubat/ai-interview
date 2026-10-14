@@ -70,7 +70,8 @@ export const authPlugin = fp(
           const p = request.principal;
           // The log scope is entered inside the same callback as the tenant, for the same reason:
           // the handler only sees a context that `done` was called within.
-          void run(async () => { runWithLogBindings(
+          void run(async () => {
+            runWithLogBindings(
               {
                 tenantId: request.companyId || undefined,
                 principal: p.kind,
@@ -80,8 +81,8 @@ export const authPlugin = fp(
               () => {
                 done();
               },
-            ); },
-          );
+            );
+          });
         },
         (err: unknown) => {
           done(err instanceof Error ? err : new Error(String(err)));
