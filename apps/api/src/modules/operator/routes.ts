@@ -23,8 +23,8 @@ export async function operatorRoutes(app: App, ctx: RouteContext): Promise<void>
       schema: { body: TenantCreateBody },
     },
     async (req, reply) => {
-      const tenant = await operator.createTenant({ userId: staff(req).userId }, req.body);
-      return reply.status(201).send({ tenant });
+      const { company, invitation } = await operator.createTenant({ userId: staff(req).userId }, req.body);
+      return reply.status(201).send({ tenant: company, invitation });
     },
   );
 

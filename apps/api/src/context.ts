@@ -14,7 +14,10 @@ import {
   RequirementsService,
   SettingsEmail,
   SettingsService,
+  TenantCeilings,
   TenantGate,
+  TenantNotices,
+  TenantOnboarding,
   createStorage,
   egressConfigFromEnv,
   type AlertPort,
@@ -168,7 +171,29 @@ export function buildContext(input: {
   if (!input.jobAdmin && config.NODE_ENV === "production")
     throw new Error("buildContext: jobAdmin is required in production; pass PgBossJobAdmin");
   const jobAdmin = input.jobAdmin ?? new MemoryJobAdmin();
-  const analysis = new AnalysisService({ db, callers, settings, jobs: input.jobs, log: engineLogger(log) });
+  // Tenant notices (D-181): the threshold notice is raised from the API (the session that crossed
+  // it), the analysis and specification ones from the worker through the same alert state.
+  const notices = new TenantNotices({
+    alerts,
+    publicWebUrl: config.PUBLIC_WEB_URL,
+    log: {
+      warn: (message, meta) => {
+        log.warn(meta ?? {}, message);
+      },
+    },
+  });
+  // What the operator promised each tenant it may use (D-188), and where a tenant is on the way to
+  // its first interview (D-189).
+  const ceilings = new TenantCeilings({ db, settings, notices });
+  const onboarding = new TenantOnboarding({ db, settings });
+  const analysis = new AnalysisService({
+    db,
+    callers,
+    settings,
+    jobs: input.jobs,
+    log: engineLogger(log),
+    notices,
+  });
   const github = input.github ?? new GitHubApi();
   // The API stores uploads and hands them to the worker to read; it never ingests them itself,
   // so it needs no model caller here.
@@ -184,6 +209,7 @@ export function buildContext(input: {
     publicWebUrl: config.PUBLIC_WEB_URL,
     crypto,
     github,
+    notices,
   });
   const services = buildServices({
     db,
@@ -198,6 +224,9 @@ export function buildContext(input: {
     tenants,
     analysis,
     attachments,
+    jobs: input.jobs,
+    ceilings,
+    onboarding,
   });
   return {
     config,
