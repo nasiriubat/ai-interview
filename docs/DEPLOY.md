@@ -714,6 +714,21 @@ taking the host, and the API's is large because the on-host Whisper model needs 
 transcribes; with transcription routed to a provider 1024M is plenty. They are variables
 (`API_MEMORY_LIMIT`, `POSTGRES_MEMORY_LIMIT`, and so on, in `deploy/.env`), with two presets:
 `deploy/sizes/4gb.env` (about 3.7 GB of limits) and `deploy/sizes/8gb.env` (the defaults).
+**The 4 GB preset was run, not assumed**: the same full run with `deploy/sizes/4gb.env` applied
+(api 1024M, postgres 768M with 192 MB of buffers, worker 512M, web 384M, caddy 128M, backup 256M,
+kroki 256M, kroki-mermaid 384M) finished with 0 errors and 0 5xx, first token p95 519 ms, voice first
+word p95 1.42 s, and no container killed for memory or restarted (kroki-mermaid peaked at 236 MiB
+of its 384M, the largest share of any limit; the rest used a fifth or less). The sum of those limits
+is 3.7 GB, so a 4 GB host runs this stack with the OS in what is left only if nothing else shares it
+and the build is not run on top of it.
+
+**A launch is counted in sessions the moment the link is opened.** Each open creates a session, and
+`ceiling.maxSessionsPerMonth` (default 1000) counts it whether or not the person ever answers. The
+rehearsal's own load runs (about 300 interviews each) used a tenant's month up in four runs, and the
+product answered every further open with `403 limit_reached`, as designed; `configure.mjs` sets the
+rehearsal platform's ceiling to none. For a real campaign it means a link posted somewhere public
+spends the tenant's allowance on visits (the limiter is 30 opens a minute per address).
+
 **What the numbers do not say**: they are one tenant, a fake provider, a 40 MB database and a
 machine with plenty of CPU. A pilot's own data (transcripts of real length, a real model's
 streaming speed, a real embedding route) is the next measurement; run `load/run.sh full` on the
