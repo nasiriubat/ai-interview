@@ -142,6 +142,8 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
         if (s.mode !== "stream") return;
         if (s.status === "idle" || s.status === "connecting" || s.status === "unavailable") return;
         if (s.status === "speaking" && !s.bargeIn) return;
+        // A muted microphone is silence; there is nothing worth sending the provider.
+        if (s.muted) return;
         live.socket.sendBytes(frame);
       },
       () => machine.current.mode === "stream",
@@ -257,6 +259,9 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
       case "stop_streaming":
         live.capture.stopStreaming();
         return;
+      case "set_muted":
+        live.capture.setMuted(effect.muted);
+        return;
       case "stop_playback":
         live.player.stop();
         return;
@@ -330,12 +335,16 @@ export function useLiveVoice(callbacks: LiveVoiceCallbacks): LiveVoiceController
     notHeard: view.notHeard,
     partial: view.partial,
     mode: view.mode,
+    muted: view.muted,
     problem,
     start: () => {
       dispatch({ type: "start" });
     },
     end: () => {
       dispatch({ type: "end" });
+    },
+    setMuted: (muted) => {
+      dispatch({ type: "mute", muted });
     },
     stopSpeaking: () => {
       // Always available, even where the tenant turned automatic barge-in off: a visible way to

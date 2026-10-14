@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
@@ -68,6 +69,12 @@ export function ProvidersPanel({
       .test(id)
       .then((r) => {
         setTests((prev) => ({ ...prev, [id]: r }));
+        // The result stays next to its row (D-78); a success is also said once, in a toast, because
+        // the cell may be off screen on a phone. A failure is only inline: it has to be read.
+        if (r.ok) {
+          const name = providers.find((pr) => pr.id === id)?.name ?? id;
+          toast.success(s.testToast(name, r.model ?? "", r.latencyMs ?? 0));
+        }
       })
       .catch((e: unknown) => {
         setTests((prev) => ({
@@ -109,7 +116,7 @@ export function ProvidersPanel({
                         {p.name}
                       </Link>
                       {p.baseUrl ? (
-                        <p className="text-muted-foreground font-mono text-[11px]">{p.baseUrl}</p>
+                        <p className="text-muted-foreground font-mono text-xs">{p.baseUrl}</p>
                       ) : null}
                     </TableCell>
                     <TableCell>
@@ -152,9 +159,16 @@ export function ProvidersPanel({
                             test(p.id);
                           }}
                         />
+                        {tr === "running" ? (
+                          <span role="status" className="text-muted-foreground text-xs">
+                            {s.testing}
+                          </span>
+                        ) : null}
                         {tr && tr !== "running" ? (
                           <span
-                            className={tr.ok ? "text-xs text-emerald-700" : "text-destructive text-xs"}
+                            className={
+                              tr.ok ? "text-success-soft-foreground text-xs" : "text-destructive text-xs"
+                            }
                             role="status"
                           >
                             {tr.ok
@@ -286,6 +300,7 @@ function AddProviderDialog({ scope }: { scope: ProviderScope }): React.JSX.Eleme
             value={baseUrl}
             type="url"
             placeholder="https://"
+            hint={s.baseUrlHint}
             onChange={setBaseUrl}
           />
           {kind === "local" ? null : (

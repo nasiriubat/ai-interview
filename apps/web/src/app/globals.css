@@ -1,13 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 :root {
   /*
    * One light theme modelled on Stripe (D-78): an off-white canvas, white cards lifted by layered
    * shadows, navy text, one indigo accent. Every foreground/background pair used for text clears
-   * WCAG AA (4.5:1); the lowest is white on --primary at 4.7:1. Components use these semantic
+   * WCAG AA (4.5:1); the lowest is white on --primary at 5.0:1. Components use these semantic
    * tokens only, so a dark theme later is a second block, not a rewrite.
    */
   --radius: 0.5rem;
@@ -17,7 +17,7 @@
   --card-foreground: #0a2540;
   --popover: #ffffff;
   --popover-foreground: #0a2540;
-  --primary: #635bff;
+  --primary: #5f56fa;
   --primary-hover: #574ff0;
   --primary-foreground: #ffffff;
   --secondary: #eef2f7;
@@ -28,6 +28,7 @@
   --accent: #f0efff;
   --accent-foreground: #4b44d6;
   --destructive: #df1b41;
+  --destructive-foreground: #ffffff;
   --destructive-soft: #fde8ec;
   --destructive-soft-foreground: #b3123a;
   --success: #0e8a55;
@@ -48,25 +49,32 @@
   --input-hover: #5b6b82;
   --switch-track: var(--input);
   /* Focus is a solid 2px outline in this colour (4.7:1 on white), offset by a 2px gap. */
-  --ring: #635bff;
+  --ring: #5f56fa;
   --secondary-hover: #e5eaf1;
   --skeleton: #e8edf3;
   --overlay: rgb(10 37 64 / 0.4);
-  --brand-gradient: linear-gradient(135deg, var(--primary), var(--chart-2));
+  /*
+   * The brand mark and the band are the same in both themes: white text on them is 4.7:1 only on
+   * these exact colours, so they are not themed.
+   */
+  --brand-1: #635bff;
+  --brand-2: #00b8d9;
+  --brand-text: #ffffff;
+  --brand-gradient: linear-gradient(135deg, var(--brand-1), var(--brand-2));
   --brand-band: linear-gradient(115deg, #635bff 0%, #7a6bff 30%, #4f8dfd 60%, #00b8d9 100%);
-  --chart-1: #635bff;
+  --chart-1: #5f56fa;
   --chart-2: #00b8d9;
   --chart-3: #0e8a55;
   --chart-4: #f5a623;
   --chart-5: #df1b41;
   --sidebar: #ffffff;
   --sidebar-foreground: #425466;
-  --sidebar-primary: #635bff;
+  --sidebar-primary: #5f56fa;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f0efff;
   --sidebar-accent-foreground: #4b44d6;
   --sidebar-border: #e3e8ef;
-  --sidebar-ring: #635bff;
+  --sidebar-ring: #5f56fa;
   --shadow-card:
     0 0 0 1px rgb(10 37 64 / 0.05), 0 1px 2px rgb(10 37 64 / 0.06), 0 3px 8px -2px rgb(10 37 64 / 0.06);
   --shadow-raised:
@@ -75,6 +83,129 @@
   --shadow-control: 0 0 0 1px var(--input), 0 1px 1px rgb(10 37 64 / 0.06);
   /* Buttons are identified by their text and fill, so they keep the soft decorative edge. */
   --shadow-button: 0 1px 1px rgb(10 37 64 / 0.06), 0 0 0 1px rgb(10 37 64 / 0.1);
+}
+
+/*
+ * Dark theme (D-238). The person's choice (`data-theme` on <html>, set before paint by the
+ * script in layout.tsx) wins; with no choice the system's setting applies. The two blocks say
+ * the same thing, because CSS cannot share a declaration list between a selector and a media
+ * query; `test/contrast.test.ts` fails when they differ. Every pair of colours is checked by
+ * `scripts/contrast.ts`.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: #0b1220;
+    --foreground: #e6ebf2;
+    --card: #111a2b;
+    --card-foreground: #e6ebf2;
+    --popover: #111a2b;
+    --popover-foreground: #e6ebf2;
+    --primary: #8b85ff;
+    --primary-hover: #9d98ff;
+    --primary-foreground: #0b1220;
+    --secondary: #1b2740;
+    --secondary-foreground: #e6ebf2;
+    --secondary-hover: #243350;
+    --muted: #182338;
+    --muted-foreground: #94a3b8;
+    --body: #c3ccd9;
+    --accent: #221f4d;
+    --accent-foreground: #c7c3ff;
+    --destructive: #ff6b81;
+    --destructive-foreground: #0b1220;
+    --destructive-soft: #3a1420;
+    --destructive-soft-foreground: #ffb3c1;
+    --success: #3ccf8e;
+    --success-soft: #0f2a1f;
+    --success-soft-foreground: #9be7c4;
+    --warning: #f0a632;
+    --warning-soft: #2e2208;
+    --warning-soft-foreground: #ffd58a;
+    --info-soft: #0f2240;
+    --info-soft-foreground: #9cc4ff;
+    --border: #233047;
+    --input: #6b7c95;
+    --input-hover: #8fa0b8;
+    --ring: #a5a0ff;
+    --skeleton: #1b2740;
+    --overlay: rgb(0 0 0 / 0.6);
+    --chart-1: #8b85ff;
+    --chart-2: #22c5e0;
+    --chart-3: #3ccf8e;
+    --chart-4: #f5b049;
+    --chart-5: #ff6b81;
+    --sidebar: #0f1828;
+    --sidebar-foreground: #c3ccd9;
+    --sidebar-primary: #8b85ff;
+    --sidebar-primary-foreground: #0b1220;
+    --sidebar-accent: #221f4d;
+    --sidebar-accent-foreground: #c7c3ff;
+    --sidebar-border: #233047;
+    --sidebar-ring: #a5a0ff;
+    /* Shadows read poorly on a dark canvas: the edge of a card is a hairline instead. */
+    --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-raised: 0 0 0 1px var(--border), 0 13px 27px -5px rgb(0 0 0 / 0.55);
+    --shadow-control: 0 0 0 1px var(--input);
+    --shadow-button: 0 0 0 1px var(--border);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0b1220;
+  --foreground: #e6ebf2;
+  --card: #111a2b;
+  --card-foreground: #e6ebf2;
+  --popover: #111a2b;
+  --popover-foreground: #e6ebf2;
+  --primary: #8b85ff;
+  --primary-hover: #9d98ff;
+  --primary-foreground: #0b1220;
+  --secondary: #1b2740;
+  --secondary-foreground: #e6ebf2;
+  --secondary-hover: #243350;
+  --muted: #182338;
+  --muted-foreground: #94a3b8;
+  --body: #c3ccd9;
+  --accent: #221f4d;
+  --accent-foreground: #c7c3ff;
+  --destructive: #ff6b81;
+  --destructive-foreground: #0b1220;
+  --destructive-soft: #3a1420;
+  --destructive-soft-foreground: #ffb3c1;
+  --success: #3ccf8e;
+  --success-soft: #0f2a1f;
+  --success-soft-foreground: #9be7c4;
+  --warning: #f0a632;
+  --warning-soft: #2e2208;
+  --warning-soft-foreground: #ffd58a;
+  --info-soft: #0f2240;
+  --info-soft-foreground: #9cc4ff;
+  --border: #233047;
+  --input: #6b7c95;
+  --input-hover: #8fa0b8;
+  --ring: #a5a0ff;
+  --skeleton: #1b2740;
+  --overlay: rgb(0 0 0 / 0.6);
+  --chart-1: #8b85ff;
+  --chart-2: #22c5e0;
+  --chart-3: #3ccf8e;
+  --chart-4: #f5b049;
+  --chart-5: #ff6b81;
+  --sidebar: #0f1828;
+  --sidebar-foreground: #c3ccd9;
+  --sidebar-primary: #8b85ff;
+  --sidebar-primary-foreground: #0b1220;
+  --sidebar-accent: #221f4d;
+  --sidebar-accent-foreground: #c7c3ff;
+  --sidebar-border: #233047;
+  --sidebar-ring: #a5a0ff;
+  /* Shadows read poorly on a dark canvas: the edge of a card is a hairline instead. */
+  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-raised: 0 0 0 1px var(--border), 0 13px 27px -5px rgb(0 0 0 / 0.55);
+  --shadow-control: 0 0 0 1px var(--input);
+  --shadow-button: 0 0 0 1px var(--border);
 }
 
 @theme inline {
@@ -97,6 +228,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-soft: var(--destructive-soft);
   --color-destructive-soft-foreground: var(--destructive-soft-foreground);
   --color-success: var(--success);
@@ -117,6 +249,7 @@
   --color-switch-track: var(--switch-track);
   --color-secondary-hover: var(--secondary-hover);
   --color-skeleton: var(--skeleton);
+  --color-brand-text: var(--brand-text);
   --color-overlay: var(--overlay);
   --background-image-brand-gradient: var(--brand-gradient);
   --background-image-brand-band: var(--brand-band);

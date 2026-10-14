@@ -30,6 +30,7 @@ import { RecordingStore } from "./modules/participant/recordings.js";
 import { ParticipantService } from "./modules/participant/service.js";
 import { ParticipantSessionReader } from "./modules/participant/session-view.js";
 import { PrivacyService } from "./modules/privacy/service.js";
+import { PromptAdminService } from "./modules/prompts/service.js";
 import { BudgetService } from "./modules/providers/budgets.js";
 import { ProviderService } from "./modules/providers/service.js";
 import { SessionsService } from "./modules/sessions/service.js";
@@ -57,6 +58,8 @@ export interface Services {
   health: HealthService;
   campaigns: CampaignService;
   templates: TemplateService;
+  /** Tenant prompt versions, canaries and the shipped prompts they replace (D-230). */
+  prompts: PromptAdminService;
   providers: ProviderService;
   budgets: BudgetService;
   settingsAdmin: SettingsAdminService;
@@ -147,6 +150,7 @@ export function buildServices(d: ServiceDeps): Services {
     health: new HealthService(d.db),
     campaigns: new CampaignService(d.db, d.crypto, d.settings, d.email, d.config.PUBLIC_WEB_URL, d.ceilings),
     templates: new TemplateService(d.db, d.settings),
+    prompts: new PromptAdminService(d.db),
     providers,
     budgets: new BudgetService(d.db, audit),
     settingsAdmin: new SettingsAdminService(d.db, d.settings, d.egress, d.email, audit, {

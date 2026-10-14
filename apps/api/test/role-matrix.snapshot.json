@@ -59,6 +59,18 @@
       "crossTenantAdmin": 401
     }
   },
+  "DELETE /prompts/:key/canary": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "DELETE /providers/:id": {
     "access": "admin",
     "isolation": true,
@@ -246,6 +258,18 @@
       "anonymous": 401,
       "participant": 401,
       "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /campaigns/:id/sessions.csv": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
       "admin": 404,
       "operator": 404,
       "crossTenantAdmin": 404
@@ -585,6 +609,42 @@
       "admin": 200,
       "operator": 200,
       "crossTenantAdmin": 200
+    }
+  },
+  "GET /prompts": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /prompts/:key": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /prompts/:key/diff": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
     }
   },
   "GET /providers": {
@@ -1115,6 +1175,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "HEAD /campaigns/:id/sessions.csv": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "HEAD /health/live": {
     "access": "public",
     "isolation": false,
@@ -1437,6 +1509,42 @@
       "admin": 200,
       "operator": 200,
       "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /prompts": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /prompts/:key": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /prompts/:key/diff": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
     }
   },
   "HEAD /providers": {
@@ -2315,6 +2423,18 @@
       "crossTenantAdmin": 401
     }
   },
+  "POST /p/session/transcribe": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 400,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
   "POST /p/session/turns": {
     "access": "participant",
     "isolation": false,
@@ -2337,6 +2457,66 @@
       "admin": 401,
       "operator": 401,
       "crossTenantAdmin": 401
+    }
+  },
+  "POST /prompts/:key/check": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "POST /prompts/:key/reset": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /prompts/:key/rollback": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /prompts/:key/versions": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
+  "POST /prompts/:key/versions/:v/activate": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
     }
   },
   "POST /providers": {

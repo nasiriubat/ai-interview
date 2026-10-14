@@ -46,6 +46,11 @@ const BUTTONS = [
   "participant.session.liveStart",
   "participant.session.liveEnd",
   "participant.session.liveStopSpeaking",
+  "participant.session.liveMute",
+  "participant.session.liveUnmute",
+  "participant.session.liveTypeInstead",
+  "participant.session.liveShowConversation",
+  "participant.session.liveHideConversation",
   "participant.session.listen",
   "participant.session.recordStart",
 ];

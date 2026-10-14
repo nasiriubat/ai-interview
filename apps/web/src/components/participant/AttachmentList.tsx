@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { Inset } from "@/components/ui/inset";
 import { t } from "@/i18n";
 import type { Attachment } from "@/lib/api/schemas";
 import { formatBytes, formatClock } from "@/lib/attachments";
@@ -155,10 +156,7 @@ export function AttachmentList({
                 ? formatClock(a.durationMs)
                 : formatBytes(a.sizeBytes);
             return (
-              <li
-                key={a.id}
-                className="bg-muted/50 flex items-center gap-2 rounded-lg border py-0.5 pr-0.5 pl-3"
-              >
+              <Inset as="li" key={a.id} className="flex items-center gap-2 py-0.5 pr-0.5 pl-3">
                 <Icon className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
                 <div className="min-w-0 flex-1 py-1">
                   <p className="truncate text-sm">{label}</p>
@@ -186,7 +184,7 @@ export function AttachmentList({
                 >
                   <XIcon className="size-4" />
                 </Button>
-              </li>
+              </Inset>
             );
           })}
         </ul>

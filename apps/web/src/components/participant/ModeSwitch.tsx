@@ -64,6 +64,7 @@ export function ModeSwitch({
         if (MODES.includes(v as ModePreference)) onChange(v as ModePreference);
       }}
       aria-label={s.modeLabel}
+      data-mode-switch=""
       rovingFocus
       loop
       className="bg-muted inline-flex rounded-lg p-0.5"

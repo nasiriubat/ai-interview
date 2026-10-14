@@ -65,6 +65,16 @@ export class Capture {
     this.samples = new Uint8Array(analyser.fftSize);
   }
 
+  /**
+   * Mutes by disabling the microphone's tracks: the device stays open (so unmuting is instant and
+   * the permission is not asked for again) and what the analyser, the recorder and the worklet
+   * receive is silence. Mute is the participant's choice, so it is never left on by accident:
+   * `release` ends the stream and a new call starts unmuted.
+   */
+  setMuted(muted: boolean): void {
+    for (const track of this.stream?.getTracks() ?? []) track.enabled = !muted;
+  }
+
   /** Whether a recording is open, and how long it has run. */
   get recording(): boolean {
     return this.recorder !== null;

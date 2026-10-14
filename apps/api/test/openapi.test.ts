@@ -48,6 +48,8 @@ suite("OpenAPI and health", () => {
       "/requirements/{id}/versions/{v}/export",
       "/p/r/{token}",
       "/templates/{id}/preview",
+      "/prompts",
+      "/prompts/{key}/versions/{v}/activate",
       "/admin/voice/readiness",
       "/admin/voice/openai",
       "/admin/voice/live",

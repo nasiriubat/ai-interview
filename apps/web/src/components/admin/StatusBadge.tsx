@@ -8,6 +8,7 @@ const TONES: Record<string, BadgeProps["variant"]> = {
   active: "success",
   published: "success",
   completed: "success",
+  bound: "success",
   accepted: "success",
   sent: "secondary",
   pending: "secondary",

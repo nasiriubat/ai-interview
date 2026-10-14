@@ -5,6 +5,7 @@ import * as React from "react";
 import { OptionDetail } from "./OptionDetail";
 import { OtherInput } from "./OtherInput";
 import { Button } from "@/components/ui/button";
+import { ChoiceTile } from "@/components/ui/choice-tile";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { t } from "@/i18n";
@@ -42,15 +43,15 @@ export function SingleChoiceWidget({
         aria-label={t.participant.session.widgetAnswer}
       >
         {widget.options.map((o) => (
-          <div key={o.key} className="rounded-lg border p-3">
-            <div className="flex items-start gap-3">
+          <ChoiceTile key={o.key} as="div" className="flex-col" disabled={disabled ?? false}>
+            <div className="flex w-full items-start gap-3">
               <RadioGroupItem value={o.key} id={`${id}-${o.key}`} className="mt-0.5" />
               <Label htmlFor={`${id}-${o.key}`} className="min-h-5 flex-1 cursor-pointer leading-snug">
                 {o.label}
               </Label>
             </div>
             <OptionDetail id={`${id}-${o.key}-detail`} label={o.label} detail={o.detail} />
-          </div>
+          </ChoiceTile>
         ))}
       </RadioGroup>
       <OtherInput id={`${id}-other`} value={other} onChange={setOther} disabled={disabled} />

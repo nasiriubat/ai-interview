@@ -37,6 +37,15 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /campaigns/:id/invitations": ["campaign.invite"],
   "POST /campaigns/:id/invitations/:invId/remind": ["invitation.remind"],
   "POST /campaigns/:id/invitations/:invId/revoke": ["invitation.revoke"],
+  // prompts (D-230)
+  "POST /prompts/:key/versions": ["prompt.create"],
+  "POST /prompts/:key/versions/:v/activate": ["prompt.activate", "prompt.canary"],
+  "DELETE /prompts/:key/canary": ["prompt.canary_stop"],
+  "POST /prompts/:key/rollback": ["prompt.rollback"],
+  "POST /prompts/:key/reset": ["prompt.reset"],
+  "POST /prompts/:key/check": {
+    none: "Validates and renders a draft without storing it; nothing changes, so there is nothing to record.",
+  },
   // interviews
   "POST /sessions/:id/flag/ack": ["session.flag.ack"],
   // onboarding

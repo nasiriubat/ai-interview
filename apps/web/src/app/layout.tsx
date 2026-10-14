@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { getStrings, requestLocale } from "@/i18n/server";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 // Self-hosted at build time by next/font: the browser never contacts Google, which matters for an
@@ -38,8 +39,13 @@ export default async function RootLayout({
   // element that a nonce-only style-src would otherwise refuse.
   const nonce = (await headers()).get("x-nonce") ?? "";
   return (
-    <html lang={locale} className={inter.variable}>
-      <head>{nonce ? <meta name="csp-nonce" content={nonce} /> : null}</head>
+    // `data-theme` is set on <html> by the script below before React runs; React must not
+    // object that the attribute is not in the markup it rendered.
+    <html lang={locale} className={inter.variable} suppressHydrationWarning>
+      <head>
+        {nonce ? <meta name="csp-nonce" content={nonce} /> : null}
+        <script nonce={nonce || undefined} dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-dvh">
         <LocaleProvider locale={locale}>
           <React.Suspense fallback={null}>

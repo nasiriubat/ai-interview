@@ -71,29 +71,33 @@ export default async function TemplatePage({ params }: Props): Promise<React.JSX
             <CardHeader>
               <CardTitle>{s.sections.basics}</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-2 text-sm">
-              <Row label={f.objective} value={tpl.objective} />
-              <Row label={f.privacyMode} value={f.privacy[tpl.privacyMode]} />
-              <Row label={f.pathSelection} value={f.pathSelectionOptions[tpl.pathSelection]} />
-              <Row label={f.language} value={label("language", tpl.language)} />
-              <Row
-                label={f.participantFields}
-                value={tpl.participantFields.map((p) => p.label).join(", ") || t.app.none}
-              />
+            <CardContent className="text-sm">
+              <dl className="grid gap-2">
+                <Row label={f.objective} value={tpl.objective} />
+                <Row label={f.privacyMode} value={f.privacy[tpl.privacyMode]} />
+                <Row label={f.pathSelection} value={f.pathSelectionOptions[tpl.pathSelection]} />
+                <Row label={f.language} value={label("language", tpl.language)} />
+                <Row
+                  label={f.participantFields}
+                  value={tpl.participantFields.map((p) => p.label).join(", ") || t.app.none}
+                />
+              </dl>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
               <CardTitle>{s.sections.closing}</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-2 text-sm">
-              <Row label={f.closingQuestion} value={tpl.closingQuestion} />
-              <Row label={f.endSummary} value={tpl.endSummary ? t.app.yes : t.app.no} />
-              <Row label={f.maxTurns} value={String(tpl.maxTurns)} />
-              <Row label={f.maxAssistantChars} value={String(tpl.maxAssistantChars)} />
-              <Row label={f.outputs} value={tpl.outputs.map((o) => s.factKinds[o]).join(", ")} />
-              <Row label={f.analysisEnabled} value={tpl.analysisEnabled ? t.app.yes : t.app.no} />
-              <Row label={f.chainToKey} value={tpl.chainToKey ?? t.app.none} />
+            <CardContent className="text-sm">
+              <dl className="grid gap-2">
+                <Row label={f.closingQuestion} value={tpl.closingQuestion} />
+                <Row label={f.endSummary} value={tpl.endSummary ? t.app.yes : t.app.no} />
+                <Row label={f.maxTurns} value={String(tpl.maxTurns)} />
+                <Row label={f.maxAssistantChars} value={String(tpl.maxAssistantChars)} />
+                <Row label={f.outputs} value={tpl.outputs.map((o) => s.factKinds[o]).join(", ")} />
+                <Row label={f.analysisEnabled} value={tpl.analysisEnabled ? t.app.yes : t.app.no} />
+                <Row label={f.chainToKey} value={tpl.chainToKey ?? t.app.none} />
+              </dl>
             </CardContent>
           </Card>
         </div>
