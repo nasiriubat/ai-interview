@@ -1,33 +1,47 @@
 "use client";
 
+import Link from "next/link";
 import * as React from "react";
+import { AuthShell } from "@/components/common/AuthShell";
+import { StateView } from "@/components/common/StateView";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 
+/** The error boundary of every page outside `/admin` (which has its own, inside the shell). */
 export default function GlobalError({
   error,
   reset,
 }: {
-  error: Error;
+  error: Error & { digest?: string };
   reset: () => void;
 }): React.JSX.Element {
   React.useEffect(() => {
     console.error(error);
   }, [error]);
+  const s = t.kit.states;
   return (
-    <main
-      id="main"
-      className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 p-6 text-center"
-    >
-      <h1 className="text-2xl font-semibold">{t.app.errorTitle}</h1>
-      <p className="text-muted-foreground">{t.app.errorBody}</p>
-      <Button
-        onClick={() => {
-          reset();
-        }}
-      >
-        {t.app.retry}
-      </Button>
-    </main>
+    <AuthShell variant="centered">
+      <StateView
+        illustration="error"
+        code={s.code(500)}
+        title={s.error.title}
+        body={s.error.body}
+        actions={
+          <>
+            <Button
+              onClick={() => {
+                reset();
+              }}
+            >
+              {t.app.retry}
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/">{t.app.name}</Link>
+            </Button>
+          </>
+        }
+        detail={error.digest ? s.error.reference(error.digest) : null}
+      />
+    </AuthShell>
   );
 }

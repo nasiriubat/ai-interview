@@ -89,7 +89,9 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
     <>
       <PageHeader title={s.title} subtitle={s.subtitle} />
       <div className="grid gap-6">
-        {onboarding ? <SetupChecklist state={onboarding} /> : null}
+        {onboarding ? (
+          <SetupChecklist state={onboarding} resultsReady={(n?.interviews?.completed ?? 0) > 0} />
+        ) : null}
         <section aria-label={s.title} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatTile
             icon={EuroIcon}

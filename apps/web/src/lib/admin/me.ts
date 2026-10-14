@@ -7,7 +7,8 @@ import { staffServer } from "@/lib/api/server";
 import { setRequestCurrency } from "@/lib/currency";
 
 export type MeResult =
-  { ok: true; me: Me } | { ok: false; reason: "unauthenticated" | "forbidden" | "unavailable" };
+  | { ok: true; me: Me }
+  | { ok: false; reason: "unauthenticated" | "forbidden" | "suspended" | "maintenance" | "unavailable" };
 
 /** Resolves the signed-in staff user through `GET /me`, once per request. */
 export const getMe = cache(async (): Promise<MeResult> => {
@@ -19,7 +20,9 @@ export const getMe = cache(async (): Promise<MeResult> => {
     return { ok: true, me };
   } catch (e) {
     if (isApiError(e) && e.isUnauthenticated) return { ok: false, reason: "unauthenticated" };
+    if (isApiError(e) && e.code === "tenant_suspended") return { ok: false, reason: "suspended" };
     if (isApiError(e) && e.isForbidden) return { ok: false, reason: "forbidden" };
+    if (isApiError(e) && e.status === 503) return { ok: false, reason: "maintenance" };
     return { ok: false, reason: "unavailable" };
   }
 });
@@ -27,7 +30,7 @@ export const getMe = cache(async (): Promise<MeResult> => {
 /** Redirects to sign-in when unauthenticated; returns the user otherwise (or null when the API is down). */
 export async function requireMe(): Promise<Me | null> {
   const r = await getMe();
-  if (!r.ok && r.reason === "unauthenticated") redirect("/auth/signin?callbackUrl=/admin");
+  if (!r.ok && r.reason === "unauthenticated") redirect("/auth/signin?reason=expired&callbackUrl=/admin");
   return r.ok ? r.me : null;
 }
 

@@ -13,6 +13,22 @@ export function SelectGroup(props: React.ComponentProps<typeof SelectPrimitive.G
   return <SelectPrimitive.Group data-slot="select-group" {...props} />;
 }
 
+export function SelectLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Label>): React.JSX.Element {
+  return (
+    <SelectPrimitive.Label
+      data-slot="select-label"
+      className={cn(
+        "text-muted-foreground px-2 py-1.5 text-xs font-semibold tracking-wide uppercase",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 export function SelectValue(props: React.ComponentProps<typeof SelectPrimitive.Value>): React.JSX.Element {
   return <SelectPrimitive.Value data-slot="select-value" {...props} />;
 }
