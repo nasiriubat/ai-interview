@@ -54,6 +54,17 @@ suite("live voice", () => {
       headers: { authorization: `Bearer ${world.adminToken}`, "content-type": "application/json" },
       payload: { scope: "tenant", values: { "features.realtimeVoice": true } },
     });
+    // Every call here opens its own campaign; the platform's default of twenty is for tenants,
+    // not for a suite that is about the voice path.
+    await world.db.setting.create({
+      data: {
+        scope: "tenant",
+        scopeId: world.companyId,
+        companyId: world.companyId,
+        key: "ceiling.maxActiveCampaigns",
+        value: 0,
+      },
+    });
     await world.app.listen({ port: 0, host: "127.0.0.1" });
     const address = world.app.server.address();
     port = typeof address === "object" && address ? address.port : 0;
@@ -240,6 +251,65 @@ suite("live voice", () => {
     expect(turns).toHaveLength(2);
 
     client.close();
+  });
+
+  it("reads the template's own voice settings, not the tenant's alone (D-229)", async () => {
+    // Captions are on for the tenant by default; this interview's template turns them off.
+    const row = await world.db.setting.create({
+      data: {
+        scope: "template",
+        scopeId: world.templateId,
+        companyId: world.companyId,
+        key: "voice.captions",
+        value: false,
+      },
+    });
+    try {
+      const client = await connect(await participantToken());
+      const ready = await client.waitFor("ready");
+      expect(ready).toMatchObject({ captions: false, bargeIn: true });
+      client.close();
+    } finally {
+      await world.db.setting.delete({ where: { id: row.id } });
+    }
+  });
+
+  it("refuses a call once the tenant's voice minutes are used up, and points at typing (D-229)", async () => {
+    const provider = await world.db.provider.findFirstOrThrow({ where: { companyId: world.companyId } });
+    const booked = await world.db.llmCall.create({
+      data: {
+        companyId: world.companyId,
+        purpose: "stt_stream",
+        providerId: provider.id,
+        model: "fake-model",
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: 1,
+        status: "ok",
+        costCents: 0,
+        audioSeconds: 600,
+      },
+    });
+    const ceiling = await world.db.setting.create({
+      data: {
+        scope: "tenant",
+        scopeId: world.companyId,
+        companyId: world.companyId,
+        key: "ceiling.voiceMinutes",
+        value: 5,
+      },
+    });
+    try {
+      const client = await connect(await participantToken());
+      const frame = await client.waitFor("unavailable");
+      expect(frame).toMatchObject({ reason: "limit", fallback: "text" });
+      await new Promise((r) => setTimeout(r, 100));
+      expect(client.socket.readyState).not.toBe(client.socket.OPEN);
+      expect(world.alerts.ofKind("ceiling.reached").some((a) => a.key.includes("voiceMinutes"))).toBe(true);
+    } finally {
+      await world.db.setting.delete({ where: { id: ceiling.id } });
+      await world.db.llmCall.delete({ where: { id: booked.id } });
+    }
   });
 
   it("says it heard nothing rather than answering silence", async () => {

@@ -17,8 +17,8 @@ deploy/dc logs --tail 100 -f api   # one service
 | When                | What                                                                                                                                                    | How long |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | When an alert comes | Open its section in the [alert runbook](#alert-runbook). Each says what to look at, what to do and how you know it is fixed.                            | minutes  |
-| Daily               | `deploy/dc ps`: nothing `unhealthy` or restarting. Operator → Background jobs: dead letters at 0.                                                       | 1 minute |
-| Weekly              | `deploy/dc exec -T backup cat /ops-state/status/backup.json`: `lastResult` is `ok`, `offsite` is `ok` (or you have accepted that it is not configured). | 1 minute |
+| Daily               | Operator → **Platform health**: nothing red. `deploy/dc ps`: nothing `unhealthy` or restarting. Operator → Background jobs: dead letters at 0.          | 1 minute |
+| Weekly              | Platform health → Restore drill: `Restored and matched`, within the last nine days. `offsite` is `ok` (or you have accepted that it is not configured). | 1 minute |
 | Monthly             | `pnpm audit` in a checkout; host OS updates; look at Operator → Platform stats for spend; restore a backup into a scratch database (below).             | 30 min   |
 
 Nothing in this list needs remembering to _look_ for a failure: failures are sent to you. The
@@ -265,6 +265,25 @@ or the endpoint unreachable. Test the remote by hand:
 
 **Fixed when** `status.offsite` is `ok` and the file is in the bucket.
 
+### backup.drill_failed
+
+**Symptom** The weekly restore drill could not restore the newest backup, or what it restored did
+not match the manifest written with the dump (fewer rows than the dump began with, or an uploads
+archive with a different number of files). The backup container is `unhealthy`. This is the one
+alert that says a backup exists and may not be usable.
+
+**Look at** The reason is in the alert and in
+`deploy/dc exec -T backup cat /ops-state/status/backup.json` under `drill.error`. Then
+`deploy/dc logs --tail 80 backup | grep restore-drill`. Typical causes: the identity in `deploy/.env`
+is not the key the dump was written to (`BACKUP_AGE_IDENTITY`), the disk filled mid-restore, or a
+dump written by a version whose migration is not applied.
+
+**Do** Run it by hand and read the output: `deploy/dc exec -T backup /usr/local/bin/restore-drill.sh`.
+If the dump itself is bad, take a fresh one (`backup.sh once`) and run the drill again. Do not treat
+the previous backups as good until a drill has passed against one of them.
+
+**Fixed when** `restore-drill.sh` exits 0, `drill.result` is `ok`, and the container is `healthy`.
+
 ### disk.high
 
 **Symptom** The disk holding the database, the uploads and the backups is above 80 percent
@@ -295,6 +314,24 @@ key, replace it in Admin → Providers. If a model was retired, route the purpos
 Admin → Routing.
 
 **Fixed when** The error share falls under the threshold; the next sweep resolves it.
+
+### provider.fallback_active
+
+**Symptom** A purpose is being served by its fallback route because the primary provider is failing
+and its circuit is open (five timeouts, 5xx or 429 inside a minute). Interviews continue, on the
+model you named as the fallback, and each such call is a ledger row with `routeTier = fallback`. If
+no fallback is configured the alert is [`provider.error_rate`](#providererror_rate) instead and calls
+fail fast with "temporarily unavailable".
+
+**Look at** Operator → Platform health → Providers (the circuit column). The provider's status page.
+`deploy/dc logs --since 15m api | grep provider`. The fallback's own quality and price: it is
+usually a different model, and every call on it is billed at its price.
+
+**Do** Nothing is required for the interviews. Fix or wait out the primary; the circuit lets one
+probe call through every thirty seconds and closes by itself when it succeeds. If the outage is
+long, check the fallback's budget line and that its answers are acceptable.
+
+**Fixed when** The circuit is closed (Platform health shows it) and the alert resolves with it.
 
 ### rls.preflight_failed
 
@@ -426,6 +463,22 @@ section applies. Raising `ops.alertMaxPerHour` only makes the storm louder.
 
 **Fixed when** The count of alerts per hour is back under the ceiling.
 
+### tenant.offboarded
+
+**Symptom** A tenant's data was removed: its rows and its stored bytes, its audit trail, and the
+export that was taken before. Informational: it is the confirmation that an offboarding finished,
+with the counts, and it is sent once.
+
+**Look at** The alert's counts, and `deploy/dc exec -T worker cat /ops-state/erasures.jsonl | tail`
+for the entry that records the erasure.
+
+**Do** Nothing, unless you did not expect it: the request is in the audit log of your own company
+as `tenant.offboard_requested`, with who asked. It cannot be undone; a restore of an older backup
+finds the entry in `erasures.jsonl` and removes the tenant again at the worker's next start.
+
+**Fixed when** There is nothing to fix. A purge that left rows behind does not send this alert: it
+fails and is retried, and shows as a dead letter in `tenant.offboard`.
+
 ## Background jobs
 
 Operator → **Background jobs** (`GET /operator/jobs`): every queue with what is waiting, what is
@@ -438,7 +491,7 @@ running, how many are dead-lettered, and its time limit and attempts.
   budget, discard deletes it; both are audited (`job.retry`, `job.discard`) and clear the alert.
   The page shows identifiers and the last error, never the payload's text.
 - **Run now** is offered for the jobs that take no payload: the retention sweep, the verification
-  token prune and the health sweep.
+  token prune, the health sweep, the audit verification and the monthly statement.
 - **The health sweep** runs every five minutes in the worker and raises or resolves the alerts that
   need looking: stuck jobs, dead letters the worker did not see (it was killed mid-job), the backup
   status, the disk and provider error rates.
@@ -516,17 +569,54 @@ from Hugging Face on first use in a minute or two. The ledger, routes and transc
 Postgres. After a restore on a host with no route to Hugging Face, recordings answer "try again in
 a minute" until the download succeeds; route `transcription` to OpenAI if that matters on the day.
 
-### What you can expect, and have not yet measured
+### The weekly restore drill
 
-| Target                                               | Value                      | How                                                                        |
-| ---------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------- |
-| Data you can lose (RPO)                              | 24 h (12 h with two times) | `BACKUP_AT=03:20,15:20`                                                    |
-| Back in service after a bad release, same host (RTO) | 15 min                     | [`rollback.sh`](#upgrade-and-roll-back), then `restore.sh` if data changed |
-| Back in service after losing the host (RTO)          | 90 min                     | new VPS, `git clone`, `deploy/.env` from your password manager, restore    |
-| Verified                                             | **not yet automatic**      | restore a backup into a scratch database yourself, below                   |
+Every Sunday at 04:40 UTC (`BACKUP_DRILL_DAY`, `BACKUP_DRILL_AT`; `BACKUP_DRILL=off` disables it)
+the backup container restores the newest dump into a scratch database, `ai_discovery_drill`, and
+compares it with the manifest that was written beside the dump:
 
-The weekly automatic restore drill with a row-count assertion is the next milestone; until it
-exists the only proof a backup restores is that you restored one.
+| Check                                                                             | Rule                                                                                                                 |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| The dump decrypts and `pg_restore` completes                                      | any error fails the drill                                                                                            |
+| Row counts (Company, User, Campaign, Session, Message, Fact, Attachment, LlmCall) | each at least what the dump began with; the counts are taken just before the dump, so writes in between can only add |
+| The uploads archive of the same stamp                                             | decrypts, and lists exactly as many files as the manifest counted (counted from the archive itself)                  |
+
+The scratch database is always dropped, and the live database and the live uploads are never
+touched. The result is in `backup.json` under `drill` (`result`, `at`, `durationS`, `lastSuccessAt`,
+`error`); a failure raises [`backup.drill_failed`](#backupdrill_failed) and turns the container
+unhealthy. `durationS` is how long a restore of this size takes on this host, which is the figure
+the RTO below is measured against. The drill proves the dump restores and matches; it does not prove
+the application is happy with it (that is a manual restore into the stack, below).
+
+Run it by hand any time: `deploy/dc exec -T backup /usr/local/bin/restore-drill.sh`.
+
+### RPO and RTO
+
+| Target                                               | Value                      | How                                                                        | Evidence                               |
+| ---------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------- | -------------------------------------- |
+| Data you can lose (RPO)                              | 24 h (12 h with two times) | `BACKUP_AT=03:20,15:20`                                                    | `backup.json` `lastSuccessAt`          |
+| Back in service after a bad release, same host (RTO) | 15 min                     | [`rollback.sh`](#upgrade-and-roll-back), then `restore.sh` if data changed | `drill.durationS` plus a rollback run  |
+| Back in service after losing the host (RTO)          | 90 min                     | new VPS, `git clone`, `deploy/.env` from your password manager, restore    | the table below, from the offsite copy |
+| Verified                                             | weekly, automatic          | the restore drill above                                                    | `drill.lastSuccessAt`                  |
+
+**What a person has to prove, and the repository cannot.** The drill runs on the host the backups
+are on. It does not show that you can rebuild from the offsite copy on a machine that is not that
+host, with only `deploy/.env` from your password manager, inside ninety minutes. Do that once before
+the pilot and again after any change to the backup or the key, and write down what happened in
+`docs/team/drills/<date>-restore.md`. One row per rehearsal:
+
+| Date | Version | From (local / offsite) | Dump size | Fetch | Decrypt and restore | Stack up | Sign-in works | Total | RTO target  | Surprises, and what changed in the repository |
+| ---- | ------- | ---------------------- | --------- | ----- | ------------------- | -------- | ------------- | ----- | ----------- | --------------------------------------------- |
+|      |         |                        |           |       |                     |          |               |       | 15 / 90 min |                                               |
+
+The same file records the **automatic** evidence next to it, so the two can be read together:
+
+| Week of | `drill.result` | `drill.durationS` | Rows restored (Session / Message / LlmCall) | Manifest matched |
+| ------- | -------------- | ----------------- | ------------------------------------------- | ---------------- |
+|         |                |                   |                                             |                  |
+
+An RTO that has never been measured is a guess. The first line of each table is the first thing to
+fill in on a real host.
 
 ## Restoring
 
@@ -646,6 +736,153 @@ A timeout is reported to the participant as "temporarily unavailable, your answe
 not retried inside the same request (that would turn two minutes into six). Realtime voice sockets
 are not covered by these yet.
 
+## Looking at the platform
+
+Three levels, from the cheapest to read.
+
+1. **Operator → Platform health** (`GET /operator/health`). One page: every signal as a traffic
+   light (queue depth and age, dead letters, stuck jobs, worker heartbeat, backup age, offsite copy,
+   restore drill, disk, provider error rates and circuits, first-token and voice-first-word p95
+   against their targets, the speech model, open alerts), the release that is running, and a row
+   per tenant with its interviews this month, active now, spend against its budget, storage and
+   voice minutes against their ceilings, open campaigns and dead letters. It reads the same inputs
+   the five-minute sweep does; it raises nothing itself.
+2. **`GET /stats`** (and the tenant dashboard): `ai.month.firstTokenP50Ms` and `firstTokenP95Ms`
+   (interview and specification turns, from `LlmCall.firstTokenMs`), `audioMinutes`,
+   `ttsCharacters`, the estimated share of the cost, and the live-voice signals. `GET /spend` groups
+   by `provider` and `status` as well as day, purpose, model and campaign; `GET /spend/budgets`
+   shows spend against each budget line.
+3. **Grafana**, optional (`infra/observability`, [README](../infra/observability/README.md)):
+   Prometheus and Grafana with six dashboards and the objectives drawn on them. It needs 416 MB more
+   than the stack; Tempo for traces needs another 192 MB and belongs on the 8 GB preset.
+
+**Objectives.**
+
+| Objective             | Target                             | Where it is read                                                                                  |
+| --------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------- |
+| First token (NFR-01)  | p95 under 2.0 s                    | Platform health, `/stats`, Grafana "Overview and SLOs"                                            |
+| Voice first word      | p95 under 1.5 s                    | Platform health, Grafana "Live voice"                                                             |
+| Model call error rate | under 5 %                          | Platform health, Grafana                                                                          |
+| Queue age             | oldest queued job under 5 minutes  | Platform health, Grafana                                                                          |
+| Job success           | at or above 99.5 % over 7 days     | Grafana "Background jobs"                                                                         |
+| Backup                | newest under 26 h, drill under 9 d | Platform health, [`backup.missing`](#backupmissing), [`backup.drill_failed`](#backupdrill_failed) |
+
+**Tracing.** Set `OTEL_EXPORTER_OTLP_ENDPOINT` (in `deploy/.env`) and both `api` and `worker` export
+spans. A request is one trace: `session.turn` with its `model.call` children in the API, and the
+`job <name>` spans of the follow-up jobs it queued in the worker, joined by the `traceparent` carried
+in each job's payload. With no endpoint nothing is loaded and nothing is paid for.
+
+## What is never logged
+
+At every level and in every environment except `NODE_ENV=development`, one shared definition
+(`packages/core/src/telemetry/redaction.ts`) applies to the API and the worker:
+
+| Never in a log line                                                                  | What is there instead                                                      |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Participant link and invitation tokens in URLs                                       | `/p/<token>`, `/p/r/<token>`; every query string becomes `?<redacted>`     |
+| What a person said: message text, transcripts, summaries, facts, extracted file text | `[redacted]`; handlers log ids and counts                                  |
+| Email addresses                                                                      | `<email:1a2b3c4d>`, a short hash, so two lines about one address correlate |
+| API keys, passwords, SMTP URLs, provider headers                                     | `[redacted]`                                                               |
+| Upload filenames                                                                     | the extension only                                                         |
+
+Every line written inside a request or a job carries `tenantId`, and `sessionId`, `userId`, `jobId`
+and `traceId` where they exist, so `grep tenantId=...` follows one tenant. Caddy's access log is
+filtered the same way (`deploy/Caddyfile`): link tokens in the path are rewritten and the keys that
+carry a secret are removed from the query. The audit log and the ledger are not logs: they are
+data, under row-level security. `packages/core/test/telemetry.test.ts` and the Caddyfile check in
+`deploy-scripts.test.ts` fail when a category leaks.
+
+## Cost statements
+
+Every month the `billing.statement` job (02:17 UTC on the 1st, or Run now on the jobs page) freezes
+each tenant's previous month into a `TenantStatement` row: one line per provider, model and purpose
+with calls, the four token counts, audio seconds, TTS characters, cost and the estimated part of it,
+plus sessions started and completed, participants, voice minutes, storage, analyses and
+specifications, and each budget line with whether it was hit. It is frozen on purpose: the ledger
+rows under it are subject to retention, and an invoice must not change when they are purged.
+
+- **Tenant**: `GET /spend/statements`, `GET /spend/statements/<yyyy-mm>?format=csv`.
+- **You, across tenants**: `GET /operator/statements/<yyyy-mm>?format=csv`, one file with the
+  company on every line, which is what an invoicing spreadsheet wants.
+- **Redo a month** (after fixing a price): the job takes `{ "month": "2026-09", "force": true }`,
+  and without `force` leaves an existing statement as it is. Run now produces the month that just
+  ended; no route queues it with a payload yet, so an older month or a forced redo is a `pg-boss`
+  `send` by hand until one does.
+- **Estimated** cost is usage this system computed because the provider reported none (an abandoned
+  stream, a call that died). It is in the totals and shown separately; it is never the bulk of a
+  month, and if it is, a provider is not reporting usage and the price table is the thing to look at.
+
+Prices for audio and speech are set per model in Admin → Providers (`audioPerMinute`,
+`ttsPerMChars`, in USD); the OpenAI audio models are seeded. A model with no audio price books its
+seconds and costs nothing, which shows as audio seconds with zero cost in the statement.
+
+## Provider outages
+
+Each provider has a circuit breaker per process (`packages/ai/src/providers/breaker.ts`). Five
+timeouts, network errors, 5xx or 429 in a minute open it; for thirty seconds calls to that provider
+are not made; then one probe is let through, and its outcome closes or re-opens the circuit. A bad
+request or a refusal never counts. What a call does meanwhile:
+
+- **With a fallback route** for the purpose (`PUT /routes` or `PUT /operator/routes` with a
+  `fallback: { providerId, model }` on the row; `GET /routes` returns it, `null` when none; a picker
+  on the Routing page is not built yet): the call goes to the fallback, in the same request, before the
+  participant sees anything. Both attempts are ledgered, the second with `routeTier = fallback`, and
+  [`provider.fallback_active`](#providerfallback_active) is raised once per provider.
+- **Without one**: the call fails at once with "temporarily unavailable, your answer is saved", and
+  [`provider.error_rate`](#providererror_rate) is raised, instead of every participant waiting out
+  a timeout.
+
+Choose the fallback on a different provider (the route refuses the same one) and check its price:
+the budget is spent at the fallback's price while it is in use.
+
+## Resource ceilings
+
+Each tenant has four operator-set ceilings (`ceiling.*`; 0 means none): campaigns at once,
+interviews per month, stored bytes, voice minutes per month. All four refuse where the thing is
+created, with `403 limit_reached` and the limit named, and tell the tenant at 80 and at 100 percent
+and the operator at 100 ([`ceiling.warning`](#ceilingwarning), [`ceiling.reached`](#ceilingreached)):
+
+| Ceiling               | Where it is enforced                                                                               | What the participant sees                              |
+| --------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `storageBytes`        | at the upload: refused when full, and the upload is capped to what is left and re-checked after it | the attachment is refused; the interview continues     |
+| `voiceMinutes`        | at the recorded answer; at the live call before its socket opens, and every minute of the call     | recorded: a refusal; live: "unavailable, type instead" |
+| `maxSessionsPerMonth` | when an interview starts                                                                           | the link says the organization is at its limit         |
+| `maxActiveCampaigns`  | when a campaign is created or opened                                                               | (admin) the campaign is refused                        |
+
+Voice minutes are the larger of the recordings' durations and the audio seconds in the ledger (live
+calls and recorded answers are both transcribed, so they are never added together).
+
+## Tenant export and offboarding
+
+Both are the operator's, API only for now (there is no button on the tenants page yet), and both are
+in your own company's audit log, not the tenant's: offboarding removes the tenant's audit trail, and "who took a copy of this tenant's
+data and who removed it" has to outlive it.
+
+**Export** (`POST /operator/tenants/<id>/export`, then `GET .../exports` and `GET .../exports/<stamp>`).
+A zip with a JSON-lines file per table (every table with the tenant's `companyId`, found from the
+database), its uploads, a manifest with a SHA-256 for each entry, and a signature of the manifest.
+Sealed secrets and token hashes are left out. At rest it is ciphertext (the platform key), so a
+backup of the uploads volume holds nothing readable; the download route decrypts it, and refuses
+if a segment does not authenticate.
+
+**Offboarding** (`POST /operator/tenants/<id>/offboard {"confirmName": "<the tenant's name>"}`).
+
+1. Suspend the tenant first (Operator → Tenants → Suspend). Staff, participants and jobs stop.
+2. Send the request. It takes an export now and queues the purge for seven days from now;
+   `"immediate": true` queues it at once. **Reactivating the tenant during the seven days cancels
+   it**: the job checks it is still suspended before it removes anything.
+3. Give the tenant its export (download it, hand it over by whatever channel you agreed).
+4. The purge removes the tenant's queued jobs, its files and its exports, its rows (children before
+   parents), and its audit rows; then checks that no table that carries its id still holds a row.
+   A purge that finds one fails and is retried; it does not report success.
+5. What remains: the `Company` row as `Deleted tenant` (statements and the ledger refer to its id),
+   its `TenantStatement` rows (accounting), and the erasure entry.
+
+**Restoring after an offboarding.** The erasure is recorded in `/ops-state/erasures.jsonl`, which
+is not in the database and not in the backups. A database restored from before it brings the tenant
+back; the worker reads the file at start and queues the purge again for anything it finds, so the
+tenant does not stay restored. Participant-requested deletions are recorded the same way.
+
 ## What lives outside the box
 
 Two things, and the repository cannot hold either:
@@ -660,7 +897,7 @@ and is what a new host is built from.
 
 ## Not yet
 
-Planned in the operations program and not built, so that nothing here is read as a promise:
-worker tracing and request/session ids in log lines, p95 first-token and voice metrics, dashboards,
-a weekly automatic restore drill with row-count assertion, per-tenant spend statements, circuit
-breaker and fallback route, load and chaos tests, and the recorded owner drills.
+Planned in the operations program and not built, so that nothing here is read as a promise: load
+and chaos tests and the recorded owner drills (the tables above are where they are written down),
+the tenant-facing export of the whole organization's data (`POST /privacy/export`), and the
+what's-new feed. Everything else on this page is in the repository and has a test.

@@ -52,6 +52,10 @@ export const ModelInfoSchema = z.object({
   inputPerMtok: z.number().nonnegative().optional(),
   cachedInputPerMtok: z.number().nonnegative().optional(),
   outputPerMtok: z.number().nonnegative().optional(),
+  /** USD per minute of audio, where the provider lists it (speech-to-text). */
+  audioPerMinute: z.number().nonnegative().optional(),
+  /** USD per million characters, where the provider lists it (text-to-speech). */
+  ttsPerMChars: z.number().nonnegative().optional(),
 });
 export type ModelInfo = z.infer<typeof ModelInfoSchema>;
 

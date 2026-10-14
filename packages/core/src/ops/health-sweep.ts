@@ -1,6 +1,7 @@
 import type { AlertPort } from "../alerts/port.js";
 import type { DeadJob, QueueSummary, StuckJobs } from "../jobs/admin.js";
 import { JOBS, type JobName } from "../jobs/definitions.js";
+import type { Metrics } from "../telemetry/metrics.js";
 
 /** What `deploy/backup.sh` writes to `<ops_state>/status/backup.json` after every run. */
 export interface BackupStatus {
@@ -14,7 +15,21 @@ export interface BackupStatus {
   dump?: string;
   sizeBytes?: number;
   offsite?: "ok" | "failed" | "not_configured";
+  offsiteLastSuccessAt?: string;
   counts?: Record<string, number>;
+  /**
+   * The weekly restore drill (D-227): `deploy/restore-drill.sh` restores the latest dump into a
+   * scratch database, compares the row counts to the manifest above, and writes what it found.
+   */
+  drill?: {
+    at?: string;
+    result?: "ok" | "failed";
+    /** What did not match, or what failed; plain text. */
+    error?: string;
+    durationS?: number;
+    dump?: string;
+    lastSuccessAt?: string;
+  };
 }
 
 export type BackupStatusRead =
@@ -49,6 +64,10 @@ export interface HealthInputs {
   disk(): Promise<DiskReading | null>;
   /** Calls made since `since`, grouped by provider. */
   providerCalls(since: Date): Promise<ProviderCallStats[]>;
+  /** Per-tenant gauges for the metrics endpoint; absent in inputs that have no database. */
+  tenantActivity?(): Promise<{ companyId: string; activeSessions: number; storageBytes: number }[]>;
+  /** Age in seconds of the worker's own liveness file, or null when it is not configured. */
+  heartbeatAgeSeconds?(): Promise<number | null>;
 }
 
 export interface HealthThresholds {
@@ -87,6 +106,8 @@ export class HealthSweep {
       inputs: HealthInputs;
       alerts: AlertPort;
       thresholds: () => Promise<HealthThresholds>;
+      /** Where the readings are published as gauges (D-222). */
+      metrics?: Metrics;
       now?: () => Date;
       log?: { warn: (message: string, meta?: Record<string, unknown>) => void };
     },
@@ -104,6 +125,8 @@ export class HealthSweep {
       ["backup", () => this.backup(t, out)],
       ["disk", () => this.disk(t, out)],
       ["providers", () => this.providers(t, out)],
+      ["drill", () => this.drill(out)],
+      ["gauges", () => this.gauges()],
     ] as const) {
       try {
         await check();
@@ -214,6 +237,70 @@ export class HealthSweep {
     } else {
       await this.clear(out, "backup.missing");
     }
+  }
+
+  /**
+   * The weekly restore drill (D-227). A failed drill is as serious as a failed backup: it means the
+   * newest dump may not restore. Cleared by the next drill that matches its manifest.
+   */
+  private async drill(out: SweepResult): Promise<void> {
+    const read = await this.deps.inputs.backup();
+    if (read.state !== "present") return;
+    const d = read.status.drill;
+    if (!d?.result) return;
+    if (d.result === "failed") {
+      await this.raise(out, {
+        kind: "backup.drill_failed",
+        key: "backup.drill_failed",
+        title: "Restore drill failed",
+        message: `The restore drill at ${d.at ?? "an unknown time"} failed${d.error ? `: ${d.error}` : ""}. The newest backup may not restore; run deploy/restore-drill.sh by hand and read its output.`,
+        context: { ...(d.dump ? { dump: d.dump } : {}), lastSuccessAt: d.lastSuccessAt ?? "none" },
+      });
+    } else {
+      await this.clear(out, "backup.drill_failed");
+    }
+  }
+
+  /** Publishes what the sweep already reads as gauges; every reading is optional and best-effort. */
+  private async gauges(): Promise<void> {
+    const m = this.deps.metrics;
+    if (!m) return;
+    const { inputs } = this.deps;
+    const now = this.now().getTime();
+    for (const q of await inputs.queues())
+      m.queue(
+        q.name,
+        q.queued,
+        q.active,
+        q.deadLettered,
+        q.oldestQueuedAt ? Math.max(0, Math.round((now - Date.parse(q.oldestQueuedAt)) / 1000)) : 0,
+      );
+    const read = await inputs.backup();
+    if (read.state === "present") {
+      const s = read.status;
+      const sec = (iso?: string): number | undefined => {
+        const t = iso ? Date.parse(iso) : Number.NaN;
+        return Number.isNaN(t) ? undefined : Math.floor(t / 1000);
+      };
+      const ok = sec(s.lastSuccessAt);
+      if (ok !== undefined) m.gauge("backup_last_success_timestamp_seconds", ok);
+      if (s.sizeBytes !== undefined) m.gauge("backup_last_size_bytes", s.sizeBytes);
+      const off = sec(s.offsiteLastSuccessAt);
+      if (off !== undefined) m.gauge("backup_offsite_last_success_timestamp_seconds", off);
+      const drill = sec(s.drill?.lastSuccessAt ?? (s.drill?.result === "ok" ? s.drill.at : undefined));
+      if (drill !== undefined) m.gauge("restore_drill_last_success_timestamp_seconds", drill);
+    }
+    const disk = await inputs.disk();
+    if (disk && disk.totalBytes > 0)
+      m.gauge("disk_used_ratio", disk.usedBytes / disk.totalBytes, { mount: disk.path });
+    if (inputs.tenantActivity) {
+      for (const t of await inputs.tenantActivity()) {
+        m.gauge("sessions_active", t.activeSessions, { tenant: t.companyId });
+        m.gauge("storage_bytes", t.storageBytes, { tenant: t.companyId });
+      }
+    }
+    const age = await inputs.heartbeatAgeSeconds?.();
+    if (age !== null && age !== undefined) m.gauge("worker_heartbeat_age_seconds", age);
   }
 
   private async disk(t: HealthThresholds, out: SweepResult): Promise<void> {

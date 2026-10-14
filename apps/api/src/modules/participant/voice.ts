@@ -50,6 +50,8 @@ export async function participantVoiceRoutes(app: App, ctx: RouteContext): Promi
       // The tenant's switch and the template's own `voice.enabled`, ANDed (D-186).
       const enabled = await ctx.services.participant.voiceAllowed(p.companyId, p.sessionId, "recorded");
       if (!enabled) throw new AppError("feature_disabled", "Voice answers are turned off");
+      // The operator's voice-minutes ceiling (D-229), before the body is read or a model is paid.
+      await ctx.ceilings.assertRoom(p.companyId, "voiceMinutes");
 
       const file = await readAudio(req);
       const bytes = await file.toBuffer();
@@ -84,6 +86,8 @@ export async function participantVoiceRoutes(app: App, ctx: RouteContext): Promi
             mime: file.mimetype,
             filename: file.filename || "recording.webm",
             languages,
+            // The browser timed the recording; the ledger books it when the provider reports none.
+            ...(durationMs === undefined ? {} : { durationSeconds: durationMs / 1000 }),
           },
         );
       } catch (err) {

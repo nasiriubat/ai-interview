@@ -34,6 +34,16 @@ const Env = z.object({
   OPS_STATE_DIR: z.string().optional(),
   /** The file the container healthcheck reads; defaults under OPS_STATE_DIR. */
   HEARTBEAT_FILE: z.string().optional(),
+  /** OTLP/HTTP trace endpoint; unset leaves tracing off and costs nothing (D-222). */
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
+  /**
+   * Port of the Prometheus scrape endpoint, on the compose network only (D-222). Unset or 0 turns
+   * it off. Compose passes an unset variable through as "", which is "not set" here.
+   */
+  METRICS_PORT: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.coerce.number().int().min(0).max(65535).default(0),
+  ),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
   /**
    * How long running jobs may take after SIGTERM before they are aborted and redelivered. Keep it

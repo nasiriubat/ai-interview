@@ -104,8 +104,24 @@
 		-Server
 	}
 
+	# The access log is where a participant's link token would otherwise live for as long as logs
+	# are kept (D-223). Tokens are path segments (`/p/<token>`, `/p/r/<token>`), so the path is
+	# rewritten, and the keys of the query string that carry a secret (the magic-link `token`, the
+	# verification `code`) are removed. 16 characters is well under any token this app issues and
+	# well over every fixed route name (`/p/session`), so only tokens match.
 	log {
 		output stderr
-		format json
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp (/p/(?:r/)?)[A-Za-z0-9_-]{16,} $1<token>
+				request>uri query {
+					delete token
+					delete code
+					delete email
+					delete callbackUrl
+				}
+			}
+		}
 	}
 }

@@ -772,6 +772,41 @@ suite("audit rows: every administrative mutation writes one", () => {
     );
   });
 
+  it("export and offboarding requests are filed under the operator's company, not the tenant's (D-225, D-226)", async () => {
+    const name = `Audit offboard ${Date.now().toString(36)}`;
+    const created = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/operator/tenants",
+      headers: { ...as(tokens.operator), "content-type": "application/json" },
+      payload: JSON.stringify({ name, adminEmail: `audit-off-${Date.now().toString(36)}@test.io` }),
+    });
+    const id = created.json<{ tenant: { id: string } }>().tenant.id;
+    await audited("POST /operator/tenants/:id/export", `/operator/tenants/${id}/export`, undefined, {
+      action: "tenant.export_requested",
+      targetType: "company",
+      targetId: id,
+      actor: "operator",
+    });
+    // Offboarding starts from a suspended tenant and the typed name.
+    await world.app.inject({
+      method: "PATCH",
+      url: `/api/v1/operator/tenants/${id}`,
+      headers: { ...as(tokens.operator), "content-type": "application/json" },
+      payload: JSON.stringify({ status: "suspended" }),
+    });
+    await audited(
+      "POST /operator/tenants/:id/offboard",
+      `/operator/tenants/${id}/offboard`,
+      { confirmName: name },
+      {
+        action: "tenant.offboard_requested",
+        targetType: "company",
+        targetId: id,
+        actor: "operator",
+      },
+    );
+  });
+
   it("the operator's job verbs are filed under the job's tenant", async () => {
     const dead = world.jobAdmin.addDead("analysis.run", {
       id: "33333333-3333-4333-8333-333333333333",

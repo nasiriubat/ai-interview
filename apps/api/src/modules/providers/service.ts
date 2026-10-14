@@ -62,6 +62,12 @@ export interface RouteRowOut {
   maxOutputTokens: number;
   batchAllowed: boolean;
   inherited: boolean;
+  /**
+   * The route used when this purpose's provider is down (D-228); null when none is configured.
+   * `fallbackInherited` says the platform's fallback applies because the tenant set none.
+   */
+  fallback: { providerId: string; model: string } | null;
+  fallbackInherited: boolean;
 }
 
 /**
@@ -615,12 +621,18 @@ export class ProviderService {
     const rows = await this.db.route.findMany({
       where: companyId ? { OR: [{ companyId }, { companyId: null }] } : { companyId: null },
     });
+    const fallbacks = await this.db.fallbackRoute.findMany({
+      where: companyId ? { OR: [{ companyId }, { companyId: null }] } : { companyId: null },
+    });
     const out: RouteRowOut[] = [];
     for (const purpose of ROUTABLE_PURPOSES) {
       const own = rows.find((r) => r.purpose === purpose && r.companyId === companyId);
       const platform = rows.find((r) => r.purpose === purpose && r.companyId === null);
       const r = own ?? platform;
       if (!r) continue;
+      const ownFallback = fallbacks.find((f) => f.purpose === purpose && f.companyId === companyId);
+      const platformFallback = fallbacks.find((f) => f.purpose === purpose && f.companyId === null);
+      const f = ownFallback ?? platformFallback;
       out.push({
         id: r.id,
         purpose,
@@ -631,6 +643,8 @@ export class ProviderService {
         maxOutputTokens: r.maxOutputTokens,
         batchAllowed: r.batchAllowed,
         inherited: !own,
+        fallback: f ? { providerId: f.providerId, model: f.model } : null,
+        fallbackInherited: f !== undefined && ownFallback === undefined,
       });
     }
     return out;
@@ -662,6 +676,36 @@ export class ProviderService {
     const existing = await this.db.route.findFirst({ where: { companyId, purpose } });
     if (existing) await this.db.route.update({ where: { id: existing.id }, data });
     else await this.db.route.create({ data: { companyId, purpose, ...data } });
+  }
+
+  /**
+   * Sets or clears the fallback route of a purpose in this scope (D-228). The provider must be one
+   * this scope may use, exactly as for the primary, and a fallback on the same provider as the
+   * primary is refused: it would route a failing provider back to itself.
+   */
+  async setFallback(
+    companyId: string | null,
+    purpose: Purpose,
+    fallback: { providerId: string; model: string } | null,
+  ): Promise<void> {
+    if (fallback === null) {
+      await this.db.fallbackRoute.deleteMany({ where: { companyId, purpose } });
+      return;
+    }
+    await this.get(companyId, fallback.providerId);
+    const primary =
+      (await this.db.route.findFirst({ where: { companyId, purpose } })) ??
+      (await this.db.route.findFirst({ where: { companyId: null, purpose } }));
+    if (primary?.providerId === fallback.providerId)
+      throw new AppError("validation", "The fallback must use a different provider than the primary route");
+    const data = {
+      providerId: fallback.providerId,
+      model: fallback.model,
+      maxOutputTokens: primary?.maxOutputTokens ?? 4096,
+    };
+    const existing = await this.db.fallbackRoute.findFirst({ where: { companyId, purpose } });
+    if (existing) await this.db.fallbackRoute.update({ where: { id: existing.id }, data });
+    else await this.db.fallbackRoute.create({ data: { companyId, purpose, ...data } });
   }
 
   /** Estimates what one interview costs at the current routes, for the admin's sanity check. */

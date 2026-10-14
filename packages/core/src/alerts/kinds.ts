@@ -125,6 +125,24 @@ export const ALERT_KINDS = {
     repeatMinutes: 60,
     summary: "A model provider is failing a large share of calls",
   },
+  "provider.fallback_active": {
+    severity: "warning",
+    audience: ["operator"],
+    repeatMinutes: 60,
+    summary: "A purpose is being served by its fallback route because the primary provider is down",
+  },
+  "backup.drill_failed": {
+    severity: "critical",
+    audience: ["operator"],
+    repeatMinutes: 720,
+    summary: "The weekly restore drill could not restore the latest backup or its row counts did not match",
+  },
+  "tenant.offboarded": {
+    severity: "info",
+    audience: ["operator"],
+    repeatMinutes: TEN_YEARS_MINUTES,
+    summary: "A tenant's data was removed and the erasure was recorded",
+  },
   "rls.preflight_failed": {
     severity: "critical",
     audience: ["operator"],

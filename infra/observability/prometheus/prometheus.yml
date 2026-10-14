@@ -1,0 +1,25 @@
+# Scrape configuration for the optional observability profile (D-222).
+#
+# Pull, not push: the API and the worker serve /metrics on an internal port (METRICS_PORT), so
+# there is no collector to run and nothing to lose when Prometheus is down: it just misses samples.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+  - job_name: api
+    static_configs:
+      - targets: ["api:9464"]
+        labels: { service: api }
+
+  - job_name: worker
+    static_configs:
+      - targets: ["worker:9465"]
+        labels: { service: worker }
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["127.0.0.1:9090"]

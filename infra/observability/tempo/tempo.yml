@@ -1,0 +1,35 @@
+# Single-binary Tempo with a local backend, for the optional `traces` profile (D-222).
+# OTLP over HTTP on 4318, which is what the application's exporter speaks
+# (OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318). Seven days of traces, no replication.
+stream_over_http_enabled: true
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 168h
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks
+
+# Only what a single process on a small host can use; the defaults assume a cluster.
+overrides:
+  defaults:
+    ingestion:
+      rate_limit_bytes: 5000000
+      burst_size_bytes: 10000000

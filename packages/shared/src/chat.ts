@@ -64,6 +64,13 @@ export const UsageSchema = z.object({
   cacheReadTokens: z.number().int().nonnegative(),
   cacheWriteTokens: z.number().int().nonnegative(),
   outputTokens: z.number().int().nonnegative(),
+  /**
+   * Audio duration the call consumed: speech-to-text input, in seconds. Priced per minute
+   * (`ModelPrice.audioPerMinute`). Optional so a token-only call need not name it (D-220).
+   */
+  audioSeconds: z.number().nonnegative().optional(),
+  /** Characters sent to text-to-speech. Priced per million characters (`ModelPrice.ttsPerMChars`). */
+  ttsCharacters: z.number().int().nonnegative().optional(),
 });
 export type Usage = z.infer<typeof UsageSchema>;
 export const emptyUsage = (): Usage => ({
@@ -92,6 +99,12 @@ export interface TranscriptionInput {
    * heard as Estonian. Providers that cannot use it ignore it.
    */
   languages?: string[];
+  /**
+   * How long the recording is, when the caller knows (a recorded answer carries its duration). The
+   * ledger books the provider's own measurement first and this second; with neither, the call is
+   * booked without audio seconds rather than with a guess (D-220).
+   */
+  durationSeconds?: number;
 }
 /**
  * Streaming speech-to-text (FR-30a, D-77): the `stt_stream` purpose.
