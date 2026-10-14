@@ -1,5 +1,6 @@
 import { CallAbortedError, type EngineEvent, type TurnAnswer } from "@aidp/ai";
 import type { SessionState } from "@aidp/shared";
+import { context, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { FastifyReply } from "fastify";
 import type { RouteContext } from "../../context.js";
 import { AppError } from "../../lib/errors.js";
@@ -32,6 +33,8 @@ export interface RunTurnOptions {
   heartbeatMs?: number;
 }
 
+const tracer = trace.getTracer("aidp.api");
+
 /** One thing to send the client. The transport decides how. */
 export interface TurnEvent {
   event: string;
@@ -56,8 +59,59 @@ export async function* streamTurn(
   answer: TurnAnswer | undefined,
   options?: RunTurnOptions,
 ): AsyncGenerator<TurnEvent, void> {
+  // The `session.turn` span (D-222): the model calls the turn makes are its children, and the
+  // follow-up jobs it queues carry its trace context. It has to be re-entered on every `next()`
+  // because a generator resumes in its consumer's async context, not in the one that started it.
+  const mode: "chat" | "voice" =
+    answer && "modality" in answer && answer.modality === "voice" ? "voice" : "chat";
+  const span = tracer.startSpan("session.turn", {
+    attributes: { "session.id": sessionId, "turn.mode": mode },
+  });
+  const spanContext = trace.setSpan(context.active(), span);
+  const began = Date.now();
+  let tenant = "";
+  let firstTokenMs: number | undefined;
+  let ended = false;
+  let failed: string | undefined;
+  const inner = streamTurnInner(ctx, sessionId, answer, options, (companyId) => {
+    tenant = companyId;
+    span.setAttribute("tenant.id", companyId);
+  });
+  try {
+    for (;;) {
+      const r = await context.with(spanContext, () => inner.next());
+      if (r.done) return;
+      const item = r.value;
+      if (firstTokenMs === undefined && (item.event === "text" || item.event === "turn")) {
+        firstTokenMs = Date.now() - began;
+        span.setAttribute("turn.first_token_ms", firstTokenMs);
+      }
+      if (item.event === "ended") ended = true;
+      if (item.event === "error") failed = String((item.data as { code?: string }).code ?? "error");
+      yield item;
+    }
+  } finally {
+    await inner.return(undefined);
+    span.setAttribute("turn.ended", ended);
+    if (failed) {
+      span.setAttribute("turn.error", failed);
+      span.setStatus({ code: SpanStatusCode.ERROR, message: failed });
+    }
+    span.end();
+    if (tenant) ctx.metrics.turn(tenant, mode, Date.now() - began);
+  }
+}
+
+async function* streamTurnInner(
+  ctx: RouteContext,
+  sessionId: string,
+  answer: TurnAnswer | undefined,
+  options: RunTurnOptions | undefined,
+  onLoaded: (companyId: string) => void,
+): AsyncGenerator<TurnEvent, void> {
   const turns = ctx.services.turns;
   const row = await turns.load(sessionId);
+  onLoaded(row.companyId);
   if (row.status === "deleted" || row.status === "completed")
     throw new AppError("conflict", `Session is ${row.status}`);
   if (row.status === "created") throw new AppError("conflict", "Consent is required before the first turn");

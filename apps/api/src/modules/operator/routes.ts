@@ -5,12 +5,14 @@ import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
 import { operatorJobRoutes } from "./jobs.js";
 import { TenantCreateBody, TenantListQuery, TenantPatchBody } from "./service.js";
+import { operatorTenancyRoutes } from "./tenancy-ops.js";
 
 /** Platform operator: tenants and global numbers. Platform providers and routes use the provider routes with X-Company-Id unset and companyId null. */
 export async function operatorRoutes(app: App, ctx: RouteContext): Promise<void> {
   const op = guard.operator();
   const operator = ctx.services.operator;
   await operatorJobRoutes(app, ctx);
+  await operatorTenancyRoutes(app, ctx);
 
   app.get("/operator/tenants", { ...op, schema: { querystring: TenantListQuery } }, async (req) =>
     operator.listTenants({ userId: staff(req).userId }, req.query),

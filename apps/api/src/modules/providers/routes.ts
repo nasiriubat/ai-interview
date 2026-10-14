@@ -38,6 +38,14 @@ const RouteRow = z.object({
   effort: z.enum(["low", "medium", "high", "xhigh", "max"]).nullable().optional(),
   maxOutputTokens: z.number().int().min(16).max(128000).nullable().optional(),
   batchAllowed: z.boolean().nullable().optional(),
+  /**
+   * The route used when the primary's provider is down (D-228): omitted leaves it as it is, null
+   * clears it, an object sets it.
+   */
+  fallback: z
+    .object({ providerId: z.string().min(1), model: z.string().min(1) })
+    .nullable()
+    .optional(),
 });
 
 type ScopeOf = (req: FastifyRequest) => string | null;
@@ -237,6 +245,9 @@ function mountProviderRoutes(
               }
             : null;
         await svc.setRoute(scope(req), row.purpose, route);
+        // Clearing the override clears its fallback with it; otherwise only what was said changes.
+        const fallback = row.fallback !== undefined ? row.fallback : route === null ? null : undefined;
+        if (fallback !== undefined) await svc.setFallback(scope(req), row.purpose, fallback);
       }
       await ctx.services.audit.record(auditCompany(req), {
         actorId: staff(req).userId,

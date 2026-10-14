@@ -9,6 +9,7 @@ import type {
   JobPublisher,
   SettingsService,
   TenantCeilings,
+  TenantExporter,
   TenantGate,
   TenantOnboarding,
 } from "@aidp/core";
@@ -86,6 +87,7 @@ export interface ServiceDeps {
   jobs: JobPublisher;
   ceilings: TenantCeilings;
   onboarding: TenantOnboarding;
+  exporter?: TenantExporter;
 }
 
 export function buildServices(d: ServiceDeps): Services {
@@ -125,6 +127,7 @@ export function buildServices(d: ServiceDeps): Services {
       ceilings: d.ceilings,
       onboarding: d.onboarding,
       publicWebUrl: d.config.PUBLIC_WEB_URL,
+      ...(d.exporter ? { exporter: d.exporter } : {}),
     }),
     voiceSetup: new VoiceSetupService({
       db: d.db,

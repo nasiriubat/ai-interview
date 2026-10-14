@@ -768,6 +768,73 @@ export const DeadJobListSchema = z.looseObject({ queue: z.string(), jobs: z.arra
 
 export const HealthSchema = z.looseObject({ ok: z.boolean().optional(), status: z.string().optional() });
 
+/** `GET /operator/health` (D-222): every platform signal and each tenant's utilisation. */
+export const HealthSignalSchema = z.looseObject({
+  key: z.string(),
+  status: z.enum(["ok", "warn", "critical", "unknown"]),
+  detail: z.string(),
+  value: z.union([z.number(), z.string()]).nullish(),
+});
+export const CeilingUseSchema = z.looseObject({
+  metric: z.string(),
+  used: z.number(),
+  max: z.number(),
+  percent: z.number().nullable(),
+});
+export const TenantHealthSchema = z.looseObject({
+  companyId: z.string(),
+  name: z.string(),
+  status: z.string(),
+  sessionsThisMonth: z.number(),
+  activeSessions: z.number(),
+  spendCents: z.number(),
+  budgetLimitCents: z.number().nullable(),
+  budgetFraction: z.number().nullable(),
+  storageBytes: z.number(),
+  voiceMinutes: z.number(),
+  lastActivityAt: z.string().nullable(),
+  openCampaigns: z.number(),
+  deadLetters24h: z.number(),
+  firstTokenP95Ms: z.number().nullable(),
+  utilisation: z.array(CeilingUseSchema),
+});
+export const PlatformHealthSchema = z.looseObject({
+  generatedAt: z.string(),
+  version: z.string().nullable(),
+  signals: z.array(HealthSignalSchema),
+  providers: z.array(
+    z.looseObject({
+      providerId: z.string(),
+      name: z.string(),
+      calls: z.number(),
+      failed: z.number(),
+      errorRate: z.number(),
+      circuit: z.enum(["closed", "half_open", "open"]),
+    }),
+  ),
+  latency: z.looseObject({
+    firstTokenP50Ms24h: z.number().nullable(),
+    firstTokenP95Ms24h: z.number().nullable(),
+    firstTokenTargetMs: z.number(),
+    voiceFirstWordP95Ms24h: z.number().nullable(),
+    voiceFirstWordTargetMs: z.number(),
+  }),
+  backup: z.looseObject({
+    lastResult: z.string().nullable(),
+    lastSuccessAt: z.string().nullable(),
+    ageHours: z.number().nullable(),
+    offsite: z.string().nullable(),
+    drill: z.looseObject({
+      result: z.string().nullable(),
+      at: z.string().nullable(),
+      error: z.string().nullable(),
+      durationS: z.number().nullable(),
+    }),
+  }),
+  tenants: z.array(TenantHealthSchema),
+});
+export type PlatformHealth = z.infer<typeof PlatformHealthSchema>;
+
 // Phase 2: analysis and report (docs/spec/17)
 
 export const AnalysisStatusSchema = z.enum(["queued", "running", "done", "failed"]);

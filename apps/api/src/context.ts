@@ -10,11 +10,16 @@ import {
   GitHubApi,
   MemoryEmail,
   MemoryJobAdmin,
+  NoopMetrics,
+  PlatformHealthService,
   PrismaAlertState,
+  PrismaHealthInputs,
   RequirementsService,
   SettingsEmail,
   SettingsService,
+  StatementService,
   TenantCeilings,
+  TenantExporter,
   TenantGate,
   TenantNotices,
   TenantOnboarding,
@@ -25,6 +30,7 @@ import {
   type GitHubPort,
   type JobAdminPort,
   type JobPublisher,
+  type Metrics,
   type StoragePort,
 } from "@aidp/core";
 import type { PrismaClient } from "@prisma/client";
@@ -72,6 +78,15 @@ export interface AppContext {
   alerts: AlertPort;
   /** The queue's dead letters and counters, for the operator jobs page (D-92). */
   jobAdmin: JobAdminPort;
+  /** Numbers for the scrape endpoint and the dashboards (D-222). A no-op unless the process serves `/metrics`. */
+  metrics: Metrics;
+  /** What the operator promised the tenant it may use, checked where a thing is created (D-188, D-229). */
+  ceilings: TenantCeilings;
+  /** Statements, tenant export and offboarding, for the operator routes (D-224 to D-226). */
+  statements: StatementService;
+  exporter: TenantExporter;
+  /** Every platform signal and per-tenant utilisation, for `/operator/health` (D-222). */
+  platformHealth: PlatformHealthService;
 }
 
 /**
@@ -98,8 +113,11 @@ export function buildContext(input: {
   alerts?: AlertPort;
   /** Required in production (PgBossJobAdmin); tests get a MemoryJobAdmin. */
   jobAdmin?: JobAdminPort;
+  /** Tests pass a PromMetrics to read what was recorded; the default records nothing. */
+  metrics?: Metrics;
 }): AppContext {
   const { config, db, log } = input;
+  const metrics = input.metrics ?? new NoopMetrics();
   const speech = input.speech ?? localSpeechRunner();
   const crypto = Crypto.fromEnv(config);
   const settings = new SettingsService(db, crypto, {
@@ -161,6 +179,7 @@ export function buildContext(input: {
     egress,
     speech,
     alerts,
+    metrics,
     publicWebUrl: config.PUBLIC_WEB_URL,
     onBudgetWarning: (ctx, warnings) => {
       log.warn({ companyId: ctx.companyId, warnings }, "budget warning");
@@ -198,7 +217,7 @@ export function buildContext(input: {
   // The API stores uploads and hands them to the worker to read; it never ingests them itself,
   // so it needs no model caller here.
   const storage = input.storage ?? createStorage(config.UPLOAD_DIR);
-  const attachments = new AttachmentService({ db, storage, settings, log: engineLogger(log) });
+  const attachments = new AttachmentService({ db, storage, settings, log: engineLogger(log), ceilings });
   const requirements = new RequirementsService({
     db,
     callers,
@@ -210,6 +229,43 @@ export function buildContext(input: {
     crypto,
     github,
     notices,
+  });
+  const exporter = new TenantExporter({ db, storage, crypto });
+  // The operator's one page (D-222): the sweep's own inputs, read on request.
+  const platformHealth = new PlatformHealthService({
+    db,
+    inputs: new PrismaHealthInputs({
+      db,
+      admin: jobAdmin,
+      opsStateDir: config.OPS_STATE_DIR,
+      diskPath: config.UPLOAD_DIR ?? config.OPS_STATE_DIR,
+    }),
+    ceilings,
+    thresholds: async () => {
+      const v = await settings.resolveMany(
+        [
+          "ops.diskWarnPercent",
+          "ops.diskCriticalPercent",
+          "ops.providerErrorRateWarn",
+          "ops.backupMaxAgeHours",
+          "voice.targetFirstWordMs",
+        ],
+        [],
+      );
+      return {
+        diskWarnPercent: Number(v["ops.diskWarnPercent"]),
+        diskCriticalPercent: Number(v["ops.diskCriticalPercent"]),
+        providerErrorRate: Number(v["ops.providerErrorRateWarn"]),
+        backupMaxAgeHours: Number(v["ops.backupMaxAgeHours"]),
+        voiceTargetFirstWordMs: Number(v["voice.targetFirstWordMs"]),
+      };
+    },
+    circuit: (id) => callers.breaker.state(id),
+    speech: () => {
+      const s = speech.status();
+      return { state: s.state, model: s.model };
+    },
+    version: config.AIDP_VERSION,
   });
   const services = buildServices({
     db,
@@ -227,6 +283,7 @@ export function buildContext(input: {
     jobs: input.jobs,
     ceilings,
     onboarding,
+    exporter,
   });
   return {
     config,
@@ -250,5 +307,10 @@ export function buildContext(input: {
     shutdown: new AbortController(),
     alerts,
     jobAdmin,
+    metrics,
+    ceilings,
+    statements: new StatementService({ db }),
+    exporter,
+    platformHealth,
   };
 }

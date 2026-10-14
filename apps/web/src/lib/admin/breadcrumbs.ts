@@ -24,6 +24,7 @@ function sectionLabels(): Record<string, string> {
     "/admin/operator/routes": n.platformRoutes,
     "/admin/operator/stats": n.platformStats,
     "/admin/operator/jobs": n.platformJobs,
+    "/admin/operator/health": n.platformHealth,
   };
 }
 
