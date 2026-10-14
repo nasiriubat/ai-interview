@@ -250,7 +250,7 @@ export async function startStack(openRouterKey: string): Promise<Stack> {
       PLATFORM_ENCRYPTION_KEY: encryptionKey,
       BOOTSTRAP_OPERATOR_EMAIL: OPERATOR_EMAIL,
       BOOTSTRAP_ADMIN_EMAIL: ADMIN_EMAIL,
-      BOOTSTRAP_TENANT_NAME: "Live run tenant",
+      BOOTSTRAP_TENANT_NAME: process.env.LIVE_TENANT_NAME ?? "Live run tenant",
       OPENROUTER_API_KEY: openRouterKey,
     }),
     logs.bootstrap,
