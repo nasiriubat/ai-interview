@@ -707,8 +707,7 @@ What it is made of: [`deploy/compose.fake.yml`](../deploy/compose.fake.yml) adds
 for latency and failure injection) and a mail catcher to the production file; nothing in
 `compose.prod.yml` knows about them. The scratch directory (`$TMPDIR/aidpfull`, mode 700) holds the
 generated env, the version record and the results; the project is `aidpfull`, the ports 18080 and
-18443, the hostname `aidp.localhost`, Caddy's own CA. The development stack has the same fake as an
-overlay: `docker compose -f docker-compose.yml -f docker-compose.fake.yml up -d`.
+18443, the hostname `aidp.localhost`, Caddy's own CA.
 
 Things this taught, which are why the rehearsal exists (dated records:
 [`docs/team/drills/2026-10-14-full-stack.md`](team/drills/2026-10-14-full-stack.md) and

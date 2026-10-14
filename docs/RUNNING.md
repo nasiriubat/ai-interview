@@ -60,17 +60,9 @@ filtered to this project, so the image list does not grow with every build.
 
 ### Against a scripted model (no keys, no internet)
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.fake.yml up -d --build
-node deploy/drill/configure.mjs     # AIDP_* variables: deploy/drill/stack.sh env prints them
-```
-
-`docker-compose.fake.yml` adds `tools/fake-provider`, an OpenAI-compatible server with scripted
-interviews, and lets the API and worker reach it. `configure.mjs` then does what an operator would
-in the admin: it creates the provider, prices it and routes every purpose to it. The control
-endpoint (`http://localhost:14010/__control`: latency, error rate, 429s, hangs) and the alert sink
-(`/__sink`) are for trying failure by hand. The production-shaped rehearsal, with Caddy and the
-backup, is in [DEPLOY.md](DEPLOY.md#rehearsing-a-deployment).
+The production-shaped rehearsal runs the whole stack against `tools/fake-provider`, an
+OpenAI-compatible server with scripted interviews and a control endpoint for latency and failure
+injection: see [DEPLOY.md](DEPLOY.md#rehearsing-a-deployment) (`deploy/drill/stack.sh`).
 
 ## How the first admin signs in
 

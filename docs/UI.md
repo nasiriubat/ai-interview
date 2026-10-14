@@ -154,8 +154,8 @@ there is no motion the shell needs that a transition does not do, and it would c
 ## Visual review
 
 `pnpm --filter @aidp/web exec tsx scripts/screenshots.ts` writes screenshots of any pages at any
-widths, themes and languages (see the header of the script); `scripts/overflow.ts` names what sticks
-out past the viewport.
+widths, themes and languages (see the header of the script). The Playwright layout specs
+(`e2e/*layout*.spec.ts`, `e2e/workspace.spec.ts`) assert that nothing scrolls sideways.
 
 ## Results and operator pages (D-370 to D-379)
 
@@ -207,16 +207,8 @@ const value = await encode({
 `e2e/pages.ts` takes `scenario` on an entry (`adminIn`, or the fourth argument of `operator`), so
 axe and the CSP check run on the empty, withheld, long, running and error versions of a page.
 
-The review matrix:
-
-```
-BASE=http://localhost:3641 OUT=/tmp/review SHOTS='^results-' WIDTHS=390,1280 THEMES=light,dark \
-  LOCALES=en,fi pnpm exec tsx scripts/review-workspace.ts
-```
-
-`scripts/overflow.ts` names what makes a page scroll sideways. It skips what a scroller clips, but
-not an absolutely positioned child of a scroller that is not its containing block, which is how a
-`sr-only` header cell once did (the scroller is now `relative`).
+A `sr-only` header cell once escaped its scroller and made the page scroll sideways; the scroller is
+now `relative`.
 `e2e/workspace.spec.ts` asserts the geometry: nothing scrolls sideways, the filter bar sticks, the
 side panel stays on screen, withheld values are marked, the paper is a page wide, a row action
 names itself, offboarding needs the name typed.
@@ -253,5 +245,3 @@ The participant has no shell: `CenteredShell` frames arrival and status screens,
 - Failures a person can retry (provider, offline, session expiry) are `Alert variant="warning"`; red is for what is wrong with their input.
 - `DiagramViewer` (`components/report/`) is the only way a diagram is shown: zoom, pan, full screen, source.
 - `ExportMenu labelled` is the page-header form of the export menu; the icon form is for table toolbars.
-
-Review states: `BASE=http://localhost:3470 OUT=/tmp/shots pnpm exec tsx scripts/review-shots.ts` (`ONLY`, `WIDTHS`, `THEMES`, `LOCALES`).
