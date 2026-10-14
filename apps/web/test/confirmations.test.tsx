@@ -3,7 +3,8 @@ import { act, render, renderHook, screen, waitFor, within } from "@testing-libra
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CampaignActions } from "@/components/admin/campaigns/CampaignActions";
-import { InvitationsPanel } from "@/components/admin/campaigns/InvitationsPanel";
+import { InvitationActions } from "@/components/admin/campaigns/InvitationActions";
+import { InviteComposer } from "@/components/admin/campaigns/InviteComposer";
 import { TenantsPanel } from "@/components/admin/operator/TenantsPanel";
 import { RoutesForm } from "@/components/admin/providers/RoutesForm";
 import { InvitationsSection } from "@/components/admin/requirements/InvitationsSection";
@@ -120,7 +121,14 @@ describe("invitations: revoke and bulk send ask first", () => {
   it("revoking a campaign invitation names the person and waits", async () => {
     staff.campaigns.revoke.mockResolvedValue(undefined);
     const user = userEvent.setup();
-    render(<InvitationsPanel campaignId="c1" invitations={[inv]} />);
+    render(
+      <InvitationActions
+        campaignId="c1"
+        invitationId={inv.id}
+        email={inv.email ?? null}
+        status={inv.status}
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "Revoke: ada@example.com" }));
     expect(
       within(dialog()).getByText(/ada@example\.com will no longer be able to use this invitation/),
@@ -148,20 +156,23 @@ describe("invitations: revoke and bulk send ask first", () => {
   it("more than 50 addresses ask with the count; 50 or fewer send straight away", async () => {
     staff.campaigns.invite.mockResolvedValue({ created: 1, skipped: 0 });
     const user = userEvent.setup();
-    render(<InvitationsPanel campaignId="c1" invitations={[]} />);
-    const box = screen.getByLabelText("Email");
+    render(<InviteComposer campaignId="c1" />);
+    const box = screen.getByLabelText(/Email addresses/);
 
     await user.click(box);
     await user.paste(Array.from({ length: 50 }, (_, i) => `p${i}@example.com`).join("\n"));
-    await user.click(screen.getByRole("button", { name: /Send invitations/ }));
+    await user.click(screen.getByRole("button", { name: /^Send \d+ invitations?$/ }));
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     await waitFor(() => {
       expect(staff.campaigns.invite).toHaveBeenCalledTimes(1);
     });
+    await waitFor(() => {
+      expect(box).toHaveValue("");
+    });
 
     await user.click(box);
     await user.paste(Array.from({ length: 51 }, (_, i) => `q${i}@example.com`).join("\n"));
-    await user.click(screen.getByRole("button", { name: /Send invitations/ }));
+    await user.click(screen.getByRole("button", { name: /^Send \d+ invitations?$/ }));
     expect(within(dialog()).getByText("Send 51 invitations?")).toBeInTheDocument();
     expect(staff.campaigns.invite).toHaveBeenCalledTimes(1);
     await user.click(within(dialog()).getByRole("button", { name: "Send 51 invitations" }));

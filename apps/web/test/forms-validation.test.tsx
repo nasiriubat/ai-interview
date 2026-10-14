@@ -122,7 +122,7 @@ describe("template form validation", () => {
     // Key, name and objective are empty in a blank template.
     expect(screen.getByRole("link", { name: "Basics: Key" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Basics: Name" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "" })).toBeDefined();
+    expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
 
     // The first invalid field in document order has focus and carries its error.
     const key = screen.getByLabelText(/^Key/);
@@ -225,7 +225,7 @@ describe("campaign and requirements forms", () => {
     expect(await screen.findByText("2 problems to fix")).toBeInTheDocument();
     // The template picker is the first invalid control in document order.
     await waitFor(() => {
-      expect(document.getElementById("templateId")).toHaveFocus();
+      expect(document.getElementById("campaign-form-templateId")).toHaveFocus();
     });
     expect(screen.getByText("Fix 2 problems to save")).toBeInTheDocument();
   });

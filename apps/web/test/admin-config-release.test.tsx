@@ -42,6 +42,8 @@ vi.mock("@/lib/api/browser", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh, push, back: vi.fn() }),
+  usePathname: () => "/admin/templates/t3",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 beforeEach(() => {

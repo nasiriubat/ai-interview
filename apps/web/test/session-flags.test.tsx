@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FlagCallout } from "@/components/admin/campaigns/FlagCallout";
-import { SessionsTable } from "@/components/admin/campaigns/SessionsTable";
+import { sessionRowsOf } from "@/components/admin/campaigns/sessionRows";
+import { DataTable } from "@/components/data/DataTable";
 import { enumFilter } from "@/lib/admin/toolbar";
 import { LISTS } from "@/lib/api/lists";
 import { SessionListItemSchema } from "@/lib/api/schemas";
@@ -26,23 +27,38 @@ beforeEach(() => {
   vi.resetAllMocks();
 });
 
+const SessionsTable = ({ sessions }: { sessions: ReturnType<typeof row>[] }) => (
+  <DataTable
+    id="sessions"
+    label="Interviews"
+    columns={[
+      { id: "participant", header: "Participant", primary: true, locked: true },
+      { id: "flag", header: "Attention" },
+    ]}
+    rows={sessionRowsOf(sessions)}
+    page={{ page: 1, limit: 50, count: sessions.length, total: sessions.length }}
+  />
+);
+
 const row = (over: object) => SessionListItemSchema.parse({ id: "abcdef123456", status: "active", ...over });
 
 describe("sessions table", () => {
   it("marks a flagged interview with words and an icon, and leaves the others alone", () => {
     render(<SessionsTable sessions={[row({ id: "aaaaaaaa1", flagged: true }), row({ id: "bbbbbbbb2" })]} />);
 
-    expect(screen.getAllByText("Needs attention")).toHaveLength(1);
-    const flaggedRow = screen.getByText("aaaaaaaa").closest("tr");
+    const table = within(screen.getByRole("table"));
+    expect(table.getAllByText("Needs attention")).toHaveLength(1);
+    const flaggedRow = table.getByText("aaaaaaaa").closest("tr");
     expect(flaggedRow).toHaveTextContent("Needs attention");
-    expect(screen.getByText("bbbbbbbb").closest("tr")).not.toHaveTextContent("Needs attention");
+    expect(table.getByText("bbbbbbbb").closest("tr")).not.toHaveTextContent("Needs attention");
   });
 
   it("says an acknowledged flag was looked at, without removing it", () => {
     render(<SessionsTable sessions={[row({ flagged: true, flagAckedAt: "2026-10-14T10:00:00.000Z" })]} />);
 
-    expect(screen.getByText("Looked at")).toBeInTheDocument();
-    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+    const table = within(screen.getByRole("table"));
+    expect(table.getByText("Looked at")).toBeInTheDocument();
+    expect(table.queryByText("Needs attention")).not.toBeInTheDocument();
   });
 });
 

@@ -2,6 +2,7 @@
 
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
+import { IconButton } from "@/components/admin/IconButton";
 import { Button } from "@/components/ui/button";
 import { Inset } from "@/components/ui/inset";
 import { t } from "@/i18n";
@@ -43,41 +44,30 @@ export function ListEditor<T>({
                 {i + 1}. {itemLabel(item, i)}
               </span>
               <div className="flex gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
+                <IconButton
                   disabled={i === 0}
-                  aria-label={`${t.app.moveUp}: ${itemLabel(item, i)}`}
+                  label={`${t.app.moveUp}: ${itemLabel(item, i)}`}
+                  icon={<ArrowUpIcon />}
                   onClick={() => {
                     move(i, -1);
                   }}
-                >
-                  <ArrowUpIcon />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
+                />
+                <IconButton
                   disabled={i === items.length - 1}
-                  aria-label={`${t.app.moveDown}: ${itemLabel(item, i)}`}
+                  label={`${t.app.moveDown}: ${itemLabel(item, i)}`}
+                  icon={<ArrowDownIcon />}
                   onClick={() => {
                     move(i, 1);
                   }}
-                >
-                  <ArrowDownIcon />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`${t.app.remove}: ${itemLabel(item, i)}`}
+                />
+                <IconButton
+                  label={`${t.app.remove}: ${itemLabel(item, i)}`}
+                  icon={<Trash2Icon />}
+                  className="text-muted-foreground hover:text-destructive"
                   onClick={() => {
                     onChange(items.filter((_, k) => k !== i));
                   }}
-                >
-                  <Trash2Icon />
-                </Button>
+                />
               </div>
             </div>
             {renderItem(

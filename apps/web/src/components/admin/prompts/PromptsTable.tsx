@@ -1,8 +1,10 @@
+import { PencilIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
-import { Panel } from "@/components/admin/Panel";
+import { IconButton, RowActions } from "@/components/admin/IconButton";
+import { SectionTitle } from "@/components/admin/Panel";
+import { DataTable } from "@/components/data/DataTable";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import { PROMPT_GROUPS, type PromptGroup, type PromptSummary } from "@/lib/api/schemas";
 import { formatPercent } from "@/lib/utils";
@@ -18,7 +20,11 @@ export function promptDescription(key: string): string | undefined {
   return names[key]?.description;
 }
 
-/** Every prompt, grouped by what it is for, with what is in use and how it has been doing. */
+/**
+ * Every prompt, grouped by what it is for, with what is in use and how it has been doing (D-363).
+ * The set is fixed and small, so each group is one table on one page; the row's one action is to
+ * open the prompt.
+ */
 export function PromptsTable({
   prompts,
   windowDays,
@@ -31,15 +37,15 @@ export function PromptsTable({
     rows: prompts.filter((p) => p.group === group),
   })).filter((g) => g.rows.length > 0);
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       {groups.map(({ group, rows }) => (
-        <GroupPanel key={group} group={group} rows={rows} windowDays={windowDays} />
+        <GroupTable key={group} group={group} rows={rows} windowDays={windowDays} />
       ))}
     </div>
   );
 }
 
-function GroupPanel({
+function GroupTable({
   group,
   rows,
   windowDays,
@@ -49,57 +55,74 @@ function GroupPanel({
   windowDays: number;
 }): React.JSX.Element {
   const s = t.admin.prompts;
+  const headingId = `prompt-group-${group}`;
   return (
-    <Panel title={s.groups[group]} description={s.windowNote(windowDays)}>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{s.columns.prompt}</TableHead>
-              <TableHead>{s.columns.serving}</TableHead>
-              <TableHead>{s.columns.builtIn}</TableHead>
-              <TableHead className="text-right">{s.columns.calls}</TableHead>
-              <TableHead className="text-right">{s.columns.errors}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((p) => (
-              <TableRow key={p.key}>
-                <TableCell className="max-w-md">
-                  <Link
-                    href={`/admin/prompts/${encodeURIComponent(p.key)}`}
-                    className="text-primary font-medium underline-offset-2 hover:underline"
-                  >
-                    {promptName(p.key)}
-                  </Link>
-                  <p className="text-muted-foreground mt-0.5 text-xs">
-                    <code className="font-mono">{p.key}</code>
-                    {promptDescription(p.key) ? ` · ${promptDescription(p.key) ?? ""}` : ""}
-                  </p>
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  <Badge variant={p.effective.source === "tenant" ? "default" : "secondary"}>
-                    {s.source[p.effective.source]}
-                  </Badge>{" "}
-                  <code className="font-mono text-xs">{p.effective.tag}</code>
-                  {p.canary ? (
-                    <Badge variant="warning" className="ml-1.5">
-                      {s.canaryBadge(Math.round(p.canary.share * 100))}
-                    </Badge>
-                  ) : null}
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  <code className="font-mono text-xs">{p.shipped.tag}</code>
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{p.stats.calls}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {p.stats.calls > 0 ? formatPercent(p.stats.errorRate) : t.admin.common.dash}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <section aria-labelledby={headingId} className="grid grid-cols-[minmax(0,1fr)] gap-3">
+      <div>
+        <SectionTitle id={headingId}>{s.groups[group]}</SectionTitle>
+        <p className="text-muted-foreground mt-0.5 text-[13px]">{s.windowNote(windowDays)}</p>
       </div>
-    </Panel>
+      <DataTable
+        id={`prompts-${group}`}
+        label={s.groups[group]}
+        columns={[
+          { id: "prompt", header: s.columns.prompt, primary: true, locked: true },
+          { id: "serving", header: s.columns.serving, locked: true },
+          { id: "builtIn", header: s.columns.builtIn, locked: true },
+          { id: "calls", header: s.columns.calls, align: "end", locked: true },
+          { id: "errors", header: s.columns.errors, align: "end", locked: true },
+        ]}
+        rows={rows.map((p) => ({
+          id: p.key,
+          label: promptName(p.key),
+          cells: {
+            prompt: (
+              <span className="block max-w-md min-w-0">
+                <Link
+                  href={`/admin/prompts/${encodeURIComponent(p.key)}`}
+                  className="text-foreground font-medium hover:underline"
+                >
+                  {promptName(p.key)}
+                </Link>
+                <span className="text-muted-foreground mt-0.5 block text-xs">
+                  <code className="font-mono">{p.key}</code>
+                  {promptDescription(p.key) ? ` · ${promptDescription(p.key) ?? ""}` : ""}
+                </span>
+              </span>
+            ),
+            serving: (
+              <span className="whitespace-nowrap">
+                <Badge variant={p.effective.source === "tenant" ? "default" : "secondary"}>
+                  {s.source[p.effective.source]}
+                </Badge>{" "}
+                <code className="font-mono text-xs">{p.effective.tag}</code>
+                {p.canary ? (
+                  <Badge variant="warning" className="ml-1.5">
+                    {s.canaryBadge(Math.round(p.canary.share * 100))}
+                  </Badge>
+                ) : null}
+              </span>
+            ),
+            builtIn: <code className="font-mono text-xs">{p.shipped.tag}</code>,
+            calls: <span className="tabular-nums">{p.stats.calls}</span>,
+            errors: (
+              <span className="tabular-nums">
+                {p.stats.calls > 0 ? formatPercent(p.stats.errorRate) : t.admin.common.dash}
+              </span>
+            ),
+          },
+          actions: (
+            <RowActions>
+              <IconButton
+                label={`${t.admin.actions.edit}: ${promptName(p.key)}`}
+                icon={<PencilIcon />}
+                href={`/admin/prompts/${encodeURIComponent(p.key)}`}
+              />
+            </RowActions>
+          ),
+        }))}
+        page={{ page: 1, limit: Math.max(rows.length, 1), count: rows.length, total: rows.length }}
+      />
+    </section>
   );
 }
