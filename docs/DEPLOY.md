@@ -434,20 +434,23 @@ preflight: FAIL: app_api has rolsuper/rolbypassrls = false true, expected 'false
 
 ## Secrets you cannot casually rotate
 
-`PLATFORM_ENCRYPTION_KEY` is the platform key that encrypts provider API keys and SMTP settings at
-rest (`packages/core`, `Crypto`). It is not a password you can change on a whim: rotating it
-without re-encrypting makes every stored secret undecryptable, and the symptom is not a clean
-error but providers that fail at call time. **There is no supported rotation path yet.** If you
-believe the key is compromised:
+`PLATFORM_ENCRYPTION_KEY` is the platform key that encrypts provider API keys, provider headers,
+secret settings and campaign link tokens at rest (`packages/core`, `Crypto`). It can be rotated
+without losing anything, in four steps with a rollback at each; the full procedure, the drill and
+what to check are in [the key rotation runbook](OPERATIONS.md#cryptorekey). In short:
 
-1. Sign in as the platform operator and write down which providers are configured.
-2. Stop the stack, change `PLATFORM_ENCRYPTION_KEY` in `deploy/.env`, start it again.
-3. Delete and re-enter every provider's API key through the admin UI, and re-enter any SMTP
-   settings stored in the settings catalog. The old ciphertext is dead weight; nothing will read it.
-4. Rotate the provider keys themselves at the provider, since the old ones were exposed.
+1. Generate a new key and set it as `PLATFORM_ENCRYPTION_KEY`, moving the old value to
+   `PLATFORM_ENCRYPTION_KEY_PREVIOUS` in `deploy/.env`. Restart. Everything still reads; new values
+   are written under the new key.
+2. As the platform operator, start the re-encryption (`POST /operator/crypto/rekey`, or the
+   operator jobs page). It is safe to run twice.
+3. Wait until `GET /operator/crypto/status` says `previousKeysRemovable: true`.
+4. Remove `PLATFORM_ENCRYPTION_KEY_PREVIOUS` and restart.
 
-Do not skip step 1: after the key changes you cannot read the old values back to know what to
-re-enter.
+Keep the old key until step 3 says it can go, and until a backup taken before the rotation has aged
+out of your retention: restoring it needs the key that sealed it. If the old key is **compromised**
+rather than merely old, also rotate the provider keys themselves at the provider, since the
+ciphertext was exposed.
 
 `AUTH_SECRET` signs session JWTs and is shared by the web app and the API. Changing it is safe and
 signs everyone out; both services must get the same new value, so change it in `deploy/.env` and

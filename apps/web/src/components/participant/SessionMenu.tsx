@@ -57,8 +57,12 @@ export function SessionMenu({
   const download_ = (format: "json" | "md"): void => {
     setDownload("busy");
     saveMyData(format).then(
-      () => { setDownload("done"); },
-      () => { setDownload("failed"); },
+      () => {
+        setDownload("done");
+      },
+      () => {
+        setDownload("failed");
+      },
     );
   };
   return (
@@ -99,7 +103,9 @@ export function SessionMenu({
               variant="ghost"
               className="justify-start"
               disabled={download === "busy"}
-              onClick={() => { download_("md"); }}
+              onClick={() => {
+                download_("md");
+              }}
             >
               <DownloadIcon /> {t.participant.session.downloadReadable}
             </Button>
@@ -107,7 +113,9 @@ export function SessionMenu({
               variant="ghost"
               className="justify-start"
               disabled={download === "busy"}
-              onClick={() => { download_("json"); }}
+              onClick={() => {
+                download_("json");
+              }}
             >
               <DownloadIcon /> {t.participant.session.downloadJson}
             </Button>

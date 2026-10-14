@@ -15,7 +15,9 @@ import {
   PrismaSessionStore,
   RequirementsService,
   deleteSessionData,
+  rekeyAll,
   runRetentionSweep,
+  verifyAuditChain,
   sendOnce,
   type CallerFactory,
   type Crypto,
@@ -267,6 +269,44 @@ export function handlers(deps: HandlerDeps): Handlers {
         await requirements.runGeneration(versionId);
       },
     ),
+
+    /**
+     * Moves every stored secret to the active platform key (P9, D-164). Counts only are logged:
+     * what was read and rewritten is secret material and never appears in a log line.
+     */
+    "crypto.rekey": scoped(async (): Promise<void> => {
+      const r = await rekeyAll(deps.db, deps.crypto);
+      deps.log.info("secrets re-encrypted under the active key", { ...r });
+      if (r.unreadable > 0) {
+        deps.log.warn("some secrets could not be read with any key in the ring", {
+          unreadable: r.unreadable,
+        });
+      }
+    }),
+
+    /**
+     * Recomputes every tenant's audit hash chain and logs the chain heads (A2, D-163). The heads
+     * go to the log so a copy exists outside the table; a chain that does not verify throws, so the
+     * job dead-letters and the health sweep raises it. The row ids are logged, never their content.
+     */
+    "audit.verify": scoped(async (): Promise<void> => {
+      const report = await verifyAuditChain(deps.db);
+      for (const head of report.heads) {
+        deps.log.info("audit chain head", { companyId: head.companyId, seq: head.seq, hash: head.hash });
+      }
+      if (report.problems.length > 0) {
+        for (const p of report.problems.slice(0, 50)) {
+          deps.log.warn("audit chain broken", {
+            companyId: p.companyId,
+            seq: p.seq,
+            id: p.id,
+            problem: p.problem,
+          });
+        }
+        throw new Error(`audit chain verification failed for ${report.problems.length} row(s)`);
+      }
+      deps.log.info("audit chains verified", { tenants: report.heads.length });
+    }),
 
     /**
      * The five-minute look at everything that fails without anyone calling (D-92): stuck jobs,

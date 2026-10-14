@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { withSystemTenant, withTenant, withTenantScope } from "@aidp/db";
+import { purgeAuditLog } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -50,7 +51,7 @@ suite("alert state and routing against Postgres", () => {
     await owner.opsAlert.deleteMany({
       where: { OR: [{ key: { startsWith: tag } }, { key: { startsWith: `rate:${tag}` } }] },
     });
-    await owner.auditLog.deleteMany({ where: { companyId: { in: [tenantA, tenantB] } } });
+    await purgeAuditLog(owner, [tenantA, tenantB]);
     await owner.setting.deleteMany({ where: { scope: "tenant", scopeId: { in: [tenantA, tenantB] } } });
     await owner.user.deleteMany({ where: { companyId: { in: [tenantA, tenantB] } } });
     await owner.company.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });

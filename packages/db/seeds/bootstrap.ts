@@ -36,7 +36,10 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
     throw new Error("BOOTSTRAP_OPERATOR_EMAIL and BOOTSTRAP_ADMIN_EMAIL are required");
   const key = env.PLATFORM_ENCRYPTION_KEY;
   if (!key) throw new Error("PLATFORM_ENCRYPTION_KEY is required (openssl rand -base64 32)");
-  const crypto = new Crypto(key);
+  const crypto = Crypto.fromEnv({
+    PLATFORM_ENCRYPTION_KEY: key,
+    PLATFORM_ENCRYPTION_KEY_PREVIOUS: env.PLATFORM_ENCRYPTION_KEY_PREVIOUS,
+  });
 
   // Give the unprivileged runtime role a login, so the API and worker can connect as `app_api`
   // and the row-level security policies actually apply (migration 0008). Without a password the
@@ -95,7 +98,7 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
           companyId: null,
           kind: "anthropic",
           name: "Anthropic (platform)",
-          apiKeyEnc: crypto.encrypt(env.ANTHROPIC_API_KEY),
+          apiKeyEnc: crypto.encrypt(env.ANTHROPIC_API_KEY, "provider.apiKey"),
           headers: {},
         },
       }));
@@ -118,7 +121,7 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
           companyId: null,
           kind: "openrouter",
           name: "OpenRouter (platform)",
-          apiKeyEnc: crypto.encrypt(env.OPENROUTER_API_KEY),
+          apiKeyEnc: crypto.encrypt(env.OPENROUTER_API_KEY, "provider.apiKey"),
           headers: {},
         },
       }));
@@ -165,7 +168,7 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
           companyId: null,
           kind: "openai",
           name: "OpenAI (platform)",
-          apiKeyEnc: crypto.encrypt(env.OPENAI_API_KEY),
+          apiKeyEnc: crypto.encrypt(env.OPENAI_API_KEY, "provider.apiKey"),
           headers: {},
         },
       }));

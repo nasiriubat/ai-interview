@@ -37,4 +37,18 @@ export async function operatorRoutes(app: App, ctx: RouteContext): Promise<void>
   );
 
   app.get("/operator/stats", op, async (req) => operator.stats({ userId: staff(req).userId }));
+
+  // Key rotation (P9, D-164): which key seals how many stored secrets, and the re-key that moves
+  // them. Counts and key ids only; no key and no plaintext is ever returned.
+  app.get("/operator/crypto/status", op, async () => ctx.services.cryptoAdmin.status());
+
+  app.post(
+    "/operator/crypto/rekey",
+    { ...guard.operator({ config: { rateLimit: { max: 6, timeWindow: "1 hour" } } }) },
+    async (req) => {
+      await ctx.jobs.publish("crypto.rekey", {}, { singletonKey: "crypto.rekey" });
+      await ctx.services.cryptoAdmin.recordRekeyRequested({ userId: staff(req).userId }, req.companyId);
+      return { ok: true as const, queued: "crypto.rekey" };
+    },
+  );
 }

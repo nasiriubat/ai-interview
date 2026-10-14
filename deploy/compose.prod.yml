@@ -82,6 +82,7 @@ services:
       DATABASE_URL: postgresql://app:${POSTGRES_PASSWORD:?}@postgres:5432/ai_discovery
       APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD in deploy/.env}
       PLATFORM_ENCRYPTION_KEY: ${PLATFORM_ENCRYPTION_KEY:?set PLATFORM_ENCRYPTION_KEY in deploy/.env}
+      PLATFORM_ENCRYPTION_KEY_PREVIOUS: ${PLATFORM_ENCRYPTION_KEY_PREVIOUS:-}
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in deploy/.env}
       BOOTSTRAP_OPERATOR_EMAIL: ${BOOTSTRAP_OPERATOR_EMAIL:?set BOOTSTRAP_OPERATOR_EMAIL in deploy/.env}
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:?set BOOTSTRAP_ADMIN_EMAIL in deploy/.env}
@@ -172,6 +173,7 @@ services:
       # can point back at the owner. Only the password comes from the environment.
       DATABASE_URL: postgresql://app_api:${APP_DB_PASSWORD:?}@postgres:5432/ai_discovery
       PLATFORM_ENCRYPTION_KEY: ${PLATFORM_ENCRYPTION_KEY:?}
+      PLATFORM_ENCRYPTION_KEY_PREVIOUS: ${PLATFORM_ENCRYPTION_KEY_PREVIOUS:-}
       AUTH_SECRET: ${AUTH_SECRET:?}
       WEB_ORIGIN: https://${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in deploy/.env}
       PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}
@@ -243,6 +245,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://app_api:${APP_DB_PASSWORD:?}@postgres:5432/ai_discovery
       PLATFORM_ENCRYPTION_KEY: ${PLATFORM_ENCRYPTION_KEY:?}
+      PLATFORM_ENCRYPTION_KEY_PREVIOUS: ${PLATFORM_ENCRYPTION_KEY_PREVIOUS:-}
       AUTH_SECRET: ${AUTH_SECRET:?}
       WEB_ORIGIN: https://${PUBLIC_HOSTNAME:?}
       PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}

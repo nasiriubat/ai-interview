@@ -239,6 +239,18 @@
       "crossTenantAdmin": 200
     }
   },
+  "GET /operator/crypto/status": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
   "GET /operator/jobs": {
     "access": "operator",
     "isolation": false,
@@ -849,6 +861,18 @@
       "admin": 200,
       "operator": 200,
       "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /operator/crypto/status": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
     }
   },
   "HEAD /operator/jobs": {
@@ -1497,6 +1521,18 @@
       "admin": 401,
       "operator": 401,
       "crossTenantAdmin": 401
+    }
+  },
+  "POST /operator/crypto/rekey": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
     }
   },
   "POST /operator/jobs/dead/:queue/:id/discard": {

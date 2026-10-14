@@ -4,6 +4,8 @@ const Env = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1),
   PLATFORM_ENCRYPTION_KEY: z.string().min(1),
+  /** Comma-separated keys that stay readable during a rotation (D-164); empty when none. */
+  PLATFORM_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
   EMAIL_SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   PUBLIC_WEB_URL: z.string().default("http://localhost:3000"),

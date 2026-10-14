@@ -307,10 +307,10 @@ export async function eraseSession(
         sessionIds: [sessionId],
         campaignId: session.campaignId,
         emailHash,
-        ownerTag:
+        ownerTags:
           options.crypto && session.campaignId && participant
-            ? options.crypto.participantTag(session.campaignId, participant.id)
-            : null,
+            ? options.crypto.participantTags(session.campaignId, participant.id)
+            : [],
       });
 
       if (session.campaignId) {
@@ -338,7 +338,7 @@ export async function eraseSession(
 }
 
 /** What erasure needs from the platform key: the tag that finds an anonymous response's hash row. */
-export type OwnerTagger = Pick<Crypto, "participantTag">;
+export type OwnerTagger = Pick<Crypto, "participantTags">;
 
 /** The uniqueness pointer a participant row carries (`_emailHash`), if it has one. */
 function hashOf(fields: unknown): string | null {
@@ -363,8 +363,11 @@ async function forgetAddress(
     sessionIds: string[];
     campaignId: string | null;
     emailHash: string | null;
-    /** The keyed tag of an anonymous response, which is how its hash row is found (D-142). */
-    ownerTag?: string | null;
+    /**
+     * The keyed tag of an anonymous response, under every key in the ring, which is how its hash
+     * row is found (D-142, D-164): a row written before a key rotation carries the old key's tag.
+     */
+    ownerTags?: string[];
   },
 ): Promise<void> {
   const { sessionIds, campaignId } = target;
@@ -372,9 +375,9 @@ async function forgetAddress(
   // row where there is one, and the hash row the owner tag names where there is not.
   const hashes = new Set<string>();
   if (target.emailHash) hashes.add(target.emailHash);
-  if (campaignId && target.ownerTag) {
+  if (campaignId && target.ownerTags && target.ownerTags.length > 0) {
     const tagged = await tx.campaignEmailHash.findMany({
-      where: { campaignId, ownerTag: target.ownerTag },
+      where: { campaignId, ownerTag: { in: target.ownerTags } },
       select: { emailHash: true },
     });
     for (const row of tagged) hashes.add(row.emailHash);
@@ -655,7 +658,7 @@ async function sweepResidue(
           sessionIds: p.sessions.map((x) => x.id),
           campaignId: p.campaignId,
           emailHash: hashOf(p.fields),
-          ownerTag: crypto && p.campaignId ? crypto.participantTag(p.campaignId, p.id) : null,
+          ownerTags: crypto && p.campaignId ? crypto.participantTags(p.campaignId, p.id) : [],
         });
         await tx.participant.delete({ where: { id: p.id } });
       }

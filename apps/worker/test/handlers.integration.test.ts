@@ -11,7 +11,7 @@ import {
   type CallerFactory,
   TenantGate,
 } from "@aidp/core";
-import { describeDb } from "@aidp/testing";
+import { describeDb, purgeAuditLog } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { handlers } from "../src/handlers.js";
@@ -69,7 +69,7 @@ describeDb("worker handlers against Postgres", () => {
     await db.sessionEvent.deleteMany({ where: { sessionId: { in: ids } } });
     await db.session.deleteMany({ where: { companyId } });
     await db.interviewTemplate.deleteMany({ where: { companyId } });
-    await db.auditLog.deleteMany({ where: { companyId } });
+    await purgeAuditLog(db, [companyId]);
     await db.company.delete({ where: { id: companyId } });
     await db.$disconnect();
   });

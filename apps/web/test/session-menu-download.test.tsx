@@ -58,9 +58,7 @@ describe("download my data", () => {
   });
 
   it("says plainly when the copy could not be prepared, and saves nothing", async () => {
-    globalThis.fetch = vi.fn(() =>
-      Promise.resolve(new Response("{}", { status: 429 })),
-    );
+    globalThis.fetch = vi.fn(() => Promise.resolve(new Response("{}", { status: 429 })));
     const user = userEvent.setup();
     await open(user);
     await user.click(screen.getByRole("button", { name: "Download my data (readable)" }));
