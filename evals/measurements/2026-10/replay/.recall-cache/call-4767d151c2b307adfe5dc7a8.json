@@ -1,0 +1,21 @@
+{
+  "answers": [
+    { "key": "c1", "by": "FR-30" },
+    { "key": "c2", "by": "FR-5" },
+    { "key": "c3", "by": "FR-6" },
+    { "key": "c6", "by": "INT-2-InHealth-to-ShareSheet" },
+    { "key": "c7", "by": "INT-2-InHealth-to-ShareSheet" },
+    { "key": "c8", "by": "INT-2-InHealth-to-ShareSheet" },
+    { "key": "c9", "by": "US-7" },
+    { "key": "c10", "by": "regional_quality_team" },
+    { "key": "c11", "by": "finance_supervisor" },
+    { "key": "c12", "by": "FR-8" },
+    { "key": "c13", "by": "FR-12" },
+    { "key": "c14", "by": "FR-8" },
+    { "key": "c17", "by": "login" },
+    { "key": "c18", "by": "sync-failure-alerting" },
+    { "key": "c21", "by": "INT-2-InHealth-to-ShareSheet" },
+    { "key": "c22", "by": "nfr/reliability" },
+    { "key": "c24", "by": "nfr/load" }
+  ]
+}

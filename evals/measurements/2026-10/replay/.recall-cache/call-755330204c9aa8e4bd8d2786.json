@@ -1,0 +1,29 @@
+{
+  "capabilities": [
+    {
+      "text": "Run in Azure, specifically in the UK South region",
+      "kind": "constraint",
+      "quote": "The tool will run in Azure, specifically in the UK South region to meet data residency requirements for NHS patient data."
+    },
+    {
+      "text": "Use Azure App Services for the web frontend",
+      "kind": "constraint",
+      "quote": "I’ll use Azure App Services for the web frontend and Azure SQL Database with Transparent Data Encryption for the backend, both compliant with NHS Digital’s security standards."
+    },
+    {
+      "text": "Use Azure SQL Database with Transparent Data Encryption for the backend",
+      "kind": "constraint",
+      "quote": "I’ll use Azure App Services for the web frontend and Azure SQL Database with Transparent Data Encryption for the backend, both compliant with NHS Digital’s security standards."
+    },
+    {
+      "text": "Enforce authentication via Azure AD, requiring nurses to sign in with NHS credentials",
+      "kind": "constraint",
+      "quote": "Authentication will be enforced via Azure AD, requiring nurses to sign in with their existing NHS credentials."
+    },
+    {
+      "text": "Retain all data for 7 years",
+      "kind": "constraint",
+      "quote": "All data will be retained for 7 years in accordance with NHS data retention policies."
+    }
+  ]
+}

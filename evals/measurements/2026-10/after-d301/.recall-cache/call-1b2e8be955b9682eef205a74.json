@@ -1,0 +1,129 @@
+{
+  "capabilities": [
+    {
+      "text": "Nurse logs in with existing hospital credentials",
+      "kind": "feature",
+      "quote": "When a nurse on Ward 4 opens the tool, they first log in using their existing hospital credentials—no new password needed."
+    },
+    {
+      "text": "Form shows patient name and ID from OmniCare",
+      "kind": "feature",
+      "quote": "Then they see a simple form that pulls the patient’s name and ID from OmniCare automatically."
+    },
+    {
+      "text": "Nurse saves a note once to OmniCare and the spreadsheet",
+      "kind": "feature",
+      "quote": "Their first step is to type the note into the blank text box, just like they do now, but now it’s only once."
+    },
+    {
+      "text": "Ward manager views notes in spreadsheet",
+      "kind": "feature",
+      "quote": "The ward manager needs to view the notes daily to track patient progress and staff workload"
+    },
+    {
+      "text": "Finance imports a complete weekly spreadsheet of patient notes",
+      "kind": "feature",
+      "quote": "They need to see each patient’s note clearly linked to the nurse who wrote it and the time it was entered—no missing or duplicated entries."
+    },
+    {
+      "text": "Nurse sees a note saved in OmniCare but not yet in the spreadsheet",
+      "kind": "feature",
+      "quote": "If the file was locked, she’d see a red warning that the note is saved in OmniCare but not yet in the spreadsheet"
+    },
+    {
+      "text": "Ward manager sees the morning count check",
+      "kind": "feature",
+      "quote": "and she checks the total number of entries matches the number of nurses on shift."
+    },
+    {
+      "text": "Nurse sees a pending message until a note is in both systems",
+      "kind": "feature",
+      "quote": "The note appears instantly in OmniCare under the patient’s record. Then, at 7:30 AM the next day, the tool automatically writes it to the spreadsheet"
+    },
+    {
+      "text": "Patient name and ID appear within two seconds of selection",
+      "kind": "feature",
+      "quote": "Default: they show within two seconds of her selecting the patient"
+    },
+    {
+      "text": "Nurse sees a green confirmation message within two seconds of saving a note",
+      "kind": "feature",
+      "quote": "She clicks Save & Send, and sees a green confirmation: “Note saved in OmniCare and scheduled for spreadsheet.”"
+    },
+    {
+      "text": "Tool pushes note to OmniCare and spreadsheet in one click",
+      "kind": "feature",
+      "quote": "She finishes the note, click “Save & Send,” and the tool pushes it to both OmniCare and the spreadsheet in one click—no extra steps."
+    },
+    {
+      "text": "Ward manager sees notes clearly labeled with patient name, time, and nurse’s name",
+      "kind": "feature",
+      "quote": "the spreadsheet must be formatted so that each note is clearly labeled with the patient name, time, and nurse’s name"
+    },
+    {
+      "text": "Spreadsheet file saved and shared automatically by 7:30 AM each day",
+      "kind": "feature",
+      "quote": "and the file must be saved and shared automatically by 7:30 AM each day."
+    },
+    {
+      "text": "Finance checks that all notes from the previous week are present and properly dated",
+      "kind": "feature",
+      "quote": "When they open the file, they check first that all 15 notes from the previous week are present and properly dated"
+    },
+    {
+      "text": "Finance imports the file directly into their cost calculation tool",
+      "kind": "feature",
+      "quote": "I’ve asked them to confirm they can import the file directly into their cost calculation tool"
+    },
+    {
+      "text": "Spreadsheet saved as a CSV with a consistent format",
+      "kind": "feature",
+      "quote": "so we’ll make sure it’s saved as a CSV with a consistent format."
+    },
+    {
+      "text": "Tool generates one clean, complete entry per note",
+      "kind": "feature",
+      "quote": "So the tool should generate one clean, complete entry per note and push it to the spreadsheet at the end of each shift."
+    },
+    {
+      "text": "Tool must not run on the nurse’s personal device",
+      "kind": "constraint",
+      "quote": "the tool must not run on the nurse’s personal device—it must be accessed through the hospital’s desktop kiosks"
+    },
+    {
+      "text": "Tool must work on Windows 10 with Internet Explorer 11 compatibility",
+      "kind": "constraint",
+      "quote": "The developer must ensure the tool works on Windows 10 with Internet Explorer 11 compatibility"
+    },
+    {
+      "text": "Data must be stored in UK-based cloud servers",
+      "kind": "constraint",
+      "quote": "all data must be stored in UK-based cloud servers."
+    },
+    {
+      "text": "Encrypt data in transit and at rest",
+      "kind": "constraint",
+      "quote": "we’ll also need to encrypt both in transit and at rest"
+    },
+    {
+      "text": "Keep access logs for audit purposes",
+      "kind": "constraint",
+      "quote": "and ensure that access logs are kept for audit purposes."
+    },
+    {
+      "text": "Tool runs on a single cloud instance",
+      "kind": "constraint",
+      "quote": "The tool will run on a single cloud instance with moderate memory and processing"
+    },
+    {
+      "text": "Budget of around £10,000 for the full project",
+      "kind": "constraint",
+      "quote": "We have a budget of around £10,000 for the full project—covering the developer’s time, testing, and cloud hosting for the first year."
+    },
+    {
+      "text": "First version working by the end of next quarter (October 31)",
+      "kind": "constraint",
+      "quote": "We need the first version working by the end of next quarter—around October 31."
+    }
+  ]
+}

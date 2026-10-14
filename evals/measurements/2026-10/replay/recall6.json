@@ -1,0 +1,1311 @@
+{
+  "extractor": "google/gemini-2.5-flash-lite",
+  "matcher": "google/gemini-2.5-flash-lite",
+  "usd": 0.023,
+  "final": [
+    {
+      "persona": "nontechnical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.667,
+        "low": 0.521,
+        "high": 0.786,
+        "k": 30,
+        "n": 45,
+        "bootstrap": {
+          "low": 0.385,
+          "high": 0.85
+        }
+      },
+      "precision": {
+        "rate": 0.368,
+        "low": 0.255,
+        "high": 0.498,
+        "k": 21,
+        "n": 57,
+        "bootstrap": {
+          "low": 0.292,
+          "high": 0.444
+        }
+      },
+      "perInterviewRecall": [0.85, 0.385, 0.667]
+    },
+    {
+      "persona": "technical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.529,
+        "low": 0.367,
+        "high": 0.685,
+        "k": 18,
+        "n": 34,
+        "bootstrap": {
+          "low": 0.263,
+          "high": 0.867
+        }
+      },
+      "precision": {
+        "rate": 0.191,
+        "low": 0.104,
+        "high": 0.325,
+        "k": 9,
+        "n": 47,
+        "bootstrap": {
+          "low": 0,
+          "high": 0.3
+        }
+      },
+      "perInterviewRecall": [0.263, null, 0.867]
+    },
+    {
+      "persona": "all",
+      "interviews": 6,
+      "recall": {
+        "rate": 0.608,
+        "low": 0.497,
+        "high": 0.708,
+        "k": 48,
+        "n": 79,
+        "bootstrap": {
+          "low": 0.368,
+          "high": 0.829
+        }
+      },
+      "precision": {
+        "rate": 0.288,
+        "low": 0.21,
+        "high": 0.382,
+        "k": 30,
+        "n": 104,
+        "bootstrap": {
+          "low": 0.159,
+          "high": 0.388
+        }
+      },
+      "perInterviewRecall": [0.85, 0.385, 0.667, 0.263, null, 0.867]
+    }
+  ],
+  "recorded": [
+    {
+      "persona": "nontechnical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.822,
+        "low": 0.687,
+        "high": 0.907,
+        "k": 37,
+        "n": 45,
+        "bootstrap": {
+          "low": 0.692,
+          "high": 0.886
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.039,
+        "k": 0,
+        "n": 94,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.85, 0.692, 0.917]
+    },
+    {
+      "persona": "technical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.5,
+        "low": 0.341,
+        "high": 0.659,
+        "k": 17,
+        "n": 34,
+        "bootstrap": {
+          "low": 0.263,
+          "high": 0.8
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.053,
+        "k": 0,
+        "n": 69,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.263, null, 0.8]
+    },
+    {
+      "persona": "all",
+      "interviews": 6,
+      "recall": {
+        "rate": 0.684,
+        "low": 0.575,
+        "high": 0.776,
+        "k": 54,
+        "n": 79,
+        "bootstrap": {
+          "low": 0.427,
+          "high": 0.864
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.023,
+        "k": 0,
+        "n": 163,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.85, 0.692, 0.917, 0.263, null, 0.8]
+    }
+  ],
+  "anywhere": [
+    {
+      "persona": "nontechnical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.889,
+        "low": 0.765,
+        "high": 0.952,
+        "k": 40,
+        "n": 45,
+        "bootstrap": {
+          "low": 0.841,
+          "high": 1
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.063,
+        "k": 0,
+        "n": 57,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.85, 1, 0.833]
+    },
+    {
+      "persona": "technical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.882,
+        "low": 0.734,
+        "high": 0.953,
+        "k": 30,
+        "n": 34,
+        "bootstrap": {
+          "low": 0.842,
+          "high": 0.933
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.076,
+        "k": 0,
+        "n": 47,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.842, null, 0.933]
+    },
+    {
+      "persona": "all",
+      "interviews": 6,
+      "recall": {
+        "rate": 0.886,
+        "low": 0.797,
+        "high": 0.939,
+        "k": 70,
+        "n": 79,
+        "bootstrap": {
+          "low": 0.842,
+          "high": 0.945
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.036,
+        "k": 0,
+        "n": 104,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.85, 1, 0.833, 0.842, null, 0.933]
+    }
+  ],
+  "details": [
+    {
+      "spec": "nontechnical-1",
+      "persona": "nontechnical",
+      "ownerMessages": 47,
+      "extracted": 24,
+      "verified": 20,
+      "constraintsExcluded": 4,
+      "rejected": [],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 27,
+      "requirementsRecorded": 40,
+      "coverFinal": {
+        "model": 17,
+        "none": 3
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Automatically trigger spreadsheet step when nurse saves ward note",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Auto-trigger spreadsheet update on note save"
+        },
+        {
+          "key": "c2",
+          "text": "Send email alert to ward manager daily at 7:30 a.m. with patient list and note link",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Daily ward manager digest"
+        },
+        {
+          "key": "c3",
+          "text": "Send reminder to nurse and team leader at 10 a.m. the next day if a note is forgotten",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Missing-note reminder"
+        },
+        {
+          "key": "c4",
+          "text": "Connect to existing patient management system (InHealth)",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c5",
+          "text": "Connect to central reporting spreadsheet system (ShareSheet)",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c6",
+          "text": "Update ShareSheet with nurse's note by 8 a.m. the next day",
+          "how": "model",
+          "by": "FR-11",
+          "byTitle": "Sync notes to ShareSheet by 8 a.m."
+        },
+        {
+          "key": "c7",
+          "text": "Flag connection failures to IT team via email",
+          "how": "model",
+          "by": "FR-38",
+          "byTitle": "Team leader alert closure requires confirmed sync"
+        },
+        {
+          "key": "c8",
+          "text": "Allow nurse to enter note even if connection fails",
+          "how": "model",
+          "by": "FR-14",
+          "byTitle": "Show clear error messages on sync failure"
+        },
+        {
+          "key": "c9",
+          "text": "Care coordinator uses ShareSheet daily to plan tasks",
+          "how": "model",
+          "by": "FR-11",
+          "byTitle": "Sync notes to ShareSheet by 8 a.m."
+        },
+        {
+          "key": "c10",
+          "text": "Quality team downloads ShareSheet weekly to check note entry deadlines",
+          "how": "model",
+          "by": "FR-13",
+          "byTitle": "Quality team's weekly logging"
+        },
+        {
+          "key": "c11",
+          "text": "Finance supervisor uses ShareSheet monthly to match nurse hours with patient interactions",
+          "how": "model",
+          "by": "FR-9",
+          "byTitle": "InHealth to ShareSheet Integration"
+        },
+        {
+          "key": "c12",
+          "text": "Log missed notes as delays in quality team's weekly report after second offense in a week",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Log late notes as delays"
+        },
+        {
+          "key": "c13",
+          "text": "Team leader gets alert at 10:15 a.m. for pending notes, including nurse and patient name",
+          "how": "model",
+          "by": "FR-25",
+          "byTitle": "Team leader alert for missing notes"
+        },
+        {
+          "key": "c14",
+          "text": "Alert includes direct link to the note entry page",
+          "how": "model",
+          "by": "FR-25",
+          "byTitle": "Team leader alert for missing notes"
+        },
+        {
+          "key": "c17",
+          "text": "Use the same login system as InHealth",
+          "how": "model",
+          "by": "FR-9",
+          "byTitle": "InHealth to ShareSheet Integration"
+        },
+        {
+          "key": "c18",
+          "text": "Log sync delays with timestamp and alert IT within 5 minutes",
+          "how": "model",
+          "by": "FR-10",
+          "byTitle": "Log and alert on sync delay"
+        },
+        {
+          "key": "c21",
+          "text": "Note must appear in ShareSheet by 8 a.m. reliably",
+          "how": "model",
+          "by": "FR-11",
+          "byTitle": "Sync notes to ShareSheet by 8 a.m."
+        },
+        {
+          "key": "c22",
+          "text": "Display clear error message on silent failure",
+          "how": "model",
+          "by": "FR-14",
+          "byTitle": "Show clear error messages on sync failure"
+        },
+        {
+          "key": "c23",
+          "text": "Provide clear instructions on how to handle failures",
+          "how": "model",
+          "by": "FR-17",
+          "byTitle": "Handle sync failures with offline retry and IT alert"
+        },
+        {
+          "key": "c24",
+          "text": "Handle approximately 400 to 640 note entries daily without slowing down",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        }
+      ],
+      "coverRecorded": {
+        "model": 17,
+        "none": 3
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c4",
+          "text": "Connect to existing patient management system (InHealth)",
+          "quote": "It needs to connect to the existing patient management system — which we call InHealth",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c5",
+          "text": "Connect to central reporting spreadsheet system (ShareSheet)",
+          "quote": "and the central reporting spreadsheet system, which is called ShareSheet.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c24",
+          "text": "Handle approximately 400 to 640 note entries daily without slowing down",
+          "quote": "so we’re looking at roughly 400 to 640 note entries daily. The system must handle that load without slowing down",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c4", "c5", "c24"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": [
+        "FR-4",
+        "FR-18",
+        "FR-19",
+        "FR-20",
+        "FR-21",
+        "FR-22",
+        "FR-23",
+        "FR-24",
+        "FR-27",
+        "FR-28",
+        "FR-29",
+        "FR-31",
+        "FR-33",
+        "FR-34",
+        "FR-36"
+      ]
+    },
+    {
+      "spec": "nontechnical-2",
+      "persona": "nontechnical",
+      "ownerMessages": 47,
+      "extracted": 24,
+      "verified": 13,
+      "constraintsExcluded": 11,
+      "rejected": [],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 12,
+      "requirementsRecorded": 30,
+      "coverFinal": {
+        "model": 4,
+        "words": 1,
+        "none": 8
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Enter notes into the bedside clinical system (CareVue)",
+          "how": "model",
+          "by": "FR-10",
+          "byTitle": "New note opens blank when nurse adds note"
+        },
+        {
+          "key": "c2",
+          "text": "Review and confirm notes before sending to Epic",
+          "how": "words",
+          "by": "FR-1",
+          "byTitle": "Nurse can confirm note before sending to Epic"
+        },
+        {
+          "key": "c3",
+          "text": "Send notes to the hospital's central EHR (Epic)",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Nurse can confirm note saved in Epic and proceed"
+        },
+        {
+          "key": "c4",
+          "text": "Grant access to charge nurses, clinical leads, and ward managers",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c7",
+          "text": "Run a test version in a sandbox before going live",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c11",
+          "text": "Provide a clear breakdown of costs (licensing, integration, training) if near budget limit",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c13",
+          "text": "Test with at least 20 nurses in the sandbox before going live",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c14",
+          "text": "Include at least one nurse tester from each of the three wards",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c15",
+          "text": "Time new process during sandbox testing for comparison",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c17",
+          "text": "Log every access and change",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c18",
+          "text": "Encrypt data in transit and at rest",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c23",
+          "text": "See a clear success message after confirming a note",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Nurse can confirm note saved in Epic and proceed"
+        },
+        {
+          "key": "c24",
+          "text": "See a clear error message if Epic fails to save the note",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "System handles Epic save failure with retry and IT flag"
+        }
+      ],
+      "coverRecorded": {
+        "model": 8,
+        "words": 1,
+        "none": 4
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c4",
+          "text": "Grant access to charge nurses, clinical leads, and ward managers",
+          "quote": "So access should be granted to charge nurses, clinical leads, and ward managers—not just the original nurse.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c7",
+          "text": "Run a test version in a sandbox before going live",
+          "quote": "I’d want to see a test version running in a sandbox first, so we can check the flow",
+          "kind": "feature",
+          "stage": "lost after capture"
+        },
+        {
+          "key": "c11",
+          "text": "Provide a clear breakdown of costs (licensing, integration, training) if near budget limit",
+          "quote": "I’d want a clear breakdown of where every dollar goes—especially for licensing, integration, and training",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c13",
+          "text": "Test with at least 20 nurses in the sandbox before going live",
+          "quote": "I’d still want to test with at least 20 nurses in the sandbox before going live",
+          "kind": "feature",
+          "stage": "lost after capture"
+        },
+        {
+          "key": "c14",
+          "text": "Include at least one nurse tester from each of the three wards",
+          "quote": "I’d want those 20 testers to include at least one nurse from each of the three wards",
+          "kind": "feature",
+          "stage": "lost after capture"
+        },
+        {
+          "key": "c15",
+          "text": "Time new process during sandbox testing for comparison",
+          "quote": "We’ll also ask them to time how long the new process takes so we can compare it to the old double-entry method.",
+          "kind": "feature",
+          "stage": "lost after capture"
+        },
+        {
+          "key": "c17",
+          "text": "Log every access and change",
+          "quote": "I’d want the system to log every access and change",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c18",
+          "text": "Encrypt data in transit and at rest",
+          "quote": "and ensure data is encrypted both in transit and at rest.",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c4", "c11", "c17", "c18"],
+        "lostAfterCapture": ["c7", "c13", "c14", "c15"],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": ["FR-7", "FR-12", "FR-13", "FR-16", "FR-17", "FR-20", "FR-24", "FR-26"]
+    },
+    {
+      "spec": "nontechnical-3",
+      "persona": "nontechnical",
+      "ownerMessages": 47,
+      "extracted": 24,
+      "verified": 12,
+      "constraintsExcluded": 10,
+      "rejected": [
+        {
+          "reason": "duplicate of an earlier capability",
+          "text": "Comply with hospital group's data governance policy"
+        },
+        {
+          "reason": "quote not in the owner's words",
+          "text": "Add new rows to SharePoint handover file daily"
+        }
+      ],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 18,
+      "requirementsRecorded": 24,
+      "coverFinal": {
+        "model": 6,
+        "none": 4,
+        "words": 2
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Strict access controls for viewing/editing notes",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "The system logs every note creation and edit once with nurse ID, timestamp, and action type"
+        },
+        {
+          "key": "c5",
+          "text": "Connect to Electronic Patient Record (EPR) system",
+          "how": "model",
+          "by": "FR-8",
+          "byTitle": "The tool shows the ward patient list pulled from Epic"
+        },
+        {
+          "key": "c6",
+          "text": "Pull patient name, MRN, and current bed number from Epic",
+          "how": "model",
+          "by": "FR-8",
+          "byTitle": "The tool shows the ward patient list pulled from Epic"
+        },
+        {
+          "key": "c7",
+          "text": "Connect to ward's daily handover spreadsheet on SharePoint",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c8",
+          "text": "Push final note into SharePoint file once a day",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c12",
+          "text": "Structured fields for vitals, medications, and key observations",
+          "how": "words",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter structured fields for vitals, medications, and observations"
+        },
+        {
+          "key": "c13",
+          "text": "Form includes fields for blood pressure, heart rate, temperature, pain score, and new medications",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter structured fields for vitals, medications, and observations"
+        },
+        {
+          "key": "c14",
+          "text": "Allow free text at the end of the note",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c17",
+          "text": "Track hours spent and additional costs",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c18",
+          "text": "Flag budget at 80% of limit",
+          "how": "model",
+          "by": "FR-11",
+          "byTitle": "Ward manager sees medication flags for new entries in completed-notes list"
+        },
+        {
+          "key": "c19",
+          "text": "Log every note creation or edit",
+          "how": "words",
+          "by": "FR-3",
+          "byTitle": "The system logs every note creation and edit once with nurse ID, timestamp, and action type"
+        },
+        {
+          "key": "c20",
+          "text": "Store audit logs separately from note data",
+          "how": "model",
+          "by": "FR-10",
+          "byTitle": "Every note creation and edit is logged once in a read-only audit log stored seven years"
+        }
+      ],
+      "coverRecorded": {
+        "model": 11,
+        "none": 1
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c7",
+          "text": "Connect to ward's daily handover spreadsheet on SharePoint",
+          "quote": "and the ward’s daily handover spreadsheet, which is stored in a shared SharePoint folder.",
+          "kind": "feature",
+          "stage": "lost after capture"
+        },
+        {
+          "key": "c8",
+          "text": "Push final note into SharePoint file once a day",
+          "quote": "and push the final note into the SharePoint file once a day.",
+          "kind": "feature",
+          "stage": "lost after capture"
+        },
+        {
+          "key": "c14",
+          "text": "Allow free text at the end of the note",
+          "quote": "Nurses can still add free text at the end for context",
+          "kind": "feature",
+          "stage": "lost after capture"
+        },
+        {
+          "key": "c17",
+          "text": "Track hours spent and additional costs",
+          "quote": "I’ll make sure the team tracks every hour spent and any additional costs, like training materials or support time",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c17"],
+        "lostAfterCapture": ["c7", "c8", "c14"],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": [
+        "FR-6",
+        "FR-7",
+        "FR-9",
+        "FR-12",
+        "FR-13",
+        "FR-14",
+        "FR-15",
+        "FR-18",
+        "FR-19",
+        "FR-20",
+        "pilot-pass-test",
+        "major-error-definition",
+        "pass-test"
+      ]
+    },
+    {
+      "spec": "technical-1",
+      "persona": "technical",
+      "ownerMessages": 47,
+      "extracted": 25,
+      "verified": 19,
+      "constraintsExcluded": 6,
+      "rejected": [],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 10,
+      "requirementsRecorded": 17,
+      "coverFinal": {
+        "model": 5,
+        "none": 14
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Capture notes with timestamps and nurse identifiers",
+          "how": "model",
+          "by": "FR-9",
+          "byTitle": "Escalate Pending Action note"
+        },
+        {
+          "key": "c2",
+          "text": "Ensure data integrity by capturing the note once",
+          "how": "model",
+          "by": "FR-15",
+          "byTitle": "Show latest note version"
+        },
+        {
+          "key": "c3",
+          "text": "Sync notes to the spreadsheet via a secure, idempotent API call every 15 minutes",
+          "how": "model",
+          "by": "FR-15",
+          "byTitle": "Show latest note version"
+        },
+        {
+          "key": "c4",
+          "text": "Integrate with FHIR-compliant electronic health record (EHR) via HL7 FHIR API v4.0.2",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c5",
+          "text": "Pull patient identifiers and bed assignments in real time from EHR/PAS",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c6",
+          "text": "Connect to Azure AD tenant to authenticate nurses via SSO",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c7",
+          "text": "Ensure nurse IDs and timestamps are tied to verified identities",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c8",
+          "text": "Feed spreadsheet via a dedicated Azure Logic App triggered by FHIR resource update",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c9",
+          "text": "Use Azure AD OAuth 2.0 for SSO-authenticated access",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c10",
+          "text": "Push encrypted, timestamped notes to the shared spreadsheet via Azure Logic Apps",
+          "how": "model",
+          "by": "FR-15",
+          "byTitle": "Show latest note version"
+        },
+        {
+          "key": "c11",
+          "text": "Log all data flows with immutable audit trails in Azure Monitor",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c12",
+          "text": "Manage OAuth 2.0 client registration in Azure AD with scope User.Read and Fhir.ReadWrite",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c13",
+          "text": "Use Azure Key Vault to store and rotate FHIR API client secret",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c14",
+          "text": "Implement FHIR resource validation using the official HL7 FHIR validator against the R4 profile",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c19",
+          "text": "Validate notes against FHIR Observation resources",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c20",
+          "text": "Trigger Azure Functions every 15 minutes to query new notes and invoke Logic App",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Automatic dashboard generation"
+        },
+        {
+          "key": "c21",
+          "text": "Invoke Logic App via a secure HTTP POST with a bearer token from Key Vault",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c22",
+          "text": "Document all APIs using Swagger (OpenAPI 3.0)",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c25",
+          "text": "MVP must include nurse authentication via Azure AD",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        }
+      ],
+      "coverRecorded": {
+        "model": 5,
+        "none": 14
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c4",
+          "text": "Integrate with FHIR-compliant electronic health record (EHR) via HL7 FHIR API v4.0.2",
+          "quote": "The system must integrate with the hospital’s FHIR-compliant electronic health record (EHR), specifically the Patient Administration System (PAS) via HL7 FHIR API v4.0.2",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c5",
+          "text": "Pull patient identifiers and bed assignments in real time from EHR/PAS",
+          "quote": "to pull patient identifiers and bed assignments in real time.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c6",
+          "text": "Connect to Azure AD tenant to authenticate nurses via SSO",
+          "quote": "It also needs to connect to the Azure AD tenant to authenticate nurses via SSO",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c7",
+          "text": "Ensure nurse IDs and timestamps are tied to verified identities",
+          "quote": "ensuring that nurse IDs and timestamps are tied to verified identities.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c8",
+          "text": "Feed spreadsheet via a dedicated Azure Logic App triggered by FHIR resource update",
+          "quote": "and the spreadsheet feed is handled via a dedicated Azure Logic App triggered by the FHIR resource update.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c9",
+          "text": "Use Azure AD OAuth 2.0 for SSO-authenticated access",
+          "quote": "Azure AD OAuth 2.0 for SSO-authenticated access",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c11",
+          "text": "Log all data flows with immutable audit trails in Azure Monitor",
+          "quote": "All data flows are logged with immutable audit trails in Azure Monitor.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c12",
+          "text": "Manage OAuth 2.0 client registration in Azure AD with scope User.Read and Fhir.ReadWrite",
+          "quote": "The specification will assume the team manages OAuth 2.0 client registration in Azure AD with a scope of `User.Read` and `Fhir.ReadWrite`",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c13",
+          "text": "Use Azure Key Vault to store and rotate FHIR API client secret",
+          "quote": "uses Azure Key Vault to store and rotate the FHIR API client secret",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c14",
+          "text": "Implement FHIR resource validation using the official HL7 FHIR validator against the R4 profile",
+          "quote": "implements FHIR resource validation using the official HL7 FHIR validator against the R4 profile.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c19",
+          "text": "Validate notes against FHIR Observation resources",
+          "quote": "all validated against FHIR Observation resources.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c21",
+          "text": "Invoke Logic App via a secure HTTP POST with a bearer token from Key Vault",
+          "quote": "via a secure HTTP POST with a bearer token from Key Vault.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c22",
+          "text": "Document all APIs using Swagger (OpenAPI 3.0)",
+          "quote": "All APIs will be documented using Swagger (OpenAPI 3.0)",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c25",
+          "text": "MVP must include nurse authentication via Azure AD",
+          "quote": "the MVP must include nurse authentication via Azure AD",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": [
+          "c4",
+          "c5",
+          "c6",
+          "c7",
+          "c8",
+          "c9",
+          "c11",
+          "c12",
+          "c13",
+          "c14",
+          "c19",
+          "c21",
+          "c22",
+          "c25"
+        ],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": ["FR-1", "FR-3", "FR-4", "FR-8", "FR-13", "FR-14", "FR-17"]
+    },
+    {
+      "spec": "technical-2",
+      "persona": "technical",
+      "ownerMessages": 47,
+      "extracted": 5,
+      "verified": 0,
+      "constraintsExcluded": 4,
+      "rejected": [
+        {
+          "reason": "duplicate of an earlier capability",
+          "text": "Use Azure SQL Database with Transparent Data Encryption for the backend"
+        }
+      ],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 12,
+      "requirementsRecorded": 14,
+      "coverFinal": {},
+      "assignments": [],
+      "coverRecorded": {},
+      "uncoveredFinal": [],
+      "loss": {
+        "neverRecorded": [],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": [
+        "FR-1",
+        "FR-2",
+        "FR-3",
+        "FR-4",
+        "FR-5",
+        "FR-6",
+        "FR-7",
+        "FR-9",
+        "FR-10",
+        "FR-11",
+        "FR-12",
+        "FR-6.audit"
+      ]
+    },
+    {
+      "spec": "technical-3",
+      "persona": "technical",
+      "ownerMessages": 47,
+      "extracted": 24,
+      "verified": 15,
+      "constraintsExcluded": 7,
+      "rejected": [
+        {
+          "reason": "quote too short",
+          "text": "Use Azure SQL Database"
+        },
+        {
+          "reason": "quote too short",
+          "text": "Use Terraform for infrastructure-as-code"
+        }
+      ],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 25,
+      "requirementsRecorded": 38,
+      "coverFinal": {
+        "none": 2,
+        "model": 10,
+        "words": 3
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Integrate with Azure Active Directory for single sign-on",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c3",
+          "text": "Leverage Azure AD B2C for external access",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c4",
+          "text": "Integrate with Epic EMR system via FHIR API (STU3)",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Ward nurse can view roster and enter notes with autosave"
+        },
+        {
+          "key": "c5",
+          "text": "Integrate with ward-level nurse scheduling and shift management system via REST API",
+          "how": "model",
+          "by": "FR-34",
+          "byTitle": "Roster drops transferred patient within 60 seconds of ward shift update"
+        },
+        {
+          "key": "c7",
+          "text": "Provide patient demographics and current admission status from Epic FHIR API",
+          "how": "model",
+          "by": "FR-26",
+          "byTitle": "Nurse sees assigned shift roster with patient cards on sign-in"
+        },
+        {
+          "key": "c8",
+          "text": "Provide real-time ward staffing data from nurse shift system",
+          "how": "model",
+          "by": "FR-17",
+          "byTitle": "Charge nurse start-of-shift real-time dashboard with alert highlights"
+        },
+        {
+          "key": "c13",
+          "text": "Allow ward nurses to log in via Azure AD SSO",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Ward nurse can view roster and enter notes with autosave"
+        },
+        {
+          "key": "c14",
+          "text": "Allow ward nurses to select a patient from their assigned shift roster",
+          "how": "model",
+          "by": "FR-26",
+          "byTitle": "Nurse sees assigned shift roster with patient cards on sign-in"
+        },
+        {
+          "key": "c15",
+          "text": "Allow ward nurses to enter free-text clinical notes",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Ward nurse can view roster and enter notes with autosave"
+        },
+        {
+          "key": "c16",
+          "text": "Provide a clean, mobile-responsive form for note entry",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Ward nurse can view roster and enter notes with autosave"
+        },
+        {
+          "key": "c17",
+          "text": "Auto-save notes every 30 seconds",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Ward nurse can view roster and enter notes with autosave"
+        },
+        {
+          "key": "c18",
+          "text": "Allow charge nurses to view a real-time dashboard of entered notes",
+          "how": "words",
+          "by": "FR-22",
+          "byTitle": "Charge nurse dashboard shows real-time prior-shift notes with filtering and export"
+        },
+        {
+          "key": "c19",
+          "text": "Allow charge nurses to filter notes by patient or nurse",
+          "how": "words",
+          "by": "FR-22",
+          "byTitle": "Charge nurse dashboard shows real-time prior-shift notes with filtering and export"
+        },
+        {
+          "key": "c20",
+          "text": "Allow charge nurses to export a summary to PDF",
+          "how": "words",
+          "by": "FR-22",
+          "byTitle": "Charge nurse dashboard shows real-time prior-shift notes with filtering and export"
+        },
+        {
+          "key": "c21",
+          "text": "Allow clinical informatics lead to audit note distribution and duplication rates",
+          "how": "model",
+          "by": "FR-13",
+          "byTitle": "Only pharmacy liaison and charge nurse may open alert-flagged notes with reason and audit"
+        }
+      ],
+      "coverRecorded": {
+        "none": 3,
+        "model": 11,
+        "words": 1
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c1",
+          "text": "Integrate with Azure Active Directory for single sign-on",
+          "quote": "we’re already fully integrated with Azure Active Directory for single sign-on across all hospital systems",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c3",
+          "text": "Leverage Azure AD B2C for external access",
+          "quote": "and leverage Azure AD B2C for any potential external access",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c1", "c3"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": ["c21"]
+      },
+      "unsupportedRequirements": [
+        "FR-1",
+        "FR-4",
+        "FR-7",
+        "FR-8",
+        "FR-9",
+        "FR-11",
+        "FR-12",
+        "FR-14",
+        "FR-16",
+        "FR-20",
+        "FR-23",
+        "FR-25",
+        "FR-27",
+        "FR-28",
+        "FR-31",
+        "FR-32",
+        "FR-35",
+        "FR-36",
+        "roster_membership"
+      ]
+    }
+  ],
+  "unreadable": []
+}

@@ -1,0 +1,125 @@
+{
+  "capabilities": [
+    {
+      "text": "Integrate with Epic as the source of truth for clinical notes",
+      "kind": "feature",
+      "quote": "The new tool must integrate with two existing systems: Epic (as the source of truth for clinical notes)"
+    },
+    {
+      "text": "Integrate with SharePoint Online for ward notes",
+      "kind": "feature",
+      "quote": "and SharePoint Online (where the ward notes are currently duplicated)."
+    },
+    {
+      "text": "Read note data from Epic using FHIR API",
+      "kind": "feature",
+      "quote": "I’ll use Epic’s FHIR API to read the note data after it’s saved"
+    },
+    {
+      "text": "Write note data to SharePoint using REST API",
+      "kind": "feature",
+      "quote": "and the SharePoint REST API to write the note to the designated worksheet."
+    },
+    {
+      "text": "Authenticate connections using Azure AD",
+      "kind": "constraint",
+      "quote": "We’ll authenticate both connections using Azure AD"
+    },
+    {
+      "text": "Implement a service principal with limited permissions",
+      "kind": "constraint",
+      "quote": "and I’ll implement a service principal with limited permissions scoped to the specific EHR and SharePoint sites."
+    },
+    {
+      "text": "Support up to 10 concurrent users per ward",
+      "kind": "constraint",
+      "quote": "I’ll design the tool to support up to 10 concurrent users per ward"
+    },
+    {
+      "text": "Enforce role-based access control through Azure AD groups",
+      "kind": "constraint",
+      "quote": "with role-based access control enforced through Azure AD groups."
+    },
+    {
+      "text": "Build the tool using C# and .NET 8",
+      "kind": "constraint",
+      "quote": "the core components will be written in C# using .NET 8"
+    },
+    {
+      "text": "Host the tool as an Azure Function",
+      "kind": "constraint",
+      "quote": "hosted as an Azure Function behind an API Management gateway."
+    },
+    {
+      "text": "Use a CI/CD pipeline in Azure DevOps",
+      "kind": "constraint",
+      "quote": "We’ll use a CI/CD pipeline in Azure DevOps"
+    },
+    { "text": "Perform unit testing with xUnit", "kind": "constraint", "quote": "unit testing with xUnit" },
+    {
+      "text": "Enforce compliance with Azure Policy",
+      "kind": "constraint",
+      "quote": "and Azure Policy enforcement for compliance."
+    },
+    {
+      "text": "Launch the tool from an Epic custom button",
+      "kind": "feature",
+      "quote": "a nurse should be able to open the tool directly from the Epic care environment via a custom button"
+    },
+    {
+      "text": "Automatically populate the note text from Epic",
+      "kind": "feature",
+      "quote": "the tool automatically populates the note text from the most recently saved clinical note in Epic"
+    },
+    {
+      "text": "Display the note in a clean, editable field",
+      "kind": "feature",
+      "quote": "displays it in a clean, editable field, and allows her to review or edit it."
+    },
+    {
+      "text": "Write the edited note to SharePoint Online",
+      "kind": "feature",
+      "quote": "the tool writes the note to the designated worksheet in the shared SharePoint Online file"
+    },
+    {
+      "text": "Include metadata (timestamp, nurse ID, patient ID) in SharePoint write",
+      "kind": "feature",
+      "quote": "including metadata like timestamp, nurse ID (from Azure AD), and patient ID."
+    },
+    {
+      "text": "Complete the entire flow in under 90 seconds",
+      "kind": "constraint",
+      "quote": "The entire flow completes in under 90 seconds, with no manual retyping."
+    },
+    {
+      "text": "Write the edited version of the note to SharePoint",
+      "kind": "feature",
+      "quote": "The edited version is what gets written to the worksheet—this is essential for accuracy and workflow efficiency."
+    },
+    {
+      "text": "Support only Epic FHIR and SharePoint Online integration in version one",
+      "kind": "constraint",
+      "quote": "I’ll scope version one to support only Epic FHIR and SharePoint Online integration, with no additional file formats or multi-ward support."
+    },
+    {
+      "text": "Embed a custom button in the Epic Care Management module",
+      "kind": "feature",
+      "quote": "We’ll embed a custom button in the Epic Care Management module using Epic’s FHIR-based integration framework"
+    },
+    {
+      "text": "Pass patient MRN and encounter ID as query parameters from Epic button",
+      "kind": "feature",
+      "quote": "The button will be visible only to nurses on Ward 4B, and it will pass the patient’s MRN and encounter ID as query parameters to the tool."
+    },
+    {
+      "text": "Budget range of $25,000 to $35,000 for the full build",
+      "kind": "constraint",
+      "quote": "There’s a budget range: $25,000 to $35,000 for the full build, including development, testing, deployment, and documentation."
+    },
+    {
+      "text": "Azure running cost under $2,000/year",
+      "kind": "constraint",
+      "quote": "and a small allowance for Azure resource costs (under $2,000/year)."
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    { "key": "c1", "by": "S-data/Note" },
+    { "key": "c2", "by": "S-data/Note" },
+    { "key": "c3", "by": "S-technical/sync" },
+    { "key": "c5", "by": "S-integrations/ehr-pas" },
+    { "key": "c6", "by": "S-integrations/azure-ad" },
+    { "key": "c7", "by": "S-users/staff_nurse" },
+    { "key": "c8", "by": "S-integrations/spreadsheet-feed" },
+    { "key": "c9", "by": "S-technical/auth" },
+    { "key": "c10", "by": "S-integrations/spreadsheet-feed" },
+    { "key": "c11", "by": "S-technical/audit_logging" },
+    { "key": "c12", "by": "S-technical/integration_auth_scopes" },
+    { "key": "c13", "by": "S-integrations/ehr-pas-auth" },
+    { "key": "c14", "by": "S-technical/fhir_validation" },
+    { "key": "c19", "by": "S-technical/fhir_validation" },
+    { "key": "c20", "by": "S-integrations/spreadsheet-feed" },
+    { "key": "c25", "by": "S-mvp/scope_v1" }
+  ]
+}

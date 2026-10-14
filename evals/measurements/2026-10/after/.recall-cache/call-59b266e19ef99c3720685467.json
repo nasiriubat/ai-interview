@@ -1,0 +1,114 @@
+{
+  "capabilities": [
+    {
+      "text": "Enter nurse notes once",
+      "kind": "feature",
+      "quote": "The main pain point is definitely the double entry of nurse notes—it's the primary source of frustration and error."
+    },
+    {
+      "text": "Sync notes to Epic EHR",
+      "kind": "feature",
+      "quote": "When a nurse enters a note once in the new system, it must appear immediately in the Epic EHR as a new Clinical Note"
+    },
+    {
+      "text": "Sync notes to SharePoint handover spreadsheet",
+      "kind": "feature",
+      "quote": "and be synced to the SharePoint handover spreadsheet within 15 minutes via a scheduled Azure Function."
+    },
+    {
+      "text": "Read-only access for charge nurses and ward managers to notes on their assigned wards",
+      "kind": "feature",
+      "quote": "Charge nurses and ward managers will also use the system, but with read-only access to all notes entered on their assigned wards."
+    },
+    {
+      "text": "Administrator access to audit logs and system settings",
+      "kind": "feature",
+      "quote": "Administrators will have full access to audit logs and system settings, but only for troubleshooting and compliance reporting."
+    },
+    {
+      "text": "Web app accessible via Azure AD single sign-on",
+      "kind": "feature",
+      "quote": "They’ll use the system via a web app accessible through the hospital’s Azure AD single sign-on"
+    },
+    {
+      "text": "Role-based access control for ward notes",
+      "kind": "feature",
+      "quote": "with role-based access control: only nurses assigned to a specific ward can enter notes for that ward."
+    },
+    {
+      "text": "Backend using ASP.NET Core on .NET 8",
+      "kind": "constraint",
+      "quote": "the backend will use ASP.NET Core on .NET 8, as it aligns with the team’s expertise"
+    },
+    {
+      "text": "FHIR R4 endpoints built using Microsoft.Health.Fhir.R4 library",
+      "kind": "constraint",
+      "quote": "The FHIR R4 endpoints will be built using the Microsoft.Health.Fhir.R4 library to ensure compliance with the EHR’s expectations."
+    },
+    {
+      "text": "Version one live by October 15, 2024",
+      "kind": "constraint",
+      "quote": "Version one must be live by October 15, 2024, to align with the hospital group’s Q4 digital health rollout"
+    },
+    {
+      "text": "Tag notes with nurse's Azure AD identity",
+      "kind": "feature",
+      "quote": "The note must be tagged with the nurse’s Azure AD identity and the timestamp in UTC to ensure auditability and compliance with HIPAA and GDPR."
+    },
+    {
+      "text": "Tag notes with UTC timestamp",
+      "kind": "feature",
+      "quote": "The note must be tagged with the nurse’s Azure AD identity and the timestamp in UTC to ensure auditability and compliance with HIPAA and GDPR."
+    },
+    {
+      "text": "Budget capped at $280,000 for the full project lifecycle",
+      "kind": "constraint",
+      "quote": "Yes, the budget is capped at $280,000 for the full project lifecycle, including development, testing, and deployment through v1.1."
+    },
+    {
+      "text": "Real-time dashboard for charge nurses and ward managers",
+      "kind": "feature",
+      "quote": "The first thing a charge nurse or ward manager sees when they open the system is a real-time dashboard listing all active wards"
+    },
+    {
+      "text": "Dashboard shows visual indicator for pending/incomplete notes",
+      "kind": "feature",
+      "quote": "with a visual indicator showing the number of pending or incomplete notes for each, updated every 5 minutes via SignalR."
+    },
+    {
+      "text": "Drill down into ward to view recent notes",
+      "kind": "feature",
+      "quote": "They can drill down into any ward to view a time-ordered list of the most recent notes, filtered by the shift’s active nurses and sorted by entry time"
+    },
+    {
+      "text": "Filter notes by status (entered, synced, failed)",
+      "kind": "feature",
+      "quote": "with the ability to filter by status—“entered,” “synced,” or “failed."
+    },
+    {
+      "text": "Handle PHI under HIPAA",
+      "kind": "constraint",
+      "quote": "This system handles protected health information (PHI) under HIPAA, so we must comply with the U.S. Health Insurance Portability and Accountability Act"
+    },
+    {
+      "text": "Encrypt data at rest using Azure Storage Service Encryption with customer-managed keys",
+      "kind": "constraint",
+      "quote": "Data must be encrypted at rest using Azure Storage Service Encryption with customer-managed keys"
+    },
+    {
+      "text": "Encrypt data in transit using TLS 1.3",
+      "kind": "constraint",
+      "quote": "and in transit using TLS 1.3."
+    },
+    {
+      "text": "Log and audit all access to patient data via Azure Monitor",
+      "kind": "feature",
+      "quote": "All access to patient data must be logged and audited via Azure Monitor"
+    },
+    {
+      "text": "Retain audit logs for at least 6 years",
+      "kind": "constraint",
+      "quote": "with retention of logs for at least 6 years."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "answers": [
+    { "key": "c1", "by": "S-security/access" },
+    { "key": "c6", "by": "S-integrations/epic" },
+    { "key": "c7", "by": "S-integrations/sharepoint_details" },
+    { "key": "c8", "by": "S-integrations/sharepoint" },
+    { "key": "c14", "by": null },
+    { "key": "c18", "by": "S-overview/budget" },
+    { "key": "c19", "by": "S-security/audit_logs" },
+    { "key": "c20", "by": "S-security/audit_logs" }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "capabilities": [
+    {
+      "text": "Use Microsoft Azure for cloud infrastructure",
+      "kind": "constraint",
+      "quote": "Yes, we’re using Microsoft Azure for our cloud infrastructure"
+    },
+    {
+      "text": "Run in the same region as the current electronic health record system (West Europe)",
+      "kind": "constraint",
+      "quote": "and the tool would run in the same region as our current electronic health record system—West Europe"
+    },
+    {
+      "text": "Connect to EpicCare",
+      "kind": "feature",
+      "quote": "The tool needs to connect to two systems: our main electronic health record system, called EpicCare"
+    },
+    {
+      "text": "Connect to Sensus",
+      "kind": "feature",
+      "quote": "and our ward management system, called Sensus."
+    },
+    {
+      "text": "Note entered in the new tool appears in EpicCare within 30 seconds",
+      "kind": "feature",
+      "quote": "it must appear in both systems—EpicCare within 30 seconds and Sensus within 60 seconds."
+    },
+    {
+      "text": "Note entered in the new tool appears in Sensus within 60 seconds",
+      "kind": "feature",
+      "quote": "it must appear in both systems—EpicCare within 30 seconds and Sensus within 60 seconds."
+    },
+    {
+      "text": "Reduce nurse time spent copying notes by half",
+      "kind": "feature",
+      "quote": "I’ve seen them spend an average of 7 minutes per shift just copying their notes from paper or one system into another, so this tool is meant to cut that time in half."
+    },
+    {
+      "text": "Use a dedicated internal team of three developers and one business analyst",
+      "kind": "constraint",
+      "quote": "We’ll use a dedicated internal team of three developers and one business analyst from our digital health unit"
+    },
+    {
+      "text": "Supported by a nurse advisor from each of the three hospitals",
+      "kind": "constraint",
+      "quote": "supported by a nurse advisor from each of the three hospitals."
+    },
+    {
+      "text": "Pull MRN and patient name automatically from a live list of patients on the ward",
+      "kind": "feature",
+      "quote": "The tool will pull the MRN and patient name automatically from a live list of patients on the ward"
+    },
+    {
+      "text": "Live patient list syncs every two minutes from Sensus",
+      "kind": "feature",
+      "quote": "which syncs every two minutes from Sensus."
+    },
+    {
+      "text": "Nurse selects patient from a dropdown, no typing of MRN",
+      "kind": "feature",
+      "quote": "The nurse only needs to select the patient from a dropdown—no typing the MRN."
+    },
+    {
+      "text": "Observation time field auto-populates with current time",
+      "kind": "feature",
+      "quote": "The time field will auto-populate with the current time when they start typing"
+    },
+    {
+      "text": "Allow editing of observation time",
+      "kind": "feature",
+      "quote": "but they can edit it if the event happened earlier."
+    },
+    {
+      "text": "Save note instantly, even if nurse hasn’t finished typing",
+      "kind": "feature",
+      "quote": "the note must be saved instantly, even if the nurse hasn’t finished typing"
+    },
+    {
+      "text": "Show a green tick when note has successfully synced to both systems",
+      "kind": "feature",
+      "quote": "Also, the tool should show a small green tick when the note has successfully synced to both systems"
+    },
+    {
+      "text": "Budget of £80,000 allocated for development and rollout",
+      "kind": "constraint",
+      "quote": "We’ve allocated £80,000 for the development and rollout of this tool, including testing, training, and support for the first three months."
+    },
+    {
+      "text": "Show a red warning with a clear message if a system is down",
+      "kind": "feature",
+      "quote": "the tool should show a red warning with a clear message: “Note saved locally but not sent to EpicCare—check again later.”"
+    },
+    {
+      "text": "Silent retry every 10 seconds for the first 2 minutes if a system is down",
+      "kind": "feature",
+      "quote": "I’d also recommend a silent retry every 10 seconds for the first 2 minutes, then stop."
+    },
+    {
+      "text": "Handle bursts of activity, like 10 nurses logging in at once",
+      "kind": "feature",
+      "quote": "so we need to make sure it handles bursts of activity, like when 10 nurses log in at once after a handover."
+    },
+    {
+      "text": "Test under load with at least 20 concurrent users",
+      "kind": "constraint",
+      "quote": "I’ve asked the team to test it under load with at least 20 concurrent users to be safe."
+    },
+    {
+      "text": "Adhere to UK GDPR and NHS data protection standards",
+      "kind": "constraint",
+      "quote": "Default: UK GDPR and NHS data protection standards."
+    },
+    {
+      "text": "Build EpicCare connection to existing Sensus-to-EpicCare interface specification",
+      "kind": "constraint",
+      "quote": "Our IT team already has a working interface specification for Sensus to EpicCare, and we’ve used it before for the fall-risk alerts."
+    },
+    {
+      "text": "Nurse enters note once, saves and sends with one action",
+      "kind": "feature",
+      "quote": "When the nurse finishes typing, she just clicks “Save and Send”—the tool does the rest."
+    }
+  ]
+}

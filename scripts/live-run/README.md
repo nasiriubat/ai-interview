@@ -33,6 +33,10 @@ export OPENROUTER_API_KEY=...   # or keep it in an untracked .env, see "The key"
 pnpm live:run
 ```
 
+Only one run at a time per machine: the database name, the API port and the scratch directory are
+fixed defaults (`LIVE_DB_NAME`, `LIVE_API_PORT`, `LIVE_RUN_SCRATCH`), so two runs started together
+drop each other's database. Override all three to run beside another.
+
 Everything it writes goes to `scripts/live-run/out/` (git-ignored): transcripts, `report.md`, the
 specification versions and bundles, `scorecard.md`. Child-process logs go to a scratch directory
 outside the repository.

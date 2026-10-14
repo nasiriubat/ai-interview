@@ -7,6 +7,7 @@ import type {
   Widget,
   WidgetResponse,
 } from "@aidp/shared";
+import { layerTurnFacts } from "./extracted-facts.js";
 import type { Focus } from "./selection.js";
 
 const MINIMAL_MAX_WORDS = 2;
@@ -261,6 +262,8 @@ export function reconcileBackgroundProgress(stored: SessionState, incoming: Sess
     ...incoming,
     summaryUpToSeq,
     lastExtractedSeq: stored.lastExtractedSeq,
-    facts: [...stored.facts, ...added],
+    // Layered, not appended: a requirement the turn recorded under an id the job also filed is one
+    // record, or two capabilities with their own numbers (D-302).
+    facts: layerTurnFacts(stored.facts, added),
   };
 }
