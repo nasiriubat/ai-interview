@@ -1,0 +1,84 @@
+{
+  "capabilities": [
+    {
+      "key": "c1",
+      "text": "Authenticate nurses via Azure AD Single Sign-On with OAuth 2.0 to ensure verified identities."
+    },
+    {
+      "key": "c2",
+      "text": "Require patient selection before allowing a nurse to save a note, ensuring each note is linked to a patient."
+    },
+    {
+      "key": "c3",
+      "text": "Allow nurses to create and save notes with timestamp, nurse ID, patient ID, and content stored in Azure SQL."
+    },
+    {
+      "key": "c4",
+      "text": "Enable note editing by the original author until the next scheduled sync, after which the note is locked."
+    },
+    {
+      "key": "c5",
+      "text": "Maintain an immutable version history of each note edit, visible to the original author and charge nurses."
+    },
+    {
+      "key": "c6",
+      "text": "Integrate with the hospital’s FHIR-compliant EHR system to pull patient identifiers and bed assignments in real time."
+    },
+    {
+      "key": "c7",
+      "text": "Synchronize notes every 15 minutes to a shared spreadsheet via an Azure Logic App using idempotent API calls to avoid duplicates."
+    },
+    {
+      "key": "c8",
+      "text": "Allow charge nurses to view all ward notes in a consolidated timeline with filtering by patient, nurse, or time range."
+    },
+    {
+      "key": "c9",
+      "text": "Enable charge nurses to flag notes for follow-up by changing status to 'Pending Action' or 'Escalated' and adding supplemental comments."
+    },
+    {
+      "key": "c10",
+      "text": "Restrict clearing of 'Pending Action' or 'Escalated' status to the original note author only, via a dedicated API endpoint."
+    },
+    {
+      "key": "c11",
+      "text": "Allow charge nurses to escalate notes and re-escalate if unresolved after 24 hours, triggering reminders via Azure Logic Apps."
+    },
+    {
+      "key": "c12",
+      "text": "Enforce role-based access control using Azure AD groups to restrict note creation and viewing capabilities appropriately."
+    },
+    {
+      "key": "c13",
+      "text": "Log all write operations, status changes, and escalations with immutable audit trails retained for 180 days."
+    },
+    {
+      "key": "c14",
+      "text": "Encrypt all patient-related data at rest using Azure SQL Transparent Data Encryption and in transit via TLS 1.2+."
+    },
+    {
+      "key": "c15",
+      "text": "Authenticate the backend service to the hospital’s FHIR server using OAuth 2.0 client credentials with secrets stored and rotated in Azure Key Vault."
+    },
+    {
+      "key": "c16",
+      "text": "Provide client-side validation with inline error messages preventing note save without patient selection."
+    },
+    {
+      "key": "c17",
+      "text": "Use Azure Functions to trigger the Logic App sync every 15 minutes and handle retries with exponential backoff on transient failures."
+    },
+    {
+      "key": "c18",
+      "text": "Document all APIs using Swagger (OpenAPI 3.0) for clarity and maintainability."
+    },
+    {
+      "key": "c19",
+      "text": "Provision all infrastructure and resources via Terraform modules with tagging for cost tracking and compliance."
+    },
+    {
+      "key": "c20",
+      "text": "Monitor application health, API calls, and database performance using Azure Monitor and Application Insights with alerting on errors and high resource usage."
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "key": "c1",
+    "text": "Authenticate ward nurses via Azure AD single sign-on (SSO) to access the app."
+  },
+  {
+    "key": "c2",
+    "text": "Display a real-time, mobile-responsive patient roster for the nurse's current shift, loading within 3 seconds and caching data locally for 5 minutes."
+  },
+  {
+    "key": "c3",
+    "text": "Allow ward nurses to select a patient from their roster and enter free-text clinical notes with auto-save every 30 seconds."
+  },
+  {
+    "key": "c4",
+    "text": "Provide a predefined dropdown for nurses to select note types (e.g., Vital Signs, Medication Change, Behavioral Concern) when entering notes."
+  },
+  {
+    "key": "c5",
+    "text": "Submit clinical notes to the Epic EMR system via FHIR STU3 API with OAuth 2.0 client credentials through Azure API Management."
+  },
+  {
+    "key": "c6",
+    "text": "Automatically queue and retry note submissions if Epic is unreachable, retrying every 30 seconds with exponential backoff for up to 15 minutes."
+  },
+  {
+    "key": "c7",
+    "text": "Notify nurses in-app and via push notification if note sync to Epic fails after retry period, allowing manual retry."
+  },
+  {
+    "key": "c8",
+    "text": "Allow nurses to save notes locally for patients marked as transferred or discharged, tagging notes as local-only and purging them after 7 days unless reviewed."
+  },
+  {
+    "key": "c9",
+    "text": "Enable charge nurses to view a real-time dashboard of all ward notes with color-coded sync status and alert-flagged notes, auto-refreshing every 2 minutes."
+  },
+  {
+    "key": "c10",
+    "text": "Allow charge nurses to export the dashboard overview to PDF, sending it securely via encrypted email with audit logging of exports."
+  },
+  {
+    "key": "c11",
+    "text": "Provide a secure admin portal for clinical informatics leads to audit note distribution, duplication rates, and review local-only notes."
+  },
+  {
+    "key": "c12",
+    "text": "Support full offline note creation and editing on the nurse's device using IndexedDB and service workers, with conflict resolution based on timestamps."
+  },
+  {
+    "key": "c13",
+    "text": "Restrict access to alert-flagged notes to only pharmacy liaisons and charge nurses, requiring audit-logged reasons for each access."
+  },
+  {
+    "key": "c14",
+    "text": "Provide a curated alert dashboard view for pharmacy liaisons showing only notes flagged with alerts, with automated escalation via Microsoft Teams and ServiceNow."
+  },
+  {
+    "key": "c15",
+    "text": "Allow charge nurses and clinical informatics leads to review local-only notes and either release them to Epic or mark them as reviewed to prevent purging."
+  },
+  {
+    "key": "c16",
+    "text": "Enforce role-based access control using Azure AD app roles mapped to user roles, with multi-factor authentication required for all users."
+  },
+  {
+    "key": "c17",
+    "text": "Store patient notes, local-only note queue, and audit events securely in Azure SQL Database with encryption at rest and row-level security."
+  },
+  {
+    "key": "c18",
+    "text": "Retain patient notes and audit logs for 7 years in Azure SQL, then archive notes to immutable Azure Blob Storage for an additional 10 years."
+  },
+  {
+    "key": "c19",
+    "text": "Ensure the React frontend communicates only with the .NET backend API, which handles all calls to Epic and ward shift systems, preventing exposure of FHIR credentials in the browser."
+  },
+  {
+    "key": "c20",
+    "text": "Display shift summary to ward nurses at shift end showing all submitted notes with sync status, allowing manual retry of failed notes and export to PDF."
+  }
+]

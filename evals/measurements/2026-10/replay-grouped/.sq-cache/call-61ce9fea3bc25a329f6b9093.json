@@ -1,0 +1,157 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "I’d prefer structured fields—nurses already enter vitals, medications, and key observations in the handover sheet, so we should capture those consistently. The form will include fields for blood pressure, heart rate, temperature, pain score, and any new medications, with dropdowns or numeric inputs where possible.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "I do want to make sure the tool logs every time a note is created or edited, and who did it, so we can audit access later. ... The logs will include the nurse’s ID, timestamp, and action type—like “created” or “edited”—and will be retained for at least seven years.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "partial",
+      "quote": "The first thing a nurse does when they start a shift is open the tool from their tablet, log in with their NHS smartcard, ...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "They select the patient they’re responsible for—usually by tapping their name or MRN—and the tool auto-populates the patient’s bed number and current status.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "yes",
+      "quote": "They need to see the dose, the unit (like mg or mL), and the time the medication was given—those three details are critical. The tool should show them a dropdown with the approved medications from the hospital’s formulary, so they can’t type free text and risk errors. If they enter a new medication, it should be flagged for review by the ward manager the next day. They also need to confirm the patient’s bed number and MRN are correct before saving—those are auto-filled from Epic but must be visible for double-checking.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-10",
+      "grounded": "yes",
+      "quote": "The logs will include the nurse’s ID, timestamp, and action type—like “created” or “edited”—and will be retained for at least seven years, as per our records policy.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-11",
+      "grounded": "yes",
+      "quote": "Should the ward manager be able to see the medication flags for new entries in the same list, so they can review them the next day? ... The ward manager's list will include medication flags for new entries, so they can review them the next day.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "Letting nurses enter observations first—those are the most frequent and time-sensitive updates, especially blood pressure and heart rate, which need to be recorded at the start of each shift. The pain score is also critical for patient care and often missed during retyping.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-13",
+      "grounded": "yes",
+      "quote": "Yes, keep the default—heart rates above 200 should trigger a warning, as they’re extremely rare and likely a typo. I’ll also set a limit for temperature: anything above 45°C or below 30°C should show a warning. For blood pressure, systolic above 250 or below 80, and diastolic above 150 or below 50, should be flagged. ... a warning will help catch input errors without stopping the nurse.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-14",
+      "grounded": "yes",
+      "quote": "I’d say block the save—this is a critical field that affects patient care, and we can’t risk it being skipped. The system should show a clear message: “Pain score is missing—please enter a value before saving.”",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-15",
+      "grounded": "yes",
+      "quote": "I’ll make sure the form includes clear fields for each observation, with dropdowns or numeric inputs to reduce errors.",
+      "granularity": "too_fine",
+      "kind": "detail",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-18",
+      "grounded": "yes",
+      "quote": "I’d say show a warning, not block it—some medications have variable dosing based on weight or condition, and a high dose might be correct for a specific patient. But the warning should be clear: “This dose is 10 times the usual amount—please confirm with a senior nurse or pharmacist.”",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-19",
+      "grounded": "yes",
+      "quote": "Before saving, the nurse must see the dose, unit (like mg or mL), and time given clearly displayed in the form—each in its own labeled field, not hidden in a note. The time should default to the current time, but they should be able to edit it if it’s wrong. The unit must be selected from a dropdown, not typed free text, to prevent errors like “mcg” vs “mg”.",
+      "granularity": "too_fine",
+      "kind": "detail",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-20",
+      "grounded": "yes",
+      "quote": "The tool must hold the note in progress—either by auto-saving every few minutes or by prompting the nurse to confirm before closing. We can’t allow the system to lose work, especially during a pilot where reliability is key.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "pilot-pass-test",
+      "grounded": "yes",
+      "quote": "We’ll need three clean shifts in a row—no double entry, no major errors, and all notes successfully saved and visible in the handover file. ... If all three shifts pass, we’ll call version one working.",
+      "granularity": "ok",
+      "kind": "constraint",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "major-error-definition",
+      "grounded": "yes",
+      "quote": "Only mismatches that delay handover count as major errors—like a medication dose that’s wrong and causes a nurse to stop and verify it, or a missing pain score that leads to a patient being reassessed. ... If a nurse has to re-enter a note because the tool crashed or closed unexpectedly, it counts as a double entry and fails the pass test.",
+      "granularity": "ok",
+      "kind": "constraint",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "pass-test",
+      "grounded": "yes",
+      "quote": "So the pass test is one full shift on the pilot ward with every note entered once, in the tool, with no retyping into SharePoint. ... Three clean shifts in a row, with the ward manager checking notes against Epic and the handover file, is a clear pass bar.",
+      "granularity": "too_coarse",
+      "kind": "constraint",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

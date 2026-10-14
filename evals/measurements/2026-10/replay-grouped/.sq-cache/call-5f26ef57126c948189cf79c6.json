@@ -1,0 +1,24 @@
+{
+  "pairs": [
+    { "a": "FR-3", "b": "FR-28", "same": false },
+    { "a": "FR-31", "b": "FR-35", "same": true },
+    { "a": "FR-3", "b": "roster_membership", "same": true },
+    { "a": "FR-28", "b": "FR-29", "same": false },
+    { "a": "FR-3", "b": "FR-16", "same": false },
+    { "a": "FR-16", "b": "FR-35", "same": false },
+    { "a": "FR-27", "b": "FR-35", "same": false },
+    { "a": "FR-3", "b": "FR-31", "same": true },
+    { "a": "FR-27", "b": "FR-31", "same": false },
+    { "a": "FR-31", "b": "roster_membership", "same": true },
+    { "a": "FR-3", "b": "FR-35", "same": true },
+    { "a": "FR-26", "b": "roster_membership", "same": false },
+    { "a": "FR-35", "b": "roster_membership", "same": true },
+    { "a": "FR-16", "b": "FR-25", "same": false },
+    { "a": "FR-16", "b": "FR-27", "same": false },
+    { "a": "FR-16", "b": "FR-28", "same": false },
+    { "a": "FR-25", "b": "FR-28", "same": false },
+    { "a": "FR-26", "b": "FR-28", "same": false },
+    { "a": "FR-28", "b": "FR-31", "same": false },
+    { "a": "FR-28", "b": "roster_membership", "same": false }
+  ]
+}

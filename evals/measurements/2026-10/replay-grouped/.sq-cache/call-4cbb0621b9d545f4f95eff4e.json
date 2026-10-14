@@ -1,0 +1,81 @@
+{
+  "capabilities": [
+    {
+      "key": "c1",
+      "text": "Connect to CareVue to receive nurse notes inbound using the vendor's standard secure login with 90-day credential rotation."
+    },
+    { "key": "c2", "text": "Allow nurses to review and confirm notes before sending them to Epic." },
+    {
+      "key": "c3",
+      "text": "Send confirmed notes outbound to Epic using Epic's standard secure login and confirm successful save with clear success or error messages."
+    },
+    {
+      "key": "c4",
+      "text": "Display a confirmation screen showing note text, patient name, medical record number, and timestamp with Confirm and Go Back buttons."
+    },
+    {
+      "key": "c5",
+      "text": "Save unconfirmed notes as drafts that persist for 72 hours and restore drafts exactly as left when reopened."
+    },
+    {
+      "key": "c6",
+      "text": "After confirming a note, automatically open a blank note for the next patient in the list, with an option to return to the patient list."
+    },
+    {
+      "key": "c7",
+      "text": "Allow nurses to retry sending notes to Epic up to three times with timeouts, showing clear error messages and options to retry or flag for IT."
+    },
+    {
+      "key": "c8",
+      "text": "Enable nurses to send a help request to IT from the app after three failed send attempts, including note content, patient info, and timestamp, with confirmation of request receipt."
+    },
+    {
+      "key": "c9",
+      "text": "Preserve original CareVue timestamp and nurse name on notes when sending to Epic, recording send time separately."
+    },
+    {
+      "key": "c10",
+      "text": "Support multiple notes per patient per shift without limits, ensuring each note includes timestamp and nurse name."
+    },
+    {
+      "key": "c11",
+      "text": "Grant access to notes not only to the original nurse but also to charge nurses, clinical leads, and ward managers with appropriate permissions."
+    },
+    {
+      "key": "c12",
+      "text": "Authenticate users via the hospital's existing single sign-on system with badge login."
+    },
+    {
+      "key": "c13",
+      "text": "Log every access and change to notes with user, timestamp, action, patient ID, and full note text, exporting logs in real time to the hospital's existing log store for at least six years."
+    },
+    {
+      "key": "c14",
+      "text": "Use a low-code integration platform with pre-built connectors for CareVue and Epic to implement the workflow."
+    },
+    {
+      "key": "c15",
+      "text": "Maintain a single note record that transitions from draft to sent status, preserving retry history and send status including retry count."
+    },
+    {
+      "key": "c16",
+      "text": "Show clear success messages after sending notes to Epic, including patient name, medical record number, note timestamp, and nurse name."
+    },
+    {
+      "key": "c17",
+      "text": "Allow nurses to edit notes only by returning to the note screen from the review screen, keeping the review screen simple."
+    },
+    {
+      "key": "c18",
+      "text": "Ensure the system supports testing in a sandbox environment with at least 20 nurse testers from all wards before go-live."
+    },
+    {
+      "key": "c19",
+      "text": "Implement a retry limit of three attempts with timeouts for sending notes to Epic to avoid infinite retry loops."
+    },
+    {
+      "key": "c20",
+      "text": "Provide a monitored IT support queue that receives help requests from nurses with note details, ensuring timely IT response without nurse follow-up."
+    }
+  ]
+}

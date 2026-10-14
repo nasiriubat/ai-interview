@@ -1,0 +1,78 @@
+[
+  {
+    "key": "c1",
+    "text": "Allow a nurse to type a patient note once and save it to both the electronic health record system (CareCom) and print a copy for the ward flow sheet"
+  },
+  {
+    "key": "c2",
+    "text": "Display a list of patients assigned to the nurse's ward, including patient names, bed numbers, and last note date/time"
+  },
+  {
+    "key": "c3",
+    "text": "Provide a clean, simple text box for note entry with an automatically filled timestamp"
+  },
+  {
+    "key": "c4",
+    "text": "Include a 'Save and Print' button that saves the note and triggers printing of the ward flow sheet copy"
+  },
+  {
+    "key": "c5",
+    "text": "Lock notes after saving so they cannot be edited; corrections must be added as new notes"
+  },
+  {
+    "key": "c6",
+    "text": "Allow nurses to view a patient's full note history sorted by date and time, including notes from all nurses on the ward"
+  },
+  {
+    "key": "c7",
+    "text": "Restrict patient list and note history access to only patients on the nurse's assigned ward"
+  },
+  {
+    "key": "c8",
+    "text": "Block saving of empty or whitespace-only notes and display a clear message prompting the nurse to type a note before saving"
+  },
+  {
+    "key": "c9",
+    "text": "Provide clear confirmation messages after saving: green message for successful save and print, and distinct messages for print failure or save failure"
+  },
+  {
+    "key": "c10",
+    "text": "If printing fails, notify the nurse with a clear message, allow retrying or manual printing, and ensure the note is still saved to CareCom"
+  },
+  {
+    "key": "c11",
+    "text": "If saving to CareCom fails (e.g., network issues), keep the note on screen and saved locally, show a clear error message, and provide a retry option"
+  },
+  {
+    "key": "c12",
+    "text": "Prevent the nurse from exiting the note entry screen with unsaved notes unless they deliberately remove the note"
+  },
+  {
+    "key": "c13",
+    "text": "Run the tool on tablets via a web browser, compatible with hospital network login and tolerant of slow Wi-Fi"
+  },
+  {
+    "key": "c14",
+    "text": "Automatically use the nurse's hospital tablet login identity for authentication without requiring additional password entry"
+  },
+  {
+    "key": "c15",
+    "text": "Support up to 60 concurrent nurse users across three wards without performance degradation"
+  },
+  {
+    "key": "c16",
+    "text": "Encrypt all health data in transit and at rest, maintain access logs, and restrict access to authorized nursing staff only, ensuring compliance with UK GDPR and NHS data security standards"
+  },
+  {
+    "key": "c17",
+    "text": "Populate the patient list daily from the hospital’s master patient list filtered by ward assignment"
+  },
+  {
+    "key": "c18",
+    "text": "Allow nurses to add free-text notes without mandatory fields or categories, with only an automatic timestamp added"
+  },
+  {
+    "key": "c19",
+    "text": "Provide clear, immediate feedback on all user actions without pop-ups or extra steps, keeping the interface simple and fast"
+  }
+]

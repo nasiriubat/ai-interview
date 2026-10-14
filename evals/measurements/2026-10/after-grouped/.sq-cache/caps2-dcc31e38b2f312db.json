@@ -1,0 +1,82 @@
+[
+  {
+    "key": "c1",
+    "text": "Enter a ward note once and have it automatically sent to both EpicCare and Sensus systems"
+  },
+  {
+    "key": "c2",
+    "text": "Select a patient from a live ward list that updates every two minutes, with automatic filling of patient name and MRN"
+  },
+  {
+    "key": "c3",
+    "text": "Auto-populate the observation time with the current time, allowing manual edits if needed"
+  },
+  {
+    "key": "c4",
+    "text": "Autosave nurse's note instantly while typing to prevent data loss from crashes or interruptions"
+  },
+  {
+    "key": "c5",
+    "text": "Display a green tick icon when a note has successfully synced to both EpicCare and Sensus"
+  },
+  {
+    "key": "c6",
+    "text": "Show a yellow pending icon with tooltip for notes still attempting to sync, distinguishing temporary delays from failures"
+  },
+  {
+    "key": "c7",
+    "text": "Show a red warning icon with a clear message when a note fails to sync after retry attempts"
+  },
+  {
+    "key": "c8",
+    "text": "Retry sending failed notes silently every 10 seconds for up to 5 minutes before showing failure status"
+  },
+  {
+    "key": "c9",
+    "text": "Block saving a note if no patient is selected, showing a red warning and highlighting the patient field"
+  },
+  {
+    "key": "c10",
+    "text": "Allow saving notes for patients no longer on the ward with a one-click confirmation and a yellow warning"
+  },
+  {
+    "key": "c11",
+    "text": "Provide a 'Save and Send' button that sends the note to both systems without extra submission steps"
+  },
+  {
+    "key": "c12",
+    "text": "Prevent editing of sent notes; corrections must be entered as new tagged notes marked 'Correction'"
+  },
+  {
+    "key": "c13",
+    "text": "Maintain a 'Pending Notes' tab listing all unsent notes with red warnings and patient/time details"
+  },
+  {
+    "key": "c14",
+    "text": "Allow nurses to manually retry sending pending notes from the 'Pending Notes' tab"
+  },
+  {
+    "key": "c15",
+    "text": "Ensure notes are never deleted from the system to preserve audit trails"
+  },
+  {
+    "key": "c16",
+    "text": "Encrypt all patient data in transit and at rest; do not store unencrypted patient data locally on devices"
+  },
+  {
+    "key": "c17",
+    "text": "Require users on tablets to log out and lock the device when stepping away"
+  },
+  {
+    "key": "c18",
+    "text": "Handle bursts of activity with at least 20 concurrent users without performance degradation"
+  },
+  {
+    "key": "c19",
+    "text": "Integrate with EpicCare and Sensus using existing interface specifications provided by IT"
+  },
+  {
+    "key": "c20",
+    "text": "Provide clear visual and textual feedback for note sync status to support nurse confidence and reduce errors"
+  }
+]

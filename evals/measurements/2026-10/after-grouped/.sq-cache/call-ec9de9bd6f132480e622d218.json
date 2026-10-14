@@ -1,0 +1,76 @@
+{
+  "capabilities": [
+    {
+      "key": "c1",
+      "text": "Allow a nurse to enter a ward note once and automatically send the exact same note to both Meditech and CareFlow immediately after saving, with no extra steps."
+    },
+    {
+      "key": "c2",
+      "text": "Alert the nurse immediately within 10 seconds if sending the note to either Meditech or CareFlow fails, showing the specific system and reason for failure."
+    },
+    {
+      "key": "c3",
+      "text": "Enable nurses to open a blank note form for any patient assigned to their shift from a simple dashboard listing their patients."
+    },
+    {
+      "key": "c4",
+      "text": "Provide ward managers with a read-only dashboard showing all patients on their ward grouped by nurse, with the most recent note summary and ability to view full notes."
+    },
+    {
+      "key": "c5",
+      "text": "Allow ward managers to flag a note by submitting a 'Report Issue' with predefined reasons, sending a notification to the nurse's inbox without editing the original note."
+    },
+    {
+      "key": "c6",
+      "text": "Provide IT staff with a real-time dashboard showing all send attempts in the last 24 hours, including successes, failures, and pending sends, with detailed error messages for failures."
+    },
+    {
+      "key": "c7",
+      "text": "Retry sending notes automatically only for temporary failures (e.g., brief system outages) a few times over a short period, then stop retries and alert nurse and IT for permanent failures."
+    },
+    {
+      "key": "c8",
+      "text": "Keep unsent notes visible and marked as not sent in the nurse's view after a failed send and manual retry, so no data is lost and the nurse can act accordingly."
+    },
+    {
+      "key": "c9",
+      "text": "Save unsent draft notes per nurse during shift changes and reload them on the nurse's next login without sending anything until explicitly saved."
+    },
+    {
+      "key": "c10",
+      "text": "Display a success confirmation to the nurse after saving a note, including a green checkmark, the message 'Note saved and sent to both systems,' a soft chime, and instantly clear the form for the next note."
+    },
+    {
+      "key": "c11",
+      "text": "Show patient name and ID, nurse name and shift time at the top of the note form, followed by a plain text box for clinical text entry, a save button, and a progress indicator during sending."
+    },
+    {
+      "key": "c12",
+      "text": "Enforce mandatory clinical text entry before allowing a nurse to save a note, blocking empty saves with a clear message."
+    },
+    {
+      "key": "c13",
+      "text": "Restrict access so nurses see only their own notes, ward managers see only notes from their own ward, and IT sees only system logs without note content unless a send failed."
+    },
+    {
+      "key": "c14",
+      "text": "When a ward manager flags a note, mark the original note as 'Flagged' in the nurse's view without altering the note content, until the nurse responds."
+    },
+    {
+      "key": "c15",
+      "text": "Provide a failure view for nurses after a second failed manual retry, showing a red banner with the failure reason and a 'Contact IT' button that sends a report automatically."
+    },
+    {
+      "key": "c16",
+      "text": "Ensure the system does not store permanent copies of notes; only send notes to Meditech and CareFlow, log send attempts and statuses, and keep no long-term note data."
+    },
+    {
+      "key": "c17",
+      "text": "Support user roles with distinct dashboards and capabilities: nurses for note entry, ward managers for note viewing and flagging, and IT for monitoring send logs and troubleshooting."
+    },
+    {
+      "key": "c18",
+      "text": "Operate on a UK-region cloud provider approved by hospital IT, compliant with UK GDPR and NHS Data Security and Protection Toolkit standards."
+    }
+  ]
+}

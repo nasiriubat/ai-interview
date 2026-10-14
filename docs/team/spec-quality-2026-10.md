@@ -190,3 +190,90 @@ About 1.97 USD in total by the printed spends: baseline interviews 0.62, judge r
 iterations on the same six specifications), replays 0.21, fresh interviews 0.56, judge of the
 replay 0.11, judge of the fresh interviews 0.09 (stopped by its cap after three of six). The cap
 held; the last 0.1 of budget could not buy a replay of the fresh interviews with the fixed merge.
+
+## Second pass (D-290 to D-294)
+
+The follow-ups D-249 listed: a grouped merge pass, the read-back eval, regenerating the fresh
+interviews with the final code and judging all six. Data: `evals/measurements/2026-10/`
+(`replay-grouped/` the six original transcripts through the grouped pass, `after-grouped/` six fresh
+interviews of the final code, `readback/` the disagreeing-owner run). Same judge, same cheap models.
+
+### What changed
+
+| Where                                    | Change                                                                                                                                                                                                                                                                      |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `requirement_merge@2`, `spec/merge.ts`   | Grouped, component-wise: candidate pairs are joined into clusters and the model returns groups of ids that are one capability, instead of a verdict per pair. Cluster of at most 30, call of at most 60 requirements, 6 calls. The pairwise `@1` is retired in the pin file |
+| `curateForGeneration`                    | Two rounds: overlap 0.25, then every pair when 8 or more requirements are left, so a restatement in different words is seen. Pairs a round judged different are not offered again                                                                                           |
+| `selection.ts`, `issues.ts`              | The read-back is raised on finish or near the cap whatever else is open, and is the focus before the closing question. This was a defect, see below                                                                                                                         |
+| `generateSpec`                           | `readBack: confirmed / unanswered / never`; unless confirmed, one open question says the list was not reviewed (the D-249 leaving-the-interview limit, deterministically)                                                                                                   |
+| `evals/src/readback-corrections.eval.ts` | Gate tests: an edit, a withdrawal and an addition through engine, curation and generation; finish with areas open reads the list first; leaving during the read-back marks the document                                                                                     |
+| `live/variance.live.ts`                  | `LIVE_DISAGREE=1`: the owner answers the read-back by editing item 1, removing item 2 and adding one, and the run checks the specification                                                                                                                                  |
+
+### A defect the measurement found
+
+The read-back of D-244 did not happen on interviews the owner ends with "I'm done", which is the
+case it was written for. `chooseFocus` sent `finishRequested` straight to the closing question, and
+`shouldScanIssues` did not raise the confirmation while any finding was open. Counting the numbered
+list in the saved transcripts: 2 of 12 earlier interviews (`after/`, and the first grouped run) were
+read their list at all. The "6 of 6 ended through the engine" row above is true and says nothing
+about confirmation. With the fix, 6 of 6 fresh interviews were read the list.
+
+### Before and after
+
+"Replay" is the six original transcripts and facts through the generation code. "Fresh" is six new
+interviews (3 + 3, 40 turns, then "done"), judged with the same judge.
+
+|                                           | Before (6)      | Replay, pairwise (D-241) | Replay, grouped (D-290) | Fresh, final code (6) |
+| ----------------------------------------- | --------------- | ------------------------ | ----------------------- | --------------------- |
+| Requirements judged                       | 159             | 104                      | 96                      | 44                    |
+| Median per specification                  | 17 to 28        | 12 to 18                 | 11 to 17                | 7                     |
+| Duplicate (judge)                         | 37%             | 18%                      | 16%                     | 11% (nt 17%, tech 5%) |
+| Grounded, quote verified                  | 81%             | 86%                      | 90%                     | 93%                   |
+| Grounded, as claimed                      | 90%             | 94%                      | 94%                     | 96%                   |
+| Over-granular                             | 14%             | 10%                      | 12%                     | 2%                    |
+| Non-requirement                           | 9%              | 1%                       | 4%                      | 5%                    |
+| Testable acceptance                       | 96%             | 95%                      | 98%                     | 93%                   |
+| Stated capabilities no requirement covers | 43 of 118 (36%) | 40 of 119 (34%)          | 43 of 120 (36%)         | 45 of 116 (39%)       |
+| Read back to the owner                    | 0 of 6          |                          |                         | 6 of 6                |
+
+Two intermediate grouped replays are not in the table: the pairwise-shaped candidate set gave 23%
+duplicates, the whole-list second round gave 16%. Each replay is a single sample of a model that is
+not deterministic (one transcript produced 30, 27 and 26 requirements on three runs).
+
+### Against the targets
+
+| Target                             | Result                                                                                                                                                                                             | Reached                                                                                           |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Duplicates under 5%                | 11% on the final six by the judge; 16% in the grouped replay. By my reading of the 44, about 2 are real, the rest are the judge's false positives (a UI detail called a duplicate of a capability) | Not by the judge. Possibly by hand reading, which is 44 items and a single reader, so not claimed |
+| Verified grounding at least 90%    | 93% fresh, 90% replay                                                                                                                                                                              | Yes, on 44 requirements                                                                           |
+| Without losing stated requirements | Uncovered capabilities 36% to 39%; the interviews recorded 5 to 20 requirements where the earlier ones recorded 24 to 40; median 7                                                                 | Not shown. The fresh interviews capture less and the judge cannot say that nothing was lost       |
+| Median ward-notes persona 8 to 20  | 7 (nontechnical), 7 (technical)                                                                                                                                                                    | No, one below the range                                                                           |
+
+### Read-back with a disagreeing owner
+
+Deterministic (gate, 3 tests): an edit under the same FR id replaces the title; a requirement
+re-recorded with `withdrawn: true` is absent from the document and the Markdown; an added
+requirement is a new FR; the confirmation finding is settled; finish with areas open reads the list
+before closing; an interview left during the read-back produces `readBack: unanswered` and the open
+question.
+
+Live, one run (the owner edits item 1, removes item 2, adds a photo attachment): the specification
+showed all three and `readBack` was `confirmed`. The edit check is a keyword match, the run is one
+interview, and a first attempt hit the same defect as above and a second a provider timeout, so this
+shows the path can work with a real model, not how often it does. What it still does not cover: an
+owner who disagrees with scope tags or with the order, and a reply the model records under the wrong FR.
+
+### Cost of this pass
+
+About 1.9 USD of the 2.0: replays 0.21, judges of the replays 0.26, fresh interviews 0.95 (two
+sets of six, the first discarded when the read-back defect was found), judge of the fresh interviews
+0.17, disagreeing-owner runs 0.3. The caps held.
+
+### Not done
+
+- The fresh interviews record fewer requirements than the earlier ones and the judge does not show
+  it as loss, but it does not show it as not loss either; a person comparing the transcripts to the
+  lists is the check this needs.
+- Duplicates in the judge's reading are not under 5%; the judge has false positives here (kappa 0.79
+  was measured on the earlier lists) and its number should be read as an upper bound for this set.
+- The scope-tag and ordering corrections of the read-back are untested.

@@ -52,7 +52,14 @@ recorded in `docs/team/live-run-2026-10-14.md`.
 `LIVE_SAVE_DIR=<dir>` keeps every interview's transcript, recorded facts and generated requirements
 (`<persona>-<n>.json`); `LIVE_PERSONA=technical` runs the engineer owner; `LIVE_FINISH_AT=<turn>`
 has the owner press "I'm done" at that turn, as in the product, so the requirements confirmation
-runs.
+runs. `LIVE_DISAGREE=1` (with `LIVE_FINISH_AT`) makes the owner answer the read-back by editing item 1,
+removing item 2 and adding a requirement; the run prints and saves whether the generated specification
+reflects each (`readBack` in the artifact).
+
+`src/readback-corrections.eval.ts` is the deterministic half: the same three corrections through the
+real engine with a scripted model (that the facts are applied, the finding settled and the document
+changed), and the interview that is left during the read-back (the document says the list was never
+reviewed, D-290).
 
 ## Specification quality (`live/spec-quality.live.ts`, `live/spec-replay.live.ts`)
 

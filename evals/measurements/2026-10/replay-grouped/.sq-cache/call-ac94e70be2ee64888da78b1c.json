@@ -1,0 +1,94 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-25",
+      "grounded": "yes",
+      "quote": "If a note isn’t entered by 10 a.m. the next day, it stays in the system as a pending task for the nurse, but the team leader gets an alert at 10:15 a.m. with the nurse’s name and patient full name.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-27",
+      "grounded": "partial",
+      "quote": "If the note still isn’t entered by 9:30 a.m., the system escalates it to the ward manager automatically.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-28",
+      "grounded": "yes",
+      "quote": "As a care coordinator, I want to see a clear indicator of which notes are urgent or require immediate action — like a red tag for new assessments, medication changes, or falls — so I can prioritize the most critical patients first.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-29",
+      "grounded": "yes",
+      "quote": "If a note is missing, I want it to be obvious — not just a blank row, but a red highlight with the patient’s name and the time it was due.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-31",
+      "grounded": "yes",
+      "quote": "When a nurse saves a ward note in InHealth, the system must immediately confirm the note was sent to ShareSheet, with a clear message on screen. If the send fails, the system must retry automatically every 5 minutes for 30 minutes, showing the nurse a real-time update like “Retrying… connection restored.” If it still fails after 30 minutes, the system must display a clear action prompt: “Still not sent — contact IT now.” And the IT team must be alerted with the nurse’s name, patient ID, and time of failure — all automatically.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-33",
+      "grounded": "yes",
+      "quote": "If the nurse saves the note once, then the connection fails, then they save it again after the outage, the system must treat them as separate entries. It should show both in ShareSheet, but with timestamps and a note that says “Duplicate entry — check for accuracy.”",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-34",
+      "grounded": "yes",
+      "quote": "The status line must update in real time, without needing a refresh. If the connection comes back after 12 minutes, the nurse should see “Sent” appear automatically on the same screen, right after the “Retrying” message.",
+      "granularity": "detail",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-36",
+      "grounded": "yes",
+      "quote": "The alert stays visible on the screen, but now with a “Marked as resolved” button if they click it after entering the note. If the note is already entered, the system shows it as “Note re-entered — check for accuracy” to prevent duplication.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-37",
+      "grounded": "yes",
+      "quote": "At 10:15 a.m., the team leader should see a clear alert in their dashboard with the nurse’s name, the patient’s full name, the note type (e.g., “new assessment”), and the time it was due — all in one line, easy to read. The alert should be red, pinned to the top, and include a direct link to open the note entry page.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-38",
+      "grounded": "yes",
+      "quote": "The alert should stay open until the sync is confirmed — even if the team leader clicks “Marked as resolved.” The system must not close the alert based on a manual action alone. Instead, it waits for the actual sync to ShareSheet to complete, then shows a green “Synced and resolved” message. If the note still hasn’t synced after 5 minutes, the alert reverts to red and sends a new message to the IT team.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

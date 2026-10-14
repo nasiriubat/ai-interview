@@ -61,7 +61,14 @@ export function chooseFocus(input: SelectionInput): Focus {
   if (state.phase === "summary") return { mode: "summary" };
   if (state.closingAsked) return template.endSummary ? { mode: "summary" } : { mode: "done" };
   // "I'm done" is a state flag, not a counter value (D-170): the next turn is the closing one.
-  if (state.finishRequested || state.turnCount >= input.maxTurns) return { mode: "closing" };
+  if (state.finishRequested || state.turnCount >= input.maxTurns) {
+    // The list is read back before the interview closes, whichever way it ends (D-244, D-290).
+    const confirm = state.findings.find(
+      (f) => f.status === "open" && f.description.startsWith("Requirements confirmation."),
+    );
+    if (confirm) return { mode: "finding", findingId: confirm.id, pushBack: confirm.pushedBack };
+    return { mode: "closing" };
+  }
 
   // The participant asked to come back to an area (a `return_area` control): asked next, once.
   // The engine clears `requestedAreaKey` when it takes the turn; it is ignored when the area does

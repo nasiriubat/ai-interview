@@ -1,0 +1,1596 @@
+{
+  "model": "openai/gpt-4.1-mini",
+  "usd": 0.065,
+  "rows": [
+    {
+      "name": "nontechnical",
+      "count": 57,
+      "groundedRate": 0.895,
+      "groundedClaimedRate": 0.93,
+      "duplicateRate": 0.14,
+      "overGranularRate": 0.193,
+      "nonRequirementRate": 0.035,
+      "testableRate": 1,
+      "scopeAccuracy": 0.982,
+      "flaggedUnconfirmed": 0
+    },
+    {
+      "name": "technical",
+      "count": 39,
+      "groundedRate": 0.897,
+      "groundedClaimedRate": 0.949,
+      "duplicateRate": 0.179,
+      "overGranularRate": 0,
+      "nonRequirementRate": 0.051,
+      "testableRate": 0.949,
+      "scopeAccuracy": 1,
+      "flaggedUnconfirmed": 0
+    },
+    {
+      "name": "all",
+      "count": 96,
+      "groundedRate": 0.896,
+      "groundedClaimedRate": 0.938,
+      "duplicateRate": 0.156,
+      "overGranularRate": 0.115,
+      "nonRequirementRate": 0.042,
+      "testableRate": 0.979,
+      "scopeAccuracy": 0.99,
+      "flaggedUnconfirmed": 0
+    }
+  ],
+  "perSpec": [
+    {
+      "spec": "nontechnical-1",
+      "persona": "nontechnical",
+      "score": {
+        "count": 26,
+        "groundedRate": 0.885,
+        "groundedClaimedRate": 0.885,
+        "duplicateRate": 0.154,
+        "overGranularRate": 0.269,
+        "nonRequirementRate": 0.038,
+        "testableRate": 1,
+        "scopeAccuracy": 0.962,
+        "flaggedUnconfirmed": 8
+      },
+      "verdicts": [
+        {
+          "id": "FR-1",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The spreadsheet step is automatically triggered when the nurse saves the ward note in the system — no extra action needed. ... the same note must appear in ShareSheet by 8 a.m. the next day.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-2",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The ward manager gets an email alert every morning at 7:30 a.m. with a list of patients who have new notes since the previous day, including a link to view the note and download the updated spreadsheet.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-3",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If a nurse forgets to enter a note, the system sends a reminder to them and their team leader at 10 a.m. the next day.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-4",
+          "grounded": "partial",
+          "groundedClaimed": "partial",
+          "groundedVerified": false,
+          "quote": "The spreadsheet step is automatically triggered when the nurse saves the ward note in the system — no extra action needed.",
+          "granularity": "too_fine",
+          "kind": "detail",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-8",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If a note isn’t entered by 10 a.m. the next day, it stays in the system as a pending task for the nurse, but the team leader gets an alert at 10:15 a.m. with the nurse’s name and patient full name. ... The alert includes a direct link to the note entry page. ... If the note still isn’t entered by 11 a.m., the system logs it as a delay in the quality team’s weekly report — but only if it's the second time in a week for that nurse.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-4",
+          "adjustments": []
+        },
+        {
+          "id": "FR-9",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The finance supervisor also uses it once a month to match nurse hours with documented patient interactions.",
+          "granularity": "too_fine",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-3",
+          "adjustments": []
+        },
+        {
+          "id": "FR-10",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If there’s any delay in syncing the note to ShareSheet, the system should log it with a timestamp and alert the IT team within 5 minutes, so we don’t lose track of it.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-13",
+          "grounded": "no",
+          "groundedClaimed": "no",
+          "groundedVerified": false,
+          "quote": "",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "wrong",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-15",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The note stays in the system on their device, and the system automatically retries every 5 minutes for up to 30 minutes. If it still fails after that, the system shows a second message: “Still unable to send. Please contact IT now.” At the same time, the IT team gets an alert with the nurse’s name, patient ID, and time of failure.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-17",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Yes — when the first note is saved and ShareSheet is unreachable, the nurse should see a clear message on screen: “Note saved locally, but not yet sent to ShareSheet. Please check again in 5 minutes.” ... If it still fails after 30 minutes, the system shows a second message: “Still unable to send. Please contact IT now.”",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-15",
+          "adjustments": []
+        },
+        {
+          "id": "FR-18",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The system must also prevent nurses from editing a note after 48 hours — once it’s been synced, it’s final, unless a supervisor approves a correction. ... If a nurse needs to correct a note, they must add a new one with a timestamp and explanation, not overwrite the original.",
+          "granularity": "too_coarse",
+          "kind": "constraint",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-19",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The system should flag any edit after 48 hours and send it to the team leader for review.",
+          "granularity": "too_fine",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-20",
+          "grounded": "partial",
+          "groundedClaimed": "partial",
+          "groundedVerified": false,
+          "quote": "No, the team leader had no way to see it was missing before 8:15 a.m. — there was no dashboard or alert system at that time. ... That’s why the 10:15 a.m. alert is so important — it’s not just for the nurse, it’s for the team leader to catch problems early.",
+          "granularity": "too_fine",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-21",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "When the ward manager opens the system each morning, the first thing they see is a summary dashboard with three key items: the number of notes entered so far today, how many are overdue (more than 10 a.m.), and a list of nurses who haven’t entered a note yet.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-22",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The manager then sends a quick message through the system to the nurse — no phone calls needed — saying “Hi, just checking in on your notes for Mr. Smith. Thanks!”",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-23",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If a nurse has missed two notes in a row, the manager gets a yellow alert and can schedule a quick 5-minute huddle to check in.",
+          "granularity": "too_fine",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-24",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If they’re new to the system, they get a short video pop-up the first time, but only once.",
+          "granularity": "too_fine",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-25",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The team leader gets an alert at 10:15 a.m. with the nurse’s name, the missing patient, and the time. The alert includes a direct link to the note entry page.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-27",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If a note still isn’t entered by 9:30 a.m., the system escalates it to the ward manager automatically.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-28",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The first thing the care coordinator looks for is the list of patients who have new notes from the previous day — specifically, any patient with a note marked “urgent” or “new assessment” — because that’s what drives their task planning.",
+          "granularity": "too_fine",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-29",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If a note is missing, I want it to be obvious — not just a blank row, but a red highlight with the patient’s name and the time it was due.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-31",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "When a nurse saves a note and ShareSheet is unreachable, the nurse should see a clear message on screen... retries every 5 minutes for 30 minutes... then a contact IT message... IT team gets an alert with nurse’s name, patient ID, and time of failure.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-33",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If the nurse saves the same patient's note twice during an outage, the system should keep both copies... show both in ShareSheet with timestamps and a note 'Duplicate entry — check for accuracy.'",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-34",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The status line must update in real time, without needing a refresh. If the connection comes back, the nurse should see 'Sent' appear automatically on the same screen, right after the 'Retrying' message.",
+          "granularity": "detail",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-37",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "At 10:15 a.m., the team leader should see a clear alert in their dashboard with nurse’s name, patient’s full name, note type, due time, all in one line, red, pinned to the top, with a direct link to the note entry page.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-25",
+          "adjustments": []
+        },
+        {
+          "id": "FR-38",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The alert should stay open until the sync is confirmed — even if the team leader clicks 'Marked as resolved.' If sync still fails after 5 minutes, alert reverts to red and IT is notified.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        }
+      ],
+      "capabilities": 20,
+      "missing": [
+        {
+          "key": "c11",
+          "text": "Display nurses' 'Today's Notes' dashboard on login with red flags for missing or overdue notes linking directly to note entry"
+        },
+        {
+          "key": "c16",
+          "text": "Store and transmit all patient notes encrypted, log every access, and allow permanent deletion of notes within 72 hours upon patient request"
+        },
+        {
+          "key": "c17",
+          "text": "Use the same login system as InHealth to avoid extra passwords for nurses"
+        },
+        {
+          "key": "c19",
+          "text": "Maintain full retry history of note sync attempts including save time, retry times, results, and final sync time for at least 90 days"
+        },
+        {
+          "key": "c20",
+          "text": "Build the note-to-ShareSheet sync as an internal API service called by InHealth on note save, using JavaScript, .NET, and secure internal APIs"
+        }
+      ],
+      "unconfirmed": 8,
+      "mergedAway": 14
+    },
+    {
+      "spec": "nontechnical-2",
+      "persona": "nontechnical",
+      "score": {
+        "count": 14,
+        "groundedRate": 0.786,
+        "groundedClaimedRate": 0.929,
+        "duplicateRate": 0.071,
+        "overGranularRate": 0.143,
+        "nonRequirementRate": 0,
+        "testableRate": 1,
+        "scopeAccuracy": 1,
+        "flaggedUnconfirmed": 9
+      },
+      "verdicts": [
+        {
+          "id": "FR-1",
+          "grounded": "partial",
+          "groundedClaimed": "yes",
+          "groundedVerified": false,
+          "quote": "the nurse reviews and confirms before anything reaches Epic",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": ["quote not in the participant's words"]
+        },
+        {
+          "id": "FR-5",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Once they’ve confirmed a note, the nurse needs to be able to see a clear success message, know the note is now in Epic, and move on to the next patient without having to log into another system or check anything manually.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-6",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If Epic fails to save the note, the nurse needs to see a clear error message that says what went wrong—like “Connection to Epic failed”—and be given a simple option to retry or flag it for IT.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-7",
+          "grounded": "partial",
+          "groundedClaimed": "partial",
+          "groundedVerified": false,
+          "quote": "unconfirmed notes stay saved as drafts",
+          "granularity": "too_fine",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-8",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Yes, when a nurse returns, they should see the draft exactly as they left it—same patient, same text, same place in the note",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-10",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "notes start blank",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-12",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "the confirmation screen should show the note text, the patient’s name, and their unique ID",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-13",
+          "grounded": "partial",
+          "groundedClaimed": "yes",
+          "groundedVerified": false,
+          "quote": "the review-screen edit requirement is removed and editing stays on the note screen",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": ["quote not in the participant's words"]
+        },
+        {
+          "id": "FR-17",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "After confirming a note and seeing the success message, the system should take them straight to the next patient’s blank note—assuming they’re working through a list in order.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-20",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The nurse should see a message saying “Failed to send to Epic. Connection lost. Retry in a few minutes.” The note should stay saved as a draft with the original timestamp and nurse info",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-22",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The success screen will show the patient's name, medical record number, the note timestamp, the nurse's name, and a confirmation that the note appears in Epic.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-23",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The nurse should see a message saying 'Failed to send to Epic. Connection lost. Retry in a few minutes.' Note stays saved as draft with original timestamp and nurse info Nurse can retry sending the note from the draft",
+          "granularity": "too_fine",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-26",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "They should see a confirmation message that says, “Help request sent successfully. IT will contact you within 15 minutes.” The request should appear in a dedicated IT queue",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-28",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The review screen should clearly show the note text, patient name, medical record number, and timestamp, with a “Confirm” button and a “Go Back” button.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-12",
+          "adjustments": []
+        }
+      ],
+      "capabilities": 20,
+      "missing": [
+        {
+          "key": "c1",
+          "text": "Connect to CareVue to receive nurse notes inbound using the vendor's standard secure login with 90-day credential rotation."
+        },
+        {
+          "key": "c10",
+          "text": "Support multiple notes per patient per shift without limits, ensuring each note includes timestamp and nurse name."
+        },
+        {
+          "key": "c11",
+          "text": "Grant access to notes not only to the original nurse but also to charge nurses, clinical leads, and ward managers with appropriate permissions."
+        },
+        {
+          "key": "c12",
+          "text": "Authenticate users via the hospital's existing single sign-on system with badge login."
+        },
+        {
+          "key": "c13",
+          "text": "Log every access and change to notes with user, timestamp, action, patient ID, and full note text, exporting logs in real time to the hospital's existing log store for at least six years."
+        },
+        {
+          "key": "c14",
+          "text": "Use a low-code integration platform with pre-built connectors for CareVue and Epic to implement the workflow."
+        },
+        {
+          "key": "c15",
+          "text": "Maintain a single note record that transitions from draft to sent status, preserving retry history and send status including retry count."
+        },
+        {
+          "key": "c18",
+          "text": "Ensure the system supports testing in a sandbox environment with at least 20 nurse testers from all wards before go-live."
+        }
+      ],
+      "unconfirmed": 9,
+      "mergedAway": 14
+    },
+    {
+      "spec": "nontechnical-3",
+      "persona": "nontechnical",
+      "score": {
+        "count": 17,
+        "groundedRate": 1,
+        "groundedClaimedRate": 1,
+        "duplicateRate": 0.176,
+        "overGranularRate": 0.118,
+        "nonRequirementRate": 0.059,
+        "testableRate": 1,
+        "scopeAccuracy": 1,
+        "flaggedUnconfirmed": 7
+      },
+      "verdicts": [
+        {
+          "id": "FR-1",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "I’d prefer structured fields—nurses already enter vitals, medications, and key observations in the handover sheet, so we should capture those consistently. The form will include fields for blood pressure, heart rate, temperature, pain score, and any new medications, with dropdowns or numeric inputs where possible. Nurses can still add free text at the end for context",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-3",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "No, GDPR and our hospital’s data governance policy are sufficient—I don’t need anything extra. But I do want to make sure the tool logs every time a note is created or edited, and who did it, so we can audit access later. ... The logs will include the nurse’s ID, timestamp, and action type—like “created” or “edited”—and will be retained for at least seven years",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-7",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The first thing a nurse does when they start a shift is open the tool from their tablet, log in with their NHS smartcard",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-8",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "They select the patient they’re responsible for—usually by tapping their name or MRN—and the tool auto-populates the patient’s bed number and current status",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-9",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "They need to see the dose, the unit (like mg or mL), and the time the medication was given—those three details are critical. The tool should show them a dropdown with the approved medications from the hospital’s formulary, so they can’t type free text and risk errors. If they enter a new medication, it should be flagged for review by the ward manager the next day. They also need to confirm the patient’s bed number and MRN are correct before saving—those are auto-filled from Epic but must be visible for double-checking",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-10",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The audit log will keep every version of a note with its timestamp and author, so the history of a change like 8 to 4 can always be traced. ... The log is stored read-only for seven years",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-3",
+          "adjustments": []
+        },
+        {
+          "id": "FR-11",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The ward manager will use it once per shift to review the notes before handover—they’ll open the tool, check the list of completed notes, and look for any gaps or inconsistencies. ... The ward manager's list will include medication flags for new entries, so they can review them the next day",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-12",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Letting nurses enter observations first—those are the most frequent and time-sensitive updates, especially blood pressure and heart rate, which need to be recorded at the start of each shift. The pain score is also critical for patient care and often missed during retyping. ... The form includes clear fields for each observation, with dropdowns or numeric inputs",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-13",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Yes, keep the default—heart rates above 200 should trigger a warning, as they’re extremely rare and likely a typo. I’ll also set a limit for temperature: anything above 45°C or below 30°C should show a warning. For blood pressure, systolic above 250 or below 80, and diastolic above 150 or below 50, should be flagged. ... a warning will help catch input errors without stopping the nurse",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-14",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "I’d say block the save—this is a critical field that affects patient care, and we can’t risk it being skipped. The system should show a clear message: “Pain score is missing—please enter a value before saving.”",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-15",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "I’ll make sure the form includes clear fields for each observation, with dropdowns or numeric inputs to reduce errors",
+          "granularity": "too_fine",
+          "kind": "detail",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-14",
+          "adjustments": []
+        },
+        {
+          "id": "FR-18",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "I’d say show a warning, not block it—some medications have variable dosing based on weight or condition, and a high dose might be correct for a specific patient. But the warning should be clear: “This dose is 10 times the usual amount—please confirm with a senior nurse or pharmacist.” That gives the nurse a chance to double-check without stopping the workflow",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-19",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Before saving, the nurse must see the dose, unit (like mg or mL), and time given clearly displayed in the form—each in its own labeled field, not hidden in a note. The time should default to the current time, but they should be able to edit it if it’s wrong. The unit must be selected from a dropdown, not typed free text",
+          "granularity": "too_fine",
+          "kind": "detail",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-9",
+          "adjustments": []
+        },
+        {
+          "id": "FR-20",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If a nurse has to re-enter a note because the tool crashed or closed unexpectedly, it counts as a double entry and fails the pass test. The tool must hold the note in progress—either by auto-saving every few minutes or by prompting the nurse to confirm before closing",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "pilot-pass-test",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "So the pass test is one full shift on the pilot ward with every note entered once, in the tool, with no retyping into SharePoint. ... We’ll need three clean shifts in a row—no double entry, no major errors, and all notes successfully saved and visible in the handover file. ... Ward manager confirms each time that the notes match what they see in the EPR and the spreadsheet",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "major-error-definition",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Only mismatches that delay handover count as major errors—like a medication dose that’s wrong and causes a nurse to stop and verify it, or a missing pain score that leads to a patient being reassessed. ... If a nurse has to re-enter a note because the tool crashed or closed unexpectedly, it counts as a double entry and fails the pass test",
+          "granularity": "ok",
+          "kind": "decision",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "pass-test",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The pass test is one full shift on the pilot ward with every note entered once, in the tool, with no retyping into SharePoint. ... Three clean shifts in a row with no major errors. ... All notes saved and visible in handover file. ... Ward manager confirms notes match Epic and spreadsheet",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        }
+      ],
+      "capabilities": 20,
+      "missing": [
+        {
+          "key": "c2",
+          "text": "Encrypt all data at rest and in transit to comply with HIPAA and hospital data governance policies"
+        },
+        {
+          "key": "c4",
+          "text": "Integrate with the ward’s daily handover spreadsheet in SharePoint to append final notes once a day"
+        },
+        {
+          "key": "c20",
+          "text": "Build the solution using Power Apps for the form, Power Automate for integrations, and a .NET service hosted in AWS behind a secure API gateway"
+        }
+      ],
+      "unconfirmed": 7,
+      "mergedAway": 4
+    },
+    {
+      "spec": "technical-1",
+      "persona": "technical",
+      "score": {
+        "count": 9,
+        "groundedRate": 0.667,
+        "groundedClaimedRate": 0.778,
+        "duplicateRate": 0.333,
+        "overGranularRate": 0,
+        "nonRequirementRate": 0,
+        "testableRate": 0.778,
+        "scopeAccuracy": 1,
+        "flaggedUnconfirmed": 3
+      },
+      "verdicts": [
+        {
+          "id": "FR-1",
+          "grounded": "no",
+          "groundedClaimed": "no",
+          "groundedVerified": false,
+          "quote": "",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "no",
+          "scope": "future",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-2",
+          "grounded": "no",
+          "groundedClaimed": "no",
+          "groundedVerified": false,
+          "quote": "",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "no",
+          "scope": "future",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-4",
+          "grounded": "partial",
+          "groundedClaimed": "yes",
+          "groundedVerified": false,
+          "quote": "The system allows a note to be edited by its author until the next Logic App sync, then locks it.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": ["quote not in the participant's words"]
+        },
+        {
+          "id": "FR-8",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The author can view their own edit history. - The charge nurse can view the edit history. - The original content is preserved in the audit trail. - Every edit creates a new version in Azure SQL with VersionId, PreviousContent, EditTimestamp, and EditorId. - The charge nurse can view the edit history via a dropdown in the UI. - The spreadsheet reflects only the latest version. - View History lists all versions with timestamp, editor ID and content - Versions are sorted chronologically and the latest version is highlighted",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-4",
+          "adjustments": []
+        },
+        {
+          "id": "FR-9",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The “Pending Action” tag is replaced with “Escalated” when a charge nurse updates the note status. The original tag is preserved in the audit log along with the timestamp and the user ID of the charge nurse who made the change.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-13",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The charge nurse can re-escalate the note if the original author does not resolve it within 24 hours of escalation. The system will track the escalation timestamp and trigger a reminder via Azure Logic Apps if no resolution occurs.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-9",
+          "adjustments": []
+        },
+        {
+          "id": "FR-14",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The system should display a client-side validation error: “Patient must be selected before saving.” This message appears inline beneath the patient selection dropdown with a red border and icon. The save button is disabled until a valid patient is selected.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-15",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The spreadsheet and the charge nurse’s UI dropdown will always display the latest version of the note content, with the version history stored in the JSON field but only accessible via an explicit “View History” button.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-16",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The spreadsheet will show the updated content from the 08:00 edit, as the sync at 08:15 pulls the latest version from Azure SQL. If the author opens “View History” afterward, they will see a list of all versions.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-15",
+          "adjustments": []
+        }
+      ],
+      "capabilities": 20,
+      "missing": [
+        {
+          "key": "c1",
+          "text": "Authenticate nurses via Azure AD Single Sign-On with OAuth 2.0 to ensure verified identities."
+        },
+        {
+          "key": "c3",
+          "text": "Allow nurses to create and save notes with timestamp, nurse ID, patient ID, and content stored in Azure SQL."
+        },
+        {
+          "key": "c6",
+          "text": "Integrate with the hospital’s FHIR-compliant EHR system to pull patient identifiers and bed assignments in real time."
+        },
+        {
+          "key": "c8",
+          "text": "Allow charge nurses to view all ward notes in a consolidated timeline with filtering by patient, nurse, or time range."
+        },
+        {
+          "key": "c10",
+          "text": "Restrict clearing of 'Pending Action' or 'Escalated' status to the original note author only, via a dedicated API endpoint."
+        },
+        {
+          "key": "c12",
+          "text": "Enforce role-based access control using Azure AD groups to restrict note creation and viewing capabilities appropriately."
+        },
+        {
+          "key": "c14",
+          "text": "Encrypt all patient-related data at rest using Azure SQL Transparent Data Encryption and in transit via TLS 1.2+."
+        },
+        {
+          "key": "c15",
+          "text": "Authenticate the backend service to the hospital’s FHIR server using OAuth 2.0 client credentials with secrets stored and rotated in Azure Key Vault."
+        },
+        {
+          "key": "c18",
+          "text": "Document all APIs using Swagger (OpenAPI 3.0) for clarity and maintainability."
+        },
+        {
+          "key": "c19",
+          "text": "Provision all infrastructure and resources via Terraform modules with tagging for cost tracking and compliance."
+        },
+        {
+          "key": "c20",
+          "text": "Monitor application health, API calls, and database performance using Azure Monitor and Application Insights with alerting on errors and high resource usage."
+        }
+      ],
+      "unconfirmed": 3,
+      "mergedAway": 8
+    },
+    {
+      "spec": "technical-2",
+      "persona": "technical",
+      "score": {
+        "count": 11,
+        "groundedRate": 0.909,
+        "groundedClaimedRate": 1,
+        "duplicateRate": 0.091,
+        "overGranularRate": 0,
+        "nonRequirementRate": 0,
+        "testableRate": 1,
+        "scopeAccuracy": 1,
+        "flaggedUnconfirmed": 2
+      },
+      "verdicts": [
+        {
+          "id": "FR-1",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "A nurse documented a patient’s fall risk assessment during evening rounds. She first entered the note into the EPR using the FHIR Observation resource: fields included patient ID, timestamp, author (her NHS ID), category (clinical assessment), code (‘fall-risk’), and text",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-2",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "I’ll use the FHIR API to read patient demographics and admission status",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-3",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The SharePoint list will be updated via a secure, scheduled sync job using Azure Logic Apps with OAuth 2.0 through Azure AD",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-4",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "After login, senior nurse sees only pending notes for selected ward - Notes with blank author IDs or failed syncs do not appear in nurse dashboard",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-5",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Pending means notes that have been created in the EPR but not yet acknowledged by a senior nurse or clinical lead—specifically, any FHIR Observation with a “note status” of “pending review” and a non-blank author ID",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-6",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The ward selection is dynamic and can be changed mid-shift. When a nurse switches wards, she selects the new ward from the same dropdown, and the system immediately reloads the patient list and pending notes for that ward. The change is reflected instantly, with no need to log out or restart. However, the system logs the ward switch in the audit trail with the NHS ID and timestamp, and retains the old ward context for 30 minutes to support reconciliation",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-7",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "When a Band 5 nurse acknowledges a note, the system records the NHS ID of the nurse, the timestamp (UTC), and the action type (\"acknowledged\") as a FHIR Annotation resource linked to the original Observation. This annotation is visible to all senior nurses, clinical leads, and ward clerks with read access. The acknowledgment is not editable or deletable",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-10",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "A nurse can edit a saved note within 15 minutes of submission—after that, the note becomes immutable. When edited, the system creates a new FHIR Observation resource with the corrected data, marks the original as “replaced,” and adds a FHIR Annotation stating “Version 2: corrected patient ID.” All changes are logged in the audit trail with the NHS ID, timestamp, and action",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-11",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "When a nurse successfully saves a note, the UI displays a green confirmation toast with the message “Note saved and synced to EPR,” followed by a timestamp in UTC. The note immediately appears in the patient’s note list with the author’s name and the “saved” status, and the “Save” button changes to “Saved” with a checkmark icon. Additionally, the audit log captures the event with the action type “created,” NHS ID, and timestamp",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-12",
+          "grounded": "partial",
+          "groundedClaimed": "yes",
+          "groundedVerified": false,
+          "quote": "A failed EPR write returns an error to the nurse, and the note stays in draft",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": ["quote not in the participant's words"]
+        },
+        {
+          "id": "FR-6.audit",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The system logs the ward switch in the audit trail with the NHS ID and timestamp, and retains the old ward context for 30 minutes to support reconciliation",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-6",
+          "adjustments": []
+        }
+      ],
+      "capabilities": 20,
+      "missing": [
+        {
+          "key": "c1",
+          "text": "Authenticate nurses via Azure AD using their existing NHS credentials"
+        },
+        {
+          "key": "c11",
+          "text": "Use a single ASP.NET Core Web API backend serving the Blazor Server frontend and handling EPR and SharePoint integrations"
+        },
+        {
+          "key": "c12",
+          "text": "Translate between internal domain model (WardNote entity) and FHIR resources at API boundary, hiding raw FHIR endpoints from clients"
+        },
+        {
+          "key": "c15",
+          "text": "Perform hourly scheduled sync of notes from EPR to SharePoint via Azure Logic Apps with exponential backoff retry on failures"
+        },
+        {
+          "key": "c16",
+          "text": "Flag notes that fail all sync retries for manual review and display them on an admin dashboard within the hour"
+        },
+        {
+          "key": "c17",
+          "text": "Restrict read-only access to ward clerks for viewing notes in SharePoint without edit or create permissions"
+        },
+        {
+          "key": "c19",
+          "text": "Implement auto-scaling of Azure App Service based on CPU usage thresholds during peak shift-change periods"
+        },
+        {
+          "key": "c20",
+          "text": "Enforce compliance with UK GDPR, NHS Digital standards, and DSPT controls including encryption, access logging, and audit retention"
+        }
+      ],
+      "unconfirmed": 2,
+      "mergedAway": 1
+    },
+    {
+      "spec": "technical-3",
+      "persona": "technical",
+      "score": {
+        "count": 19,
+        "groundedRate": 1,
+        "groundedClaimedRate": 1,
+        "duplicateRate": 0.158,
+        "overGranularRate": 0,
+        "nonRequirementRate": 0.105,
+        "testableRate": 1,
+        "scopeAccuracy": 1,
+        "flaggedUnconfirmed": 14
+      },
+      "verdicts": [
+        {
+          "id": "FR-1",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Hospital IT administrators need access to the tool’s health monitoring dashboard—available via Azure Monitor and Application Insights—to track API latency, error rates, and authentication failures.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-3",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The primary user is the ward nurse, who needs to log in via Azure AD SSO, select a patient from their assigned shift roster (pulled from the ward scheduling API), and enter a free-text clinical note using a clean, mobile-responsive form that auto-saves every 30 seconds.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-8",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If Epic is unreachable during submission, the note is immediately persisted to our Azure SQL Database with a status of “Pending” and a retry queue is triggered via Azure Service Bus. The system automatically retries the FHIR POST every 30 seconds for up to 15 minutes...",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-9",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Additionally, a pharmacy liaison may need read-only access to the note feed for specific alerts (e.g., “patient refusing medication”) to initiate interventions, but only with explicit approval and audit logging.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-13",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Only the pharmacy liaison and the charge nurse can open an alert-flagged note, and each access is logged in Azure Monitor with the user ID, timestamp, IP address, and the note’s MRN. When the liaison opens the note, they must select a reason from a dropdown...",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-14",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "When a nurse submits a note with the alert type “Patient refusing medication,” ... The liaison can click to open it, which triggers an automated workflow: a Microsoft Teams message is sent to the pharmacy team channel with a link to the note, and a ticket is created in our incident tracking system (ServiceNow) with priority level 2.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-9",
+          "adjustments": []
+        },
+        {
+          "id": "FR-16",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "At the end of their shift, the ward nurse can access a “Shift Summary” view that shows all notes they submitted during the shift, with color-coded status: green for “Synced to Epic,” yellow for “Pending retry,” and red for “Failed after 15 minutes.” They can tap any failed note to see the error message and retry it manually if desired.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-17",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "At the start of their shift, the charge nurse opens the dashboard and sees a real-time summary of all ward notes from the prior shift: a list of patients with active notes, color-coded by status—green for “synced,” yellow for “pending,” and red for “failed.” They immediately see any alert-flagged notes ... The system auto-refreshes every 2 minutes during the shift.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-20",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "While waiting to retry, the nurse sees a persistent notification at the top of the screen: “Your note is pending sync—will retry automatically. Status: Retry attempt #2 (30 seconds ago).” The retry status updates every 30 seconds with a progress graphic.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-22",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The charge nurse dashboard displays a real-time summary of all ward notes from the prior shift. The dashboard shows a list of patients with active notes color-coded by status. The dashboard displays alert-flagged notes in a dedicated section with a red badge. The dashboard shows a count of unresolved issues. The dashboard auto-refreshes every 2 minutes during the shift. The charge nurse can view the full note history per patient. The charge nurse can export the overview to PDF for handoff.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-23",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The PDF handoff is shared with the incoming charge nurse and the unit manager, who receive it via secure email through Azure Logic Apps, with encryption and a 7-day expiration link. The export is logged in the audit trail with the user ID, timestamp, patient count, and recipient email, and stored in Azure Blob Storage with a 7-year retention policy—exactly like alert-note access.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-25",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If the note fails after 15 minutes, the system triggers a push notification (via Azure Notification Hub) and displays a modal: “Note saved locally—sync failed due to Epic outage. Contact IT if issue persists.” The message remains visible until acknowledged, ensuring no note is silently lost—this is logged as a failed write event in Azure Monitor, visible to the IT team.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-26",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "When a nurse opens the app, they must be able to authenticate via Azure AD SSO and immediately see their assigned shift roster—displayed as a list of patient cards—with real-time status indicators ... This data must load within 3 seconds, and the nurse must be able to click any patient card to begin note entry—even if the network is slow, with all patient data cached locally for up to 5 minutes.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-27",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The nurse sees the status from the ward shift system—the bed is empty—so the card shows “Bed Empty” and is dimmed, with a small tooltip: “Patient transferred per ward system; note may not be relevant.” The card does not display the Epic admission status of “Transfer” in this case, because the shift system’s real-time bed state takes precedence.",
+          "granularity": "ok",
+          "kind": "business_rule",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-28",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "If the nurse attempts to enter a note for that patient, a modal appears: “Patient not assigned to this ward—note will not sync to Epic. Confirm continue?” This prevents invalid data entry and maintains data integrity.",
+          "granularity": "ok",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-31",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The test must verify that the roster drops the patient within 60 seconds of the ward shift system updating their status—specifically, the system must detect the change via the REST API polling interval (set to 30 seconds) and refresh the roster within 90 seconds of the update.",
+          "granularity": "ok",
+          "kind": "constraint",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "FR-35",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "The patient card is removed within 90 seconds of the shift system update.",
+          "granularity": "ok",
+          "kind": "constraint",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-31",
+          "adjustments": []
+        },
+        {
+          "id": "FR-36",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Yes, version one must support full offline note creation and editing—nurses must be able to start typing a note, save it locally, and edit it later even if the device loses network connectivity. The app uses IndexedDB for local persistence, a service worker to cache assets and handle offline state, and a conflict resolution strategy that prioritizes the latest version based on timestamp when sync succeeds.",
+          "granularity": "too_coarse",
+          "kind": "capability",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": null,
+          "adjustments": []
+        },
+        {
+          "id": "roster_membership",
+          "grounded": "yes",
+          "groundedClaimed": "yes",
+          "groundedVerified": true,
+          "quote": "Only patients assigned to the nurse's current ward per the ward shift system appear; Epic-only admissions do not appear. Discrepancies between systems are logged with timestamps from both sources.",
+          "granularity": "ok",
+          "kind": "business_rule",
+          "testable": "yes",
+          "scope": "correct",
+          "duplicateOf": "FR-3",
+          "adjustments": []
+        }
+      ],
+      "capabilities": 20,
+      "missing": [
+        {
+          "key": "c1",
+          "text": "Authenticate ward nurses via Azure AD single sign-on (SSO) to access the app."
+        },
+        {
+          "key": "c8",
+          "text": "Allow nurses to save notes locally for patients marked as transferred or discharged, tagging notes as local-only and purging them after 7 days unless reviewed."
+        },
+        {
+          "key": "c11",
+          "text": "Provide a secure admin portal for clinical informatics leads to audit note distribution, duplication rates, and review local-only notes."
+        },
+        {
+          "key": "c15",
+          "text": "Allow charge nurses and clinical informatics leads to review local-only notes and either release them to Epic or mark them as reviewed to prevent purging."
+        },
+        {
+          "key": "c16",
+          "text": "Enforce role-based access control using Azure AD app roles mapped to user roles, with multi-factor authentication required for all users."
+        },
+        {
+          "key": "c17",
+          "text": "Store patient notes, local-only note queue, and audit events securely in Azure SQL Database with encryption at rest and row-level security."
+        },
+        {
+          "key": "c18",
+          "text": "Retain patient notes and audit logs for 7 years in Azure SQL, then archive notes to immutable Azure Blob Storage for an additional 10 years."
+        },
+        {
+          "key": "c19",
+          "text": "Ensure the React frontend communicates only with the .NET backend API, which handles all calls to Epic and ward shift systems, preventing exposure of FHIR credentials in the browser."
+        }
+      ],
+      "unconfirmed": 14,
+      "mergedAway": 19
+    }
+  ]
+}

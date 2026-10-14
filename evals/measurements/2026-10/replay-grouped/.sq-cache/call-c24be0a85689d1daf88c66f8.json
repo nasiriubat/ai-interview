@@ -1,0 +1,6 @@
+{
+  "pairs": [
+    { "a": "FR-9", "b": "FR-13", "same": false },
+    { "a": "FR-15", "b": "FR-16", "same": true }
+  ]
+}
