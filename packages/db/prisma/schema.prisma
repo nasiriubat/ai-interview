@@ -536,8 +536,16 @@ model PromptVersion {
   active      Boolean  @default(false)
   createdBy   String?
   createdAt   DateTime @default(now())
+  /// Why the version exists, in the author's words.
+  note          String?
+  /// When the version last became active, and when it last stopped being.
+  activatedAt   DateTime?
+  deactivatedAt DateTime?
+  /// The version this one was edited from; null when it started from the shipped prompt.
+  parentVersion Int?
 
   @@unique([companyId, key, version])
+  @@index([companyId, key])
 }
 
 // ---------- Providers, routing, cost (FR-40 to FR-49) ----------

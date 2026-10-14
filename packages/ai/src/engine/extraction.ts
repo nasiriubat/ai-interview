@@ -78,7 +78,7 @@ async function extractBatch(
   state: ReturnType<typeof SessionStateSchema.parse>,
   fresh: Awaited<ReturnType<SessionStore["messagesAfter"]>>,
 ): Promise<{ facts: Fact[]; upToSeq: number; promptVersion: string; quotesDropped: number }> {
-  const prompt = await deps.prompts.get(session.companyId, "extraction");
+  const prompt = await deps.prompts.get(session.companyId, "extraction", session.id);
   const kinds = session.template.outputs;
   const nonce = newNonce();
   // The participant's words are delimited material; the interviewer's own questions are context.

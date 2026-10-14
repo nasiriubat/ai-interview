@@ -349,7 +349,7 @@ async function mergeAndName(
   versions: string[],
 ): Promise<NamedCluster[]> {
   const byId = new Map(facts.map((f) => [f.id, f]));
-  const prompt = await deps.prompts.get(input.companyId, "clustering");
+  const prompt = await deps.prompts.get(input.companyId, "clustering", input.campaignId);
   versions.push(promptVersionTag(prompt));
   const system = prompt.body.replace("{{language}}", languageName(input.language));
   const draftById = new Map(drafts.map((d) => [d.id, d]));
@@ -489,7 +489,7 @@ async function opportunityFor(
   stats: ClusterStats,
   versions: string[],
 ) {
-  const prompt = await deps.prompts.get(input.companyId, "opportunity");
+  const prompt = await deps.prompts.get(input.companyId, "opportunity", input.campaignId);
   versions.push(promptVersionTag(prompt));
   const body = [
     `Cluster: ${cluster.name}`,
@@ -531,7 +531,7 @@ async function narrative(
   opportunities: AnalysisOpportunity[],
   versions: string[],
 ) {
-  const prompt = await deps.prompts.get(input.companyId, "report");
+  const prompt = await deps.prompts.get(input.companyId, "report", input.campaignId);
   versions.push(promptVersionTag(prompt));
   const body = [
     `Campaign: ${input.campaignName}. Invited ${input.participation.invited}, completed ${input.participation.completed}, analyzed ${input.participation.sessionsAnalyzed}. Threshold met: ${input.thresholdMet}.`,

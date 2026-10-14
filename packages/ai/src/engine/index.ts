@@ -1,5 +1,6 @@
 export * from "./ports.js";
 export * from "./prompts/index.js";
+export * from "./prompts/admin.js";
 export * from "./selection.js";
 export * from "./state.js";
 export * from "./turn-parser.js";
