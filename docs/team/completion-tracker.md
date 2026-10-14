@@ -7,12 +7,12 @@ is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026
 
 ## Headline numbers
 
-| Measure                                                        | Now      | How it is computed                                                                                   |
-| -------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| Program to "A+ production-ready handover" (phases 0 to 5)      | **~48%** | About 42 of about 210 deduplicated engineer-days merged and verified                                 |
+| Measure                                                        | Now      | How it is computed                                                                                                                                                                            |
+| -------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Program to "A+ production-ready handover" (phases 0 to 5)      | **~48%** | About 42 of about 210 deduplicated engineer-days merged and verified                                                                                                                          |
 | Safe to run a first pilot tenant (owner operating, one tenant) | **~88%** | Both live-run defects (clustering at scale, reopen) fixed and confirmed live; remaining: requirement capture varies between runs (1 and 1 vs 6 and 8), full compose stack untested end to end |
-| Spec coverage, phases 0 to 4                                   | ~87%     | Was ~85%; resume recap, flags, PDF, cluster edits and prompt admin still open                        |
-| Automated tests (all merged, zero skipped)                     | 913+     | `pnpm check` with a database; web alone is now 450                                                   |
+| Spec coverage, phases 0 to 4                                   | ~87%     | Was ~85%; resume recap, flags, PDF, cluster edits and prompt admin still open                                                                                                                 |
+| Automated tests (all merged, zero skipped)                     | 913+     | `pnpm check` with a database; web alone is now 450                                                                                                                                            |
 
 ## Milestones
 
