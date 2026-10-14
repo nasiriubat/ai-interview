@@ -2,9 +2,11 @@ import type { Widget } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import {
   clipToSentence,
+  firstSpokenSentence,
   MAX_SPOKEN_CHARS,
   plainSpeech,
   readableList,
+  remainingSpoken,
   speakWidget,
   toSpokenTurn,
 } from "../../src/voice/speech.js";
@@ -174,5 +176,47 @@ describe("readableList", () => {
     expect(readableList(["a", "b"])).toBe("a or b");
     expect(readableList(["a", "b", "c"])).toBe("a, b or c");
     expect(readableList([])).toBe("");
+  });
+});
+
+describe("speaking the first sentence while the reply is still streaming (D-280)", () => {
+  it("waits for a complete sentence, and a terminator is complete only once whitespace follows it", () => {
+    expect(firstSpokenSentence("Thank you, that is a very clear picture of")).toBeUndefined();
+    expect(firstSpokenSentence("Thank you, that is a very clear picture of the morning.")).toBeUndefined();
+    expect(firstSpokenSentence("Thank you, that is a very clear picture of the morning. And")).toBe(
+      "Thank you, that is a very clear picture of the morning.",
+    );
+  });
+
+  it("does not stop at a decimal point", () => {
+    expect(firstSpokenSentence("It takes about 3.5 hours every single week for the whole team. Then")).toBe(
+      "It takes about 3.5 hours every single week for the whole team.",
+    );
+  });
+
+  it("extends a very short opening with the next sentence", () => {
+    expect(firstSpokenSentence("Thanks. That helps a great deal, truly. Next")).toBe(
+      "Thanks. That helps a great deal, truly.",
+    );
+  });
+
+  it("strips the markup a speech model would pronounce, as the whole turn would", () => {
+    expect(firstSpokenSentence("**Thank you**, that is a very clear picture of it. Next")).toBe(
+      "Thank you, that is a very clear picture of it.",
+    );
+  });
+
+  it("cuts the rest from the full spoken text so the two segments say exactly the whole", () => {
+    const message =
+      "Thank you, that is a very clear picture of the morning. When do the figures arrive? And who sees them first?";
+    const full = toSpokenTurn(message);
+    const head = firstSpokenSentence(`${message} `) as string;
+    const rest = remainingSpoken(full, head);
+    expect(`${head} ${rest.text}`).toBe(full.text);
+  });
+
+  it("returns the whole text when it does not begin with what was said, so nothing is lost", () => {
+    const full = { text: "A different opening entirely.", shortened: false };
+    expect(remainingSpoken(full, "Something else that was said")).toBe(full);
   });
 });

@@ -141,3 +141,35 @@ export function clipToSentence(text: string, maxChars: number): { text: string; 
     ? { text: kept, shortened: true }
     : { text: (sentences[0] ?? text).trim(), shortened: true };
 }
+
+/** A first spoken segment shorter than this is extended with the next sentence ("Thanks." alone sounds clipped). */
+export const MIN_EARLY_SPOKEN_CHARS = 25;
+
+/**
+ * The first sentence or two of a reply that is still streaming, in the form it will be spoken
+ * (D-280), or `undefined` while the text so far does not contain a complete sentence.
+ *
+ * A sentence is complete only when its terminator is followed by whitespace: the stream may be
+ * about to continue a number ("3.5 hours") or an abbreviation. The result is what `plainSpeech`
+ * makes of that leading text, so the rest of the reply can be cut from `toSpokenTurn`'s output by
+ * prefix and the two segments together say exactly what the whole turn would have said.
+ */
+export function firstSpokenSentence(streamed: string): string | undefined {
+  const terminator = /[.!?…]+["')\]]*(?=\s)/g;
+  let match: RegExpExecArray | null;
+  while ((match = terminator.exec(streamed)) !== null) {
+    const spoken = plainSpeech(streamed.slice(0, match.index + match[0].length));
+    if (spoken.length >= MIN_EARLY_SPOKEN_CHARS) return spoken;
+  }
+  return undefined;
+}
+
+/**
+ * What is left to say once `spokenSoFar` has been spoken: the turn's full spoken text without that
+ * prefix. When the full text does not begin with it (it should always, because the first sentence
+ * is never clipped), the whole text is returned, so nothing the participant should hear is lost.
+ */
+export function remainingSpoken(full: SpokenTurn, spokenSoFar: string): SpokenTurn {
+  if (!full.text.startsWith(spokenSoFar)) return full;
+  return { text: full.text.slice(spokenSoFar.length).trim(), shortened: full.shortened };
+}

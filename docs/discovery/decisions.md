@@ -321,3 +321,11 @@ Open findings from the drill, not decided here (owner: operations, then engine).
 2. A job that was `active` on a worker that was killed is retried only when its `expireInSeconds` passes (an hour for `analysis.run`), and "Run analysis" answers conflict meanwhile. Failing the previous process's active jobs at worker start would make this seconds; it is only safe with one worker and was not changed without a decision.
 3. After a killed API process a participant's turns are refused with `conflict` until the 90 s turn-lock TTL passes. A lock holder id checked at API start would release a dead process's locks at once.
 4. An upload that fails with `ENOSPC` answers a generic `internal` 500; a coded `storage_full` would let the web app say what happened.
+
+## Drill findings closed (D-280 to D-289)
+
+Closes the four open findings listed under the full-stack drill (F1 to F4), and the two tooling gaps found with them.
+
+| ID | Decision | Status | Source | Date |
+| --- | --- | --- | --- | --- |
+| D-280 | Live voice speaks the first complete sentence of the streamed message while the model is still writing its metadata. `TurnDriver` watches the `text` events, and at the first sentence of at least 25 characters whose terminator is followed by whitespace (`firstSpokenSentence`) starts a reply and says it as a first segment (`speech_end { more: true }`); on the `turn` event it says the remainder, cut by prefix from `toSpokenTurn` of the stored message (`remainingSpoken`), as the last segment. The spoken words are therefore the displayed words, in order, and `first_word` is measured once from the question to the first audio byte. No product flag: the behaviour is the same turn, only earlier. Consequences: the model's `voiceShortForm` is not used on a turn whose opening was already spoken (it would replace the message and repeat what was heard; the 420-character clip to whole sentences still applies); a turn that fails after its first sentence was spoken ends the speech with `speech_end { interrupted: true }`. The browser queues segments (`Player`) and returns to listening after the last. Measured with `tools/fake-provider` at 400 ms to first byte, 250 characters/s and 250 ms to first audio: p95 1.79 s before, 1.04 s after (10 openings, `apps/api/test/voice-early-speech.e2e.test.ts`) | Accepted | Full-stack drill F1 | 2026-10-14 |

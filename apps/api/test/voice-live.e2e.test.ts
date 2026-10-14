@@ -352,8 +352,9 @@ suite("live voice", () => {
 
     const frame = await client.waitFor("unavailable");
     expect(frame).toMatchObject({ reason: "no_tts_route", fallback: "captions" });
-    // And the turn still happened.
-    expect(client.json.some((f) => f.type === "turn")).toBe(true);
+    // And the turn still happened. Speech now starts on the first sentence, so the notice can
+    // arrive before the turn does (D-280).
+    await client.waitFor("turn");
     client.close();
   });
 
