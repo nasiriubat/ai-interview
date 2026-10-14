@@ -4,7 +4,14 @@ export interface EmbeddingSource {
   embed(texts: string[]): Promise<number[][]>;
 }
 
-const DIM = 512;
+/**
+ * Widest vector. Words (and their stems) get their own dimension while the vocabulary fits, so two
+ * unrelated facts cannot collide into a shared bucket; only a vocabulary larger than this is
+ * hashed down. At 500 facts a 512-bucket hash put a noise floor above the clustering threshold
+ * and average linkage chained the campaign into one cluster. Comparison is sparse (see
+ * `sparsify`), so the width costs memory, not time.
+ */
+const MAX_DIM = 8192;
 /** Hashed sparse vectors score low in absolute terms: paraphrases land around 0.1 to 0.2, unrelated facts near 0. */
 export const LEXICAL_THRESHOLD = 0.08;
 const STOP = new Set([
@@ -44,7 +51,7 @@ const STOP = new Set([
   "has",
 ]);
 
-/** Hashed bag of words with sublinear term frequency and document-frequency damping. Deterministic, no network. */
+/** Bag of words with sublinear term frequency and document-frequency damping. Deterministic, no network. */
 export class LexicalEmbeddings implements EmbeddingSource {
   readonly kind = "lexical" as const;
 
@@ -53,16 +60,28 @@ export class LexicalEmbeddings implements EmbeddingSource {
     const df = new Map<string, number>();
     for (const d of docs) for (const t of new Set(d)) df.set(t, (df.get(t) ?? 0) + 1);
     const n = docs.length;
+    const stemOf = (t: string): string => t.slice(0, Math.max(4, t.length - 2));
+    const vocab = new Map<string, number>();
+    for (const d of docs) {
+      for (const t of d) {
+        if (!vocab.has(t)) vocab.set(t, vocab.size);
+        const st = `~${stemOf(t)}`;
+        if (!vocab.has(st)) vocab.set(st, vocab.size);
+      }
+    }
+    const dim = Math.max(1, Math.min(vocab.size, MAX_DIM));
+    const slot = (key: string): number =>
+      vocab.size <= MAX_DIM ? (vocab.get(key) ?? 0) : hash(key) % MAX_DIM;
     return docs.map((tokens) => {
-      const v = new Array<number>(DIM).fill(0);
+      const v = new Array<number>(dim).fill(0);
       const tf = new Map<string, number>();
       for (const t of tokens) tf.set(t, (tf.get(t) ?? 0) + 1);
       for (const [t, c] of tf) {
         const weight = (1 + Math.log(c)) * Math.log((n + 1) / ((df.get(t) ?? 0) + 0.5));
-        const i = hash(t) % DIM;
+        const i = slot(t);
         v[i] = (v[i] ?? 0) + weight;
         // also credit a stem bucket so inflections land together
-        const j = hash(t.slice(0, Math.max(4, t.length - 2))) % DIM;
+        const j = slot(`~${stemOf(t)}`);
         v[j] = (v[j] ?? 0) + weight * 0.5;
       }
       return normalize(v);

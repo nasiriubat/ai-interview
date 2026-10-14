@@ -99,6 +99,14 @@ export class OpenAICompatibleProvider implements Provider {
   private readonly socketFactory: RealtimeSocketFactory;
   private readonly timeouts: ProviderTimeouts;
   private readonly sleepFn: (ms: number, signal?: AbortSignal) => Promise<void>;
+  /**
+   * What each model has been seen to accept, by model id. `strictSchema` is whether a strict
+   * `json_schema` response format is taken; `reasoningOff` whether the `reasoning` control is.
+   * Learned from the first refusal and kept for the life of the adapter (the registry caches
+   * adapters per provider config), so a route that cannot take either pays the rejected round trip
+   * once, not on every structured call (live run 2026-10-14, bug 7).
+   */
+  private readonly accepts = new Map<string, { strictSchema?: boolean; reasoningOff?: boolean }>();
 
   constructor(opts: OpenAICompatibleOptions) {
     this.id = opts.id;
@@ -145,25 +153,58 @@ export class OpenAICompatibleProvider implements Provider {
     return (body.data ?? []).map(fromOpenAIModel);
   }
 
+  /**
+   * The body fields that switch hidden reasoning off, when the request asks for it and the route is
+   * one that has the control. OpenRouter only: its `reasoning` object is the documented switch for
+   * reasoning-capable models, and a plain OpenAI-compatible server may reject an unknown field.
+   */
+  private reasoningFields(model: string, req: ChatRequest): Record<string, unknown> {
+    if (req.reasoning !== "off" || this.kind !== "openrouter") return {};
+    if (this.accepts.get(model)?.reasoningOff === false) return {};
+    return { reasoning: { effort: "none" } };
+  }
+
+  private rememberNoReasoning(model: string): void {
+    this.accepts.set(model, { ...this.accepts.get(model), reasoningOff: false });
+  }
+
   async *chat(model: string, req: ChatRequest): AsyncIterable<ChatEvent> {
-    const body = {
+    const bodyFor = (reasoning: Record<string, unknown>) => ({
       model,
       messages: toOpenAIMessages(req),
       max_tokens: req.maxOutputTokens,
       stream: true,
       stream_options: { include_usage: true },
       ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
-    };
+      ...reasoning,
+    });
     // The first-token clock starts at the request, not at the first byte of the response: a
     // gateway that holds the headers until it has output would otherwise get a fresh deadline.
     const began = Date.now();
     const controller = new AbortController();
-    const res = await this.request("/chat/completions", {
-      method: "POST",
-      body: JSON.stringify(body),
-      ...(req.signal ? { signal: req.signal } : {}),
-      controller,
-    });
+    const send = (reasoning: Record<string, unknown>) =>
+      this.request("/chat/completions", {
+        method: "POST",
+        body: JSON.stringify(bodyFor(reasoning)),
+        ...(req.signal ? { signal: req.signal } : {}),
+        controller,
+      });
+    const reasoning = this.reasoningFields(model, req);
+    let res: Response;
+    try {
+      res = await send(reasoning);
+    } catch (e) {
+      // A route that does not know the reasoning control refuses the request before any work:
+      // remember that and ask again without it.
+      if (
+        Object.keys(reasoning).length > 0 &&
+        e instanceof ProviderError &&
+        (e.code === "bad_request" || e.code === "not_found")
+      ) {
+        this.rememberNoReasoning(model);
+        res = await send({});
+      } else throw e;
+    }
     if (!res.body) throw new ProviderError("Empty stream body", "server", true);
     let usage = emptyUsage();
     let stop: StopReason = "other";
@@ -206,26 +247,78 @@ export class OpenAICompatibleProvider implements Provider {
     // know the shape either way. The result is validated locally regardless.
     const instruction = `Respond with a single JSON value only, no prose and no code fences, matching this JSON schema exactly:\n${JSON.stringify(jsonSchema)}`;
     const messages = [{ role: "system", content: instruction }, ...toOpenAIMessages(req)];
-    const base = {
+    const reasoningFields = this.reasoningFields(model, req);
+    /** Re-read on every attempt: a refusal during this call turns the control off for the retry. */
+    const reasoningOn = (): boolean =>
+      Object.keys(reasoningFields).length > 0 && this.accepts.get(model)?.reasoningOff !== false;
+    const base = (withReasoning: boolean) => ({
       model,
       messages,
       max_tokens: req.maxOutputTokens,
       ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
       // OpenRouter: only route to providers that honor every parameter we send (response_format).
       ...(this.kind === "openrouter" ? { provider: { require_parameters: true } } : {}),
+      ...(withReasoning ? reasoningFields : {}),
+    });
+    const report = (a: {
+      usage: Usage;
+      ok: boolean;
+      note?: "rejected" | "invalid" | "truncated";
+      started: number;
+    }): void => {
+      req.onAttempt?.({
+        usage: a.usage,
+        ok: a.ok,
+        ...(a.note ? { note: a.note } : {}),
+        latencyMs: Math.max(0, Date.now() - a.started),
+      });
     };
     const attempt = async (
       responseFormat: Record<string, unknown>,
       allowStatuses: number[],
-    ): Promise<{ status: number; body?: OpenAICompletion }> => {
-      const res = await this.request("/chat/completions", {
-        method: "POST",
-        body: JSON.stringify({ ...base, response_format: responseFormat }),
-        allowStatuses,
-        ...(req.signal ? { signal: req.signal } : {}),
-      });
-      if (allowStatuses.includes(res.status)) return { status: res.status };
-      return { status: res.status, body: (await res.json()) as OpenAICompletion };
+    ): Promise<{ status: number; body?: OpenAICompletion; started: number }> => {
+      const started = Date.now();
+      const send = (withReasoning: boolean) =>
+        this.request("/chat/completions", {
+          method: "POST",
+          body: JSON.stringify({ ...base(withReasoning), response_format: responseFormat }),
+          allowStatuses,
+          ...(req.signal ? { signal: req.signal } : {}),
+        });
+      let res: Response;
+      try {
+        res = await send(reasoningOn());
+      } catch (e) {
+        report({ usage: emptyUsage(), ok: false, note: "rejected", started });
+        if (
+          reasoningOn() &&
+          e instanceof ProviderError &&
+          (e.code === "bad_request" || e.code === "not_found")
+        ) {
+          // Refused before any work, so nothing was billed; ask again without the control.
+          this.rememberNoReasoning(model);
+          return attempt(responseFormat, allowStatuses);
+        }
+        throw e;
+      }
+      if (allowStatuses.includes(res.status) && reasoningOn()) {
+        // A 400 may be the strict schema or the reasoning control. Ask again without the control:
+        // if that is accepted the control was the cause and is remembered as unsupported; if the
+        // same status comes back the schema was, and the control stays untested.
+        report({ usage: emptyUsage(), ok: false, note: "rejected", started });
+        const retried = await this.request("/chat/completions", {
+          method: "POST",
+          body: JSON.stringify({ ...base(false), response_format: responseFormat }),
+          allowStatuses,
+          ...(req.signal ? { signal: req.signal } : {}),
+        });
+        if (!allowStatuses.includes(retried.status)) this.rememberNoReasoning(model);
+        const again = Date.now();
+        if (allowStatuses.includes(retried.status)) return { status: retried.status, started: again };
+        return { status: retried.status, body: (await retried.json()) as OpenAICompletion, started: again };
+      }
+      if (allowStatuses.includes(res.status)) return { status: res.status, started };
+      return { status: res.status, body: (await res.json()) as OpenAICompletion, started };
     };
     const parse = (body: OpenAICompletion): { ok: true; value: T } | { ok: false; error: ProviderError } => {
       const choice = body.choices?.[0];
@@ -263,25 +356,46 @@ export class OpenAICompatibleProvider implements Provider {
         };
       return { ok: true, value: parsed.data };
     };
+    const usageOf = (body: OpenAICompletion): Usage => (body.usage ? toUsage(body.usage) : emptyUsage());
+    const noteFor = (body: OpenAICompletion): "invalid" | "truncated" =>
+      body.choices?.[0]?.finish_reason === "length" ? "truncated" : "invalid";
 
-    // First attempt: strict json_schema. Many OpenAI-compatible servers accept it.
-    const first = await attempt(
-      { type: "json_schema", json_schema: { name: schemaName, schema: jsonSchema, strict: true } },
-      [400, 422],
-    );
+    // First attempt: strict json_schema, unless this model has been seen to refuse it. Anthropic
+    // models behind a gateway are known not to take it (live run: a guaranteed 400 on every call).
+    const known = this.accepts.get(model)?.strictSchema;
+    const tryStrict = known ?? !/^anthropic\//i.test(model);
     let firstError: ProviderError | undefined;
-    if (first.body) {
-      const r = parse(first.body);
-      if (r.ok) return { value: r.value, usage: first.body.usage ? toUsage(first.body.usage) : emptyUsage() };
-      if (r.error.code === "refusal") throw r.error;
-      firstError = r.error;
+    if (tryStrict) {
+      const first = await attempt(
+        { type: "json_schema", json_schema: { name: schemaName, schema: jsonSchema, strict: true } },
+        [400, 422],
+      );
+      if (first.body) {
+        this.accepts.set(model, { ...this.accepts.get(model), strictSchema: true });
+        const r = parse(first.body);
+        if (r.ok) {
+          report({ usage: usageOf(first.body), ok: true, started: first.started });
+          return { value: r.value, usage: usageOf(first.body) };
+        }
+        report({ usage: usageOf(first.body), ok: false, note: noteFor(first.body), started: first.started });
+        if (r.error.code === "refusal") throw r.error;
+        firstError = r.error;
+      } else {
+        // 400 or 422: the route does not take strict json_schema. Nothing was billed.
+        this.accepts.set(model, { ...this.accepts.get(model), strictSchema: false });
+        report({ usage: emptyUsage(), ok: false, note: "rejected", started: first.started });
+      }
     }
-    // Fallback: JSON mode with the schema in the prompt (also when the strict answer did not validate).
+    // JSON mode with the schema in the prompt (also when the strict answer did not validate).
     const second = await attempt({ type: "json_object" }, []);
     if (!second.body) throw firstError ?? new ProviderError("Structured output failed", "parse", true);
     const r = parse(second.body);
-    if (!r.ok) throw r.error;
-    return { value: r.value, usage: second.body.usage ? toUsage(second.body.usage) : emptyUsage() };
+    if (!r.ok) {
+      report({ usage: usageOf(second.body), ok: false, note: noteFor(second.body), started: second.started });
+      throw r.error;
+    }
+    report({ usage: usageOf(second.body), ok: true, started: second.started });
+    return { value: r.value, usage: usageOf(second.body) };
   }
 
   async transcribe(

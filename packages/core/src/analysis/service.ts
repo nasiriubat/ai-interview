@@ -1,4 +1,10 @@
-import { runAnalysis, seedStateFromHandoff, type AnalysisFact, type Logger } from "@aidp/ai";
+import {
+  runAnalysis,
+  seedStateFromHandoff,
+  type AnalysisFact,
+  type Logger,
+  type OverrideAnchor,
+} from "@aidp/ai";
 import { currentTenant, tenantTransaction } from "@aidp/db";
 import {
   FactSchema,
@@ -186,7 +192,7 @@ export class AnalysisService {
           });
         }
       }
-      const overrides = await this.previousOverrides(analysis.campaignId);
+      const anchoredOverrides = await this.previousOverrides(analysis.campaignId);
       const threshold = await this.thresholdMet(analysis.campaignId, companyId);
       const caller = await this.deps.callers.forCompany(companyId);
       const result = await runAnalysis(
@@ -207,7 +213,8 @@ export class AnalysisService {
           similarityThreshold: values["analysis.similarityThreshold"] as number,
           language: values["analysis.language"] as string,
           sections: values["analysis.reportSections"] as ReportSection[],
-          overrides,
+          overrides: {},
+          anchoredOverrides,
         },
       );
 
@@ -296,17 +303,27 @@ export class AnalysisService {
     }
   }
 
-  /** Overrides from the latest completed run, keyed by cluster key, so admin edits survive re-runs. */
-  private async previousOverrides(campaignId: string): Promise<Record<string, OpportunityOverride>> {
+  /**
+   * Overrides from the latest completed run, each anchored to the fact ids of the opportunity it
+   * sat on (its evidence rows, which are kept even below k). A new run re-attaches an override to
+   * whichever cluster now holds those facts, so an edit survives the clusters being re-formed
+   * (blueprint section 0 item 1); a cluster key alone would not.
+   */
+  private async previousOverrides(campaignId: string): Promise<OverrideAnchor[]> {
     const latest = await this.deps.db.analysis.findFirst({
       where: { campaignId, status: "done" },
       orderBy: { version: "desc" },
-      include: { opportunities: { where: { adminOverride: { not: Prisma.DbNull } } } },
+      include: {
+        opportunities: {
+          where: { adminOverride: { not: Prisma.DbNull } },
+          include: { evidence: { select: { factId: true } } },
+        },
+      },
     });
-    const out: Record<string, OpportunityOverride> = {};
+    const out: OverrideAnchor[] = [];
     for (const o of latest?.opportunities ?? []) {
       const parsed = OpportunityOverrideSchema.safeParse(o.adminOverride);
-      if (parsed.success) out[o.clusterKey] = parsed.data;
+      if (parsed.success) out.push({ factIds: o.evidence.map((e) => e.factId), override: parsed.data });
     }
     return out;
   }

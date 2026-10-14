@@ -65,3 +65,4 @@ export * from "./spec/index.js";
 export * from "./ingest/index.js";
 export * from "./voice/index.js";
 export * from "./util/language.js";
+export * from "./util/untrusted.js";
