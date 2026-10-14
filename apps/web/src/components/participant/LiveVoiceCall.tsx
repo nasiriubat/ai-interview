@@ -67,6 +67,7 @@ export function LiveVoiceCall({
   disabled = false,
   fullScreen = false,
   onStart,
+  hideStart = false,
 }: {
   live: LiveVoiceController;
   /** The interview cannot take a turn right now (busy elsewhere, or over). */
@@ -77,6 +78,8 @@ export function LiveVoiceCall({
    */
   fullScreen?: boolean;
   onStart: () => void;
+  /** The composer has its own Talk button: idle then shows only what went wrong, if anything. */
+  hideStart?: boolean;
 }): React.JSX.Element {
   const s = t.participant.session;
   const { status } = live;
@@ -99,6 +102,16 @@ export function LiveVoiceCall({
   // answer, because only it knows whether the microphone is still worth offering.
   if (status === "unavailable") return <></>;
   if (fullScreen && isLive) return <></>;
+
+  if (status === "idle" && hideStart) {
+    return live.problem ? (
+      <p className="text-destructive text-xs" role="alert">
+        {problemMessage(live.problem)}
+      </p>
+    ) : (
+      <></>
+    );
+  }
 
   if (status === "idle") {
     return (
