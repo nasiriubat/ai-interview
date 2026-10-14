@@ -1,0 +1,11 @@
+aidpfull-api-1                     peak_mem_MiB=   167.1 peak_cpu_pct=  38.2
+aidpfull-backup-1                  peak_mem_MiB=     1.4 peak_cpu_pct=   0.0
+aidpfull-caddy-1                   peak_mem_MiB=    27.5 peak_cpu_pct=   2.4
+aidpfull-fake-provider-1           peak_mem_MiB=    34.6 peak_cpu_pct=   8.9
+aidpfull-kroki-1                   peak_mem_MiB=   140.8 peak_cpu_pct=   1.9
+aidpfull-kroki-mermaid-1           peak_mem_MiB=   375.7 peak_cpu_pct=  17.4
+aidpfull-mailpit-1                 peak_mem_MiB=    45.5 peak_cpu_pct=   1.1
+aidpfull-ops-notify-1              peak_mem_MiB=     1.7 peak_cpu_pct=   1.9
+aidpfull-postgres-1                peak_mem_MiB=   177.6 peak_cpu_pct=  14.2
+aidpfull-web-1                     peak_mem_MiB=   105.7 peak_cpu_pct=  11.4
+aidpfull-worker-1                  peak_mem_MiB=   109.3 peak_cpu_pct=   9.5

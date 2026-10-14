@@ -140,22 +140,34 @@ services:
       ops-state-init: { condition: service_completed_successfully }
     logging: *logging
 
-  # One-shot. Creates the directories of the shared ops_state volume with the permissions its
-  # writers need: preflight runs as the postgres user, the worker as uid 1000 and the backup as
-  # root, and a named volume starts out root-owned, so nobody but root could create their own.
-  # Sticky world-writable: anyone may write a file, only its owner (or root) may delete it.
+  # One-shot, and the only service of this file told to run as root. Creates
+  # the directories of the shared ops_state volume with the permissions its writers
+  # need: preflight runs as the postgres user (999), the worker as uid 1000, the backup as 999 with
+  # group 1000 and ops-notify as 10001 (D-312), and a named volume starts out root-owned, so nobody
+  # but root could create their own.
+  # Sticky world-writable: anyone may write a file, only its owner (or the directory's owner, which
+  # is ops-notify for alerts and the watchdog) may delete it. Files a previous release's root
+  # processes left behind are handed to the user that now writes them, and the backups volume to
+  # the backup's user, so an upgrade from a root-running release needs no manual step.
   ops-state-init:
     image: aidp-ops-notify:${AIDP_VERSION:?}
     pull_policy: never
     restart: "no"
+    user: "0:0"
     entrypoint:
       - sh
       - -c
       - |
         mkdir -p /ops-state/alerts/sent /ops-state/status /ops-state/heartbeat /ops-state/watchdog
         chmod 1777 /ops-state /ops-state/alerts /ops-state/alerts/sent /ops-state/status /ops-state/heartbeat /ops-state/watchdog
+        chown 10001:10001 /ops-state/alerts /ops-state/alerts/sent /ops-state/watchdog
+        find /ops-state/alerts /ops-state/watchdog -user 0 -exec chown 10001:10001 {} +
+        find /ops-state/status /ops-state/heartbeat -user 0 -type f -exec chown 999:999 {} +
+        chown -R 999:999 /backups
+        chmod 0700 /backups
     volumes:
       - ops_state:/ops-state
+      - backups:/backups
     logging: *logging
 
   api:
@@ -203,6 +215,9 @@ services:
       # here: Caddy is one, for the web app's calls (which forward the address Caddy wrote) and for
       # the live-voice socket alike. Any other number makes per-address rate limits spoofable.
       TRUST_PROXY_HOPS: "1"
+      # People a minute per client address on the link routes (D-310). The default is the right one
+      # for an office behind one address; lower it only against a flood from a few addresses.
+      RATE_LIMIT_PUBLIC_MAX: ${RATE_LIMIT_PUBLIC_MAX:-120}
       # Hostnames a platform provider may reach on a private address: here the diagram renderer
       # (D-213), plus whatever the operator adds, such as a model server inside this network.
       # Tenants never can. The renderer's own host is always allowed when KROKI_URL names it.
@@ -421,6 +436,9 @@ services:
       context: .
       dockerfile: backup.Dockerfile
     restart: unless-stopped
+    # The image runs as postgres (999); the uploaded files are 0640 owned by the application's uid
+    # and gid 1000, so the archive can be read by joining that group and no wider (D-312).
+    group_add: ["1000"]
     environment:
       PGURL: postgresql://app:${POSTGRES_PASSWORD:?}@postgres:5432/ai_discovery
       BACKUP_AT: ${BACKUP_AT:-03:20}

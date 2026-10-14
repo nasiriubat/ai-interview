@@ -1,6 +1,6 @@
-// The negative control for the launch burst. 60 link opens inside a minute, and every one from the
+// The negative control for the launch burst. 200 link opens inside a minute, and every one from the
 // same address (a single VU's local IP: k6 --local-ips rotates by VU, so one VU keeps one address).
-// The link routes allow 30 a minute per client address, so this MUST be rate limited: if it is not,
+// The link routes allow 120 a minute per client address (RATE_LIMIT_PUBLIC_MAX, D-310), so this MUST be rate limited: if it is not,
 // the burst's "no errors from 100 distinct addresses" proves nothing, because the limiter would not
 // have been looking at the client address at all.
 import http from "k6/http";
@@ -10,7 +10,7 @@ import { BASE, LINK } from "./lib.js";
 
 const limited = new Counter("single_ip_limited");
 const accepted = new Counter("single_ip_accepted");
-const OPENS = Number(__ENV.SINGLE_IP_OPENS || 60);
+const OPENS = Number(__ENV.SINGLE_IP_OPENS || 200);
 
 export const options = {
   insecureSkipTLSVerify: true,
@@ -18,7 +18,7 @@ export const options = {
     one_address: { executor: "per-vu-iterations", vus: 1, iterations: OPENS, maxDuration: "90s" },
   },
   thresholds: {
-    // Some must pass (the limit is 30), and the rest must be refused.
+    // Some must pass (the limit is 120), and the rest must be refused.
     single_ip_accepted: ["count>=20"],
     single_ip_limited: ["count>=10"],
   },

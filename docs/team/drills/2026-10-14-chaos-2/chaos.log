@@ -1,0 +1,118 @@
+
+=== chaos: provider-5xx
+  ok   the interview opens while the provider is healthy
+  ok   a normal answer is taken
+[11:47:56.184] provider now answers 503 to every call
+  ok   the turn ends with an error, not a hang  [provider_error after 424 ms]
+  ok   and it says the answer is saved  [The assistant is temporarily unavailable. Your answer is saved; try again in a moment.]
+  ok   within a few seconds (two retries, not minutes)  [424 ms]
+  ok   the session stays active  [active]
+  ok   and the answer is in the transcript
+  ok   once the circuit is open a turn fails fast  [459, 520, 584, 455, 42, 26 ms]
+  ok   the operator is told through the webhook (provider.error_rate or fallback)  [1 message(s): {"kind":"provider.error_rate","severity":"warning","key":"provider.circuit:cmv81hxo90001ph01u1eoxvqd","title":"Provider ]
+[11:48:21.726] provider recovered; waiting out the circuit's half-open probe
+  ok   the interview carries on after the provider is back
+  ok   still the same session, still active
+=== provider-5xx: 11/11 checks passed in 49 s
+>>> provider-5xx: PASS (49 s)
+
+=== chaos: provider-hang
+  ok   the interview opens
+[11:48:44.213] provider now accepts calls and never answers
+  ok   the turn ends with an error  [provider_error]
+  ok   at the first-token deadline (with its retry), not at the two-minute ceiling  [8031 ms against 21000 ms]
+  ok   and says the answer is saved  [The assistant is temporarily unavailable. Your answer is saved; try again in a moment.]
+  ok   the same participant can answer again without waiting for the lock  [ok after 1138 ms]
+  ok   the session is active
+  ok   the hung answer was kept
+=== provider-hang: 7/7 checks passed in 10 s
+>>> provider-hang: PASS (11 s)
+
+=== chaos: postgres-restart
+  ok   the interview opens
+  ok   an analysis job is queued  [cmv81r2no002yph01nekzkuag]
+[11:48:54.889] restarting postgres
+  ok   readiness reports the database as unavailable while it is down (or the API is restarting)  [503 {"ok":false,"database":false,"storage":"filesystem","speech":{"model":null,"state":"not_loaded",]
+  ok   a turn taken during the outage ends with a coded error the web app words honestly  [internal: Internal error]
+  ok   quickly, not after the model deadline  [6 ms]
+  ok   the API is ready again by itself  [2789 ms after the restart began]
+  ok   every service is healthy again without a manual restart  [7183 ms]
+  ok   the session is intact and active
+  ok   the interview carries on
+  ok   the queued analysis finished on its own after the restart  [done]
+  ok   it was run once: no extra job rows were created by the restart  [2 -> 2]
+  ok   and completed exactly once  [1 completed rows for cmv81r2no002yph01nekzkuag]
+  ok   no job was dead-lettered by the restart  [0 failed in the last ten minutes]
+  ok   no api.down alert for an outage this short  [0]
+=== postgres-restart: 14/14 checks passed in 16 s
+>>> postgres-restart: PASS (16 s)
+
+=== chaos: kill-worker
+  ok   an analysis is queued  [cmv81recs003aph01gnn5f9hc]
+  ok   the worker has picked it up  [1e11b462-5ee5-48c1-ab1b-b5965948b158]
+[11:49:14.665] worker killed with SIGKILL mid-job
+  ok   the job is still on the queue, active, not lost  [active]
+  ok   the restart policy brings the worker back, healthy, by itself  [7 s]
+  ok   the job was retried within minutes of the kill  [1]
+  ok   nothing has run it twice in the meantime
+  ok   the job is retried and the analysis completes  [done]
+  ok   one analysis row, not two  [1]
+  ok   the job completed exactly once  [1]
+  ok   and wrote its results once: one opportunity per cluster, none doubled by the retry  [5 opportunities for 5 clusters]
+  note job.stuck alerts seen on the webhook: 0
+=== kill-worker: 11/11 checks passed in 62 s
+>>> kill-worker: PASS (62 s)
+
+=== chaos: kill-api
+  ok   the interview opens
+  ok   an ordinary turn is taken
+[11:50:17.141] api killed with SIGKILL mid-stream
+  ok   the client sees the stream end without a completed turn  [transport: UND_ERR_SOCKET after 2819 ms]
+  ok   the API is back and healthy by itself  [7 s after the kill]
+  ok   the session is intact and active
+  ok   the participant's answer was saved before the stream was cut
+  ok   exactly one copy of it  [1]
+  note attempt 1 after 0 s: conflict
+  ok   the session is resumable: a turn is accepted again  [after 5 s and 2 attempt(s)]
+  ok   within the API's restart plus the turn lock's TTL (10 s) of the crash  [12 s from the kill]
+  ok   the transcript only grew (nothing lost, no duplicate of the interrupted answer)  [6 -> 9 messages]
+=== kill-api: 11/11 checks passed in 16 s
+>>> kill-api: PASS (17 s)
+
+=== chaos: caddy-restart
+  ok   the interview opens
+  ok   the in-flight stream is cut by the restart
+[11:50:32.766] caddy restarted
+  ok   the proxy answers again  [200 after 1.8 s]
+  ok   within half a minute  [1.8 s]
+  ok   with the same certificate (the local CA persisted in the caddy_data volume)  [05:C3:7E:C3:FF:FE:65:9D... unchanged]
+  ok   caddy is healthy again by itself (healthcheck passes)
+  ok   the participant's session is untouched and active
+  ok   and they can carry on
+=== caddy-restart: 8/8 checks passed in 12 s
+>>> caddy-restart: PASS (12 s)
+
+=== chaos: disk-full
+[11:50:40.882] swapping the uploads volume for a 3 MB tmpfs and recreating the services that mount it
+  ok   the stack runs on the small volume
+  ok   the interview opens
+  note uploads volume: tmpfs               3072  2952       120  97% /uploads
+  ok   an upload that does not fit fails cleanly, not with a hang  [507 after 32 ms: {"error":{"code":"storage_full","message":"The service cannot store files right now. Your answers so far are kept."}}]
+  ok   with a coded error the web app can word (never a stack trace)  [{"error":{"code":"storage_full","message":"The service cannot store files right now. Your answers so far are kept."}}]
+  ok   and the code says what happened: storage_full (507), which the web app words in en and fi (D-283)  [507]
+  ok   the interview itself carries on in text
+  ok   the session stays active
+  ok   the operator is told through the webhook (disk.high)  [1: {"kind":"disk.high","severity":"critical","key":"disk.high:critical","title":"Disk 96% used","message":"Disk is 96% used]
+  ok   and it is critical, not just a warning
+[11:50:55.895] putting the real uploads volume back
+  ok   after the real volume is back every service is healthy
+  ok   and a new participant can start an interview
+[11:51:05.761] swapping the backups volume for a 100 KB tmpfs
+  ok   the backup fails (non-zero) rather than reporting a dump that is not there  [cal/bin/backup.sh once -> 1: age: error: write /dev/stdout: no space left on device age: report unexpected or unhelpful errors at https://filippo.io/age/report ]
+  ok   and leaves no half-written .part file behind  [0 part file(s)]
+  ok   the status file says the last run failed, with a reason  [failed: pg_dump failed, or the dump could not be encrypted and written (a full backups disk looks like this); no dump written. The container log has the tool's own message]
+  ok   the backup healthcheck reports unhealthy, and why  [ump could not be encrypted and written (a full backups disk looks like this); no dump written. The container log has the tool's own message ]
+  ok   the operator is told (backup.failed on the webhook, from the platform's health sweep)  [1]
+  ok   with the real volume back, a backup succeeds and the status recovers
+=== disk-full: 18/18 checks passed in 48 s
+>>> disk-full: PASS (48 s)
