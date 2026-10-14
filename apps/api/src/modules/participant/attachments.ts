@@ -1,4 +1,4 @@
-import { AttachmentRejected, type AttachmentView } from "@aidp/core";
+import { AttachmentRejected, StorageFull, type AttachmentView } from "@aidp/core";
 import { PLATFORM_MAX_UPLOAD_MB } from "@aidp/shared";
 import type { MultipartFile } from "@fastify/multipart";
 import type { FastifyRequest } from "fastify";
@@ -7,7 +7,7 @@ import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { participant } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
-import { AppError, notFound } from "../../lib/errors.js";
+import { AppError, notFound, storageFull } from "../../lib/errors.js";
 
 /**
  * Uploading, listing, playing back and deleting a session's attachments (FR-30, FR-31, FR-32).
@@ -147,6 +147,7 @@ function durationFrom(file: MultipartFile): number | undefined {
 
 /** A rejection the participant caused becomes a 4xx they can act on; anything else is ours. */
 function toHttp(err: unknown): unknown {
+  if (err instanceof StorageFull) return storageFull();
   if (err instanceof AttachmentRejected) {
     const code =
       err.reason === "size" || err.reason === "quota"

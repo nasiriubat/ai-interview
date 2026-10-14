@@ -66,6 +66,8 @@ export function codeForStatus(status: number): string {
       return "conflict";
     case 429:
       return "rate_limited";
+    case 507:
+      return "storage_full";
     default:
       return status >= 500 ? "server_error" : "request_failed";
   }
@@ -102,6 +104,8 @@ export function participantErrorFor(code: string, context: ErrorContext): string
         return p.expired;
       case "too_large":
         return p.tooLarge;
+      case "storage_full":
+        return p.storageFull;
       case "conflict":
         return p.conflict;
       case "provider_error":

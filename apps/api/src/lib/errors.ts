@@ -1,5 +1,5 @@
 import { BudgetExceededError, ProviderError } from "@aidp/ai";
-import { CeilingReachedError, SettingsError } from "@aidp/core";
+import { CeilingReachedError, SettingsError, StorageFull } from "@aidp/core";
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from "fastify-type-provider-zod";
 
@@ -23,6 +23,8 @@ export type ErrorCode =
   | "invalid_api_key"
   /** Live voice cannot be turned on: `details.missing` names the purposes without a working route (D-77). */
   | "voice_not_ready"
+  /** The server has no room to keep an upload; nothing the sender did, and the answers so far are kept (D-283). */
+  | "storage_full"
   | "internal";
 
 const STATUS: Record<ErrorCode, number> = {
@@ -44,6 +46,8 @@ const STATUS: Record<ErrorCode, number> = {
   provider_error: 502,
   invalid_api_key: 422,
   voice_not_ready: 409,
+  // 507 Insufficient Storage: the request is fine, the server cannot hold it right now.
+  storage_full: 507,
   internal: 500,
 };
 
@@ -60,6 +64,9 @@ export class AppError extends Error {
   }
 }
 
+/** The refusal for an upload the server has no room for; the web app words it from the code, in the participant's language. */
+export const storageFull = (): AppError =>
+  new AppError("storage_full", "The service cannot store files right now. Your answers so far are kept.");
 export const notFound = (what: string): AppError => new AppError("not_found", `${what} not found`);
 export const forbidden = (message = "Forbidden"): AppError => new AppError("forbidden", message);
 export const tenantSuspended = (): AppError =>
@@ -123,6 +130,12 @@ export function errorHandler(
       "provider_error",
       error.code === "refusal" ? "The model declined this request" : "The model provider failed",
     );
+    return;
+  }
+  if (error instanceof StorageFull) {
+    // Something else already tells the operator (`disk.high`); this is only the participant's side.
+    request.log.error({ err: error }, "object store full");
+    respond(507, "storage_full", storageFull().message);
     return;
   }
   if (error instanceof CeilingReachedError) {

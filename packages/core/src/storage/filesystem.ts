@@ -7,8 +7,10 @@ import {
   assertSafeKey,
   byteLimit,
   type PrefixInfo,
+  isOutOfSpace,
   ObjectNotFound,
   ObjectTooLarge,
+  StorageFull,
   type PutOptions,
   type StoragePort,
   type StoredObject,
@@ -34,7 +36,6 @@ export class FilesystemStorage implements StoragePort {
 
   async put(key: string, body: Buffer | Readable, options: PutOptions): Promise<StoredObject> {
     const path = this.pathFor(key);
-    await mkdir(dirname(path), { recursive: true });
 
     // Written beside the target and moved into place, so a crash or a failed size check never
     // leaves a half-written object that later reads as a truncated document or clipped audio.
@@ -42,6 +43,7 @@ export class FilesystemStorage implements StoragePort {
     const temp = `${path}.${process.pid}.${Date.now()}.part`;
     let sizeBytes = 0;
     try {
+      await mkdir(dirname(path), { recursive: true });
       if (Buffer.isBuffer(body)) {
         if (options.maxBytes !== undefined && body.byteLength > options.maxBytes) {
           throw new ObjectTooLarge(options.maxBytes, body.byteLength);
@@ -55,7 +57,8 @@ export class FilesystemStorage implements StoragePort {
       await rename(temp, path);
     } catch (err) {
       await rm(temp, { force: true });
-      throw err;
+      // A full disk is not a fault in the request or in the code: say so, typed (D-283).
+      throw isOutOfSpace(err) ? new StorageFull() : err;
     }
     return { key, contentType: options.contentType, sizeBytes };
   }
