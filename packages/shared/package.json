@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./internal-secret": {
+      "types": "./dist/internal-secret.d.ts",
+      "default": "./dist/internal-secret.js"
     }
   },
   "scripts": {

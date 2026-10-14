@@ -5,6 +5,7 @@ import {
   VerificationTokenPruneSchema,
   VerificationTokenResponseSchema,
 } from "@aidp/shared";
+import { deriveInternalSecret } from "@aidp/shared/internal-secret";
 import type { FastifyRequest } from "fastify";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
@@ -16,7 +17,8 @@ import { secretMatches } from "./service.js";
 /**
  * Machine-to-machine routes for Auth.js magic-link sign-in (D-56). Not staff routes: a session,
  * of any role, gets nothing here. The only credential is the `AUTH_SECRET` both processes
- * already share, presented in `x-internal-auth` and compared in constant time.
+ * already share, presented in `x-internal-auth` and compared in constant time. What travels is an
+ * HKDF derivation of it (D-260), never `AUTH_SECRET` itself.
  *
  * They are hidden from the OpenAPI document because they are not part of the public contract and
  * the web app generates its client from it.
@@ -26,10 +28,11 @@ export async function internalAuthRoutes(app: App, ctx: RouteContext): Promise<v
   const base = "/internal/auth/verification-tokens";
 
   /** The whole of the authorization: no principal is consulted, so no session can stand in. */
+  const internalSecret = deriveInternalSecret(ctx.config.AUTH_SECRET);
   const requireInternalSecret = (req: FastifyRequest): void => {
     const header = req.headers[INTERNAL_AUTH_HEADER];
     const presented = typeof header === "string" ? header : undefined;
-    if (!secretMatches(presented, ctx.config.AUTH_SECRET)) {
+    if (!secretMatches(presented, internalSecret)) {
       throw unauthenticated("Internal secret required");
     }
   };

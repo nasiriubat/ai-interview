@@ -8,7 +8,7 @@ import { describeDb } from "@aidp/testing";
 import { encode } from "@auth/core/jwt";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import type { Access } from "../src/auth/access.js";
-import { fakeModelServer, testWorld, TEST_AUTH_SECRET, type TestWorld } from "./helpers.js";
+import { fakeModelServer, testWorld, TEST_AUTH_SECRET, TEST_INTERNAL_SECRET, type TestWorld } from "./helpers.js";
 
 /*
  * The role matrix (engineering 4.2b): every route the app serves, against every kind of caller.
@@ -310,7 +310,7 @@ suite("role matrix: every route against every kind of caller", () => {
       : await call(method, missing, staff(tokens.crossTenantAdmin), {});
     if (access === "internal") {
       // The shared secret is the one credential these routes take; it is not a principal.
-      expect(await call(method, missing, { [INTERNAL_AUTH_HEADER]: TEST_AUTH_SECRET }, {})).not.toBe(401);
+      expect(await call(method, missing, { [INTERNAL_AUTH_HEADER]: TEST_INTERNAL_SECRET }, {})).not.toBe(401);
     }
     return { access, isolation, statuses };
   }
