@@ -37,6 +37,16 @@ share, as Mermaid process maps); opportunities by solution class with the factor
 quick wins vs strategic bets; where AI is not appropriate and why; recommended next three
 opportunities for requirements discovery. Markdown and PDF; sections can be hidden.
 
+The PDF (`GET /analyses/:id/report.pdf`, D-210 to D-212) is composed from the stored
+Markdown, under the same visibility rules as the report page: a cover (product name,
+title, report version, date), a table of contents, a running header and footer with the
+title, version, date and page, tables, quotes, and each process map drawn as a picture.
+Diagrams are drawn by the Kroki service; when it cannot draw one, the document is still
+complete: the diagram's Mermaid source is printed under a note and the download carries
+`x-export-warnings`. Branding is the product name, an accent colour, a page size, an
+optional cover and a footer line, from settings; there is no logo upload. Limits: 150
+pages, 400 000 characters of source, 12 diagrams drawn, one document composed at a time.
+
 ## Admin actions on results
 
 Merge or split clusters, rename, override class or factors with a note, dismiss,
