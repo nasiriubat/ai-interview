@@ -1902,6 +1902,7 @@ export const en = {
       },
       "branding.language": { en: "English", fi: "Finnish" },
       "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Generic" },
+      "exports.pdfPageSize": { A4: "A4", Letter: "US Letter" },
     } as Record<string, Record<string, string>>,
     /** A name and a one-sentence description for every key of the settings catalog. */
     settingKey: {
@@ -2229,6 +2230,22 @@ export const en = {
       "exports.bundleFormat": {
         label: "Agent bundle format",
         description: "Which coding agent the downloadable bundle is prepared for.",
+      },
+      "exports.pdfPageSize": {
+        label: "PDF page size",
+        description: "Paper size of the PDF reports and specifications.",
+      },
+      "exports.pdfCoverPage": {
+        label: "PDF cover page",
+        description: "Start each PDF with a cover page showing the name, title, version and date.",
+      },
+      "exports.pdfFooterText": {
+        label: "PDF footer text",
+        description: "A short line added to the footer of every PDF page, such as a confidentiality note.",
+      },
+      "branding.primaryColor": {
+        label: "Accent colour",
+        description: "Colour of headings and the cover page in PDF exports, as #rrggbb.",
       },
       "notifications.campaignThreshold": {
         label: "Email when a campaign has enough interviews",

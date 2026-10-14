@@ -1,6 +1,7 @@
 import { createServer, type Server } from "node:http";
 import { allowNetworkHosts } from "@aidp/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { HttpKroki, KrokiUnavailableError } from "../src/exports/kroki.js";
 import {
   classifyAddress,
   classifyConnectFailure,
@@ -30,7 +31,7 @@ const table =
 
 // The names below never resolve anywhere: each is answered by the resolver the test injects. They
 // are let through the suite-wide network guard so the egress policy beneath it is what is tested.
-const releaseHosts = allowNetworkHosts([".example.com", "metadata", "litellm"]);
+const releaseHosts = allowNetworkHosts([".example.com", "metadata", "litellm", "kroki"]);
 afterAll(releaseHosts);
 
 describe("classifyAddress", () => {
@@ -333,6 +334,27 @@ describe("guarded fetch", () => {
     expect(await res.json()).toMatchObject({ ok: true, host: `litellm:${port()}` });
     expect(hits).toBe(1);
     await guard.close();
+  });
+
+  it("reaches the diagram renderer only by an allow-listed service name (D-213)", async () => {
+    const resolver = table({ kroki: ["127.0.0.1"] });
+    const allowed = new EgressGuard({ mode: "strict", allowHosts: ["kroki"] }, { resolver });
+    hits = 0;
+    // The stub answers JSON, not a PNG: getting that far proves the socket was opened.
+    const reached = new HttpKroki({
+      baseUrl: `http://kroki:${port()}`,
+      fetch: allowed.fetchFor("platform"),
+    });
+    await expect(reached.render("flowchart LR\n A-->B", "png")).rejects.toThrow(/did not return a PNG/);
+    expect(hits).toBe(1);
+    await allowed.close();
+
+    const denied = new EgressGuard(strict, { resolver });
+    const blocked = new HttpKroki({ baseUrl: `http://kroki:${port()}`, fetch: denied.fetchFor("platform") });
+    hits = 0;
+    await expect(blocked.render("flowchart LR\n A-->B", "png")).rejects.toBeInstanceOf(KrokiUnavailableError);
+    expect(hits).toBe(0);
+    await denied.close();
   });
 
   it("does not let an operator host that is not on the list reach a private address", async () => {

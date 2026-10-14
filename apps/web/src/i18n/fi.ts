@@ -1897,6 +1897,7 @@ export const fi: Strings = {
       },
       "branding.language": { en: "Englanti", fi: "Suomi" },
       "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Yleinen" },
+      "exports.pdfPageSize": { A4: "A4", Letter: "US Letter" },
     },
     settingKey: {
       "engine.recentWindowTurns": {
@@ -2226,6 +2227,23 @@ export const fi: Strings = {
       "exports.bundleFormat": {
         label: "Agenttipaketin muoto",
         description: "Mille koodausagentille ladattava paketti valmistellaan.",
+      },
+      "exports.pdfPageSize": {
+        label: "PDF-tiedoston sivukoko",
+        description: "Raporttien ja määrittelyjen PDF-tiedostojen paperikoko.",
+      },
+      "exports.pdfCoverPage": {
+        label: "PDF-tiedoston kansilehti",
+        description: "Aloita jokainen PDF kansilehdellä, jolla näkyvät nimi, otsikko, versio ja päivämäärä.",
+      },
+      "exports.pdfFooterText": {
+        label: "PDF-tiedoston alatunnisteen teksti",
+        description:
+          "Lyhyt rivi, joka lisätään jokaisen PDF-sivun alatunnisteeseen, esimerkiksi luottamuksellisuusmerkintä.",
+      },
+      "branding.primaryColor": {
+        label: "Korostusväri",
+        description: "PDF-tiedostojen otsikoiden ja kansilehden väri muodossa #rrggbb.",
       },
       "notifications.campaignThreshold": {
         label: "Lähetä sähköposti, kun haastatteluja on tarpeeksi",
