@@ -61,15 +61,16 @@ test("switches language from the page and keeps it", async ({ page, context }) =
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   // The header shows the switch from 768 px; below that it is in the menu.
   const menu = page.getByRole("button", { name: /^(Menu|Valikko)$/ });
-  const header = page.locator("select#language-switch");
-  if (await header.isVisible()) {
-    await header.selectOption("fi");
+  const language = page.getByRole("button", { name: /^(Language|Kieli): / });
+  if (await language.first().isVisible()) {
+    await language.first().click();
   } else {
     await menu.click();
-    await page.locator("select#landing-menu-language").selectOption("fi");
-    // The page behind an open dialog is inert, so close it to read the heading.
-    await page.keyboard.press("Escape");
+    await language.first().click();
   }
+  await page.getByRole("menuitem", { name: /Suomi/ }).click();
+  // The page behind an open dialog is inert, so close it to read the heading.
+  if (await menu.isVisible().catch(() => false)) await page.keyboard.press("Escape");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Ymmärrä ongelma", { timeout: 10_000 });
   await expect(page.locator("html")).toHaveAttribute("lang", "fi");
   await page.reload({ waitUntil: "networkidle" });

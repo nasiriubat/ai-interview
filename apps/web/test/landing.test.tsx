@@ -122,7 +122,7 @@ describe.each(["en", "fi"] as const)("landing page structure (%s)", (locale) => 
     const menu = d.querySelector('header button[aria-haspopup="dialog"]');
     expect(menu?.getAttribute("aria-label")?.length ?? 0).toBeGreaterThan(0);
     expect(d.querySelector('footer a[href="/.well-known/security.txt"]')).not.toBeNull();
-    expect(d.querySelectorAll("footer select")).toHaveLength(1);
+    expect(d.querySelectorAll('footer button[aria-haspopup="menu"]')).toHaveLength(1);
     const ids = [...d.querySelectorAll("[id]")].map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
   });

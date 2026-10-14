@@ -4,8 +4,7 @@ import { MenuIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { Dialog } from "radix-ui";
 import * as React from "react";
-import { LanguageSwitch } from "@/components/common/LanguageSwitch";
-import { ThemeSwitch } from "@/components/common/ThemeSwitch";
+import { LanguageMenu, ThemeMenu } from "@/components/common/PreferenceMenus";
 import { Button } from "@/components/ui/button";
 
 export interface LandingHeaderProps {
@@ -80,8 +79,10 @@ export function LandingHeader({
         </nav>
 
         <div className="ml-auto flex items-center gap-2 xl:ml-0">
-          <LanguageSwitch className="hidden md:flex" />
-          <ThemeSwitch compact className="hidden md:inline-flex" />
+          <div className="hidden items-center gap-0.5 md:flex">
+            <LanguageMenu />
+            <ThemeMenu />
+          </div>
           {request ? (
             <Button asChild variant="ghost" size="sm" className="hidden lg:inline-flex">
               <Link href={signIn.href}>{signIn.label}</Link>
@@ -126,9 +127,19 @@ export function LandingHeader({
                   ))}
                 </nav>
                 <div className="border-border mt-auto grid gap-4 border-t pt-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <LanguageSwitch id="landing-menu-language" />
-                    <ThemeSwitch compact />
+                  <div className="grid grid-cols-2 gap-2">
+                    <LanguageMenu
+                      showName
+                      align="start"
+                      side="top"
+                      className="border-border justify-between border"
+                    />
+                    <ThemeMenu
+                      showName
+                      align="end"
+                      side="top"
+                      className="border-border justify-between border"
+                    />
                   </div>
                   <Button asChild variant="outline" size="lg">
                     <Link href={signIn.href}>{signIn.label}</Link>
