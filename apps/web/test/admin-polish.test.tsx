@@ -226,6 +226,7 @@ describe("boxes", () => {
     "components/admin/results/OverrideSheet.tsx",
     "components/admin/results/WeightsPanel.tsx",
     "components/admin/results/MergeBar.tsx",
+    "components/admin/requirements/DiagramsPanel.tsx",
     "components/admin/results/SplitDialog.tsx",
     "components/admin/requirements/VersionView.tsx",
     "components/admin/requirements/VersionDiff.tsx",
