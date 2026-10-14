@@ -108,10 +108,17 @@ export function takeTurn(index) {
 
 /** A whole interview: arrive, then `turns` turns (or until it ends) with think time between. */
 export function interview(turns) {
-  if (!arrive(`k6-${__VU}-${__ITER}`)) return;
+  if (!arrive(`k6-${__VU}-${__ITER}`)) {
+    // Never a tight loop: a refused open (a ceiling, a limiter) must not become a flood.
+    sleep(5);
+    return;
+  }
   for (let i = 0; i < turns; i++) {
     const t = takeTurn(i);
-    if (t.failed) return;
+    if (t.failed) {
+      sleep(5);
+      return;
+    }
     if (t.ended) {
       interviewsCompleted.add(1);
       return;

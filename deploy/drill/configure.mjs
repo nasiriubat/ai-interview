@@ -65,6 +65,13 @@ log(`routed ${ROUTES.length} purposes to the fake provider`);
 const test = await staff(operator, "POST", `/operator/providers/${provider.id}/test`, { model: "fake-fast" });
 log(`provider test: ${JSON.stringify(test).slice(0, 160)}`);
 
+// A load run starts a few hundred interviews, and the tenant's default ceiling is 1000 a month
+// (ceiling.maxSessionsPerMonth). The first 4 GB-limits run hit it: the product refused every open
+// with limit_reached, correctly. The rehearsal platform has no ceiling; a real one keeps its own.
+await staff(operator, "PUT", "/settings?scope=platform", {
+  values: { "ceiling.maxSessionsPerMonth": 0, "ceiling.voiceMinutes": 0 },
+});
+log("platform ceilings for the rehearsal: sessions per month and voice minutes set to none");
 const admin = await signIn(ADMIN_EMAIL, "admin");
 log("tenant admin signed in");
 // Live voice is off until a tenant turns it on (features.realtimeVoice, default false).

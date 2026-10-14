@@ -6,7 +6,7 @@
 // from outside, from the last audio frame sent to the first audio frame back, through Caddy.
 import http from "k6/http";
 import ws from "k6/ws";
-import { check } from "k6";
+import { check, sleep } from "k6";
 import { Counter, Trend } from "k6/metrics";
 import { BASE, LINK, arrive } from "./lib.js";
 
@@ -30,6 +30,8 @@ function frame() {
 export function voiceSession() {
   if (!arrive(`k6-voice-${__VU}-${__ITER}`)) {
     voiceSessionErrors.add(1);
+    // Never a tight loop: a refused open (a ceiling, a limiter) must not become 40 requests a second.
+    sleep(5);
     return;
   }
   http.post(
