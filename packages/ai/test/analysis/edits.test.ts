@@ -1,4 +1,4 @@
-import type { Fact, OpportunityDraft, ReportSection } from "@aidp/shared";
+import type { ChatEvent, Fact, OpportunityDraft, Purpose, ReportSection } from "@aidp/shared";
 import { WEIGHT_PRESETS } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import type { z } from "zod";
@@ -11,7 +11,7 @@ import {
 } from "../../src/analysis/edits.js";
 import { runAnalysis, type AnalysisFact } from "../../src/analysis/pipeline.js";
 import { proposeSplit } from "../../src/analysis/split.js";
-import type { CallRequest, ModelCaller } from "../../src/callModel.js";
+import type { CallContext, CallRequest, ModelCallerPort } from "../../src/callModel.js";
 import { ShippedPromptSource } from "../../src/engine/prompts/index.js";
 
 const ids = (prefix: string, n: number): string[] =>
@@ -167,16 +167,20 @@ const members = (topic: string, n: number, firstId: number, personFrom: number):
     fact: task(`${topic} variant ${i}`),
   }));
 
-class Counting {
+class Counting implements ModelCallerPort {
   opportunities = 0;
   embeds = 0;
+  // eslint-disable-next-line require-yield
+  async *chat(): AsyncIterable<ChatEvent> {
+    throw new Error("the analysis does not stream");
+  }
   async embed(): Promise<undefined> {
     this.embeds++;
     return undefined;
   }
   async complete<T>(
-    _purpose: string,
-    _ctx: unknown,
+    _purpose: Purpose,
+    _ctx: CallContext,
     _req: CallRequest,
     schema: z.ZodType<T>,
     name?: string,
@@ -187,9 +191,6 @@ class Counting {
       return schema.parse(draft("Generated"));
     }
     return schema.parse({ executiveSummary: "E", nextSteps: ["Next"], caveats: "C" });
-  }
-  asCaller(): ModelCaller {
-    return this as unknown as ModelCaller;
   }
 }
 
@@ -235,7 +236,7 @@ describe("runAnalysis with edits", () => {
     ...members("Ordering pharmacy stock from the supplier portal", 3, 10, 10),
     ...members("Rostering night shift staff by phone", 3, 20, 20),
   ];
-  const deps = (m: Counting) => ({ caller: m.asCaller(), prompts: new ShippedPromptSource(), logger });
+  const deps = (m: Counting) => ({ caller: m, prompts: new ShippedPromptSource(), logger });
 
   it("merges the clusters an edit names and a second run with the facts in another order agrees", async () => {
     const plain = await runAnalysis(deps(new Counting()), base(facts));
