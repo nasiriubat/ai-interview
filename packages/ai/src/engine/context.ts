@@ -3,9 +3,10 @@ import { widgetResponseToText } from "@aidp/shared";
 import { estimateTokens } from "../cost/pricing.js";
 import { mvpItems, specFacts } from "../spec/live.js";
 import { languageName } from "../util/language.js";
+import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js";
 import type { PromptDefinition } from "./prompts/index.js";
-import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v4.js";
+import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v5.js";
 import type { Focus } from "./selection.js";
 
 export interface AssembledContext {
@@ -210,23 +211,44 @@ export function assembleContext(input: {
   recent: StoredMessage[]; // oldest first, may include the just-persisted user message
   recalled: { seq: number; text: string }[];
   settings: EngineSettings;
+  /** Delimiter nonce for this assembly; random when omitted, fixed by tests that compare text. */
+  nonce?: string;
 }): AssembledContext {
   const { session, focus, settings } = input;
   const system = renderSystemPrompt(input.prompt, session.template);
+  const nonce = input.nonce ?? newNonce();
   const budget = settings.inputTokenBudget;
   let used = estimateTokens(system);
 
+  // Everything below came from a participant, a file, or an earlier model turn, however it is
+  // phrased: it is data. Each piece goes into its own nonce-delimited block (security plan P12) and
+  // the system prompt says what such a block is. The engine focus stays outside every block.
   const contextParts = [
     "Session context",
-    renderState(session.state, session.template, session.path, session.handoff, session.attachments),
+    wrapUntrusted(
+      "session_state",
+      renderState(session.state, session.template, session.path, session.handoff, session.attachments),
+      { nonce },
+    ),
   ];
-  if (session.summary) contextParts.push("", "Summary of the conversation so far", session.summary);
+  if (session.summary)
+    contextParts.push(
+      "",
+      "Summary of the conversation so far",
+      wrapUntrusted("summary", session.summary, { nonce }),
+    );
   let recalled = input.recalled;
   const contextText = () =>
     [
       ...contextParts,
       ...(recalled.length
-        ? ["", "Recalled earlier turns", ...recalled.map((r) => `- (turn ${r.seq}) ${r.text}`)]
+        ? [
+            "",
+            "Recalled earlier turns",
+            ...recalled.map((r) =>
+              wrapUntrusted("recalled_turn", r.text, { nonce, id: r.seq, maxChars: 1500 }),
+            ),
+          ]
         : []),
     ].join("\n");
   used += estimateTokens(contextText());
@@ -235,7 +257,7 @@ export function assembleContext(input: {
     used = estimateTokens(system) + estimateTokens(contextText());
   }
 
-  const focusText = renderFocus(focus, session.template, session.path, session.state);
+  const focusText = `<engine_focus>\n${renderFocus(focus, session.template, session.path, session.state)}\n</engine_focus>`;
   used += estimateTokens(focusText);
 
   // Recent window: newest first until the budget is spent, then restore order.
@@ -257,7 +279,17 @@ export function assembleContext(input: {
       content: "Understood. I have the session context and will follow the engine focus.",
     },
   ];
-  for (const m of window) messages.push({ role: m.role, content: renderStoredMessage(m) });
+  // A participant's turns are delimited; the interviewer's own earlier turns keep the assistant
+  // role, which a participant cannot write, and stay as they are so the model does not learn to
+  // emit delimiters itself.
+  for (const m of window)
+    messages.push({
+      role: m.role,
+      content:
+        m.role === "user"
+          ? wrapUntrusted("participant_turn", renderStoredMessage(m), { nonce, id: m.seq })
+          : renderStoredMessage(m),
+    });
 
   // Attach the focus to the last user message, or add a user message to keep alternation.
   const last = messages[messages.length - 1];

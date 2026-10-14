@@ -68,7 +68,7 @@ export interface ExtractionCommit {
   /** `promptVersionTag` of the prompt that produced them, never a literal. */
   extractorVersion: string;
   /** Payload of the `facts_extracted` event written in the same transaction. */
-  event: { count: number; upToSeq: number; promptVersion: string };
+  event: { count: number; upToSeq: number; promptVersion: string; quotesDropped?: number };
 }
 
 /** Persistence port. The API implements it with Prisma; tests use memory. */

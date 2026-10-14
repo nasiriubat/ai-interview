@@ -1,13 +1,14 @@
 import { clusteringPromptV2 } from "../../analysis/prompts/clustering.v2.js";
 import { opportunityPromptV2 } from "../../analysis/prompts/opportunity.v2.js";
 import { reportPromptV2 } from "../../analysis/prompts/report.v2.js";
-import { fileSummaryPromptV1 } from "../../ingest/prompts/file-summary.v1.js";
-import { imageDescribePromptV1 } from "../../ingest/prompts/image-describe.v1.js";
-import { issuesPromptV2 } from "../../spec/prompts/issues.v2.js";
-import { specPromptV1 } from "../../spec/prompts/spec.v1.js";
-import { extractionPromptV1 } from "./extraction.v1.js";
-import { interviewerPromptV4 } from "./interviewer.v4.js";
-import { summaryPromptV1 } from "./summary.v1.js";
+import { fileSummaryPromptV2 } from "../../ingest/prompts/file-summary.v2.js";
+import { imageDescribePromptV2 } from "../../ingest/prompts/image-describe.v2.js";
+import { issuesPromptV3 } from "../../spec/prompts/issues.v3.js";
+import { specPromptV2 } from "../../spec/prompts/spec.v2.js";
+import { extractionPromptV2 } from "./extraction.v2.js";
+import { interviewerPromptV5 } from "./interviewer.v5.js";
+import { summaryPromptV2 } from "./summary.v2.js";
+import { turnMetaRepairPromptV1 } from "./turn-meta-repair.v1.js";
 
 export interface PromptDefinition {
   key: string;
@@ -17,16 +18,17 @@ export interface PromptDefinition {
 
 /** Prompts shipped with the code (FR-50). Tenant overrides come through a PromptSource. */
 export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
-  interviewer: interviewerPromptV4,
-  summary: summaryPromptV1,
-  extraction: extractionPromptV1,
+  interviewer: interviewerPromptV5,
+  summary: summaryPromptV2,
+  turn_meta_repair: turnMetaRepairPromptV1,
+  extraction: extractionPromptV2,
   clustering: clusteringPromptV2,
   opportunity: opportunityPromptV2,
   report: reportPromptV2,
-  issues: issuesPromptV2,
-  spec: specPromptV1,
-  file_summary: fileSummaryPromptV1,
-  image_describe: imageDescribePromptV1,
+  issues: issuesPromptV3,
+  spec: specPromptV2,
+  file_summary: fileSummaryPromptV2,
+  image_describe: imageDescribePromptV2,
 };
 
 export interface PromptSource {

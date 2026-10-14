@@ -576,9 +576,13 @@ export function clusterStats(members: AnalysisFact[], k: number): ClusterStats {
   for (const m of members) {
     if (m.fact.kind === "task") minutes += m.fact.minutesPerOccurrence * (PER_WEEK[m.fact.frequency] ?? 1);
   }
+  // Cleaned like evidence snippets: the report renders these as Markdown.
   const quotes =
     participants >= k
-      ? uniq(members.map((m) => ("quote" in m.fact ? m.fact.quote : undefined))).slice(0, 5)
+      ? uniq(members.map((m) => ("quote" in m.fact ? sanitizeSnippet(m.fact.quote ?? "") : undefined))).slice(
+          0,
+          5,
+        )
       : [];
   return {
     participants,

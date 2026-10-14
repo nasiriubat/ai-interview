@@ -7,19 +7,39 @@
     "sha256": "5894c152ca0d442eeb45d93adfe0326b0d28ab2f0eb0bb7152f21ca6c710bc62"
   },
   "extraction@1": {
-    "sha256": "bdef863f517a348d9d21060ffe7b81aecfac9a4aa6930e4f4a4d77dae60822a5"
+    "sha256": "bdef863f517a348d9d21060ffe7b81aecfac9a4aa6930e4f4a4d77dae60822a5",
+    "retired": true
+  },
+  "extraction@2": {
+    "sha256": "1c8aee186ea0d9a764d5c59da9813a9ef10d1d9a34608a049ac2b93e837728f4"
   },
   "file_summary@1": {
-    "sha256": "b3cdcbd9a5d30268a756882fb41c08a996e9b24b875a88c2e072ba448a031b57"
+    "sha256": "b3cdcbd9a5d30268a756882fb41c08a996e9b24b875a88c2e072ba448a031b57",
+    "retired": true
+  },
+  "file_summary@2": {
+    "sha256": "ee533f01f835f3902d5cb1c6a9bf3cef4db1d18eb6c0a44b57758ec1ab36ff79"
   },
   "image_describe@1": {
-    "sha256": "50e11a6b30d65c4acebd485547c5468eb591843b0c70e8a620fe14169cdbcb2d"
+    "sha256": "50e11a6b30d65c4acebd485547c5468eb591843b0c70e8a620fe14169cdbcb2d",
+    "retired": true
+  },
+  "image_describe@2": {
+    "sha256": "b90a34ae4995d14b0dac9b4a37b88b32f21f756c3b2c6058cbec57f848a167e2"
   },
   "interviewer@4": {
-    "sha256": "235d27c085dddc5d3d615128289af1b8732240db935acbaed808d5935ada3601"
+    "sha256": "235d27c085dddc5d3d615128289af1b8732240db935acbaed808d5935ada3601",
+    "retired": true
+  },
+  "interviewer@5": {
+    "sha256": "7645351d6f48c1590180d75cf296b2147ac9663caa73041d02a8d8b3cfc87619"
   },
   "issues@2": {
-    "sha256": "e4431e8aa06b088a08a5bb800cac7539fdecd03aa9442cd5cd7521c94c333ad1"
+    "sha256": "e4431e8aa06b088a08a5bb800cac7539fdecd03aa9442cd5cd7521c94c333ad1",
+    "retired": true
+  },
+  "issues@3": {
+    "sha256": "6fdff8cd7315cf345dcfe5100bd88aa4baf7ba95b0987b75954b2c12bdb8e537"
   },
   "opportunity@1": {
     "sha256": "8adfb37c55b298c610a359e7e32054fb05fcc8d219dee3c28e1e6880b5f61df3",
@@ -36,9 +56,20 @@
     "sha256": "07a85f0f5f20ee0dde75b39b2ddb50537568a862e5b4e1c92de62e43f9da127d"
   },
   "spec@1": {
-    "sha256": "95d169c722fd76fff431e9aefff84e3661a3ee16e37aa43948b94875afc5f792"
+    "sha256": "95d169c722fd76fff431e9aefff84e3661a3ee16e37aa43948b94875afc5f792",
+    "retired": true
+  },
+  "spec@2": {
+    "sha256": "e429e5bb9310a881a8b89fb052e0850f2d281129f83b7029080711fc5e943b1d"
   },
   "summary@1": {
-    "sha256": "3fcc36565737b993499ee82d412c4e28fc79b80c728b7c25a9aec87d4544fbd8"
+    "sha256": "3fcc36565737b993499ee82d412c4e28fc79b80c728b7c25a9aec87d4544fbd8",
+    "retired": true
+  },
+  "summary@2": {
+    "sha256": "31a4b08c898496a5232d5641510986b24e3b72f67dc3ed2002d116a860ce3363"
+  },
+  "turn_meta_repair@1": {
+    "sha256": "65ed431c245aa243043e1d772fa7675e05f04659be1b09830ab8883e375a8bf3"
   }
 }
