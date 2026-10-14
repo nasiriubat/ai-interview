@@ -110,6 +110,29 @@ describe("forwardToApi", () => {
     expect(sentHeaders().get("x-company-id")).toBe("chosen-tenant");
   });
 
+  it("keeps a download's file name and export notes, and nothing else the API set", async () => {
+    globalThis.fetch = async () =>
+      new Response("%PDF-", {
+        status: 200,
+        headers: {
+          "content-type": "application/pdf",
+          "content-disposition": 'attachment; filename="ward-notes-v2.pdf"',
+          "x-export-warnings": "diagram_unrendered:1",
+          "x-export-pages": "4",
+          "set-cookie": "api=1",
+          "x-powered-by": "fastify",
+        },
+      });
+    const res = await forwardToApi(request({}), ["analyses", "a1", "report.pdf"], "jwt");
+    expect(res.headers.get("content-disposition")).toBe('attachment; filename="ward-notes-v2.pdf"');
+    expect(res.headers.get("x-export-warnings")).toBe("diagram_unrendered:1");
+    expect(res.headers.get("x-export-pages")).toBe("4");
+    expect(res.headers.get("content-type")).toBe("application/pdf");
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("set-cookie")).toBeNull();
+    expect(res.headers.get("x-powered-by")).toBeNull();
+  });
+
   it("never forwards the session cookie", async () => {
     await forwardToApi(request({ cookie: "authjs.session-token=secret" }), ["campaigns"], "jwt");
 
