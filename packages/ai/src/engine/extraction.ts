@@ -1,9 +1,12 @@
-import { ExtractionResultSchema, SessionStateSchema, type Fact } from "@aidp/shared";
+import { ExtractionResultSchema, normalizeSectionKey, SessionStateSchema, type Fact } from "@aidp/shared";
 import type { ModelCallerPort } from "../callModel.js";
+import { checkSpecFacts, salvageRejected } from "../spec/delta-validation.js";
+import { titleOf } from "../spec/live.js";
 import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { renderStoredMessage } from "./context.js";
 import type { SessionSnapshot, SessionStore } from "./ports.js";
 import { promptVersionTag, type PromptSource } from "./prompts/index.js";
+import { SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v6.js";
 import { verifyQuotes } from "./quotes.js";
 
 /** Messages per extraction call. A backlog (retries, a long session) is worked off in passes, each persisted. */
@@ -98,7 +101,9 @@ async function extractBatch(
       ref: { type: "session", id: session.id },
     },
     {
-      system: prompt.body.replace("{{kinds}}", kinds.join(", ")),
+      system: prompt.body
+        .replace("{{kinds}}", kinds.join(", "))
+        .replace("{{specRules}}", kinds.includes("spec_field") ? SPEC_CAPTURE_INSTRUCTIONS : ""),
       messages: [
         {
           role: "user",
@@ -112,7 +117,46 @@ async function extractBatch(
   const wanted = result.facts.filter((f) => kinds.includes(f.kind));
   // A quote ends up in reports and as evidence: it must be the participant's own words.
   const spoken = fresh.filter((m) => m.role === "user").map((m) => renderStoredMessage(m));
-  const { facts, dropped } = verifyQuotes(wanted, spoken);
+  const verified = verifyQuotes(wanted, spoken);
+  const { dropped } = verified;
+  const facts = kinds.includes("spec_field") ? fileSpecFacts(verified.facts, state.facts) : verified.facts;
   const upToSeq = fresh[fresh.length - 1]?.seq ?? state.lastExtractedSeq;
   return { facts, upToSeq, promptVersion: promptVersionTag(prompt), quotesDropped: dropped };
+}
+
+/**
+ * Spec facts from extraction are filed like the interviewer's own (D-190): canonical sections,
+ * sequential FR ids, a requirement under `rules` moved to `functional`. The turn's own facts are
+ * the authority, so an extracted fact that lands on a section and path already recorded is dropped
+ * rather than appended as a second copy (this job commits by appending). What cannot be filed goes
+ * to open_questions instead of being lost.
+ */
+function fileSpecFacts(facts: Fact[], known: Fact[]): Fact[] {
+  // An extractor numbers from 1 without seeing the interview's ids: a requirement whose id is
+  // already taken by another one is treated as new (renumbered, or matched to an identical title).
+  const titleAt = new Map(
+    known.flatMap((f) =>
+      f.kind === "spec_field" && f.section === "functional"
+        ? [[f.path.toUpperCase(), titleOf(f.value, "")] as const]
+        : [],
+    ),
+  );
+  const relabelled = facts.map((f, i) => {
+    if (f.kind !== "spec_field" || normalizeSectionKey(f.section) !== "functional") return f;
+    const existing = titleAt.get(f.path.trim().toUpperCase());
+    return existing !== undefined && existing !== titleOf(f.value, "") ? { ...f, path: `extracted-${i}` } : f;
+  });
+  const checked = checkSpecFacts(relabelled, { facts: known });
+  const taken = new Set(known.flatMap((f) => (f.kind === "spec_field" ? [`${f.section}/${f.path}`] : [])));
+  const seen = new Set<string>();
+  const out: Fact[] = [];
+  for (const f of [...checked.facts, ...salvageRejected(checked.heldBack)]) {
+    if (f.kind === "spec_field") {
+      const key = `${f.section}/${f.path}`;
+      if (taken.has(key) || seen.has(key)) continue;
+      seen.add(key);
+    }
+    out.push(f);
+  }
+  return out;
 }

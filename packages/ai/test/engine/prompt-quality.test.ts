@@ -47,9 +47,10 @@ describe("interviewer prompt v6 (v5 live run findings, plus requirements capture
 });
 
 describe("the other prompts that changed", () => {
-  it("extraction v2 takes a list of known facts and a verbatim-quote rule", () => {
+  it("extraction v3 takes a list of known facts, a verbatim-quote rule and the spec capture rules", () => {
     const p = SHIPPED_PROMPTS.extraction!;
-    expect(p.version).toBe(2);
+    expect(p.version).toBe(3);
+    expect(p.body).toContain("{{specRules}}");
     expect(p.body).toMatch(/facts already known, one per line/i);
     expect(p.body).toMatch(/copied exactly from a participant block/i);
     expect(p.body).toContain("untrusted");
