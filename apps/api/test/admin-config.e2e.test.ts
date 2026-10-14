@@ -95,9 +95,10 @@ suite("admin configuration surface (contract 19)", () => {
       payload: {},
     });
     expect(env.statusCode).toBe(200);
-    expect(env.json()).toMatchObject({ ok: true, usedScope: "env" });
-    expect(world.email.sent.at(-1)?.to).toBe(world.adminEmail);
-    expect(world.email.sent.length).toBe(before + 1);
+    // Nothing is configured anywhere in this world: the answer is a loud "not configured", never
+    // a pretend "sent" (D-413). Nothing was handed to the mail port either.
+    expect(env.json()).toMatchObject({ ok: false, usedScope: "env", errorClass: "not_configured" });
+    expect(world.email.sent.length).toBe(before);
 
     await settings({ "email.smtpUrl": "smtp://user:tenantsecret@mail.test:587" });
     const tenant = await world.app.inject({
@@ -107,6 +108,8 @@ suite("admin configuration surface (contract 19)", () => {
       payload: { scope: "tenant" },
     });
     expect(tenant.json()).toMatchObject({ ok: true, usedScope: "tenant" });
+    expect(world.email.sent.at(-1)?.to).toBe(world.adminEmail);
+    expect(world.email.sent.length).toBe(before + 1);
     expect(tenant.body).not.toContain("tenantsecret");
     const entry = await world.db.auditLog.findFirstOrThrow({
       where: { companyId: world.companyId, action: "settings.email_test" },

@@ -135,6 +135,36 @@ An install made before the images were versioned has volumes named `deploy_pgdat
 must put `COMPOSE_PROJECT_NAME=deploy` in `deploy/.env`, and `upgrade.sh` refuses to continue
 without it rather than start on an empty database.
 
+## How the first admin signs in
+
+Mailpit is a development tool (`docker-compose.yml`, mail on `:8025`); it is not in the production
+stack and never receives anything there. In production the first admin signs in like this:
+
+1. **The relay is set at deploy time, not in the admin.** `EMAIL_SMTP_URL` in `deploy/.env` is the
+   address of a real mail server (`smtp://user:password@smtp.provider.com:587`, or `smtps://` for
+   port 465; percent-encode `@`, `:` and `/` inside the user name or password). `compose.prod.yml`
+   refuses to start without it, so the mistake shows at `./deploy/dc up`, not as a silent page.
+   `EMAIL_FROM` is the sender. The web app takes the same value as `EMAIL_SERVER`.
+2. **The first admin is `BOOTSTRAP_ADMIN_EMAIL`.** `generate-env.sh <host> <admin-email>` writes it.
+   The `migrate` step creates the tenant and that user, and `/auth/signin` mails a one-time link to
+   exactly that address.
+3. **Google sign-in is the alternative.** Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` in
+   `deploy/.env` and the sign-in page offers "Continue with Google" beside the email link. Google
+   does not need the relay to sign in, but invitations and reports still do, and
+   `compose.prod.yml` still requires `EMAIL_SMTP_URL`.
+4. **Afterwards, tenant admins configure their own mail** in Settings, Email: mail server host,
+   port, security, user name and password, sender and reply-to, with a "Send test email" that
+   tries the form before it is saved. That relay is used for what the tenant sends (invitations,
+   reports, notices). It does **not** replace the deployment relay for sign-in links, which are sent
+   by the web app from `EMAIL_SERVER` alone; keep `EMAIL_SMTP_URL` working.
+
+When the relay is wrong, the sign-in page does not pretend: Auth.js reports `EmailSignin` and
+`/auth/error` says that the sign-in email could not be sent and names `EMAIL_SMTP_URL`
+(English and Finnish). If `EMAIL_SMTP_URL` is empty the stack does not start, and a production
+web process without `EMAIL_SERVER` throws on start instead of falling back to a development relay.
+In Settings, Email, "Send test email" with no relay anywhere answers "No mail server is
+configured" rather than reporting a send that only went to the log.
+
 ## Model configuration, and the one route that is easy to miss
 
 The platform routes each _purpose_ to a model independently, so a cheap model can drive the

@@ -194,6 +194,9 @@ export const kitEn = {
     tryAgain: "Use a different address",
     errorTitle: "We could not sign you in",
     errorBody: "The link may have expired or been used already. Request a new one and try again.",
+    errorMailTitle: "The sign-in email could not be sent",
+    errorMailBody:
+      "This deployment's mail server did not accept the message. Try again in a minute. If it keeps happening, whoever runs this installation needs to check the mail relay (EMAIL_SMTP_URL in deploy/.env) or sign in with Google if it is set up.",
     signOutTitle: "Sign out of Discovery?",
     signOutBody: "You will need a new one-time link to come back.",
     signOutConfirm: "Sign out",

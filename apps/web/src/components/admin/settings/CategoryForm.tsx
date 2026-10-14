@@ -3,6 +3,15 @@
 import { MailCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import {
+  EmailPanel,
+  emailAddressError,
+  initialSmtpDraft,
+  smtpDraftBody,
+  smtpDraftDirty,
+  smtpDraftErrors,
+  type SmtpDraft,
+} from "./EmailPanel";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { useDirty } from "@/components/common/DirtyGuard";
 import { SaveBarView } from "@/components/form/Form";
@@ -16,7 +25,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
 import { displaySettingValue, settingInputKind, weightsValue } from "@/lib/admin/settingInput";
 import { staffClient } from "@/lib/api/browser";
-import { SECRET_UNCHANGED, type EmailTest, type SettingsCatalogEntry } from "@/lib/api/schemas";
+import {
+  SECRET_UNCHANGED,
+  type EmailTest,
+  type SettingsCatalogEntry,
+  type SmtpView,
+} from "@/lib/api/schemas";
 import { label as enumLabel, settingText, settingValueLabel } from "@/lib/i18n/enums";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +52,8 @@ export interface CategoryFormProps {
   scopeId: string | undefined;
   /** The platform operator may write the operator-only keys (the ceilings, D-188); nobody else. */
   operator?: boolean;
+  /** The mail relay taken apart, for the email category (D-411). Absent: the plain field is shown. */
+  smtp?: SmtpView | null | undefined;
 }
 
 /**
@@ -56,6 +72,7 @@ export function CategoryForm({
   scope,
   scopeId,
   operator = false,
+  smtp,
 }: CategoryFormProps): React.JSX.Element {
   const router = useRouter();
   const action = useAction();
@@ -63,15 +80,27 @@ export function CategoryForm({
   const [resets, setResets] = React.useState<Record<string, true>>({});
   const [secretEdits, setSecretEdits] = React.useState<Record<string, string>>({});
   const [secretCleared, setSecretCleared] = React.useState<Record<string, true>>({});
+  // The mail relay is a structured form of its own, not a row (D-410).
+  const smtpPanel = category === "email" && Boolean(smtp) && entries.some((e) => e.key === "email.smtpUrl");
+  const smtpInitial = React.useMemo(() => initialSmtpDraft(smtp), [smtp]);
+  const [smtpDraft, setSmtpDraft] = React.useState<SmtpDraft>(smtpInitial);
+  const [showSmtpErrors, setShowSmtpErrors] = React.useState(false);
+  // A save refreshes the page's data: the form then shows what the server now holds.
+  React.useEffect(() => {
+    setSmtpDraft(smtpInitial);
+  }, [smtpInitial]);
+  const smtpDirty = smtpPanel && smtpDraftDirty(smtpDraft, smtpInitial);
   // Edits, resets and typed secrets are all unsaved work; leaving the category would drop them.
   const dirty =
     Object.keys(edits).length +
       Object.keys(resets).length +
       Object.keys(secretEdits).length +
       Object.keys(secretCleared).length >
-    0;
+      0 || smtpDirty;
   useDirty(`settings-${category}`, dirty);
   const discard = (): void => {
+    setSmtpDraft(smtpInitial);
+    setShowSmtpErrors(false);
     setEdits({});
     setResets({});
     setSecretEdits({});
@@ -107,7 +136,9 @@ export function CategoryForm({
   const [onlyChanged, setOnlyChanged] = React.useState(false);
   const differsFromDefault = (entry: SettingsCatalogEntry): boolean =>
     !entry.secret && JSON.stringify(valueOf(entry)) !== JSON.stringify(entry.default);
-  const shown = onlyChanged ? entries.filter((e) => differsFromDefault(e)) : entries;
+  const panelKeys = new Set(["email.smtpUrl", "email.from", "email.replyTo"]);
+  const listed = smtpPanel ? entries.filter((e) => !panelKeys.has(e.key)) : entries;
+  const shown = onlyChanged ? listed.filter((e) => differsFromDefault(e)) : listed;
   const changedCount = entries.filter((e) => differsFromDefault(e)).length;
 
   const payload = (): Record<string, unknown> => {
@@ -116,6 +147,12 @@ export function CategoryForm({
       const key = entry.key;
       // Sending a key the API will refuse would fail the whole save, so a read-only key is not sent.
       if (entry.operatorOnly && !operator) continue;
+      if (smtpPanel && entry.key === "email.smtpUrl") {
+        // Cleared when the person stopped using their own server; otherwise the form's body (sent
+        // beside `values`) replaces it, and an untouched relay stays as it is.
+        out[key] = smtpDraft.inherit ? null : SECRET_UNCHANGED;
+        continue;
+      }
       if (entry.secret) {
         if (key in secretCleared) out[key] = null;
         else if (key in secretEdits) out[key] = secretEdits[key];
@@ -129,9 +166,28 @@ export function CategoryForm({
     return out;
   };
 
+  const emailString = (key: string): string => {
+    const entry = entries.find((e) => e.key === key);
+    const v = entry ? valueOf(entry) : "";
+    return typeof v === "string" ? v : "";
+  };
+
   const save = (): void => {
+    if (smtpPanel) {
+      const errs = smtpDirty && !smtpDraft.inherit ? smtpDraftErrors(smtpDraft) : {};
+      const bad =
+        Object.keys(errs).length > 0 ||
+        emailAddressError(emailString("email.from")) !== undefined ||
+        emailAddressError(emailString("email.replyTo")) !== undefined;
+      if (bad) {
+        setShowSmtpErrors(true);
+        return;
+      }
+    }
     void action.run(async () => {
-      await staffClient.settings.put({ scope, ...(scopeId ? { scopeId } : {}) }, payload());
+      const body = smtpPanel && smtpDirty && !smtpDraft.inherit ? smtpDraftBody(smtpDraft) : undefined;
+      await staffClient.settings.put({ scope, ...(scopeId ? { scopeId } : {}) }, payload(), body);
+      setShowSmtpErrors(false);
       setEdits({});
       setResets({});
       setSecretEdits({});
@@ -154,16 +210,43 @@ export function CategoryForm({
           <h2 id={`category-${category}`} className="text-lg font-semibold tracking-tight">
             {title}
           </h2>
-          <p className="text-muted-foreground text-xs">{k.count(entries.length)}</p>
+          {smtpPanel ? null : <p className="text-muted-foreground text-xs">{k.count(entries.length)}</p>}
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <Switch checked={onlyChanged} onCheckedChange={setOnlyChanged} />
-          {k.onlyChanged}
-          <Badge variant="secondary">{changedCount}</Badge>
-        </label>
+        {smtpPanel && shown.length === 0 ? null : (
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={onlyChanged} onCheckedChange={setOnlyChanged} />
+            {k.onlyChanged}
+            <Badge variant="secondary">{changedCount}</Badge>
+          </label>
+        )}
       </div>
       <Flash flash={action.flash} />
-      <div className="bg-card shadow-card grid gap-0 rounded-lg">
+      {smtpPanel ? (
+        <EmailPanel
+          scope={scope}
+          scopeId={scopeId}
+          view={smtp}
+          draft={smtpDraft}
+          initial={smtpInitial}
+          onDraft={setSmtpDraft}
+          showErrors={showSmtpErrors}
+          from={emailString("email.from")}
+          replyTo={emailString("email.replyTo")}
+          onFrom={(v) => {
+            setValue("email.from", v);
+          }}
+          onReplyTo={(v) => {
+            setValue("email.replyTo", v);
+          }}
+          allowPlain={scope === "platform"}
+        />
+      ) : null}
+      <div
+        className={cn(
+          "bg-card shadow-card grid gap-0 rounded-lg",
+          smtpPanel && shown.length === 0 && "hidden",
+        )}
+      >
         {shown.length === 0 ? (
           <p className="text-muted-foreground p-5 text-sm" role="status">
             {k.nothingChanged}
@@ -209,7 +292,9 @@ export function CategoryForm({
         submitting={action.busy}
         onDiscard={discard}
         saveLabel={s.save}
-        extra={category === "email" ? <EmailTestButton scope={scope} scopeId={scopeId} /> : null}
+        extra={
+          category === "email" && !smtpPanel ? <EmailTestButton scope={scope} scopeId={scopeId} /> : null
+        }
       />
     </form>
   );
