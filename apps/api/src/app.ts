@@ -94,7 +94,18 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   app.addHook("preValidation", async (request) => {
     if (request.body == null && ["POST", "PUT", "PATCH"].includes(request.method)) request.body = {};
   });
-  await app.register(helmet, { contentSecurityPolicy: false });
+  // The API serves JSON and byte downloads, never a document: nothing it sends may load or frame
+  // anything (A3, D-165).
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'none'"],
+        formAction: ["'none'"],
+      },
+    },
+  });
   await app.register(cors, {
     origin: ctx.config.WEB_ORIGIN,
     credentials: true,

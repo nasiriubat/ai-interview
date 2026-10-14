@@ -13,12 +13,34 @@ function loadMermaid(): Promise<Mermaid> {
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: "strict",
+      // Report text is built from participants' words: a diagram is bounded so that a hostile one
+      // costs a failed render, not a frozen tab (D-165). `strict` already refuses directives that
+      // try to raise the security level.
+      maxTextSize: 20_000,
+      maxEdges: 300,
       theme: "neutral",
       fontFamily: "inherit",
     });
     return mermaid;
   });
   return loader;
+}
+
+/** The nonce of this page's CSP, rendered into a <meta> by the root layout. Empty when there is none. */
+function pageNonce(): string {
+  if (typeof document === "undefined") return "";
+  return document.querySelector('meta[name="csp-nonce"]')?.getAttribute("content") ?? "";
+}
+
+/**
+ * Stamps the page nonce on every <style> element of an SVG string. Mermaid emits its diagram CSS
+ * as a <style> inside the SVG; inserted as HTML under a nonce-only `style-src` it would be refused
+ * and the diagram would render unstyled. The SVG has already been sanitized by Mermaid's strict
+ * mode, so adding an attribute to its style tags adds no capability a script could use.
+ */
+export function withStyleNonce(svg: string, nonce: string): string {
+  if (nonce === "" || !/^[A-Za-z0-9+/=_-]+$/.test(nonce)) return svg;
+  return svg.replace(/<style(?![^>]*\bnonce=)/gi, `<style nonce="${nonce}"`);
 }
 
 type State = { kind: "loading" } | { kind: "ok"; svg: string } | { kind: "error"; message: string };
@@ -81,7 +103,7 @@ export function MermaidDiagram({ code }: { code: string }): React.JSX.Element {
       role="img"
       aria-label={t.admin.report.diagram}
       // Mermaid's own DOMPurify pass runs in `strict` mode; the source is our API's report.
-      dangerouslySetInnerHTML={{ __html: state.svg }}
+      dangerouslySetInnerHTML={{ __html: withStyleNonce(state.svg, pageNonce()) }}
     />
   );
 }
