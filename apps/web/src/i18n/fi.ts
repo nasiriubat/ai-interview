@@ -1,4 +1,5 @@
 import type { Strings } from "./en";
+import { kitFi } from "./kit.fi";
 import { landingFi } from "./landing.fi";
 
 /**
@@ -336,6 +337,7 @@ export const fi: Strings = {
       liveHideConversation: "Piilota keskustelu",
       liveConversation: "Keskustelu tähän asti",
       attach: "Liitä tiedosto",
+      attachCancel: "Peruuta lataus",
       attachUploading: "Lähetetään tiedostoasi…",
       attachmentsLabel: "Tiedostosi",
       attachmentPending: "Luetaan tiedostoa…",
@@ -431,6 +433,7 @@ export const fi: Strings = {
     },
   },
   landing: landingFi,
+  kit: kitFi,
   admin: {
     nav: {
       dashboard: "Yleiskatsaus",
@@ -843,6 +846,7 @@ export const fi: Strings = {
       invited: "Kutsuttu",
       started: "Aloittanut",
       completed: "Valmis",
+      emptyTitle: "Ei vielä kampanjoita",
       empty: "Ei vielä kampanjoita. Luo kampanja, niin saat linkin, jonka voit jakaa osallistujille.",
       createTitle: "Uusi kampanja",
       createBody:
@@ -873,7 +877,9 @@ export const fi: Strings = {
       invitationsTitle: "Kutsut",
       invitationsBody: "Liitä tai lataa sähköpostiosoitteet, yksi per rivi tai pilkuilla eroteltuna.",
       invitationsPlaceholder: "anna@yritys.fi\nben@yritys.fi",
-      uploadFile: "Lataa tiedosto",
+      uploadFile: "Tuo osoitteet tiedostosta",
+      importBody:
+        "Tiedosto (.txt tai .csv), jossa yksi osoite per rivi. Näet, mitä tiedostosta ymmärrettiin, ennen kuin mitään lisätään.",
       sendInvitations: "Lähetä kutsut",
       invitationsResult: (created: number, skipped: number): string =>
         `${created} kutsua lähetetty, ${skipped} ohitettu`,
@@ -2089,6 +2095,23 @@ export const fi: Strings = {
       action: "Toimenpide",
       target: "Kohde",
       details: "Tiedot",
+      showDetails: "Näytä tiedot",
+      dateRange: "Aikaväli",
+      area: "Alue",
+      searchPlaceholder: "Hae toimenpiteellä tai henkilöllä",
+      exportCsv: "CSV",
+      exportCsvHint: "Kaikki suodattimiin sopivat merkinnät, uusin ensin.",
+      exportWhat: "tapahtumaloki",
+      families: {
+        "campaign.": "Kampanjat",
+        "user.": "Käyttäjät",
+        "template.": "Pohjat",
+        "settings.": "Asetukset",
+        "provider.": "Palveluntarjoajat",
+        "prompt.": "Kehotteet",
+        "budget.": "Budjetit",
+        "requirements.": "Vaatimukset",
+      },
       empty: "Ei lokimerkintöjä tällä aikavälillä. Kokeile laajempaa aikaväliä tai tyhjennä suodattimet.",
     },
     users: {
@@ -2100,7 +2123,22 @@ export const fi: Strings = {
       add: "Lisää käyttäjä",
       added: "Käyttäjä lisätty",
       updated: "Käyttäjä päivitetty",
+      emptyTitle: "Ei vielä käyttäjiä",
       empty: "Ei vielä käyttäjiä. Lisää käyttäjä, niin työtoverisi voi kirjautua hallintaan.",
+      inviteBody: "Hän saa kirjautumislinkin sähköpostiin. Salasanaa ei tarvitse asettaa.",
+      changeRole: "Vaihda roolia",
+      roleHints: {
+        admin: "Asetukset, palveluntarjoajat, budjetit ja käyttäjät sekä kaikki, mitä jäsen voi tehdä.",
+        member: "Ajaa kampanjoita ja lukee tuloksia; ei voi muuttaa asetuksia.",
+      },
+      bulkDisable: (n: number): string =>
+        n === 1 ? "Poista 1 käyttäjän käyttö" : `Poista ${n} käyttäjän käyttö`,
+      bulkDisableTitle: (n: number): string =>
+        n === 1 ? "Poistetaanko 1 käyttäjän käyttö?" : `Poistetaanko ${n} käyttäjän käyttö?`,
+      bulkDone: (n: number): string =>
+        n === 1 ? "1 käyttäjä poistettu käytöstä" : `${n} käyttäjää poistettu käytöstä`,
+      bulkPartial: (done: number, failed: number): string =>
+        `${done} poistettu käytöstä, ${failed} ei onnistunut`,
       roleTitle: (email: string): string => `Vaihdetaanko käyttäjän ${email} rooli?`,
       roleBodyGrant:
         "Ylläpitäjät voivat muuttaa organisaatiosi asetuksia, tarjoajia, budjetteja ja käyttäjiä.",

@@ -455,6 +455,8 @@ export function InterviewScreen({
             <AttachmentList
               items={attachments.items}
               uploading={attachments.uploading}
+              progress={attachments.progress}
+              onCancel={attachments.cancelUpload}
               error={attachments.error}
               onRemove={attachments.remove}
               fetchBytes={attachments.bytes}

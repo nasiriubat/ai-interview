@@ -276,15 +276,14 @@ describe("interviews table", () => {
 });
 
 describe("invitations", () => {
-  it("keeps the file picker a real, labelled button that opens the file dialog", async () => {
+  it("offers the address import as a labelled button that opens the import dialog", async () => {
     const user = userEvent.setup();
     render(<InvitationsPanel campaignId="c1" invitations={[]} />);
-    const button = screen.getByRole("button", { name: "Upload a file" });
-    const input = document.getElementById("invite-file") as HTMLInputElement;
-    const click = vi.spyOn(input, "click");
-    await user.click(button);
-    expect(click).toHaveBeenCalled();
-    expect(input).toHaveAccessibleName("Choose a file with addresses");
+    await user.click(screen.getByRole("button", { name: "Import addresses from a file" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("button", { name: "Choose a file" })).toBeInTheDocument();
+    // Nothing can be imported before a file was understood.
+    expect(within(dialog).getByRole("button", { name: "Import 0 rows" })).toBeDisabled();
   });
 
   it("marks who was reminded in this view and what cannot be reminded, and why", async () => {
