@@ -7,7 +7,9 @@ import {
   PencilIcon,
   RocketIcon,
   RotateCcwIcon,
+  SplitIcon,
   StarIcon,
+  TypeIcon,
   XIcon,
 } from "lucide-react";
 import * as React from "react";
@@ -16,6 +18,8 @@ import { FactorBars } from "./FactorBars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { effectiveClass, effectiveFactors, effectiveTitle } from "@/lib/analysis/rank";
 import type { Opportunity } from "@/lib/api/schemas";
@@ -43,6 +47,10 @@ export function OpportunityCard({
   onEdit,
   onPromote,
   canPromote = true,
+  merge,
+  onSplit,
+  onRename,
+  whyNotAiFirst = false,
 }: {
   opportunity: Opportunity;
   busy: boolean;
@@ -51,9 +59,20 @@ export function OpportunityCard({
   onPromote: () => void;
   /** `features.chaining` (D-187): off hides the action instead of offering one the API refuses. */
   canPromote?: boolean;
+  /** Selection for merging; absent when the person cannot edit clusters or this version is not the newest. */
+  merge?: { selected: boolean; disabled: boolean; onChange: (selected: boolean) => void } | undefined;
+  onSplit?: (() => void) | undefined;
+  /** Saves a new title; rejects with the error to show. */
+  onRename?: ((title: string) => Promise<void>) | undefined;
+  /** In the "AI is not the answer" section the reason comes before anything else. */
+  whyNotAiFirst?: boolean;
 }): React.JSX.Element {
   const s = t.admin.results;
   const [open, setOpen] = React.useState(false);
+  const [renaming, setRenaming] = React.useState(false);
+  const [draftTitle, setDraftTitle] = React.useState("");
+  const [renameError, setRenameError] = React.useState<string | null>(null);
+  const [renameBusy, setRenameBusy] = React.useState(false);
   const title = effectiveTitle(o);
   const cls = effectiveClass(o);
   const factors = effectiveFactors(o);
@@ -69,24 +88,107 @@ export function OpportunityCard({
     <Card className={dismissed ? "gap-3 py-4 opacity-70" : "gap-3 py-4"} data-status={o.status}>
       <CardHeader className="px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="grid min-w-0 gap-1.5">
-            <h3 className="text-base leading-tight font-semibold">{title}</h3>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <ClassBadge solutionClass={cls} />
-              <Badge variant={promoted ? "success" : dismissed ? "outline" : "secondary"}>
-                {s.statuses[o.status]}
-              </Badge>
-              {edited ? (
-                <Badge variant="warning">
-                  <PencilIcon /> {s.card.overridden}
+          <div className="flex min-w-0 items-start gap-3">
+            {merge ? (
+              <Checkbox
+                className="mt-0.5"
+                aria-label={s.merge.select(title)}
+                checked={merge.selected}
+                disabled={merge.disabled || busy}
+                onCheckedChange={(v) => {
+                  merge.onChange(v === true);
+                }}
+              />
+            ) : null}
+            <div className="grid min-w-0 gap-1.5">
+              {renaming ? (
+                <form
+                  className="flex flex-wrap items-center gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const next = draftTitle.trim();
+                    if (!onRename || next === "" || next === title) {
+                      setRenaming(false);
+                      return;
+                    }
+                    setRenameBusy(true);
+                    setRenameError(null);
+                    onRename(next)
+                      .then(() => {
+                        setRenaming(false);
+                      })
+                      .catch((err: unknown) => {
+                        setRenameError(err instanceof Error ? err.message : t.app.unknownError);
+                      })
+                      .finally(() => {
+                        setRenameBusy(false);
+                      });
+                  }}
+                >
+                  <label htmlFor={`rename-${o.id}`} className="sr-only">
+                    {s.rename.label}
+                  </label>
+                  <Input
+                    id={`rename-${o.id}`}
+                    className="h-9 w-72 max-w-full"
+                    value={draftTitle}
+                    maxLength={160}
+                    autoFocus
+                    aria-invalid={renameError ? true : undefined}
+                    aria-describedby={renameError ? `rename-${o.id}-error` : undefined}
+                    onChange={(e) => {
+                      setDraftTitle(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setRenaming(false);
+                    }}
+                  />
+                  <Button type="submit" size="sm" loading={renameBusy}>
+                    {s.rename.save}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={renameBusy}
+                    onClick={() => {
+                      setRenaming(false);
+                    }}
+                  >
+                    {t.app.cancel}
+                  </Button>
+                  {renameError ? (
+                    <p id={`rename-${o.id}-error`} role="alert" className="text-destructive w-full text-xs">
+                      {renameError}
+                    </p>
+                  ) : null}
+                </form>
+              ) : (
+                <h3 className="text-base leading-tight font-semibold">{title}</h3>
+              )}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <ClassBadge solutionClass={cls} />
+                <Badge variant={promoted ? "success" : dismissed ? "outline" : "secondary"}>
+                  {s.statuses[o.status]}
                 </Badge>
-              ) : null}
+                {edited ? (
+                  <Badge variant="warning">
+                    <PencilIcon /> {s.card.overridden}
+                  </Badge>
+                ) : null}
+              </div>
             </div>
           </div>
           <RankMeter score={o.rankScore} />
         </div>
       </CardHeader>
       <CardContent className="grid gap-4 px-5">
+        {whyNotAiFirst && o.whyNotAi ? (
+          <div className="bg-muted/60 rounded-md px-3 py-2">
+            <h4 className="text-muted-foreground mb-0.5 text-xs font-medium">{s.card.whyNotAi}</h4>
+            <p className="text-sm leading-relaxed">{o.whyNotAi}</p>
+          </div>
+        ) : null}
         {o.summary ? <p className="text-sm leading-relaxed">{o.summary}</p> : null}
         <FactorBars factors={factors} overridden={overriddenKeys} />
         <dl className="text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1 text-xs md:grid-cols-4">
@@ -170,7 +272,7 @@ export function OpportunityCard({
               <List title={s.card.dataNeeded} items={o.dataNeeded} />
               <List title={s.card.risks} items={o.risks} />
             </div>
-            {o.whyNotAi ? (
+            {o.whyNotAi && !whyNotAiFirst ? (
               <div>
                 <h4 className="text-muted-foreground mb-1 text-xs font-medium">{s.card.whyNotAi}</h4>
                 <p className="text-sm">{o.whyNotAi}</p>
@@ -224,6 +326,25 @@ export function OpportunityCard({
           <Button size="sm" variant="ghost" disabled={busy} onClick={onEdit}>
             <PencilIcon /> {s.actions.edit}
           </Button>
+          {onRename && !renaming ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                setDraftTitle(title);
+                setRenameError(null);
+                setRenaming(true);
+              }}
+            >
+              <TypeIcon /> {s.rename.action}
+            </Button>
+          ) : null}
+          {onSplit && !promoted ? (
+            <Button size="sm" variant="ghost" disabled={busy} onClick={onSplit}>
+              <SplitIcon /> {s.split.action}
+            </Button>
+          ) : null}
           {!promoted && !dismissed && canPromote ? (
             <Button size="sm" disabled={busy} onClick={onPromote}>
               <RocketIcon /> {s.actions.promote}
