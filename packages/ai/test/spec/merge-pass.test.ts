@@ -188,6 +188,22 @@ describe("generation curates before it writes (D-241 to D-243)", () => {
     expect(r.document.requirements.some((q) => q.id === "roster_membership")).toBe(false);
   });
 
+  it("does not fold a model-added requirement into a different capability that shares a word", async () => {
+    const caller = new ScriptedCaller([
+      JSON.stringify({ pairs: [{ a: "FR-3", b: "FR-4", same: false }] }),
+      JSON.stringify({
+        title: "T",
+        sections: [],
+        requirements: [{ id: "FR-40", title: "Edit a note", scope: "mvp", acceptance: ["x"] }],
+      }),
+    ]);
+    const r = await generateSpec(
+      { caller: caller.asCaller(), prompts: new ShippedPromptSource(), logger, now },
+      input,
+    );
+    expect(r.document.requirements.find((q) => q.id === "FR-40")?.needsConfirmation).toBe(true);
+  });
+
   it("flags a requirement only the model wrote as needing confirmation, and never drops one the interview recorded", async () => {
     const caller = new ScriptedCaller([
       JSON.stringify({ pairs: [{ a: "FR-3", b: "FR-4", same: false }] }),
