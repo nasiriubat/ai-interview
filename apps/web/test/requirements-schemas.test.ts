@@ -142,7 +142,7 @@ describe("contract 18 schemas", () => {
       findings: [],
       decisions: [],
     });
-    expect(spec.mvpChallenge).toEqual({ started: false, done: false, asked: [] });
+    expect(spec.mvpChallenge).toEqual({ started: false, done: false, asked: [], outcome: "pending" });
     expect(spec.stats.openFindings).toBe(0);
   });
 

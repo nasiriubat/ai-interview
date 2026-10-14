@@ -759,10 +759,41 @@ export class ParticipantService {
     };
   }
 
-  async summary(sessionId: string): Promise<{ summary: string; facts: unknown[] }> {
-    const s = await this.db.session.findUniqueOrThrow({ where: { id: sessionId } });
-    const st = s.state as { facts?: unknown[]; participantSummary?: string };
-    return { summary: st.participantSummary ?? "", facts: st.facts ?? [] };
+  /**
+   * The end-of-session summary the participant may correct (D-325). Three answers, so the page can
+   * say which it is instead of showing an empty box that looks like theirs to fill in:
+   *
+   * - `ready`: what the participant saved, else the summary turn the interviewer wrote when the
+   *   interview closed (the assistant message whose area is `summary`). Never the last reply of
+   *   the transcript: that is a question or an acknowledgement, not a summary.
+   * - `pending`: the interview ended with a summary expected and none is stored yet (the closing
+   *   turn is still being written). The page waits and asks again.
+   * - `unavailable`: none is coming (the template has no end summary, or the interview ended
+   *   another way), so the page says so rather than waiting for it.
+   */
+  async summary(
+    sessionId: string,
+  ): Promise<{ summary: string; facts: unknown[]; status: "ready" | "pending" | "unavailable" }> {
+    const s = await this.db.session.findUniqueOrThrow({
+      where: { id: sessionId },
+      include: { template: { select: { endSummary: true } } },
+    });
+    const st = s.state as { facts?: unknown[]; participantSummary?: string; phase?: string };
+    const facts = st.facts ?? [];
+    const edited = (st.participantSummary ?? "").trim();
+    if (edited !== "") return { summary: st.participantSummary ?? "", facts, status: "ready" };
+    const written = await this.db.message.findFirst({
+      where: { sessionId, role: "assistant", areaKey: "summary" },
+      orderBy: { seq: "desc" },
+      select: { content: true },
+    });
+    if (written && written.content.trim() !== "") return { summary: written.content, facts, status: "ready" };
+    const expected = s.template.endSummary && (st.phase === "done" || s.status === "completed");
+    // A summary turn is written in the same step that closes the interview, so one that is still
+    // missing a few minutes later is not coming.
+    const ended = s.endedAt ?? s.updatedAt;
+    const recent = Date.now() - ended.getTime() < 3 * 60_000;
+    return { summary: "", facts, status: expected && recent ? "pending" : "unavailable" };
   }
 
   async setSummary(sessionId: string, summary: string): Promise<void> {

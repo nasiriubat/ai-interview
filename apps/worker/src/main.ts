@@ -210,7 +210,10 @@ async function main(): Promise<void> {
     health,
     alerts,
     publicWebUrl: config.PUBLIC_WEB_URL,
-    statements: new StatementService({ db }),
+    statements: new StatementService({
+      db,
+      currencyOf: (companyId) => settings.get("branding.currency", [{ scope: "tenant", scopeId: companyId }]),
+    }),
     exporter: new TenantExporter({ db, storage, crypto, log: exportLog }),
     purger: new TenantPurger({ db, storage, ledger: erasures, alerts, log: exportLog }),
     erasures,

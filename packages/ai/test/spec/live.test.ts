@@ -144,3 +144,46 @@ describe("live spec", () => {
     expect(live.sections.find((x) => x.key === "overview")?.markdown).toContain("_(from discovery)_");
   });
 });
+
+describe("the MVP challenge outcome the owner is shown (D-322)", () => {
+  const outcome = (over: Record<string, unknown>, mode?: "mandatory" | "optional" | "off") =>
+    renderLiveSpec({
+      title: "t",
+      path: null,
+      state: SessionStateSchema.parse(over),
+      edits: {},
+      ...(mode ? { mvpMode: mode } : {}),
+    }).mvpChallenge;
+
+  it("is pending while the interview is open and the walk has not begun", () => {
+    expect(outcome({}, "optional").outcome).toBe("pending");
+    // an unknown mode (a caller that did not look it up) is never presented as "off"
+    expect(outcome({}).outcome).toBe("pending");
+  });
+
+  it("is in progress once an item has been asked, and done when the walk finished", () => {
+    expect(outcome({ mvpChallenge: { started: true, asked: ["FR-1"] } }, "optional").outcome).toBe(
+      "in_progress",
+    );
+    expect(
+      outcome({ mvpChallenge: { started: true, done: true, asked: ["FR-1"] } }, "optional").outcome,
+    ).toBe("done");
+  });
+
+  it("is skipped, with who ended it, when the interview closed before the walk began", () => {
+    // What the demo run showed as "Not started" on two finished interviews.
+    expect(outcome({ phase: "done", finishRequested: true, closingAsked: true }, "optional")).toMatchObject({
+      outcome: "skipped",
+      endedBy: "finish",
+      started: false,
+    });
+    expect(outcome({ phase: "done", closingAsked: true }, "optional")).toMatchObject({
+      outcome: "skipped",
+      endedBy: "turn_limit",
+    });
+  });
+
+  it("is off when the template or setting turns the challenge off, however the interview ended", () => {
+    expect(outcome({ phase: "done", closingAsked: true }, "off").outcome).toBe("off");
+  });
+});

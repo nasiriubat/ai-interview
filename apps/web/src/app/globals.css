@@ -300,7 +300,10 @@
  * Durations are near zero rather than `none` so `animationend` handlers still fire.
  */
 @media (prefers-reduced-motion: reduce) {
-  *,
+  /* Not the diagram's own scratch element or its drawing: Mermaid measures its labels there, and a
+     transition forced to near zero made it read them mid-state, so a diagram came out tens of
+     times too large (D-320). A drawing has nothing that moves. */
+  *:not(.diagram-scratch, .diagram-scratch *, .report-diagram *),
   ::before,
   ::after {
     animation-duration: 0.01ms !important;
@@ -424,6 +427,10 @@
 .report-diagram svg {
   max-width: 100%;
   height: auto;
+  /* A wide drawing is not squeezed into a narrow column until its text is unreadable: it keeps at
+     least 60% of its own width (all of it when it is smaller than 40rem) and the figure scrolls
+     sideways instead (D-320). `--diagram-natural` is set from the viewBox. */
+  min-width: min(var(--diagram-natural, 0px), max(40rem, calc(var(--diagram-natural, 0px) * 0.6)));
 }
 
 /* Print: a clean report for "save as PDF" (nav, toolbars and controls carry print:hidden). */

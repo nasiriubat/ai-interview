@@ -4,6 +4,7 @@ import { cache } from "react";
 import { isApiError } from "@/lib/api/errors";
 import type { Me, Role } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
+import { setRequestCurrency } from "@/lib/currency";
 
 export type MeResult =
   { ok: true; me: Me } | { ok: false; reason: "unauthenticated" | "forbidden" | "unavailable" };
@@ -12,7 +13,10 @@ export type MeResult =
 export const getMe = cache(async (): Promise<MeResult> => {
   try {
     const api = await staffServer();
-    return { ok: true, me: await api.me() };
+    const me = await api.me();
+    // The figures a server page prints are in the organization's currency (D-323).
+    setRequestCurrency(me.company?.currency);
+    return { ok: true, me };
   } catch (e) {
     if (isApiError(e) && e.isUnauthenticated) return { ok: false, reason: "unauthenticated" };
     if (isApiError(e) && e.isForbidden) return { ok: false, reason: "forbidden" };
