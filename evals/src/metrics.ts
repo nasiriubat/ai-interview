@@ -85,6 +85,46 @@ export function requirementCapture(
   };
 }
 
+export interface CuratedQuality {
+  /** Requirements left after curation. */
+  requirements: number;
+  /** Gold requirements that some requirement matches. */
+  matched: number;
+  /** Requirements that repeat a gold requirement another one already matched. */
+  duplicates: number;
+  /** Requirements that match no gold requirement. */
+  unmatched: number;
+  /** matched / requirements: how much of the list is something the owner said, once. */
+  precision: number;
+}
+
+/**
+ * What the requirement list looks like to a reader after curation (D-241 to D-243): each gold
+ * requirement once, nothing else. A duplicate is a recorded requirement whose words match a gold
+ * requirement that an earlier one already matched.
+ */
+export function curatedQuality(
+  gold: readonly GoldRequirement[],
+  recorded: readonly RecordedRequirement[],
+): CuratedQuality {
+  const taken = new Set<string>();
+  let duplicates = 0;
+  let unmatched = 0;
+  for (const r of recorded) {
+    const g = gold.find((x) => containsAll(r.title, x.terms));
+    if (!g) unmatched += 1;
+    else if (taken.has(g.id)) duplicates += 1;
+    else taken.add(g.id);
+  }
+  return {
+    requirements: recorded.length,
+    matched: taken.size,
+    duplicates,
+    unmatched,
+    precision: ratio(taken.size, recorded.length),
+  };
+}
+
 export interface IntegrityResult {
   ok: boolean;
   violations: string[];

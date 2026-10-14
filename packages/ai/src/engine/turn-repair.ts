@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ModelCallerPort } from "../callModel.js";
 import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { promptVersionTag, type PromptSource } from "./prompts/index.js";
-import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v6.js";
+import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v7.js";
 import { TurnMetaSchema, type TurnMeta } from "./turn-parser.js";
 
 export interface RepairInput {
