@@ -252,7 +252,6 @@ suite("role matrix: every route against every kind of caller", () => {
         description: "x",
       },
       "POST /requirements/:id/spec/diagrams": { mermaid: "flowchart LR\n  A-->B", description: "x" },
-      "POST /requirements/:id/diagrams/preview": { mermaid: "flowchart LR\n  A-->B" },
       "POST /requirements/:id/versions": {},
       "POST /requirements/:id/versions/:v/github": { repository: "a/b", token: "t" },
       "POST /requirements/:id/invitations": { email: "someone@example.test" },

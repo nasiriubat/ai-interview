@@ -1967,18 +1967,6 @@
       "crossTenantAdmin": 404
     }
   },
-  "POST /requirements/:id/diagrams/preview": {
-    "access": "staff",
-    "isolation": true,
-    "statuses": {
-      "anonymous": 401,
-      "participant": 401,
-      "member": 400,
-      "admin": 400,
-      "operator": 400,
-      "crossTenantAdmin": 404
-    }
-  },
   "POST /requirements/:id/findings/:findingId": {
     "access": "staff",
     "isolation": true,

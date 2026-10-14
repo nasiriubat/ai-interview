@@ -415,31 +415,6 @@ export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<v
     },
   );
 
-  /**
-   * An image of what the editor holds, for the live preview. The answer is an SVG that is only ever
-   * shown through `<img>`, and says so: no script can run in an image, and the sandbox policy and
-   * `nosniff` keep it that way if someone opens the URL directly.
-   */
-  app.post(
-    "/requirements/:id/diagrams/preview",
-    {
-      ...guard.staff(expensiveLimit(ctx.config)),
-      schema: { params: Id, body: z.object({ mermaid: z.string().min(1).max(40_000) }) },
-    },
-    async (req, reply) => {
-      const out = await wrap(() =>
-        svc.previewDiagram(req.companyId, req.params.id, req.body.mermaid, viewerOf(req)),
-      );
-      if (!out.svg) throw new AppError("provider_error", "The diagram preview is not available right now");
-      return reply
-        .header("content-type", "image/svg+xml")
-        .header("content-security-policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'")
-        .header("x-content-type-options", "nosniff")
-        .header("cache-control", "private, no-store")
-        .send(out.svg);
-    },
-  );
-
   app.post(
     "/requirements/:id/versions/:v/github",
     {

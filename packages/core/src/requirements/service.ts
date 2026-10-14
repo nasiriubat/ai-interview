@@ -30,7 +30,7 @@ export type {
  * a single class to depend on while each concern is one file under 500 lines:
  *
  * - `sessions.ts`    create, list, get, the live spec, path, completion, edits, findings, preview
- * - `diagrams.ts`   edit, add, reset and preview the diagrams of a specification
+ * - `diagrams.ts`   edit, add and reset the diagrams of a specification
  * - `versions.ts`    queue, generate (the worker's job body), list, get, diff
  * - `exports.ts`     file exports and the GitHub push
  * - `invitations.ts` send, revoke, resolve and open an invitation
@@ -102,11 +102,6 @@ export class RequirementsService {
   }
   resetDiagram(...a: Parameters<RequirementsDiagrams["reset"]>): ReturnType<RequirementsDiagrams["reset"]> {
     return this.diagrams.reset(...a);
-  }
-  previewDiagram(
-    ...a: Parameters<RequirementsDiagrams["preview"]>
-  ): ReturnType<RequirementsDiagrams["preview"]> {
-    return this.diagrams.preview(...a);
   }
 
   // ---------- Versions ----------
