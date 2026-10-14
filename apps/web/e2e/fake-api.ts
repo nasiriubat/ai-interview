@@ -145,6 +145,9 @@ const READS: [RegExp, Handler][] = [
     () => ({ body: { shipped: f.template, current: f.template, changedFields: [] } }),
   ],
   [/^\/requirements$/, () => ({ body: page("sessions", [f.requirementsItem]) })],
+  [/^\/requirements\/[^/]+$/, () => ({ body: f.requirementsDetail })],
+  [/^\/requirements\/[^/]+\/versions$/, () => ({ body: { versions: f.specVersions } })],
+  [/^\/requirements\/[^/]+\/versions\/[^/]+$/, () => ({ body: f.specVersionDetail })],
   [
     /^\/settings$/,
     () => ({
@@ -252,21 +255,7 @@ const READS: [RegExp, Handler][] = [
   [/^\/p\/session$/, () => ({ body: { session: f.participantSession } })],
   [/^\/p\/session\/attachments$/, () => ({ body: { attachments: [] } })],
   [/^\/p\/session\/summary$/, () => ({ body: { summary: "", facts: [] } })],
-  [
-    /^\/p\/r\/[^/]+$/,
-    () => ({
-      body: {
-        session: {
-          title: "Ward handover assistant",
-          purpose: "",
-          consentText: "Consent.",
-          consentVersion: "v1",
-          pathSelection: "none",
-          productName: "",
-        },
-      },
-    }),
-  ],
+  [/^\/p\/r\/[^/]+$/, () => ({ body: f.inviteArrival })],
   [/^\/p\/closed-link$/, () => ({ body: f.linkInfo("closed") })],
   [/^\/p\/expired-link$/, () => ({ body: f.linkInfo("expired") })],
   [
@@ -321,9 +310,15 @@ export function startFakeApi(port: number): Promise<FakeApi> {
       send(res, 404, { error: { code: "not_found", message: `The fake API has no answer for ${path}` } });
       return;
     }
-    // Writes: drain the body and say it worked. Nothing is stored.
+    // Writes: drain the body and say it worked. Nothing is stored. Opening a link is the one write
+    // whose answer the page parses: a token grant, which the web server turns into the cookie.
+    const opensLink = method === "POST" && /^\/p\/(?:r\/)?[^/]+\/open$/.test(path);
     req.resume();
     req.on("end", () => {
+      if (opensLink) {
+        send(res, 200, { participantToken: "e2e-participant-token", sessionId: "sess9", resume: false });
+        return;
+      }
       send(res, 200, { ok: true, emailSent: false });
     });
   });

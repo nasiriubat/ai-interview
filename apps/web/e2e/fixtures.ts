@@ -250,7 +250,7 @@ export const routes = [
   },
   {
     companyId: null,
-    purpose: "analysis_cluster",
+    purpose: "clustering",
     providerId: "p1",
     model: "claude-sonnet",
     maxOutputTokens: 4096,
@@ -439,3 +439,194 @@ export const linkInfo = (status: "open" | "closed" | "expired" = "open"): Record
   },
   status,
 });
+
+/** What `/p/r/:token` answers for an invited requirements participant (contract 18). */
+export const inviteArrival = {
+  status: "open",
+  session: {
+    title: "Ward handover assistant",
+    purpose: "",
+    consentText: "Consent.",
+    consentVersion: "v1",
+    pathSelection: "none",
+    productName: "",
+    language: "en",
+  },
+};
+
+const specVersionSummary = {
+  id: "ver2",
+  version: 2,
+  label: "After the owner review",
+  status: "done",
+  error: null,
+  createdBy: "Ada Admin",
+  createdAt: NOW,
+  finishedAt: NOW,
+  stats: {
+    sections: 3,
+    requirements: 4,
+    mvp: 3,
+    future: 1,
+    phases: 2,
+    openFindings: 1,
+    promptVersions: ["spec_generation@3"],
+    generated: "model",
+  },
+};
+
+export const specVersions = [
+  specVersionSummary,
+  {
+    ...specVersionSummary,
+    id: "ver1",
+    version: 1,
+    label: null,
+    createdAt: EARLIER,
+    finishedAt: EARLIER,
+    stats: { ...specVersionSummary.stats, requirements: 3, mvp: 3, future: 0, openFindings: 3 },
+  },
+];
+
+/** `GET /requirements/:id`: the session, its transcript, the live spec, versions and invitations. */
+export const requirementsDetail = {
+  session: {
+    id: "req1",
+    title: "Ward handover assistant",
+    status: "active",
+    path: "nontechnical",
+    sourceKind: "manual",
+    ownerUserId: "u1",
+    templateId: "tpl_req",
+    language: "en",
+    progress: {
+      areas: [
+        { key: "overview", name: "What it is for", status: "covered" },
+        { key: "users", name: "Who uses it", status: "partial" },
+        { key: "functional", name: "What it must do", status: "untouched" },
+      ],
+    },
+    phase: "areas",
+    createdAt: EARLIER,
+    startedAt: EARLIER,
+    endedAt: null,
+  },
+  messages: [
+    {
+      id: "rm1",
+      seq: 1,
+      role: "assistant",
+      modality: "text",
+      content: "What problem should this tool solve for the ward?",
+      createdAt: EARLIER,
+    },
+    {
+      id: "rm2",
+      seq: 2,
+      role: "user",
+      modality: "text",
+      content: "Handover notes get lost between shifts, so the next nurse starts blind.",
+      createdAt: EARLIER,
+    },
+    {
+      id: "rm3",
+      seq: 3,
+      role: "assistant",
+      modality: "text",
+      content: "Who reads the notes first, and on what device?",
+      createdAt: NOW,
+    },
+  ],
+  spec: {
+    title: "Ward handover assistant",
+    path: "nontechnical",
+    context: { audience: "Ward nurses", scale: "40 nurses on three wards" },
+    sections: [
+      {
+        key: "overview",
+        title: "Overview",
+        status: "draft",
+        markdown:
+          "Handover notes are written on paper and lost between shifts. The tool keeps one shared note per patient for the next shift.",
+        fields: [
+          {
+            path: "overview.problem",
+            value: "Handover notes are lost between shifts.",
+            source: "user",
+          },
+        ],
+      },
+      {
+        key: "users",
+        title: "Users",
+        status: "draft",
+        markdown: "Ward nurses read the notes at the start of a shift, on a shared tablet.",
+        fields: [{ path: "users.primary", value: "Ward nurses", source: "user" }],
+      },
+      { key: "functional", title: "Functional requirements", status: "empty", markdown: "", fields: [] },
+    ],
+    diagrams: [],
+    findings: [
+      {
+        id: "f1",
+        type: "ambiguity",
+        section: "users",
+        description: "It is not clear whether doctors also read the notes.",
+        resolution: "Ask who besides nurses opens a handover note.",
+        default: "Nurses only for the first version.",
+        confidence: "medium",
+        status: "open",
+        pushedBack: false,
+      },
+    ],
+    decisions: [
+      {
+        key: "d1",
+        question: "Where are notes written?",
+        choice: "On the shared ward tablet",
+        source: "user",
+      },
+    ],
+    mvpChallenge: { started: false, done: false, asked: [] },
+    stats: { fields: 2, sectionsWithContent: 2, openFindings: 1 },
+  },
+  versions: specVersions,
+  invitations: [
+    {
+      id: "rinv1",
+      email: "charge.nurse@acme.test",
+      status: "sent",
+      sentAt: EARLIER,
+      openedAt: null,
+      expiresAt: "2026-11-14T09:30:00.000Z",
+    },
+  ],
+};
+
+/** `GET /requirements/:id/versions/:v`: one generated version, with its document text and bundle. */
+export const specVersionDetail = {
+  version: specVersionSummary,
+  document: null,
+  markdown:
+    "# Ward handover assistant\n\n## Overview\n\nHandover notes are lost between shifts. The tool keeps one shared note per patient.\n\n## Requirements\n\n- R-001 A nurse can write a handover note for a patient.\n- R-002 The next shift sees the note first.\n",
+  bundle: {
+    format: "generic",
+    files: [
+      { path: "spec.md", content: "# Ward handover assistant\n\nOne shared note per patient.\n" },
+      { path: "AGENTS.md", content: "# Working notes\n\nBuild what spec.md says, nothing more.\n" },
+    ],
+  },
+  issues: [
+    {
+      id: "f1",
+      type: "ambiguity",
+      section: "users",
+      description: "It is not clear whether doctors also read the notes.",
+      resolution: "Ask who besides nurses opens a handover note.",
+      default: "Nurses only for the first version.",
+      confidence: "medium",
+      status: "open",
+      pushedBack: false,
+    },
+  ],
+};
