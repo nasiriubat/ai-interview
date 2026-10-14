@@ -3,6 +3,7 @@ export * from "./policy.js";
 export * from "./issues.js";
 export * from "./handoff.js";
 export * from "./markdown.js";
+export * from "./diagrams.js";
 export * from "./bundle.js";
 export * from "./generate.js";
 export * from "./diff.js";

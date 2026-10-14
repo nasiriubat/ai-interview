@@ -22,6 +22,7 @@ import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js"
 import { languageName } from "../util/language.js";
 import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { renderBundle } from "./bundle.js";
+import { mergeDiagrams } from "./diagrams.js";
 import {
   asObject,
   renderLiveSpec,
@@ -228,11 +229,14 @@ export async function generateSpec(
   const now = (deps.now ?? (() => new Date()))();
   const issues = openIssues(input.state);
   const finish = (
-    document: SpecDocument,
+    drawn: SpecDocument,
     generated: "model" | "fallback",
     promptVersions: string[],
     error?: string,
   ): SpecGenerationResult => {
+    // The owner's diagram edits and additions are laid over whatever was drawn, on the model path
+    // and the fallback alike (FR-23, D-214); the generator never sees them.
+    const document: SpecDocument = { ...drawn, diagrams: mergeDiagrams(drawn.diagrams, input.edits) };
     const markdown = renderSpecMarkdown(document);
     const bundle = renderBundle(document, input.bundleFormat, markdown);
     return {
