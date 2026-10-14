@@ -134,11 +134,14 @@ export function VersionsPanel({
         onConfirm={() => {
           const target = restoring;
           if (!target) return;
-          void action.run(async () => {
-            const created = await staffClient.templates.restore(target.id);
-            router.push(`/admin/templates/${created.id}`);
-            router.refresh();
-          }, s.restored(newest + 1));
+          void action.run(
+            async () => {
+              const created = await staffClient.templates.restore(target.id);
+              router.push(`/admin/templates/${created.id}`);
+              router.refresh();
+            },
+            s.restored(newest + 1),
+          );
         }}
       />
     </Panel>
