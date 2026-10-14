@@ -263,7 +263,7 @@ describe("a full disk (D-283)", () => {
   });
 });
 
-describe("an object store's quota error is the same typed failure (D-310)", () => {
+describe("an object store's quota error is the same typed failure (D-313)", () => {
   const s3 = (name: string, status?: number) =>
     Object.assign(new Error(`${name}: raised by the store`), {
       name,

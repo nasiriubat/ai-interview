@@ -70,14 +70,31 @@ suite("abuse controls on open links", () => {
       const res = await open(c.token, attacker);
       statuses.set(res.statusCode, (statuses.get(res.statusCode) ?? 0) + 1);
     }
-    // The route's own bucket is 30 a minute: everything beyond it is refused cheaply.
-    expect(statuses.get(200) ?? 0).toBeLessThanOrEqual(30);
-    expect(statuses.get(429) ?? 0).toBeGreaterThanOrEqual(970);
+    // The route's own bucket is 120 a minute per address (RATE_LIMIT_PUBLIC_MAX, D-310):
+    // everything beyond it is refused cheaply.
+    expect(statuses.get(200) ?? 0).toBeLessThanOrEqual(120);
+    expect(statuses.get(429) ?? 0).toBeGreaterThanOrEqual(880);
 
     // Somebody else, behind a different address, is not affected at all.
     const bystander = await open(c.token, "198.51.100.7");
     expect(bystander.statusCode).toBe(200);
     expect(bystander.json<{ sessionId: string }>().sessionId).toBeTruthy();
+  });
+
+  it("does not turn away an office: fifty colleagues behind one address open the link in a minute (D-310)", async () => {
+    const c = await createCampaign("open", "Office");
+    const office = "203.0.113.210";
+    const codes: number[] = [];
+    // A browser lands on the link, then opens it: two requests on the per-address bucket each.
+    for (let i = 0; i < 50; i++) {
+      const landing = await world.app.inject({
+        method: "GET",
+        url: `/api/v1/p/${c.token}`,
+        headers: { "x-forwarded-for": office },
+      });
+      codes.push(landing.statusCode, (await open(c.token, office)).statusCode);
+    }
+    expect(codes.every((code) => code === 200)).toBe(true);
   });
 
   it("refuses new interviews past the campaign's hourly cap with a 429 and raises abuse.limit_hit", async () => {
@@ -142,7 +159,7 @@ suite("abuse controls on open links", () => {
       (await open(b.token, "192.0.2.153")).statusCode,
     ];
     expect(codes).toEqual([200, 200, 200, 429]);
-    await setting("tenant", "", { "abuse.tenantSessionsPerHour": 500 });
+    await setting("tenant", "", { "abuse.tenantSessionsPerHour": 1000 });
   });
 
   describe("code requests", () => {
