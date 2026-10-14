@@ -2171,6 +2171,18 @@
       "crossTenantAdmin": 401
     }
   },
+  "POST /p/session/transcribe": {
+    "access": "participant",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 400,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
   "POST /p/session/turns": {
     "access": "participant",
     "isolation": false,
