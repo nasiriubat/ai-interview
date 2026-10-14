@@ -397,12 +397,13 @@
   background: none;
   padding: 0;
 }
+.report-prose .report-table {
+  overflow-x: auto;
+}
 .report-prose table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  display: block;
-  overflow-x: auto;
 }
 .report-prose th,
 .report-prose td {

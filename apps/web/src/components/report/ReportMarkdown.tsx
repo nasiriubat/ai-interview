@@ -4,6 +4,7 @@ import * as React from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidDiagram } from "./MermaidDiagram";
+import { t } from "@/i18n";
 import { extractMermaidBlocks } from "@/lib/report/mermaid";
 
 /**
@@ -29,6 +30,19 @@ export function safeUrl(url: string): string {
 }
 
 const components: Components = {
+  // A table wider than the paper scrolls inside its own region, which a keyboard can reach.
+  table({ children }) {
+    return (
+      <div
+        className="report-table"
+        tabIndex={0}
+        role="region"
+        aria-label={t.kit.table.region(t.admin.report.title)}
+      >
+        <table>{children}</table>
+      </div>
+    );
+  },
   a({ href, children }) {
     const target = href ?? "";
     if (target === "") return <span>{children}</span>;
