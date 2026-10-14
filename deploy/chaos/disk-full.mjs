@@ -11,6 +11,7 @@ import {
   check,
   dc,
   dcTry,
+  docker,
   log,
   newParticipant,
   note,
@@ -26,6 +27,15 @@ import {
 
 const overlay = join(REPO, "deploy", "chaos", "compose.smalldisk.yml");
 const original = process.env.COMPOSE_OVERRIDE_FILES ?? "";
+
+/** The tmpfs volumes are the script's own: removed when it is done, with docker (compose has no such command). */
+function dropVolume(name) {
+  try {
+    docker("volume", "rm", "-f", name);
+  } catch {
+    // already gone
+  }
+}
 
 await scenario("disk-full", async () => {
   await sinkClear();
@@ -95,7 +105,7 @@ await scenario("disk-full", async () => {
     log("putting the real uploads volume back");
     process.env.COMPOSE_OVERRIDE_FILES = original;
     dcTry("up", "-d", "--no-deps", "api", "worker", "ops-notify", "backup");
-    dcTry("volume", "rm", "-f", "aidpfull_uploads_small");
+    dropVolume("aidpfull_uploads_small");
   }
   await stackHealthy(180_000);
   check("after the real volume is back every service is healthy", true, "");
@@ -155,7 +165,7 @@ await scenario("disk-full", async () => {
   } finally {
     process.env.COMPOSE_OVERRIDE_FILES = original;
     dcTry("up", "-d", "--no-deps", "backup");
-    dcTry("volume", "rm", "-f", "aidpfull_backups_small");
+    dropVolume("aidpfull_backups_small");
   }
   // Unhealthy until a backup succeeds again: that is the point of the check.
   dc("exec", "-T", "backup", "/usr/local/bin/backup.sh", "once");

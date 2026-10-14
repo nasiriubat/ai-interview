@@ -80,6 +80,9 @@ and `restore.sh` honour `COMPOSE_OVERRIDE_FILES`; the smoke warning names the po
 ## Teardown
 
 `deploy/drill/stack.sh down` removed the containers, networks, volumes and images of project
-`aidpfull`; the scratch directory (generated env, results) was removed with it. Four unused Docker
-networks belonging to other projects were left alone: the host had run out of address pools, and
-the overlay gives the diagram network a fixed subnet instead.
+`aidpfull`, and the scratch directory (generated env, raw results) was deleted by hand once the
+numbers had been copied into this record and `2026-10-14-load/`. The two tmpfs volumes the
+disk-full script made were left behind by a wrong command in that script (compose has no
+`volume rm`); they were removed by hand and the script now uses `docker volume rm`. Unused Docker
+networks belonging to other projects were left alone: the host had run out of address pools, and the
+overlay gives the diagram network a fixed subnet instead.
