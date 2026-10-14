@@ -482,28 +482,16 @@ suite("exports and editable diagrams", () => {
     }
   });
 
-  it("previews as an SVG that can only be shown as an image, and refuses unsafe source", async () => {
-    const id = (await call("POST", "/requirements", { title: "Preview" })).json<{ session: { id: string } }>()
+  it("refuses unsafe or oversized source, and a member editing another owner's specification", async () => {
+    const id = (await call("POST", "/requirements", { title: "Guarded" })).json<{ session: { id: string } }>()
       .session.id;
-    const ok = await call("POST", `/requirements/${id}/diagrams/preview`, {
-      mermaid: "flowchart LR\n  A-->B",
-    });
-    expect(ok.statusCode).toBe(200);
-    expect(ok.headers["content-type"]).toBe("image/svg+xml");
-    expect(ok.headers["content-security-policy"]).toContain("sandbox");
-    expect(ok.headers["x-content-type-options"]).toBe("nosniff");
-    expect(ok.body).toContain("<svg");
-    const html = await call("POST", `/requirements/${id}/diagrams/preview`, {
-      mermaid: "flowchart LR\n  A[<img src=x onerror=1>]-->B",
-    });
-    expect(html.statusCode).toBe(400);
-    // A member cannot preview against an owner's session they cannot see.
-    const hers = await call(
-      "POST",
-      `/requirements/${id}/diagrams/preview`,
-      { mermaid: "flowchart LR\n  A-->B" },
-      memberHeaders,
-    );
-    expect(hers.statusCode).toBe(403);
+    const post = (mermaid: string, as = h) =>
+      call("POST", `/requirements/${id}/spec/diagrams`, { mermaid, description: "d" }, as);
+    expect((await post("flowchart LR\n  A[<img src=x onerror=1>]-->B")).statusCode).toBe(400);
+    expect((await post(`flowchart LR\n${"  A-->B\n".repeat(4_000)}`)).statusCode).toBe(400);
+    expect((await post("flowchart LR\n  A-->B", memberHeaders)).statusCode).toBe(403);
+    // none of the refused ones was stored
+    const live = (await call("GET", `/requirements/${id}`)).json<{ spec: { diagrams: unknown[] } }>();
+    expect(live.spec.diagrams).toEqual([]);
   });
 });

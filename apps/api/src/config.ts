@@ -43,7 +43,10 @@ const Env = z.object({
    * means no renderer: diagrams are printed as source and saved unverified. Compose passes an unset
    * variable as the empty string, which is "not set" here.
    */
-  KROKI_URL: z.preprocess((v) => (v === "" ? undefined : v), z.url({ protocol: /^https?$/, hostname: z.regexes.hostname }).optional()),
+  KROKI_URL: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.url({ protocol: /^https?$/, hostname: z.regexes.hostname }).optional(),
+  ),
   /**
    * Reverse proxies between the internet and this process that set X-Forwarded-For, counted from
    * this side. Caddy in front of the web app (which forwards the one address Caddy wrote) is one

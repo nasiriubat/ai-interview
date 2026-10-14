@@ -108,10 +108,11 @@ describe("PdfExporter: checking a diagram", () => {
     ).toMatchObject({ ok: true, verified: false });
   });
 
-  it("verifies a good diagram and previews it as SVG", async () => {
-    const exporter = new PdfExporter({ settings: settings(), kroki: new FakeKroki() });
+  it("verifies a good diagram with the export theme in front of it", async () => {
+    const kroki = new FakeKroki();
+    const exporter = new PdfExporter({ settings: settings(), kroki });
     expect(await exporter.checkDiagram("flowchart LR\n  A-->B")).toMatchObject({ ok: true, verified: true });
-    expect((await exporter.previewSvg("flowchart LR\n  A-->B"))?.toString()).toContain("<svg");
-    expect(await new PdfExporter({ settings: settings(), kroki: null }).previewSvg("x")).toBeNull();
+    expect(kroki.calls).toHaveLength(1);
+    expect(kroki.calls[0]?.source).toMatch(/^%%\{init:/);
   });
 });

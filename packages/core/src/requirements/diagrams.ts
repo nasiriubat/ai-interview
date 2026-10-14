@@ -97,25 +97,6 @@ export class RequirementsDiagrams {
     await this.cx.appendEvent(row.id, "spec_edit", { kind: "diagram_reset", key });
     return this.cx.liveSpecOf({ ...row, specEdits: rest });
   }
-
-  /**
-   * An SVG of source for the editor's live preview, after the same checks a save runs. Null when no
-   * renderer is configured. Nothing is stored.
-   */
-  async preview(
-    companyId: string,
-    id: string,
-    mermaid: string,
-    viewer: Viewer,
-  ): Promise<{ svg: Buffer | null; verified: boolean }> {
-    const exporter = this.deps.exporter;
-    if (!exporter) throw new PdfNotAvailableError();
-    await this.cx.load(companyId, id, viewer);
-    const checked = await exporter.checkDiagram(mermaid);
-    if (!checked.ok) throw new DiagramInvalidError(checked.issues);
-    if (!checked.verified) return { svg: null, verified: false };
-    return { svg: await exporter.previewSvg(checked.source ?? mermaid), verified: true };
-  }
 }
 
 function uniqueKey(base: string, taken: ReadonlySet<string>): string {

@@ -54,11 +54,6 @@ export class PdfExporter {
 
   constructor(private readonly deps: ExporterDeps) {}
 
-  /** Whether a diagram renderer is configured; the UI offers previews only when it is. */
-  get hasRenderer(): boolean {
-    return this.deps.kroki !== null;
-  }
-
   async brandFor(companyId: string): Promise<PdfBrand> {
     const v = await this.deps.settings.resolveMany(
       [
@@ -113,12 +108,6 @@ export class PdfExporter {
         this.deps.log?.warn("diagram check failed unexpectedly", { error: String(e) });
       return { ok: true, verified: false, source: checked.source };
     }
-  }
-
-  /** An SVG preview of source that has passed `checkDiagram`; null when no renderer is configured. */
-  async previewSvg(source: string): Promise<Buffer | null> {
-    if (!this.deps.kroki) return null;
-    return this.deps.kroki.render(withExportTheme(source), "svg");
   }
 
   /** One at a time, with a short queue. Errors do not poison the chain. */
