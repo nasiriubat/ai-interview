@@ -120,7 +120,12 @@ suite("retention sweep (spec 11)", () => {
     strictTemplateId = await template(strictCompanyId);
     providerId = (
       await db.provider.create({
-        data: { companyId, kind: "openai_compatible", name: "fake", apiKeyEnc: crypto.encrypt("k") },
+        data: {
+          companyId,
+          kind: "openai_compatible",
+          name: "fake",
+          apiKeyEnc: crypto.encrypt("k", "provider.apiKey"),
+        },
       })
     ).id;
   });
