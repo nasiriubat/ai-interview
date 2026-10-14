@@ -87,11 +87,13 @@ export function renderSpecMarkdown(doc: SpecDocument): string {
         if (doc.mvp.movedOut.length)
           out.push("Moved to future scope:", ...doc.mvp.movedOut.map((x) => `- ${x.id}: ${x.reason}`), "");
         if (doc.mvp.next.length) out.push("Next:", ...doc.mvp.next.map((x) => `- ${x}`), "");
-      } else if (s.key === "data" && entity) {
+      } else if (s.key === "data" && entity && !shown.has(entity.key)) {
         out.push(...renderDiagram(entity));
         shown.add(entity.key);
       } else if (s.key === "diagrams") {
         for (const d of doc.diagrams) {
+          // The entity diagram is under Data requirements; once is enough.
+          if (shown.has(d.key)) continue;
           out.push(...renderDiagram(d));
           shown.add(d.key);
         }
