@@ -1262,7 +1262,7 @@ export const en = {
         unassigned: (n: number): string =>
           `${n} new ${n === 1 ? "fact joined" : "facts joined"} the larger part of a split.`,
       },
-      reanalysing: "Re-analysing with your change…",
+      reanalysing: "A newer analysis is running…",
       reanalysingBody: "You can keep reading this version. The new one replaces it here when it is done.",
       newerReady: "A newer version is ready.",
       showNewer: "Show it",
@@ -1297,7 +1297,7 @@ export const en = {
       },
       promote: {
         title: "Start a requirements interview?",
-        body: "This opens a requirements interview for this opportunity. It starts from the brief below.",
+        body: "This opens a requirements interview for the opportunity below. What the interviews found about it is carried over as a starting brief, so the owner is asked only what is missing.",
         confirm: "Start requirements interview",
         starting: "Starting…",
         done: "Requirements interview started",
@@ -1468,6 +1468,8 @@ export const en = {
         conversation: "Conversation",
         backToList: "All requirements interviews",
         pathLabel: "Interview path",
+        choosePathFirst:
+          "The interviewer adapts its questions to this. Pick one to start; you can switch at any time from the conversation header.",
         done: "I'm done",
         reopen: "Reopen",
         reopened: "Interview reopened",

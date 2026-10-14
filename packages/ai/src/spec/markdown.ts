@@ -1,4 +1,5 @@
 import type { SpecDiagram, SpecDocument, SpecPhase, SpecRequirement } from "@aidp/shared";
+import { fieldLabel } from "./live.js";
 
 /** A Mermaid fence one backtick longer than any run inside the source, so the source cannot end it. */
 const fence = (mermaid: string): string => {
@@ -52,6 +53,23 @@ export function renderPhases(phases: SpecPhase[]): string {
     .join("\n\n");
 }
 
+/**
+ * A section's prose without a first heading that repeats the section's title. The writer model
+ * often starts with "### Product overview and problem" under the document's own "## Product
+ * overview and problem", so every section showed its title twice (simulation 2026-10-15).
+ */
+export function withoutLeadingTitle(markdown: string, title: string): string {
+  const text = markdown.trim();
+  const m = /^#{1,6}\s+(.+?)\s*#*\s*(?:\n|$)/.exec(text);
+  if (!m) return text;
+  const norm = (v: string): string =>
+    v
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+  return norm(m[1] ?? "") === norm(title) ? text.slice(m[0].length).trim() : text;
+}
+
 /** spec.md (FR-24): the human-readable document, structured parts rendered deterministically. */
 export function renderSpecMarkdown(doc: SpecDocument): string {
   const out: string[] = [`# ${doc.title}`, ""];
@@ -64,14 +82,17 @@ export function renderSpecMarkdown(doc: SpecDocument): string {
   const ctx = Object.entries(doc.context);
   if (ctx.length) {
     out.push("## Context", "", "| Question | Answer |", "| --- | --- |");
-    for (const [k, v] of ctx) out.push(`| ${k} | ${v.replace(/\|/g, "\\|")} |`);
+    // "users_at_launch" reads as "Users at launch" (simulation 2026-10-15: the keys were shown raw).
+    for (const [k, v] of ctx) out.push(`| ${fieldLabel(k)} | ${v.replace(/\|/g, "\\|")} |`);
     out.push("");
   }
   const entity = doc.diagrams.find((d) => d.type === "entity");
   const shown = new Set<string>();
   for (const s of doc.sections) {
+    const start = out.length;
     out.push(`## ${s.title}`, "");
-    if (s.markdown.trim()) out.push(s.markdown.trim(), "");
+    const body = withoutLeadingTitle(s.markdown, s.title);
+    if (body) out.push(body, "");
     if (s.source !== "edited") {
       if (s.key === "functional") {
         const r = renderRequirements(doc.requirements);
@@ -99,6 +120,8 @@ export function renderSpecMarkdown(doc: SpecDocument): string {
         }
       }
     }
+    // A Diagrams heading with nothing under it closed the 2026-10-15 simulation's document.
+    if (s.key === "diagrams" && out.length === start + 2) out.splice(start);
   }
   // A diagram the owner added belongs to the document even when the diagrams section is not one of
   // its sections (or the owner rewrote that section's text): it goes at the end rather than nowhere.
