@@ -1,5 +1,3 @@
-import type { PgBoss } from "pg-boss";
-
 /**
  * Recovery of jobs whose worker died (D-281).
  *
@@ -51,14 +49,14 @@ export class JobRecovery {
   private ready = false;
 
   constructor(
-    private readonly boss: RecoveryBoss | PgBoss,
+    private readonly boss: RecoveryBoss,
     readonly workerId: string,
     private readonly log: RecoveryLog = { info: () => undefined, warn: () => undefined },
     private readonly ttlSeconds = LEASE_TTL_SECONDS,
   ) {}
 
   private sql(text: string, values: unknown[] = []): Promise<{ rows: unknown[] }> {
-    return (this.boss as RecoveryBoss).getDb().executeSql(text, values);
+    return this.boss.getDb().executeSql(text, values);
   }
 
   /** Creates the tables if they are missing and takes this worker's lease. False when it could not. */

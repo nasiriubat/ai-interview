@@ -8,6 +8,7 @@ class FakeAudio {
   onerror: (() => void) | null = null;
   src = "";
   played: string[] = [];
+  paused = false;
   constructor() {
     FakeAudio.instances.push(this);
   }
@@ -15,8 +16,12 @@ class FakeAudio {
     this.played.push(this.src);
     return Promise.resolve();
   }
-  pause(): void {}
-  removeAttribute(): void {}
+  pause(): void {
+    this.paused = true;
+  }
+  removeAttribute(): void {
+    this.src = "";
+  }
   end(): void {
     this.onended?.();
   }
@@ -46,7 +51,7 @@ describe("playback of a reply in segments (D-280)", () => {
 
     segment(player, "first sentence");
     player.play(done, vi.fn(), true);
-    const audio = FakeAudio.instances[0] as FakeAudio;
+    const audio = FakeAudio.instances[0]!;
     expect(audio.played).toEqual(["blob:test/1"]);
 
     // The rest arrives while the first is still playing: it waits, and nothing is reported yet.
@@ -69,7 +74,7 @@ describe("playback of a reply in segments (D-280)", () => {
 
     segment(player, "first sentence");
     player.play(done, vi.fn(), true);
-    const audio = FakeAudio.instances[0] as FakeAudio;
+    const audio = FakeAudio.instances[0]!;
     audio.end();
     expect(done).not.toHaveBeenCalled();
 
@@ -88,7 +93,7 @@ describe("playback of a reply in segments (D-280)", () => {
     segment(player, "second");
     player.play(done, vi.fn(), false);
     player.discard();
-    const audio = FakeAudio.instances[0] as FakeAudio;
+    const audio = FakeAudio.instances[0]!;
     audio.end();
     expect(audio.played).toEqual(["blob:test/1"]);
   });

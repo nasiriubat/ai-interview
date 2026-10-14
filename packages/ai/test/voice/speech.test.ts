@@ -210,7 +210,7 @@ describe("speaking the first sentence while the reply is still streaming (D-280)
     const message =
       "Thank you, that is a very clear picture of the morning. When do the figures arrive? And who sees them first?";
     const full = toSpokenTurn(message);
-    const head = firstSpokenSentence(`${message} `) as string;
+    const head = firstSpokenSentence(`${message} `)!;
     const rest = remainingSpoken(full, head);
     expect(`${head} ${rest.text}`).toBe(full.text);
   });
