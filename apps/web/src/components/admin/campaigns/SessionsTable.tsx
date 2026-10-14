@@ -1,6 +1,7 @@
 import { EyeIcon } from "lucide-react";
 import * as React from "react";
 import { EmptyState } from "@/components/admin/EmptyState";
+import { FlagBadge } from "@/components/admin/FlagBadge";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { DateText } from "@/components/common/DateText";
@@ -37,7 +38,10 @@ export function SessionsTable({ sessions }: { sessions: SessionListItem[] }): Re
                   {sess.participantEmail ?? sess.id.slice(0, 8)}
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={sess.status} />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <StatusBadge status={sess.status} />
+                    {sess.flagged ? <FlagBadge acknowledged={Boolean(sess.flagAckedAt)} /> : null}
+                  </div>
                 </TableCell>
                 <TableCell>
                   {areas.length > 0 ? (

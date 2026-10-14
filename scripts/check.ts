@@ -53,6 +53,10 @@ const steps: [string, string[]][] = [
   ["lint", ["pnpm", "lint"]],
   // The fences in eslint-rules/ are only worth something if they are shown to fire (AGENTS.md rules 2 and 4).
   ["architecture lint rules", ["node", "--test", "scripts/architecture-lint.test.mjs"]],
+  // Forward-fix and additive only (docs/MIGRATIONS.md, D-178): the gate over the migrations, and
+  // proof that it fires.
+  ["migration policy", ["node", "scripts/check-migrations.mjs"]],
+  ["migration policy gate tests", ["node", "--test", "scripts/check-migrations.test.mjs"]],
 ];
 for (const [label, command] of steps) {
   const { code } = await run(label, command);

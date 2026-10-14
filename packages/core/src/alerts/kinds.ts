@@ -25,6 +25,8 @@ export interface AlertKindSpec {
   tenantSetting?: SettingKey;
 }
 
+const TEN_YEARS_MINUTES = 10 * 365 * 24 * 60;
+
 export const ALERT_KINDS = {
   "budget.warning": {
     severity: "info",
@@ -38,6 +40,48 @@ export const ALERT_KINDS = {
     audience: ["operator", "tenant_admins"],
     repeatMinutes: 1440,
     summary: "A budget is used up and interviews under it are paused",
+  },
+  // Tenant notices (D-181): events a tenant's admins want to hear about, each behind its own
+  // switch. They are never sent to the operator: they are the tenant's work, not the platform's.
+  // The repeat window is ten years, so one event is one mail however often its source re-checks.
+  "campaign.threshold": {
+    severity: "info",
+    audience: ["tenant_admins"],
+    repeatMinutes: TEN_YEARS_MINUTES,
+    summary: "A campaign reached its completion threshold and its analysis is queued",
+    tenantSetting: "notifications.campaignThreshold",
+  },
+  "analysis.ready": {
+    severity: "info",
+    audience: ["tenant_admins"],
+    repeatMinutes: TEN_YEARS_MINUTES,
+    summary: "An analysis finished and its report can be read",
+    tenantSetting: "notifications.analysisReady",
+  },
+  "spec.ready": {
+    severity: "info",
+    audience: ["tenant_admins"],
+    repeatMinutes: TEN_YEARS_MINUTES,
+    summary: "A specification version was generated",
+    tenantSetting: "notifications.specReady",
+  },
+  "ceiling.warning": {
+    severity: "info",
+    audience: ["operator", "tenant_admins"],
+    repeatMinutes: 1440,
+    summary: "A tenant ceiling is at 80 percent",
+  },
+  "ceiling.reached": {
+    severity: "warning",
+    audience: ["operator", "tenant_admins"],
+    repeatMinutes: 1440,
+    summary: "A tenant ceiling is used up and the next campaign or interview is refused",
+  },
+  "session.flagged": {
+    severity: "warning",
+    audience: ["tenant_admins"],
+    repeatMinutes: 1440,
+    summary: "An interview was flagged for hostility or distress and needs a person to look at it",
   },
   "job.dead_lettered": {
     severity: "critical",

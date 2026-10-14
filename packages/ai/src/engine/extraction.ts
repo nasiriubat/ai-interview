@@ -37,6 +37,7 @@ export async function extractFacts(
       toSeq: upToSeq,
       facts,
       extractorVersion: promptVersion,
+      language: session.template.language,
       event: { count: facts.length, upToSeq, promptVersion, quotesDropped },
     });
     if (outcome === "stale") return { facts: all, upToSeq: state.lastExtractedSeq, stale: true };

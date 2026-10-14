@@ -1,8 +1,8 @@
-import { toStored, type SettingsService } from "@aidp/core";
+import { PrismaSessionStore, toStored, type SettingsService } from "@aidp/core";
 import type { StaffSessionView } from "@aidp/shared";
 import type { Prisma, PrismaClient, SessionEvent } from "@prisma/client";
 import type { Role } from "../../auth/principal.js";
-import { forbidden, notFound } from "../../lib/errors.js";
+import { AppError, forbidden, notFound } from "../../lib/errors.js";
 
 type LoadedSession = Prisma.SessionGetPayload<{
   include: {
@@ -116,10 +116,42 @@ export class SessionsService {
       state: transcript ? state : { coverage: state.coverage },
       messages,
       transcriptVisible: transcript,
+      flagged: s.flagged,
+      flaggedAt: when(s.flaggedAt),
+      flagAckedAt: when(s.flagAckedAt),
+      // Model prose about a person: only with the transcript it was written from.
+      flagReason: transcript ? s.flagReason : null,
     };
     // `messages` and `transcriptVisible` travel inside the record as well as beside it, so a client
     // that unwraps `session` keeps them.
     return { session, messages, transcriptVisible: transcript };
+  }
+
+  /**
+   * A person has looked at a flagged interview (D-173). Idempotent: acknowledging again keeps the
+   * first time and person. The note, when given, is kept as an `admin_note` event on the session.
+   */
+  async acknowledgeFlag(
+    companyId: string,
+    who: SessionViewer,
+    id: string,
+    note?: string,
+  ): Promise<{ flagAckedAt: Date }> {
+    const s = await this.load(companyId, id);
+    if (!s.flagged) throw new AppError("conflict", "This interview is not flagged");
+    const at = s.flagAckedAt ?? new Date();
+    if (s.flagAckedAt === null) {
+      await this.db.session.updateMany({
+        where: { id: s.id, companyId, flagAckedAt: null },
+        data: { flagAckedAt: at, flagAckedBy: who.userId },
+      });
+    }
+    if (note?.trim())
+      await new PrismaSessionStore(this.db).appendEvent(s.id, "admin_note", {
+        note: note.trim().slice(0, 1000),
+        by: who.userId,
+      });
+    return { flagAckedAt: at };
   }
 
   async events(companyId: string, who: SessionViewer, id: string): Promise<{ events: SessionEvent[] }> {

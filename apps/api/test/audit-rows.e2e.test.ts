@@ -193,6 +193,22 @@ suite("audit rows: every administrative mutation writes one", () => {
       targetType: "template",
       actor: "admin",
     });
+    // The edit above made version 2; restoring version 1 writes version 3 and one row for it.
+    const restored = await audited("POST /templates/:id/restore", `/templates/${id}/restore`, undefined, {
+      action: "template.restore",
+      targetType: "template",
+      actor: "admin",
+    });
+    expect(restored.json<{ version: number }>().version).toBe(3);
+  });
+
+  it("POST /onboarding/dismiss", async () => {
+    await audited("POST /onboarding/dismiss", "/onboarding/dismiss", undefined, {
+      action: "onboarding.dismiss",
+      targetType: "company",
+      targetId: world.companyId,
+      actor: "admin",
+    });
   });
 
   // ---------- settings ----------
@@ -680,6 +696,31 @@ suite("audit rows: every administrative mutation writes one", () => {
       targetId: "ops.health-sweep",
       actor: "operator",
     });
+  });
+
+  it("acknowledging a flagged interview is audited, and keeps the reason out of the diff", async () => {
+    const flagged = await world.db.session.create({
+      data: {
+        companyId: world.companyId,
+        templateId: world.templateId,
+        status: "active",
+        flagged: true,
+        flagReason: "SECRET-REASON the participant sounded distressed",
+        flaggedAt: new Date(),
+      },
+    });
+    await audited(
+      "POST /sessions/:id/flag/ack",
+      `/sessions/${flagged.id}/flag/ack`,
+      { note: "SECRET-NOTE called them back" },
+      {
+        action: "session.flag.ack",
+        targetType: "session",
+        targetId: flagged.id,
+        actor: "admin",
+        secrets: ["SECRET-REASON", "SECRET-NOTE"],
+      },
+    );
   });
 
   // ---------- completeness ----------

@@ -40,13 +40,18 @@ describe("reopening a completed requirements session (live run bug 6)", () => {
   });
 
   it("clears an 'I'm done' request instead of carrying the sentinel into the next turn", () => {
-    const state = SessionStateSchema.parse({
-      turnCount: COMPLETION_REQUESTED_TURN_COUNT,
-      closingAsked: true,
-    });
-    const next = reopenedState(state, 22, MAX);
-    expect(next.turnCount).toBe(22);
-    expect(next.turnCount).toBeLessThan(MAX);
+    // Both shapes: the flag written now, and the legacy sentinel the schema migrates to it.
+    for (const raw of [
+      { turnCount: 22, finishRequested: true, closingAsked: true },
+      { turnCount: COMPLETION_REQUESTED_TURN_COUNT, lastWidgetTurn: 22, closingAsked: true },
+    ]) {
+      const state = SessionStateSchema.parse(raw);
+      expect(state.finishRequested).toBe(true);
+      const next = reopenedState(state, 22, MAX);
+      expect(next.finishRequested).toBe(false);
+      expect(next.turnCount).toBe(22);
+      expect(next.turnCount).toBeLessThan(MAX);
+    }
   });
 
   it("is a session that does not close on its first turn: the engine picks real work, not closing", () => {
@@ -61,12 +66,14 @@ describe("reopening a completed requirements session (live run bug 6)", () => {
       template,
       state: { ...finished, closingAsked: false, phase: "areas" },
       maxTurns: MAX,
+      lastAnswerMinimal: false,
     });
     expect(before.mode).toBe("closing");
     const after = chooseFocus({
       template,
       state: reopenedState(finished, 61, MAX),
       maxTurns: MAX,
+      lastAnswerMinimal: false,
     });
     expect(after.mode).not.toBe("closing");
     expect(after.mode).not.toBe("done");

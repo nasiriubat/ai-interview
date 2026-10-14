@@ -10,7 +10,7 @@ import {
   SpecVersionNotReadyError,
   type Viewer,
 } from "@aidp/core";
-import { FindingOutcomeSchema, PathSchema, WidgetResponseSchema } from "@aidp/shared";
+import { FindingOutcomeSchema, PathSchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
@@ -18,17 +18,13 @@ import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
+import { answerFromBody, parseTurnBody } from "../sessions/turn-body.js";
 import { runTurn } from "../sessions/turn-runner.js";
 import { RequirementsListQuery, requirementsListArgs } from "./service.js";
 
 const Id = z.object({ id: z.string() });
 
 const VersionParams = z.object({ id: z.string(), v: z.coerce.number().int().positive() });
-const TurnBody = z.object({
-  content: z.string().max(8000).default(""),
-  modality: z.enum(["text", "widget", "voice"]).default("text"),
-  widgetResponse: WidgetResponseSchema.optional(),
-});
 
 /** Requirements sessions, versions and exports, external invitations (contract 18). */
 export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<void> {
@@ -131,15 +127,8 @@ export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<v
     async (req, reply) => {
       await wrap(() => svc.assertTurnAllowed(req.companyId, req.params.id, viewerOf(req)));
       // The first turn has no body at all, so the body is validated here rather than by the route schema.
-      const body = TurnBody.parse(req.body ?? {});
-      const answer =
-        body.content.trim() || body.widgetResponse
-          ? {
-              content: body.content,
-              modality: body.modality,
-              ...(body.widgetResponse ? { widgetResponse: body.widgetResponse } : {}),
-            }
-          : undefined;
+      const body = parseTurnBody(req.body);
+      const answer = answerFromBody(body);
       const companyId = req.companyId;
       const sessionId = req.params.id;
       await runTurn(ctx, sessionId, answer, reply, {

@@ -1,4 +1,4 @@
-import type { Capabilities, ChatEvent, ChatRequest, ProviderConfig, Route } from "@aidp/shared";
+import type { Capabilities, ChatEvent, ChatRequest, ProviderConfig, Route, Usage } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { ModelCaller } from "../src/callModel.js";
@@ -196,7 +196,7 @@ class ScriptedProvider implements Provider {
     streamingTranscription: false,
   };
   lastReq?: ChatRequest;
-  completeImpl: (req: ChatRequest) => Promise<{ value: unknown; usage: never }> = async () => {
+  completeImpl: (req: ChatRequest) => Promise<{ value: unknown; usage: Usage }> = async () => {
     throw new Error("unscripted");
   };
   async listModels() {
@@ -207,16 +207,20 @@ class ScriptedProvider implements Provider {
     this.lastReq = req;
     throw new ProviderError("Provider returned 500", "server", true);
   }
-  async complete<T>(_model: string, req: ChatRequest, _schema: z.ZodType<T>) {
+  async complete<T>(_model: string, req: ChatRequest, schema: z.ZodType<T>) {
     this.lastReq = req;
-    return this.completeImpl(req) as unknown as Promise<{ value: T; usage: never }>;
+    const out = await this.completeImpl(req);
+    return { value: schema.parse(out.value), usage: out.usage };
   }
 }
 
 function setup(effort?: Route["effort"]) {
   const provider = new ScriptedProvider();
-  const registry = new ProviderRegistry();
-  (registry as unknown as { cache: Map<string, unknown> }).cache.set("p1", { config: cfg, provider });
+  const registry = new (class extends ProviderRegistry {
+    override get(): Provider {
+      return provider;
+    }
+  })();
   const ledger = new InMemoryLedger();
   const prices = new PriceTable([
     {
@@ -265,7 +269,7 @@ describe("ModelCaller books failed and rejected attempts (live run bug 7)", () =
       r.onAttempt?.({ usage: usage(0, 0), ok: false, note: "rejected", latencyMs: 5 });
       r.onAttempt?.({ usage: usage(2000, 900), ok: false, note: "truncated", latencyMs: 20 });
       r.onAttempt?.({ usage: usage(2000, 50), ok: true, latencyMs: 8 });
-      return { value: { ok: true }, usage: usage(2000, 50) as never };
+      return { value: { ok: true }, usage: usage(2000, 50) };
     };
     await caller.complete(
       "extraction",
@@ -340,7 +344,7 @@ describe("ModelCaller books failed and rejected attempts (live run bug 7)", () =
 describe("ModelCaller output allowance and reasoning (live run bug 8)", () => {
   it("uses the route's maxOutputTokens when the caller names none, and keeps a caller's own", async () => {
     const { caller, provider } = setup();
-    provider.completeImpl = async () => ({ value: { ok: true }, usage: usage(1, 1) as never });
+    provider.completeImpl = async () => ({ value: { ok: true }, usage: usage(1, 1) });
     await caller.complete(
       "extraction",
       { companyId: "c1" },
@@ -359,7 +363,7 @@ describe("ModelCaller output allowance and reasoning (live run bug 8)", () => {
 
   it("switches hidden reasoning off unless the route asks for high effort", async () => {
     const low = setup("low");
-    low.provider.completeImpl = async () => ({ value: { ok: true }, usage: usage(1, 1) as never });
+    low.provider.completeImpl = async () => ({ value: { ok: true }, usage: usage(1, 1) });
     await low.caller.complete(
       "extraction",
       { companyId: "c1" },
@@ -369,7 +373,7 @@ describe("ModelCaller output allowance and reasoning (live run bug 8)", () => {
     expect(low.provider.lastReq?.reasoning).toBe("off");
 
     const none = setup();
-    none.provider.completeImpl = async () => ({ value: { ok: true }, usage: usage(1, 1) as never });
+    none.provider.completeImpl = async () => ({ value: { ok: true }, usage: usage(1, 1) });
     await none.caller.complete(
       "extraction",
       { companyId: "c1" },
@@ -379,7 +383,7 @@ describe("ModelCaller output allowance and reasoning (live run bug 8)", () => {
     expect(none.provider.lastReq?.reasoning).toBe("off");
 
     const high = setup("high");
-    high.provider.completeImpl = async () => ({ value: { ok: true }, usage: usage(1, 1) as never });
+    high.provider.completeImpl = async () => ({ value: { ok: true }, usage: usage(1, 1) });
     await high.caller.complete(
       "extraction",
       { companyId: "c1" },

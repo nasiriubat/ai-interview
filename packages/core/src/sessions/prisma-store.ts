@@ -15,6 +15,8 @@ import {
   WidgetSchema,
   type InterviewTemplate,
   type Modality,
+  type RecapCache,
+  type SessionEventType,
   type Path,
   type SessionState,
 } from "@aidp/shared";
@@ -50,7 +52,14 @@ export function templateFromRow(t: TemplateRow): InterviewTemplate {
 
 /** SessionStore on Prisma. Message sequence numbers are assigned in a transaction. */
 export class PrismaSessionStore implements SessionStore {
-  constructor(private readonly db: PrismaClient) {}
+  /**
+   * `widgets: false` is `features.optionsView` off (D-187): the template the engine sees allows no
+   * widget, so the prompt says none and `admitWidget` drops any the model sends anyway.
+   */
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly options: { widgets?: boolean } = {},
+  ) {}
 
   async appendMessage(sessionId: string, m: NewMessage): Promise<StoredMessage> {
     return tenantTransaction(this.db, async (tx) => {
@@ -123,7 +132,20 @@ export class PrismaSessionStore implements SessionStore {
     });
   }
 
-  async appendEvent(sessionId: string, type: string, payload: unknown): Promise<void> {
+  /**
+   * Caches the resume recap in the state document (D-172). One key is patched, so a turn or a
+   * background job running beside a page load is not undone.
+   */
+  async commitRecap(sessionId: string, recap: RecapCache): Promise<void> {
+    await tenantTransaction(this.db, async (tx) => {
+      await tx.$executeRaw`
+        UPDATE "Session"
+        SET state = jsonb_set(COALESCE(state, '{}'::jsonb), '{recap}', ${JSON.stringify(recap)}::jsonb)
+        WHERE id = ${sessionId} AND status <> 'deleted'`;
+    });
+  }
+
+  async appendEvent(sessionId: string, type: SessionEventType, payload: unknown): Promise<void> {
     await tenantTransaction(this.db, (tx) => appendEventIn(tx, sessionId, type, payload));
   }
 
@@ -159,6 +181,7 @@ export class PrismaSessionStore implements SessionStore {
             kind: f.kind,
             payload: f as Prisma.InputJsonValue,
             extractorVersion: c.extractorVersion,
+            ...(c.language ? { language: c.language } : {}),
             batchEndSeq: c.toSeq,
             ordinal,
           })),
@@ -187,7 +210,11 @@ export class PrismaSessionStore implements SessionStore {
         },
       },
     });
-    const template = templateFromRow(row.template);
+    const parsed = templateFromRow(row.template);
+    const template =
+      this.options.widgets === false
+        ? { ...parsed, widgetPolicy: { ...parsed.widgetPolicy, allowedTypes: [], maxPerTurns: 0 } }
+        : parsed;
     const handoff = row.handoff ? HandoffSchema.safeParse(row.handoff) : undefined;
     return {
       id: row.id,
@@ -217,7 +244,12 @@ export class PrismaSessionStore implements SessionStore {
 
 type Tx = Parameters<Parameters<typeof tenantTransaction>[1]>[0];
 
-async function appendEventIn(tx: Tx, sessionId: string, type: string, payload: unknown): Promise<void> {
+async function appendEventIn(
+  tx: Tx,
+  sessionId: string,
+  type: SessionEventType,
+  payload: unknown,
+): Promise<void> {
   const last = await tx.sessionEvent.findFirst({
     where: { sessionId },
     orderBy: { seq: "desc" },
@@ -231,6 +263,31 @@ async function appendEventIn(tx: Tx, sessionId: string, type: string, payload: u
       type,
       payload: payload as Prisma.InputJsonValue,
     },
+  });
+  if (type === "flag") {
+    // The first flag of a session wins and stays (D-173); the where clause makes a later one a
+    // no-op on the row while its event is still appended above.
+    const raw = (payload as { reason?: unknown } | null)?.reason;
+    const reason = typeof raw === "string" ? raw.slice(0, 1000) : "";
+    await tx.session.updateMany({
+      where: { id: sessionId, flagged: false },
+      data: { flagged: true, flagReason: reason, flaggedAt: new Date() },
+    });
+  }
+}
+
+/**
+ * "I'm done": sets `finishRequested` on the session's state so the next turn is the closing
+ * question (D-170). One key is patched in place rather than the whole document rewritten, so a
+ * running turn or background job is not undone, and `turnCount` is never touched (the sentinel
+ * this replaces corrupted turn statistics). A no-op on a completed or deleted session.
+ */
+export async function requestFinish(db: PrismaClient, sessionId: string): Promise<void> {
+  await tenantTransaction(db, async (tx) => {
+    await tx.$executeRaw`
+      UPDATE "Session"
+      SET state = jsonb_set(COALESCE(state, '{}'::jsonb), '{finishRequested}', 'true'::jsonb)
+      WHERE id = ${sessionId} AND status NOT IN ('completed', 'deleted')`;
   });
 }
 

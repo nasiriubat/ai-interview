@@ -97,8 +97,26 @@ const TranscriptEventSchema = z.object({
   durationMs: z.number().optional(),
 });
 
+/**
+ * A participant control the engine applied (skip, return, finish), sent before the interviewer's
+ * turn. `progress` is the state after it, so the chips move at once.
+ */
+const ControlEventSchema = z.object({
+  kind: z.enum(["skip_area", "return_area", "finish"]),
+  areaKey: z.string().optional(),
+  at: z.string().default(""),
+  progress: ProgressSchema.default({ areas: [] }),
+});
+
 export type TurnStreamEvent =
   | { type: "text"; delta: string }
+  | {
+      type: "control";
+      kind: "skip_area" | "return_area" | "finish";
+      areaKey?: string | undefined;
+      at: string;
+      progress: z.infer<typeof ProgressSchema>;
+    }
   | {
       type: "turn";
       message: z.infer<typeof MessageSchema>;
@@ -131,6 +149,10 @@ export function toTurnStreamEvent(ev: SseEvent): TurnStreamEvent | undefined {
     case "text": {
       const r = TextEventSchema.safeParse(json);
       return r.success ? { type: "text", delta: r.data.delta } : malformed(ev);
+    }
+    case "control": {
+      const r = ControlEventSchema.safeParse(json);
+      return r.success ? { type: "control", ...r.data } : malformed(ev);
     }
     case "turn": {
       const r = TurnEventSchema.safeParse(json);

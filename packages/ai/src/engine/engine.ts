@@ -1,10 +1,11 @@
-import type { Modality, SessionState, TurnObject, WidgetResponse } from "@aidp/shared";
+import type { Modality, SessionState, TurnControl, TurnObject, WidgetResponse } from "@aidp/shared";
 import { SessionStateSchema, TurnObjectSchema } from "@aidp/shared";
 import type { ModelCallerPort } from "../callModel.js";
 import { detectIssues, shouldScanIssues } from "../spec/issues.js";
 import { nextMvpItem } from "../spec/live.js";
 import { resolvePolicy } from "../spec/policy.js";
 import { assembleContext, renderFocus, renderStoredMessage } from "./context.js";
+import { applyControl, controlNote, type AppliedControl } from "./controls.js";
 import type {
   EngineSettings,
   Logger,
@@ -47,8 +48,23 @@ export interface UserAnswer {
   widgetResponse?: WidgetResponse;
 }
 
+/**
+ * A participant control (skip an area, come back to one, finish) instead of an answer (D-170).
+ * Applied to the state; never stored as a message.
+ */
+export interface ControlAnswer {
+  control: TurnControl;
+}
+
+/** What a turn is taken in response to: an answer, or a control. */
+export type TurnAnswer = UserAnswer | ControlAnswer;
+
+const isControl = (a: TurnAnswer): a is ControlAnswer => "control" in a;
+
 export type EngineEvent =
   | { type: "text"; text: string }
+  /** A control was applied; sent before the interviewer's turn. */
+  | { type: "control"; control: AppliedControl; at: string; state: SessionState }
   | { type: "turn"; turn: TurnObject; message: StoredMessage; focus: Focus; state: SessionState }
   | { type: "ended"; state: SessionState };
 
@@ -91,7 +107,7 @@ export class InterviewEngine {
    */
   async *nextTurn(
     session: SessionSnapshot,
-    answer: UserAnswer | undefined,
+    answer: TurnAnswer | undefined,
     settings: EngineSettings,
     options: TurnOptions = {},
   ): AsyncGenerator<EngineEvent, TurnResult> {
@@ -104,7 +120,19 @@ export class InterviewEngine {
     const policy = resolvePolicy(session.template, session.path, settings.requirements);
 
     let lastAnswerMinimal = false;
-    if (answer) {
+    let appliedControl: AppliedControl | undefined;
+    if (answer && isControl(answer)) {
+      const result = applyControl(state, session.template, answer.control);
+      if (result.applied) {
+        state = result.state;
+        appliedControl = result.control;
+        yield { type: "control", control: result.control, at: new Date().toISOString(), state };
+      } else {
+        // Not an error: a double tap, or an area that was answered in the meantime. The turn goes
+        // on from the state as it is.
+        logger.info("control not applied", { sessionId: session.id, reason: result.reason });
+      }
+    } else if (answer) {
       const last = (await store.recentMessages(session.id, 1))[0];
       await store.appendMessage(session.id, {
         role: "user",
@@ -154,6 +182,8 @@ export class InterviewEngine {
       state = { ...state, mvpChallenge: { ...state.mvpChallenge, done: true } };
     }
 
+    // A requested area is asked once: taking the turn consumes the request.
+    const requestedAreaKey = state.requestedAreaKey;
     const focus = chooseFocus({
       template: session.template,
       state,
@@ -162,6 +192,10 @@ export class InterviewEngine {
       lastAnswerMinimal,
       mvpChallenge: policy.mvpChallenge,
     });
+    if (requestedAreaKey !== undefined) {
+      const { requestedAreaKey: _consumed, ...rest } = state;
+      state = rest;
+    }
     if (focus.mode === "done") {
       state = { ...state, phase: "done" };
       await store.saveState(session.id, state);
@@ -184,6 +218,12 @@ export class InterviewEngine {
       recalled,
       settings,
     });
+    // The control's one line rides on this turn's last (user) message, built from state.
+    if (appliedControl) {
+      const last = ctx.messages[ctx.messages.length - 1];
+      if (last?.role === "user" && typeof last.content === "string")
+        last.content = `${last.content}\n\n${controlNote(appliedControl)}`;
+    }
 
     const parser = new TurnParser();
     const stream = this.deps.caller.chat(
@@ -274,6 +314,9 @@ export class InterviewEngine {
       tokensEstimate: ctx.tokensEstimate,
       recentTurnsIncluded: ctx.recentTurnsIncluded,
     });
+    // Recorded with the turn it belonged to, so a turn that failed and was retried writes it once.
+    if (appliedControl)
+      await store.appendEvent(session.id, "control", { ...appliedControl, afterSeq: stored.seq - 1 });
     if (delta.flagForAdmin) await store.appendEvent(session.id, "flag", { reason: delta.flagForAdmin });
     if (focus.mode === "finding")
       await store.appendEvent(session.id, "finding", {

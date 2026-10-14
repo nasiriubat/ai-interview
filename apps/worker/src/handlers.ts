@@ -14,9 +14,12 @@ import {
   PrismaPromptSource,
   PrismaSessionStore,
   RequirementsService,
+  TenantNotices,
   deleteSessionData,
+  deletionNotice,
   runRetentionSweep,
   sendOnce,
+  type AlertPort,
   type CallerFactory,
   type Crypto,
   type EmailOutbox,
@@ -41,6 +44,8 @@ export interface HandlerDeps {
   log: Logger;
   crypto: Crypto;
   publicWebUrl: string;
+  /** Where tenant notices go (D-181). Absent: nobody is mailed about analyses and specifications. */
+  alerts?: AlertPort;
   /** Where uploaded audio and documents live; the worker reads what the API wrote. */
   storage: StoragePort;
   /** What has been sent, by idempotency key. Defaults to the Postgres table; tests pass memory. */
@@ -104,12 +109,16 @@ export function handlers(deps: HandlerDeps): Handlers {
   const store: JobSessionStore = deps.sessions ?? new PrismaSessionStore(deps.db);
   const outbox = deps.outbox ?? new PrismaEmailOutbox(deps.db);
   const prompts = deps.prompts ?? new PrismaPromptSource(deps.db);
+  const notices = deps.alerts
+    ? new TenantNotices({ alerts: deps.alerts, publicWebUrl: deps.publicWebUrl, log: deps.log })
+    : undefined;
   const analysis = new AnalysisService({
     db: deps.db,
     callers: deps.callers,
     settings: deps.settings,
     jobs: deps.jobs,
     log: deps.log,
+    ...(notices ? { notices } : {}),
   });
   // GitHub pushes happen in the API process; the worker only generates versions.
   const requirements = new RequirementsService({
@@ -121,6 +130,7 @@ export function handlers(deps: HandlerDeps): Handlers {
     email: deps.email,
     publicWebUrl: deps.publicWebUrl,
     crypto: deps.crypto,
+    ...(notices ? { notices } : {}),
   });
 
   return {
@@ -214,6 +224,31 @@ export function handlers(deps: HandlerDeps): Handlers {
         deps.log.info("session data deleted", { sessionId });
       },
     ),
+
+    /**
+     * "Your answers were deleted" for an identified participant (FR-13, D-175). Send-once under
+     * `deletion-notice:<session>`, so the queue's retries cannot mail twice. Runs for a suspended
+     * tenant too: it is part of honouring a deletion. The address is decrypted here, used, and
+     * not logged or kept.
+     */
+    "privacy.confirm-deletion": scoped(async (m: JobPayload<"privacy.confirm-deletion">): Promise<void> => {
+      const outcome = await sendOnce(
+        outbox,
+        deps.email,
+        `deletion-notice:${m.sessionId}`,
+        deletionNotice({
+          to: deps.crypto.decrypt(m.toEnc),
+          companyId: m.companyId,
+          campaignName: m.campaignName,
+          language: m.language,
+          deletedAt: new Date(m.deletedAt),
+        }),
+        { companyId: m.companyId },
+      );
+      deps.log.info(outcome === "sent" ? "deletion notice sent" : "deletion notice already sent", {
+        sessionId: m.sessionId,
+      });
+    }),
 
     /**
      * Retention enforcement for every tenant (spec 11). Scheduled daily; safe to run by hand,

@@ -96,6 +96,7 @@ export function reopenedState(state: SessionState, assistantTurns: number, maxTu
     ...state,
     phase: "areas",
     closingAsked: false,
+    finishRequested: false,
     finalIssueScanDone: false,
     turnCount: working,
     lastIssueScanTurn: Math.min(state.lastIssueScanTurn, working),

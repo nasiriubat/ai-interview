@@ -48,6 +48,9 @@
   "opportunity@2": {
     "sha256": "460352f1741b604c176046b8d3937d2059728f40fdd1490e3683fd264f0c4acb"
   },
+  "recap@1": {
+    "sha256": "03e2f9c6538c3805e6b5efd7873b03b9dc9ffc69cec41e1f057f4d7b497f130b"
+  },
   "report@1": {
     "sha256": "83be2c1796df71fa261de9c7a2b73663655ddc7c65fbd66fed7f5b2a5f542afa",
     "retired": true
