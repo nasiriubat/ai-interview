@@ -1,4 +1,5 @@
 import type { Server } from "node:http";
+import { StorageFull } from "@aidp/core";
 import { describeDb } from "@aidp/testing";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { fakeModelServer, parseSse, testWorld, TURN_MARKER, type TestWorld } from "./helpers.js";
@@ -420,6 +421,41 @@ suite("attachments and recorded voice", () => {
     });
 
     expect(res.statusCode).toBe(400);
+  });
+
+  it("answers a full disk with a typed, participant-safe refusal, not a bare 500 (D-283)", async () => {
+    const token = await participant();
+    const body = multipart({
+      name: "rota.txt",
+      type: "text/plain",
+      body: Buffer.from("Monday: early shift"),
+    });
+    const put = world.storage.put.bind(world.storage);
+    world.storage.put = () => Promise.reject(new StorageFull());
+    try {
+      const res = await world.app.inject({
+        method: "POST",
+        url: "/api/v1/p/session/attachments",
+        headers: { authorization: token, ...body.headers },
+        payload: body.payload,
+      });
+
+      expect(res.statusCode).toBe(507);
+      const { error } = res.json();
+      expect(error.code).toBe("storage_full");
+      // Plain words, nothing about disks, paths or the operator.
+      expect(error.message).toMatch(/cannot store files/i);
+      expect(error.message).not.toMatch(/ENOSPC|disk|\//);
+      // The half-made attachment row is gone, so the session is not left holding a ghost file.
+      const list = await world.app.inject({
+        method: "GET",
+        url: "/api/v1/p/session/attachments",
+        headers: { authorization: token },
+      });
+      expect(list.json().attachments).toEqual([]);
+    } finally {
+      world.storage.put = put;
+    }
   });
 
   it("refuses an upload from someone with no participant session", async () => {

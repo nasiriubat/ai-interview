@@ -12,6 +12,7 @@ import {
   ObjectNotFound,
   ObjectTooLarge,
   sessionPrefix,
+  StorageFull,
   storageKind,
   type StoragePort,
 } from "../src/storage/index.js";
@@ -226,5 +227,37 @@ describe("createStorage", () => {
 
     await writeFile(join(root, "marker"), "");
     expect(await readdir(root)).toContain("c1");
+  });
+});
+
+describe("a full disk (D-283)", () => {
+  it("is a typed StorageFull, and leaves no partial object behind", async () => {
+    const storage = new FilesystemStorage(join(dir, "full"));
+    const body = new Readable({
+      read() {
+        this.push(Buffer.from("some of the bytes"));
+        // What the kernel hands back when the volume has no room: the code is what matters.
+        this.destroy(Object.assign(new Error("ENOSPC: no space left on device, write"), { code: "ENOSPC" }));
+      },
+    });
+
+    await expect(storage.put("t1/s1/a1", body, { contentType: "audio/webm" })).rejects.toBeInstanceOf(
+      StorageFull,
+    );
+    expect(await storage.head("t1/s1/a1")).toBeNull();
+    const left = await readdir(join(dir, "full", "t1", "s1"));
+    expect(left.filter((f) => f.endsWith(".part"))).toEqual([]);
+  });
+
+  it("is not confused with an unrelated failure", async () => {
+    const storage = new FilesystemStorage(join(dir, "other"));
+    const body = new Readable({
+      read() {
+        this.destroy(Object.assign(new Error("connection reset"), { code: "ECONNRESET" }));
+      },
+    });
+    await expect(storage.put("t1/s1/a2", body, { contentType: "audio/webm" })).rejects.not.toBeInstanceOf(
+      StorageFull,
+    );
   });
 });

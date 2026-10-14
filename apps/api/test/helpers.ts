@@ -71,6 +71,8 @@ export function fakeModelServer(
   transcription?: () => { text: string; duration?: number } | Error,
   /** How `/realtime?intent=transcription` behaves, for streaming live-voice tests. */
   realtime?: () => FakeRealtime,
+  /** Stream the reply at this many characters a second, as a real model does (default: all at once). */
+  charsPerSecond?: number,
 ): Promise<{ server: Server; url: string; requests: unknown[]; realtime: RealtimeLog }> {
   const requests: unknown[] = [];
   const log: RealtimeLog = { connections: [], sessionUpdates: [], appendedBytes: 0 };
@@ -134,16 +136,33 @@ export function fakeModelServer(
         }
         const text = replies();
         res.setHeader("content-type", "text/event-stream");
-        for (let i = 0; i < text.length; i += 9) {
+        const finish = (): void => {
           res.write(
-            `data: ${JSON.stringify({ model: "fake-model", choices: [{ delta: { content: text.slice(i, i + 9) } }] })}\n\n`,
+            `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], usage: { prompt_tokens: 500, completion_tokens: 60 } })}\n\n`,
           );
+          res.write("data: [DONE]\n\n");
+          res.end();
+        };
+        const writeChunk = (at: number): void => {
+          res.write(
+            `data: ${JSON.stringify({ model: "fake-model", choices: [{ delta: { content: text.slice(at, at + 9) } }] })}\n\n`,
+          );
+        };
+        if (!charsPerSecond) {
+          for (let i = 0; i < text.length; i += 9) writeChunk(i);
+          finish();
+          return;
         }
-        res.write(
-          `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }], usage: { prompt_tokens: 500, completion_tokens: 60 } })}\n\n`,
-        );
-        res.write("data: [DONE]\n\n");
-        res.end();
+        let at = 0;
+        const timer = setInterval(() => {
+          if (at >= text.length || res.destroyed) {
+            clearInterval(timer);
+            if (!res.destroyed) finish();
+            return;
+          }
+          writeChunk(at);
+          at += 9;
+        }, 9000 / charsPerSecond);
       });
     });
     const wss = new WebSocketServer({ noServer: true });

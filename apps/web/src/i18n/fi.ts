@@ -173,6 +173,10 @@ export const fi: Strings = {
         what: "Tiedosto on suurempi kuin tähän haastatteluun voi liittää.",
         next: "Kokeile pienempää tiedostoa.",
       },
+      storageFull: {
+        what: "Palvelu ei voi juuri nyt tallentaa tiedostoja.",
+        next: "Vastaa toistaiseksi kirjoittamalla tai yritä tiedostoa myöhemmin uudelleen.",
+      },
       conflict: {
         what: "Samaan aikaan tapahtui jotain muuta.",
         next: "Yritä hetken kuluttua uudelleen.",
@@ -349,6 +353,8 @@ export const fi: Strings = {
         `Tiedosto on liian suuri. Tähän haastatteluun voi liittää enintään ${mb} Mt.`,
       attachForbidden: "Tähän haastatteluun ei voi liittää tiedostoja.",
       attachFailed: "Tiedoston lähetys ei onnistunut. Yritä uudelleen.",
+      attachStorageFull:
+        "Palvelu ei voi juuri nyt tallentaa tiedostoja. Tähänastiset vastauksesi on tallennettu. Vastaa kirjoittamalla tai yritä myöhemmin uudelleen.",
       recapLabel: "Mihin jäit",
       messagesLabel: "Keskustelu",
       announceChoice: (n: number): string => `Kysymys, ${n} vaihtoehtoa`,

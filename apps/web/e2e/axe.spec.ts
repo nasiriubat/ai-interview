@@ -3,7 +3,17 @@ import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { encode } from "next-auth/jwt";
+import { en } from "../src/i18n/en";
+import { fi } from "../src/i18n/fi";
 import { PAGES } from "./pages";
+
+/** What the error boundaries say. A page showing one has been drawn from a fixture the app no longer parses. */
+const ERROR_SCREENS = [
+  en.app.errorTitle,
+  fi.app.errorTitle,
+  en.participant.session.errorServerTitle,
+  fi.participant.session.errorServerTitle,
+];
 
 const AUTH_SECRET = "e2e-auth-secret-e2e-auth-secret-0123456789";
 const RESULTS = path.join(import.meta.dirname, "results");
@@ -56,6 +66,14 @@ for (const entry of PAGES) {
     await page.waitForLoadState("networkidle");
     // Dialogs and popovers fade in; axe would read the colours halfway through the fade.
     if (entry.prepare) await page.waitForTimeout(600);
+
+    // A page that rendered its error state would pass axe (error screens are accessible). The
+    // fixtures drifting from the API's shapes did exactly that for two pages, unnoticed.
+    const shown = await page.locator("body").innerText();
+    expect(
+      entry.isErrorPage ? [] : ERROR_SCREENS.filter((text) => shown.includes(text)),
+      `${entry.path} rendered an error screen, so its fixture no longer matches what the page parses`,
+    ).toEqual([]);
 
     const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
     mkdirSync(RESULTS, { recursive: true });
