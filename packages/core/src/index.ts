@@ -22,6 +22,8 @@ export * from "./email/port.js";
 export * from "./email/outbox.js";
 export * from "./email/deletion-notice.js";
 export * from "./email/smtp.js";
+export * from "./email/smtp-errors.js";
+export * from "./email/test-send.js";
 export * from "./email/settings-email.js";
 export * from "./privacy/retention.js";
 export * from "./privacy/export.js";

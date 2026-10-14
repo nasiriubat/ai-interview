@@ -158,11 +158,20 @@ export function buildServices(d: ServiceDeps): Services {
     prompts: new PromptAdminService(d.db),
     providers,
     budgets: new BudgetService(d.db, audit),
-    settingsAdmin: new SettingsAdminService(d.db, d.settings, d.egress, d.email, audit, {
-      warn: (meta, message) => {
-        d.log.warn(meta, message);
+    settingsAdmin: new SettingsAdminService(
+      d.db,
+      d.settings,
+      d.egress,
+      d.email,
+      audit,
+      {
+        warn: (meta, message) => {
+          d.log.warn(meta, message);
+        },
       },
-    }),
+      Boolean(d.config.EMAIL_SMTP_URL),
+      d.config.EMAIL_FROM,
+    ),
     analysisQueries,
     exports: new ExportsService(d.db, analysisQueries, d.exporter),
     cryptoAdmin: new CryptoAdminService(d.db, d.crypto, audit),

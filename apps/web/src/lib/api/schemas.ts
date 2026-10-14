@@ -578,6 +578,22 @@ export const SettingsCatalogEntrySchema = z.looseObject({
   operatorOnly: z.boolean().nullish(),
 });
 export type SettingsCatalogEntry = z.infer<typeof SettingsCatalogEntrySchema>;
+/** The mail relay at one scope taken apart by the API; the password is never in it (D-411). */
+export const SmtpViewSchema = z.looseObject({
+  set: z
+    .looseObject({
+      host: z.string(),
+      port: z.number(),
+      security: z.enum(["starttls", "ssl", "none"]).catch("starttls"),
+      username: z.string().default(""),
+      passwordSet: z.boolean().default(false),
+    })
+    .nullish(),
+  effective: z.enum(["tenant", "platform", "env", "none"]).catch("none"),
+  envConfigured: z.boolean().default(false),
+});
+export type SmtpView = z.infer<typeof SmtpViewSchema>;
+
 export const SettingsResponseSchema = z.looseObject({
   values: z.record(z.string(), z.unknown()).default({}),
   catalog: z.array(SettingsCatalogEntrySchema).default([]),
@@ -587,6 +603,8 @@ export const SettingsResponseSchema = z.looseObject({
   secrets: z.record(z.string(), z.boolean()).nullish(),
   /** Optional: which scope each effective value came from. Absent means "guess from `values`". */
   sources: z.record(z.string(), z.string()).nullish(),
+  /** The mail relay, structured, for the platform and tenant scopes. */
+  smtp: SmtpViewSchema.nullish(),
 });
 export type SettingsResponse = z.infer<typeof SettingsResponseSchema>;
 
@@ -655,6 +673,8 @@ export const EmailTestSchema = z.looseObject({
   ok: z.boolean().default(false),
   usedScope: z.string().nullish(),
   error: z.string().nullish(),
+  /** A stable class (auth_failed, timeout, ...) the page words itself, in the viewer's language. */
+  errorClass: z.string().nullish(),
 });
 export type EmailTest = z.infer<typeof EmailTestSchema>;
 

@@ -8,6 +8,14 @@ export interface SmtpGuard {
   origin: EgressOrigin;
 }
 
+function timeoutOptions(ms: number): {
+  connectionTimeout: number;
+  greetingTimeout: number;
+  socketTimeout: number;
+} {
+  return { connectionTimeout: ms, greetingTimeout: ms, socketTimeout: ms };
+}
+
 /**
  * SMTP through nodemailer. `url` is an smtp:// or smtps:// connection string.
  *
@@ -24,8 +32,14 @@ export class SmtpEmail implements EmailPort {
     private readonly url: string,
     private readonly defaultFrom: string,
     private readonly guard?: SmtpGuard,
+    /** Connect, greeting and idle limits in ms; a test send uses short ones so a hang is an answer. */
+    private readonly timeoutMs?: number,
   ) {
-    this.transport = guard ? undefined : nodemailer.createTransport(url);
+    this.transport = guard
+      ? undefined
+      : timeoutMs
+        ? nodemailer.createTransport({ url, ...timeoutOptions(timeoutMs) })
+        : nodemailer.createTransport(url);
     // Refuse a forbidden relay at construction, not on the first send, so a bad value is a
     // configuration error that shows where it was made.
     if (guard) guard.egress.checkSmtpUrl(url, guard.origin);
@@ -53,7 +67,9 @@ export class SmtpEmail implements EmailPort {
       port: target.port,
       secure: target.secure,
       requireTLS: target.requireTls,
+      ...(target.ignoreTls ? { ignoreTLS: true } : {}),
       tls: { servername: target.host },
+      ...(this.timeoutMs ? timeoutOptions(this.timeoutMs) : {}),
       ...(target.user !== undefined ? { auth: { user: target.user, pass: target.pass ?? "" } } : {}),
     });
     try {

@@ -33,6 +33,19 @@ endpoint (`http://localhost:14010/__control`: latency, error rate, 429s, hangs) 
 (`/__sink`) are for trying failure by hand. The production-shaped rehearsal, with Caddy and the
 backup, is in [DEPLOY.md](DEPLOY.md#rehearsing-a-deployment).
 
+## How the first admin signs in
+
+Locally, sign-in links are caught by Mailpit: `pnpm stack:up` starts it and the link is in the
+inbox at `http://localhost:8025`. Without the Docker stack the web app falls back to
+`smtp://localhost:1025` in development only.
+
+Mailpit is not part of a production deployment. There the relay is a real SMTP server set at deploy
+time as `EMAIL_SMTP_URL` in `deploy/.env` (required by `compose.prod.yml`), the first admin is
+`BOOTSTRAP_ADMIN_EMAIL`, and Google sign-in (`AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`) is the
+alternative. Tenant admins can then set their own mail server under Settings, Email, which covers
+the mail a tenant sends but not the deployment's sign-in links. The full explanation is in
+[DEPLOY.md](DEPLOY.md#how-the-first-admin-signs-in).
+
 ## Running on the host
 
 For working on the code with hot reload, run only Postgres in Docker:
