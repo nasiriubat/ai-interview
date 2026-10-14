@@ -47,9 +47,9 @@ services:
     command:
       - postgres
       - -c
-      - shared_buffers=512MB
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-512MB}
       - -c
-      - max_connections=100
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-100}
       - -c
       - log_min_duration_statement=2000
     volumes:
@@ -65,7 +65,7 @@ services:
       resources:
         limits:
           cpus: "1.5"
-          memory: 1536M
+          memory: ${POSTGRES_MEMORY_LIMIT:-1536M}
 
   # One-shot. Runs as the owner role, which is the only role allowed to change the schema, and
   # hands bootstrap APP_DB_PASSWORD so it gives `app_api` a login (packages/db/seeds/bootstrap.ts).
@@ -177,8 +177,8 @@ services:
       PLATFORM_ENCRYPTION_KEY: ${PLATFORM_ENCRYPTION_KEY:?}
       PLATFORM_ENCRYPTION_KEY_PREVIOUS: ${PLATFORM_ENCRYPTION_KEY_PREVIOUS:-}
       AUTH_SECRET: ${AUTH_SECRET:?}
-      WEB_ORIGIN: https://${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in deploy/.env}
-      PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}
+      WEB_ORIGIN: https://${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in deploy/.env}${HTTPS_PORT:+:}${HTTPS_PORT:-}
+      PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}${HTTPS_PORT:+:}${HTTPS_PORT:-}
       EMAIL_SMTP_URL: ${EMAIL_SMTP_URL:?set EMAIL_SMTP_URL in deploy/.env — sign-in does not work without an SMTP relay}
       EMAIL_FROM: ${EMAIL_FROM:?set EMAIL_FROM in deploy/.env}
       # Recorded audio and uploaded documents (FR-30, FR-31). Always set: with no directory the
@@ -247,7 +247,7 @@ services:
           cpus: "1.5"
           # whisper-small (8-bit) holds about 0.9 GB once loaded and peaks near 2 GB while it
           # transcribes, on top of the API itself. With OpenAI doing transcription 1024M is enough.
-          memory: 2560M
+          memory: ${API_MEMORY_LIMIT:-2560M}
 
   worker:
     <<: *app-image
@@ -262,8 +262,8 @@ services:
       PLATFORM_ENCRYPTION_KEY: ${PLATFORM_ENCRYPTION_KEY:?}
       PLATFORM_ENCRYPTION_KEY_PREVIOUS: ${PLATFORM_ENCRYPTION_KEY_PREVIOUS:-}
       AUTH_SECRET: ${AUTH_SECRET:?}
-      WEB_ORIGIN: https://${PUBLIC_HOSTNAME:?}
-      PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}
+      WEB_ORIGIN: https://${PUBLIC_HOSTNAME:?}${HTTPS_PORT:+:}${HTTPS_PORT:-}
+      PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}${HTTPS_PORT:+:}${HTTPS_PORT:-}
       EMAIL_SMTP_URL: ${EMAIL_SMTP_URL:?set EMAIL_SMTP_URL in deploy/.env — sign-in does not work without an SMTP relay}
       EMAIL_FROM: ${EMAIL_FROM:?}
       # The same volume the API writes to: the API stores the upload, the worker reads it back to
@@ -314,7 +314,7 @@ services:
       resources:
         limits:
           cpus: "1.5"
-          memory: 1024M
+          memory: ${WORKER_MEMORY_LIMIT:-1024M}
 
   web:
     image: aidp-web:${AIDP_VERSION:?}
@@ -327,7 +327,7 @@ services:
     environment:
       NODE_ENV: production
       API_URL: http://api:4000
-      AUTH_URL: https://${PUBLIC_HOSTNAME:?}
+      AUTH_URL: https://${PUBLIC_HOSTNAME:?}${HTTPS_PORT:+:}${HTTPS_PORT:-}
       AUTH_TRUST_HOST: "true"
       AUTH_SECRET: ${AUTH_SECRET:?}
       EMAIL_SERVER: ${EMAIL_SMTP_URL:?set EMAIL_SMTP_URL in deploy/.env — sign-in does not work without an SMTP relay}
@@ -351,7 +351,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 768M
+          memory: ${WEB_MEMORY_LIMIT:-768M}
 
   caddy:
     image: caddy:2-alpine
@@ -404,7 +404,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          memory: ${CADDY_MEMORY_LIMIT:-256M}
 
   # Nightly encrypted backup into the `backups` volume, verified, reported in
   # /ops-state/status/backup.json, and copied offsite when RCLONE_REMOTE is set (D-95). Its own
@@ -466,7 +466,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 512M
+          memory: ${BACKUP_MEMORY_LIMIT:-512M}
 
   # Diagram rendering (D-210, D-212): PDF export draws Mermaid fences through this pair, and the
   # specification's diagram editor validates and previews with it. The core image only parses the
@@ -505,7 +505,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 320M
+          memory: ${KROKI_MEMORY_LIMIT:-320M}
 
   kroki-mermaid:
     image: yuzutech/kroki-mermaid:0.26.0
@@ -524,7 +524,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 512M
+          memory: ${KROKI_MERMAID_MEMORY_LIMIT:-512M}
 
   # The alerting path that does not need the application (D-94): delivers the alert files shell
   # producers drop in /ops-state/alerts (the RLS preflight, a failed offsite copy), and watches

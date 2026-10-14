@@ -43,6 +43,38 @@ assert_not_contains "the production file never mentions the mail catcher" "$(cat
 dockerfile_fake="$REPO/tools/fake-provider/Dockerfile"
 assert_contains "the fake's Dockerfile builds from the repository root" "$(cat "$dockerfile_fake")" "COPY tools/fake-provider/src"
 
+echo "the public URLs carry the HTTPS port when one is set"
+if docker compose version >/dev/null 2>&1; then
+	envf=$(mktemp "${TMPDIR:-/tmp}/aidp-images-env.XXXXXX")
+	cat >"$envf" <<ENV
+AIDP_VERSION=testtag
+POSTGRES_PASSWORD=x
+APP_DB_PASSWORD=x
+PLATFORM_ENCRYPTION_KEY=x
+AUTH_SECRET=x
+BOOTSTRAP_OPERATOR_EMAIL=ops@example.com
+BOOTSTRAP_ADMIN_EMAIL=ops@example.com
+PUBLIC_HOSTNAME=pilot.example.com
+ACME_EMAIL=ops@example.com
+EMAIL_SMTP_URL=smtp://relay:25
+EMAIL_FROM=no-reply@example.com
+BACKUP_AGE_RECIPIENT=age1testtesttesttesttesttesttesttesttesttesttesttesttesttesttest
+ENV
+	plain=$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf" config 2>&1)
+	assert_contains "default: no port in WEB_ORIGIN" "$plain" "WEB_ORIGIN: https://pilot.example.com"
+	assert_not_contains "default: no port anywhere in the public URLs" "$plain" "https://pilot.example.com:"
+	echo "HTTPS_PORT=5543" >>"$envf"
+	ported=$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf" config 2>&1)
+	assert_contains "HTTPS_PORT: WEB_ORIGIN has it" "$ported" "WEB_ORIGIN: https://pilot.example.com:5543"
+	assert_contains "HTTPS_PORT: PUBLIC_WEB_URL has it" "$ported" "PUBLIC_WEB_URL: https://pilot.example.com:5543"
+	assert_contains "HTTPS_PORT: AUTH_URL has it" "$ported" "AUTH_URL: https://pilot.example.com:5543"
+	echo "API_MEMORY_LIMIT=1024M" >>"$envf"
+	assert_contains "a limit variable reaches the service" "$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf" config 2>&1)" "memory: \"1073741824\""
+	rm -f "$envf"
+else
+	echo "  note docker compose is not on this machine; the interpolation checks were not run"
+fi
+
 echo "grants.sql repairs what only a restore loses"
 grants="$(cat "$DEPLOY_DIR/grants.sql")"
 # preflight.sh refuses to start the stack without CREATE on the database; a restore recreates the

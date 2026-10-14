@@ -220,6 +220,23 @@ should have failed them, is not running. Work in that queue is not moving.
 **Do** `deploy/dc restart worker`. Maintenance restarts with it, expires the stuck jobs and retries
 or dead-letters them.
 
+**After a crash, not a hang.** A worker killed outright (the OOM killer, a host reboot, `kill -9`)
+leaves the jobs it was running `active` on the queue; nothing in the process is left to say so, and
+the queue fails them only when their time limit passes: `analysis.run` is an hour, `spec.generate`
+half an hour, `session.extract` three minutes. Meanwhile the analysis shows as running and "Run
+analysis" answers that one is already queued (rehearsed on 2026-10-14: the worker was back and healthy
+in 7 s, the analysis was not retried until the limit). The handlers are idempotent, so the quick
+way out is to tell the queue the time limit has passed:
+
+```bash
+deploy/dc exec -T postgres psql -U app -d ai_discovery -c \
+  "update pgboss.job set started_on = now() - interval '2 hours' where state = 'active' and name = 'analysis.run'"
+```
+
+The queue's maintenance (every minute) fails the job and the retry policy runs it again; it
+completes once, with one result (checked by `deploy/chaos/kill-worker.mjs`). Do this only when the
+worker has really been restarted: an `active` job on a worker that is still alive is working.
+
 **Fixed when** The active count drops and the next sweep resolves the alert (within five minutes).
 Check for a dead letter afterwards.
 
@@ -450,6 +467,13 @@ the product (the web app answers, and every call behind it fails).
 
 **Fixed when** The ready check returns `ok:true`.
 
+**What a participant sees when the API process is killed mid-turn** (rehearsed with `kill -9` on
+2026-10-14, `deploy/chaos/kill-api.mjs`): the stream ends, their answer is already saved (one copy),
+Docker restarts the API in seconds, and the session is intact. The turn lock belongs to a process
+that no longer exists and is released by its TTL, 90 s; until then every retry is refused with
+`conflict` (82 s in the rehearsal). Nothing to do; it is the cost of not releasing a lock on a
+guess. A graceful stop (`deploy/dc restart api`, an upgrade) drains turns first and releases them.
+
 ### alerts.storm
 
 **Symptom** The hourly ceiling (30 per audience by default) was reached and the rest were
@@ -673,13 +697,21 @@ deploy/rollback.sh             # back to the previous version, no rebuild, no ne
    changes is refused unless `--allow-dirty`, and then it is tagged `<sha>-dirty-<time>`, never the
    plain sha.
 4. **Makes sure the backup key exists** (once).
-5. **Switches** behind the maintenance page: `migrate` (as the owner role), `db-grants`,
-   `preflight`, then `api`, `worker`, `web`. Participants see "back in a minute" with a
-   `Retry-After`, in English and Finnish, and not a proxy error.
-6. **Checks**: every service healthy, the API ready with a live database, the web app up, and the
-   sign-in page served through Caddy. If a check fails it rolls the code back by itself and says
-   what the schema is now.
-7. Takes the maintenance page down and keeps the last three image generations.
+5. **Migrates first, on its own**, behind the maintenance page: `migrate` (as the owner role),
+   `db-grants` and `preflight` run one after the other through `docker compose run`, which touches no
+   other container. If any of them fails nothing has been replaced: the previous `api`, `worker`
+   and `web` are still serving, the page comes down again and the script stops (see
+   [migrate.failed](#migratefailed)). Participants saw "back in a minute", for about five seconds,
+   and not an error. (Until 2026-10-14 these ran as part of one `up -d`, which on a failed
+   migration had already re-created `api`, `web` and `worker` under the new tag and not started
+   them: Caddy answered 502 while the message said the previous version was running.)
+6. **Switches** `api`, `worker` and `web` to the new tag, still behind the page. Participants see
+   "back in a minute" with a `Retry-After`, in English and Finnish, and not a proxy error.
+7. **Checks**: every service healthy, then the page comes down and the API ready check, the web app
+   and the sign-in page through Caddy are made. (Caddy answers 503 while the page is up, so the
+   check cannot be made before it comes down; if it fails the page goes back up before the rollback.)
+   If a check fails it rolls the code back by itself and says what the schema is now.
+8. Keeps the last three image generations.
 
 `deploy/versions.env` records `AIDP_VERSION`, `AIDP_PREVIOUS_VERSION` and the pre-upgrade dump. It is
 written by these scripts and never by hand. The first upgrade from an install that used
@@ -691,12 +723,18 @@ for what that means.
 
 ### migrate.failed
 
-**Symptom** `upgrade.sh` stopped with "the switch failed before the application was replaced".
-`deploy/dc ps -a` shows `migrate` exited non-zero, or `preflight` did. Nothing was replaced: the
-previous version is still running and `versions.env` still names it. Prisma applies each migration
-in its own transaction, so the database is at a migration boundary, not half-way through one.
+**Symptom** `upgrade.sh` stopped with "migrate failed; nothing was replaced and the previous
+version is still running" (or `db-grants`, or `preflight`). Nothing was replaced: the previous
+version is still running, participants saw the maintenance page for a few seconds and then the site
+again, and `versions.env` still names the old version. Prisma applies each migration in its own
+transaction, so the database is at a migration boundary, not half-way through one; the failed
+migration is recorded as failed in `_prisma_migrations`, and `prisma migrate deploy` will refuse to
+go on until it is resolved (option 2 below). Rehearsed with a deliberately failing migration on
+2026-10-14: about five seconds of maintenance page, then 200s, the old containers never touched.
 
-**Look at** `deploy/dc logs migrate` for the error and the migration's name.
+**Look at** The error and the migration's name, printed by the script above its warning. The
+one-shot ran with `--rm`, so it is not in `deploy/dc logs`; run it again to see it:
+`deploy/dc run --rm -T migrate`.
 
 **Do** One of three, by what the log says:
 
