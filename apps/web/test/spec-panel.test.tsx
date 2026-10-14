@@ -69,6 +69,18 @@ describe("SpecSections", () => {
     expect(screen.getByText("Empty")).toBeInTheDocument();
   });
 
+  it("shows one Diagrams heading: an empty diagrams section gives way to the panel", () => {
+    const withDiagrams: LiveSpec = {
+      ...spec,
+      sections: [
+        ...spec.sections,
+        { key: "diagrams", title: "Diagrams", status: "empty", markdown: "", fields: [] },
+      ],
+    };
+    render(<SpecSections sessionId="s1" spec={withDiagrams} onSpec={vi.fn()} />);
+    expect(screen.getAllByRole("heading", { name: "Diagrams" })).toHaveLength(1);
+  });
+
   it.each([
     [{ outcome: "pending" as const }, "Not started yet"],
     [{ outcome: "off" as const }, "Off for this interview"],

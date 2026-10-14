@@ -80,7 +80,7 @@ export function OpportunityFilters({
           onChange({ ...filters, solutionClass: v as Filters["solutionClass"] });
         }}
       >
-        <SelectTrigger size="sm" className="w-40" aria-label={s.filters.class}>
+        <SelectTrigger size="sm" className="w-auto min-w-40" aria-label={s.filters.class}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -98,7 +98,7 @@ export function OpportunityFilters({
           onChange({ ...filters, status: v as Filters["status"] });
         }}
       >
-        <SelectTrigger size="sm" className="w-36" aria-label={s.filters.status}>
+        <SelectTrigger size="sm" className="w-auto min-w-36" aria-label={s.filters.status}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -116,7 +116,7 @@ export function OpportunityFilters({
           onChange({ ...filters, minRank: Number(v) });
         }}
       >
-        <SelectTrigger size="sm" className="w-36" aria-label={s.filters.minRank}>
+        <SelectTrigger size="sm" className="w-auto min-w-36" aria-label={s.filters.minRank}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

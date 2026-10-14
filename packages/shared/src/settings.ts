@@ -356,8 +356,11 @@ export const SETTINGS = {
     description: "New interviews all of an organization's campaigns together may start per hour",
   }),
   "abuse.distinctEmailsPerAddressPerHour": def({
-    schema: z.number().int().min(1).max(100),
-    default: 5,
+    // 5 until D-468: colleagues in one office share one internet address, and in the 2026-10-15
+    // simulation the sixth person to ask for a code within the hour silently got none. 50 still
+    // stops one address mail-bombing a victim list; a bigger office raises it per tenant.
+    schema: z.number().int().min(1).max(1000),
+    default: 50,
     scopes: ["platform", "tenant"],
     category: "privacy",
     since: "2026.10",

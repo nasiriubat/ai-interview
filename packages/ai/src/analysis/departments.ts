@@ -4,6 +4,7 @@ import {
   type DepartmentRow,
   type SolutionClass,
 } from "@aidp/shared";
+import { weeklyMinutes } from "./minutes.js";
 import type { AnalysisFact } from "./pipeline.js";
 
 /** An opportunity as the comparison needs it: its members, its class, its title. */
@@ -15,7 +16,6 @@ export interface ComparableOpportunity {
 }
 
 const TOP = 3;
-const PER_WEEK: Record<string, number> = { hourly: 40, daily: 5, weekly: 1, monthly: 0.25, rarely: 0.05 };
 
 /** Casefolded, whitespace-collapsed department name, so "IT", " it " and "It" are one department. */
 export function normalizeDepartment(raw: string | undefined): string {
@@ -109,10 +109,7 @@ function row(
 ): DepartmentRow {
   const ids = new Set(g.facts.map((f) => f.id));
   const byFact = new Map(g.facts.map((f) => [f.id, f.participantKey]));
-  let minutes = 0;
-  for (const f of g.facts) {
-    if (f.fact.kind === "task") minutes += f.fact.minutesPerOccurrence * (PER_WEEK[f.fact.frequency] ?? 1);
-  }
+  const minutes = weeklyMinutes(g.facts);
   const total = g.participants.size;
   const mentions: { op: ComparableOpportunity; people: Set<string> }[] = [];
   const byClass = new Map<SolutionClass, Set<string>>();

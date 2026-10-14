@@ -45,3 +45,11 @@ describe("participant welcome", () => {
       }
   });
 });
+
+describe("code requests from one office address (D-468)", () => {
+  it("lets a typical office ask for codes without hitting the per-address cap", () => {
+    const def = SETTINGS["abuse.distinctEmailsPerAddressPerHour"];
+    expect(def.default).toBeGreaterThanOrEqual(50);
+    expect(def.schema.safeParse(500).success).toBe(true);
+  });
+});

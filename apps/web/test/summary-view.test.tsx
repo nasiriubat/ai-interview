@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SummaryView, SUMMARY_POLL_MS } from "@/components/participant/SummaryView";
+import { SummaryView, SUMMARY_POLL_MS, uniqueFactLines } from "@/components/participant/SummaryView";
 import type { ParticipantApi } from "@/lib/api/participant";
 import type { Summary } from "@/lib/api/schemas";
 
@@ -68,5 +68,19 @@ describe("SummaryView", () => {
     } as never;
     render(<SummaryView api={api} available onDelete={vi.fn()} />);
     expect(await screen.findByText(/could not be loaded/)).toBeInTheDocument();
+  });
+});
+
+describe("what was noted (simulation 2026-10-15)", () => {
+  it("lists each item once, however often extraction saw it", () => {
+    const task = (name: string, frequency: string) => ({ kind: "task", name, frequency }) as never;
+    const lines = uniqueFactLines([
+      task("Calling no-shows", "daily"),
+      task("Re-keying appointments", "daily"),
+      task("Calling no-shows", "daily"),
+      task("calling no-shows ", "daily"),
+      { kind: "process", name: "Calling no-shows" } as never,
+    ]);
+    expect(lines).toEqual(["Calling no-shows (daily)", "Re-keying appointments (daily)", "Calling no-shows"]);
   });
 });

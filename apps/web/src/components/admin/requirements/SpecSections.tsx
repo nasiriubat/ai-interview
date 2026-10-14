@@ -21,6 +21,10 @@ export function SpecSections({
 }): React.JSX.Element {
   const s = t.admin.requirements.spec;
   const context = Object.entries(spec.context);
+  // An empty "Diagrams" section card sat right above the diagrams panel, so the page showed two
+  // "Diagrams" headings, one saying "Nothing captured yet" (simulation 2026-10-15). The panel is
+  // where diagrams live; the section card shows only when it holds something.
+  const sections = spec.sections.filter((x) => !(x.key === "diagrams" && x.status === "empty"));
   const mvp = spec.mvpChallenge;
   // The label says what happened, not just whether the walk started (D-322): an interview that is
   // over and never reached the walk is "skipped", not "not started".
@@ -69,10 +73,10 @@ export function SpecSections({
         ) : null}
       </div>
 
-      {spec.sections.length === 0 ? (
+      {sections.length === 0 ? (
         <p className="text-muted-foreground text-sm">{s.noSections}</p>
       ) : (
-        spec.sections.map((section) => (
+        sections.map((section) => (
           <SpecSectionCard key={section.key} sessionId={sessionId} section={section} onSpec={onSpec} />
         ))
       )}

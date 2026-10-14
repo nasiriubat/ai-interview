@@ -8,6 +8,7 @@ import type {
   SolutionClass,
   Weights,
 } from "@aidp/shared";
+import { weeklyMinutes } from "./minutes.js";
 import {
   ClusterMergeResultSchema,
   OPPORTUNITY_TEXT_MAX,
@@ -152,7 +153,6 @@ const NarrativeSchema = z.object({
   nextSteps: z.array(z.string()).min(1).max(5),
   caveats: z.string().min(1),
 });
-const PER_WEEK: Record<string, number> = { hourly: 40, daily: 5, weekly: 1, monthly: 0.25, rarely: 0.05 };
 
 /**
  * The collective analysis (spec 04): embed, cluster, let the model merge and name,
@@ -615,10 +615,7 @@ export function clusterStats(members: AnalysisFact[], k: number): ClusterStats {
   // back below k, where a cluster of one or two people would otherwise publish them (D-143).
   const tools =
     participants >= k ? uniq(members.flatMap((m) => ("tools" in m.fact ? m.fact.tools : []))) : [];
-  let minutes = 0;
-  for (const m of members) {
-    if (m.fact.kind === "task") minutes += m.fact.minutesPerOccurrence * (PER_WEEK[m.fact.frequency] ?? 1);
-  }
+  const minutes = weeklyMinutes(members);
   // Cleaned like evidence snippets: the report renders these as Markdown.
   const quotes =
     participants >= k
