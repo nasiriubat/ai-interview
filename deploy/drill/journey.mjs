@@ -96,8 +96,13 @@ async function interviews() {
 
 async function analysis(admin) {
   await step("analysis: queued and finished", async () => {
-    const created = await staff(admin, "POST", `/campaigns/${campaign.campaignId}/analyses`, {});
-    const id = created.analysis?.id ?? created.id;
+    // The third completion starts an analysis by itself (completionThreshold); asking for one
+    // while it runs is a 409 that names it, and that one is the one to wait for.
+    const asked = await admin.json("POST", `/api/staff/campaigns/${campaign.campaignId}/analyses`, {});
+    let id;
+    if (asked.status === 409) id = asked.body?.error?.details?.analysisId;
+    else if (asked.status >= 200 && asked.status < 300) id = asked.body?.analysis?.id ?? asked.body?.id;
+    else throw new Error(`POST analyses -> ${asked.status}: ${JSON.stringify(asked.body).slice(0, 200)}`);
     const deadline = Date.now() + 5 * 60_000;
     for (;;) {
       const list = await staff(admin, "GET", `/campaigns/${campaign.campaignId}/analyses`);
