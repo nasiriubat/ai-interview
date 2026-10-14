@@ -8,7 +8,13 @@ import { describeDb } from "@aidp/testing";
 import { encode } from "@auth/core/jwt";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import type { Access } from "../src/auth/access.js";
-import { fakeModelServer, testWorld, TEST_AUTH_SECRET, TEST_INTERNAL_SECRET, type TestWorld } from "./helpers.js";
+import {
+  fakeModelServer,
+  testWorld,
+  TEST_AUTH_SECRET,
+  TEST_INTERNAL_SECRET,
+  type TestWorld,
+} from "./helpers.js";
 
 /*
  * The role matrix (engineering 4.2b): every route the app serves, against every kind of caller.
