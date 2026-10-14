@@ -215,6 +215,18 @@
       "crossTenantAdmin": 200
     }
   },
+  "GET /onboarding": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
   "GET /openapi.json": {
     "access": "public",
     "isolation": false,
@@ -575,6 +587,18 @@
       "crossTenantAdmin": 200
     }
   },
+  "GET /settings/history": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
   "GET /settings/scopes": {
     "access": "admin",
     "isolation": false,
@@ -636,6 +660,18 @@
     }
   },
   "GET /templates/:id/diff-shipped": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /templates/:id/versions": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -810,6 +846,18 @@
       "anonymous": 401,
       "participant": 401,
       "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /onboarding": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
       "admin": 200,
       "operator": 200,
       "crossTenantAdmin": 200
@@ -1163,6 +1211,18 @@
       "crossTenantAdmin": 200
     }
   },
+  "HEAD /settings/history": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
   "HEAD /settings/scopes": {
     "access": "admin",
     "isolation": false,
@@ -1224,6 +1284,18 @@
     }
   },
   "HEAD /templates/:id/diff-shipped": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /templates/:id/versions": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -1461,6 +1533,18 @@
       "admin": 401,
       "operator": 401,
       "crossTenantAdmin": 401
+    }
+  },
+  "POST /onboarding/dismiss": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
     }
   },
   "POST /operator/jobs/dead/:queue/:id/discard": {
@@ -1896,6 +1980,18 @@
     }
   },
   "POST /templates/:id/publish": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /templates/:id/restore": {
     "access": "admin",
     "isolation": true,
     "statuses": {
