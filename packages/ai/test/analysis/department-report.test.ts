@@ -49,7 +49,9 @@ describe("the department section of the report (FR-17)", () => {
   });
 
   it("says the comparison is switched off when the setting is off", () => {
-    const off = render(compareDepartments({ facts: people("Ward", 5), opportunities: [], k: 3, enabled: false }));
+    const off = render(
+      compareDepartments({ facts: people("Ward", 5), opportunities: [], k: 3, enabled: false }),
+    );
     expect(off).toContain("turned off");
   });
 });

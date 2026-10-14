@@ -23,7 +23,9 @@ export async function proposeSplit(texts: readonly string[], baseThreshold: numb
     const keep = groups.slice(0, MAX_PARTS);
     const centroids = keep.map((g) => centroidOf(g.map((i) => vectors[i] ?? [])));
     const part = new Array<number>(n).fill(0);
-    keep.forEach((g, p) => g.forEach((i) => (part[i] = p)));
+    keep.forEach((g, p) => {
+      for (const i of g) part[i] = p;
+    });
     for (const g of groups.slice(MAX_PARTS)) {
       const c = centroidOf(g.map((i) => vectors[i] ?? []));
       let best = 0;
@@ -35,7 +37,7 @@ export async function proposeSplit(texts: readonly string[], baseThreshold: numb
           best = p;
         }
       });
-      g.forEach((i) => (part[i] = best));
+      for (const i of g) part[i] = best;
     }
     return part;
   }

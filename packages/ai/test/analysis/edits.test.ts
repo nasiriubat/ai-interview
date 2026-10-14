@@ -58,7 +58,10 @@ describe("applyClusterEdits", () => {
   const merge: ClusterEditOp = { id: "e1", op: "merge", anchors: [A, B], title: "Notes and orders" };
 
   it("merges the clusters its anchors name and keys the result on its smallest fact", () => {
-    const out = applyClusterEdits([cluster("k1", "A", A), cluster("k2", "B", B), cluster("k3", "C", C)], [merge]);
+    const out = applyClusterEdits(
+      [cluster("k1", "A", A), cluster("k2", "B", B), cluster("k3", "C", C)],
+      [merge],
+    );
     expect(out.orphaned).toEqual([]);
     expect(out.clusters).toHaveLength(2);
     const merged = out.clusters.find((c) => c.name === "Notes and orders");
@@ -67,12 +70,17 @@ describe("applyClusterEdits", () => {
   });
 
   it("gives the same result when the clustering numbered its clusters in another order (D-151)", () => {
-    const one = applyClusterEdits([cluster("d1", "A", A), cluster("d2", "B", B), cluster("d3", "C", C)], [merge]);
-    const two = applyClusterEdits([cluster("d9", "C", C), cluster("d4", "B", B), cluster("d7", "A", A)], [merge]);
+    const one = applyClusterEdits(
+      [cluster("d1", "A", A), cluster("d2", "B", B), cluster("d3", "C", C)],
+      [merge],
+    );
+    const two = applyClusterEdits(
+      [cluster("d9", "C", C), cluster("d4", "B", B), cluster("d7", "A", A)],
+      [merge],
+    );
     // Untouched clusters keep whatever key the clustering gave them; what must agree is the facts
     // in each cluster and the key of the one the edit made.
-    const shape = (r: typeof one): string[] =>
-      r.clusters.map((c) => c.factIds.join(",")).sort();
+    const shape = (r: typeof one): string[] => r.clusters.map((c) => c.factIds.join(",")).sort();
     expect(two.clusters.find((c) => c.name === "Notes and orders")?.key).toBe(
       one.clusters.find((c) => c.name === "Notes and orders")?.key,
     );
@@ -115,7 +123,10 @@ describe("applyClusterEdits", () => {
 
   it("reports a split whose facts the pipeline already separated", () => {
     const split: ClusterEditOp = { id: "s1", op: "split", source: A, parts: [A.slice(0, 3), A.slice(3)] };
-    const out = applyClusterEdits([cluster("k1", "One", A.slice(0, 3)), cluster("k2", "Two", A.slice(3))], [split]);
+    const out = applyClusterEdits(
+      [cluster("k1", "One", A.slice(0, 3)), cluster("k2", "Two", A.slice(3))],
+      [split],
+    );
     // Two clusters either way, and the edit is reported as moot rather than applied twice.
     expect(out.clusters).toHaveLength(2);
     expect(out.orphaned).toEqual(["s1"]);
@@ -255,7 +266,10 @@ describe("runAnalysis with edits", () => {
     const first = await runAnalysis(deps(new Counting()), base(facts));
     const [a, b] = first.clusters;
     const reuse = new Map(
-      first.opportunities.map((o) => [o.clusterKey, { factIds: o.factIds, draft: draft(`Kept ${o.clusterKey}`) }]),
+      first.opportunities.map((o) => [
+        o.clusterKey,
+        { factIds: o.factIds, draft: draft(`Kept ${o.clusterKey}`) },
+      ]),
     );
     const model = new Counting();
     const edited = await runAnalysis(
@@ -272,7 +286,7 @@ describe("runAnalysis with edits", () => {
     expect(edited.opportunities.some((o) => o.title.startsWith("Kept "))).toBe(true);
     // Undo: the same seed with no edit gets the three clusters back, with no model call at all.
     const undone = await runAnalysis(
-      deps((model.opportunities = 0, model)),
+      deps(((model.opportunities = 0), model)),
       base(facts, { seed: { clusters: first.baseClusters, reuse } }),
     );
     expect(undone.clusters).toHaveLength(3);

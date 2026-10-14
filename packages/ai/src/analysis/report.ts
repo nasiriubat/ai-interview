@@ -1,10 +1,4 @@
-import type {
-  ClusterStats,
-  DepartmentComparison,
-  Factors,
-  ReportSection,
-  SolutionClass,
-} from "@aidp/shared";
+import type { ClusterStats, DepartmentComparison, Factors, ReportSection, SolutionClass } from "@aidp/shared";
 import { FACTOR_KEYS, isNotAi } from "@aidp/shared";
 
 export interface ReportOpportunity {
@@ -196,7 +190,8 @@ export function processMap(proc: { name: string; steps: string[] }): string {
 const NOT_SHOWN: Record<string, string> = {
   disabled: "The department comparison is turned off for this campaign.",
   no_departments: "Participants did not give a department, so there is nothing to compare.",
-  too_few_eligible: "Fewer than two groups have enough participants to be compared without singling anyone out.",
+  too_few_eligible:
+    "Fewer than two groups have enough participants to be compared without singling anyone out.",
 };
 
 const COMPARED_CLASSES = ["ai", "automation", "software", "process"] as const;
@@ -207,8 +202,11 @@ const COMPARED_CLASSES = ["ai", "automation", "software", "process"] as const;
  */
 function departmentSection(d: DepartmentComparison | undefined, k: number): string[] {
   const out = ["## Department comparison", ""];
-  if (!d || !d.shown) {
-    out.push(`Not shown. ${NOT_SHOWN[d?.reason ?? "too_few_eligible"] ?? ""} A department needs at least ${k} participants.`, "");
+  if (!d?.shown) {
+    out.push(
+      `Not shown. ${NOT_SHOWN[d?.reason ?? "too_few_eligible"] ?? ""} A department needs at least ${k} participants.`,
+      "",
+    );
     return out;
   }
   const pct = (x: number | undefined): string => (x === undefined ? "withheld" : `${Math.round(x * 100)}%`);
@@ -220,7 +218,9 @@ function departmentSection(d: DepartmentComparison | undefined, k: number): stri
   );
   for (const row of d.departments) {
     const name = row.kind === "other" ? "Other departments" : (row.name ?? "Unspecified");
-    const top = row.topOpportunities.map((t) => `${t.title} (${pct(t.share)})`).join("; ") || "none shared by enough people";
+    const top =
+      row.topOpportunities.map((t) => `${t.title} (${pct(t.share)})`).join("; ") ||
+      "none shared by enough people";
     out.push(
       `| ${name} | ${row.participants} | ${Math.round(row.minutesPerWeek / 60)} | ${COMPARED_CLASSES.map((c) => pct(row.solutionClassShare[c])).join(" | ")} | ${top} |`,
     );
