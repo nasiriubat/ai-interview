@@ -151,7 +151,7 @@ describe("specification fidelity", () => {
       "| hosting | EU cloud |",
     ])
       expect(markdown, needle).toContain(needle);
-    expect((markdown.match(/^```mermaid$/gm) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect((markdown.match(/^```mermaid$/gm) ?? []).length).toBe(3);
     expect(markdown).toContain("Where the parts run");
     expect(markdown).toContain("Web --> Api --> Db");
   });
@@ -227,7 +227,7 @@ describe("specification fidelity", () => {
       expect(body, needle).toContain(needle);
 
     // the three diagrams are pictures, and the renderer was asked for each source
-    expect(pdf.imagesPerPage.reduce((a, b) => a + b, 0)).toBe(4); // entity appears under Data and under Diagrams
+    expect(pdf.imagesPerPage.reduce((a, b) => a + b, 0)).toBe(3); // the entity diagram is shown once, under Data
     const asked = kroki.calls.map((c) => c.source).join("\n");
     for (const marker of ["Nurse --> Notes", "PATIENT ||--o{ NOTE", "Web --> Api --> Db"])
       expect(asked, marker).toContain(marker);
@@ -250,7 +250,7 @@ describe("specification fidelity", () => {
     const pdf = await readPdf(r.bytes);
     expect(pdf.text).toContain("Web --> Api --> Db");
     expect(pdf.text).toContain("Nurse --> Notes");
-    expect(r.warnings.length).toBeGreaterThanOrEqual(3);
+    expect(r.warnings.length).toBe(3);
   });
 });
 
