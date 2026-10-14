@@ -1,4 +1,4 @@
-import { CoinsIcon, EuroIcon, HashIcon, ZapIcon } from "lucide-react";
+import { CoinsIcon, BanknoteIcon, HashIcon, ZapIcon } from "lucide-react";
 import * as React from "react";
 import { Panel } from "@/components/admin/Panel";
 import { StatTile } from "@/components/admin/StatTile";
@@ -17,7 +17,7 @@ export function SpendPanel({ spend, title }: { spend: Spend; title: string }): R
       <h2 className="text-foreground text-base font-semibold tracking-tight">{title}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile
-          icon={EuroIcon}
+          icon={BanknoteIcon}
           label={t.admin.dashboard.spendTitle}
           value={formatCents(spent)}
           hint={

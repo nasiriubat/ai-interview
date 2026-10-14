@@ -38,7 +38,9 @@ const swap = (s: string): string =>
     .replace("the hospital group's IT department", "the clinic network's IT department");
 
 // ---- bridge: promote the stock-counting opportunity
-const opp = a.opportunities.find((o) => o.title.startsWith("Digital Inventory Tracking"));
+// The demo analysis varies between runs, so fall back to the first opportunity when the named one is absent.
+const opp =
+  a.opportunities.find((o) => o.title.startsWith("Digital Inventory Tracking")) ?? a.opportunities[0];
 if (!opp) throw new Error("opportunity not found");
 const promoted = await admin.ok<{ session: { id: string }; handoff: Handoff }>(
   "POST",
