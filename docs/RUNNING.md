@@ -4,10 +4,49 @@ For deploying to a server, see [DEPLOY.md](DEPLOY.md); this file is development 
 
 Prerequisites: Node 22, pnpm 10, Docker.
 
+## Configuration
+
+One file configures development: the **root `.env`** (copy `.env.example`, which documents every
+variable and tags it required, bootstrap, fallback or runtime). There is nothing to copy into
+`apps/api` or `apps/web`.
+
+| Where you run                                                | What reads the root `.env`                                              |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `pnpm stack:up` (Docker)                                     | every service, through `env_file`, and compose's own `${...}` expansion |
+| `pnpm --filter @aidp/{api,worker,web} dev`, `@aidp/db` tools | `scripts/with-env.mjs`, which loads it before starting the command      |
+| `pnpm check`, tests, `pnpm live:run`                         | tests never read it; `live:run` looks for the OpenRouter key in it      |
+| Production                                                   | **not read.** `deploy/.env` (generated, every variable named) instead   |
+
+**Precedence**, highest first: a variable set in the shell, then the root `.env`, then (only while
+it still exists) the legacy `apps/api/.env`, then the code's default. In Docker, values the compose
+file sets itself (`DATABASE_URL` to the `postgres` host, `EMAIL_SMTP_URL` to Mailpit, ports) win
+over the file, so a host-style `DATABASE_URL=...localhost` in `.env` is correct for both.
+
+**The values are a fallback, not the source of truth.** Once the platform is running the admin owns
+configuration, and `.env` is what it starts from:
+
+- _Bootstrap only:_ `BOOTSTRAP_*` (first operator, admin and tenant) and `ANTHROPIC_API_KEY`,
+  `OPENAI_API_KEY`, `OPENROUTER_API_KEY` (seed the platform providers and their routes on first
+  boot). They are not read again; change providers, routes and people in the admin.
+- _Fallback for an admin setting:_ `EMAIL_SMTP_URL` and `EMAIL_FROM` are used only while the
+  settings `email.smtpUrl` and `email.from` are empty at both tenant and platform scope.
+- _Always from the environment:_ `PLATFORM_ENCRYPTION_KEY` (it decrypts everything the admin
+  stores, so it cannot live in the admin), `AUTH_SECRET`, `DATABASE_URL`, ports and origins,
+  egress and timeouts, alert targets.
+
+Keep `.env` as the record of those first values, and back it up with the database: the encryption
+key in it is what makes the database's stored secrets readable.
+
+**Upgrading from `apps/api/.env`.** Run `pnpm env:migrate` (add `--dry-run` first). It copies keys
+that are missing or empty in `.env`, never overwrites a value `.env` already has, keeps a
+`.env.bak`, and prints key names only. Until you run it, `pnpm stack:up` and the dev scripts keep
+reading the old file underneath the root one and warn; `pnpm stack:up` refuses to start only when an
+empty `KEY=` in `.env` would hide a value that just the old file sets. Delete `apps/api/.env` afterwards.
+
 ## The whole stack in Docker
 
 ```bash
-cp apps/api/.env.example apps/api/.env   # fill PLATFORM_ENCRYPTION_KEY and AUTH_SECRET
+cp .env.example .env                     # fill PLATFORM_ENCRYPTION_KEY and AUTH_SECRET
 pnpm stack:up      # build and start everything; web on http://localhost:3000, mail on :8025
 pnpm stack:logs    # follow api, worker and web
 pnpm stack:down    # stop; the database and uploads are kept
@@ -41,12 +80,9 @@ For working on the code with hot reload, run only Postgres in Docker:
 docker compose up -d postgres            # Postgres 16 with pgvector on localhost:5432
 pnpm install
 pnpm -r build
-cp apps/api/.env.example apps/api/.env   # fill PLATFORM_ENCRYPTION_KEY (openssl rand -base64 32) and AUTH_SECRET
-export DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery
-pnpm --filter @aidp/db migrate:deploy
-BOOTSTRAP_OPERATOR_EMAIL=you@example.com BOOTSTRAP_ADMIN_EMAIL=you@example.com \
-  PLATFORM_ENCRYPTION_KEY=<same as .env> ANTHROPIC_API_KEY=sk-ant-... \
-  pnpm --filter @aidp/db bootstrap
+cp .env.example .env                     # fill PLATFORM_ENCRYPTION_KEY (openssl rand -base64 32) and AUTH_SECRET
+pnpm --filter @aidp/db migrate:deploy    # these scripts load the root .env themselves
+pnpm --filter @aidp/db bootstrap         # first-run operator, tenant and providers, from .env
 pnpm --filter @aidp/api dev              # API on http://localhost:4000, OpenAPI at /api/v1/openapi.json
 pnpm --filter @aidp/worker dev
 pnpm --filter @aidp/web dev              # web app on http://localhost:3000
@@ -128,7 +164,7 @@ Answering by recording needs a `transcription` route. A live conversation needs 
 route, and the tenant setting `features.realtimeVoice`, which ships off.
 
 Neither Anthropic nor OpenRouter can transcribe, speak or embed. Setting `OPENAI_API_KEY` in
-`apps/api/.env` bootstraps a platform OpenAI provider routed to exactly those three purposes and
+the root `.env` bootstraps a platform OpenAI provider routed to exactly those three purposes and
 nothing else, which is the shortest path to a working voice interview and to semantic clustering
 in the analysis.
 
