@@ -1,4 +1,3 @@
-import { deriveInternalSecret } from "@aidp/shared/internal-secret";
 import { randomBytes } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { SpeechRunner, type LanguageHint, type SpeechResult, type SpeechToTextEngine } from "@aidp/ai";
@@ -14,6 +13,7 @@ import {
   MemoryStorage,
 } from "@aidp/core";
 import { shippedTemplates, withTenantScope } from "@aidp/db";
+import { deriveInternalSecret } from "@aidp/shared/internal-secret";
 import { encode } from "@auth/core/jwt";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
