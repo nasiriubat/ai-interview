@@ -31,6 +31,12 @@ export const FLAWS = [
   "descriptive_id",
   "rules_flood",
   "no_capture",
+  /** The same capability filed again under another id and a reworded title (D-241). */
+  "duplicate_capture",
+  /** A screen detail (a button label) filed as its own requirement (D-242). */
+  "detail_as_fr",
+  /** A decision filed as a functional requirement (D-242). */
+  "decision_as_fr",
 ] as const;
 export const FlawSchema = z.enum(FLAWS);
 export type Flaw = z.infer<typeof FlawSchema>;

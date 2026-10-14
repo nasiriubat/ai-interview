@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import * as React from "react";
 import { NavigationProgress } from "@/components/common/NavigationProgress";
-import { Toaster } from "@/components/ui/sonner";
+import { ToasterHost } from "@/components/common/ToasterHost";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { getStrings, requestLocale } from "@/i18n/server";
@@ -67,7 +67,7 @@ export default async function RootLayout({
             {t.app.skipToContent}
           </a>
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
-          <Toaster />
+          <ToasterHost />
         </LocaleProvider>
       </body>
     </html>

@@ -1,0 +1,996 @@
+{
+  "persona": "technical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Before we get into the detail of the notes, I need to know where this will run, because it shapes the architecture, the running cost and the compliance defaults. Is there existing infrastructure you would use, a cloud account, a managed platform, or nothing yet?"
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks, that's clear enough to record. The participant has answered the hosting question (\"Cloud account\"), so I'll note it and move on to the problem itself.\n\nWhich cloud provider does your organization already use, or is that not decided yet?"
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "We’re using Microsoft Azure exclusively across the hospital group, so the tool will run in our existing Azure cloud account. We’ll use Azure App Services for the web app and Azure SQL Database for structured note storage, with all data encrypted at rest and in transit using Azure’s built-in compliance controls. The deployment will follow our standard Azure DevOps pipeline with infrastructure-as-code using Bicep."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "You've named Azure App Services, Azure SQL Database, Bicep and Azure DevOps. Thanks, I've recorded that. Now, which existing systems must this tool work with? It matters because every system it connects to adds data and integration work. If you're not sure, I'll assume none for now."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "The tool must integrate with two systems: our electronic health record (EHR) system, Epic, via its FHIR API, and our clinical messaging system, which uses HL7 v2.5 over TCP, to push notes to the patient’s chart. We’ll use Azure Logic Apps to handle both integrations, with managed identities for secure authentication via Azure AD. The EHR integration will use FHIR R4 endpoints for patient context and note ingestion, while HL7 messages will be generated from structured note data in a standardized format."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "Thanks, I've recorded both integrations: Epic via FHIR R4, and clinical messaging via HL7 v2.5 over TCP, both through Logic Apps with managed identities. Next, who will build this? It shapes how the specification and plan are phrased. If unsure, I'll assume a coding agent."
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "This will be built by our internal IT team, specifically the clinical systems group, with two senior developers, a solution architect, and a compliance liaison. I’ll be the technical owner and lead the design and implementation, with daily standups and biweekly demos to the nursing leadership team. The project will follow our standard Agile Scrum process using Azure DevOps, with sprint lengths of two weeks and all code reviewed via pull requests."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "Thanks, that answers who builds it: your internal clinical systems team. I've recorded that, so I won't ask again."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": "Understood. I’ll proceed with the assumption that the internal clinical systems team is responsible for development, with me as the technical owner, and we’ll use Agile Scrum in Azure DevOps with two-week sprints and mandatory code reviews."
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "Got it: your clinical systems team leads the build, with Scrum in Azure DevOps. One more context point before we move on. What does the team know best? A stack the team already knows usually beats a marginally better one they must learn, so this affects how we choose the app framework and the integration tooling. If you're not sure, I'll record it as unknown."
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": "The team is most proficient in C#, .NET Core, and Azure services, with strong experience in REST APIs and Azure Logic Apps. They’ve built several FHIR clients and HL7 parsers in the past, so we’ll use .NET 8 for the web app and ensure all integration logic leverages existing libraries and patterns. We’ll also reuse our current logging and monitoring stack—Azure Application Insights—with custom telemetry for note submission events."
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "The team's skills are recorded: C#, .NET 8, Azure services, FHIR and HL7 experience, and Application Insights for telemetry. Since this is answered, I'll move on to the problem itself."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "Understood. The team’s expertise in C#, .NET 8, FHIR, HL7, and Azure services will guide our tech choices, ensuring we use proven patterns and minimize onboarding effort. I’ll ensure the solution leverages existing internal libraries for FHIR and HL7 message generation, and all telemetry will be routed through Application Insights with structured logs for audit and performance monitoring."
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "When does version one need to exist? The date decides how much goes into the first release, so it's worth knowing early. If there's no fixed date, I'll use no fixed date."
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "Version one must be in production by December 15, 2024, to align with the hospital’s annual digital health rollout and the new nursing workflow audit cycle. That gives us 12 weeks from now to deliver a minimal viable product with core note entry, EHR sync via FHIR, HL7 message generation, and SSO via Azure AD. We’ll prioritize core functionality and defer advanced features like templates and audit trails to v1.1."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "The participant has answered the timeline question, so I'll record it and not ask again. Version one must be in production by December 15, 2024, which gives about 12 weeks and sets the MVP scope."
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": "Confirmed. The December 15, 2024, deadline will shape the MVP scope: we’ll deliver a secure, SSO-enabled note entry web app in .NET 8, with FHIR-based EHR sync and HL7 v2.5 message generation via Logic Apps, all deployed to Azure App Services with Azure SQL for persistence. We’ll exclude note templates, audit logs, and multi-ward support for v1.0, deferring them to v1.1."
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Is there a budget range for this build and its running costs? It decides whether we lean toward building in-house or buying a product. If it isn't decided yet, I'll record it as not decided."
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "The budget is capped at $45,000 for development and $12,000 annually for hosting and maintenance, including Azure service costs and compliance monitoring. We’ll stay within this by reusing existing Azure resources and avoiding custom third-party tools. All development will be done in-house using our current team and infrastructure, with no external consultants or SaaS licensing."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "Thanks, the budget is recorded: $45,000 for development and $12,000 a year for hosting and maintenance, built in-house. Next, what do nurses do in a typical shift when they write a ward note: which screen or tool do they open first, and what do they type?"
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": "In a typical shift, nurses start by logging into the hospital’s Azure AD-protected Azure App Services web app via the main clinical portal, then select a patient from a list pulled in real time from Epic via FHIR. They enter a free-text narrative note using a rich-text editor with a 256-character limit per line and a 2,000-character total, with the system auto-saving draft notes every 30 seconds. The note includes a timestamp, nurse ID, and patient ID, and is marked as “pending” until sent."
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "Thanks for the workflow detail. How many people will use this at launch, roughly? It sets the scale and hosting size we plan for. If you're not sure, I'll assume under 100."
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "Approximately 85 nurses across three medical wards will use the tool at launch, with peak concurrent usage around 30 during shift change (7:00–8:00 AM and 7:00–8:00 PM). We’ll size the Azure App Services plan to handle 50 concurrent users with auto-scaling enabled, and the Azure SQL Database will use a Standard S2 tier with 250 GB storage to accommodate note history and audit logs."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "The participant already answered this: about 85 nurses across three wards, with peaks around 30 at shift change. I've recorded that and sized the plan accordingly, so there's no need to ask again."
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "Understood. The deployment will be provisioned for 85 active users with peak concurrency of 30, using an Azure App Services plan with auto-scale and an S2 SQL Database tier. All capacity planning and monitoring will be based on this usage profile, and we’ll validate performance during the final UAT phase."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "Which compliance rules apply to this data? Patient notes are health data, which changes hosting, access control and retention requirements. If you're unsure, I'll default to personal data under GDPR, with the health-data rules of your jurisdiction layered on top."
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "This data is subject to HIPAA, with additional compliance requirements under the California Confidentiality of Medical Information Act (CMIA) due to our location in California. All notes must be encrypted at rest and in transit, with access restricted to authenticated clinical staff via Azure AD and role-based access control (RBAC). We’ll retain notes for seven years in compliance with HIPAA, with audit logs stored in Azure Blob Storage with immutable retention enabled."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "Compliance is answered: HIPAA, plus California's CMIA, with encryption at rest and in transit, Azure AD with RBAC, seven-year retention, and immutable audit logs. I've recorded that. Next, what should version one do when a nurse's note fails to reach Epic or the messaging system? Do they retry automatically, or is it marked failed for them to resend?"
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": "The system will automatically retry failed FHIR and HL7 transmissions up to three times with exponential backoff (10s, 30s, 60s) and log each attempt in Application Insights. If all retries fail, the note is marked as “failed to send” in the UI with a status badge and timestamp, and the nurse sees a notification with a “Retry Now” button. Failed notes are stored in Azure SQL with a dedicated retry queue and monitored via a daily health dashboard."
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Thanks for the retry design. One process gap remains: the process decision doesn't set a sprint length or code review rules. Default: two-week sprints with mandatory peer review on every change before merge. That means the team plans work in two-week cycles, and no code reaches the main branch without a second reviewer. Keep these defaults, or choose different ones?"
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "Two-week sprints with mandatory peer review are now recorded as the process. Next, the problem itself: what does a nurse lose today when they enter the same ward note twice, once in Epic and once in the spreadsheet? Roughly how many minutes per shift does that cost, and how often do the two versions disagree?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": "Nurses lose about 12 minutes per shift on average—3 minutes per note entry across four notes—due to duplicate data entry, with an additional 5 minutes from reconciliation when discrepancies occur. On average, the two versions disagree in 15% of cases, usually due to timing mismatches or text edits not copied between systems, leading to clinical ambiguity and rework."
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "That's a clear cost: about 12 minutes per shift, and disagreement in 15% of notes. Can you walk me through one recent case where the two versions disagreed? What was the discrepancy, how was it found, and what happened to the patient's record afterward?"
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": "Last week, a nurse entered a note about a patient’s pain level as “6/10” in the spreadsheet but recorded “5/10” in Epic due to a typing error. The discrepancy was caught during a shift change when the next nurse reviewed the chart and noticed the inconsistency in the timeline. The error was resolved by editing the Epic entry to match the spreadsheet, but only after the patient’s medication order was temporarily held for a reassessment. The incident was logged in the quality dashboard, and the nurse received a brief retraining reminder via email."
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "That example shows the cost clearly: a pain score of 5 instead of 6 held a medication order for reassessment. Did the medication order cause any delay in the patient's care, and did the nurse who caught it have to stop their own work to resolve it?"
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "Yes, the medication order delay caused a 45-minute wait for the patient’s opioid dose, which was clinically significant given their post-op status. The nurse who caught the discrepancy had to pause their own documentation to verify the correct score in the spreadsheet, then manually update Epic, which added about 10 minutes to their shift workload. This incident highlighted the need for a single source of truth and reinforced the urgency of the tool’s rollout."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "That's a clear example: a 45-minute delay in a post-op opioid dose, plus about 10 minutes of the catching nurse's time. Before we move on, one thing I want to check: what is the typical number of ward notes per nurse per shift, and how many of them go to the spreadsheet? That tells us how much rework the tool would remove."
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "On average, each nurse writes 4.3 ward notes per shift, with about 80% of those—roughly 3.4 notes—currently entered into the spreadsheet as a separate step. That means the tool would eliminate approximately 3.4 entries per nurse per shift, or about 120 notes daily across all 85 nurses, directly reducing duplication and error risk. The remaining 20% are entered directly into Epic, which the tool will not replace but will instead integrate with to avoid redundancy."
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Thanks for the volume figures: about 3.4 spreadsheet entries per nurse per shift, roughly 120 notes a day.\n\nOne gap in the auth design: Azure AD sign-in is set, but the RBAC roles that nurses get are not. Default: a single \"Ward Nurse\" role that can create and retry their own notes and read notes for their assigned ward, with an audit-reader role limited to compliance staff. That means nurses cannot see other wards' notes, and only compliance staff can read the audit trail. Keep this default, or define different roles?"
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"yes_no\",\"value\":true})"
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "Good, the Ward Nurse and audit-reader roles are set. Next, the other people who touch this tool: besides nurses, who needs to use it or depend on it day to day, such as charge nurses, ward managers or the compliance liaison? For each, what is the first thing they would do when they open it?"
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": "Charge nurses use the tool to review all pending and failed notes for their ward via a dashboard that shows counts by nurse and status. They’ll open it first thing during shift change to identify unresolved notes and assign resolution tasks. Ward managers run weekly reports from the same dashboard to track note completion rates and failure trends, using the data for workflow improvement. The compliance liaison checks the audit log view weekly to validate retention and access patterns, ensuring all entries meet HIPAA and CMIA requirements."
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Charge nurses, ward managers and the compliance liaison each have a clear first action now. Before we go further on users, I'd like to confirm one detail: do charge nurses see only their own ward's notes, or can they also see notes from other wards during shift coverage?"
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "Charge nurses will see only their own ward, which I've recorded. Next, the ward manager: when they run the weekly completion and failure report, which view do they need, a summary for all three wards or one report per ward? Default: one summary across all three wards, with a drill-down to a single ward. Keep that default, or choose one of the other options?"
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"yes_no\",\"value\":true})"
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "Got it: the ward manager gets one summary across all three wards, with drill-down to a single ward. Now for the nurses themselves: on a typical shift, what is the first thing a Ward Nurse does after signing in, before they write any note?"
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": "After signing in, the nurse’s first action is to select a patient from a real-time list pulled from Epic via FHIR, which displays only patients assigned to their ward and flagged for active documentation. The list updates every 60 seconds and includes the last note timestamp, current status, and any pending alerts. They don’t need to search or type—just click to open the note entry form, which auto-populates patient demographics and context."
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "Thanks, that gives me the nurse's first action clearly: they pick a patient from their ward's live list, and the note form opens with the patient's details already filled in. Next, let's capture how a nurse uses the tool across a shift. Walking from sign-in to a finished note, which step happens first after they pick a patient?"
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": "After selecting a patient, the first step is to review the most recent note from the same ward in the system—pulled from the database and displayed in a read-only preview above the entry field—so the nurse can ensure continuity of care and avoid duplicating content. They can then either edit the existing note or start a new one, with the system flagging if the last note was written within the past 30 minutes."
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "Thanks, that adds the preview step. One thing to pin down before moving on: when a nurse chooses to edit the existing note rather than start a new one, whose note is it? Can they change another nurse's note from the same ward, or only notes they wrote themselves?"
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": "The system allows editing only notes authored by the current nurse—based on the nurse ID stored in the note metadata—so they cannot modify another nurse’s entry. If they attempt to edit a note from a different nurse, the system displays a “You do not have permission to edit this note” message and logs the attempt in the audit trail. This enforces data integrity and accountability in line with HIPAA."
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "Noted: nurses can only edit their own notes, and attempts on another nurse's note are blocked and logged. I'll record that as a rule. Next, let's follow one full shift for a Ward Nurse. After they finish a note, what happens when Epic or the messaging system is unavailable: does the note wait and send later, and how does the nurse find out it has not gone through?"
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": "When Epic or the messaging system is unavailable, the note is saved locally in the browser’s IndexedDB with a “pending” status and auto-retries every 5 minutes via a background service worker. The nurse sees a red “Send Failed” badge on the note in the list view, and the status is updated in real time. If the send fails after three retries, the note remains in the list with a persistent warning, and the nurse can click to retry manually. All failed attempts are logged in Application Insights and visible to charge nurses via the dashboard."
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "Thanks. The failure path is clear: notes wait locally, retry every 5 minutes, show a red \"Send Failed\" badge, and can be retried by hand after three failed attempts.\n\nOne detail to confirm: if a nurse closes the browser or the device loses power while a note is still pending, will that note survive, and will it still send when they sign in again later?"
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": "Yes, the note persists in the browser’s IndexedDB with a unique local ID and a “pending” flag, and it will automatically attempt to send on the next sign-in if the system is reachable. The browser’s service worker handles background retries, and the note remains in the list with the same “Send Failed” badge until successful delivery. We’ve tested this scenario under power loss and session timeout conditions, and all pending notes are recovered and re-queued reliably."
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "Thanks, that settles persistence: pending notes survive a closed browser or lost power and re-send on the next sign-in. We have six functional requirements so far, and the next is FR-7. Let's check the list before we go further. Which of these is the most important for the first version to do well?\n\nFR-1: Nurse can enter a ward note.\nFR-2: Nurse can retry failed note transmission.\nFR-3: Nurse can enter a ward note once and it reaches both systems.\nFR-4: Charge nurse can review pending and failed notes for their ward.\nFR-5: Ward manager can run weekly reports on note completion rates and failure trends.\nFR-6: Ward Nurse can pick a patient from a live ward list."
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": "FR-3 is the most critical—nurses must enter a ward note once and have it reach both Epic and the messaging system reliably. Without this, the tool fails its core purpose, and the time saved from eliminating duplication is nullified. FR-1 and FR-6 are foundational, but FR-3 is the value proposition; everything else depends on it. FR-2 supports FR-3’s reliability, and FR-4/FR-5 are important for governance but can be implemented with slightly delayed data in v1.0."
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "FR-3 is clearly the core, and I've noted that priority.\n\nThere is a gap in FR-2. The system retries failed sends three times, but it does not say which failures are permanent and should never be retried. For example, a rejected message for an invalid patient ID would fail every time. Default: retry every failure, and treat only a clear rejection from Epic or the messaging system as permanent. That means a bad patient ID is flagged for correction, not retried. Keep this default, or define the permanent failures differently?"
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"yes_no\",\"value\":true})"
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "Thanks, I've recorded the default: a clear rejection from Epic or the messaging system is permanent and is not retried, and everything else is retried. Next, let's make it concrete. When Epic rejects a note because the patient ID is no longer valid, what should the nurse see, and who fixes it: the nurse or the charge nurse?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": "When Epic rejects a note due to an invalid patient ID, the system returns a FHIR OperationOutcome with a code “invalid” and a message stating “Patient not found or inactive.” The note is marked as “failed (permanent)” with a tooltip showing the error, and the nurse sees it in the list with a “Fix Patient” button that opens a modal to re-select the patient. The nurse is expected to correct the patient assignment—this is within their scope, as they are responsible for accurate patient context. If the patient was recently discharged, they can confirm and resubmit; otherwise, they’ll need to contact the charge nurse for system-level validation."
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "The nurse fixes a permanently rejected note themselves, through a \"Fix Patient\" action that lets them re-select the patient. Charge nurses are only needed when the patient is not valid, which seems to be a different case. I want to pin that down: when the nurse cannot fix it, who does the charge nurse contact, and does the charge nurse resolve it in the tool or outside it?"
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": "If the nurse re-selects the patient and the system still returns a permanent failure (e.g., patient is inactive or not in the current ward), the note remains in “failed (permanent)” status with a message: “Patient not valid for this ward or no longer active.” The charge nurse sees this in their dashboard and must resolve it externally by checking the EHR and confirming the patient’s status. They then update the patient assignment in the EHR or mark the note as “invalid” via a manual override in the tool’s administrative view, which logs the action and notifies the nurse. The tool does not auto-resolve this—charge nurses handle it outside the app but within the compliance workflow."
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "The charge nurse resolves this outside the tool, in the EHR, and can mark the note invalid through a manual override that is logged and notifies the nurse. That is clear. Before I record it as a requirement, let me check that I have the override right. Is that override a capability the charge nurse uses in this version, or should it come later?"
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "The manual override is included in v1.0. Charge nurses need it to resolve permanent failures that cannot be fixed by the nurse, such as when a patient has been discharged or reassigned. The override is implemented as a secure button in the charge nurse dashboard that sets the note status to “invalid” and logs the reason, nurse ID, and timestamp. It’s not a full edit, just a state change with audit trail, and requires two-factor authentication to prevent misuse. This capability is essential for operational continuity and will be in the first release."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "Thanks, the charge nurse's manual override is in version one, so it becomes a requirement. Next, let's cover the rules that apply across the whole tool. When a note is saved, should it be locked from further edits after a set time, or can the nurse always edit their own note?"
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Understood: notes stay editable by their author with no time lock. I'll record that.\n\nNext, a gap in FR-3, the core requirement. The Epic integration does not yet specify the endpoint, the payload shape, or the authentication method. Default: FHIR R4 for the note exchange, with the Epic endpoint and payload defined against your Epic instance, authenticated through the Logic Apps managed identity and Azure AD. That means no shared secrets are stored in the tool. Keep this default, or specify a different FHIR version or authentication approach?"
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"yes_no\",\"value\":true})"
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "Thanks, I've recorded the default for the Epic integration: FHIR R4, authenticated through the managed identity and Azure AD, with no stored shared secrets.\n\nNext, the rules. Take a concrete case: a nurse saves a note, then closes the browser before it sends. When they sign in again, could the note be sent twice, once from the original attempt and once from the retry? Default: no; each note gets a unique local ID, and the send is idempotent, so a repeat is ignored. Keep that, or do you want a different duplicate-handling rule?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Thanks, the duplicate-send rule is recorded: each note has a unique local ID and repeated sends are ignored.\n\nNext, the validation rules. A nurse types a note near the limit. What should happen when the note goes over 2,000 characters or a line goes over 256 characters: block saving with a message, or cut the text automatically?"
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": "The system blocks saving if the total note exceeds 2,000 characters or any line exceeds 256 characters, displaying a real-time warning in red: “Note too long—maximum 2,000 characters total, 256 per line.” It also shows a character count in the status bar as they type. The note is not truncated; the user must edit it to comply. This prevents data loss and ensures compatibility with downstream systems that enforce these limits."
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "Thanks, the validation rule is clear: saving is blocked until the note fits within 2,000 characters total and 256 per line, with a red warning and a live count, and nothing is cut automatically.\n\nNext, a concrete case. A nurse pastes in a note from another system, and one line is 300 characters. The warning shows, but the nurse cannot tell which line is too long. Should the warning point to the specific line, or is the live character count enough?"
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": "The warning must highlight the specific line that exceeds 256 characters by underlining it in red and showing a tooltip: “Line 7 exceeds 256 characters (300).” The system parses the input in real time and flags the first offending line, allowing the nurse to quickly locate and edit it. This is essential for usability—without line-level feedback, nurses waste time scanning the entire note. The live character count is not sufficient on its own."
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "Good, the warning will point to the offending line, underlined in red with its length in a tooltip. Next, let's turn the requirements into tests. For FR-3, the core one: when a nurse saves a note once, what should a tester see in Epic and in the messaging system, and how soon? Default: the note appears in both within 60 seconds, with the same text and the same patient ID in each."
+    },
+    {
+      "seq": 80,
+      "role": "assistant",
+      "content": "Before we wrap up, I still owe you an answer on the FR-3 test, which I left open: the default is that the note appears in both Epic and the messaging system within 60 seconds, with the same text and patient ID in each. We can confirm or change that in the written specification.\n\nIs there anything about this product we have not covered that a developer would need to know?"
+    },
+    {
+      "seq": 81,
+      "role": "user",
+      "content": "Yes—developers need to know that all note content must be normalized before sending: line breaks are converted to CRLF, and any special characters (e.g., |, ^, ~) are escaped according to HL7 v2.5 standards to prevent message parsing errors. The FHIR payload must include a proper Composition resource with a `status` of \"final\" and a `code` of \"2810000203\" (ward note), mapped via the SNOMED CT code. All timestamps in both systems must be in UTC, and the tool must include a health check endpoint at `/health` returning 200 OK for Azure Monitor probes."
+    },
+    {
+      "seq": 82,
+      "role": "assistant",
+      "content": "Thank you. I've captured the developer details you just gave: CRLF line breaks, HL7 escaping of special characters, a FHIR Composition with status \"final\" and the ward-note SNOMED CT code, UTC timestamps, and a /health endpoint for Azure Monitor probes.\n\nSummary of the specification so far: a web app for nurses to enter ward notes once and have them reach Epic and the clinical messaging system, with retry, permanent-failure handling, manual invalidation by charge nurses, ward and summary reporting, and seven-year audit retention. The Epic integration uses FHIR R4 and HL7 v2.5 through Logic Apps with managed identities.\n\nPlease tell me if anything here is wrong or missing."
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "Microsoft Azure: App Services and Azure SQL Database in the existing hospital group account, deployed by Azure DevOps with Bicep",
+        "reason": "Azure is the group's exclusive cloud, so the tool runs in the existing account",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epic-ehr",
+      "value": {
+        "direction": "outbound and inbound",
+        "protocol": "FHIR R4",
+        "auth": "Logic Apps managed identity with Azure AD",
+        "data": "ward notes and patient ward lists"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "clinical-messaging",
+      "value": {
+        "system": "Clinical messaging",
+        "protocol": "HL7 v2.5 over TCP",
+        "use": "push notes to the patient chart",
+        "auth": "Azure Logic Apps managed identity via Azure AD"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": ".NET 8 (C#) web app",
+        "alternatives": [],
+        "reason": "Team is most proficient in C# and .NET Core",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "team",
+      "value": {
+        "choice": "internal clinical systems team",
+        "reason": "participant's statement",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "process",
+      "value": {
+        "choice": "Two-week sprints with mandatory peer review before merge",
+        "alternatives": [],
+        "reason": "Default accepted to close the process gap in the technical plan",
+        "status": "specified"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "timeline",
+      "value": "Version one in production by December 15, 2024. Core note entry, EHR sync via FHIR, HL7 message generation, and SSO via Azure AD. Templates and audit trails deferred to v1.1.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "telemetry",
+      "value": "Application Insights with structured logs for audit and performance monitoring",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "scope",
+      "value": {
+        "core": ["note entry", "EHR sync via FHIR", "HL7 message generation", "SSO via Azure AD"],
+        "deferred": ["templates", "audit trails"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "architecture",
+      "value": "Secure, SSO-enabled note entry web app in .NET 8, with FHIR-based EHR sync and HL7 v2.5 message generation via Logic Apps, all deployed to Azure App Services with Azure SQL for persistence",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "exclusions",
+      "value": ["note templates", "audit logs", "multi-ward support"],
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "budget",
+      "value": "$45,000 development; $12,000 per year hosting and maintenance; in-house build with existing Azure resources",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "workflow-shift",
+      "value": "As a Ward Nurse, I want to pick a patient from my ward's live list and review the latest ward note before writing mine, so that I can ensure continuity of care and avoid duplicate content.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "scale",
+      "value": "About 85 nurses across three wards at launch; peak around 30 concurrent users during shift change; plan for 50 concurrent with auto-scaling",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "nurse",
+      "value": {
+        "role": "Ward Nurse",
+        "needs": "Enter ward notes quickly from a live list of their ward's patients without searching or retyping."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "auth",
+      "value": {
+        "choice": "Azure AD",
+        "alternatives": [],
+        "reason": "hospital’s Azure AD-protected Azure App Services web app",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "Nurse can enter a ward note",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse enters a ward note using a rich-text editor with a 256-character limit per line and a 2,000-character total.",
+          "The system auto-saves draft notes every 30 seconds.",
+          "The note includes a timestamp, nurse ID, and patient ID, and is marked as 'pending' until sent."
+        ],
+        "description": "Nurse enters a ward note using a rich-text editor with a 256-character limit per line and a 2,000-character total, with the system auto-saving draft notes every 30 seconds.",
+        "evidence": "In a typical shift, nurses start by logging into the hospital’s Azure AD-protected Azure App Services web app via the main clinical portal, then select a patient from a list pulled in real time from Epic via FHIR. They enter a free-text narrative note using a rich-text editor with a 256-character limit per line and a 2,000-character total, with the system auto-saving draft notes every 30 seconds. The note includes a timestamp, nurse ID, and patient ID, and is marked as 'pending' until sent."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": {
+        "regimes": ["HIPAA", "California CMIA"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "retention",
+      "value": "Notes retained seven years; audit logs stored in Azure Blob Storage with immutable retention",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "Nurse can retry failed note transmission",
+        "scope": "mvp",
+        "acceptance": [
+          "A failed send is retried three times with backoff before showing Send Failed",
+          "A clear rejection from Epic or the messaging system is not retried and is flagged for correction"
+        ],
+        "description": "Failed transmissions retry up to three times with backoff (10s, 30s, 60s); only clear rejections from Epic or the messaging system are treated as permanent.",
+        "evidence": "Retry every 5 minutes and manual retry after three failed attempts"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem",
+      "value": "Nurses double-enter ward notes into Epic and a spreadsheet, losing about 12 minutes per shift; versions disagree in about 15% of cases. One incident delayed a post-op opioid dose by 45 minutes.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "Nurse can enter a ward note once and it reaches both systems",
+        "scope": "mvp",
+        "acceptance": [
+          "Nurse enters a note in one system and it appears in the other within 5 seconds",
+          "The note is not manually copied or re-entered in the other system",
+          "The two systems agree on the note's content 95% of the time"
+        ],
+        "description": "Avoid duplicate entry and discrepancies between Epic and the spreadsheet",
+        "reason": "To eliminate duplicate data entry and reduce discrepancies, which cause clinical ambiguity and rework.",
+        "evidence": "Nurses lose about 12 minutes per shift on average—3 minutes per note entry across four notes—due to duplicate data entry, with an additional 5 minutes from reconciliation when discrepancies occur. On average, the two versions disagree in 15% of cases, usually due to timing mismatches or text edits not copied between systems, leading to clinical ambiguity and rework."
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "volume",
+      "value": "About 4.3 ward notes per nurse per shift; about 80% (3.4) are entered into the spreadsheet; about 120 spreadsheet entries a day across 85 nurses",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "rbac-roles",
+      "value": {
+        "roles": ["Ward Nurse", "Audit Reader"],
+        "ward_nurse": "Create and retry own notes; read notes for assigned ward only",
+        "audit_reader": "Read audit logs; compliance staff only"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "charge-nurse",
+      "value": {
+        "role": "Charge nurse",
+        "needs": "Review pending and failed notes for their own ward at shift change; assign resolution tasks. Visibility limited to own ward."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward-manager",
+      "value": {
+        "role": "Ward manager",
+        "needs": "Weekly completion and failure report: one summary across all three wards with drill-down to a single ward"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "compliance-liaison",
+      "value": {
+        "role": "Compliance liaison",
+        "needs": "Checks audit log view weekly to validate retention and access patterns against HIPAA and CMIA"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "Charge nurse can review pending and failed notes for their ward",
+        "scope": "mvp",
+        "acceptance": [
+          "Charge nurse opens the dashboard during shift change",
+          "Dashboard shows counts by nurse and status",
+          "Charge nurse assigns resolution tasks"
+        ],
+        "evidence": "Charge nurses use the tool to review all pending and failed notes for their ward via a dashboard that shows counts by nurse and status. They’ll open it first thing during shift change to identify unresolved notes and assign resolution tasks."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "Ward manager can run weekly reports on note completion rates and failure trends",
+        "scope": "mvp",
+        "acceptance": [
+          "Ward manager runs weekly reports from the dashboard",
+          "Reports track note completion rates and failure trends",
+          "Reports are used for workflow improvement"
+        ],
+        "evidence": "Ward managers run weekly reports from the same dashboard to track note completion rates and failure trends, using the data for workflow improvement."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "Compliance liaison can check the audit log view weekly to validate retention and",
+      "value": "Compliance liaison can check the audit log view weekly to validate retention and access patterns",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a Ward Nurse, I want to pick a patient from my ward's live list so that I can open the note form with their details already filled in.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "Ward Nurse can pick a patient from a live ward list",
+        "scope": "mvp",
+        "acceptance": [
+          "After sign-in, the nurse sees only patients assigned to their ward and flagged for active documentation.",
+          "The list refreshes every 60 seconds and shows last note timestamp, current status and pending alerts.",
+          "Selecting a patient opens the note form with demographics and context pre-filled, without searching or typing."
+        ],
+        "description": "The list shows only patients on the nurse's assigned ward who are flagged for active documentation, pulled from Epic via FHIR.",
+        "evidence": "After signing in, the nurse's first action is to select a patient from a real-time list pulled from Epic via FHIR, which displays only patients assigned to their ward and flagged for active documentation."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "edit-own-notes-only",
+      "value": "A nurse can edit only notes whose nurse ID matches their own. An attempt to edit another nurse's note shows a permission message and is logged in the audit trail.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-2",
+      "value": "As a Ward Nurse, I want to review the most recent note from my ward before writing so that I avoid duplicating content and keep continuity of care.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-3",
+      "value": "As a Ward Nurse, I want a note that fails to send to be kept and retried automatically so that I do not lose documentation during an outage.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "pending-note-retry",
+      "value": "A note that cannot be sent is saved locally with status pending, retried automatically every 5 minutes, and shows a Send Failed badge after failure; after three failed attempts it stays listed with a persistent warning and can be retried manually.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "Charge nurse can mark a note invalid after permanent failure",
+        "scope": "mvp",
+        "acceptance": [
+          "Charge nurse selects a permanently failed note in the dashboard and sets it to invalid",
+          "The system records the reason, nurse ID and timestamp in the audit trail",
+          "The nurse who authored the note is notified"
+        ],
+        "evidence": "The manual override is included in v1.0. Charge nurses need it to resolve permanent failures that cannot be fixed by the nurse"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "permanent-failure",
+      "value": "A clear rejection from Epic or the messaging system is permanent and is not retried; all other failures are retried up to three times.",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-8",
+      "value": {
+        "title": "Nurse can correct a permanently rejected note by re-selecting the patient",
+        "scope": "mvp",
+        "acceptance": [
+          "When Epic rejects a note with an invalid patient, the note shows a 'failed (permanent)' status and a Fix Patient button.",
+          "The nurse re-selects the patient in the modal and resubmits; the note leaves the failed state once accepted."
+        ],
+        "description": "Permanently failed notes show a Fix Patient action that opens a modal to re-select the patient and resubmit.",
+        "evidence": "If the patient was recently discharged, they can confirm and resubmit; otherwise, they'll need to contact the charge nurse for system-level validation."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "permanent-failure-charge-nurse",
+      "value": "If the nurse re-selects the patient and Epic still rejects it, the note stays failed (permanent) and the charge nurse resolves it outside the tool in the EHR, then may mark it invalid via override.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "Charge nurse can mark a permanently failed note invalid",
+        "scope": "mvp",
+        "acceptance": [
+          "Charge nurse clicks the override button on a permanently failed note and the note status becomes invalid.",
+          "The reason, nurse ID and timestamp are logged.",
+          "The override requires two-factor authentication.",
+          "The nurse who wrote the note is notified."
+        ],
+        "description": "Manual override from the charge nurse dashboard after resolving the patient outside the tool.",
+        "evidence": "The manual override is included in v1.0. Charge nurses need it to resolve permanent failures that cannot be fixed by the nurse"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note-editing-lock",
+      "value": "Authors can always edit their own notes; no time lock applies.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "duplicate-send",
+      "value": "Each note has a unique local ID; repeated sends of the same note are ignored.",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epic-ehr-auth",
+      "value": {
+        "choice": "FHIR R4 authenticated through Logic Apps managed identity and Azure AD; no stored shared secrets",
+        "reason": "Default accepted for FR-3 Epic integration",
+        "status": "specified"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note-length-validation",
+      "value": "Saving is blocked when the total note exceeds 2,000 characters or any line exceeds 256 characters; a red warning shows the limit; the note is never truncated automatically; a live character count is shown in the status bar.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note-line-validation",
+      "value": "Saving is blocked when the note exceeds 2,000 characters total or any line exceeds 256 characters; the first offending line is underlined in red with a tooltip giving its number and length; nothing is truncated automatically; a live character count is shown.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "normalization",
+      "value": {
+        "choice": "CRLF line breaks; HL7 v2.5 escaping of |, ^, ~; FHIR Composition status final with SNOMED CT 2810000203; UTC timestamps; /health endpoint",
+        "reason": "Participant-specified developer requirements for message correctness and monitoring",
+        "status": "specified"
+      },
+      "source": "user"
+    }
+  ],
+  "summary": "The tool will run in the organization's existing Microsoft Azure cloud account, using Azure App Services for the web app and Azure SQL Database for structured note storage, with data encrypted at rest and in transit using Azure’s built-in compliance controls. The deployment will follow the standard Azure DevOps pipeline with infrastructure-as-code using Bicep. The deployment will be provisioned for 85 active users with peak concurrency of 30, using an Azure App Services plan with auto-scale and an S2 SQL Database tier. All capacity planning and monitoring will be based on this usage profile, and performance will be validated during the final UAT phase.\n\nThe tool must integrate with two systems: the electronic health record (EHR) system, Epic, via its FHIR R4 API, and the clinical messaging system using HL7 v2.5 over TCP, both through Azure Logic Apps with managed identities for secure authentication via Azure AD. The system will automatically retry failed FHIR and HL7 transmissions up to three times with exponential backoff (10s, 30s, 60s) and log each attempt in Application Insights. If all retries fail, the note is marked as “failed to send” in the UI with a status badge and timestamp, and the nurse sees a notification with a “Retry Now” button. Failed notes are stored in Azure SQL with a dedicated retry queue and monitored via a daily health dashboard.\n\nThe internal clinical systems team, consisting of two senior developers, a solution architect, and a compliance liaison, will build the tool. The participant will be the technical owner, leading the design and implementation with daily standups and biweekly demos to the nursing leadership team. The project will follow the standard Agile Scrum process using Azure DevOps, with sprint lengths of two weeks and all code reviewed via pull requests.\n\nThe team is proficient in C#, .NET 8, and Azure services, with strong experience in REST APIs, Azure Logic Apps, FHIR clients, and HL7 parsers. They will use .NET 8 for the web app and reuse the current logging and monitoring stack—Azure Application Insights—with custom telemetry for note submission events. The team will leverage existing internal libraries for FHIR and HL7 message generation, and all telemetry will be routed through Application Insights with structured logs for audit and performance monitoring.\n\nVersion one must be in production by December 15, 2024, to align with the hospital’s annual digital health rollout and the new nursing workflow audit cycle. This gives 12 weeks to deliver a minimal viable product with core note entry, EHR sync via FHIR, HL7 message generation, and SSO via Azure AD. The MVP scope includes a secure, SSO-enabled note entry web app in .NET 8, with FHIR-based EHR sync and HL7 v2.5 message generation via Logic Apps, all deployed to Azure App Services with Azure SQL for persistence. Advanced features like templates, audit trails, and multi-ward support will be deferred to v1.1.\n\nThe budget is capped at $45,000 for development and $12,000 annually for hosting and maintenance, including Azure service costs and compliance monitoring. The team will stay within this by reusing existing Azure resources and avoiding custom third-party tools. All development will be done in-house using the current team and infrastructure, with no external consultants or SaaS licensing.\n\nIn a typical shift, nurses start by logging into the hospital’s Azure AD-protected Azure App Services web app via the main clinical portal, then select a patient from a list pulled in real time from Epic via FHIR. They enter a free-text narrative note using a rich-text editor with a 256-character limit per line and a 2,000-character total, with the system auto-saving draft notes every 30 seconds. The note includes a timestamp, nurse ID, and patient ID, and is marked as “pending” until sent.\n\nThe data is subject to HIPAA, with additional compliance requirements under the California Confidentiality of Medical Information Act (CMIA) due to the organization's location in California. All notes must be encrypted at rest and in transit, with access restricted to authenticated clinical staff via Azure AD and role-based access control (RBAC). Notes will be retained for seven years in compliance with HIPAA, with audit logs stored in Azure Blob Storage with immutable retention enabled.\n\nNurses lose about 12 minutes per shift on average—3 minutes per note entry across four notes—due to duplicate data entry, with an additional 5 minutes from reconciliation when discrepancies occur. On average, the two versions disagree in 15% of cases, usually due to timing mismatches or text edits not copied between systems, leading to clinical ambiguity and rework. Last week, a nurse entered a note about a patient’s pain level as “6/10” in the spreadsheet but recorded “5/10” in Epic due to a typing error. The discrepancy was caught during a shift change when the next nurse reviewed the chart and noticed the inconsistency in the timeline. The error was resolved by editing the Epic entry to match the spreadsheet, but only after the patient’s medication order was temporarily held for a reassessment. The incident was logged in the quality dashboard, and the nurse received a brief retraining reminder via email. The medication order delay caused a 45-minute wait for the patient’s opioid dose, which was clinically significant given their post-op status. The nurse who caught the discrepancy had to pause their own documentation to verify the correct score in the spreadsheet, then manually update Epic, which added about 10 minutes to their shift workload. This incident highlighted the need for a single source of truth and reinforced the urgency of the tool’s rollout.\n\nOn average, each nurse writes 4.3 ward notes per shift, with about 80% of those—roughly 3.4 notes—currently entered into the spreadsheet as a separate step. That means the tool would eliminate approximately 3.4 entries per nurse per shift, or about 120 notes daily across all 85 nurses, directly reducing duplication and error risk. The remaining 20% are entered directly into Epic, which the tool will not replace but will instead integrate with to avoid redundancy.\n\nThe tool will use a single \"Ward Nurse\" role that can create and retry their own notes and read notes for their assigned ward, with an audit-reader role limited to compliance staff. This means nurses cannot see other wards' notes, and only compliance staff can read the audit trail.\n\nBesides nurses, charge nurses, ward managers, and the compliance liaison will use the tool. Charge nurses use the tool to review all pending and failed notes for their ward via a dashboard that shows counts by nurse and status. They’ll open it first thing during shift change to identify unresolved notes and assign resolution tasks. Ward managers run weekly reports from the same dashboard to track note completion rates and failure trends, using the data for workflow improvement. The compliance liaison checks the audit log view weekly to validate retention and access patterns, ensuring all entries meet HIPAA and CMIA requirements. Charge nurses will see only their own ward's notes. The ward manager gets one summary across all three wards, with drill-down to a single ward.",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "Nurse can enter a ward note",
+      "scope": "mvp",
+      "acceptance": [
+        "The nurse enters a ward note using a rich-text editor with a 256-character limit per line and a 2,000-character total.",
+        "The system auto-saves draft notes every 30 seconds.",
+        "The note includes a timestamp, nurse ID, and patient ID, and is marked as 'pending' until sent."
+      ]
+    },
+    {
+      "id": "FR-2",
+      "title": "Nurse can retry failed note transmission",
+      "scope": "mvp",
+      "acceptance": [
+        "A failed send is retried three times with backoff (10s, 30s, 60s) before showing Send Failed.",
+        "A clear rejection from Epic or the messaging system is not retried and is flagged for correction."
+      ]
+    },
+    {
+      "id": "FR-3",
+      "title": "Nurse can enter a ward note once and it reaches both systems",
+      "scope": "mvp",
+      "acceptance": [
+        "Nurse enters a note in one system and it appears in the other within 5 seconds.",
+        "The note is not manually copied or re-entered in the other system.",
+        "The two systems agree on the note's content 95% of the time."
+      ],
+      "reason": "To eliminate duplicate data entry and reduce discrepancies, which cause clinical ambiguity and rework."
+    },
+    {
+      "id": "FR-4",
+      "title": "Charge nurse can review pending and failed notes for their ward",
+      "scope": "mvp",
+      "acceptance": [
+        "Charge nurse opens the dashboard during shift change.",
+        "Dashboard shows counts by nurse and status.",
+        "Charge nurse assigns resolution tasks."
+      ]
+    },
+    {
+      "id": "FR-5",
+      "title": "Ward manager can run weekly reports on note completion rates and failure trends",
+      "scope": "mvp",
+      "acceptance": [
+        "Ward manager runs weekly reports from the dashboard.",
+        "Reports track note completion rates and failure trends.",
+        "Reports are used for workflow improvement."
+      ]
+    },
+    {
+      "id": "FR-6",
+      "title": "Ward Nurse can pick a patient from a live ward list",
+      "scope": "mvp",
+      "acceptance": [
+        "After sign-in, the nurse sees only patients assigned to their ward and flagged for active documentation.",
+        "The list refreshes every 60 seconds and shows last note timestamp, current status and pending alerts.",
+        "Selecting a patient opens the note form with demographics and context pre-filled, without searching or typing."
+      ]
+    },
+    {
+      "id": "FR-7",
+      "title": "Charge nurse can mark a note invalid after permanent failure",
+      "scope": "mvp",
+      "acceptance": [
+        "Charge nurse selects a permanently failed note in the dashboard and sets it to invalid.",
+        "The system records the reason, nurse ID and timestamp in the audit trail.",
+        "The nurse who authored the note is notified."
+      ]
+    },
+    {
+      "id": "FR-8",
+      "title": "Nurse can correct a permanently rejected note by re-selecting the patient",
+      "scope": "mvp",
+      "acceptance": [
+        "When Epic rejects a note with an invalid patient, the note shows a 'failed (permanent)' status and a Fix Patient button.",
+        "The nurse re-selects the patient in the modal and resubmits; the note leaves the failed state once accepted."
+      ]
+    },
+    {
+      "id": "FR-9",
+      "title": "Charge nurse can mark a permanently failed note invalid",
+      "scope": "mvp",
+      "acceptance": [
+        "Charge nurse clicks the override button on a permanently failed note and the note status becomes invalid.",
+        "The reason, nurse ID and timestamp are logged.",
+        "The override requires two-factor authentication.",
+        "The nurse who wrote the note is notified."
+      ]
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: technical · Generated: 2026-10-14T07:09:28.156Z\n\n## Context\n\n| Question | Answer |\n| --- | --- |\n| hosting | Microsoft Azure exclusively across the hospital group; runs in existing Azure account using Azure App Services, Azure SQL Database, encryption at rest and in transit, Azure DevOps pipeline and Bicep infrastructure-as-code |\n| existing_systems |  |\n| builder | In-house team: internal IT clinical systems group with two senior developers, a solution architect and a compliance liaison, led by the technical owner |\n| team_skills | C#, .NET Core / .NET 8, Azure services, REST APIs, Azure Logic Apps, prior FHIR clients and HL7 parsers, Azure Application Insights for telemetry |\n| timeline | Version one in production by December 15, 2024, about 12 weeks, aligned with the hospital's annual digital health rollout and the nursing workflow audit cycle |\n| budget | $45,000 for development and $12,000 annually for hosting and maintenance; built in-house with existing team and Azure resources; no external consultants or SaaS licensing. |\n| users_at_launch | About 85 nurses across three medical wards; peak around 30 concurrent during shift change |\n| compliance | HIPAA and California CMIA apply; encryption at rest and in transit; access via Azure AD with RBAC; seven-year note retention; immutable audit logs in Azure Blob Storage. |\n\n## Product overview and problem\n\n### Overview\n\nNurses currently enter ward notes twice: once into Epic and once into a spreadsheet. This duplicative work takes about 12 minutes per shift per nurse and leads to discrepancies in about 15% of notes. One incident caused a 45-minute opioid dose delay due to conflicting note versions. The product aims to integrate single entry of ward notes to eliminate double data entry, reduce errors, and improve clinical workflow.\n\nApproximately 4.3 notes per nurse per shift are created, with 80% currently entered into the spreadsheet. The tool targets about 120 daily note entries across 85 nurses, reducing workload and data inconsistencies.\n\n## Target users and roles\n\n### Users\n\n- **Ward Nurse**: Enters ward notes quickly using a live list of patients from their assigned ward without needing to search or retype.\n- **Charge Nurse**: Reviews pending and failed notes for their assigned ward at shift change; assigns resolution tasks.\n- **Ward Manager**: Runs weekly reports on note completion rates and failure trends across all wards with drill-down to each ward.\n- **Compliance Liaison**: Checks audit logs weekly to validate retention and access patterns against HIPAA and CMIA requirements.\n\n## User stories\n\n### User Stories\n\n- **Workflow Shift**: As a Ward Nurse, I want to pick a patient from my ward's live list and review the latest ward note before writing mine to maintain continuity and avoid duplicate content.\n- **US-1**: As a Ward Nurse, I want to pick a patient from the live ward list to open their note form pre-filled with their details.\n- **US-2**: As a Ward Nurse, I want to review the most recent note from my ward before writing to avoid duplicating content.\n- **US-3**: As a Ward Nurse, I want a note that fails to send to be kept and retried automatically to avoid losing documentation during outages.\n\n## Functional requirements\n\n### Functional Requirements\n\nThis section lists all functional requirements for the Ward Notes tool, focused on note entry, retry logic, integration, reviewing and reporting tools, and user actions.\n\n### MVP\n\n- **FR-1** Nurse can enter a ward note\n  - Acceptance: The nurse enters a ward note using a rich-text editor with a 256-character limit per line and a 2,000-character total.\n  - Acceptance: The system auto-saves draft notes every 30 seconds.\n  - Acceptance: The note includes a timestamp, nurse ID, and patient ID, and is marked as 'pending' until sent.\n- **FR-2** Nurse can retry failed note transmission\n  - Acceptance: A failed send is retried three times with backoff (10s, 30s, 60s) before showing Send Failed.\n  - Acceptance: A clear rejection from Epic or the messaging system is not retried and is flagged for correction.\n- **FR-3** Nurse can enter a ward note once and it reaches both systems\n  - Acceptance: Nurse enters a note in one system and it appears in the other within 5 seconds.\n  - Acceptance: The note is not manually copied or re-entered in the other system.\n  - Acceptance: The two systems agree on the note's content 95% of the time.\n  - Reason: To eliminate duplicate data entry and reduce discrepancies, which cause clinical ambiguity and rework.\n- **FR-4** Charge nurse can review pending and failed notes for their ward\n  - Acceptance: Charge nurse opens the dashboard during shift change.\n  - Acceptance: Dashboard shows counts by nurse and status.\n  - Acceptance: Charge nurse assigns resolution tasks.\n- **FR-5** Ward manager can run weekly reports on note completion rates and failure trends\n  - Acceptance: Ward manager runs weekly reports from the dashboard.\n  - Acceptance: Reports track note completion rates and failure trends.\n  - Acceptance: Reports are used for workflow improvement.\n- **FR-6** Ward Nurse can pick a patient from a live ward list\n  - Acceptance: After sign-in, the nurse sees only patients assigned to their ward and flagged for active documentation.\n  - Acceptance: The list refreshes every 60 seconds and shows last note timestamp, current status and pending alerts.\n  - Acceptance: Selecting a patient opens the note form with demographics and context pre-filled, without searching or typing.\n- **FR-7** Charge nurse can mark a note invalid after permanent failure\n  - Acceptance: Charge nurse selects a permanently failed note in the dashboard and sets it to invalid.\n  - Acceptance: The system records the reason, nurse ID and timestamp in the audit trail.\n  - Acceptance: The nurse who authored the note is notified.\n- **FR-8** Nurse can correct a permanently rejected note by re-selecting the patient\n  - Acceptance: When Epic rejects a note with an invalid patient, the note shows a 'failed (permanent)' status and a Fix Patient button.\n  - Acceptance: The nurse re-selects the patient in the modal and resubmits; the note leaves the failed state once accepted.\n- **FR-9** Charge nurse can mark a permanently failed note invalid\n  - Acceptance: Charge nurse clicks the override button on a permanently failed note and the note status becomes invalid.\n  - Acceptance: The reason, nurse ID and timestamp are logged.\n  - Acceptance: The override requires two-factor authentication.\n  - Acceptance: The nurse who wrote the note is notified.\n\n## Business rules\n\n### Business Rules\n\n- Nurses can edit only notes they authored; editing others' notes is blocked and logged.\n- Failed note transmissions retry every 5 minutes up to three times; after which a persistent failure warning is shown.\n- Permanent failures are clear rejections from Epic or messaging system; these do not retry.\n- Charge nurses resolve permanently failed notes outside the tool; can then mark these invalid with reasons logged.\n- Authors can always edit their own notes without time limits.\n- Each note has a unique local ID; duplicate sends are ignored.\n- Note saving is blocked if total exceeds 2,000 characters or any line exceeds 256 characters; warnings shown; no truncation.\n- Validation underlines offending lines with tooltips.\n- Audit logs show reasons, user IDs, and timestamps for overrides and edits.\n\n## Technical requirements\n\n### Technical Requirements\n\nThe tool will run exclusively in Microsoft Azure using App Services for the web app and Azure SQL Database for note storage. Deployment uses Azure DevOps pipelines with Bicep for infrastructure-as-code. The application stack is a .NET 8 web app written in C#. Integration orchestration uses Azure Logic Apps with managed identities and Azure AD authentication to Epic via FHIR R4 and to the clinical messaging system using HL7 v2.5 over TCP.\n\nTelemetry and auditing use Azure Application Insights with structured logs. The app implements Azure AD SSO with role-based access control. Developer conventions include CRLF line breaks, HL7 v2.5 escaping, final FHIR Composition status with SNOMED CT codes, and UTC timestamps. A health check endpoint is exposed.\n\nThe internal IT clinical systems team with two senior developers and a solution architect will implement the tool following two-week sprints and mandatory peer review before merges.\n\n## Data requirements\n\n### Data Requirements\n\nNotes and audit logs must be retained for seven years. Audit logs are stored with immutable retention in Azure Blob Storage. Notes include timestamps, nurse IDs, patient IDs, status fields, and content with character limits.\n\n## Integrations\n\n### Integrations\n\n- **Epic EHR**: Bidirectional integration via FHIR R4 API authenticated by Azure AD managed identity through Azure Logic Apps. Provides live patient ward lists and accepts ward notes.\n- **Clinical Messaging System**: Outbound HL7 v2.5 messages pushed over TCP for note delivery to patient charts, authenticated by Azure Logic Apps via Azure AD.\n\nNo shared secrets are stored; authentication fully managed via Azure AD identities.\n\n## Security and privacy\n\n### Security and Privacy\n\nThe tool complies with HIPAA and California CMIA regulations. It enforces Azure AD authentication with role-based access control:\n\n- **Ward Nurse**: Can create and retry own notes, and read notes only for their assigned ward.\n- **Audit Reader**: Compliance staff role with read access to audit logs.\n\nNotes are encrypted at rest and in transit using Azure security features. Audit logs ensure traceability of edits, overrides, and access.\n\n## Non-functional requirements\n\n### Non-functional Requirements\n\n- The system scales to support about 85 nurses over three wards at launch.\n- Peak concurrency estimated at 30 concurrent users around shift change; system provisioned for up to 50 concurrent users with auto-scaling enabled.\n\n## Administrative surface\n\n### Administrative Surface\n\n- **Charge Nurse Dashboard**: View counts of pending and failed notes by nurse and status for their assigned ward; assign resolution tasks.\n- **Ward Manager Reports**: Weekly reports showing note completion rates and failure trends with summary across wards and drill-down per ward.\n- **Audit Log View**: Compliance liaison access to immutable audit logs with filtering and validation interfaces to assure regulatory compliance.\n\n## MVP scope\n\n### MVP Scope\n\nThe initial release includes the core features required for single-entry ward notes, EHR sync via FHIR, HL7 message generation, and SSO authentication through Azure AD. The tool uses a .NET 8 web app deployed on Azure App Services with an Azure SQL Database backend.\n\nExcluded from MVP are note templates, detailed audit trails screen, and multi-ward support beyond the initial three wards.\n\nBudget is $45,000 development and $12,000 annual hosting/maintenance using existing Azure resources and internal staff.\n\nThe MVP timeline targets production release by December 15, 2024.\n\nIn version one:\n- FR-1\n- FR-2\n- FR-3\n- FR-4\n- FR-5\n- FR-6\n- FR-7\n- FR-8\n- FR-9\n\n## Future scope\n\n## Implementation phases\n\n### Implementation Phases\n\nThe implementation phases below detail goals and acceptance criteria to deliver the MVP in a minimal end-to-end slice progressing to full feature support, including integration and reporting.\n\n### Phase 1: Core note entry and basic integration\n\nGoals:\n- Deliver core ward note entry UI with character limits and auto-save.\n- Implement authentication with Azure AD and RBAC for Ward Nurses.\n- Integrate live ward patient list via FHIR from Epic.\n- Implement note storage in Azure SQL Database.\n\nTasks:\n- Develop rich-text note editor with line and total character limits and autosave every 30s\n  - Acceptance: Editor enforces 256-character line and 2,000-character total limits.\n  - Acceptance: Draft notes auto-save every 30 seconds.\n- Implement patient ward list UI refreshed every 60 seconds from Epic FHIR via Logic Apps\n  - Acceptance: Nurses see updated live patient list filtered by assigned ward.\n  - Acceptance: Selecting a patient opens note form pre-filled with demographics.\n- Set up Azure AD authentication with Ward Nurse RBAC role\n  - Acceptance: Only authorized Ward Nurses can login and access assigned ward notes.\n- Persist notes in Azure SQL Database with required fields and metadata\n  - Acceptance: Notes include nurse ID, patient ID, timestamp, status pending.\n\nPhase acceptance:\n- Ward nurses can create and auto-save ward notes linked to patients from a live ward list.\n\n### Phase 2: Note transmission and retry mechanisms\n\nGoals:\n- Integrate bidirectional FHIR sync with Epic via Logic Apps.\n- Push HL7 v2.5 messages to clinical messaging system.\n- Implement retry logic with up to three attempts and backoff.\n- Flag permanent failures and allow nurse correction.\n\nTasks:\n- Send notes to Epic via FHIR R4 API with Logic Apps managed identity\n  - Acceptance: Notes are visible in Epic within 5 seconds.\n  - Acceptance: FHIR messages conform to Composition status final with SNOMED CT codes.\n- Push HL7 v2.5 messages to clinical messaging system over TCP\n  - Acceptance: HL7 v2.5 messages are sent with correct escaping and formats.\n- Implement retry logic with exponential backoff on failures\n  - Acceptance: Retry occurs at 10s, 30s, 60s intervals up to three attempts.\n  - Acceptance: Permanent failures marked when explicit rejection received.\n- Show failed status with Fix Patient action for permanently rejected notes\n  - Acceptance: Nurses can re-select patient and resubmit notes after permanent failure.\n\nDepends on: phase-1\n\nPhase acceptance:\n- Notes reliably transmit to both Epic and messaging system; failures handled with retries and nurse correction.\n\n### Phase 3: Charge nurse dashboard and report features\n\nGoals:\n- Provide charge nurses with dashboard to view and manage pending and failed notes for their ward.\n- Enable charge nurse overrides with two-factor authentication.\n- Deliver ward manager weekly reports with summary and drill-down.\n- Implement audit log views for compliance liaison.\n\nTasks:\n- Develop charge nurse dashboard with counts of pending and failed notes by nurse and status\n  - Acceptance: Dashboard loads at shift change with correct data.\n  - Acceptance: Charge nurses can assign resolution tasks.\n- Implement override functionality with audit logging and two-factor authentication\n  - Acceptance: Charge nurses can mark failed notes invalid with reason logged and notify original author.\n- Create ward manager reports on note completion and failure trends\n  - Acceptance: Reports run weekly and support drill-down per ward.\n- Expose audit log view for compliance liaison\n  - Acceptance: Compliance users can filter and validate audit logs weekly.\n\nDepends on: phase-2\n\nPhase acceptance:\n- Charge nurses and ward managers have tools to manage note workflows; compliance staff can audit accesses and changes.\n\n## Open questions\n\n### Open Questions\n\n- What is the detailed user interface and workflow for ward managers to drill down in weekly reports? (Default taken: summary plus drill-down per ward)\n- Are there other roles or permissions needed besides Ward Nurse, Charge Nurse, Ward Manager, and Compliance Liaison for v1? (Default taken: no)\n- Should there be automatic alerts to charge nurses on failed notes or only manual dashboard monitoring? (Default taken: manual dashboard)\n- Is there a need for offline or mobile note entry in the MVP? (Default taken: no)\n\n- What is the detailed user interface and workflow for ward managers to drill down in weekly reports? _Default taken: Summary plus drill-down per ward as currently specified._\n- Are there other roles or permissions needed besides Ward Nurse, Charge Nurse, Ward Manager, and Compliance Liaison for version 1? _Default taken: No other roles are required for MVP._\n- Should there be automatic alerts to charge nurses on failed notes or rely solely on manual dashboard monitoring? _Default taken: Manual dashboard monitoring is sufficient for MVP._\n- Is offline or mobile note entry required in MVP scope? _Default taken: Offline and mobile note entry are out of MVP scope._\n"
+}

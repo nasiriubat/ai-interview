@@ -30,6 +30,21 @@ export interface ReportInput {
   language: string;
   /** Present when the comparison was computed; the section says why when it was not shown. */
   departments?: DepartmentComparison | undefined;
+  /**
+   * What this report was made from, printed on the cover so a reader can tell whether two reports
+   * are comparable. Every field is optional: a caller that does not know a value leaves it out and
+   * the cover says nothing about it rather than guessing.
+   */
+  provenance?: ReportProvenance | undefined;
+}
+
+export interface ReportProvenance {
+  templateKey?: string | undefined;
+  templateVersion?: number | undefined;
+  /** Prompt version tags such as `clustering@p2`, one per prompt used by the analysis. */
+  promptVersions?: string[] | undefined;
+  /** `balanced`, `quick_wins`, `strategic` or `custom`. */
+  weightsPreset?: string | undefined;
 }
 
 const CLASS_LABEL: Record<SolutionClass, string> = {
@@ -58,6 +73,7 @@ export function renderReport(input: ReportInput): string {
     "",
     `Generated ${input.generatedAt.toISOString().slice(0, 10)}${input.participation.thresholdMet ? "" : " (preliminary: below the completion threshold)"}.`,
     "",
+    ...cover(input),
   ];
 
   if (on("executive_summary")) out.push("## Executive summary", "", input.narrative.executiveSummary, "");
@@ -166,6 +182,36 @@ export function renderReport(input: ReportInput): string {
     );
   }
   return out.join("\n");
+}
+
+/**
+ * The cover block: how the report was made, what it does not do, and what to quote to reproduce
+ * it. It is plain paragraphs with no `##` heading on purpose. The web client maps the n-th level-2
+ * heading to the n-th enabled section, and the cover is preface content that must not shift that
+ * mapping (it also stays visible when every section is switched off).
+ */
+export function cover(input: ReportInput): string[] {
+  const p = input.participation;
+  const who =
+    p.invited >= p.completed && p.invited > 0
+      ? `${p.completed} of ${p.invited} invited people completed`
+      : `${p.completed} ${p.completed === 1 ? "person" : "people"} completed`;
+  const out = [
+    `**Method.** ${who} a structured interview about how their work is done; ${p.sessionsAnalyzed} ${p.sessionsAnalyzed === 1 ? "interview was" : "interviews were"} analyzed. Everyone followed the same template and was asked one question at a time. Facts were extracted on a fixed schema, grouped across all interviews and scored on seven factors. Durations are self-reported.`,
+    "",
+    `**What this report does not do.** It does not name or attribute anything to an individual: a quote, a role or a department appears only when at least ${input.k} participants are behind it. It does not assume AI is the answer: each opportunity is classified as AI, automation, software, process or no change recommended, with the reason.`,
+    "",
+  ];
+  const v = input.provenance;
+  if (v) {
+    const parts: string[] = [];
+    if (v.templateKey)
+      parts.push(`template ${v.templateKey}${v.templateVersion ? ` v${v.templateVersion}` : ""}`);
+    if (v.promptVersions?.length) parts.push(`prompts ${[...v.promptVersions].sort().join(", ")}`);
+    if (v.weightsPreset) parts.push(`weights preset ${v.weightsPreset}`);
+    if (parts.length) out.push(`**Reproducibility.** ${parts.join("; ")}.`, "");
+  }
+  return out;
 }
 
 /** A left-to-right Mermaid flowchart of a described process. Labels are quoted so punctuation is safe. */

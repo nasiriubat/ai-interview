@@ -127,6 +127,8 @@ const SessionStateObjectSchema = z.object({
   finalIssueScanDone: z.boolean().default(false),
   /** Times the completeness check sent the interview back for missing requirements (D-191). */
   completenessAsks: z.number().int().nonnegative().default(0),
+  /** Whether the numbered requirement list was read back to the owner for confirmation (D-244). */
+  requirementsConfirmAsked: z.boolean().default(false),
   mvpChallenge: z
     .object({
       started: z.boolean().default(false),
