@@ -408,12 +408,15 @@ export async function runTurn(
 }
 
 /**
- * The turn lock is renewed every 30 s and expires after 90 s, three missed beats. A turn that runs
- * long (a slow model, retries) keeps its lock; a process that died frees the session in 90 s
- * rather than the 120 s a fixed lock took, and a live turn can no longer be overtaken by a second.
+ * The turn lock is renewed every 2 s and expires after 10 s, five missed beats. A turn that runs
+ * long (a slow model, retries) keeps its lock, and a live turn cannot be overtaken: it would take
+ * five consecutive failed renewals, and the turn stops itself the moment one finds the lock gone.
+ * A process that was killed outright frees its session in 10 s; the drill measured 82 s with the
+ * earlier 30 s and 90 s, which a participant spent being refused (D-282). The renewal is one
+ * indexed update per running turn, so the shorter beat costs next to nothing.
  */
-export const TURN_LOCK_HEARTBEAT_MS = 30_000;
-export const TURN_LOCK_TTL_MS = 90_000;
+export const TURN_LOCK_HEARTBEAT_MS = 2_000;
+export const TURN_LOCK_TTL_MS = 10_000;
 
 /**
  * What a participant is told when a budget pauses the interview. The second sentence is only

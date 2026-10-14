@@ -479,9 +479,9 @@ the product (the web app answers, and every call behind it fails).
 **What a participant sees when the API process is killed mid-turn** (rehearsed with `kill -9` on
 2026-10-14, `deploy/chaos/kill-api.mjs`): the stream ends, their answer is already saved (one copy),
 Docker restarts the API in seconds, and the session is intact. The turn lock belongs to a process
-that no longer exists and is released by its TTL, 90 s; until then every retry is refused with
-`conflict` (82 s in the rehearsal). Nothing to do; it is the cost of not releasing a lock on a
-guess. A graceful stop (`deploy/dc restart api`, an upgrade) drains turns first and releases them.
+that no longer exists and is released by its TTL, 10 s (it is renewed every 2 s while a turn runs,
+D-282); until then every retry is refused with `conflict` (82 s in the rehearsal, with the earlier
+90 s TTL). Nothing to do; it is the cost of not releasing a lock on a guess. A graceful stop (`deploy/dc restart api`, an upgrade) drains turns first and releases them.
 
 ### abuse.limit_hit
 

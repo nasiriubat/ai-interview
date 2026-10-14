@@ -2,7 +2,7 @@
 // The API process is killed with SIGKILL while it is streaming an interview turn. Expected: the
 // browser's stream ends (the client sees a broken stream and keeps the answer to send again), the
 // participant's answer is already saved, the session can be resumed after the API comes back, and the
-// turn lock does not trap them for more than its TTL (90 s). Nothing is doubled: one copy of the
+// turn lock does not trap them for more than its TTL (10 s, D-282). Nothing is doubled: one copy of the
 // answer, and at most one interviewer reply per answer.
 import {
   check,
@@ -77,7 +77,7 @@ await scenario("kill-api", async () => {
   check("exactly one copy of it", copies === 1 || (!saved && copies === 0), `${copies}`);
 
   // Resume: how long until a turn is accepted again. The lock is held by a process that no longer
-  // exists; it expires after 90 s at the latest (TURN_LOCK_TTL_MS).
+  // exists; it expires after 10 s at the latest (TURN_LOCK_TTL_MS).
   const resumeStart = Date.now();
   let resumed = null;
   let attempts = 0;
@@ -99,8 +99,8 @@ await scenario("kill-api", async () => {
     `after ${waited} s and ${attempts} attempt(s)`,
   );
   check(
-    "within the turn lock's TTL (90 s) of the crash",
-    waited + Math.round((resumeStart - killedAt) / 1000) <= 100,
+    "within the API's restart plus the turn lock's TTL (10 s) of the crash",
+    waited + Math.round((resumeStart - killedAt) / 1000) <= 40,
     `${waited + Math.round((resumeStart - killedAt) / 1000)} s from the kill`,
   );
   const after = JSON.stringify(await transcript(p));

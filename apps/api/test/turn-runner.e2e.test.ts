@@ -150,9 +150,13 @@ describeDb("turn runner: errors, disconnect, lock heartbeat", () => {
   const reply = (meta: object, text = "Tell me about your day."): string =>
     `${text}\n${TURN_MARKER}\n${JSON.stringify(meta)}`;
 
-  it("renews at a third of the TTL, so a live turn can never be overtaken", () => {
-    expect(TURN_LOCK_TTL_MS).toBe(90_000);
-    expect(TURN_LOCK_HEARTBEAT_MS * 3).toBe(TURN_LOCK_TTL_MS);
+  it("renews several times within the TTL, so a live turn is not overtaken", () => {
+    expect(TURN_LOCK_HEARTBEAT_MS * 5).toBe(TURN_LOCK_TTL_MS);
+  });
+
+  it("frees a session after a killed process within seconds, not a minute and a half (D-282)", () => {
+    // Drill finding F3: `kill -9` of the API refused the participant for 82 s.
+    expect(TURN_LOCK_TTL_MS).toBeLessThanOrEqual(15_000);
   });
 
   it("a client that disconnects mid-turn cancels the model call, releases the lock and is ledgered as aborted", async () => {
@@ -293,7 +297,7 @@ describeDb("turn runner: errors, disconnect, lock heartbeat", () => {
 
     await world.db.session.update({
       where: { id: sessionId },
-      data: { turnLockedAt: aged(TURN_LOCK_TTL_MS - 20_000) },
+      data: { turnLockedAt: aged(TURN_LOCK_TTL_MS / 2) },
     });
     await expect(run(sessionId, fakeReply().reply)).rejects.toThrow(/already in progress/);
 
