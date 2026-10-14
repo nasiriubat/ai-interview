@@ -18,14 +18,32 @@ here=$(cd "$(dirname "$0")" && pwd)
 target="${ENV_FILE_PATH:-$here/.env}"
 
 usage() {
-	echo "usage: $0 <public-hostname> <operator-email> [admin-email]" >&2
+	echo "usage: $0 <public-hostname> <operator-email> [admin-email] [--size 4gb|8gb]" >&2
 	exit 64
 }
+
+# --size appends deploy/sizes/<size>.env: the resource limits for that much memory, from the load
+# run in docs/DEPLOY.md ("Capacity and load"). Without it the compose defaults apply (8 GB).
+size=""
+positional=()
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--size) size=${2:?--size needs 4gb or 8gb}; shift ;;
+	-h | --help) usage ;;
+	*) positional+=("$1") ;;
+	esac
+	shift
+done
+set -- "${positional[@]+"${positional[@]}"}"
 
 [ $# -ge 2 ] || usage
 hostname=$1
 operator=$2
 admin=${3:-$2}
+if [ -n "$size" ] && [ ! -f "$here/sizes/$size.env" ]; then
+	echo "$0: unknown --size '$size'; the presets are: $(cd "$here/sizes" && ls *.env | sed 's/\.env$//' | tr '\n' ' ')" >&2
+	exit 64
+fi
 
 case "$hostname" in
 *.*) ;;
@@ -139,6 +157,14 @@ LOG_LEVEL=info
 # Leave empty for Let's Encrypt. Set to 'local_certs' only to test without a public domain.
 CADDY_LOCAL_CERTS=
 EOF
+
+if [ -n "$size" ]; then
+	{
+		echo
+		echo "# Resource limits for a $size host (deploy/sizes/$size.env). Edit freely: they are ceilings."
+		grep -v '^#' "$here/sizes/$size.env" | grep -v '^$'
+	} >>"$target"
+fi
 
 chmod 600 "$target"
 echo "wrote $target (mode 600)"
