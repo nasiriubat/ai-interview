@@ -11,6 +11,7 @@ import {
   HandoffSchema,
   InterviewTemplateSchema,
   listEnvelope,
+  LiveDiagramSchema as SharedLiveDiagramSchema,
   LiveSectionSchema as SharedLiveSectionSchema,
   ModalitySchema,
   ModelInfoSchema,
@@ -1054,6 +1055,10 @@ export type FindingRecord = z.infer<typeof FindingRecordSchema>;
 export const LiveSectionSchema = SharedLiveSectionSchema.loose();
 export type LiveSection = z.infer<typeof LiveSectionSchema>;
 
+/** A diagram of the live spec: generated, edited by the owner, or added by them (FR-23). */
+export const LiveDiagramSchema = SharedLiveDiagramSchema.loose();
+export type LiveDiagram = z.infer<typeof LiveDiagramSchema>;
+
 const MvpChallengeSchema = z.looseObject({
   started: z.boolean().default(false),
   done: z.boolean().default(false),
@@ -1071,6 +1076,7 @@ export const LiveSpecSchema = z.looseObject({
   path: PathSchema.nullish(),
   context: z.record(z.string(), z.string()).default({}),
   sections: z.array(LiveSectionSchema).default([]),
+  diagrams: z.array(LiveDiagramSchema).default([]),
   findings: z.array(FindingRecordSchema).default([]),
   decisions: z.array(DecisionSchema.loose()).default([]),
   mvpChallenge: MvpChallengeSchema.prefault({}),
@@ -1078,6 +1084,13 @@ export const LiveSpecSchema = z.looseObject({
 });
 export type LiveSpec = z.infer<typeof LiveSpecSchema>;
 export const LiveSpecEnvelopeSchema = z.looseObject({ spec: LiveSpecSchema });
+/** Answer to saving a diagram: the refreshed spec, the key it was saved under, and whether the renderer checked it. */
+export const DiagramSaveResultSchema = z.looseObject({
+  spec: LiveSpecSchema,
+  key: z.string(),
+  verified: z.boolean(),
+});
+export type DiagramSaveResult = z.infer<typeof DiagramSaveResultSchema>;
 
 export const SpecVersionStatusSchema = z.enum(["queued", "running", "done", "failed"]);
 export type SpecVersionStatus = z.infer<typeof SpecVersionStatusSchema>;

@@ -83,6 +83,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "DELETE /requirements/:id/spec/diagrams/:key": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "DELETE /users/:id": {
     "access": "admin",
     "isolation": true,
@@ -132,6 +144,18 @@
     }
   },
   "GET /analyses/:id/diff/:otherId": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /analyses/:id/report.pdf": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -683,6 +707,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "GET /requirements/:id/versions/:v/export.pdf": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "GET /routes": {
     "access": "admin",
     "isolation": false,
@@ -936,6 +972,18 @@
     }
   },
   "HEAD /analyses/:id/diff/:otherId": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /analyses/:id/report.pdf": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -1464,6 +1512,18 @@
     }
   },
   "HEAD /requirements/:id/versions/:v/export": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /requirements/:id/versions/:v/export.pdf": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -2375,6 +2435,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "POST /requirements/:id/spec/diagrams": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
   "POST /requirements/:id/turns": {
     "access": "staff",
     "isolation": true,
@@ -2568,6 +2640,18 @@
     }
   },
   "PUT /requirements/:id/sections/:key": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
+  "PUT /requirements/:id/spec/diagrams/:key": {
     "access": "staff",
     "isolation": true,
     "statuses": {

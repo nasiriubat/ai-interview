@@ -619,6 +619,26 @@ suite("audit rows: every administrative mutation writes one", () => {
       { markdown: "Owner-written overview" },
       onSession("requirements.section_edit", ["Owner-written overview"]),
     );
+    // Diagrams are edits of the same column; each of the three writes says which one it was.
+    const added = await audited(
+      "POST /requirements/:id/spec/diagrams",
+      `${base}/spec/diagrams`,
+      { mermaid: "flowchart LR\n  A-->B", description: "Hand-off", title: "Hand-off" },
+      onSession("requirements.diagram_add"),
+    );
+    const diagramKey = added.json<{ key: string }>().key;
+    await audited(
+      "PUT /requirements/:id/spec/diagrams/:key",
+      `${base}/spec/diagrams/${diagramKey}`,
+      { mermaid: "flowchart LR\n  A-->B-->C", description: "Hand-off, with review" },
+      onSession("requirements.diagram_edit"),
+    );
+    await audited(
+      "DELETE /requirements/:id/spec/diagrams/:key",
+      `${base}/spec/diagrams/${diagramKey}`,
+      undefined,
+      onSession("requirements.diagram_reset"),
+    );
     // A finding to settle, put on the session directly: raising one takes a model turn.
     const row = await world.db.session.findUniqueOrThrow({ where: { id } });
     await world.db.session.update({

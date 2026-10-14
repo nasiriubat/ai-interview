@@ -2,6 +2,7 @@ import {
   assembleContext,
   clusterStats,
   extractFacts,
+  FORMAT_REMINDER,
   InterviewEngine,
   LexicalRecall,
   neutralize,
@@ -151,7 +152,8 @@ describe.each(payloads)("injection $id ($category)", ({ text }) => {
     expect(body.lastIndexOf(`</untrusted-${NONCE}>`)).toBeLessThan(body.indexOf("<engine_focus>"));
 
     // The marker never appears in the data, and stripping the blocks leaves none of the payload.
-    expect(body).not.toContain(TURN_MARKER);
+    // (Except in the engine's own format reminder, the last line of the focus.)
+    expect(body.replace(FORMAT_REMINDER, "")).not.toContain(TURN_MARKER);
     const outside = outsideWrappers(body);
     const probe = neutralize(text).trim().slice(0, 18);
     if (probe.length >= 10) expect(outside).not.toContain(probe);

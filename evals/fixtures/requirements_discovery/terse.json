@@ -1,0 +1,746 @@
+{
+  "id": "requirements_discovery/terse",
+  "version": 1,
+  "templateKey": "requirements_discovery",
+  "persona": "terse",
+  "locale": "en",
+  "path": "nontechnical",
+  "turns": [
+    {
+      "n": 1,
+      "text": "Managed platform.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 2,
+      "text": "The spreadsheet.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 3,
+      "text": "A coding agent.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 4,
+      "text": "Spreadsheets.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 5,
+      "text": "Two months.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 6,
+      "text": "Small.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 7,
+      "text": "Twenty.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 8,
+      "text": "Privacy.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 9,
+      "text": "Double typing.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["overview"]
+      }
+    },
+    {
+      "n": 10,
+      "text": "Staff.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["users"]
+      }
+    },
+    {
+      "n": 11,
+      "text": "Assign cleaners to sites.",
+      "labels": {
+        "requirements": ["R1"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 12,
+      "text": "No double booking.",
+      "labels": {
+        "requirements": ["R2"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 13,
+      "text": "Cleaners see own shifts.",
+      "labels": {
+        "requirements": ["R3"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 14,
+      "text": "Manager confirms work.",
+      "labels": {
+        "requirements": ["R4"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 15,
+      "text": "Monthly hours export.",
+      "labels": {
+        "requirements": ["R5"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 16,
+      "text": "One rule.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["rules"]
+      }
+    },
+    {
+      "n": 17,
+      "text": "Web app.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["technical"]
+      }
+    },
+    {
+      "n": 18,
+      "text": "Four tables.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["data"]
+      }
+    },
+    {
+      "n": 19,
+      "text": "Email.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["integrations"]
+      }
+    },
+    {
+      "n": 20,
+      "text": "Private.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["security"]
+      }
+    },
+    {
+      "n": 21,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 22,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 23,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 24,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 25,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 26,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 27,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 28,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 29,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 30,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 31,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 32,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 33,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 34,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 35,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 36,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 37,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 38,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 39,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 40,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 41,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 42,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 43,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 44,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 45,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 46,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 47,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 48,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 49,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 50,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 51,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 52,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 53,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 54,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 55,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 56,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 57,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 58,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 59,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 60,
+      "text": "Yes.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    }
+  ],
+  "goldRequirements": [
+    {
+      "id": "R1",
+      "title": "Assign cleaners to sites",
+      "terms": ["assign"],
+      "scope": "mvp",
+      "acceptance": ["A shift shows one cleaner and one site"],
+      "introducedAtTurn": 11
+    },
+    {
+      "id": "R2",
+      "title": "Block double booking",
+      "terms": ["double"],
+      "scope": "mvp",
+      "acceptance": ["Assigning a booked cleaner shows an error"],
+      "introducedAtTurn": 12
+    },
+    {
+      "id": "R3",
+      "title": "Cleaner sees own shifts",
+      "terms": ["own", "shifts"],
+      "scope": "mvp",
+      "acceptance": ["A cleaner logs in and sees only personal shifts"],
+      "introducedAtTurn": 13
+    },
+    {
+      "id": "R4",
+      "title": "Site manager confirms work",
+      "terms": ["confirm"],
+      "scope": "mvp",
+      "acceptance": ["A confirmed shift is marked done"],
+      "introducedAtTurn": 14
+    },
+    {
+      "id": "R5",
+      "title": "Monthly hours export",
+      "terms": ["hours", "export"],
+      "scope": "mvp",
+      "acceptance": ["A CSV lists hours per cleaner"],
+      "introducedAtTurn": 15
+    }
+  ],
+  "goldFacts": [],
+  "goldFindings": [],
+  "modelBehavior": {
+    "flaws": {
+      "6": "marker_missing",
+      "12": "marker_missing",
+      "14": "wrong_section"
+    },
+    "scans": [
+      [
+        {
+          "type": "ambiguity",
+          "section": "nfr",
+          "description": "Performance is not defined",
+          "resolution": "Set a target",
+          "default": "2 seconds",
+          "confidence": "medium"
+        }
+      ]
+    ]
+  },
+  "expect": {
+    "coverage": [
+      {
+        "afterTurn": 12,
+        "covered": 1
+      },
+      {
+        "afterTurn": 30,
+        "covered": 5
+      }
+    ],
+    "endedWithin": 60
+  }
+}

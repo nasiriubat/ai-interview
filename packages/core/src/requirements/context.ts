@@ -8,6 +8,7 @@ import {
   type LiveSpec,
   type SessionEventType,
   type SessionState,
+  type SpecDiagram,
   type SpecDocument,
 } from "@aidp/shared";
 import type { InterviewTemplate as TemplateRow, Prisma, SpecVersion } from "@prisma/client";
@@ -65,7 +66,19 @@ export class RequirementsContext {
       state: state ?? SessionStateSchema.parse(row.state),
       edits: parseEdits(row.specEdits),
       sections,
+      diagrams: await this.generatedDiagrams(row.id),
     });
+  }
+
+  /** The diagrams of the newest finished version: what the owner's diagram edits are laid over. */
+  async generatedDiagrams(sessionId: string): Promise<SpecDiagram[]> {
+    const latest = await this.deps.db.specVersion.findFirst({
+      where: { sessionId, status: "done" },
+      orderBy: { version: "desc" },
+      select: { spec: true },
+    });
+    const parsed = latest ? SpecDocumentSchema.safeParse(latest.spec) : undefined;
+    return parsed?.success ? parsed.data.diagrams : [];
   }
 
   async bundleFormat(row: SessionRow): Promise<BundleFormat> {

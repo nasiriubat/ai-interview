@@ -119,10 +119,20 @@ describe(`requirements replay: ${fixture.name}`, () => {
     expect(model.issueScans.length).toBeGreaterThanOrEqual(1);
     expect(model.issueScans[0]).toContain("Specification state");
     expect(model.issueScans[0]).not.toContain("Let's talk about");
+    // Then the deterministic completeness check (D-191): two requirements are fewer than the template's
+    // minimum, so one more question is asked, and its answer is recorded as FR-3.
     const raised = focuses.filter((f) => f.startsWith("finding:"));
-    expect(raised).toHaveLength(1);
-    expect(store.state.findings).toHaveLength(1);
-    expect(store.state.findings[0]?.status).toBe("resolved");
+    expect(raised).toHaveLength(2);
+    expect(raised[1]).toMatch(/^finding:c\d+-1$/);
+    expect(store.state.findings).toHaveLength(2);
+    expect(store.state.findings.map((f) => f.status)).toEqual(["resolved", "resolved"]);
+    expect(store.state.findings[1]?.description).toMatch(/Only 2 functional requirements/);
+    expect(store.state.completenessAsks).toBe(1);
+    expect(
+      store.state.facts
+        .filter((f) => f.kind === "spec_field" && /^FR-\d+$/.test(f.path))
+        .map((f) => f.kind === "spec_field" && f.path),
+    ).toEqual(["FR-1", "FR-2", "FR-3"]);
 
     // The MVP challenge walked both functional requirements after the last area and before closing, and moved one to future scope.
     const mvp = focuses.filter((f) => f.startsWith("mvp:"));
@@ -145,8 +155,14 @@ describe(`requirements replay: ${fixture.name}`, () => {
     expect(focuses.at(-2)).toBe("closing");
     expect(focuses.at(-1)).toBe("summary");
     // The stable prefix never changed across interview turns: the cache can hit.
+    // (The structured repair call is a different prompt, made only when a turn's report needs rebuilding.)
     expect(
-      new Set(model.requests.filter((r) => r.purpose === "interview_turn").map((r) => r.req.system)).size,
+      new Set(
+        model.requests
+          .filter((r) => r.purpose === "interview_turn")
+          .filter((r) => !String(r.req.system).includes("bookkeeping of one interview turn"))
+          .map((r) => r.req.system),
+      ).size,
     ).toBe(1);
   });
 });

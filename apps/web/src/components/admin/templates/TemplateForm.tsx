@@ -66,6 +66,12 @@ export const emptyTemplate: InterviewTemplate = {
     pushBackOnce: true,
     mvpChallenge: false,
   },
+  completeness: {
+    minRequirements: 3,
+    requiredSections: ["overview", "users", "functional"],
+    maxAsks: 2,
+    requireAcceptance: true,
+  },
   outputs: [],
   analysisEnabled: false,
   chainToKey: null,

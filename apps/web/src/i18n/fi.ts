@@ -1246,6 +1246,30 @@ export const fi: Strings = {
         noChanges: "Versioissa on samat mahdollisuudet.",
       },
     },
+    exportsPanel: {
+      title: "Vienti",
+      pdf: "Lataa PDF",
+      markdown: "Lataa koko raportti (Markdown)",
+      preparing: (what: string): string => `Valmistellaan: ${what}…`,
+      done: (name: string): string => `Tiedosto ${name} ladattiin.`,
+      pagesNote: (n: number): string => `${n} sivua`,
+      failed: (what: string, reason: string): string => `Tiedostoa (${what}) ei voitu valmistella: ${reason}`,
+      busy: "Toista asiakirjaa valmistellaan juuri nyt. Yritä hetken kuluttua uudelleen.",
+      tooLarge: "Asiakirja on liian pitkä PDF-vientiin. Lataa sen sijaan Markdown.",
+      retry: "Yritä uudelleen",
+      warningsTitle: "Tiedosto luotiin, mutta huomioi:",
+      warnings: {
+        diagramUnrendered: (n: number): string =>
+          `Kaaviota ${n} ei voitu piirtää, joten sen lähdekoodi on tulostettu sen tilalle.`,
+        diagramSyntax: (n: number): string =>
+          `Kaaviossa ${n} on virhe, eikä sitä voitu piirtää, joten sen lähdekoodi on tulostettu sen tilalle.`,
+        diagramOverLimit: "Osa kaavioista ylitti rajan ja on tulostettu lähdekoodina.",
+        diagramTooLarge: "Kaavio oli liian suuri piirrettäväksi ja on tulostettu lähdekoodina.",
+        truncated: "Asiakirja oli pitkä, joten sen loppu on jätetty pois PDF-tiedostosta.",
+        table: "Taulukko oli liian suuri sivulle ja sitä lyhennettiin.",
+        other: (code: string): string => `Huomio: ${code}`,
+      },
+    },
     report: {
       title: "Raportti",
       subtitle: "Analyysin tuottama organisaation raportti prosessikarttoineen.",
@@ -1365,6 +1389,53 @@ export const fi: Strings = {
         saved: "Osio tallennettu",
         cleared: "Muokkaus poistettu. Tuotettu teksti on palautettu.",
         noSections: "Määrittelyssä ei ole vielä osioita. Vastaa ensimmäisiin kysymyksiin täyttääksesi sen.",
+        diagrams: {
+          title: "Kaaviot",
+          intro:
+            "Muokkaa kaavion Mermaid-lähdekoodia tai lisää oma kaavio. Kirjoittamasi säilyy, kun määrittely tuotetaan uudelleen.",
+          none: "Kaavioita ei vielä ole. Tuotetut kaaviot ilmestyvät tähän, kun versio on luotu, tai voit lisätä oman.",
+          add: "Lisää kaavio",
+          edit: (title: string): string => `Muokkaa kaaviota ${title}`,
+          status: {
+            generated: "Tuotettu",
+            edited: "Omistajan muokkaama",
+            added: "Omistajan lisäämä",
+          },
+          unverified:
+            "Ei tarkistettu: kaaviopalveluun ei saatu yhteyttä tallennettaessa. Kaavio tarkistetaan uudelleen, kun tallennat sen seuraavan kerran.",
+          titleLabel: "Otsikko",
+          typeLabel: "Kaavion laji",
+          types: {
+            context: "Järjestelmän konteksti",
+            containers: "Kontit",
+            sequence: "Sekvenssi",
+            state: "Tilat",
+            entity: "Tietokohteet",
+          },
+          descriptionLabel: "Kuvaus",
+          descriptionHint:
+            "Pakollinen. Näkyy kaavion alla ja luetaan ääneen niille, jotka eivät näe kaaviota. Kerro, mitä kaavio esittää.",
+          sourceLabel: "Mermaid-lähdekoodi",
+          sourceHint:
+            "Enintään 20 kt. HTML, linkit, click-toiminnot ja direktiivit eivät ole sallittuja. Esikatselu päivittyy kirjoittaessasi.",
+          previewTitle: "Esikatselu",
+          previewLabel: (title: string): string => `Esikatselu: ${title}`,
+          previewEmpty: "Kirjoita Mermaid-lähdekoodia nähdäksesi kaavion.",
+          save: "Tallenna kaavio",
+          saved: "Kaavio tallennettu",
+          savedUnverified:
+            "Kaavio tallennettiin, mutta sitä ei voitu tarkistaa, koska kaaviopalvelu ei ole käytettävissä.",
+          reset: "Palauta tuotettu kaavio",
+          remove: "Poista tämä kaavio",
+          resetDone: "Tuotettu kaavio on palautettu.",
+          removeDone: "Kaavio poistettu.",
+          issuesTitle: "Kaaviota ei tallennettu:",
+          line: (n: number): string => `rivi ${n}`,
+          original: "Tuotettu versio",
+          showOriginal: "Näytä tuotettu versio",
+          descriptionRequired: "Lisää kuvaus siitä, mitä kaavio esittää.",
+          sourceRequired: "Kirjoita kaavion Mermaid-lähdekoodi.",
+        },
       },
       sectionNames: {
         overview: "Tuotteen yleiskuva ja ongelma",
@@ -2312,6 +2383,7 @@ export const fi: Strings = {
       adaptivity: "Mukautuvuus",
       widgetPolicy: "Vastausvaihtoehdot",
       issueDetection: "Havainnot",
+      completeness: "Kattavuus",
       outputs: "Mitä poimitaan",
       analysisEnabled: "Mukana kampanjan analyysissä",
       chainToKey: "Seuraava mallipohja",
@@ -2378,6 +2450,7 @@ export const fi: Strings = {
       },
       "branding.language": { en: "Englanti", fi: "Suomi" },
       "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Yleinen" },
+      "exports.pdfPageSize": { A4: "A4", Letter: "US Letter" },
     },
     settingKey: {
       "engine.recentWindowTurns": {
@@ -2707,6 +2780,23 @@ export const fi: Strings = {
       "exports.bundleFormat": {
         label: "Agenttipaketin muoto",
         description: "Mille koodausagentille ladattava paketti valmistellaan.",
+      },
+      "exports.pdfPageSize": {
+        label: "PDF-tiedoston sivukoko",
+        description: "Raporttien ja määrittelyjen PDF-tiedostojen paperikoko.",
+      },
+      "exports.pdfCoverPage": {
+        label: "PDF-tiedoston kansilehti",
+        description: "Aloita jokainen PDF kansilehdellä, jolla näkyvät nimi, otsikko, versio ja päivämäärä.",
+      },
+      "exports.pdfFooterText": {
+        label: "PDF-tiedoston alatunnisteen teksti",
+        description:
+          "Lyhyt rivi, joka lisätään jokaisen PDF-sivun alatunnisteeseen, esimerkiksi luottamuksellisuusmerkintä.",
+      },
+      "branding.primaryColor": {
+        label: "Korostusväri",
+        description: "PDF-tiedostojen otsikoiden ja kansilehden väri muodossa #rrggbb.",
       },
       "notifications.campaignThreshold": {
         label: "Lähetä sähköposti, kun haastatteluja on tarpeeksi",

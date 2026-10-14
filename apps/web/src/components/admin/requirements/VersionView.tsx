@@ -1,9 +1,10 @@
 "use client";
 
-import { AlertTriangleIcon, DownloadIcon, GitBranchIcon, Loader2Icon } from "lucide-react";
+import { AlertTriangleIcon, GitBranchIcon, Loader2Icon } from "lucide-react";
 import * as React from "react";
 import { GitHubPushDialog } from "./GitHubPushDialog";
 import { VersionDiff } from "./VersionDiff";
+import { ExportsPanel } from "@/components/admin/ExportsPanel";
 import { StatTile } from "@/components/admin/StatTile";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { DateText } from "@/components/common/DateText";
@@ -82,22 +83,39 @@ export function VersionView({
       </div>
 
       {v.status === "done" ? (
-        <section aria-label={s.downloads} className="flex flex-wrap gap-2 print:hidden">
-          <Button asChild variant="outline">
-            <a href={specExportUrl(sessionId, v.version, "md")} download>
-              <DownloadIcon /> {s.downloadMd}
-            </a>
-          </Button>
-          <Button asChild variant="outline">
-            <a href={specExportUrl(sessionId, v.version, "json")} download>
-              <DownloadIcon /> {s.downloadJson}
-            </a>
-          </Button>
-          <Button asChild variant="outline">
-            <a href={specExportUrl(sessionId, v.version, "bundle")} download>
-              <DownloadIcon /> {s.downloadBundle}
-            </a>
-          </Button>
+        <ExportsPanel
+          heading={s.downloads}
+          items={[
+            {
+              id: "pdf",
+              label: t.admin.exportsPanel.pdf,
+              what: "PDF",
+              url: specExportUrl(sessionId, v.version, "pdf"),
+              fallbackName: `specification-v${v.version}.pdf`,
+            },
+            {
+              id: "md",
+              label: s.downloadMd,
+              what: "spec.md",
+              url: specExportUrl(sessionId, v.version, "md"),
+              fallbackName: `specification-v${v.version}.md`,
+            },
+            {
+              id: "json",
+              label: s.downloadJson,
+              what: "spec.json",
+              url: specExportUrl(sessionId, v.version, "json"),
+              fallbackName: `specification-v${v.version}.json`,
+            },
+            {
+              id: "bundle",
+              label: s.downloadBundle,
+              what: s.bundle,
+              url: specExportUrl(sessionId, v.version, "bundle"),
+              fallbackName: `specification-v${v.version}-bundle.zip`,
+            },
+          ]}
+        >
           <Button
             onClick={() => {
               setGithub(true);
@@ -111,7 +129,7 @@ export function VersionView({
             open={github}
             onOpenChange={setGithub}
           />
-        </section>
+        </ExportsPanel>
       ) : null}
 
       {v.status === "done" ? <VersionDiff sessionId={sessionId} current={v} others={others} /> : null}

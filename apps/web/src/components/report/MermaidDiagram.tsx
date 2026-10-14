@@ -49,7 +49,14 @@ type State = { kind: "loading" } | { kind: "ok"; svg: string } | { kind: "error"
  * Renders a ```mermaid fence into inline SVG. Render failures fall back to the source in
  * a code block, so a bad diagram never breaks the report.
  */
-export function MermaidDiagram({ code }: { code: string }): React.JSX.Element {
+export function MermaidDiagram({
+  code,
+  label,
+}: {
+  code: string;
+  /** Accessible name of the drawn diagram; the generic "Process map" when absent. */
+  label?: string;
+}): React.JSX.Element {
   const reactId = React.useId();
   const [state, setState] = React.useState<State>({ kind: "loading" });
 
@@ -101,7 +108,7 @@ export function MermaidDiagram({ code }: { code: string }): React.JSX.Element {
     <figure
       className="report-diagram my-4 overflow-x-auto"
       role="img"
-      aria-label={t.admin.report.diagram}
+      aria-label={label ?? t.admin.report.diagram}
       // Mermaid's own DOMPurify pass runs in `strict` mode; the source is our API's report.
       dangerouslySetInnerHTML={{ __html: withStyleNonce(state.svg, pageNonce()) }}
     />

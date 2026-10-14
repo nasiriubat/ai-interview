@@ -37,6 +37,17 @@ const Env = z.object({
   /** Comma-separated hostnames a platform provider may reach on a private address (compose services). */
   EGRESS_ALLOW_HOSTS: z.string().default(""),
   /**
+   * The diagram renderer (Kroki, with its Mermaid companion) used by PDF export and by the diagram
+   * editor (D-210). From the environment only, never a tenant setting, and reached through the
+   * egress guard, so its host must be in EGRESS_ALLOW_HOSTS when it is a compose service name. Unset
+   * means no renderer: diagrams are printed as source and saved unverified. Compose passes an unset
+   * variable as the empty string, which is "not set" here.
+   */
+  KROKI_URL: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.url({ protocol: /^https?$/, hostname: z.regexes.hostname }).optional(),
+  ),
+  /**
    * Reverse proxies between the internet and this process that set X-Forwarded-For, counted from
    * this side. Caddy in front of the web app (which forwards the one address Caddy wrote) is one
    * hop; the live-voice socket reaches the API straight from Caddy, also one. Anything other than
@@ -62,6 +73,21 @@ const Env = z.object({
   RATE_LIMIT_INTERNAL_MAX: z.coerce.number().int().positive().default(120),
 });
 export type Config = z.infer<typeof Env>;
+
+/**
+ * The hostnames the platform may reach on a private address: what the operator listed, plus the
+ * host of the diagram renderer they named in `KROKI_URL`. The second is added here so that naming
+ * a renderer is enough: an operator who lists only their model server in EGRESS_ALLOW_HOSTS has
+ * not meant to turn PDF export off.
+ */
+export function egressAllowHosts(config: Pick<Config, "EGRESS_ALLOW_HOSTS" | "KROKI_URL">): string {
+  const listed = config.EGRESS_ALLOW_HOSTS.split(",")
+    .map((h) => h.trim())
+    .filter(Boolean);
+  const kroki = config.KROKI_URL ? new URL(config.KROKI_URL).hostname.toLowerCase() : "";
+  const all = kroki && !listed.map((h) => h.toLowerCase()).includes(kroki) ? [...listed, kroki] : listed;
+  return all.join(",");
+}
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = Env.safeParse(env);
