@@ -121,7 +121,9 @@ export function buildServices(d: ServiceDeps): Services {
   );
   return {
     audit,
-    users: new UsersService(d.db, audit),
+    users: new UsersService(d.db, audit, (companyId) =>
+      d.settings.get("branding.currency", [{ scope: "tenant", scopeId: companyId }]),
+    ),
     stats: new StatsService(d.db, {
       weightsFor: (campaignId, companyId) => d.analysis.weightsFor(campaignId, companyId),
       k: async (companyId) => d.settings.get("privacy.kAnonymity", [{ scope: "tenant", scopeId: companyId }]),

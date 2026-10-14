@@ -55,7 +55,7 @@ function apiWith(sendTurn: ParticipantApi["sendTurn"], extra: Partial<Participan
     pause: noop,
     sendControl: () => Promise.reject(new Error("unused")),
     deleteData: () => Promise.resolve({ ok: true, emailSent: false }),
-    getSummary: () => Promise.resolve({ summary: "", facts: [] }),
+    getSummary: () => Promise.resolve({ summary: "", facts: [], status: "ready" as const }),
     putSummary: noop,
     ...extra,
   };
@@ -173,7 +173,7 @@ describe("useInterview", () => {
       sections: [{ key: "overview", title: "Overview", status: "draft", markdown: "# Overview", fields: [] }],
       findings: [],
       decisions: [],
-      mvpChallenge: { started: false, done: false, asked: [] },
+      mvpChallenge: { started: false, done: false, asked: [], outcome: "pending" },
       stats: { fields: 1, sectionsWithContent: 1, openFindings: 0 },
     };
     const sendTurn = vi.fn((): Promise<Response> =>

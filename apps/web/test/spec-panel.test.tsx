@@ -48,7 +48,7 @@ const spec: LiveSpec = {
   diagrams: [],
   findings: [finding],
   decisions: [],
-  mvpChallenge: { started: true, done: false, asked: ["FR-1", "FR-2"] },
+  mvpChallenge: { started: true, done: false, asked: ["FR-1", "FR-2"], outcome: "in_progress" },
   stats: { fields: 3, sectionsWithContent: 1, openFindings: 1 },
 };
 
@@ -67,6 +67,34 @@ describe("SpecSections", () => {
     expect(screen.getByText("In progress · 2 items asked")).toBeInTheDocument();
     expect(screen.getByText("Draft")).toBeInTheDocument();
     expect(screen.getByText("Empty")).toBeInTheDocument();
+  });
+
+  it.each([
+    [{ outcome: "pending" as const }, "Not started yet"],
+    [{ outcome: "off" as const }, "Off for this interview"],
+    [{ outcome: "done" as const, started: true, done: true, asked: ["FR-1"] }, "Done · 1 item asked"],
+    [
+      { outcome: "skipped" as const, endedBy: "finish" as const, started: false, asked: [] },
+      "Skipped · you finished before it began",
+    ],
+    [
+      { outcome: "skipped" as const, endedBy: "turn_limit" as const, started: false, asked: [] },
+      "Skipped · the turn limit came first",
+    ],
+    [
+      { outcome: "skipped" as const, endedBy: "finish" as const, started: true, asked: ["FR-1", "FR-2"] },
+      "Ended early · 2 items asked before you finished",
+    ],
+  ])("says what happened to the MVP challenge, not only that it did not start (%o)", (mvp, label) => {
+    render(
+      <SpecSections
+        sessionId="s1"
+        spec={{ ...spec, mvpChallenge: { started: false, done: false, asked: [], ...mvp } }}
+        onSpec={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(label)).toBeInTheDocument();
+    if (mvp.outcome === "skipped") expect(screen.queryByText("Not started yet")).not.toBeInTheDocument();
   });
 
   it("edits a section inline, sends the Markdown and hands the returned spec up", async () => {

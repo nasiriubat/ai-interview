@@ -106,6 +106,8 @@ export class CallerFactory {
           db: deps.db,
           alerts: deps.alerts,
           publicWebUrl: deps.publicWebUrl ?? "http://localhost:3000",
+          currencyOf: (companyId) =>
+            deps.settings.get("branding.currency", [{ scope: "tenant", scopeId: companyId }]),
           ...(deps.now ? { now: deps.now } : {}),
         })
       : undefined;

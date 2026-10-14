@@ -339,7 +339,10 @@ export function buildContext(input: {
     jobAdmin,
     metrics,
     ceilings,
-    statements: new StatementService({ db }),
+    statements: new StatementService({
+      db,
+      currencyOf: (companyId) => settings.get("branding.currency", [{ scope: "tenant", scopeId: companyId }]),
+    }),
     tenantExporter,
     platformHealth,
   };

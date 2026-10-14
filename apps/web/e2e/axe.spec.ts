@@ -42,7 +42,12 @@ for (const entry of PAGES) {
     }
     if (entry.auth === "participant") {
       await context.addCookies([
-        { name: "aidp_participant", value: "e2e-participant-token", domain: origin.hostname, path: "/" },
+        {
+          name: "aidp_participant",
+          value: entry.token ?? "e2e-participant-token",
+          domain: origin.hostname,
+          path: "/",
+        },
       ]);
     }
     // Every Content-Security-Policy violation the page raises, from the first script onward. The
@@ -58,6 +63,7 @@ for (const entry of PAGES) {
         );
       });
     });
+    await entry.before?.(page);
     // The role header reaches the fake API through the web server only when it is forwarded; the
     // operator pages are served by the same fake, which answers every role the same way.
     const response = await page.goto(entry.path, { waitUntil: "networkidle" });

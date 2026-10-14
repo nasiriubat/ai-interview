@@ -328,12 +328,13 @@ describe("department comparison", () => {
 
   it("prints every share as a number, withholds a cell, and says how many are not shown", () => {
     render(<DepartmentsPanel comparison={shown} />);
-    const table = screen.getByRole("table", { name: "By department" });
-    const ward = within(table).getByRole("row", { name: /Ward/ });
-    expect(within(ward).getByText("67%")).toBeInTheDocument();
-    expect(within(ward).getAllByText("Withheld").length).toBeGreaterThan(0);
-    expect(within(table).getByRole("rowheader", { name: "Other departments" })).toBeInTheDocument();
-    expect(screen.getByText("Single entry of notes (50%)")).toBeInTheDocument();
+    const list = screen.getByRole("list", { name: "By department" });
+    const ward = within(list).getByRole("heading", { name: "Ward" }).closest("li");
+    expect(ward).not.toBeNull();
+    expect(within(ward as HTMLElement).getByText("67%")).toBeInTheDocument();
+    expect(within(ward as HTMLElement).getAllByText("Withheld").length).toBeGreaterThan(0);
+    expect(within(list).getByRole("heading", { name: "Other departments" })).toBeInTheDocument();
+    expect(ward).toHaveTextContent("Described by many: Single entry of notes (50%)");
     expect(screen.getByText("2 departments with fewer than 3 people are not shown.")).toBeInTheDocument();
   });
 

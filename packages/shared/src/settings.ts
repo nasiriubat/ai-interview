@@ -43,6 +43,16 @@ export const SECRET_SENTINEL = "__unchanged__";
 
 const def = <T extends z.ZodType>(d: SettingDef<T>): SettingDef<T> => d;
 
+/**
+ * Currencies a tenant can label its costs with (D-323). The ledger holds hundredths of the unit the
+ * provider price table was entered in, and the shipped prices are US dollars per million tokens, so
+ * the default is USD. Choosing another one does not convert anything: it says what the prices
+ * the operator typed in are in.
+ */
+export const CURRENCIES = ["USD", "EUR", "GBP", "SEK", "NOK", "DKK", "CHF"] as const;
+export type Currency = (typeof CURRENCIES)[number];
+export const DEFAULT_CURRENCY: Currency = "USD";
+
 /** An SMTP connection string the server is willing to dial: a real host, an SMTP scheme, a sane port. */
 export function isSmtpUrl(value: string): boolean {
   let url: URL;
@@ -164,6 +174,15 @@ export const SETTINGS = {
     scopes: ["platform", "tenant", "campaign"],
     category: "campaign",
     description: "Percent of invited before analysis runs",
+  }),
+  "analysis.autoRunDelayMinutes": def({
+    schema: z.number().int().min(0).max(240),
+    default: 5,
+    scopes: ["platform", "tenant", "campaign"],
+    category: "analysis",
+    description:
+      "Minutes to wait after an interview completes before the automatic analysis starts (0 = at once)",
+    since: "2026.10",
   }),
   "campaign.linkExpiryDays": def({
     schema: z.number().int().min(1).max(365),
@@ -498,6 +517,15 @@ export const SETTINGS = {
     scopes: ["platform", "tenant"],
     category: "branding",
     description: "Accent colour of PDF exports",
+    since: "2026.10",
+  }),
+  "branding.currency": def({
+    schema: z.enum(CURRENCIES),
+    default: DEFAULT_CURRENCY,
+    scopes: ["platform", "tenant"],
+    category: "branding",
+    description:
+      "The currency the model price table is entered in, and so the unit of every cost shown. A label, not a conversion",
     since: "2026.10",
   }),
   "branding.emailSender": def({

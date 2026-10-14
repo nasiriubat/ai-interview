@@ -40,7 +40,7 @@ export function VersionView({
   const markdown = detail.markdown.trim() ? detail.markdown : (bundleSpec ?? "");
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={v.status} />
         {v.label ? <span className="text-sm font-medium">{v.label}</span> : null}
@@ -134,7 +134,7 @@ export function VersionView({
 
       {v.status === "done" ? <VersionDiff sessionId={sessionId} current={v} others={others} /> : null}
 
-      <section aria-label={s.document} className="grid gap-3">
+      <section aria-label={s.document} className="grid min-w-0 grid-cols-1 gap-3">
         <h2 className="text-base font-semibold">{s.document}</h2>
         {markdown ? (
           <div className="bg-card shadow-card rounded-lg p-4 md:p-6">

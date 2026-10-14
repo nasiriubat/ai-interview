@@ -172,7 +172,16 @@ export const opportunity = (
     ai_suitability: factor(4),
   },
   rationale: "High frequency and a clear structured source.",
-  evidence: [{ quote: "We type everything twice.", participantRole: "Nurse" }],
+  evidence: [{ factId: "f1", snippet: "We type everything twice.", anonymized: true }],
+  stats: {
+    participants: 8,
+    facts: 12,
+    roles: ["Nurse"],
+    departments: ["Ward"],
+    tools: ["Spreadsheet"],
+    minutesPerWeekTotal: 95,
+    quotes: ["We type everything twice."],
+  },
   participants: 8,
   minutesPerWeek: 95,
   roles: ["Nurse"],
@@ -371,6 +380,10 @@ export const promptDetail = {
   windowDays: 30,
 };
 
+/** The participant credential that gets the live call: the fake API reads "live" in it. */
+export const LIVE_TOKEN = "e2e-participant-live";
+export const PARTICIPANT_TOKEN = "e2e-participant-token";
+
 export const participantSession = {
   id: "sess9",
   status: "active",
@@ -488,6 +501,54 @@ export const specVersions = [
   },
 ];
 
+/**
+ * One diagram of each type, drawn from the sources the generator wrote for a real demo run. The
+ * diagram spec (`e2e/diagrams.spec.ts`) measures what Mermaid makes of them in a browser under the
+ * enforced policy, so a layout that is not legible at a phone's width fails there.
+ */
+export const demoDiagrams = [
+  {
+    key: "context-1",
+    title: "System context",
+    type: "context",
+    mermaid:
+      "flowchart LR\n  Visitor((Visitor/Contractor)) -->|Scan QR & submit details| WebApp[Parking Pass Web App]\n  Reception -->|View & manage list| WebApp\n  ClinicManager -->|Export lists & view overrides| WebApp\n  WebApp -->|Stores data| GoogleSheets[(Google Sheets)]",
+  },
+  {
+    key: "containers-1",
+    title: "Containers",
+    type: "containers",
+    mermaid:
+      "flowchart LR\n  subgraph User Devices\n    PhoneTablet[Phones and Tablets]\n  end\n  WebApp[Parking Pass Web Application]\n  GoogleSheets[(Google Sheets Storage)]\n\n  PhoneTablet --> WebApp\n  WebApp --> GoogleSheets",
+  },
+  {
+    key: "sequence-1",
+    title: "Check-in flow",
+    type: "sequence",
+    mermaid:
+      "sequenceDiagram\n  Visitor->>WebApp: Scan QR code\n  WebApp->>Visitor: Show check-in form\n  Visitor->>WebApp: Submit name, car info, plate\n  WebApp->>GoogleSheets: Save record with timestamp\n  WebApp->>Visitor: Show confirmation with 5 PM expiry",
+  },
+  {
+    key: "state-1",
+    title: "Visitor status",
+    type: "state",
+    mermaid:
+      "stateDiagram-v2\n  [*] --> OnSite\n  OnSite --> Flagged : Reception adds note\n  OnSite --> Left : Reception marks Left\n  Flagged --> Left\n  Left --> [*]",
+  },
+  {
+    key: "entity-1",
+    title: "Entities",
+    type: "entity",
+    mermaid:
+      "erDiagram\n  VISITOR {\n    string Name\n    string CarMake\n    string CarModel\n    string LicensePlate\n    datetime CheckInTime\n    string Status\n    string FlagNote\n    boolean IsContractor\n    string OverrideNote\n  }\n  OVERRIDE {\n    string UserName\n    datetime Timestamp\n    string Reason\n  }\n  VISITOR ||--o{ OVERRIDE : logs",
+  },
+].map((d) => ({
+  ...d,
+  description: `The ${d.title.toLowerCase()} of the parking pass system.`,
+  status: "generated",
+  verified: true,
+}));
+
 /** `GET /requirements/:id`: the session, its transcript, the live spec, versions and invitations. */
 export const requirementsDetail = {
   session: {
@@ -587,7 +648,7 @@ export const requirementsDetail = {
         source: "user",
       },
     ],
-    mvpChallenge: { started: false, done: false, asked: [] },
+    mvpChallenge: { started: false, done: false, asked: [], outcome: "pending" },
     stats: { fields: 2, sectionsWithContent: 2, openFindings: 1 },
   },
   versions: specVersions,
@@ -601,6 +662,49 @@ export const requirementsDetail = {
       expiresAt: "2026-11-14T09:30:00.000Z",
     },
   ],
+};
+
+/**
+ * `GET /analyses/:id/departments`: two groups above k, with the long opportunity titles the demo
+ * run produced. They are what clipped on the right of the results sidebar (D-321).
+ */
+export const departments = {
+  shown: true,
+  k: 3,
+  belowK: 1,
+  departments: [
+    {
+      name: "Front desk and patient registration",
+      kind: "department",
+      participants: 4,
+      facts: 18,
+      minutesPerWeek: 1_260,
+      topOpportunities: [
+        {
+          clusterKey: "c1",
+          title: "Automatic reminder messages for appointments that were rescheduled at short notice",
+          share: 0.75,
+        },
+        { clusterKey: "c2", title: "Single entry of visitor details at the reception desk", share: 0.5 },
+      ],
+      solutionClassShare: { ai: 0.1, automation: 0.6, software: 0.2, process: 0.1 },
+    },
+    {
+      name: "Nursing",
+      kind: "department",
+      participants: 3,
+      facts: 12,
+      minutesPerWeek: 540,
+      topOpportunities: [],
+      solutionClassShare: { automation: 0.67 },
+    },
+  ],
+};
+
+/** The same interview for a tenant that has live voice calls switched on. */
+export const participantSessionLive = {
+  ...participantSession,
+  capabilities: { ...participantSession.capabilities, liveVoice: true },
 };
 
 /** `GET /requirements/:id/versions/:v`: one generated version, with its document text and bundle. */
@@ -629,4 +733,21 @@ export const specVersionDetail = {
       pushedBack: false,
     },
   ],
+};
+
+/**
+ * The same session and version with the five diagrams drawn, served for the id `reqd` only. The
+ * accessibility pass keeps `req1`: Mermaid measures a diagram in a style element of its own that a
+ * nonce-only policy refuses, which is a known report (D-320) and not what that pass is checking.
+ */
+export const requirementsDetailWithDiagrams = {
+  ...requirementsDetail,
+  spec: { ...requirementsDetail.spec, diagrams: demoDiagrams },
+};
+
+export const specVersionDetailWithDiagrams = {
+  ...specVersionDetail,
+  markdown: `${specVersionDetail.markdown}\n## Diagrams\n\n${demoDiagrams
+    .map((d) => `### ${d.title}\n\n\`\`\`mermaid\n${d.mermaid}\n\`\`\`\n`)
+    .join("\n")}`,
 };

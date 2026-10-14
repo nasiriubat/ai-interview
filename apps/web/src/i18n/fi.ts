@@ -398,6 +398,10 @@ export const fi: Strings = {
       summaryLabel: "Yhteenvetosi",
       save: "Tallenna yhteenveto",
       saved: "Yhteenveto tallennettu",
+      generating: "Yhteenvetoasi kirjoitetaan. Se ilmestyy tähän hetken kuluttua.",
+      unavailable:
+        "Tästä keskustelusta ei tehty kirjoitettua yhteenvetoa. Haastattelijan merkitsemät asiat on lueteltu alla, ja vastauksesi säilyvät sellaisina kuin ne annoit.",
+      loadError: "Yhteenvetoa ei voitu ladata. Voit yrittää uudelleen lataamalla sivun uudelleen.",
       factsTitle: "Mitä kirjattiin",
       whatNext: "Mitä seuraavaksi",
       whatNextBody:
@@ -1013,6 +1017,9 @@ export const fi: Strings = {
       polling: "Tarkistetaan analyysin tilaa",
       version: "Versio",
       versionOption: (version: number, status: string): string => `v${version} · ${status}`,
+      trigger: { auto: "automaattinen", manual: "pyydetty", edit: "muokkauksen jälkeen" },
+      autoWaiting: (time: string): string =>
+        `Käynnistyi automaattisesti, kun haastatteluja oli riittävästi. Se odottaa kello ${time} asti, jotta vielä valmistuvat haastattelut ehtivät mukaan, ja ajetaan sitten kerran.`,
       latest: "uusin",
       status: { queued: "Jonossa", running: "Käynnissä", done: "Valmis", failed: "Epäonnistui" },
       preliminary: "Alustava",
@@ -1303,6 +1310,8 @@ export const fi: Strings = {
       diagram: "Prosessikartta",
       diagramLoading: "Piirretään kaaviota…",
       diagramError: "Kaaviota ei voitu piirtää. Sen sijaan näytetään lähdekoodi.",
+      diagramTooLarge:
+        "Kaavio piirtyi liian suureksi luettavaksi. Sen sijaan näytetään lähdekoodi; kaavion jakaminen kahteen auttaa yleensä.",
       preliminaryNote:
         "Alustava: haastatteluja on vähemmän kuin valmistumisraja edellyttää. Määrät voivat muuttua, joten pidä järjestystä suuntaa antavana.",
     },
@@ -1378,7 +1387,16 @@ export const fi: Strings = {
       spec: {
         contextTitle: "Konteksti",
         mvpTitle: "MVP-haaste",
-        mvpNotStarted: "Ei aloitettu",
+        mvpNotStarted: "Ei vielä aloitettu",
+        mvpOff: "Pois käytöstä tässä haastattelussa",
+        mvpSkippedFinish: (n: number): string =>
+          n > 0
+            ? `Päättyi ennenaikaisesti · ${n} kohtaa kysytty ennen kuin lopetit`
+            : "Ohitettu · lopetit ennen sen alkua",
+        mvpSkippedLimit: (n: number): string =>
+          n > 0
+            ? `Päättyi ennenaikaisesti · ${n} kohtaa kysytty ennen vuorojen rajaa`
+            : "Ohitettu · vuorojen raja tuli ensin",
         mvpInProgress: (n: number): string => `Kesken · ${n} kohtaa kysytty`,
         mvpDone: (n: number): string => `Valmis · ${n} kohtaa kysytty`,
         stats: {
@@ -2524,6 +2542,15 @@ export const fi: Strings = {
         off: "Pois käytöstä",
       },
       "branding.language": { en: "Englanti", fi: "Suomi" },
+      "branding.currency": {
+        USD: "Yhdysvaltain dollari (USD)",
+        EUR: "Euro (EUR)",
+        GBP: "Punta (GBP)",
+        SEK: "Ruotsin kruunu (SEK)",
+        NOK: "Norjan kruunu (NOK)",
+        DKK: "Tanskan kruunu (DKK)",
+        CHF: "Sveitsin frangi (CHF)",
+      },
       "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Yleinen" },
       "exports.pdfPageSize": { A4: "A4", Letter: "US Letter" },
     },
@@ -2832,6 +2859,11 @@ export const fi: Strings = {
         description:
           "Käytetään, kun esiasetus on Mukautettu. Suurempi paino tarkoittaa suurempaa merkitystä.",
       },
+      "analysis.autoRunDelayMinutes": {
+        label: "Odotus ennen automaattista analyysia",
+        description:
+          "Minuutit, jotka odotetaan sen jälkeen, kun kampanjalla on riittävästi haastatteluja, ennen kuin analyysi käynnistyy itse. Näin vielä valmistuvat haastattelut tulevat mukaan ja valmistumisryöpystä syntyy yksi versio. 0 käynnistää sen heti.",
+      },
       "analysis.similarityThreshold": {
         label: "Kuinka samankaltaisia poimintojen on oltava ryhmittelyyn",
         description:
@@ -2892,6 +2924,11 @@ export const fi: Strings = {
         label: "PDF-tiedoston alatunnisteen teksti",
         description:
           "Lyhyt rivi, joka lisätään jokaisen PDF-sivun alatunnisteeseen, esimerkiksi luottamuksellisuusmerkintä.",
+      },
+      "branding.currency": {
+        label: "Kustannusten valuutta",
+        description:
+          "Valuutta, jossa palveluntarjoajien hintataulukko on annettu, ja siis kaikkien näytettävien kustannusten yksikkö. Se nimeää luvut; se ei muunna niitä.",
       },
       "branding.primaryColor": {
         label: "Korostusväri",

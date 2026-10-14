@@ -23,7 +23,15 @@ export default defineConfig({
   workers: 4,
   reporter: [["list"]],
   globalTeardown: "./e2e/summary.ts",
-  use: { baseURL: `http://localhost:${String(WEB_PORT)}`, trace: "off" },
+  use: {
+    baseURL: `http://localhost:${String(WEB_PORT)}`,
+    trace: "off",
+    // A fake microphone for the voice screens (D-326): the prompt is accepted and the device plays
+    // a test tone, so a recording or a call can be set up without hardware or a person.
+    launchOptions: {
+      args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+    },
+  },
   projects: [
     { name: "en-mobile", use: { ...mobile, locale: "en-GB" } },
     { name: "en-desktop", use: { ...desktop, locale: "en-GB" } },

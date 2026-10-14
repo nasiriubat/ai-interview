@@ -22,11 +22,22 @@ export function SpecSections({
   const s = t.admin.requirements.spec;
   const context = Object.entries(spec.context);
   const mvp = spec.mvpChallenge;
-  const mvpLabel = mvp.done
-    ? s.mvpDone(mvp.asked.length)
-    : mvp.started
-      ? s.mvpInProgress(mvp.asked.length)
-      : s.mvpNotStarted;
+  // The label says what happened, not just whether the walk started (D-322): an interview that is
+  // over and never reached the walk is "skipped", not "not started".
+  const mvpLabel =
+    mvp.outcome === "off"
+      ? s.mvpOff
+      : mvp.outcome === "done"
+        ? s.mvpDone(mvp.asked.length)
+        : mvp.outcome === "in_progress"
+          ? s.mvpInProgress(mvp.asked.length)
+          : mvp.outcome === "skipped"
+            ? mvp.endedBy === "finish"
+              ? s.mvpSkippedFinish(mvp.asked.length)
+              : s.mvpSkippedLimit(mvp.asked.length)
+            : s.mvpNotStarted;
+  const mvpVariant =
+    mvp.outcome === "done" ? "success" : mvp.outcome === "in_progress" ? "warning" : "outline";
 
   return (
     <div className="grid gap-4">
@@ -39,7 +50,7 @@ export function SpecSections({
       <div className="grid gap-3 bg-card shadow-card rounded-lg p-4 text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-semibold">{s.mvpTitle}</h3>
-          <Badge variant={mvp.done ? "success" : mvp.started ? "warning" : "outline"}>{mvpLabel}</Badge>
+          <Badge variant={mvpVariant}>{mvpLabel}</Badge>
         </div>
         {context.length > 0 ? (
           <>
