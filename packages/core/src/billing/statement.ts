@@ -1,5 +1,6 @@
 import { withSystemTenant, withTenant } from "@aidp/db";
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { z } from "zod";
 
 /**
  * The monthly tenant statement (D-224): the data an invoice reads.
@@ -69,6 +70,56 @@ export interface Statement {
   lines: StatementLine[];
   totals: StatementTotals;
   counts: StatementCounts;
+}
+
+const LineSchema = z.object({
+  providerId: z.string(),
+  providerName: z.string(),
+  model: z.string(),
+  purpose: z.string(),
+  calls: z.number(),
+  inputTokens: z.number(),
+  cacheReadTokens: z.number(),
+  cacheWriteTokens: z.number(),
+  outputTokens: z.number(),
+  audioSeconds: z.number(),
+  ttsCharacters: z.number(),
+  costCents: z.number(),
+  estimatedCents: z.number(),
+});
+const BudgetLineSchema = z.object({
+  scope: z.string(),
+  scopeId: z.string(),
+  name: z.string().nullable(),
+  period: z.string(),
+  limitCents: z.number(),
+  spentCents: z.number(),
+  hit: z.boolean(),
+});
+const TotalsSchema = z.object({
+  costCents: z.number(),
+  estimatedCents: z.number(),
+  calls: z.number(),
+  byPurpose: z.record(z.string(), z.number()),
+  byProvider: z.record(z.string(), z.number()),
+  budgets: z.array(BudgetLineSchema),
+});
+const CountsSchema = z.object({
+  sessionsStarted: z.number(),
+  sessionsCompleted: z.number(),
+  participants: z.number(),
+  voiceMinutes: z.number(),
+  storageBytes: z.number(),
+  campaignsActive: z.number(),
+  analysesRun: z.number(),
+  specVersions: z.number(),
+});
+
+/** A value as Prisma's JSON input: checked to be JSON, so no cast is needed to store it. */
+function jsonInput(v: unknown): Prisma.InputJsonValue {
+  const j = z.json().parse(v);
+  if (j === null) throw new Error("A statement section cannot be null");
+  return j;
 }
 
 export const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -272,9 +323,9 @@ export class StatementService {
       const data = {
         generatedAt: new Date(s.generatedAt),
         currency: s.currency,
-        lines: s.lines as unknown as Prisma.InputJsonValue,
-        totals: s.totals as unknown as Prisma.InputJsonValue,
-        counts: s.counts as unknown as Prisma.InputJsonValue,
+        lines: jsonInput(s.lines),
+        totals: jsonInput(s.totals),
+        counts: jsonInput(s.counts),
       };
       await db.tenantStatement.upsert({
         where: { companyId_month: { companyId, month } },
@@ -321,7 +372,7 @@ export class StatementService {
     return rows.map((r) => ({
       month: r.month,
       generatedAt: r.generatedAt.toISOString(),
-      costCents: (r.totals as unknown as StatementTotals).costCents,
+      costCents: TotalsSchema.parse(r.totals).costCents,
     }));
   }
 
@@ -355,9 +406,9 @@ function toStatement(r: {
     month: r.month,
     generatedAt: r.generatedAt.toISOString(),
     currency: r.currency,
-    lines: r.lines as unknown as StatementLine[],
-    totals: r.totals as unknown as StatementTotals,
-    counts: r.counts as unknown as StatementCounts,
+    lines: z.array(LineSchema).parse(r.lines),
+    totals: TotalsSchema.parse(r.totals),
+    counts: CountsSchema.parse(r.counts),
   };
 }
 

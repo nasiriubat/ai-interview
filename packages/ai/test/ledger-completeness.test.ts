@@ -129,8 +129,7 @@ const route = (purpose: Route["purpose"], model: string): Route => ({
 
 function setup(duration: number | undefined, prices: Partial<ModelPrice>[] = []) {
   const provider = new AudioProvider("p1", duration);
-  const registry = new ProviderRegistry();
-  (registry as unknown as { cache: Map<string, unknown> }).cache.set("p1", { config: cfg, provider });
+  const registry = new ProviderRegistry({ build: () => provider });
   const ledger = new InMemoryLedger();
   const table = new PriceTable();
   for (const p of prices)

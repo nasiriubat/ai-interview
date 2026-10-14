@@ -8,6 +8,8 @@ const suite = describeDb;
 
 // One attempt per call: the breaker is under test, not the adapter's own retry loop.
 process.env.PROVIDER_MAX_RETRIES = "0";
+// A short open period, so the half-open probe can be reached without waiting out thirty seconds.
+process.env.PROVIDER_CIRCUIT_OPEN_MS = "150";
 
 /**
  * A provider that is down, a fallback route that is not, and the breaker between them (D-228,
@@ -169,9 +171,7 @@ suite("provider outage: circuit breaker and fallback route", () => {
     // The provider recovers: route the primary at the good server and let the open period pass.
     await world.db.provider.update({ where: { id: primaryId }, data: { baseUrl: good.url } });
     world.ctx.callers.invalidateProvider(primaryId);
-    const breaker = world.ctx.callers.breaker as unknown as { circuits: Map<string, { openedAt: number }> };
-    const circuit = breaker.circuits.get(primaryId);
-    if (circuit) circuit.openedAt -= 60_000;
+    await new Promise((r) => setTimeout(r, 250));
 
     const { events, sessionId } = await firstTurn();
     expect(events.some((e) => e.event === "turn")).toBe(true);
