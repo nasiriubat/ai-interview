@@ -10,6 +10,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 import * as React from "react";
+import { ClassBadge } from "./ClassBadge";
 import { ChartPanel } from "@/components/admin/charts/ChartPanel";
 import { HeatMatrix } from "@/components/admin/charts/HeatMatrix";
 import { CLASS_COLOR } from "@/components/admin/charts/palette";
@@ -22,7 +23,6 @@ import { t } from "@/i18n";
 import { effectiveClass, effectiveFactors, effectiveTitle } from "@/lib/analysis/rank";
 import type { Analysis, Opportunity } from "@/lib/api/schemas";
 import { formatNumber } from "@/lib/utils";
-import { ClassBadge } from "./ClassBadge";
 
 const TOP = 8;
 

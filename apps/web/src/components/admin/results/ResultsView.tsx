@@ -27,18 +27,18 @@ import { DepartmentsPanel } from "./DepartmentsPanel";
 import { EditsPanel } from "./EditsPanel";
 import { MergeBar } from "./MergeBar";
 import { MergeDialog } from "./MergeDialog";
+import { DEFAULT_FILTERS, type Filters, OpportunityFilters } from "./OpportunityFilters";
 import { OpportunityPanel } from "./OpportunityPanel";
 import { OpportunityRow } from "./OpportunityRow";
-import { DEFAULT_FILTERS, type Filters, OpportunityFilters } from "./OpportunityFilters";
-import { OverviewTab } from "./OverviewTab";
 import { OverrideSheet } from "./OverrideSheet";
+import { OverviewTab } from "./OverviewTab";
 import { PromoteDialog } from "./PromoteDialog";
 import { SplitDialog } from "./SplitDialog";
 import { WeightsPanel } from "./WeightsPanel";
 import { CLASS_COLOR } from "@/components/admin/charts/palette";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { SectionTitle } from "@/components/admin/Panel";
 import { Flash, useAction } from "@/components/admin/Flash";
+import { SectionTitle } from "@/components/admin/Panel";
 import { undoToast } from "@/components/common/undoToast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,6 @@ import { useAnalysisPolling } from "@/hooks/useAnalysisPolling";
 import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { t } from "@/i18n";
 import { editErrorText } from "@/lib/analysis/edit-errors";
-import type { ResultsTab } from "@/lib/analysis/tabs";
 import {
   effectiveClass,
   effectiveTitle,
@@ -55,6 +54,7 @@ import {
   rerank,
   type WeightsPreset,
 } from "@/lib/analysis/rank";
+import type { ResultsTab } from "@/lib/analysis/tabs";
 import { staffClient } from "@/lib/api/browser";
 import { isApiError } from "@/lib/api/errors";
 import type { Analysis, AnalysisDetail, ClusterEdit, Opportunity } from "@/lib/api/schemas";

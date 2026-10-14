@@ -39,7 +39,7 @@ const out = await page.evaluate(() => {
     .filter((e) => !bad.includes(e.parentElement as Element))
     .map(
       (e) =>
-        `${e.tagName.toLowerCase()}#${e.id}.${String(e.className).slice(0, 90)} right=${String(Math.round(e.getBoundingClientRect().right))} parent=${e.parentElement?.tagName.toLowerCase() ?? ""}.${String(e.parentElement?.className ?? "").slice(0, 60)}`,
+        `${e.tagName.toLowerCase()}#${e.id}.${(e.getAttribute("class") ?? "").slice(0, 90)} right=${String(Math.round(e.getBoundingClientRect().right))} parent=${e.parentElement?.tagName.toLowerCase() ?? ""}.${(e.parentElement?.getAttribute("class") ?? "").slice(0, 60)}`,
     );
 });
 console.warn(

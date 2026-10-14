@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { ClassBadge, RankMeter } from "./ClassBadge";
-import { IconButton } from "@/components/admin/IconButton";
 import { Withheld } from "@/components/admin/charts/Withheld";
+import { IconButton } from "@/components/admin/IconButton";
 import { QuoteBlock } from "@/components/admin/QuoteBlock";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -106,7 +106,7 @@ export function OpportunityPanel({
   const [renameError, setRenameError] = React.useState<string | null>(null);
   const [renameBusy, setRenameBusy] = React.useState(false);
 
-  const submitRename = (e: React.FormEvent): void => {
+  const submitRename = (e: React.SyntheticEvent): void => {
     e.preventDefault();
     const next = draft.trim();
     if (!onRename || next === "" || next === title) {

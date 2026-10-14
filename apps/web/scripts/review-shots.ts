@@ -135,7 +135,7 @@ for (const shot of SHOTS.filter((s) => FILTER.test(s.name))) {
         page.on("console", (m) => {
           // The dev server's own overlay injects styles the policy reports; a production build
           // (the e2e pass) is where a violation is a failure.
-          if (/Refused to/i.test(m.text()) && !/next-devtools/.test(m.location().url))
+          if (/Refused to/i.test(m.text()) && !m.location().url.includes('next-devtools'))
             csp.push(m.text().slice(0, 140));
         });
         try {

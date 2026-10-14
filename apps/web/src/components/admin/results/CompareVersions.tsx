@@ -3,8 +3,8 @@
 import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 import * as React from "react";
 import { ClassBadge, RankMeter } from "./ClassBadge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Panel } from "@/components/admin/Panel";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

@@ -18,7 +18,7 @@ import { t } from "@/i18n";
 import { effectiveClass, effectiveTitle } from "@/lib/analysis/rank";
 import type { Opportunity } from "@/lib/api/schemas";
 import type { OpportunityStatusInput } from "@/lib/api/staff";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 /**
  * One opportunity in the ranked list (D-372): title, class, score and the two numbers that matter

@@ -4,6 +4,7 @@ import { ArchiveIcon, FileArchiveIcon, ShieldAlertIcon, Trash2Icon } from "lucid
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
+import { RowActions } from "@/components/admin/IconButton";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { DataTable } from "@/components/data/DataTable";
 import { DownloadButton } from "@/components/data/DownloadButton";
@@ -11,7 +12,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { RowActions } from "@/components/admin/IconButton";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { Tenant, TenantExport } from "@/lib/api/schemas";
