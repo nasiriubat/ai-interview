@@ -5,13 +5,43 @@ import { WidgetSchema } from "./widgets.js";
 
 /** A finding raised by issue detection in a requirements session (spec 05, FR-21b). Lives in state. */
 /**
- * What "the participant asked to finish" writes into `turnCount`, so the engine's turn cap is
- * already reached and the next turn closes the interview. It used to be written as
- * `Number.MAX_SAFE_INTEGER >> 1`, which JavaScript evaluates as a 32-bit shift to -1: the stored
- * state then failed its own `nonnegative()` check and the session answered 500 from then on.
- * Any value above every template's `maxTurns` works; a small constant keeps it a valid int32.
+ * What "the participant asked to finish" used to write into `turnCount`, so the engine's turn cap
+ * was already reached and the next turn closed the interview.
+ *
+ * Legacy, read-only: nothing writes this any more: finishing sets `SessionState.finishRequested` (D-170).
+ * It stays exported so `SessionStateSchema` can recognise a session stored before that change and
+ * migrate it lazily (the flag is set, the sentinel is removed from `turnCount`).
  */
 export const COMPLETION_REQUESTED_TURN_COUNT = 1_000_000;
+
+/**
+ * A control operation: something the participant did to the interview rather than something they
+ * said (D-170). Carried in the turn request as `control`, applied by the engine as a state
+ * operation and never stored as a message, so it cannot reach extraction, the summary or a
+ * transcript as if it were an answer.
+ *
+ * - `skip_area`: stop asking about an area; the engine acknowledges it and moves on.
+ * - `return_area`: come back to an area that was skipped (or any open one); asked next.
+ * - `finish`: "I'm done". The next turn is the closing one.
+ */
+export const TurnControlSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("skip_area"), areaKey: z.string().min(1).max(120) }),
+  z.object({ type: z.literal("return_area"), areaKey: z.string().min(1).max(120) }),
+  z.object({ type: z.literal("finish") }),
+]);
+export type TurnControl = z.infer<typeof TurnControlSchema>;
+
+/**
+ * The resume recap, cached in state so a page refresh never calls the model again (D-172).
+ * `upToSeq` is the last message sequence the recap was written for; it is regenerated only when
+ * new turns have been added since.
+ */
+export const RecapCacheSchema = z.object({
+  text: z.string(),
+  upToSeq: z.number().int().nonnegative(),
+  source: z.enum(["model", "fallback"]),
+});
+export type RecapCache = z.infer<typeof RecapCacheSchema>;
 
 export const FindingSchema = z.object({
   id: z.string(),
@@ -65,7 +95,7 @@ export const DecisionSchema = z.object({
 });
 
 /** Layer 2 of the context: the engine's memory. Small, structured, always present. */
-export const SessionStateSchema = z.object({
+const SessionStateObjectSchema = z.object({
   coverage: z.record(z.string(), CoverageEntrySchema).default({}),
   contextAnswers: z.record(z.string(), z.string()).default({}),
   /** How many times each context question has been asked; guards against a model that never records the answer. */
@@ -80,6 +110,12 @@ export const SessionStateSchema = z.object({
   lastExtractedSeq: z.number().int().nonnegative().default(0),
   lastAreaKey: z.string().optional(),
   closingAsked: z.boolean().default(false),
+  /** The participant asked to finish: the next turn is the closing question (D-170). */
+  finishRequested: z.boolean().default(false),
+  /** An area the participant asked to come back to; `chooseFocus` consumes it once and clears it. */
+  requestedAreaKey: z.string().optional(),
+  /** The cached resume recap; never part of the transcript or the model's context (D-172). */
+  recap: RecapCacheSchema.optional(),
   shortened: z.boolean().default(false),
   flaggedForAdmin: z.string().optional(),
   phase: z
@@ -97,7 +133,19 @@ export const SessionStateSchema = z.object({
     })
     .prefault({}),
 });
-export type SessionState = z.infer<typeof SessionStateSchema>;
+
+/**
+ * Layer 2 of the context (above), with one migration: a state stored while "I'm done" was a
+ * `turnCount` sentinel is read as `finishRequested` with the counter brought back to the highest
+ * turn number anything else recorded (the exact count of a legacy session is not recoverable from
+ * the document alone).
+ */
+export const SessionStateSchema = SessionStateObjectSchema.transform((s) =>
+  s.turnCount >= COMPLETION_REQUESTED_TURN_COUNT
+    ? { ...s, finishRequested: true, turnCount: Math.max(s.lastWidgetTurn, s.lastIssueScanTurn) }
+    : s,
+);
+export type SessionState = z.infer<typeof SessionStateObjectSchema>;
 
 /** What the model may report about a raised finding. `rejected` triggers one push-back when the engine is confident. */
 export const FindingOutcomeDeltaSchema = z.object({
@@ -176,6 +224,15 @@ export const StaffSessionViewSchema = z.object({
   state: z.record(z.string(), z.unknown()),
   /** Null when the viewer may not read the transcript. */
   messages: z.array(z.unknown()).nullable(),
+  /** The engine flagged the interview for hostility or distress (D-173). */
+  flagged: z.boolean(),
+  flaggedAt: z.date().nullable(),
+  flagAckedAt: z.date().nullable(),
+  /**
+   * Model prose about the participant, so it is shown only to a viewer who may read the
+   * transcript; everyone else gets `flagged: true` and no reason.
+   */
+  flagReason: z.string().nullable(),
   transcriptVisible: z.boolean(),
 });
 export type StaffSessionView = z.infer<typeof StaffSessionViewSchema>;

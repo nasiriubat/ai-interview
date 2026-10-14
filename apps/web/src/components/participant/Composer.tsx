@@ -36,6 +36,7 @@ export function Composer({
   onFile,
   accept,
   voiceFirst = false,
+  focusToken = 0,
 }: {
   disabled: boolean;
   /**
@@ -52,6 +53,8 @@ export function Composer({
   accept?: string | undefined;
   /** Voice mode: recording is the primary action, typing stays available beside it. */
   voiceFirst?: boolean;
+  /** Changing to a new positive number moves focus into the answer box (the recap's Continue). */
+  focusToken?: number;
 }): React.JSX.Element {
   const s = t.participant.session;
   const [text, setText] = React.useState("");
@@ -63,6 +66,10 @@ export function Composer({
   const fileRef = React.useRef<HTMLInputElement>(null);
   const micRef = React.useRef<HTMLButtonElement>(null);
   const stopRef = React.useRef<HTMLButtonElement>(null);
+  const textRef = React.useRef<HTMLTextAreaElement>(null);
+  React.useEffect(() => {
+    if (focusToken > 0) textRef.current?.focus();
+  }, [focusToken]);
   const canSend = !disabled && text.trim().length > 0;
 
   const recorder = useRecorder((audio, durationMs) => {
@@ -201,6 +208,7 @@ export function Composer({
           ) : null}
           <Textarea
             id={id}
+            ref={textRef}
             value={text}
             rows={1}
             autoFocus={autoFocus && !voiceFirst}

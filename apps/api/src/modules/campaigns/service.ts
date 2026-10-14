@@ -40,6 +40,8 @@ export const CampaignSessionList = listSpec({
   nullable: ["startedAt"],
   filters: {
     status: z.enum(["created", "consented", "active", "paused", "completed", "deleted"]).optional(),
+    /** `true` lists the interviews the engine flagged for hostility or distress (D-173). */
+    flagged: z.enum(["true", "false"]).optional(),
   },
 });
 
@@ -52,6 +54,9 @@ export interface CampaignSessionRow {
   turns: number;
   areasCovered: number;
   mode: string;
+  /** Flagged by the engine; the reason is only on the session detail, behind the transcript rule. */
+  flagged: boolean;
+  flagAckedAt: Date | null;
   costCents: number;
   participantName: string | null;
   participantEmail: string | null;
@@ -169,6 +174,7 @@ export class CampaignService {
       campaignId: campaign.id,
       companyId,
       ...(query.status ? { status: query.status } : {}),
+      ...(query.flagged ? { flagged: query.flagged === "true" } : {}),
       ...(q === undefined ? {} : { OR: [{ id: q }, ...identity] }),
     };
     // An anonymous campaign is paged in a stable order that follows no clock (see `stableKey`):
@@ -198,6 +204,8 @@ export class CampaignService {
           updatedAt: true,
           consentedAt: true,
           modePreference: true,
+          flagged: true,
+          flagAckedAt: true,
           participant: { select: { fields: true } },
         },
       }),
@@ -226,6 +234,8 @@ export class CampaignService {
         turns: st.turnCount ?? 0,
         areasCovered: covered,
         mode: s.modePreference,
+        flagged: s.flagged,
+        flagAckedAt: s.flagAckedAt,
         costCents: costOf.get(s.id) ?? 0,
         ...visibleIdentity(mode, s.consentedAt !== null, s.participant?.fields),
         // A person who is not named on this screen is not given a time to the second either.

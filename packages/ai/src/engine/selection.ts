@@ -60,7 +60,17 @@ export function chooseFocus(input: SelectionInput): Focus {
   if (state.phase === "done") return { mode: "done" };
   if (state.phase === "summary") return { mode: "summary" };
   if (state.closingAsked) return template.endSummary ? { mode: "summary" } : { mode: "done" };
-  if (state.turnCount >= input.maxTurns) return { mode: "closing" };
+  // "I'm done" is a state flag, not a counter value (D-170): the next turn is the closing one.
+  if (state.finishRequested || state.turnCount >= input.maxTurns) return { mode: "closing" };
+
+  // The participant asked to come back to an area (a `return_area` control): asked next, once.
+  // The engine clears `requestedAreaKey` when it takes the turn; it is ignored when the area does
+  // not apply to this path.
+  if (
+    state.requestedAreaKey &&
+    applicableAreas(template, state, path).some((a) => a.key === state.requestedAreaKey)
+  )
+    return { mode: "continue", areaKey: state.requestedAreaKey };
 
   // 0. Context block, in order, until every question is answered.
   const unanswered = template.contextBlock.find((q) => !(q.key in state.contextAnswers));

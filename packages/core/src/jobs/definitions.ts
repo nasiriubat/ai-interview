@@ -42,6 +42,23 @@ export const JOBS = {
     retryLimit: 5,
     expireInSeconds: 300,
   },
+  /**
+   * The deletion confirmation for an identified participant (FR-13, D-175). The address travels
+   * encrypted (`toEnc`): the queue's tables are readable by more people and for longer than the
+   * participant row this job exists to outlive, and nothing here may become a second copy of it.
+   */
+  "privacy.confirm-deletion": {
+    schema: z.object({
+      companyId: z.string(),
+      sessionId: z.string(),
+      toEnc: z.string().min(1),
+      campaignName: z.string(),
+      language: z.string(),
+      deletedAt: z.string(),
+    }),
+    retryLimit: 5,
+    expireInSeconds: 120,
+  },
   /** Sweeps every tenant; the payload is empty so a cron tick needs no arguments (spec 11, retention). */
   "privacy.retention-sweep": { schema: z.object({}), retryLimit: 2, expireInSeconds: 1800 },
   "auth.prune-verification-tokens": { schema: z.object({}), retryLimit: 2, expireInSeconds: 120 },

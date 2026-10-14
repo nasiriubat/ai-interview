@@ -698,6 +698,31 @@ suite("audit rows: every administrative mutation writes one", () => {
     });
   });
 
+  it("acknowledging a flagged interview is audited, and keeps the reason out of the diff", async () => {
+    const flagged = await world.db.session.create({
+      data: {
+        companyId: world.companyId,
+        templateId: world.templateId,
+        status: "active",
+        flagged: true,
+        flagReason: "SECRET-REASON the participant sounded distressed",
+        flaggedAt: new Date(),
+      },
+    });
+    await audited(
+      "POST /sessions/:id/flag/ack",
+      `/sessions/${flagged.id}/flag/ack`,
+      { note: "SECRET-NOTE called them back" },
+      {
+        action: "session.flag.ack",
+        targetType: "session",
+        targetId: flagged.id,
+        actor: "admin",
+        secrets: ["SECRET-REASON", "SECRET-NOTE"],
+      },
+    );
+  });
+
   // ---------- completeness ----------
 
   it("exercised every mutating administrative route, or states why not", () => {

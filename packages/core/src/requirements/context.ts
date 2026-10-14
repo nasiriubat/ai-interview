@@ -6,6 +6,7 @@ import {
   SpecDocumentSchema,
   type BundleFormat,
   type LiveSpec,
+  type SessionEventType,
   type SessionState,
   type SpecDocument,
 } from "@aidp/shared";
@@ -109,7 +110,7 @@ export class RequirementsContext {
     return SpecDocumentSchema.parse(version.spec);
   }
 
-  async appendEvent(sessionId: string, type: string, payload: unknown): Promise<void> {
+  async appendEvent(sessionId: string, type: SessionEventType, payload: unknown): Promise<void> {
     await tenantTransaction(this.deps.db, async (tx) => {
       const last = await tx.sessionEvent.findFirst({
         where: { sessionId },

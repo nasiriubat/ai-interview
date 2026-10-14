@@ -14,9 +14,13 @@ describe.each(Object.entries(locales))(
   (_name, strings) => {
     const p = strings.participant;
 
-    it("does not promise a deletion email, which is not sent", () => {
+    it("does not promise a deletion email in the always-shown copy", () => {
       const text = [p.session.deletedBody, p.session.deletedTitle].join(" ");
       expect(text).not.toMatch(/email|sähköposti|vahvistus/i);
+    });
+
+    it("names the deletion email only in the line shown when the API says one was queued (D-175)", () => {
+      expect(p.session.deletedEmailNote).toMatch(/email|sähköposti/i);
     });
 
     it("does not say nothing leaves the organization (model providers process the answers)", () => {
