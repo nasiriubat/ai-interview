@@ -5,6 +5,10 @@ import { SessionMenu } from "@/components/participant/SessionMenu";
 import { en } from "@/i18n/en";
 import { fi } from "@/i18n/fi";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), back: vi.fn() }),
+}));
+
 /** "Download my data" on the participant session menu (GDPR Art. 15 and 20, D-162). */
 describe("download my data", () => {
   const originalFetch = globalThis.fetch;
@@ -26,7 +30,7 @@ describe("download my data", () => {
   });
 
   const open = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
-    render(<SessionMenu onPause={vi.fn()} onDone={vi.fn()} onDelete={vi.fn()} />);
+    render(<SessionMenu onDone={vi.fn()} onDelete={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: "Interview options" }));
   };
 

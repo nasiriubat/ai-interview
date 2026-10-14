@@ -3,9 +3,8 @@
 import type { Path } from "@aidp/shared";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { ParticipantPage } from "./ParticipantFrame";
 import { PathChoice } from "./PathChoice";
-import { CenteredShell } from "@/components/common/CenteredShell";
-import { LanguageSwitch } from "@/components/common/LanguageSwitch";
 import { PageHeading } from "@/components/common/PageHeading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -21,11 +20,7 @@ import type { InviteArrival as InviteInfo } from "@/lib/api/schemas";
 type Step = "arrival" | "consent" | "path";
 
 function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
-  return (
-    <CenteredShell aside={<LanguageSwitch />} className="grid gap-6">
-      {children}
-    </CenteredShell>
-  );
+  return <ParticipantPage className="grid gap-6">{children}</ParticipantPage>;
 }
 
 /**
