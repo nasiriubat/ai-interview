@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangleIcon } from "lucide-react";
+import { AlertTriangleIcon, CircleAlertIcon } from "lucide-react";
 import * as React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Combobox, type ComboboxLabels, type ComboboxOption } from "@/components/ui/combobox";
@@ -33,6 +33,7 @@ export function Field({
   hint,
   error,
   required,
+  optional,
   children,
   className,
 }: {
@@ -41,28 +42,38 @@ export function Field({
   hint?: string | undefined;
   error?: string | undefined;
   required?: boolean | undefined;
+  /** Says "optional" next to the label; for forms where most fields are required. */
+  optional?: boolean | undefined;
   children: React.ReactNode;
   className?: string | undefined;
 }): React.JSX.Element {
   const quiet = React.useContext(QuietFieldErrors);
   return (
     <div className={cn("grid gap-1.5", className)}>
-      <Label htmlFor={id}>
+      <Label htmlFor={id} className="leading-5">
         {label}
         {required ? (
           <span aria-hidden="true" className="text-destructive">
             *
           </span>
         ) : null}
+        {optional && !required ? (
+          <span className="text-muted-foreground text-[13px] font-normal">({t.kit.form.optional})</span>
+        ) : null}
       </Label>
       {children}
       {hint ? (
-        <p id={`${id}-hint`} className="text-muted-foreground text-xs">
+        <p id={`${id}-hint`} className="text-muted-foreground text-[13px] leading-snug">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={`${id}-error`} className="text-destructive text-xs" role={quiet ? undefined : "alert"}>
+        <p
+          id={`${id}-error`}
+          className="text-destructive flex items-start gap-1.5 text-[13px] leading-snug"
+          role={quiet ? undefined : "alert"}
+        >
+          <CircleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
           {error}
         </p>
       ) : null}
@@ -86,6 +97,12 @@ export function TextField({
   required,
   placeholder,
   disabled,
+  readOnly,
+  onBlur,
+  autoComplete,
+  maxLength,
+  optional,
+  className,
 }: {
   id: string;
   label: string;
@@ -95,11 +112,25 @@ export function TextField({
   error?: string | undefined;
   type?: string;
   required?: boolean;
+  optional?: boolean;
   placeholder?: string;
   disabled?: boolean;
+  readOnly?: boolean;
+  onBlur?: () => void;
+  autoComplete?: string;
+  maxLength?: number;
+  className?: string;
 }): React.JSX.Element {
   return (
-    <Field id={id} label={label} hint={hint} error={error} required={required}>
+    <Field
+      id={id}
+      label={label}
+      hint={hint}
+      error={error}
+      required={required}
+      optional={optional}
+      className={className}
+    >
       <Input
         id={id}
         type={type}
@@ -107,6 +138,10 @@ export function TextField({
         required={required}
         placeholder={placeholder}
         disabled={disabled}
+        readOnly={readOnly}
+        onBlur={onBlur}
+        autoComplete={autoComplete}
+        maxLength={maxLength}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
         onChange={(e) => {
@@ -128,6 +163,8 @@ export function NumberField({
   max,
   step,
   required,
+  disabled,
+  onBlur,
 }: {
   id: string;
   label: string;
@@ -139,6 +176,8 @@ export function NumberField({
   max?: number;
   step?: number;
   required?: boolean | undefined;
+  disabled?: boolean | undefined;
+  onBlur?: () => void;
 }): React.JSX.Element {
   return (
     <Field id={id} label={label} hint={hint} error={error} required={required}>
@@ -151,6 +190,8 @@ export function NumberField({
         max={max}
         step={step}
         required={required}
+        disabled={disabled}
+        onBlur={onBlur}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
         onChange={(e) => {
@@ -170,6 +211,11 @@ export function TextAreaField({
   error,
   rows = 3,
   required,
+  disabled,
+  readOnly,
+  onBlur,
+  maxLength,
+  optional,
 }: {
   id: string;
   label: string;
@@ -179,14 +225,23 @@ export function TextAreaField({
   error?: string | undefined;
   rows?: number;
   required?: boolean | undefined;
+  optional?: boolean | undefined;
+  disabled?: boolean | undefined;
+  readOnly?: boolean | undefined;
+  onBlur?: () => void;
+  maxLength?: number;
 }): React.JSX.Element {
   return (
-    <Field id={id} label={label} hint={hint} error={error} required={required}>
+    <Field id={id} label={label} hint={hint} error={error} required={required} optional={optional}>
       <Textarea
         id={id}
         value={value}
         rows={rows}
         required={required}
+        disabled={disabled}
+        readOnly={readOnly}
+        onBlur={onBlur}
+        maxLength={maxLength}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
         onChange={(e) => {
@@ -207,6 +262,8 @@ export function SelectField<T extends string>({
   error,
   placeholder,
   required,
+  disabled,
+  className,
 }: {
   id: string;
   label: string;
@@ -217,11 +274,14 @@ export function SelectField<T extends string>({
   error?: string | undefined;
   placeholder?: string;
   required?: boolean | undefined;
+  disabled?: boolean | undefined;
+  className?: string | undefined;
 }): React.JSX.Element {
   return (
-    <Field id={id} label={label} hint={hint} error={error} required={required}>
+    <Field id={id} label={label} hint={hint} error={error} required={required} className={className}>
       <Select
         value={value}
+        {...(disabled === undefined ? {} : { disabled })}
         {...(required === undefined ? {} : { required })}
         onValueChange={(v) => {
           onChange(v as T);

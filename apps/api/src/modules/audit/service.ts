@@ -4,6 +4,7 @@ import type { AuditLog, Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { audit, type AuditEntry } from "../../lib/audit.js";
 import { AppError } from "../../lib/errors.js";
+import { toCsv } from "../campaigns/csv.js";
 import { contains, escapeLike, listOrder, listQuery, listSpec, searchTerm } from "../../lib/pagination.js";
 
 /** An ISO date (`2026-09-21`) or an ISO date-time with `Z` or an offset. */
@@ -35,6 +36,9 @@ export const AuditList = listSpec({
     to: IsoInstant.optional(),
   },
 });
+
+/** The most rows one export holds; the newest are kept and the response says when it was cut. */
+export const AUDIT_CSV_MAX_ROWS = 10_000;
 
 export const AuditListQuery = listQuery(AuditList);
 export type AuditListQuery = z.output<typeof AuditListQuery>;
@@ -96,6 +100,37 @@ export class AuditService {
     if (recent) return false;
     await audit(this.db, companyId, entry);
     return true;
+  }
+
+  /**
+   * The log as a CSV, narrowed by the same search, action and date filters as the list (D-345).
+   * Capped at `AUDIT_CSV_MAX_ROWS` newest-first; `truncated` says when there was more.
+   */
+  async exportCsv(
+    companyId: string,
+    query: Omit<AuditListQuery, "limit" | "offset">,
+  ): Promise<{ filename: string; body: string; rows: number; truncated: boolean }> {
+    const all: AuditEntryView[] = [];
+    let truncated = false;
+    for (let offset = 0; offset < AUDIT_CSV_MAX_ROWS; offset += 200) {
+      const page = await this.list(companyId, { ...query, limit: 200, offset });
+      all.push(...page.entries);
+      if (page.entries.length < 200) break;
+      if (offset + 200 >= AUDIT_CSV_MAX_ROWS) truncated = page.total > AUDIT_CSV_MAX_ROWS;
+    }
+    const body = toCsv(
+      ["created_at", "actor", "action", "target_type", "target_id", "details"],
+      all.map((e) => [
+        e.createdAt.toISOString(),
+        e.actorEmail ?? e.actorId ?? "",
+        e.action,
+        e.targetType ?? "",
+        e.targetId ?? "",
+        e.diff === null || e.diff === undefined ? "" : JSON.stringify(e.diff),
+      ]),
+    );
+    const day = new Date().toISOString().slice(0, 10);
+    return { filename: `audit-log-${day}.csv`, body, rows: all.length, truncated };
   }
 
   async list(companyId: string, query: AuditListQuery): Promise<ListEnvelope<"entries", AuditEntryView>> {

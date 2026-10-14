@@ -125,12 +125,16 @@ function statusLine(a: Attachment): string {
 export function AttachmentList({
   items,
   uploading,
+  progress = null,
+  onCancel,
   error,
   onRemove,
   fetchBytes,
 }: {
   items: Attachment[];
   uploading: boolean;
+  progress?: number | null;
+  onCancel?: (() => void) | undefined;
   error: string | null;
   onRemove: (attachmentId: string) => void;
   fetchBytes: (attachmentId: string) => Promise<Blob>;
@@ -190,10 +194,40 @@ export function AttachmentList({
         </ul>
       ) : null}
       {uploading ? (
-        <p className="text-muted-foreground flex items-center gap-1.5 text-xs" role="status">
-          <Loader2Icon className="size-3.5 shrink-0 motion-safe:animate-spin" aria-hidden="true" />
-          {s.attachUploading}
-        </p>
+        <div className="grid gap-1">
+          <div className="flex items-center gap-2">
+            <p className="text-muted-foreground flex flex-1 items-center gap-1.5 text-xs" role="status">
+              <Loader2Icon className="size-3.5 shrink-0 motion-safe:animate-spin" aria-hidden="true" />
+              {s.attachUploading}
+              {progress !== null && progress > 0 ? ` ${String(progress)} %` : ""}
+            </p>
+            {onCancel ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-9 shrink-0"
+                aria-label={s.attachCancel}
+                onClick={onCancel}
+              >
+                <XIcon className="size-4" />
+              </Button>
+            ) : null}
+          </div>
+          <div
+            role="progressbar"
+            aria-label={s.attachUploading}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            {...(progress !== null ? { "aria-valuenow": progress } : {})}
+            className="bg-muted h-1.5 overflow-hidden rounded-full"
+          >
+            <div
+              className="bg-primary h-full rounded-full transition-[width] duration-150"
+              style={{ width: `${String(Math.max(progress ?? 0, 6))}%` }}
+            />
+          </div>
+        </div>
       ) : null}
     </div>
   );

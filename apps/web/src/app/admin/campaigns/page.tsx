@@ -1,21 +1,20 @@
-import { BarChart3Icon, EyeIcon, PlusIcon } from "lucide-react";
+import { BarChart3Icon, EyeIcon, MegaphoneIcon, PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import * as React from "react";
-import { EmptyState } from "@/components/admin/EmptyState";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
-import { ListToolbar } from "@/components/admin/ListToolbar";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { Pagination } from "@/components/admin/Pagination";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { DataTable } from "@/components/data/DataTable";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
-import { isFiltered, statusFilter } from "@/lib/admin/toolbar";
+import { statusFilterDef } from "@/lib/admin/table-filters";
+import { errorMessage } from "@/lib/api/errors";
 import { LISTS, sortOf } from "@/lib/api/lists";
+import type { Campaign } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
 
@@ -31,11 +30,19 @@ export default async function CampaignsPage({ searchParams }: Props): Promise<Re
   await requestLocale();
   await requireMe();
   const lp = listParams(await searchParams, LISTS.campaigns);
-  const { page, limit } = lp;
   const api = await staffServer();
-  const result = await api.campaigns.list(lp.query);
-  const campaigns = result.items;
+  let campaigns: Campaign[] = [];
+  let total: number | null = 0;
+  let error: string | undefined;
+  try {
+    const result = await api.campaigns.list(lp.query);
+    campaigns = result.items;
+    total = result.total;
+  } catch (e) {
+    error = errorMessage(e, t.app.unknownError);
+  }
   const s = t.admin.campaigns;
+  const dash = t.admin.common.dash;
   return (
     <>
       <PageHeader
@@ -44,74 +51,70 @@ export default async function CampaignsPage({ searchParams }: Props): Promise<Re
         actions={
           <Button asChild>
             <Link href="/admin/campaigns/new">
-              <PlusIcon /> {s.new}
+              <PlusIcon aria-hidden="true" /> {s.new}
             </Link>
           </Button>
         }
       />
-      <ListToolbar
+      <DataTable
+        id="campaigns"
+        label={s.title}
         searchLabel={t.admin.list.searchCampaigns}
-        filters={[statusFilter(LISTS.campaigns)]}
-        sort={{ list: sortOf(LISTS.campaigns), labels: t.admin.list.fields }}
+        filters={[statusFilterDef(LISTS.campaigns)]}
+        sort={sortOf(LISTS.campaigns)}
+        error={error}
+        columns={[
+          { id: "name", header: s.name, sortKey: "name", primary: true, locked: true },
+          { id: "status", header: s.status, sortKey: "status" },
+          { id: "invited", header: s.invited, align: "end" },
+          { id: "started", header: s.started, align: "end" },
+          { id: "completed", header: s.completed, align: "end" },
+          { id: "created", header: s.created, sortKey: "createdAt" },
+        ]}
+        rows={campaigns.map((c) => ({
+          id: c.id,
+          label: c.name,
+          cells: {
+            name: (
+              <Link href={`/admin/campaigns/${c.id}`} className="text-foreground font-medium hover:underline">
+                {c.name}
+              </Link>
+            ),
+            status: <StatusBadge status={c.status} />,
+            invited: c.stats?.invited ?? dash,
+            started: c.stats?.started ?? dash,
+            completed: c.stats?.completed ?? dash,
+            created: <span className="text-muted-foreground">{formatDate(c.createdAt)}</span>,
+          },
+          actions: (
+            <RowActions>
+              <IconButton
+                label={`${t.admin.actions.view}: ${c.name}`}
+                icon={<EyeIcon />}
+                href={`/admin/campaigns/${c.id}`}
+              />
+              <IconButton
+                label={`${s.results}: ${c.name}`}
+                icon={<BarChart3Icon />}
+                href={`/admin/campaigns/${c.id}/results`}
+              />
+            </RowActions>
+          ),
+        }))}
+        page={{ page: lp.page, limit: lp.limit, count: campaigns.length, total }}
+        empty={{
+          icon: <MegaphoneIcon className="size-5" aria-hidden="true" />,
+          title: s.emptyTitle,
+          description: s.empty,
+          action: (
+            <Button asChild size="sm">
+              <Link href="/admin/campaigns/new">
+                <PlusIcon aria-hidden="true" /> {s.new}
+              </Link>
+            </Button>
+          ),
+        }}
       />
-      {campaigns.length === 0 ? (
-        <EmptyState text={isFiltered(lp.q, lp.filters) ? t.admin.list.noMatches : s.empty} />
-      ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{s.name}</TableHead>
-                <TableHead>{s.status}</TableHead>
-                <TableHead className="text-right">{s.invited}</TableHead>
-                <TableHead className="text-right">{s.started}</TableHead>
-                <TableHead className="text-right">{s.completed}</TableHead>
-                <TableHead>{s.created}</TableHead>
-                <TableHead className="text-right">{t.admin.common.actions}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {campaigns.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">
-                    <Link href={`/admin/campaigns/${c.id}`} className="hover:underline">
-                      {c.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={c.status} />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {c.stats?.invited ?? t.admin.common.dash}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {c.stats?.started ?? t.admin.common.dash}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {c.stats?.completed ?? t.admin.common.dash}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{formatDate(c.createdAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <RowActions>
-                      <IconButton
-                        label={t.admin.actions.view}
-                        icon={<EyeIcon />}
-                        href={`/admin/campaigns/${c.id}`}
-                      />
-                      <IconButton
-                        label={s.results}
-                        icon={<BarChart3Icon />}
-                        href={`/admin/campaigns/${c.id}/results`}
-                      />
-                    </RowActions>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-      <Pagination page={page} limit={limit} count={campaigns.length} total={result.total} />
     </>
   );
 }

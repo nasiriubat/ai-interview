@@ -25,6 +25,34 @@ export async function userRoutes(app: App, ctx: RouteContext): Promise<void> {
     return users.me(p.companyId, p.userId);
   });
 
+  /** The signed-in person edits their own display name; nothing else of a profile is theirs to set. */
+  app.patch(
+    "/me",
+    {
+      ...guard.staff(),
+      schema: { body: z.object({ name: z.string().max(120).nullable() }) },
+    },
+    async (req) => {
+      const p = staff(req);
+      return { user: await users.updateProfile(p.companyId, p.userId, req.body) };
+    },
+  );
+
+  /** "Sign out everywhere": every token issued before now stops working, on every device. */
+  app.post(
+    "/me/sessions/revoke",
+    {
+      // `confirm` is required so that an empty request (a probe, a stray form) changes nothing.
+      ...guard.staff({ config: { allowSuspended: true } }),
+      schema: { body: z.object({ confirm: z.literal(true) }) },
+    },
+    async (req) => {
+      const p = staff(req);
+      await users.revokeOwnSessions(p.companyId, p.userId);
+      return { ok: true as const };
+    },
+  );
+
   app.get(
     "/users",
     {

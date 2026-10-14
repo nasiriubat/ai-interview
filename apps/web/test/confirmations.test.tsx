@@ -204,12 +204,12 @@ describe("tenants and roles: ask first", () => {
         canEdit
       />,
     );
-    await user.click(screen.getByRole("combobox", { name: "Role: kim@example.com" }));
-    await user.click(await screen.findByRole("option", { name: "Admin" }));
-    expect(within(dialog()).getByText("Change the role of kim@example.com?")).toBeInTheDocument();
-    expect(within(dialog()).getByText(/Admins can change settings/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Change role: kim@example.com" }));
+    const role = await screen.findByRole("dialog");
+    expect(within(role).getByText("Change the role of kim@example.com?")).toBeInTheDocument();
+    expect(within(role).getByText(/Admins can change settings/)).toBeInTheDocument();
     expect(staff.users.update).not.toHaveBeenCalled();
-    await user.click(within(dialog()).getByRole("button", { name: "Change to Admin" }));
+    await user.click(within(role).getByRole("button", { name: "Change to Admin" }));
     expect(staff.users.update).toHaveBeenCalledWith("u1", { role: "admin" });
   });
 
@@ -226,12 +226,10 @@ describe("tenants and roles: ask first", () => {
         currentUserId="me"
       />,
     );
-    const mine = screen.getByRole("row", { name: /boss@example.com/ });
-    expect(within(mine).queryByRole("button", { name: "Disable" })).not.toBeInTheDocument();
-    expect(within(mine).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Disable: boss@example.com" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete: boss@example.com" })).not.toBeInTheDocument();
 
-    const row = screen.getByRole("row", { name: /kim@example.com/ });
-    await user.click(within(row).getByRole("button", { name: "Disable" }));
+    await user.click(screen.getByRole("button", { name: "Disable: kim@example.com" }));
     expect(within(dialog()).getByText("Disable kim@example.com?")).toBeInTheDocument();
     expect(within(dialog()).getByText(/signed out of every device at once/)).toBeInTheDocument();
     expect(staff.users.update).not.toHaveBeenCalled();
@@ -249,7 +247,7 @@ describe("tenants and roles: ask first", () => {
         currentUserId="me"
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "Delete: kim@example.com" }));
     expect(within(dialog()).getByText("Delete kim@example.com?")).toBeInTheDocument();
     expect(within(dialog()).getByText(/become yours/)).toBeInTheDocument();
     expect(staff.users.remove).not.toHaveBeenCalled();
@@ -275,7 +273,7 @@ describe("tenants and roles: ask first", () => {
       />,
     );
     expect(screen.getByText("Disabled")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Enable" }));
+    await user.click(screen.getByRole("button", { name: "Enable: kim@example.com" }));
     await user.click(within(dialog()).getByRole("button", { name: "Enable user" }));
     expect(staff.users.update).toHaveBeenCalledWith("u1", { disabled: false });
   });

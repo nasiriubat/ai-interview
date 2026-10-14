@@ -150,12 +150,14 @@ export function participantApi(transport: Transport): ParticipantApi {
         body: uploadForm(audio, recordingName(audio.type), durationMs),
         schema: TranscriptSchema,
       }).then((r) => r.text),
-    uploadAttachment: (file, durationMs) =>
+    uploadAttachment: (file, durationMs, options) =>
       request(transport, {
         method: "POST",
         path: "/p/session/attachments",
         body: uploadForm(file, file.name, durationMs),
         schema: AttachmentEnvelopeSchema,
+        signal: options?.signal,
+        onUploadProgress: options?.onProgress,
       }).then((r) => r.attachment),
     listAttachments: () =>
       request(transport, { path: "/p/session/attachments", schema: AttachmentListSchema }),
@@ -220,7 +222,11 @@ export interface ParticipantApi {
    */
   transcribe(audio: Blob, durationMs?: number): Promise<string>;
   /** Uploads one file (FR-31). The attachment comes back before it has been read; watch `status`. */
-  uploadAttachment(file: File, durationMs?: number): Promise<Attachment>;
+  uploadAttachment(
+    file: File,
+    durationMs?: number,
+    options?: { signal?: AbortSignal; onProgress?: (percent: number) => void },
+  ): Promise<Attachment>;
   listAttachments(): Promise<Attachment[]>;
   /** The stored bytes, for playing a recording back. */
   attachmentBytes(attachmentId: string): Promise<Blob>;

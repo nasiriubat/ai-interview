@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,8 @@ export function ConfirmDialog({
   cancelLabel,
   tone = "destructive",
   onConfirm,
+  confirmPhrase,
+  pending = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,7 +45,19 @@ export function ConfirmDialog({
   cancelLabel?: string | undefined;
   tone?: "destructive" | "default";
   onConfirm: () => void;
+  /**
+   * For what cannot be taken back (deleting a tenant, wiping data): the person must type this
+   * text, exactly, before the confirm button works. Shown in the dialog; case-sensitive.
+   */
+  confirmPhrase?: string | undefined;
+  pending?: boolean;
 }): React.JSX.Element {
+  const [typed, setTyped] = React.useState("");
+  const inputId = React.useId();
+  React.useEffect(() => {
+    if (!open) setTyped("");
+  }, [open]);
+  const blocked = confirmPhrase !== undefined && typed !== confirmPhrase;
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -51,11 +66,29 @@ export function ConfirmDialog({
           <AlertDialogDescription asChild>
             <div>{description}</div>
           </AlertDialogDescription>
+          {confirmPhrase !== undefined ? (
+            <div className="grid gap-1.5 pt-1">
+              <label htmlFor={inputId} className="text-sm font-medium">
+                {t.kit.form.typeToConfirm(confirmPhrase)}
+              </label>
+              <Input
+                id={inputId}
+                value={typed}
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={typed !== "" && blocked ? true : undefined}
+                onChange={(e) => {
+                  setTyped(e.target.value);
+                }}
+              />
+            </div>
+          ) : null}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{cancelLabel ?? t.app.cancel}</AlertDialogCancel>
           <AlertDialogAction
             className={cn(tone === "destructive" && buttonVariants({ variant: "destructive" }))}
+            disabled={blocked || pending}
             onClick={onConfirm}
           >
             {confirmLabel}

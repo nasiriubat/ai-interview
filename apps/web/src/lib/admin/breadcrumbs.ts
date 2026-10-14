@@ -20,6 +20,7 @@ function sectionLabels(): Record<string, string> {
     "/admin/prompts": n.prompts,
     "/admin/users": n.users,
     "/admin/audit": n.audit,
+    "/admin/account": t.kit.account.title,
     "/admin/operator": n.tenants,
     "/admin/operator/providers": n.platformProviders,
     "/admin/operator/routes": n.platformRoutes,

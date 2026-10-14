@@ -1,268 +1,175 @@
 "use client";
 
-import {
-  ActivityIcon,
-  BuildingIcon,
-  LogOutIcon,
-  ClipboardListIcon,
-  CoinsIcon,
-  FileTextIcon,
-  HeartPulseIcon,
-  LayoutDashboardIcon,
-  ListChecksIcon,
-  MegaphoneIcon,
-  MenuIcon,
-  MessageSquareTextIcon,
-  RouteIcon,
-  ScrollTextIcon,
-  ServerIcon,
-  SettingsIcon,
-  UsersIcon,
-  XIcon,
-} from "lucide-react";
-import Link from "next/link";
+import { XIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { Dialog as DrawerPrimitive } from "radix-ui";
 import * as React from "react";
+import { CommandPalette } from "@/components/admin/shell/CommandPalette";
+import { CrumbProvider } from "@/components/admin/shell/crumbs";
+import { navFor } from "@/components/admin/shell/nav";
+import { Brand, SideNav } from "@/components/admin/shell/Sidebar";
+import { sidebarCookie } from "@/components/admin/shell/sidebar-state";
+import { TopBar } from "@/components/admin/shell/TopBar";
 import { DirtyGuardProvider } from "@/components/common/DirtyGuard";
-import { LanguageSwitch } from "@/components/common/LanguageSwitch";
-import { ThemeSwitch } from "@/components/common/ThemeSwitch";
-import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import type { Me } from "@/lib/api/schemas";
 import { cn } from "@/lib/utils";
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: typeof MenuIcon;
-  exact?: boolean;
-}
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-/*
- * Functions, not module constants: a label read at module load takes the locale of whoever imported
- * the module first (the server's default), and every later request would render the sidebar in it.
+/**
+ * The frame of every admin page (D-340): a rounded sidebar panel and, a small gap to its right, a
+ * rounded content panel that holds the sticky top bar and the page. The content panel is fluid:
+ * it takes the width the screen has, and pages decide where a reading column is wanted. Below
+ * `md` the sidebar becomes a drawer opened from the top bar and the content panel runs edge to
+ * edge. The sidebar collapses to icons; the choice is kept in a cookie.
  */
-function mainNav(): NavGroup[] {
-  return [
-    {
-      label: t.admin.nav.groups.research,
-      items: [
-        { href: "/admin", label: t.admin.nav.dashboard, icon: LayoutDashboardIcon, exact: true },
-        { href: "/admin/campaigns", label: t.admin.nav.campaigns, icon: MegaphoneIcon },
-        { href: "/admin/requirements", label: t.admin.nav.requirements, icon: ClipboardListIcon },
-        { href: "/admin/templates", label: t.admin.nav.templates, icon: FileTextIcon },
-      ],
-    },
-    {
-      label: t.admin.nav.groups.configuration,
-      items: [
-        { href: "/admin/settings", label: t.admin.nav.settings, icon: SettingsIcon },
-        { href: "/admin/providers", label: t.admin.nav.providers, icon: ServerIcon },
-        { href: "/admin/routes", label: t.admin.nav.routes, icon: RouteIcon },
-        { href: "/admin/budgets", label: t.admin.nav.budgets, icon: CoinsIcon },
-        { href: "/admin/prompts", label: t.admin.nav.prompts, icon: MessageSquareTextIcon },
-      ],
-    },
-    {
-      label: t.admin.nav.groups.organization,
-      items: [
-        { href: "/admin/users", label: t.admin.nav.users, icon: UsersIcon },
-        { href: "/admin/audit", label: t.admin.nav.audit, icon: ScrollTextIcon },
-      ],
-    },
-  ];
-}
-
-function operatorNav(): NavItem[] {
-  return [
-    { href: "/admin/operator", label: t.admin.nav.tenants, icon: BuildingIcon, exact: true },
-    { href: "/admin/operator/providers", label: t.admin.nav.platformProviders, icon: ServerIcon },
-    { href: "/admin/operator/routes", label: t.admin.nav.platformRoutes, icon: RouteIcon },
-    { href: "/admin/operator/stats", label: t.admin.nav.platformStats, icon: ActivityIcon },
-    { href: "/admin/operator/health", label: t.admin.nav.platformHealth, icon: HeartPulseIcon },
-    { href: "/admin/operator/jobs", label: t.admin.nav.platformJobs, icon: ListChecksIcon },
-  ];
-}
-
 export function AdminShell({
   me,
   signOutAction,
+  initialCollapsed = false,
   children,
 }: {
   me: Me | null;
   signOutAction: () => Promise<void>;
+  initialCollapsed?: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
   const pathname = usePathname();
-  const [open, setOpen] = React.useState(false);
-  const isOperator = me?.user.role === "platform_operator";
-  const isActive = (item: NavItem): boolean =>
-    item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const [collapsed, setCollapsed] = React.useState(initialCollapsed);
+  const [drawer, setDrawer] = React.useState(false);
+  const [search, setSearch] = React.useState(false);
+  const groups = navFor(me?.user.role);
 
-  const close = (): void => {
-    setOpen(false);
+  // A route change closes the drawer: the link that was tapped is the reason it was open.
+  React.useEffect(() => {
+    setDrawer(false);
+  }, [pathname]);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearch((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  const toggle = (): void => {
+    setCollapsed((c) => {
+      document.cookie = sidebarCookie(!c);
+      return !c;
+    });
   };
-  const main = mainNav();
-  const groups = isOperator ? [...main, { label: t.admin.nav.operator, items: operatorNav() }] : main;
-  const nav = (
-    <nav aria-label={t.admin.nav.menu} className="grid gap-5 text-sm">
-      {groups.map((group) => (
-        <div key={group.label} className="grid gap-0.5">
-          <p className="text-muted-foreground mb-1 px-2.5 text-xs font-semibold tracking-wider uppercase">
-            {group.label}
-          </p>
-          {group.items.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(item)} onNavigate={close} />
-          ))}
-        </div>
-      ))}
-    </nav>
-  );
 
   return (
     <DirtyGuardProvider>
-      <div className="flex min-h-dvh">
-        <aside className="bg-sidebar sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r px-3 py-4 md:flex print:hidden">
-          <Brand />
-          <div className="-mx-1 flex-1 overflow-y-auto px-1 pt-5">{nav}</div>
-          <UserBox me={me} signOutAction={signOutAction} />
-        </aside>
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="bg-card/90 sticky top-0 z-20 flex items-center justify-between border-b px-4 py-2 backdrop-blur md:hidden print:hidden">
-            <Brand />
-            <div className="flex items-center gap-2">
-              <LanguageSwitch />
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={t.admin.nav.menu}
-                aria-expanded={open}
-                aria-controls="mobile-nav"
-                onClick={() => {
-                  setOpen((v) => !v);
-                }}
+      <CrumbProvider>
+        <div className="flex min-h-dvh gap-2 lg:p-2 print:block print:p-0">
+          <aside
+            aria-label={t.kit.shell.sidebar}
+            data-collapsed={collapsed}
+            className={cn(
+              "bg-sidebar shadow-card sticky top-2 hidden h-[calc(100dvh-1rem)] shrink-0 flex-col rounded-xl px-2 py-3 transition-[width] duration-200 motion-reduce:transition-none lg:flex print:hidden",
+              collapsed ? "w-16" : "w-60",
+            )}
+          >
+            <Brand collapsed={collapsed} />
+            <div className="mt-5 min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+              <SideNav groups={groups} pathname={pathname} collapsed={collapsed} />
+            </div>
+            {me?.company ? (
+              <div
+                className={cn(
+                  "bg-muted/60 mt-3 flex items-center gap-2 rounded-lg",
+                  collapsed ? "justify-center p-1.5" : "px-3 py-2",
+                )}
+                title={me.company.name}
               >
-                {open ? <XIcon /> : <MenuIcon />}
-              </Button>
-            </div>
-          </header>
-          {open ? (
-            <div id="mobile-nav" className="bg-card border-b p-4 shadow-sm md:hidden print:hidden">
-              {nav}
-              <div className="mt-4">
-                <UserBox me={me} signOutAction={signOutAction} />
+                <span
+                  aria-hidden="true"
+                  className="bg-card text-foreground grid size-7 shrink-0 place-items-center rounded-md text-xs font-semibold shadow-sm"
+                >
+                  {me.company.name.slice(0, 1).toUpperCase()}
+                </span>
+                {collapsed ? (
+                  <span className="sr-only">{me.company.name}</span>
+                ) : (
+                  <span className="min-w-0">
+                    <span className="text-foreground block truncate text-[13px] leading-tight font-medium">
+                      {me.company.name}
+                    </span>
+                    <span className="text-muted-foreground block truncate text-xs leading-tight">
+                      {t.admin.nav.role[me.user.role]}
+                    </span>
+                  </span>
+                )}
               </div>
-            </div>
-          ) : null}
-          <main
-            id="main"
-            className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-10 md:py-8 print:max-w-none print:p-0"
-          >
-            {children}
-          </main>
-        </div>
-      </div>
-    </DirtyGuardProvider>
-  );
-}
+            ) : null}
+          </aside>
 
-function Brand(): React.JSX.Element {
-  return (
-    <Link href="/admin" className="flex items-center gap-2.5 px-2.5 text-[15px] font-semibold tracking-tight">
-      <span
-        aria-hidden="true"
-        className="grid size-7 place-items-center rounded-md bg-brand-gradient text-xs font-bold text-brand-text shadow-sm"
-      >
-        D
-      </span>
-      <span className="text-foreground">{t.app.name}</span>
-    </Link>
-  );
-}
-
-function NavLink({
-  item,
-  active,
-  onNavigate,
-}: {
-  item: NavItem;
-  active: boolean;
-  onNavigate: () => void;
-}): React.JSX.Element {
-  const Icon = item.icon;
-  return (
-    <Link
-      href={item.href}
-      aria-current={active ? "page" : undefined}
-      onClick={onNavigate}
-      className={cn(
-        "text-sidebar-foreground hover:bg-muted hover:text-foreground flex items-center gap-2.5 rounded-md px-2.5 py-1.5 font-medium transition-colors",
-        active &&
-          "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-      )}
-    >
-      <Icon className={cn("size-4", active ? "text-primary" : "text-muted-foreground")} aria-hidden="true" />
-      {item.label}
-    </Link>
-  );
-}
-
-function initials(email: string): string {
-  const name = email.split("@")[0] ?? "";
-  const parts = name.split(/[._-]+/).filter(Boolean);
-  const letters = parts.length > 1 ? `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}` : name.slice(0, 2);
-  return letters.toUpperCase();
-}
-
-function UserBox({
-  me,
-  signOutAction,
-}: {
-  me: Me | null;
-  signOutAction: () => Promise<void>;
-}): React.JSX.Element {
-  return (
-    <div className="grid gap-3 border-t pt-3 text-xs">
-      {me ? (
-        <div className="flex items-center gap-2.5 px-1.5">
-          <span
-            aria-hidden="true"
-            className="bg-accent text-accent-foreground grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold"
-          >
-            {initials(me.user.email)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-foreground truncate text-[13px] font-medium" title={me.user.email}>
-              <span className="sr-only">{t.admin.nav.signedInAs(me.user.email)}</span>
-              <span aria-hidden="true">{me.user.email}</span>
-            </p>
-            <p className="text-muted-foreground truncate">
-              {t.admin.nav.role[me.user.role]}
-              {me.company ? ` · ${me.company.name}` : ""}
-            </p>
+          <div className="bg-card shadow-card flex min-w-0 flex-1 flex-col lg:rounded-xl print:shadow-none">
+            <TopBar
+              me={me}
+              signOutAction={signOutAction}
+              collapsed={collapsed}
+              onToggleSidebar={toggle}
+              onOpenDrawer={() => {
+                setDrawer(true);
+              }}
+              onOpenSearch={() => {
+                setSearch(true);
+              }}
+            />
+            <main
+              id="main"
+              tabIndex={-1}
+              className="mx-auto w-full max-w-[120rem] flex-1 px-4 py-5 outline-hidden sm:px-6 md:py-6 lg:px-8 print:max-w-none print:p-0"
+            >
+              {children}
+            </main>
           </div>
         </div>
-      ) : null}
-      <div className="px-1.5">
-        <ThemeSwitch />
-      </div>
-      <div className="flex items-center justify-between gap-2 px-1.5">
-        <div className="hidden md:block">
-          <LanguageSwitch />
-        </div>
-        <form action={signOutAction}>
-          <Button type="submit" variant="ghost" size="sm">
-            <LogOutIcon aria-hidden="true" />
-            {t.app.signOut}
-          </Button>
-        </form>
-      </div>
-    </div>
+
+        <DrawerPrimitive.Root open={drawer} onOpenChange={setDrawer}>
+          <DrawerPrimitive.Portal>
+            <DrawerPrimitive.Overlay className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 bg-overlay fixed inset-0 z-50 backdrop-blur-[2px] lg:hidden" />
+            <DrawerPrimitive.Content
+              aria-describedby={undefined}
+              className="bg-sidebar data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left shadow-raised fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-3rem))] flex-col px-3 py-3 duration-200 lg:hidden"
+            >
+              <DrawerPrimitive.Title className="sr-only">{t.kit.shell.mainNav}</DrawerPrimitive.Title>
+              <div className="flex items-center justify-between">
+                <Brand />
+                <DrawerPrimitive.Close
+                  aria-label={t.kit.shell.closeMenu}
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground grid size-9 place-items-center rounded-md"
+                >
+                  <XIcon className="size-5" aria-hidden="true" />
+                </DrawerPrimitive.Close>
+              </div>
+              <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
+                <SideNav
+                  groups={groups}
+                  pathname={pathname}
+                  onNavigate={() => {
+                    setDrawer(false);
+                  }}
+                />
+              </div>
+              {me?.company ? (
+                <p className="text-muted-foreground mt-3 truncate border-t pt-3 text-xs">
+                  {me.company.name} · {t.admin.nav.role[me.user.role]}
+                </p>
+              ) : null}
+            </DrawerPrimitive.Content>
+          </DrawerPrimitive.Portal>
+        </DrawerPrimitive.Root>
+
+        <CommandPalette open={search} onOpenChange={setSearch} role={me?.user.role} />
+      </CrumbProvider>
+    </DirtyGuardProvider>
   );
 }

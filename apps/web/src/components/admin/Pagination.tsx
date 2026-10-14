@@ -22,6 +22,7 @@ export function Pagination({
   total,
   paramName = "page",
   label,
+  className,
 }: {
   page: number;
   limit: number;
@@ -30,6 +31,7 @@ export function Pagination({
   total: number | null;
   paramName?: string;
   label?: string;
+  className?: string;
 }): React.JSX.Element | null {
   const pathname = usePathname();
   const params = useSearchParams();
@@ -64,7 +66,10 @@ export function Pagination({
 
   const sizeId = `${paramName}-size`;
   return (
-    <nav aria-label={label ?? s.label} className="mt-4 flex flex-wrap items-center justify-between gap-3">
+    <nav
+      aria-label={label ?? s.label}
+      className={cn("mt-4 flex flex-wrap items-center justify-between gap-3", className)}
+    >
       <div className="flex items-center gap-4">
         <p className="text-muted-foreground text-[13px] tabular-nums" role="status">
           {total === null ? s.range(from, to) : s.rangeOf(from, to, total)}

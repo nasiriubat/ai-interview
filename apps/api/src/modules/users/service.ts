@@ -63,6 +63,48 @@ export class UsersService {
     };
   }
 
+  /**
+   * The signed-in person changes their own display name (D-344). Role, address and access are not
+   * theirs to change here; the name is the only field of a profile this product has.
+   */
+  async updateProfile(
+    companyId: string,
+    userId: string,
+    patch: { name: string | null },
+  ): Promise<{ id: string; email: string; name: string | null; role: string; companyId: string }> {
+    const existing = await this.db.user.findFirst({ where: { id: userId, companyId } });
+    if (!existing) throw notFound("User");
+    const name = patch.name?.trim() ? patch.name.trim() : null;
+    const user = await this.db.user.update({ where: { id: existing.id }, data: { name } });
+    await this.audit.record(companyId, {
+      actorId: userId,
+      action: "user.update",
+      targetType: "user",
+      targetId: user.id,
+      diff: { name, self: true },
+    });
+    return { id: user.id, email: user.email, name: user.name, role: user.role, companyId: user.companyId };
+  }
+
+  /**
+   * Ends every session of the signed-in person on every device, this one included (D-344): the
+   * watermark makes the resolver refuse any token that was issued before it. Rounded up to a whole
+   * second like the offboarding watermark, because a JWT's `iat` has second resolution.
+   */
+  async revokeOwnSessions(companyId: string, userId: string): Promise<void> {
+    const existing = await this.db.user.findFirst({ where: { id: userId, companyId } });
+    if (!existing) throw notFound("User");
+    const watermark = new Date(Math.ceil(Date.now() / 1000) * 1000);
+    await this.db.user.update({ where: { id: existing.id }, data: { tokensValidAfter: watermark } });
+    await this.audit.record(companyId, {
+      actorId: userId,
+      action: "user.sessions_revoke",
+      targetType: "user",
+      targetId: existing.id,
+      diff: {},
+    });
+  }
+
   async list(companyId: string, query: UserListQuery): Promise<ListEnvelope<"users", User>> {
     const q = searchTerm(query.q);
     const where: Prisma.UserWhereInput = {

@@ -66,7 +66,11 @@ export class PrincipalResolver {
         // watermark is refused even after the user is re-enabled; they sign in again.
         if (user.disabledAt) return { kind: "anonymous" };
         if (user.tokensValidAfter) {
-          const issuedAt = typeof jwt?.iat === "number" ? jwt.iat * 1000 : 0;
+          // `authAt` is when the person signed in (set once, by the web's `jwt` callback); `iat` is
+          // when this copy of the token was last re-issued, which Auth.js does on a rolling basis.
+          // Judging by the sign-in time means a refresh cannot make a revoked session valid again.
+          const signedIn = typeof jwt?.authAt === "number" ? jwt.authAt : jwt?.iat;
+          const issuedAt = typeof signedIn === "number" ? signedIn * 1000 : 0;
           if (issuedAt < user.tokensValidAfter.getTime()) return { kind: "anonymous" };
         }
         return {

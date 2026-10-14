@@ -18,7 +18,10 @@ export function Toaster(): React.JSX.Element {
     <Sonner
       position="bottom-right"
       closeButton
+      visibleToasts={3}
       duration={4000}
+      offset={{ bottom: 16, right: 16 }}
+      mobileOffset={{ bottom: 12, left: 12, right: 12 }}
       icons={{
         success: <CircleCheckIcon className="text-success size-4" aria-hidden="true" />,
         error: <CircleAlertIcon className="text-destructive size-4" aria-hidden="true" />,
