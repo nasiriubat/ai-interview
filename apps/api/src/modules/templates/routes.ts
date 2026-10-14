@@ -83,6 +83,29 @@ export async function templateRoutes(app: App, ctx: RouteContext): Promise<void>
     );
   }
 
+  /** Every version of the template's key, newest first, with what changed and who holds it (FR-62). */
+  app.get("/templates/:id/versions", { ...guard.staff(), schema: { params: Id } }, async (req) => ({
+    versions: await svc.versions(req.companyId, req.params.id),
+  }));
+
+  /**
+   * Restore: `:id` is the old version to copy. Creates version max+1; nothing is mutated, and
+   * campaigns pinned to older rows keep them.
+   */
+  app.post("/templates/:id/restore", { ...guard.admin(), schema: { params: Id } }, async (req, reply) => {
+    const actor = staff(req).userId;
+    const from = await svc.get(req.companyId, req.params.id);
+    const t = await svc.restore(req.companyId, req.params.id, actor);
+    await ctx.services.audit.record(req.companyId, {
+      actorId: actor,
+      action: "template.restore",
+      targetType: "template",
+      targetId: t.id,
+      diff: { key: t.key, fromVersion: from.version, newVersion: t.version, fromId: from.id },
+    });
+    return reply.status(201).send(view(t));
+  });
+
   /** A throwaway session on the template, opened as a participant by the calling admin (contract 18). */
   app.post(
     "/templates/:id/preview",

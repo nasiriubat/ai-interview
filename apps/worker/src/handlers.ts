@@ -14,11 +14,13 @@ import {
   PrismaPromptSource,
   PrismaSessionStore,
   RequirementsService,
+  TenantNotices,
   deleteSessionData,
   rekeyAll,
   runRetentionSweep,
   verifyAuditChain,
   sendOnce,
+  type AlertPort,
   type CallerFactory,
   type Crypto,
   type EmailOutbox,
@@ -43,6 +45,8 @@ export interface HandlerDeps {
   log: Logger;
   crypto: Crypto;
   publicWebUrl: string;
+  /** Where tenant notices go (D-181). Absent: nobody is mailed about analyses and specifications. */
+  alerts?: AlertPort;
   /** Where uploaded audio and documents live; the worker reads what the API wrote. */
   storage: StoragePort;
   /** What has been sent, by idempotency key. Defaults to the Postgres table; tests pass memory. */
@@ -106,12 +110,16 @@ export function handlers(deps: HandlerDeps): Handlers {
   const store: JobSessionStore = deps.sessions ?? new PrismaSessionStore(deps.db);
   const outbox = deps.outbox ?? new PrismaEmailOutbox(deps.db);
   const prompts = deps.prompts ?? new PrismaPromptSource(deps.db);
+  const notices = deps.alerts
+    ? new TenantNotices({ alerts: deps.alerts, publicWebUrl: deps.publicWebUrl, log: deps.log })
+    : undefined;
   const analysis = new AnalysisService({
     db: deps.db,
     callers: deps.callers,
     settings: deps.settings,
     jobs: deps.jobs,
     log: deps.log,
+    ...(notices ? { notices } : {}),
   });
   // GitHub pushes happen in the API process; the worker only generates versions.
   const requirements = new RequirementsService({
@@ -123,6 +131,7 @@ export function handlers(deps: HandlerDeps): Handlers {
     email: deps.email,
     publicWebUrl: deps.publicWebUrl,
     crypto: deps.crypto,
+    ...(notices ? { notices } : {}),
   });
 
   return {

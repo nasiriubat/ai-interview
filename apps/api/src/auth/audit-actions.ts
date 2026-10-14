@@ -24,6 +24,7 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "PUT /templates/:id": ["template.update"],
   "POST /templates/:id/publish": ["template.published"],
   "POST /templates/:id/archive": ["template.archived"],
+  "POST /templates/:id/restore": ["template.restore"],
   "POST /templates/:id/preview": ["template.preview"],
   // settings
   "PUT /settings": ["settings.update"],
@@ -36,6 +37,8 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /campaigns/:id/invitations": ["campaign.invite"],
   "POST /campaigns/:id/invitations/:invId/remind": ["invitation.remind"],
   "POST /campaigns/:id/invitations/:invId/revoke": ["invitation.revoke"],
+  // onboarding
+  "POST /onboarding/dismiss": ["onboarding.dismiss"],
   // providers, prices, routes, budgets
   "POST /providers": ["provider.create"],
   "PATCH /providers/:id": ["provider.update"],

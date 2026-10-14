@@ -1,6 +1,7 @@
 import type { Logger } from "@aidp/ai";
 import type { Handoff, Path, SessionState, SpecVersionStats } from "@aidp/shared";
 import type { InterviewTemplate as TemplateRow, PrismaClient, Session } from "@prisma/client";
+import type { TenantNotices } from "../alerts/tenant-notices.js";
 import type { Crypto } from "../crypto.js";
 import type { EmailPort } from "../email/port.js";
 import type { JobPublisher } from "../jobs/definitions.js";
@@ -17,6 +18,8 @@ export interface RequirementsServiceDeps {
   email: EmailPort;
   publicWebUrl: string;
   crypto: Crypto;
+  /** Tenant notices (D-181): told when a version is generated. Absent in tools that never mail. */
+  notices?: TenantNotices;
   /** Absent where pushes never happen (the worker). */
   github?: GitHubPort;
 }

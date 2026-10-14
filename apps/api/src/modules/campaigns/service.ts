@@ -6,6 +6,7 @@ import {
   type Crypto,
   type EmailPort,
   type SettingsService,
+  type TenantCeilings,
 } from "@aidp/core";
 import { containsInsensitive, escapeLike, tenantBatch, tenantTransaction } from "@aidp/db";
 import { toListResponse, type ListEnvelope } from "@aidp/shared";
@@ -118,6 +119,8 @@ export class CampaignService {
     private readonly settings: SettingsService,
     private readonly email: EmailPort,
     private readonly publicWebUrl: string,
+    /** Refuses a new campaign past `ceiling.maxActiveCampaigns` (D-188). Absent in tools that never create one. */
+    private readonly ceilings?: TenantCeilings,
   ) {}
 
   /** One page of campaigns with the row count beside it; `total` counts the filtered set (D-79). */
@@ -260,6 +263,7 @@ export class CampaignService {
       where: { id: input.templateId, OR: [{ companyId }, { companyId: null }], status: "published" },
     });
     if (!template) throw new AppError("validation", "Template not found or not published");
+    await this.ceilings?.assertRoom(companyId, "maxActiveCampaigns");
     const chain = [{ scope: "tenant" as const, scopeId: companyId }];
     const defaults = await this.settings.resolveMany(
       [
@@ -300,6 +304,8 @@ export class CampaignService {
         value: this.crypto.encrypt(token, "campaign.linkToken"),
       },
     });
+    // Tells the tenant (and the operator) at 80 and 100 percent, once, without delaying the answer.
+    await this.ceilings?.afterChange(companyId);
     return { campaign, link: this.linkFor(token) };
   }
 

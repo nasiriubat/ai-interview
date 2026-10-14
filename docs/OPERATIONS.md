@@ -61,11 +61,16 @@ unresolved alert is sent again, the hourly ceiling, and the disk, provider and b
 
 ### What a tenant is sent
 
-Only budget notices, and only to that tenant's own admins (or the list in
-`notifications.recipients`): at 80 and 90 percent of a budget, and when it is used up. A tenant can
-switch its warnings off (`notifications.budgetWarnings`) and cannot switch off the exhaustion
-notice. Nothing else is ever mailed to a tenant admin, and an alert for one tenant is never sent to
-another's: the router resolves recipients from the alert's own `companyId`, and a kind the catalog
+Budget notices (at 80 and 90 percent of a budget, and when it is used up), three notices about
+the tenant's own work (a campaign reached its completion threshold, an analysis is ready, a
+specification version was generated), and the ceiling notices (a limit the operator set is at 80
+percent or reached). They go to that tenant's own admins, or the list in `notifications.recipients`,
+in the language `branding.language` names (English or Finnish). A tenant can switch off the budget
+warning and each of the three work notices (`notifications.budgetWarnings`,
+`notifications.campaignThreshold`, `notifications.analysisReady`, `notifications.specReady`) and
+cannot switch off the exhaustion or ceiling notices. The three work notices are one mail per event:
+their key is the id of the campaign, analysis or version. Nothing else is ever mailed to a tenant
+admin, and an alert for one tenant is never sent to another's: the router resolves recipients from the alert's own `companyId`, and a kind the catalog
 does not list for tenants cannot be addressed to them (`packages/core/test/alerts.test.ts`).
 
 An alert never carries a transcript, an answer, a participant's address or an error message: ids,
@@ -105,6 +110,69 @@ deliberately no "fall back to a cheaper model" (D-91): the money is the tenant's
 
 **Fixed when** The participant's next turn succeeds. The alert resolves itself when a new month
 starts a new key.
+
+### campaign.threshold
+
+**Symptom** A tenant's campaign has enough completed interviews (`campaign.completionThreshold`
+or the percentage rule) and its analysis was queued. Tenant admins only; you are not told.
+
+**Look at** Nothing, unless the tenant says the mail did not arrive: Operator → Jobs for
+`analysis.run`, and Settings → Notifications for the tenant's recipients.
+
+**Do** Nothing. A tenant that sees none of these mails has switched
+`notifications.campaignThreshold` off or has no admin with an address.
+
+**Fixed when** There is nothing to fix; one campaign sends one of these, ever.
+
+### analysis.ready
+
+**Symptom** An analysis finished. Tenant admins only.
+
+**Look at** The campaign's results page (the link in the mail). If a tenant says an analysis
+finished and no mail came: the `analysis.run` job's log line "analysis done", then the tenant's
+`notifications.analysisReady` and `notifications.recipients`.
+
+**Do** Nothing.
+
+**Fixed when** One mail per analysis id; a re-run is a new analysis and a new mail.
+
+### spec.ready
+
+**Symptom** A specification version was generated (`spec.generate`). Tenant admins only.
+
+**Look at** The version's page (the link in the mail), and Operator → Jobs for `spec.generate`.
+
+**Do** Nothing.
+
+**Fixed when** One mail per version id.
+
+### ceiling.warning
+
+**Symptom** A tenant is at 80 percent of one of its ceilings (`ceiling.maxActiveCampaigns`,
+`ceiling.maxSessionsPerMonth`, `ceiling.storageBytes`, `ceiling.voiceMinutes`). Interviews and
+campaigns are still accepted. You and the tenant's admins are told.
+
+**Look at** Operator → Tenants, the utilisation column for that tenant.
+
+**Do** Nothing is required. If the tenant is growing as planned, raise the ceiling (Settings, the
+tenant scope, category Ceiling; only the platform operator can write these keys).
+
+**Fixed when** Usage falls under the line or the ceiling is raised; the next crossing is a new
+alert. Monthly ceilings start a new key each month.
+
+### ceiling.reached
+
+**Symptom** A tenant used up a ceiling. Creating a campaign (`maxActiveCampaigns`) or starting an
+interview (`maxSessionsPerMonth`) is refused with `limit_reached` until the ceiling is raised or the
+month ends. Storage and voice minutes are reported but not yet refused. You and the tenant's admins
+are told.
+
+**Look at** Operator → Tenants, the utilisation column; the tenant's campaigns if the ceiling is
+the active campaign count (a closed or archived campaign frees a place).
+
+**Do** Raise the ceiling for the tenant, or tell them to close finished campaigns.
+
+**Fixed when** The ceiling is raised or usage falls under it.
 
 ### job.dead_lettered
 

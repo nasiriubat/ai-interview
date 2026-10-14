@@ -28,7 +28,17 @@ export const PURPOSES = [
 export const PurposeSchema = z.enum(PURPOSES);
 export type Purpose = z.infer<typeof PurposeSchema>;
 
-/** The purposes a route can be configured for: every one except the unrouted `probe`. */
-export const ROUTABLE_PURPOSES = PURPOSES.filter((p) => p !== "probe");
-export const RoutablePurposeSchema = PurposeSchema.exclude(["probe"]);
+/**
+ * Purposes that exist in the enum but nothing calls yet. Live voice is a cascade of `stt_stream`,
+ * `interview_turn` and `tts` (D-75, D-77); a single speech-to-speech model is a later design, so
+ * `realtime_voice` is hidden from the routes screen and refused by `PUT /routes` until it has a
+ * reader (D-187). Stored rows are not touched.
+ */
+export const PLANNED_PURPOSES = ["realtime_voice"] as const;
+
+/** The purposes a route can be configured for: all but the unrouted `probe` and the planned ones. */
+export const ROUTABLE_PURPOSES = PURPOSES.filter(
+  (p) => p !== "probe" && !(PLANNED_PURPOSES as readonly string[]).includes(p),
+);
+export const RoutablePurposeSchema = PurposeSchema.exclude(["probe", ...PLANNED_PURPOSES]);
 export type RoutablePurpose = z.infer<typeof RoutablePurposeSchema>;

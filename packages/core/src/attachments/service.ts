@@ -14,6 +14,7 @@ import {
 } from "@aidp/ai";
 import { currentTenant, tenantTransaction } from "@aidp/db";
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { voiceAllowedForSession } from "../settings/features.js";
 import type { SettingsService } from "../settings/service.js";
 import { attachmentKey, ObjectTooLarge, type StoragePort } from "../storage/index.js";
 
@@ -156,7 +157,12 @@ export class AttachmentService {
     if (!kind) throw new AttachmentRejected("type", "That file type is not accepted");
 
     if (kind === "audio") {
-      const enabled = await settings.get("features.recordedVoice", chain);
+      // The tenant's flag ANDed with the template's `voice.enabled` (D-186).
+      const enabled = await voiceAllowedForSession(db, settings, {
+        companyId: input.companyId,
+        sessionId: input.sessionId,
+        mode: "recorded",
+      });
       if (!enabled) throw new AttachmentRejected("disabled", "Voice answers are turned off");
     } else {
       const enabled = await settings.get("features.fileUpload", chain);

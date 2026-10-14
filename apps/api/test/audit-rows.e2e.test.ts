@@ -214,6 +214,22 @@ suite("audit rows: every administrative mutation writes one", () => {
       targetType: "template",
       actor: "admin",
     });
+    // The edit above made version 2; restoring version 1 writes version 3 and one row for it.
+    const restored = await audited("POST /templates/:id/restore", `/templates/${id}/restore`, undefined, {
+      action: "template.restore",
+      targetType: "template",
+      actor: "admin",
+    });
+    expect(restored.json<{ version: number }>().version).toBe(3);
+  });
+
+  it("POST /onboarding/dismiss", async () => {
+    await audited("POST /onboarding/dismiss", "/onboarding/dismiss", undefined, {
+      action: "onboarding.dismiss",
+      targetType: "company",
+      targetId: world.companyId,
+      actor: "admin",
+    });
   });
 
   // ---------- settings ----------
@@ -699,6 +715,11 @@ suite("audit rows: every administrative mutation writes one", () => {
       action: "job.run_now",
       targetType: "job",
       targetId: "ops.health-sweep",
+      actor: "operator",
+    });
+    await audited("POST /operator/crypto/rekey", "/operator/crypto/rekey", undefined, {
+      action: "crypto.rekey_requested",
+      targetType: "platform",
       actor: "operator",
     });
   });

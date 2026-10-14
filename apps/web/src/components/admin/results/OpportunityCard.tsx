@@ -42,12 +42,15 @@ export function OpportunityCard({
   onStatus,
   onEdit,
   onPromote,
+  canPromote = true,
 }: {
   opportunity: Opportunity;
   busy: boolean;
   onStatus: (status: OpportunityStatusInput) => void;
   onEdit: () => void;
   onPromote: () => void;
+  /** `features.chaining` (D-187): off hides the action instead of offering one the API refuses. */
+  canPromote?: boolean;
 }): React.JSX.Element {
   const s = t.admin.results;
   const [open, setOpen] = React.useState(false);
@@ -221,7 +224,7 @@ export function OpportunityCard({
           <Button size="sm" variant="ghost" disabled={busy} onClick={onEdit}>
             <PencilIcon /> {s.actions.edit}
           </Button>
-          {!promoted && !dismissed ? (
+          {!promoted && !dismissed && canPromote ? (
             <Button size="sm" disabled={busy} onClick={onPromote}>
               <RocketIcon /> {s.actions.promote}
             </Button>
