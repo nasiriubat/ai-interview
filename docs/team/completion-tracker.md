@@ -3,37 +3,37 @@
 The one file to read to see where the program stands. Updated at every merge. The plan behind it
 is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026-10-13.md`.
 
-**Last updated:** 2026-10-14, M3 merged (five branches); spec-quality agent running; M4 starting.
+**Last updated:** 2026-10-14, spec quality, landing page (M5) and security M3 merged; full-stack run/load/chaos agent still running.
 
 ## Headline numbers
 
-| Measure                                                        | Now      | How it is computed                                                                                                                                                                            |
-| -------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Program to "A+ production-ready handover" (phases 0 to 5)      | **~68%** | About 42 of about 210 deduplicated engineer-days merged and verified                                                                                                                          |
-| Safe to run a first pilot tenant (owner operating, one tenant) | **~88%** | Both live-run defects (clustering at scale, reopen) fixed and confirmed live; remaining: requirement capture varies between runs (1 and 1 vs 6 and 8), full compose stack untested end to end |
-| Spec coverage, phases 0 to 4                                   | ~87%     | Was ~85%; resume recap, flags, PDF, cluster edits and prompt admin still open                                                                                                                 |
-| Automated tests (all merged, zero skipped)                     | 913+     | `pnpm check` with a database; web alone is now 450                                                                                                                                            |
+| Measure                                                        | Now      | How it is computed                                                                                                                                              |
+| -------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Program to "A+ production-ready handover" (phases 0 to 5)      | **~68%** | About 42 of about 210 deduplicated engineer-days merged and verified                                                                                            |
+| Safe to run a first pilot tenant (owner operating, one tenant) | **~93%** | All seven pilot blockers closed; remaining: full compose stack run end to end (agent running), duplicates still 18% in requirement lists, owner actions O1..O10 |
+| Spec coverage, phases 0 to 4                                   | ~87%     | Was ~85%; resume recap, flags, PDF, cluster edits and prompt admin still open                                                                                   |
+| Automated tests (all merged, zero skipped)                     | 2,770+   | `pnpm check` with a database, last run after security M3                                                                                                        |
 
 ## Milestones
 
-| Milestone               | Days | State                        | What is in it                                                                                           |
-| ----------------------- | ---- | ---------------------------- | ------------------------------------------------------------------------------------------------------- |
-| M0 Land what exists     | 1    | **Done**                     | Working tree committed, three pre-commit gaps fixed                                                     |
-| M1 Pilot-safe           | ~35  | **Done, merged, gate green** | Security, operations, engineering correctness, web truth copy and accessibility                         |
-| M2 Trustworthy          | ~55  | **In progress (~12%)**       | Copy pass merged. Architecture, tenancy and privacy running. Security part 2 and data model not started |
-| M3 Complete the spec    | ~60  | Not started                  | Product blueprint features, redesign, observability                                                     |
-| M4 Evidence and A grade | ~50  | Not started                  | Evals, Playwright, load and chaos, pen test, usability tests, drills                                    |
-| M5 Launch               | ~10  | Not started                  | Landing page, proof points, name, phase plan says Done                                                  |
+| Milestone               | Days | State                        | What is in it                                                                   |
+| ----------------------- | ---- | ---------------------------- | ------------------------------------------------------------------------------- |
+| M0 Land what exists     | 1    | **Done**                     | Working tree committed, three pre-commit gaps fixed                             |
+| M1 Pilot-safe           | ~35  | **Done, merged, gate green** | Security, operations, engineering correctness, web truth copy and accessibility |
+| M2 Trustworthy          | ~55  | **Done, merged, gate green** | Copy, architecture, tenancy, privacy, security part 2, pipeline, configuration  |
+| M3 Complete the spec    | ~60  | **Done, merged, gate green** | Product blueprint features, redesign, observability                             |
+| M4 Evidence and A grade | ~50  | **In progress (~55%)**       | Evals, Playwright, load and chaos, pen test, usability tests, drills            |
+| M5 Launch               | ~10  | **Mostly done (~70%)**       | Landing page, proof points, name, phase plan says Done                          |
 
 ## Grades against the starting point
 
 | Dimension          | Start | Now (estimate) | Target | Evidence for the movement                                                                  |
 | ------------------ | ----- | -------------- | ------ | ------------------------------------------------------------------------------------------ |
-| Security           | C+    | B              | A      | Guards, rate identity, erasure, SSRF, dependencies, suspension, staff identity merged      |
+| Security           | C+    | B+/A-          | A      | Guards, rate identity, erasure, SSRF, dependencies, suspension, staff identity merged      |
 | Operations         | C+    | B              | A      | Alerting, job admin, heartbeat, timeouts, encrypted backups, rollback scripts merged       |
 | Engineering health | B     | B+             | A      | Extraction transaction, retention GC, abort plumbing, honest gate merged; evals still thin |
 | Usability          | 6.5-7 | 7.5-8          | 9.5    | Locale fix, contrast, announcer, confirmations, error focus, copy pass merged              |
-| Spec coverage      | ~85%  | ~87%           | 100%   | Data model and features in M3                                                              |
+| Spec coverage      | ~85%  | ~97%           | 100%   | Data model and features in M3                                                              |
 
 ## Done (merged on the main branch, verified by `pnpm check` with a database)
 
@@ -59,32 +59,24 @@ is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026
 
 ## In progress right now
 
-| Work                                                                     | Where                     | Expected result                                               |
-| ------------------------------------------------------------------------ | ------------------------- | ------------------------------------------------------------- |
-| Routes to services, lint-enforced ground rules, file splits, role matrix | Architecture agent        | No route file touches the database; every route x role tested |
-| RLS on nine more tables, k-anonymity on evidence, salt, DTOs, headers    | Tenancy and privacy agent | Cross-tenant tests for every table; evidence below k hidden   |
-| Live OpenRouter run: 8 simulated employees through to spec bundle        | Live harness agent        | A scorecard, cost per interview, and a list of real bugs      |
+| Work                                                  | Where            | Expected result                                                    |
+| ----------------------------------------------------- | ---------------- | ------------------------------------------------------------------ |
+| Full compose stack run, fake provider, load and chaos | Full-stack agent | Evidence in `docs/team/drills/`, a deterministic fake model server |
 
 ## Left, in order
 
-1. **M2 wave 2:** uploads hardening, prompt-injection delimiting and quote verification, user disable
-   and delete, participant data export, audit log append-only, key rotation, GDPR package,
-   `SettingDef.since` and settings history, feature flag cleanup, skip/return/finish as engine
-   operations, per-language consent default.
-2. **M3:** notifications, hostility flags surfaced, deletion confirmation email, resume recap,
-   prompt administration, cluster merge/split/rename, department comparison, PDF export, dashboard
-   statistics, template rollback, per-template voice toggle, editable diagrams, voice metrics,
-   self-serve tenant onboarding, tracing and metrics, restore drill automation, ledger completeness,
-   tenant statements, the admin redesign pages.
-3. **M4:** 60-turn fixtures and metrics, replay gate, model-backed evals, fake model server,
-   Playwright journeys with axe, load and chaos runs, CSP, injection fixtures, external pen test,
-   the owner's restore and chaos drills, usability tests, acceptance runs.
-4. **M5:** landing page in both languages, in-product wording, product name, proof points,
-   phase plan marked Done with evidence links.
+1. **Merge the full-stack agent** (fake provider, load, chaos, compose end to end), then Playwright journeys against the real stack.
+2. **Requirement quality follow-ups (D-249):** grouped merge pass, regenerate fresh interviews, read-back eval; duplicates 18% to under 5%.
+3. **M4 remainder:** requirements/version pages in axe inventory, two drifted e2e fixtures, scheduled model-backed evals, Lighthouse budgets, tenant-scoped sweeps in retention tests, re-run `pnpm live:run` on the merged tip, `scripts/live-run/README.md`, cold-build ordering fix.
+4. **Owner-only:** pen test budget, counsel review of DPA and consent, security contact, product name, usability tests with real people, restore and chaos drills, live voice on a phone, rotation drill on staging, make security workflow a required check.
+5. **M5 close:** phase plan marked Done with evidence links, release notes.
 
 ## Known risks and open items
 
-- Full compose stack has never been run end to end after M1 (scripts are tested against fakes).
+- Full compose stack has not yet been run end to end (agent running).
+- Requirement lists still contain ~18% duplicates; grounded 86% verified.
+- CSP is enforced but has no week of production data and no Observatory scan.
+- Finnish interview quality never run live; GitHub push only tested against a fake.
 - Realtime voice sockets have no deadlines or retries.
 - Quote redaction after deletion is exact-match only; analyses are flagged stale instead.
 - `branding.primaryColor` has no consumer; the consent default is English-only.
