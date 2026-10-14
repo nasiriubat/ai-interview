@@ -107,7 +107,8 @@ describe("interviewer turns", () => {
     );
     const delta = StateDeltaSchema.parse(parseTurn(text).meta.stateDelta);
     const paths = delta.facts.filter((f) => f.kind === "spec_field").map((f) => f.path);
-    expect(paths).toEqual(["FR-1", "FR-2"]);
+    // Three: a specification is not generated from fewer (template completeness.minRequirements).
+    expect(paths).toEqual(["FR-1", "FR-2", "FR-3"]);
   });
 
   it("streams in more than one event when paced", async () => {

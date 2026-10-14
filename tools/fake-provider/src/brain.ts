@@ -117,6 +117,11 @@ export function interviewerTurn(body: ChatBody): TurnReply {
               acceptance: ["one form"],
             }),
             specField("functional", "FR-2", { title: "Excel export", scope: "mvp", acceptance: ["csv"] }),
+            specField("functional", "FR-3", {
+              title: "Ward overview screen",
+              scope: "mvp",
+              acceptance: ["one screen shows every bed"],
+            }),
           );
         } else {
           facts.push(specField(SPEC_SECTIONS.has(key) ? key : "overview", "summary", `scripted ${name}`));
