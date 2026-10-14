@@ -108,6 +108,10 @@ export function participantErrorFor(code: string, context: ErrorContext): string
         return p.provider;
       case "budget_exceeded":
         return p.budget;
+      case "limit_reached":
+        return p.limit;
+      case "feature_disabled":
+        return p.featureOff;
       case "validation":
         return p.validation;
       default:
