@@ -99,7 +99,9 @@ export function InviteArrival({
           <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">{s.eyebrow}</p>
           <div className="grid gap-2">
             <PageHeading focusOnMount={moved.current}>{s.welcome(session.title)}</PageHeading>
-            {session.purpose ? <p className="text-muted-foreground">{session.purpose}</p> : null}
+            <p className="text-muted-foreground">
+              {session.welcome !== "" ? session.welcome : s.welcomeFallback}
+            </p>
           </div>
           <dl className="grid gap-4 text-sm">
             <div>

@@ -24,7 +24,7 @@ vi.mock("next/navigation", () => ({
 const campaign = {
   name: "Acme",
   productName: "",
-  purpose: "",
+  welcome: "",
   expectedMinutes: 10,
   participationMode: "participant_choice" as const,
   verification: "email_code" as const,
@@ -101,10 +101,58 @@ describe("consent in the arrival flow", () => {
   });
 });
 
+describe("the arrival welcome (D-460)", () => {
+  const objective = "Understand how this person's work is actually performed and where time goes.";
+
+  it("shows the campaign's welcome under the campaign name, never the interviewer's objective", () => {
+    render(
+      <ArrivalFlow
+        linkToken="t"
+        campaign={{
+          ...campaign,
+          name: "Where does our week go?",
+          welcome: "Hello from the clinic leads.",
+          objective,
+        }}
+        api={api()}
+      />,
+    );
+    expect(screen.getByRole("heading", { level: 1, name: "Where does our week go?" })).toBeInTheDocument();
+    expect(screen.getByText("Hello from the clinic leads.")).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain(objective);
+    // The old heading put the campaign name where a company name belonged.
+    expect(document.body.textContent).not.toMatch(/would like to hear/);
+  });
+
+  it("falls back to a friendly default when the API sends none", () => {
+    render(<ArrivalFlow linkToken="t" campaign={campaign} api={api()} />);
+    expect(screen.getByText(/Thank you for taking part/)).toBeInTheDocument();
+  });
+
+  it("gives an invited idea owner the requirements default", () => {
+    render(
+      <InviteArrival
+        token="tok"
+        session={{
+          title: "Ward intake",
+          welcome: "",
+          consentText: "C.",
+          consentVersion: "v1",
+          pathSelection: "none",
+          productName: "",
+          language: "en",
+        }}
+        api={api()}
+      />,
+    );
+    expect(screen.getByText(/turns your idea into a written specification/)).toBeInTheDocument();
+  });
+});
+
 describe("invited requirements participant", () => {
   const session: InviteInfo["session"] = {
     title: "Ward intake",
-    purpose: "",
+    welcome: "",
     consentText: "Consent.",
     consentVersion: "v1",
     pathSelection: "none",

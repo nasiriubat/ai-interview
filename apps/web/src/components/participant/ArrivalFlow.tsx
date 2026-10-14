@@ -257,8 +257,8 @@ export function ArrivalFlow({
               </p>
               <Heading
                 focus={moved.current}
-                title={t.participant.arrival.welcome(campaign.name)}
-                body={campaign.purpose}
+                title={campaign.name}
+                body={campaign.welcome !== "" ? campaign.welcome : t.participant.arrival.welcomeFallback}
               />
               {errorBox}
               <Button size="lg" onClick={start} loading={busy} className="w-full sm:w-auto sm:min-w-56">

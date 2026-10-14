@@ -465,7 +465,7 @@ export const participantSession = {
     allowedTypes: ["application/pdf"],
   },
   attachments: [],
-  about: { name: "Ward round, Q4", purpose: "We want to understand how work really happens on your ward." },
+  about: { name: "Ward round, Q4", welcome: "We want to understand how work really happens on your ward." },
   summary: null,
   recap: { text: "You covered your role. Next is a normal day.", source: "fallback" },
 };
@@ -474,7 +474,7 @@ export const linkInfo = (status: "open" | "closed" | "expired" = "open"): Record
   campaign: {
     name: "Ward round, Q4",
     productName: "",
-    purpose: "We want to understand how work really happens on your ward.",
+    welcome: "We want to understand how work really happens on your ward.",
     expectedMinutes: 15,
     participationMode: "participant_choice",
     verification: "open",
@@ -491,7 +491,7 @@ export const inviteArrival = {
   status: "open",
   session: {
     title: "Ward handover assistant",
-    purpose: "",
+    welcome: "",
     consentText: "Consent.",
     consentVersion: "v1",
     pathSelection: "none",

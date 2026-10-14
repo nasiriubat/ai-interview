@@ -8,7 +8,7 @@ import {
   type AttachmentView,
   type SettingsService,
 } from "@aidp/core";
-import { SessionStateSchema } from "@aidp/shared";
+import { participantWelcome, SessionStateSchema } from "@aidp/shared";
 import type { PrismaClient } from "@prisma/client";
 import type { ParticipantService } from "./service.js";
 
@@ -17,8 +17,11 @@ export interface ParticipantSessionPayload {
     progress: { areas: { key: string; name: string; status: string }[] };
     messages: ReturnType<typeof toStored>[];
     attachments: AttachmentView[];
-    /** What this interview is, for the side panel: the campaign's name and the template's objective. */
-    about: { name: string; purpose: string; productName: string };
+    /**
+     * What this interview is, for the side panel: the campaign's name and the participant-facing
+     * welcome (D-460). Never the template's objective, which is written for the interviewer.
+     */
+    about: { name: string; welcome: string; productName: string };
     /**
      * Two sentences on where the participant left off, for a banner above the conversation
      * (spec 06). Never a message: it is not in `messages`, the transcript or the model's context.
@@ -111,8 +114,8 @@ export class ParticipantSessionReader {
           select: { name: true },
         })
       : null;
-    const branding = await this.settings.resolveMany(
-      ["branding.productName"],
+    const branding = await this.settings.resolveDetailed(
+      ["branding.productName", "campaign.welcomeText"],
       [
         ...(session.campaignId ? [{ scope: "campaign" as const, scopeId: session.campaignId }] : []),
         { scope: "tenant" as const, scopeId: companyId },
@@ -123,8 +126,11 @@ export class ParticipantSessionReader {
         ...this.participant.sessionView(session, session.participant),
         about: {
           name: campaign?.name ?? session.title,
-          purpose: session.template.objective,
-          productName: (branding["branding.productName"] as string | undefined) ?? "",
+          welcome: participantWelcome(
+            branding["campaign.welcomeText"]?.scope != null ? branding["campaign.welcomeText"].value : null,
+            session.template,
+          ),
+          productName: (branding["branding.productName"]?.value as string | undefined) ?? "",
         },
         progress: { areas },
         messages: messages.map(toStored),
