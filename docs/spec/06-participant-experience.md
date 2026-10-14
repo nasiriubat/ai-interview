@@ -30,9 +30,12 @@ an area to skip it or come back later.
 
 ## Resume, control, ending
 
-Closing the tab loses nothing; the link reopens with a two-sentence recap. Pause,
-"I'm done", and "delete my data" are one tap away; deletion is confirmed on screen and
-by email when identified. Ending: closing question, then an editable summary of what
+Closing the tab loses nothing; the link reopens with a two-sentence recap, a dismissible
+note above the conversation that is not part of the transcript (D-172). Pause,
+"I'm done" (asked first, then sent as a control, never as a message, D-170), skip and
+come back (Undo for six seconds), and "delete my data" are one tap away; deletion is
+confirmed on screen, and by email when identified: the screen mentions the email only
+when one was queued (D-175). Ending: closing question, then an editable summary of what
 was captured, a thank-you, and what happens next. Nothing about opportunities.
 
 ## Live voice

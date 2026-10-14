@@ -10,12 +10,15 @@ export function StatusScreen({
   title,
   body,
   children,
+  note,
   tone = "neutral",
 }: {
   icon?: React.ReactNode;
   title: string;
   body: string;
   children?: React.ReactNode;
+  /** A short block under the body, such as the resume recap on the paused screen. */
+  note?: React.ReactNode;
   tone?: "neutral" | "warning" | "success";
 }): React.JSX.Element {
   return (
@@ -35,6 +38,9 @@ export function StatusScreen({
       ) : null}
       <PageHeading focusOnMount>{title}</PageHeading>
       <p className="text-muted-foreground text-balance">{body}</p>
+      {note ? (
+        <div className="bg-card shadow-card max-w-prose rounded-xl p-4 text-left text-sm">{note}</div>
+      ) : null}
       {children ? <div className="mt-2 flex flex-wrap justify-center gap-2">{children}</div> : null}
     </CenteredShell>
   );

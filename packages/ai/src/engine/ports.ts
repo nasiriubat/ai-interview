@@ -4,6 +4,7 @@ import type {
   InterviewTemplate,
   Modality,
   Path,
+  SessionEventType,
   SessionState,
   Widget,
   WidgetResponse,
@@ -67,6 +68,8 @@ export interface ExtractionCommit {
   facts: Fact[];
   /** `promptVersionTag` of the prompt that produced them, never a literal. */
   extractorVersion: string;
+  /** The language the interview was conducted in (the template's), stored on each fact row. */
+  language?: string;
   /** Payload of the `facts_extracted` event written in the same transaction. */
   event: { count: number; upToSeq: number; promptVersion: string };
 }
@@ -83,7 +86,7 @@ export interface SessionStore {
    * would undo whatever the turn did in between.
    */
   commitSummary(sessionId: string, summary: string, upToSeq: number): Promise<void>;
-  appendEvent(sessionId: string, type: string, payload: unknown): Promise<void>;
+  appendEvent(sessionId: string, type: SessionEventType, payload: unknown): Promise<void>;
   /**
    * Persists one extraction batch atomically, with compare-and-set on the cursor.
    *

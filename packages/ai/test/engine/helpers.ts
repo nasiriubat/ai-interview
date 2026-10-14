@@ -128,7 +128,8 @@ export const template = (over: Partial<InterviewTemplateInput> = {}): InterviewT
 
 export const snapshot = (
   t: InterviewTemplate,
-  state: Partial<SessionState> = {},
+  // What the schema accepts, so a test may name a coverage entry by its status alone.
+  state: object = {},
   summary = "",
 ): SessionSnapshot => ({
   id: "s1",

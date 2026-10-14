@@ -16,6 +16,7 @@ export * from "./storage/index.js";
 export * from "./attachments/index.js";
 export * from "./email/port.js";
 export * from "./email/outbox.js";
+export * from "./email/deletion-notice.js";
 export * from "./email/smtp.js";
 export * from "./email/settings-email.js";
 export * from "./privacy/retention.js";

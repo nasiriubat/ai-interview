@@ -173,6 +173,13 @@ model Session {
   createdAt      DateTime  @default(now())
   /// Last write to the row: every turn rewrites `state`, so this is the session's last activity (D-79).
   updatedAt      DateTime  @default(now()) @updatedAt
+  /// The engine raised a hostility or distress flag (D-173). The first flag wins; later ones are events only.
+  flagged        Boolean   @default(false)
+  /// Model prose: returned only to a viewer who may read the transcript.
+  flagReason     String?
+  flaggedAt      DateTime?
+  flagAckedAt    DateTime?
+  flagAckedBy    String?
 
   company     Company           @relation(fields: [companyId], references: [id])
   template    InterviewTemplate @relation(fields: [templateId], references: [id])
@@ -193,6 +200,7 @@ model Session {
   @@index([companyId, campaignId])
   @@index([companyId, campaignId, status])
   @@index([companyId, ownerUserId])
+  @@index([companyId, campaignId, flagged])
 }
 
 model Message {
@@ -303,6 +311,8 @@ model Fact {
   batchEndSeq      Int
   /// Position within that batch.
   ordinal          Int
+  /// The language of the template the fact was extracted under (D-177); null when unknown.
+  language         String?
 
   company  Company               @relation(fields: [companyId], references: [id])
   session  Session               @relation(fields: [sessionId], references: [id], onDelete: Cascade)

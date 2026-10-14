@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { ShippedPromptSource, promptVersionTag, SHIPPED_PROMPTS } from "@aidp/ai";
 import {
   EmailInFlightError,
@@ -7,6 +8,7 @@ import {
   MemoryEmailOutbox,
   MemoryJobPublisher,
   MemoryStorage,
+  Crypto as RealCrypto,
   type Crypto,
   type JobName,
   type SettingsService,
@@ -281,6 +283,56 @@ describe("email.send", () => {
     const { idempotencyKey: _omit, ...withoutKey } = message;
 
     expect(JOBS["email.send"].schema.safeParse(withoutKey).success).toBe(false);
+  });
+});
+
+describe("privacy.confirm-deletion", () => {
+  // The real cipher: what the API encrypts with is what the worker decrypts with.
+  const cipher = new RealCrypto(randomBytes(32).toString("base64"));
+  const job = {
+    companyId: "c1",
+    sessionId: "s1",
+    toEnc: cipher.encrypt("ida@clinic.test"),
+    campaignName: "Ward interviews",
+    language: "en",
+    deletedAt: "2026-10-14T09:00:00.000Z",
+  };
+  const withCrypto = (t: Harness): void => {
+    t.deps.crypto = cipher;
+  };
+
+  it("decrypts the address, sends the notice once under deletion-notice:<session>, and keeps no copy", async () => {
+    const t = harness();
+    withCrypto(t);
+
+    await t.h["privacy.confirm-deletion"](job);
+    await t.h["privacy.confirm-deletion"](job);
+
+    expect(t.email.sent).toHaveLength(1);
+    expect(t.email.sent[0]).toMatchObject({ to: "ida@clinic.test", companyId: "c1" });
+    expect(t.email.sent[0]?.subject).toContain("Ward interviews");
+    expect(t.email.sent[0]?.text).toContain("2026-10-14");
+    expect(t.email.sent[0]?.text).not.toContain("s1");
+    expect(await t.outbox.claim("deletion-notice:s1", "c1", new Date(), EMAIL_CLAIM_LEASE_MS)).toBe(
+      "already_sent",
+    );
+  });
+
+  it("writes the notice in Finnish for a Finnish interview", async () => {
+    const t = harness();
+    withCrypto(t);
+
+    await t.h["privacy.confirm-deletion"]({ ...job, language: "fi" });
+
+    expect(t.email.sent[0]?.subject).toContain("poistettu");
+  });
+
+  it("will not accept a payload with a plaintext address field instead of the ciphertext", () => {
+    const { toEnc: _omit, ...without } = job;
+
+    expect(JOBS["privacy.confirm-deletion"].schema.safeParse({ ...without, to: "a@b.c" }).success).toBe(
+      false,
+    );
   });
 });
 

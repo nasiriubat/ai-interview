@@ -8,10 +8,12 @@ import { LiveVoiceCall } from "./LiveVoiceCall";
 import { MessageList } from "./MessageList";
 import { ModeSwitch } from "./ModeSwitch";
 import { ProgressAreas } from "./ProgressAreas";
+import { RecapBanner } from "./RecapBanner";
 import { SessionMenu } from "./SessionMenu";
 import { StatusScreen } from "./StatusScreen";
 import { SummaryView } from "./SummaryView";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
+import { undoToast } from "@/components/common/undoToast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { WidgetRenderer } from "@/components/widgets";
@@ -29,6 +31,11 @@ import type { ModePreference, ParticipantSession, ProgressArea } from "@/lib/api
 
 type Screen = "interview" | "paused" | "deleted";
 
+/** The confirmation line is shown only when the API says a notice was queued (D-175). */
+interface Deleted {
+  emailSent: boolean;
+}
+
 export function InterviewScreen({
   initial,
   api = participantClient,
@@ -45,6 +52,7 @@ export function InterviewScreen({
     sendText,
     sendVoice,
     sendWidget,
+    sendControl,
     retry,
     clearError,
   } = useInterview(api, initial);
@@ -63,6 +71,12 @@ export function InterviewScreen({
       : (initial.modePreference ?? "chat"),
   );
   const [screen, setScreen] = React.useState<Screen>(initial.status === "paused" ? "paused" : "interview");
+  const [deleted, setDeleted] = React.useState<Deleted>({ emailSent: false });
+  /** The recap is shown once per visit: dismissed, or answered past, it does not come back. */
+  const [recapDismissed, setRecapDismissed] = React.useState(false);
+  const [composerFocus, setComposerFocus] = React.useState(0);
+  const recapText = initial.recap?.text;
+  const messagesAtOpen = React.useRef(initial.messages.length);
   const attachments = useAttachments(api, {
     initial: initial.attachments,
     capabilities: can,
@@ -127,7 +141,7 @@ export function InterviewScreen({
   React.useEffect(() => {
     if (spokenAnswers) return;
     setMode("chat");
-    api.setMode("chat").catch(() => undefined);
+    api.setMode("chat", "fallback_typing").catch(() => undefined);
   }, [spokenAnswers, api]);
 
   const changeMode = (m: ModePreference): void => {
@@ -168,26 +182,35 @@ export function InterviewScreen({
       setScreen("paused");
     });
   };
+  // "I'm done", skipping and coming back are operations on the interview, not things the
+  // participant said: they go as controls and never reach the transcript (D-170).
   const done = (): void => {
     void run(async () => {
-      await api.complete();
-      await sendText(t.participant.session.doneMessage);
+      await sendControl({ type: "finish" });
     });
   };
   const remove = (): void => {
     void run(async () => {
-      await api.deleteData();
+      const result = await api.deleteData();
+      setDeleted({ emailSent: result.emailSent });
       setScreen("deleted");
-    });
-  };
-  const skip = (area: ProgressArea): void => {
-    typedTurn(() => {
-      void sendText(t.participant.session.skipMessage(area.name));
     });
   };
   const back = (area: ProgressArea): void => {
     typedTurn(() => {
-      void sendText(t.participant.session.returnMessage(area.name));
+      void sendControl({ type: "return_area", areaKey: area.key });
+    });
+  };
+  const skip = (area: ProgressArea): void => {
+    typedTurn(() => {
+      void sendControl({ type: "skip_area", areaKey: area.key }).then((delivered) => {
+        // Reversible with one click, so it is not asked about but can be undone for six seconds
+        // (D-111). Undo is the inverse operation, sent like any other control.
+        if (delivered)
+          undoToast(t.participant.session.skippedToast(area.name), () => {
+            back(area);
+          });
+      });
     });
   };
 
@@ -198,6 +221,7 @@ export function InterviewScreen({
         tone="success"
         title={t.participant.session.deletedTitle}
         body={t.participant.session.deletedBody}
+        {...(deleted.emailSent ? { note: <p>{t.participant.session.deletedEmailNote}</p> } : {})}
       />
     );
   }
@@ -207,6 +231,16 @@ export function InterviewScreen({
         icon={<PauseIcon />}
         title={t.participant.session.pausedTitle}
         body={t.participant.session.pausedBody}
+        {...(recapText
+          ? {
+              note: (
+                <>
+                  <p className="text-foreground font-semibold">{t.participant.session.recapLabel}</p>
+                  <p className="mt-1">{recapText}</p>
+                </>
+              ),
+            }
+          : {})}
       >
         <Button
           onClick={() => {
@@ -276,6 +310,18 @@ export function InterviewScreen({
       </header>
 
       <main id="main" className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
+        {recapText && !recapDismissed && !state.ended && state.messages.length <= messagesAtOpen.current ? (
+          <RecapBanner
+            text={recapText}
+            onDismiss={() => {
+              setRecapDismissed(true);
+            }}
+            onContinue={() => {
+              setRecapDismissed(true);
+              setComposerFocus((n) => n + 1);
+            }}
+          />
+        ) : null}
         <MessageList
           messages={state.messages}
           streaming={state.streaming}
@@ -401,6 +447,7 @@ export function InterviewScreen({
               disabled={inputDisabled}
               autoFocus={!showWidget}
               voiceFirst={mode === "voice" && !inCall}
+              focusToken={composerFocus}
               onSend={(text) => {
                 setTypeInstead(false);
                 live.end();

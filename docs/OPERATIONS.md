@@ -64,7 +64,8 @@ unresolved alert is sent again, the hourly ceiling, and the disk, provider and b
 Budget notices (at 80 and 90 percent of a budget, and when it is used up), three notices about
 the tenant's own work (a campaign reached its completion threshold, an analysis is ready, a
 specification version was generated), and the ceiling notices (a limit the operator set is at 80
-percent or reached). They go to that tenant's own admins, or the list in `notifications.recipients`,
+percent or reached), and the notice that an interview was flagged for hostility or distress
+(`session.flagged`, ids only). They go to that tenant's own admins, or the list in `notifications.recipients`,
 in the language `branding.language` names (English or Finnish). A tenant can switch off the budget
 warning and each of the three work notices (`notifications.budgetWarnings`,
 `notifications.campaignThreshold`, `notifications.analysisReady`, `notifications.specReady`) and
@@ -173,6 +174,23 @@ the active campaign count (a closed or archived campaign frees a place).
 **Do** Raise the ceiling for the tenant, or tell them to close finished campaigns.
 
 **Fixed when** The ceiling is raised or usage falls under it.
+
+### session.flagged
+
+**Symptom** The interviewer flagged an interview for hostility or distress. Sent only to the
+tenant's own admins (or `notifications.recipients`), never to the operator and never with what was
+said: the notice carries a session id and a campaign id. The interview itself carries on gently.
+
+**Look at** The campaign's interviews list, filtered on flagged (Admin, Campaigns, the campaign,
+Interviews). The reason is on the interview page and is shown only to someone who may read
+transcripts (`privacy.rawTranscriptsVisibleTo`).
+
+**Do** Nothing on the platform side. The tenant's admin reads it, decides whether anyone needs a
+call, and presses Acknowledge, which is audited (`session.flag.ack`). If a tenant says they never
+got one, check that the address is an admin of that tenant or listed in `notifications.recipients`.
+
+**Fixed when** An admin acknowledges the interview. The notice repeats at most once a day per
+interview.
 
 ### job.dead_lettered
 
@@ -549,8 +567,10 @@ meant.
 
 Migrations here only add (a nullable column, a table, an index); a drop or rename ships one release
 after the code stopped reading the old shape. That is what lets the previous code run against the
-newer schema, so rolling back is a tag switch. A migration that does not follow this says so in its
-header, and that release needs the dump.
+newer schema, so rolling back is a tag switch. A migration that does not follow this carries a
+`-- migration-policy: allow-destructive <reason>` line, and that release needs the dump. The policy
+and the gate that enforces it (`scripts/check-migrations.mjs`, in `pnpm check`) are in
+[`MIGRATIONS.md`](MIGRATIONS.md).
 
 ## Provider timeouts and retries
 

@@ -16,6 +16,7 @@ import {
   RequirementsService,
   TenantNotices,
   deleteSessionData,
+  deletionNotice,
   runRetentionSweep,
   sendOnce,
   type AlertPort,
@@ -223,6 +224,31 @@ export function handlers(deps: HandlerDeps): Handlers {
         deps.log.info("session data deleted", { sessionId });
       },
     ),
+
+    /**
+     * "Your answers were deleted" for an identified participant (FR-13, D-175). Send-once under
+     * `deletion-notice:<session>`, so the queue's retries cannot mail twice. Runs for a suspended
+     * tenant too: it is part of honouring a deletion. The address is decrypted here, used, and
+     * not logged or kept.
+     */
+    "privacy.confirm-deletion": scoped(async (m: JobPayload<"privacy.confirm-deletion">): Promise<void> => {
+      const outcome = await sendOnce(
+        outbox,
+        deps.email,
+        `deletion-notice:${m.sessionId}`,
+        deletionNotice({
+          to: deps.crypto.decrypt(m.toEnc),
+          companyId: m.companyId,
+          campaignName: m.campaignName,
+          language: m.language,
+          deletedAt: new Date(m.deletedAt),
+        }),
+        { companyId: m.companyId },
+      );
+      deps.log.info(outcome === "sent" ? "deletion notice sent" : "deletion notice already sent", {
+        sessionId: m.sessionId,
+      });
+    }),
 
     /**
      * Retention enforcement for every tenant (spec 11). Scheduled daily; safe to run by hand,

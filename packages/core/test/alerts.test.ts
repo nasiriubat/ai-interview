@@ -119,7 +119,7 @@ describe("the alert catalog", () => {
     expect(runbookRef("disk.high")).toBe("docs/OPERATIONS.md#diskhigh");
   });
 
-  it("keeps tenant mail to the budget kinds, the three event notices and the ceilings", () => {
+  it("keeps tenant mail to the budget kinds, the three event notices, the ceilings and the session flag", () => {
     const tenantFacing = Object.entries(ALERT_KINDS)
       .filter(([, spec]) => (spec.audience as readonly string[]).includes("tenant_admins"))
       .map(([kind]) => kind)
@@ -131,6 +131,7 @@ describe("the alert catalog", () => {
       "campaign.threshold",
       "ceiling.reached",
       "ceiling.warning",
+      "session.flagged",
       "spec.ready",
     ]);
   });
@@ -331,6 +332,26 @@ describe("AlertRouter", () => {
         dead({ companyId: "t1", audience: ["operator", "tenant_admins"], key: "job.dead_lettered:x:1" }),
       );
       expect(r.email.sent.map((m) => m.to)).toEqual(["ops@example.com"]);
+    });
+
+    it("tells only the tenant's admins about a flagged interview, never the operator, once a day", async () => {
+      const r = rig();
+      r.admins.t1 = ["admin@t1.example"];
+      r.admins.t2 = ["admin@t2.example"];
+      const flagged: Alert = {
+        kind: "session.flagged",
+        key: "session.flagged:s1",
+        companyId: "t1",
+        title: "An interview needs a person to look at it",
+        message: "The interviewer flagged an interview. Filter the campaign's interviews on flagged.",
+        context: { sessionId: "s1", campaignId: "c1" },
+      };
+      await r.router.raise(flagged);
+      await r.router.raise(flagged);
+      expect(r.email.sent.map((m) => m.to)).toEqual(["admin@t1.example"]);
+      expect(r.email.sent[0]?.companyId).toBe("t1");
+      // Not on the operator's webhook either: a tenant's interview is not the platform's incident.
+      expect(r.posts).toHaveLength(0);
     });
 
     it("sends no tenant mail for a tenant alert that names no tenant", async () => {
