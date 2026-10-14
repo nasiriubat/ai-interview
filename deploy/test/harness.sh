@@ -147,7 +147,9 @@ images)
 inspect)
 	name=${@: -1}
 	svc=${name#cid-}
-	if has "unhealthy-$svc"; then echo unhealthy; else echo healthy; fi
+	if has "restarting-$svc"; then echo restarting
+	elif has "unhealthy-$svc"; then echo unhealthy
+	else echo healthy; fi
 	exit 0
 	;;
 compose)

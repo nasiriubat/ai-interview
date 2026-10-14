@@ -129,6 +129,36 @@ wait_healthy() {
 	done
 }
 
+# Waits for the backup container to be healthy, which its healthcheck defines as "the last backup
+# succeeded, a recent one exists and the scheduler heartbeat is fresh" (backup-health.sh). A
+# container that is restarting or has exited is a crash loop and fails at once instead of waiting
+# out the timeout (D-316: a crash-looping backup used to be invisible until the NEXT upgrade
+# refused on its pre-upgrade backup). Returns 1 with the container's last log lines on stderr.
+wait_backup_healthy() {
+	local timeout=${1:-180} deadline id status
+	[ "$DRY_RUN" = 1 ] && return 0
+	deadline=$(($(date +%s) + timeout))
+	while :; do
+		id=$(dcx ps -q backup 2>/dev/null | head -n1)
+		status=""
+		[ -n "$id" ] && status=$(docker inspect -f '{{if eq .State.Status "running"}}{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}{{else}}{{.State.Status}}{{end}}' "$id" 2>/dev/null || true)
+		case "$status" in
+		healthy) return 0 ;;
+		restarting | exited | dead | missing | "")
+			warn "the backup container is '${status:-missing}': it is crash-looping or not running"
+			break
+			;;
+		esac
+		if [ "$(date +%s)" -ge "$deadline" ]; then
+			warn "the backup container is still '$status' after ${timeout}s"
+			break
+		fi
+		sleep 3
+	done
+	dcx logs --no-color --tail 20 backup 2>&1 >&2 || true
+	return 1
+}
+
 # The checks that say the switch worked: the API answers readiness with a live database, the web
 # app answers, and Caddy serves the sign-in page. Each is a thing a participant would hit.
 smoke() {

@@ -375,7 +375,7 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
 
   it("the retention sweep removes the same things as participant deletion", async () => {
     const s = await seed({ createdAt: monthsAgo(31), endedAt: monthsAgo(30) });
-    const sweeps = await runRetentionSweep({ db, settings, log });
+    const sweeps = await runRetentionSweep({ db, settings, log, companyIds: [companyId] });
     expect(sweeps.find((x) => x.companyId === companyId)?.deleted).toBeGreaterThanOrEqual(1);
 
     expect(await findCanary(s.canary)).toEqual([]);
@@ -415,14 +415,14 @@ suite("erasure leaves no personal data behind (spec 11, FR-13)", () => {
     await db.opportunity.deleteMany({ where: { analysisId: s.analysisId } });
 
     // Inside the grace window nothing is touched: the participant row is recent.
-    await runRetentionSweep({ db, settings, log });
+    await runRetentionSweep({ db, settings, log, companyIds: [companyId] });
     expect(await db.participant.count({ where: { id: s.participantId } })).toBe(1);
 
     await db.participant.update({
       where: { id: s.participantId },
       data: { createdAt: new Date(Date.now() - 10 * 86_400_000) },
     });
-    await runRetentionSweep({ db, settings, log });
+    await runRetentionSweep({ db, settings, log, companyIds: [companyId] });
     expect(await db.participant.count({ where: { id: s.participantId } })).toBe(0);
     expect(await db.campaignEmailHash.count({ where: { campaignId: s.campaignId } })).toBe(0);
     expect(await db.emailCode.count({ where: { campaignId: s.campaignId } })).toBe(0);

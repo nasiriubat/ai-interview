@@ -2,7 +2,13 @@ import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describeDb, purgeAuditLog } from "@aidp/testing";
+import {
+  describeDb,
+  purgeAuditLog,
+  APP_ROLE_TEST_PASSWORD,
+  APP_ROLE_TEST_USER,
+  setAppRolePassword,
+} from "@aidp/testing";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SCOPED_MODELS, withSystemTenant, withTenant, withTenantScope } from "../src/index.js";
@@ -31,10 +37,10 @@ const RLS_EXEMPT: Record<string, string> = {
 const here = dirname(fileURLToPath(import.meta.url));
 const EXEMPT_FILE = join(here, "../../../deploy/rls-exempt.txt");
 
-const API_PASSWORD = "rls-conformance-password";
+const API_PASSWORD = APP_ROLE_TEST_PASSWORD;
 const apiUrl = (owner: string): string => {
   const u = new URL(owner);
-  u.username = "app_api";
+  u.username = APP_ROLE_TEST_USER;
   u.password = API_PASSWORD;
   return u.toString();
 };
@@ -443,7 +449,7 @@ describeDb("row-level security conformance (D-140)", () => {
   }
 
   beforeAll(async () => {
-    await owner.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD '${API_PASSWORD}'`);
+    await setAppRolePassword(owner);
     api = new PrismaClient({ datasources: { db: { url: apiUrl(process.env.DATABASE_URL ?? "") } } });
     scoped = withTenantScope(api);
     a = await buildWorld("a");

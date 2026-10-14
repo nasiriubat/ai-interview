@@ -38,6 +38,7 @@ import {
   loadOpenRouterKey,
   log,
   mapLimit,
+  acquireRunLock,
   OUT_DIR,
   ensureDir,
   SCRATCH_DIR,
@@ -105,6 +106,7 @@ interface AnalysisView {
 
 async function main(): Promise<void> {
   const started = Date.now();
+  acquireRunLock();
   ensureDir(OUT_DIR);
   ensureDir(SCRATCH_DIR);
   const key = loadOpenRouterKey();

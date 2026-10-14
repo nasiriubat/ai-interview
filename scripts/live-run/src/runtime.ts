@@ -1,16 +1,20 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseDotenv, redactSecrets, type ListedModel } from "./pure.js";
+import { lockIsHeld, parseDotenv, redactSecrets, resolveRunConfig, type ListedModel } from "./pure.js";
 
 /** Repository root of the worktree this harness runs in. */
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-export const OUT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../out");
+const RUN = resolveRunConfig(process.env, tmpdir());
+/** `default`, or LIVE_RUN_ID: every name below carries it so concurrent runs cannot collide. */
+export const RUN_ID = RUN.runId;
+const OUT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../out");
+export const OUT_DIR = RUN.outSubdir ? join(OUT_ROOT, RUN.outSubdir) : OUT_ROOT;
 
-export const API_PORT = Number(process.env.LIVE_API_PORT ?? 4100);
+export const API_PORT = RUN.apiPort;
 export const API_BASE = `http://127.0.0.1:${API_PORT}/api/v1`;
-export const DB_NAME = process.env.LIVE_DB_NAME ?? "ai_discovery_live";
+export const DB_NAME = RUN.dbName;
 export const PG_CONTAINER = process.env.LIVE_PG_CONTAINER ?? "ai-interview-postgres-1";
 /** Hard ceiling for everything this run spends, product ledger plus the harness's own calls. */
 export const TOTAL_CAP_CENTS = Number(process.env.LIVE_TOTAL_CAP_CENTS ?? 380);
@@ -18,7 +22,48 @@ export const TOTAL_CAP_CENTS = Number(process.env.LIVE_TOTAL_CAP_CENTS ?? 380);
 export const TENANT_BUDGET_CENTS = Number(process.env.LIVE_TENANT_BUDGET_CENTS ?? 400);
 
 /** Scratch directory for child-process logs, kept outside the repository. */
-export const SCRATCH_DIR = process.env.LIVE_RUN_SCRATCH ?? join(tmpdir(), "ai-discovery-live");
+export const SCRATCH_DIR = RUN.scratchDir;
+
+function pidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * One run per database name at a time. A second run with the same names would DROP the first
+ * run's database under it, so it is refused with the way out. A lock whose pid is dead is taken over.
+ */
+export function acquireRunLock(): void {
+  const path = join(tmpdir(), `ai-discovery-live-${DB_NAME}.lock`);
+  if (existsSync(path)) {
+    const content = readFileSync(path, "utf8");
+    if (lockIsHeld(content, pidAlive)) {
+      throw new Error(
+        `another live run is using database ${DB_NAME} (lock ${path}, pid ${content.trim()}). ` +
+          `Set LIVE_RUN_ID=<name> to run beside it (own database, port, scratch and out/<name>/).`,
+      );
+    }
+  }
+  writeFileSync(path, `${process.pid}\n`);
+  const release = (): void => {
+    try {
+      rmSync(path, { force: true });
+    } catch {
+      /* nothing to do */
+    }
+  };
+  process.on("exit", release);
+  for (const sig of ["SIGINT", "SIGTERM"] as const) {
+    process.on(sig, () => {
+      release();
+      process.exit(130);
+    });
+  }
+}
 
 /** Set by the budget watcher; every long loop checks it between turns. */
 export const abortState: { reason: string | null } = { reason: null };

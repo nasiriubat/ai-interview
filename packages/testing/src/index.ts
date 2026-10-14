@@ -4,3 +4,4 @@ export * from "./network-guard.js";
 export * from "./scripted-model.js";
 export * from "./audit-purge.js";
 export * from "./pdf.js";
+export * from "./app-role.js";

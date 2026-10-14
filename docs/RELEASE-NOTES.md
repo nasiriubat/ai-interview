@@ -113,3 +113,15 @@ Things no change to the repository can complete; the owner or a counsel does the
 the unprivileged users on the first `up`; there is no manual `chown`. A tenant that set the abuse
 limits explicitly keeps its values; a tenant on the defaults gets the higher ones. New optional
 variable: `RATE_LIMIT_PUBLIC_MAX` (default 120). No migration.
+
+## Follow-ups closed after this release was written (2026-10-14)
+
+- **Upgrades** wait for the backup container and fail, with its log lines, when it crash-loops or
+  never becomes healthy (D-330). The application is left serving; backups are what is reported broken.
+- **Specifications:** a requirement an owner moves to "Future" or "later" at the read-back is now
+  future; before, only the exact lowercase `future` counted (D-334).
+- **Engineering:** `pnpm live:run` runs side by side with `LIVE_RUN_ID` (D-331); the retention tests
+  no longer slow down with leftover test tenants (D-332); tests use a login role of their own, which
+  removes an authentication flake against other stacks on the same Postgres (D-333).
+- **Still true, and measured again:** duplicates in requirement lists are not under 5%. On the six
+  fresh interviews through the final merge code, 24% by the judge and 12% by hand (D-335).
