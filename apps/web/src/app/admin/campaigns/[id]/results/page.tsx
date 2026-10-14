@@ -26,7 +26,7 @@ interface Props {
 
 export default async function ResultsPage({ params, searchParams }: Props): Promise<React.JSX.Element> {
   await requestLocale();
-  await requireMe();
+  const me = await requireMe();
   const { id } = await params;
   const sp = await searchParams;
   const requested = typeof sp.version === "string" ? sp.version : undefined;
@@ -59,7 +59,16 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
     }
   }
 
+  // Merging, splitting and the comparison by department are for the people who may change results;
+  // the comparison is read-only and shown to members as the API allows.
+  const canEdit = me?.user.role === "admin" || me?.user.role === "platform_operator";
+  const wantsExtras = detail !== null && selected?.status === "done";
+  const [departmentsR, editsR] = await Promise.allSettled([
+    wantsExtras ? api.analyses.departments(selected.id) : Promise.reject(new Error("none")),
+    wantsExtras && canEdit ? api.analyses.clusterEdits(id) : Promise.resolve([]),
+  ]);
   const values = settled(settingsR).data?.values ?? {};
+  const k = settled(tenantR).data?.effective?.["privacy.kAnonymity"];
   const rawPreset = values["analysis.weightsPreset"];
   const s = t.admin.results;
   return (
@@ -94,6 +103,11 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
         initialPreset={isWeightsPreset(rawPreset) ? rawPreset : "balanced"}
         initialWeights={parseWeights(values["analysis.weights"])}
         canPromote={settled(tenantR).data?.effective?.["features.chaining"] !== false}
+        canEdit={canEdit}
+        k={typeof k === "number" ? k : 3}
+        departments={departmentsR.status === "fulfilled" ? departmentsR.value : null}
+        departmentsFailed={wantsExtras && departmentsR.status === "rejected"}
+        edits={editsR.status === "fulfilled" ? editsR.value : []}
       />
     </>
   );
