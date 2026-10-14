@@ -172,7 +172,7 @@ export const kitFi: KitStrings = {
     points: [
       "Tekoälyn vetämät keskustelut työn tekijöiden kanssa",
       "Löydökset arvon, työmäärän ja riskin mukaan järjestettynä",
-      "Tietosi pysyvät EU:ssa ja hallinnassasi",
+      "Tehty toimimaan omalla palvelimellasi valitsemiesi tekoälypalvelujen kanssa",
     ],
     footer: "Kertakäyttölinkit, ei salasanoja.",
   },

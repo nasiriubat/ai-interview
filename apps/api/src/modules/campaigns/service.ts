@@ -9,7 +9,7 @@ import {
   type TenantCeilings,
 } from "@aidp/core";
 import { containsInsensitive, escapeLike, tenantBatch, tenantTransaction } from "@aidp/db";
-import { toListResponse, type ListEnvelope } from "@aidp/shared";
+import { participantWelcome, toListResponse, type ListEnvelope } from "@aidp/shared";
 import type { Campaign, Invitation, Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { AppError, notFound } from "../../lib/errors.js";
@@ -673,9 +673,23 @@ export class CampaignService {
     from: string | null,
     reminder = false,
   ): Promise<void> {
-    const productName = await this.settings.get("branding.productName", [
-      { scope: "tenant", scopeId: campaign.companyId },
+    const chain = [
+      { scope: "campaign" as const, scopeId: campaign.id },
+      { scope: "tenant" as const, scopeId: campaign.companyId },
+    ];
+    const [resolved, template] = await Promise.all([
+      this.settings.resolveDetailed(["branding.productName", "campaign.welcomeText"], chain),
+      this.db.interviewTemplate.findUnique({
+        where: { id: campaign.templateId },
+        select: { key: true, issueDetection: true, language: true },
+      }),
     ]);
+    const productName = resolved["branding.productName"]?.value as string;
+    // The same welcome the link opens on (D-460), so the email and the first screen agree.
+    const welcome = participantWelcome(
+      resolved["campaign.welcomeText"]?.scope != null ? resolved["campaign.welcomeText"].value : null,
+      template ?? {},
+    );
     // The campaign's own link, with the invitation token as a query. This used `/p/i`, a link token
     // that resolves to no campaign, so no personal link in an invitation email could be opened.
     const link = `${await this.link(campaign.companyId, campaign.id)}?invitation=${token}`;
@@ -683,7 +697,30 @@ export class CampaignService {
       to: email,
       companyId: campaign.companyId,
       subject: `${reminder ? "Reminder: " : ""}${campaign.name}`,
-      text: `${from ? `${from} invited you` : "You are invited"} to a short interview about how your work is done.\n\nOpen your personal link: ${link}\n\nIt takes about 20 minutes, can be paused, and you can delete your answers at any time.\n\n${productName}`,
+      // No duration: minutes have not been measured with people (claims B9), and the old "about
+      // 20 minutes" disagreed with the arrival screen (simulation 2026-10-15).
+      text: invitationText({ from, campaignName: campaign.name, welcome, link, productName }),
     });
   }
+}
+
+/** The body of a campaign invitation: who asks, the campaign's welcome, the personal link. */
+export function invitationText(input: {
+  from: string | null;
+  campaignName: string;
+  welcome: string;
+  link: string;
+  productName: string;
+}): string {
+  return [
+    `${input.from ? `${input.from} invited you` : "You are invited"} to an interview: ${input.campaignName}.`,
+    "",
+    input.welcome,
+    "",
+    `Open your personal link: ${input.link}`,
+    "",
+    "You can pause and come back later, and you can delete your answers at any time.",
+    "",
+    input.productName,
+  ].join("\n");
 }

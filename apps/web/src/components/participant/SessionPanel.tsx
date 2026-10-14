@@ -37,14 +37,15 @@ function Section({
  * the way out. It is the same content in the wide-screen side panel and in the narrow-screen sheet.
  */
 export function SessionPanel({
-  purpose,
+  welcome,
   areas,
   disabled,
   onSkip,
   onReturn,
   onRequestDelete,
 }: {
-  purpose?: string | undefined;
+  /** The participant-facing welcome (D-460), never the template objective. */
+  welcome?: string | undefined;
   areas: ProgressArea[];
   disabled: boolean;
   onSkip: (area: ProgressArea) => void;
@@ -57,7 +58,7 @@ export function SessionPanel({
     <div className="grid gap-3 content-start">
       <Section title={s.panelAbout}>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          {purpose !== undefined && purpose !== "" ? purpose : s.panelAboutFallback}
+          {welcome !== undefined && welcome !== "" ? welcome : s.panelAboutFallback}
         </p>
       </Section>
       {areas.length > 0 ? (

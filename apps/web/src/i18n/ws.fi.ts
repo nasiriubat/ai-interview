@@ -56,7 +56,12 @@ export const wsFi: WsStrings = {
   opportunity: {
     open: (title: string): string => `Avaa tiedot: ${title}`,
     people: (n: number): string => (n === 1 ? "1 henkilö" : `${String(n)} henkilöä`),
-    minutes: (n: number): string => `${String(n)} min viikossa`,
+    minutes: (n: number): string =>
+      n <= 0
+        ? "Aikaa ei mainittu"
+        : n >= 120
+          ? `Noin ${String(Math.round(n / 60))} h viikossa`
+          : `${String(n)} min viikossa`,
     summary: "Mitä ihmiset kuvasivat",
     reach: "Laajuus",
     fact: "tieto",
@@ -69,7 +74,7 @@ export const wsFi: WsStrings = {
     people: (n: number): string => (n === 1 ? "1 henkilö" : `${String(n)} henkilöä`),
     hours: (n: number): string => `${String(n)} h viikossa`,
     cellReason: (k: number): string =>
-      `Tässä ryhmässä vastasi alle ${String(k)} henkilöä, joten osuutta ei näytetä.`,
+      `Tämän osuuden takana on alle ${String(k)} henkilöä, joten sitä ei näytetä.`,
     legendWithheld: (k: number): string => `Piilotettu: luvun takana alle ${String(k)} henkilöä`,
     whyHidden:
       "Tämä on anonymiteettisäännön toimintaa, ei vika. Mitään ei ole menetetty: luvut näkyvät heti, kun tarpeeksi monta henkilöä on osallistunut.",

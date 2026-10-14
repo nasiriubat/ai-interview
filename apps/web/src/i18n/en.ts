@@ -3,6 +3,7 @@
  * file with the same shape; components only ever import `t` from `@/i18n`.
  */
 import type { BudgetScope, CallStatus, Effort, ProviderKind, Purpose, SettingKey } from "@aidp/shared";
+import { DEFAULT_WELCOME_TEXT } from "@aidp/shared/welcome";
 import { kitEn } from "./kit.en";
 import { landingEn } from "./landing.en";
 import { wsEn } from "./ws.en";
@@ -74,8 +75,9 @@ export const en = {
   participant: {
     arrival: {
       eyebrow: "Interview",
-      welcome: (company: string): string => `${company} would like to hear how your work really gets done.`,
       purposeHeading: "Why we ask",
+      /** Shown only if the API sent no welcome; the server normally resolves one (D-460). */
+      welcomeFallback: DEFAULT_WELCOME_TEXT.discovery.en as string,
       lengthHeading: "How long",
       minutes: (n: number): string => `About ${n} minutes`,
       storedHeading: "What we keep",
@@ -442,6 +444,7 @@ export const en = {
       eyebrow: "Requirements interview",
       welcome: (title: string): string => `You have been invited to help define “${title}”.`,
       purposeHeading: "Why",
+      welcomeFallback: DEFAULT_WELCOME_TEXT.requirements.en as string,
       storedHeading: "What is stored",
       stored:
         "Your answers are saved to the interview of the person who invited you and are used to write the specification. Their organization's admins can read them; the AI services that organization uses process them.",
@@ -885,7 +888,7 @@ export const en = {
       started: "Started",
       completed: "Completed",
       emptyTitle: "No campaigns yet",
-      empty: "No campaigns yet. Create one to get a link you can share with participants.",
+      empty: "Create one to get a link you can share with participants.",
       createTitle: "New campaign",
       createBody:
         "Choose a template and name the campaign. Everything else starts from your settings and can be changed later.",
@@ -901,6 +904,8 @@ export const en = {
       completionThreshold: "Interviews needed for final results",
       expiresAt: "Links expire",
       useDefault: "Use default",
+      useDefaultNamed: (value: string): string => `Default: ${value}`,
+      useTemplateDefault: (value: string): string => `From the template: ${value}`,
       createButton: "Create campaign",
       createdToast: "Campaign created",
       linkTitle: "Shareable link",
@@ -942,14 +947,14 @@ export const en = {
         `This sends an email to ${n} people. Check the list first: emails that have been sent cannot be recalled.`,
       bulkConfirm: (n: number): string => `Send ${n} invitations`,
       anonymousEmail: "Hidden (anonymous)",
-      noInvitations: "No invitations yet. Add email addresses above to send personal links.",
+      noInvitations: "Add email addresses above to send personal links.",
       sessionsTitle: "Interviews",
       sessionId: "Interview",
       sessionStatus: "Status",
       sessionProgress: "Progress",
       sessionCost: "Cost",
       sessionUpdated: "Last activity",
-      noSessions: "No interviews yet. They appear here as soon as someone opens the link.",
+      noSessions: "They appear here as soon as someone opens the link.",
       viewSession: "View",
       flagFilterLabel: "Attention",
       flagFilterAll: "All interviews",
@@ -972,10 +977,17 @@ export const en = {
       edit: "Edit",
       editTitle: "Edit campaign",
       editBody:
-        "Change the name, the limits and the consent text. Who can answer and whether people are identified are fixed once a campaign exists, because people may already have chosen on that basis.",
+        "Change the name, the limits, the welcome and the consent text. Who can answer and whether people are identified are fixed once a campaign exists, because people may already have chosen on that basis.",
       editFixedTitle: "Fixed for this campaign",
       saveChanges: "Save changes",
       savedToast: "Campaign saved",
+      welcomeTitle: "Welcome text",
+      welcomeHint:
+        "The first thing participants read, under the campaign name. Say who is asking and why, in plain words. Leave it empty to use the default for the interview language. The interviewer's objective from the template is never shown to participants.",
+      welcomeLabel: "Your own welcome text",
+      welcomeDefaultTitle: (language: string): string => `Default welcome (${language})`,
+      welcomeDefaultHint: "This is what participants read now unless you write your own.",
+      welcomeUseDefault: "Use the default welcome",
       consentTitle: "Consent text",
       consentHint:
         "What participants read before they start. Leave it empty to use the default for the interview language.",
@@ -997,7 +1009,9 @@ export const en = {
       qrDownload: "Download QR code",
       thresholdTitle: "Completed interviews",
       thresholdValue: (done: number, needed: number): string =>
-        `${done} of ${needed} needed for final results`,
+        done >= needed
+          ? `${done} completed · ${needed} needed for final results`
+          : `${done} of ${needed} needed for final results`,
       thresholdMet: "Enough interviews for final results.",
       thresholdMore: (n: number): string =>
         n === 1
@@ -1243,7 +1257,7 @@ export const en = {
         unassigned: (n: number): string =>
           `${n} new ${n === 1 ? "fact joined" : "facts joined"} the larger part of a split.`,
       },
-      reanalysing: "Re-analysing with your change…",
+      reanalysing: "A newer analysis is running…",
       reanalysingBody: "You can keep reading this version. The new one replaces it here when it is done.",
       newerReady: "A newer version is ready.",
       showNewer: "Show it",
@@ -1278,7 +1292,7 @@ export const en = {
       },
       promote: {
         title: "Start a requirements interview?",
-        body: "This opens a requirements interview for this opportunity. It starts from the brief below.",
+        body: "This opens a requirements interview for the opportunity below. What the interviews found about it is carried over as a starting brief, so the owner is asked only what is missing.",
         confirm: "Start requirements interview",
         starting: "Starting…",
         done: "Requirements interview started",
@@ -1449,6 +1463,8 @@ export const en = {
         conversation: "Conversation",
         backToList: "All requirements interviews",
         pathLabel: "Interview path",
+        choosePathFirst:
+          "The interviewer adapts its questions to this. Pick one to start; you can switch at any time from the conversation header.",
         done: "I'm done",
         reopen: "Reopen",
         reopened: "Interview reopened",
@@ -1814,7 +1830,9 @@ export const en = {
           passwordRemove: "Remove saved password",
           passwordUndo: "Keep it",
           from: "Sender address",
-          fromHint: "The address messages come from. Your provider may require it to be one it has verified.",
+          fromHint:
+            "The address messages come from. Your provider may require it to be one it has verified. Leave it empty to use the address set at install (EMAIL_FROM).",
+          fromPlaceholder: "The address set at install",
           replyTo: "Reply-to address",
           replyToHint: "Where replies go. Leave empty to use the sender address.",
           errors: {
@@ -1848,7 +1866,10 @@ export const en = {
               "The secure connection could not be established. Check that the security setting matches the port.",
             timeout: "The mail server did not answer in time. Check the host and port.",
             host_not_found: "The mail server's name could not be found. Check the host for a typo.",
-            blocked: "That mail server address is not allowed on this platform.",
+            blocked:
+              "That address is private or local, and this server only relays mail to public mail servers. Ask your platform operator for an address that is allowed.",
+            blockedPlatform:
+              "That address is private or local, which this server refuses by default. To use a relay on your own network, name its host in EGRESS_ALLOW_HOSTS in the server configuration (deploy/.env) and restart, or use the relay set at install time (SMTP_HOST) by leaving this form empty.",
             rejected: "The mail server refused the message. Check that the sender address is one it permits.",
             not_configured:
               "No mail server is configured, so nothing can be sent. Fill in the form above first.",
@@ -1976,7 +1997,7 @@ export const en = {
       deleted: "Provider deleted",
       created: "Provider added",
       updated: "Provider updated",
-      empty: "No providers yet. Add a provider and its key so the interviewer can run.",
+      empty: "Add a provider and its key so the interviewer can run.",
       headers: "Extra headers (one per line, name: value)",
     },
     routes: {
@@ -2234,7 +2255,7 @@ export const en = {
       added: "Budget added",
       delete: "Delete",
       deleted: "Budget deleted",
-      empty: "No budgets yet. Add one to cap what the AI services may spend.",
+      empty: "Add one to cap what the AI services may spend.",
       spentSoFar: (spent: string, limit: string): string => `${spent} spent of ${limit}`,
     },
     audit: {
@@ -2277,7 +2298,7 @@ export const en = {
       added: "User added",
       updated: "User updated",
       emptyTitle: "No users yet",
-      empty: "No users yet. Add one to let a colleague sign in to the admin.",
+      empty: "Add one to let a colleague sign in to the admin.",
       inviteBody: "They receive a sign-in link by email. There is no password to set.",
       changeRole: "Change role",
       roleHints: {
@@ -2336,7 +2357,7 @@ export const en = {
       suspendBody:
         "Staff cannot sign in and participants cannot open links until you activate it again. Nothing is deleted.",
       suspendConfirm: "Suspend tenant",
-      empty: "No tenants yet. Create the first one to give an organization its own settings and users.",
+      empty: "Create the first one to give an organization its own settings and users.",
       statsTitle: "Platform statistics",
       actAs: "Manage this tenant",
       adminEmail: "First admin's email",
@@ -2811,6 +2832,11 @@ export const en = {
       "campaign.consentText": {
         label: "Consent text shown to participants",
         description: "Shown before the first question. Write it in the language of the interview.",
+      },
+      "campaign.welcomeText": {
+        label: "Welcome text for participants",
+        description:
+          "What people read on the first screen, before they start. Empty uses a friendly default in the interview's language. The interviewer's objective is never shown to them.",
       },
       "privacy.retentionMonths": {
         label: "Months interview data is kept",

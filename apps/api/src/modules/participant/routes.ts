@@ -25,7 +25,7 @@ export async function participantRoutes(app: App, ctx: RouteContext): Promise<vo
     const campaign = {
       name: view.name,
       productName: view.productName,
-      purpose: view.purpose,
+      welcome: view.welcome,
       expectedMinutes: view.expectedMinutes,
       participationMode: view.participationMode,
       verification: view.verification,

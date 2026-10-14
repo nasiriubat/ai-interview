@@ -31,7 +31,14 @@ const schema = z.object({
 });
 
 /** Creates a campaign (D-362): the template and name are required, every other field starts from the settings. */
-export function CampaignForm({ templates }: { templates: TemplateListItem[] }): React.JSX.Element {
+export function CampaignForm({
+  templates,
+  defaultVerification,
+}: {
+  templates: TemplateListItem[];
+  /** The organization's `campaign.verification`, so "Use default" can say what it is. */
+  defaultVerification?: string | undefined;
+}): React.JSX.Element {
   const router = useRouter();
   const guard = useDirtyGuard();
   const form = useForm({
@@ -83,6 +90,13 @@ export function CampaignForm({ templates }: { templates: TemplateListItem[] }): 
     },
   });
 
+  // "Use default" said nothing about what the default is (simulation 2026-10-15): name it.
+  const chosen = templates.find((tpl) => tpl.id === form.values.templateId);
+  const privacy = t.admin.templates.fields.privacy as Record<string, string>;
+  const modeDefault = chosen?.privacyMode ? privacy[chosen.privacyMode] : undefined;
+  const verificationNames = s.verificationOptions as Record<string, string>;
+  const verificationDefault = defaultVerification ? verificationNames[defaultVerification] : undefined;
+
   return (
     <Form form={form} className="max-w-3xl" saveLabel={s.createButton} alwaysEnabled>
       <FormSection id="basics" title={s.createTitle}>
@@ -109,14 +123,14 @@ export function CampaignForm({ templates }: { templates: TemplateListItem[] }): 
             {...form.field("participationMode")}
             label={s.participationMode}
             hint={s.participationHint}
-            placeholder={s.useDefault}
+            placeholder={modeDefault ? s.useTemplateDefault(modeDefault) : s.useDefault}
             options={PARTICIPATION.map((v) => ({ value: v, label: t.admin.templates.fields.privacy[v] }))}
           />
           <SelectField
             {...form.field("verification")}
             label={s.verification}
             hint={s.verificationHint}
-            placeholder={s.useDefault}
+            placeholder={verificationDefault ? s.useDefaultNamed(verificationDefault) : s.useDefault}
             options={VERIFICATION.map((v) => ({ value: v, label: s.verificationOptions[v] }))}
           />
         </div>

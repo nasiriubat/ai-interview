@@ -37,7 +37,9 @@ export async function extractFacts(
     const pending = await deps.store.messagesAfter(session.id, state.lastExtractedSeq);
     if (pending.length === 0) break;
     const fresh = pending.slice(0, EXTRACTION_BATCH_MESSAGES);
-    const { facts, upToSeq, promptVersion, quotesDropped } = await extractBatch(deps, session, state, fresh);
+    const batch = await extractBatch(deps, session, state, fresh);
+    const { upToSeq, promptVersion, quotesDropped } = batch;
+    const facts = dropRepeatedFacts(state.facts, batch.facts);
     const outcome = await deps.store.commitExtraction(session.id, {
       companyId: session.companyId,
       fromSeq: state.lastExtractedSeq,
@@ -53,6 +55,50 @@ export async function extractFacts(
     if (pending.length <= EXTRACTION_BATCH_MESSAGES) break;
   }
   return { facts: all, upToSeq: state.lastExtractedSeq, stale: false };
+}
+
+/** The identity of a discovery fact for repeat detection; null for kinds that are never dropped. */
+function repeatKey(f: Fact): string | null {
+  const norm = (v: string): string =>
+    v
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+  switch (f.kind) {
+    case "task":
+      return `task:${norm(f.name)}`;
+    case "process":
+      return `process:${norm(f.name)}`;
+    case "information_flow":
+      return `flow:${norm(f.from)}>${norm(f.to)}:${norm(f.what)}`;
+    case "pain_point":
+      return `pain:${norm(f.description)}`;
+    case "opportunity_candidate":
+      return `opp:${norm(f.title)}`;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Drops facts that repeat one already known for this session, or each other, by kind and
+ * normalized name. The extractor is shown the known facts, yet a low-cost model still re-emits
+ * them: in the 2026-10-15 simulation one interview held 37 fact rows for 22 distinct items, and
+ * the participant's "What was noted" listed five tasks twice. Spec fields are left to
+ * `mergeFacts`, which replaces them by section and path.
+ */
+export function dropRepeatedFacts(known: Fact[], incoming: Fact[]): Fact[] {
+  const seen = new Set(known.map(repeatKey).filter((k): k is string => k !== null));
+  const out: Fact[] = [];
+  for (const f of incoming) {
+    const key = repeatKey(f);
+    if (key !== null) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+    }
+    out.push(f);
+  }
+  return out;
 }
 
 /** What the extractor is told is already known: one short line per fact, newest last, bounded. */

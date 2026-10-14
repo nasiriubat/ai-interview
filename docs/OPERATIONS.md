@@ -495,8 +495,9 @@ D-282); until then every retry is refused with `conflict` (82 s in the rehearsal
 **Symptom** An interview link refused new interviews or verification codes because it reached an
 abuse limit. The message names the limit: `campaign_hour` (`abuse.campaignSessionsPerHour`),
 `campaign_total` (`abuse.campaignSessionsTotal`), `tenant_hour` (`abuse.tenantSessionsPerHour`) or
-`address_emails` (`abuse.distinctEmailsPerAddressPerHour`, one internet address asking codes for
-many different email addresses). Participants over the limit see "busy, try again later" (429);
+`address_emails` (`abuse.distinctEmailsPerAddressPerHour`, default 50, one internet address asking
+codes for many different email addresses; an office whose staff all reach the internet through one
+address counts as one address, so raise it for that tenant before announcing a shared link there). Participants over the limit see "busy, try again later" (429);
 the email-code endpoints keep answering "ok" and send nothing, so an attacker learns nothing. The
 tenant's admins and you are told, once an hour per campaign and limit.
 
