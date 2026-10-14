@@ -13,6 +13,7 @@ import type { CallContext, ModelCallerPort } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";
 import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js";
 import { languageName } from "../util/language.js";
+import { neutralize, newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { agglomerate } from "./cluster.js";
 import {
   centroidOf,
@@ -27,7 +28,6 @@ import {
 import { LEXICAL_THRESHOLD, LexicalEmbeddings, type EmbeddingSource } from "./embeddings.js";
 import { renderReport, type ReportOpportunity } from "./report.js";
 import { sanitizeSnippet } from "./sanitize.js";
-import { neutralize, newNonce, wrapUntrusted } from "../util/untrusted.js";
 
 export interface AnalysisFact {
   id: string;
@@ -354,10 +354,10 @@ async function mergeAndName(
   const system = prompt.body.replace("{{language}}", languageName(input.language));
   const draftById = new Map(drafts.map((d) => [d.id, d]));
 
-  type Verdict = {
+  interface Verdict {
     merges: { ids: string[]; name: string; summary: string }[];
     names: { id: string; name: string; summary: string }[];
-  };
+  }
   const verdicts: Verdict[] = [];
   const nonce = newNonce();
   const render = (batch: DraftCluster[]): string =>
@@ -415,7 +415,7 @@ async function mergeAndName(
     for (const m of v.merges) {
       const free = m.ids.filter((id, i) => draftById.has(id) && !group.has(id) && m.ids.indexOf(id) === i);
       if (free.length < 2) continue;
-      const head = free[0] as string;
+      const head = free[0] ?? "";
       for (const id of free) group.set(id, head);
       labels.set(head, { name: m.name, summary: m.summary });
     }

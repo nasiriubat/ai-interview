@@ -22,16 +22,18 @@ export function sparsify(v: number[]): Sparse {
   return { idx: Int32Array.from(idx), val: Float64Array.from(val), norm: Math.sqrt(sq) };
 }
 
+const EMPTY_SPARSE: Sparse = { idx: new Int32Array(0), val: new Float64Array(0), norm: 0 };
+
 export function sparseCosine(a: Sparse, b: Sparse): number {
   if (a.norm === 0 || b.norm === 0) return 0;
   let i = 0;
   let j = 0;
   let dot = 0;
   while (i < a.idx.length && j < b.idx.length) {
-    const x = a.idx[i] as number;
-    const y = b.idx[j] as number;
+    const x = a.idx[i] ?? 0;
+    const y = b.idx[j] ?? 0;
     if (x === y) {
-      dot += (a.val[i] as number) * (b.val[j] as number);
+      dot += (a.val[i] ?? 0) * (b.val[j] ?? 0);
       i++;
       j++;
     } else if (x < y) i++;
@@ -62,7 +64,7 @@ export function agglomerate(vectors: number[][], threshold: number): number[][] 
   const sparse = vectors.map(sparsify);
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
-      const s = sparseCosine(sparse[i] as Sparse, sparse[j] as Sparse);
+      const s = sparseCosine(sparse[i] ?? EMPTY_SPARSE, sparse[j] ?? EMPTY_SPARSE);
       sum[i * n + j] = s;
       sum[j * n + i] = s;
     }

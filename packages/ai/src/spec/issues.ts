@@ -1,4 +1,3 @@
-import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import {
   IssueDetectionResultSchema,
   TECHNICAL_SECTIONS,
@@ -15,6 +14,7 @@ import type { Logger } from "../engine/ports.js";
 import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js";
 import { areasComplete, contextComplete } from "../engine/selection.js";
 import { languageName } from "../util/language.js";
+import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { renderSpecState, specFacts } from "./live.js";
 import type { RequirementsPolicy } from "./policy.js";
 

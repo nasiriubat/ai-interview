@@ -1,6 +1,6 @@
-import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import type { CallContext, ModelCaller } from "../callModel.js";
 import type { PromptSource } from "../engine/prompts/index.js";
+import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { chunkText, type ChunkOptions } from "./chunk.js";
 import { extractText, isImageMime, isTextMime, type ImageMime } from "./extract.js";
 import { fileSummaryPromptV1 } from "./prompts/file-summary.v1.js";

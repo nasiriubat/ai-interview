@@ -71,7 +71,7 @@ export class LexicalEmbeddings implements EmbeddingSource {
     }
     const dim = Math.max(1, Math.min(vocab.size, MAX_DIM));
     const slot = (key: string): number =>
-      vocab.size <= MAX_DIM ? (vocab.get(key) as number) : hash(key) % MAX_DIM;
+      vocab.size <= MAX_DIM ? (vocab.get(key) ?? 0) : hash(key) % MAX_DIM;
     return docs.map((tokens) => {
       const v = new Array<number>(dim).fill(0);
       const tf = new Map<string, number>();

@@ -72,7 +72,7 @@ const KEY = {
 function draftsIn(content: string): { id: string; text: string }[] {
   return [
     ...content.matchAll(/<untrusted-[0-9a-f]+ kind="draft_cluster" id="(\w+)">\n([\s\S]*?)\n<\/untrusted-/g),
-  ].map((m) => ({ id: m[1] as string, text: m[2] as string }));
+  ].map((m) => ({ id: m[1]!, text: m[2]! }));
 }
 
 class Model {

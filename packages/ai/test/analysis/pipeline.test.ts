@@ -3,8 +3,8 @@ import { WEIGHT_PRESETS } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 import { agglomerate } from "../../src/analysis/cluster.js";
-import { cosine, LexicalEmbeddings } from "../../src/analysis/embeddings.js";
 import { stableClusterKey } from "../../src/analysis/clustering.js";
+import { cosine, LexicalEmbeddings } from "../../src/analysis/embeddings.js";
 import { clusterStats, reconcile, runAnalysis, type AnalysisFact } from "../../src/analysis/pipeline.js";
 import { processMap, renderReport } from "../../src/analysis/report.js";
 import type { CallRequest, ModelCaller } from "../../src/callModel.js";
@@ -100,7 +100,7 @@ class ScriptedAnalysisModel {
         ...content.matchAll(
           /<untrusted-[0-9a-f]+ kind="draft_cluster" id="(\w+)">\n([\s\S]*?)\n<\/untrusted-/g,
         ),
-      ].map((m) => ({ id: m[1] as string, text: m[2] as string }));
+      ].map((m) => ({ id: m[1]!, text: m[2]! }));
       const notes = drafts.filter((d) => /notes/i.test(d.text)).map((d) => d.id);
       const lab = drafts.filter((d) => /Lab result/i.test(d.text)).map((d) => d.id);
       return schema.parse({

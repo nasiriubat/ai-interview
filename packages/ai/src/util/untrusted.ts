@@ -13,7 +13,10 @@ import { randomBytes } from "node:crypto";
  */
 
 /** Zero-width, bidi override and isolate characters and other format controls that hide text. */
-const INVISIBLE = /[​-‏‪-‮⁠-⁤⁦-⁩﻿­]/g;
+const INVISIBLE = new RegExp(
+  "[\\u200B-\\u200F\\u202A-\\u202E\\u2060-\\u2064\\u2066-\\u2069\\uFEFF\\u00AD]",
+  "g",
+);
 /** C0 controls except tab, newline and carriage return, plus DEL. */
 // eslint-disable-next-line no-control-regex
 const CONTROLS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
