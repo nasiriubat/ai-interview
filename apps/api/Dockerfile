@@ -12,17 +12,23 @@ FROM node:22-bookworm-slim AS base
 # COREPACK_HOME is moved out of /root so the unprivileged runtime user can still resolve pnpm,
 # which the `migrate` command needs to run `prisma migrate deploy` and the bootstrap seed.
 ENV COREPACK_HOME=/opt/corepack npm_config_store_dir=/pnpm/store
+# Patches published since the base image was built are applied (`upgrade`), and npm is removed:
+# nothing here installs with it, it carries advisories of its own, and pnpm is the tool that is
+# used. pnpm 10.34.7 because 10.33.0 fails the Trivy image scan (D-267).
 RUN corepack enable \
- && corepack prepare pnpm@10.33.0 --activate \
+ && corepack prepare pnpm@10.34.7 --activate \
  && chmod -R a+rX /opt/corepack \
  && apt-get update \
+ && apt-get -y --no-install-recommends upgrade \
  && apt-get install -y --no-install-recommends openssl ca-certificates \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 WORKDIR /repo
 
 # Manifests only, so a source change does not invalidate the dependency layers below.
 FROM base AS manifests
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
+# pnpm refuses to install when patchedDependencies names a file it cannot find.
+COPY patches patches
 COPY packages/shared/package.json packages/shared/
 COPY packages/ai/package.json packages/ai/
 COPY packages/db/package.json packages/db/
