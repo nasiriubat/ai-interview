@@ -175,15 +175,21 @@ export const promptDiffStats = (lines: DiffLine[]): { added: number; removed: nu
 
 // ---------- in-process evaluation ----------
 
-export interface PromptCheck {
-  id: string;
+/** The interviewer prompt rendered for one template, the way every interview renders it. */
+export interface PromptRenderCheck {
+  template: string;
   ok: boolean;
-  detail: string;
+  /** Placeholders still in the text after the engine filled in its own. */
+  leftover: string[];
+  chars: number;
 }
 
 export interface PromptEvaluation {
   ok: boolean;
-  checks: PromptCheck[];
+  /** Every reason the body breaks the contract; empty when it keeps it. */
+  issues: PromptIssue[];
+  /** Interviewer only, and only when the contract holds: one entry per template given. */
+  renders: PromptRenderCheck[];
 }
 
 /** The longest rendered interviewer prompt that still leaves room for context; a tripwire, not a budget. */
@@ -200,32 +206,31 @@ export function evaluatePrompt(
   body: string,
   templates: InterviewTemplate[] = [],
 ): PromptEvaluation {
-  const checks: PromptCheck[] = [];
   const issues = validatePromptBody(key, body);
-  checks.push({
-    id: "contract",
-    ok: issues.length === 0,
-    detail:
-      issues.length === 0
-        ? "Placeholders, untrusted rules and output contract are intact."
-        : issues.map((i) => i.message).join(" "),
-  });
+  const renders: PromptRenderCheck[] = [];
   if (key === "interviewer" && issues.length === 0) {
     const def: PromptDefinition = { key, version: 0, body, source: "tenant" };
     for (const t of templates) {
       const rendered = renderSystemPrompt(def, t);
-      const left = placeholdersOf(rendered);
-      checks.push({
-        id: `render:${t.key}`,
-        ok: left.length === 0 && rendered.length <= MAX_RENDERED_INTERVIEWER_CHARS,
-        detail:
-          left.length > 0
-            ? `Placeholders left after rendering for '${t.key}': ${left.map((p) => `{{${p}}}`).join(", ")}.`
-            : rendered.length > MAX_RENDERED_INTERVIEWER_CHARS
-              ? `Rendered prompt for '${t.key}' is ${String(rendered.length)} characters.`
-              : `Renders for '${t.key}' (${String(rendered.length)} characters).`,
+      const leftover = placeholdersOf(rendered);
+      renders.push({
+        template: t.key,
+        leftover,
+        chars: rendered.length,
+        ok: leftover.length === 0 && rendered.length <= MAX_RENDERED_INTERVIEWER_CHARS,
       });
     }
   }
-  return { ok: checks.every((c) => c.ok), checks };
+  return { ok: issues.length === 0 && renders.every((r) => r.ok), issues, renders };
+}
+
+/** One sentence per reason a body is refused, for the API error and the logs (the web localizes by code). */
+export function describeEvaluationFailure(e: PromptEvaluation): string {
+  const first = e.issues[0];
+  if (first) return first.message;
+  const bad = e.renders.find((r) => !r.ok);
+  if (!bad) return "This prompt cannot be used.";
+  return bad.leftover.length > 0
+    ? `Placeholders are left after rendering for '${bad.template}': ${bad.leftover.map((p) => `{{${p}}}`).join(", ")}.`
+    : `The rendered prompt for '${bad.template}' is ${String(bad.chars)} characters, which is too long.`;
 }

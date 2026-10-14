@@ -106,9 +106,10 @@ suite("prompt administration (D-230 to D-235)", () => {
     const ok = await call("POST", "/prompts/interviewer/check", { body: tweak("Warm.") });
     expect(ok.json<{ ok: boolean }>().ok).toBe(true);
     const bad = await call("POST", "/prompts/interviewer/check", { body: shipped.replace("{{areas}}", "") });
-    const out = bad.json<{ ok: boolean; checks: { id: string; ok: boolean }[] }>();
+    const out = bad.json<{ ok: boolean; issues: { code: string; detail?: string }[]; renders: unknown[] }>();
     expect(out.ok).toBe(false);
-    expect(out.checks[0]).toMatchObject({ id: "contract", ok: false });
+    expect(out.issues[0]).toMatchObject({ code: "missing_placeholder", detail: "{{areas}}" });
+    expect(out.renders).toEqual([]);
     expect((await detail()).versions).toHaveLength(0);
   });
 

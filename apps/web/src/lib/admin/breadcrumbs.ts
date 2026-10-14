@@ -17,6 +17,7 @@ function sectionLabels(): Record<string, string> {
     "/admin/providers": n.providers,
     "/admin/routes": n.routes,
     "/admin/budgets": n.budgets,
+    "/admin/prompts": n.prompts,
     "/admin/users": n.users,
     "/admin/audit": n.audit,
     "/admin/operator": n.tenants,
