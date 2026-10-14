@@ -822,6 +822,7 @@ Symptom: the sign-in page ends on "the sign-in email could not be sent" (`/auth/
    is an audit row `auth.signin_link_issued`, actor `cli`, and a warning line; the token is in
    neither. [DEPLOY.md](DEPLOY.md#break-glass-a-sign-in-link-from-the-servers-shell) says why this
    adds no privilege.
+
 2. **Find out what the relay says.** `./deploy/dc logs web --since 1h | grep -i -E 'smtp|mail'`
    shows the transport error (the web app sends sign-in links). Typical causes: a wrong password or
    user name, a password with `@`, `:` or `/` that is not percent-encoded, `smtp://` on port 465

@@ -43,11 +43,7 @@ const LANDING_PATH = "/admin";
 const STAFF_ROLES: ReadonlySet<string> = new Set(["platform_operator", "admin", "member"]);
 
 export type SigninLinkRefusal =
-  | "invalid_email"
-  | "unknown_user"
-  | "not_staff"
-  | "user_disabled"
-  | "tenant_suspended";
+  "invalid_email" | "unknown_user" | "not_staff" | "user_disabled" | "tenant_suspended";
 
 export type SigninLinkResult =
   | { ok: true; url: string; expires: Date; userId: string; companyId: string; role: string }
