@@ -3,7 +3,7 @@
 //
 // `pnpm audit --prod --audit-level=high` already fails on a high or critical advisory. This wraps
 // it for the one situation it cannot express: an advisory with no fix yet, which has to be
-// carried knowingly and not forever. An entry in `audit-ignore.json` needs a reason, an owner and
+// carried knowingly and not forever. An entry in `.github/security/audit-ignore.json` needs a reason, an owner and
 // an expiry date; when the date passes the gate fails again, so an exception cannot be forgotten.
 //
 //   node scripts/audit-gate.mjs            runs `pnpm audit --prod --json` itself
@@ -31,16 +31,22 @@ export function evaluate(report, ignoreFile, now) {
   for (const entry of entries) {
     const missing = ["id", "reason", "owner", "expires"].filter((k) => !entry[k]);
     if (missing.length > 0) {
-      problems.push(`audit-ignore.json: entry ${entry.id ?? "(no id)"} is missing ${missing.join(", ")}`);
+      problems.push(
+        `.github/security/audit-ignore.json: entry ${entry.id ?? "(no id)"} is missing ${missing.join(", ")}`,
+      );
       continue;
     }
     const expires = new Date(`${entry.expires}T23:59:59Z`);
     if (Number.isNaN(expires.getTime())) {
-      problems.push(`audit-ignore.json: ${entry.id} has an expiry that is not a date: ${entry.expires}`);
+      problems.push(
+        `.github/security/audit-ignore.json: ${entry.id} has an expiry that is not a date: ${entry.expires}`,
+      );
       continue;
     }
     if (expires < now) {
-      problems.push(`audit-ignore.json: ${entry.id} expired on ${entry.expires} (${entry.reason})`);
+      problems.push(
+        `.github/security/audit-ignore.json: ${entry.id} expired on ${entry.expires} (${entry.reason})`,
+      );
       continue;
     }
     byId.set(entry.id, entry);
@@ -62,7 +68,8 @@ export function evaluate(report, ignoreFile, now) {
     );
   }
   for (const id of byId.keys()) {
-    if (!seen.has(id)) notes.push(`audit-ignore.json: ${id} no longer matches an advisory; remove it`);
+    if (!seen.has(id))
+      notes.push(`.github/security/audit-ignore.json: ${id} no longer matches an advisory; remove it`);
   }
   return { ok: problems.length === 0, problems, notes };
 }
@@ -84,7 +91,9 @@ function loadReport(path) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const ignoreFile = JSON.parse(readFileSync(new URL("../audit-ignore.json", import.meta.url), "utf8"));
+  const ignoreFile = JSON.parse(
+    readFileSync(new URL("../.github/security/audit-ignore.json", import.meta.url), "utf8"),
+  );
   const result = evaluate(loadReport(process.argv[2]), ignoreFile, new Date());
   for (const note of result.notes) console.log(`note: ${note}`);
   for (const problem of result.problems) console.error(`FAIL: ${problem}`);

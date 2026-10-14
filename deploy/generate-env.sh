@@ -1,34 +1,44 @@
 #!/bin/bash
-# Write deploy/.env for a production deployment, with strong random secrets.
+# Write the repository-root .env for a production deployment, with strong random secrets.
 #
 #   deploy/generate-env.sh pilot.example.com ops@example.com
+#   deploy/generate-env.sh pilot.example.com ops@example.com --force   # replace an existing .env
+#
+# The root .env is the one env file of this repository (D-450): development reads it, and so do
+# deploy/dc, upgrade.sh, rollback.sh and restore.sh. .env.example documents every key.
 #
 # Arguments: the public hostname DNS already points at this VPS, and the email address that
 # becomes the platform operator, the first tenant's admin, and the ACME contact. Everything it
 # writes can be edited afterwards except the secrets — see docs/DEPLOY.md, 'Secrets you cannot
 # casually rotate'.
 #
-# It refuses to overwrite an existing file. Rotating PLATFORM_ENCRYPTION_KEY by regenerating
-# this file locks the operator out of every stored provider key and SMTP password.
+# It refuses to overwrite an existing file unless --force is given, and then keeps the old one
+# beside it as .env.replaced-<time>. Rotating PLATFORM_ENCRYPTION_KEY by regenerating this file
+# locks the operator out of every stored provider key and SMTP password. It prints key names only,
+# never a value.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
-# ENV_FILE_PATH lets a drill write somewhere other than the repository; it is the same variable
-# dc, upgrade.sh and ensure-backup-key.sh read.
-target="${ENV_FILE_PATH:-$here/.env}"
+AIDP_DEPLOY_DIR="$here"
+# env_file (<repo>/.env, or ENV_FILE_PATH: the rehearsal writes elsewhere) and refuse_legacy_env.
+# shellcheck source=deploy/lib/lib.sh
+. "$here/lib/lib.sh"
+target="$env_file"
 
 usage() {
-	echo "usage: $0 <public-hostname> <operator-email> [admin-email] [--size 4gb|8gb]" >&2
+	echo "usage: $0 <public-hostname> <operator-email> [admin-email] [--size 4gb|8gb] [--force]" >&2
 	exit 64
 }
 
 # --size appends deploy/sizes/<size>.env: the resource limits for that much memory, from the load
 # run in docs/DEPLOY.md ("Capacity and load"). Without it the compose defaults apply (8 GB).
 size=""
+force=0
 positional=()
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--size) size=${2:?--size needs 4gb or 8gb}; shift ;;
+	--force) force=1 ;;
 	-h | --help) usage ;;
 	*) positional+=("$1") ;;
 	esac
@@ -55,11 +65,21 @@ case "$operator" in
 *) echo "$0: '$operator' does not look like an email address" >&2; exit 64 ;;
 esac
 
+refuse_legacy_env generate-env
+
 if [ -e "$target" ]; then
-	echo "$0: $target already exists." >&2
-	echo "Refusing to overwrite it: regenerating PLATFORM_ENCRYPTION_KEY would make every stored" >&2
-	echo "provider key and SMTP password undecryptable. Edit the file by hand instead." >&2
-	exit 1
+	if [ "$force" != 1 ]; then
+		echo "$0: $target already exists." >&2
+		echo "Refusing to overwrite it: regenerating PLATFORM_ENCRYPTION_KEY would make every stored" >&2
+		echo "provider key and SMTP password undecryptable. Edit the file by hand instead, or pass" >&2
+		echo "--force to replace it (the old file is kept beside it)." >&2
+		exit 1
+	fi
+	kept="$target.replaced-$(date -u +%Y%m%dT%H%M%SZ)"
+	mv "$target" "$kept"
+	chmod 600 "$kept"
+	echo "$0: --force: moved the existing file to $kept (mode 600). If it held production secrets," >&2
+	echo "    the database still needs its PLATFORM_ENCRYPTION_KEY and passwords: copy them back." >&2
 fi
 
 # 32 bytes base64 for the keys the application expects in that shape; hex for anything that ends
@@ -177,11 +197,12 @@ fi
 
 chmod 600 "$target"
 echo "wrote $target (mode 600)"
+echo "keys: $(grep -E '^[A-Z][A-Z0-9_]*=' "$target" | cut -d= -f1 | tr '\n' ' ')"
 
 # The backup encryption key pair (D-95). Made here when this machine has age-keygen; otherwise
 # deploy/upgrade.sh makes it from the backup image once that is built, before the first backup can
 # run. Either way it ends up in this file, which is why the file must be copied off the host.
-ENV_FILE_PATH="$target" "$here/ensure-backup-key.sh" || echo "(the backup key will be created by deploy/upgrade.sh)"
+ENV_FILE_PATH="$target" "$here/backup/ensure-backup-key.sh" || echo "(the backup key will be created by deploy/upgrade.sh)"
 
 echo
 echo "Next:"

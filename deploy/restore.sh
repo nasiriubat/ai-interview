@@ -1,5 +1,5 @@
 #!/bin/bash
-# Restore a pg_dump taken by deploy/backup.sh.
+# Restore a pg_dump taken by deploy/backup/backup.sh.
 #
 #   deploy/restore.sh                                  # list what is in the backups volume
 #   deploy/restore.sh --latest                         # restore the newest dump over ai_discovery
@@ -7,7 +7,7 @@
 #   deploy/restore.sh --latest --into ai_discovery_check   # verify a dump without touching live data
 #
 # Dumps ending in .age are encrypted (D-95) and are decrypted inside the backup container with
-# BACKUP_AGE_IDENTITY from deploy/.env; the plaintext exists only in the pipe between the
+# BACKUP_AGE_IDENTITY from the root .env; the plaintext exists only in the pipe between the
 # containers. Older plain .dump files restore as before.
 #
 # Flags:
@@ -19,18 +19,19 @@
 # check that last night's dump is actually restorable without a maintenance window.
 #
 # Overrides for a non-default deployment:
-#   COMPOSE_FILE_PATH (default deploy/compose.prod.yml), ENV_FILE_PATH (default deploy/.env)
+#   COMPOSE_FILE_PATH (default deploy/compose.yml), ENV_FILE_PATH (default the repository-root .env)
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
-compose_file="${COMPOSE_FILE_PATH:-$here/compose.prod.yml}"
-env_file="${ENV_FILE_PATH:-$here/.env}"
+AIDP_DEPLOY_DIR="$here"
+# compose_file, env_file (<repo>/.env), versions_file and refuse_legacy_env.
+# shellcheck source=deploy/lib/lib.sh
+. "$here/lib/lib.sh"
+refuse_legacy_env restore
 live_db=ai_discovery
 
 [ -f "$compose_file" ] || { echo "restore: no compose file at $compose_file" >&2; exit 1; }
 [ -f "$env_file" ] || { echo "restore: no env file at $env_file" >&2; exit 1; }
-
-versions_file="${VERSIONS_FILE_PATH:-$here/versions.env}"
 
 # The same invocation deploy/dc makes: versions.env carries the image tag compose substitutes.
 dc() {
@@ -73,7 +74,7 @@ read_backup_file() {
 	case "$1" in
 	*.age)
 		dc exec -T backup sh -c '
-			[ -n "${BACKUP_AGE_IDENTITY:-}" ] || { echo "restore: BACKUP_AGE_IDENTITY is not set in deploy/.env, so an encrypted backup cannot be read" >&2; exit 3; }
+			[ -n "${BACKUP_AGE_IDENTITY:-}" ] || { echo "restore: BACKUP_AGE_IDENTITY is not set in .env, so an encrypted backup cannot be read" >&2; exit 3; }
 			f=$(mktemp); trap "rm -f $f" EXIT
 			printf "%s\n" "$BACKUP_AGE_IDENTITY" >"$f"
 			age -d -i "$f" <"$1"' sh "$1"

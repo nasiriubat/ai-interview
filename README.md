@@ -25,14 +25,27 @@ This repository is built using the product's own process. Start reading here:
 
 ## Code
 
-- `packages/shared` contracts, `packages/db` schema and migrations, `packages/ai` provider layer and interview engine, `packages/core` server infrastructure, `apps/api` HTTP and SSE API, `apps/worker` jobs, `apps/web` web app, `evals/` engine evals.
 - How to run: `docs/RUNNING.md`. Deploying to a server: `docs/DEPLOY.md`. Quality gate: `pnpm check`.
+
+### Repository layout
+
+| Folder      | What is in it                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------ |
+| `apps/`     | The deployables: `api` (Fastify HTTP and SSE), `worker` (pg-boss jobs), `web` (Next.js)          |
+| `packages/` | Shared libraries: `shared` contracts, `db` schema and migrations, `ai` engine, `core`, `testing` |
+| `deploy/`   | The production stack and the operator's commands; `deploy/README.md` lists each one              |
+| `docs/`     | Discovery, the frozen spec, decisions, runbooks (`RUNNING`, `DEPLOY`, `OPERATIONS`)              |
+| `tools/`    | Tooling: evals, live-run, load tests, rehearsal stack, fake provider, lint rules, pnpm patches   |
+| `scripts/`  | Repository scripts: `pnpm check`, the env-file loader and migration, security gates              |
+| `.github/`  | CI workflows, CODEOWNERS, and the security-scan configuration in `.github/security/`             |
 
 ### Configuration
 
-Development has one configuration file: the root `.env` (copy `.env.example`, which documents
-every variable). `docker compose`, the API, the worker, the database tools and `next dev` all read
-it; see [docs/RUNNING.md](docs/RUNNING.md#configuration) for precedence and for what the admin
-overrides. An older `apps/api/.env` is still read underneath it until `pnpm env:migrate` moves it.
-Production reads neither: `deploy/generate-env.sh` writes `deploy/.env` and
-`deploy/compose.prod.yml` names every variable explicitly.
+The repository has one configuration file: the root `.env`. `.env.example` documents every
+variable, for development and production, in labelled sections (required everywhere, required for
+production only, optional, development defaults). In development, copy it; `docker compose`, the
+API, the worker, the database tools and `next dev` all read it (see
+[docs/RUNNING.md](docs/RUNNING.md#configuration) for precedence and the admin overrides). An older
+`apps/api/.env` is still read underneath it until `pnpm env:migrate` moves it. In production,
+`deploy/generate-env.sh` writes the same root `.env` with fresh secrets, `deploy/dc` and the other
+deploy scripts pass it to compose, and `deploy/compose.yml` names every variable explicitly.

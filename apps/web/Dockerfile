@@ -14,7 +14,7 @@ WORKDIR /repo
 FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 # pnpm refuses to install when patchedDependencies names a file it cannot find.
-COPY patches patches
+COPY tools/patches tools/patches
 COPY packages/shared/package.json packages/shared/
 COPY packages/ai/package.json packages/ai/
 COPY packages/db/package.json packages/db/
@@ -22,7 +22,7 @@ COPY packages/core/package.json packages/core/
 COPY apps/api/package.json apps/api/
 COPY apps/worker/package.json apps/worker/
 COPY apps/web/package.json apps/web/
-COPY evals/package.json evals/
+COPY tools/evals/package.json tools/evals/
 RUN --mount=type=cache,id=aidp-pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter @aidp/web... --ignore-scripts
 

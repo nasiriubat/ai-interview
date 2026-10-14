@@ -1,9 +1,0 @@
-# Build context for backup.Dockerfile and ops-notify.Dockerfile, which build from deploy/. Both
-# COPY exactly one script, but the context is everything in this directory: the secrets file must
-# not even be sent to the Docker daemon.
-.env
-.env.*
-versions.env
-versions.env.previous
-.upgrade.lock
-test

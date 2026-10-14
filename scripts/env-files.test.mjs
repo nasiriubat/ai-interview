@@ -65,7 +65,34 @@ describe("compose files", () => {
       /- path: apps\/api\/\.env[^\n]*\n\s+required: false\n\s+- path: \.env\n\s+required: false/,
     );
     assert.ok(!/env_file:\s*apps\/api\/\.env/.test(dev));
-    assert.ok(!/^\s*env_file:/m.test(read("deploy/compose.prod.yml")));
+    assert.ok(!/^\s*env_file:/m.test(read("deploy/compose.yml")));
+  });
+
+  it(".env.example documents every variable production reads or generate-env.sh writes (D-450)", () => {
+    const documented = new Set(
+      [...read(".env.example").matchAll(/^#? ?([A-Z_][A-Z0-9_]*)=/gm)].map((m) => m[1]),
+    );
+    const used = new Set();
+    for (const f of ["deploy/compose.yml", "deploy/observability/compose.yml"]) {
+      for (const m of read(f).matchAll(/\$\{([A-Z_][A-Z0-9_]*)/g)) used.add(m[1]);
+    }
+    const generated = read("deploy/generate-env.sh").split("<<EOF")[1].split("\nEOF")[0];
+    for (const m of generated.matchAll(/^([A-Z_][A-Z0-9_]*)=/gm)) used.add(m[1]);
+    const missing = [...used].filter((k) => !documented.has(k)).sort();
+    assert.deepEqual(missing, [], `add these to .env.example: ${missing.join(", ")}`);
+  });
+
+  it("production-only keys stay commented in .env.example, so a development copy is not renamed", () => {
+    const example = read(".env.example");
+    for (const key of [
+      "COMPOSE_PROJECT_NAME",
+      "PUBLIC_HOSTNAME",
+      "POSTGRES_PASSWORD",
+      "BACKUP_AGE_IDENTITY",
+    ]) {
+      assert.match(example, new RegExp(`^# ${key}=`, "m"));
+      assert.doesNotMatch(example, new RegExp(`^${key}=`, "m"));
+    }
   });
 });
 

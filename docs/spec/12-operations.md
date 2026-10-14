@@ -3,7 +3,7 @@
 This file is the requirement. How it is met on the single-host deployment, step by step, is in
 [`docs/OPERATIONS.md`](../OPERATIONS.md); what is built and what is not is stated there under "Not yet".
 
-- Tracing with OpenTelemetry: session, turn, model call, job, tokens, cost, latency in one trace. Exported to Grafana Tempo by default (self-hosted stack in `infra/`, planned: the directory does not exist yet and the development compose stack carries only Kroki and MinIO), or any OTLP backend. Today the API exports; the worker does not.
+- Tracing with OpenTelemetry: session, turn, model call, job, tokens, cost, latency in one trace. Exported to Grafana Tempo by default (the optional self-hosted stack in `deploy/observability/`), or any OTLP backend. Today the API exports; the worker does not.
 - Structured logs with request, tenant, session ids; metrics with SLOs: first token under 2 s at p95 (NFR-01), voice first word under 1.5 s at p95, job success rate above 99.5 percent, budget-block rate visible.
 - Replayable event log: any session re-runs offline against a new prompt version.
 - Evals in CI on fixed transcripts: coverage progression, fact recall after summary, issue detection precision, specification completeness, extraction accuracy. Merges blocked on regression (NFR-06).

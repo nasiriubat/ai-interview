@@ -2,7 +2,7 @@
 // Small repository gates for the security programme (Security M3, D-267, D-268). Three checks, each
 // a pure function the tests exercise, run by `pnpm check` and by the `security` workflow:
 //
-//   node scripts/security-gates.mjs trivy         .trivyignore.yaml: justified, expiring entries only
+//   node scripts/security-gates.mjs trivy         .github/security/.trivyignore.yaml: justified, expiring entries only
 //   node scripts/security-gates.mjs workflows     every GitHub Action is pinned by commit SHA
 //   node scripts/security-gates.mjs security-txt  security.txt is present, and has not expired
 //
@@ -19,7 +19,7 @@ export const MAX_IGNORE_DAYS = 180;
 const DAY_MS = 86_400_000;
 
 /**
- * `.trivyignore.yaml` is a Trivy ignore file. Every entry names why it is carried (`statement`)
+ * `.github/security/.trivyignore.yaml` is a Trivy ignore file. Every entry names why it is carried (`statement`)
  * and when it stops being (`expired_at`), and the expiry is at most {@link MAX_IGNORE_DAYS} from
  * today: an exception that needs a longer life is renewed on purpose, with the reason re-read.
  * The file is JSON, which is valid YAML, so this needs no parser and Trivy reads it unchanged.
@@ -32,23 +32,26 @@ export function evaluateTrivyIgnore(file, now) {
   const notes = [];
   for (const [list, entries] of Object.entries(file)) {
     if (!Array.isArray(entries)) {
-      problems.push(`.trivyignore.yaml: ${list} is not a list`);
+      problems.push(`.github/security/.trivyignore.yaml: ${list} is not a list`);
       continue;
     }
     for (const entry of entries) {
       const label = `${list}: ${entry.id ?? "(no id)"}`;
-      if (!entry.id) problems.push(`.trivyignore.yaml: ${label} has no id`);
+      if (!entry.id) problems.push(`.github/security/.trivyignore.yaml: ${label} has no id`);
       if (!entry.statement || entry.statement.trim().length < 20)
-        problems.push(`.trivyignore.yaml: ${label} needs a statement that says why it is carried`);
+        problems.push(
+          `.github/security/.trivyignore.yaml: ${label} needs a statement that says why it is carried`,
+        );
       const expires = entry.expired_at ? new Date(`${entry.expired_at}T23:59:59Z`) : null;
       if (!expires || Number.isNaN(expires.getTime())) {
-        problems.push(`.trivyignore.yaml: ${label} needs expired_at (YYYY-MM-DD)`);
+        problems.push(`.github/security/.trivyignore.yaml: ${label} needs expired_at (YYYY-MM-DD)`);
         continue;
       }
-      if (expires < now) problems.push(`.trivyignore.yaml: ${label} expired on ${entry.expired_at}`);
+      if (expires < now)
+        problems.push(`.github/security/.trivyignore.yaml: ${label} expired on ${entry.expired_at}`);
       else if (expires.getTime() - now.getTime() > MAX_IGNORE_DAYS * DAY_MS)
         problems.push(
-          `.trivyignore.yaml: ${label} expires more than ${String(MAX_IGNORE_DAYS)} days from now (${entry.expired_at})`,
+          `.github/security/.trivyignore.yaml: ${label} expires more than ${String(MAX_IGNORE_DAYS)} days from now (${entry.expired_at})`,
         );
       else notes.push(`${label} carried until ${entry.expired_at}`);
     }
@@ -132,7 +135,7 @@ function report(result, okMessage) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const which = process.argv[2];
   if (which === "trivy") {
-    const file = JSON.parse(readFileSync(path.join(ROOT, ".trivyignore.yaml"), "utf8"));
+    const file = JSON.parse(readFileSync(path.join(ROOT, ".github/security/.trivyignore.yaml"), "utf8"));
     report(
       evaluateTrivyIgnore(file, new Date()),
       "trivy ignore file: every entry is justified and unexpired",

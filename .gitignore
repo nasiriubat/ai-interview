@@ -20,7 +20,7 @@ deploy/.upgrade.lock
 # Written by `pnpm check`: whether the last run had a database
 .check-state.json
 # Live-run harness output (transcripts, reports, scorecards)
-scripts/live-run/out/
+tools/live-run/out/
 apps/web/e2e/results/
 apps/web/test-results/
 apps/web/playwright-report/

@@ -164,7 +164,7 @@ packages/db      Prisma schema, migrations, tenant-scoped query helpers
 packages/ai      Provider interface, prompt files, interview engine, extractors,
                  clustering, spec generator, rubric
 packages/shared  Zod schemas shared by ai, db, and web
-evals/           Fixed transcripts and rubric checks run in CI
+tools/evals/           Fixed transcripts and rubric checks run in CI
 docs/            Discovery, spec, team roles
 ```
 

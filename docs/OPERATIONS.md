@@ -42,7 +42,7 @@ Two paths, so that one outage cannot silence both.
 
 Both post to the same webhook and mail the same operator address.
 
-**Set it up once**, in `deploy/.env`, and then `deploy/dc up -d ops-notify api worker`:
+**Set it up once**, in the root `.env`, and then `deploy/dc up -d ops-notify api worker`:
 
 ```bash
 ALERT_EMAIL=you@example.com                     # empty falls back to the bootstrap operator
@@ -57,7 +57,7 @@ a webhook is worth having as well.
 Once the application is running, **Admin → Settings → Operations alerts** (platform scope) takes
 over from the environment and adds the dials: minimum severity per channel, how long before an
 unresolved alert is sent again, the hourly ceiling, and the disk, provider and backup thresholds.
-`deploy/.env` stays as the fallback and as what the sidecar reads.
+the root `.env` stays as the fallback and as what the sidecar reads.
 
 ### What a tenant is sent
 
@@ -229,7 +229,7 @@ queue's own expiry fails them only when their time limit passes: `analysis.run` 
 are claimed by a worker whose lease has not been refreshed for 45 s; the queue then retries them
 with its usual backoff, or dead-letters them when their attempts are spent. The restarted worker
 takes over its predecessor's job about a minute after the kill (rehearsed by
-`deploy/chaos/kill-worker.mjs`). It is safe with several workers: a job held by a live worker, or
+`tools/rehearsal/chaos/kill-worker.mjs`). It is safe with several workers: a job held by a live worker, or
 with no claim at all, is never touched, and the claim is removed before the job is failed, so two
 workers cannot both fail it. The handlers are idempotent, which is what makes a retry safe.
 
@@ -260,7 +260,7 @@ or the uploads archive could not be written. The backup container is `unhealthy`
 backup stopped running as root (D-312): `Permission denied` on `/backups` or an unreadable upload
 means the volume's ownership was not set. `deploy/dc up -d` runs `ops-state-init`, which sets it
 (`/backups` to uid 999, the alert and watchdog directories to 10001); the container must show
-`groups=...,1000` in `deploy/dc exec -T backup id`, which the `group_add` in `compose.prod.yml`
+`groups=...,1000` in `deploy/dc exec -T backup id`, which the `group_add` in `compose.yml`
 gives it.
 
 **Do** Fix the cause, then take one now: `deploy/dc exec -T backup /usr/local/bin/backup.sh once`.
@@ -275,8 +275,8 @@ backup container has never reported. The scheduler is stopped, was never started
 failing without the failure being recorded.
 
 **Look at** `deploy/dc ps` (is `backup` running?), `deploy/dc logs --tail 50 backup`, and
-`BACKUP_AT` in `deploy/.env`. A missing `BACKUP_AGE_RECIPIENT` makes compose refuse to start it,
-with a message saying so (`deploy/ensure-backup-key.sh` creates one).
+`BACKUP_AT` in the root `.env`. A missing `BACKUP_AGE_RECIPIENT` makes compose refuse to start it,
+with a message saying so (`deploy/backup/ensure-backup-key.sh` creates one).
 
 **Do** Start it (`deploy/dc up -d backup`), fix what its log says, and take one now as above.
 
@@ -291,7 +291,7 @@ this host, which is the one failure a local backup cannot cover.
 or the endpoint unreachable. Test the remote by hand:
 `deploy/dc exec -T backup rclone lsd "${RCLONE_REMOTE%%:*}:"`.
 
-**Do** Fix the remote's credentials in `deploy/.env` (`RCLONE_CONFIG_OFFSITE_*`),
+**Do** Fix the remote's credentials in the root `.env` (`RCLONE_CONFIG_OFFSITE_*`),
 `deploy/dc up -d backup`, then `backup.sh once`.
 
 **Fixed when** `status.offsite` is `ok` and the file is in the bucket.
@@ -305,7 +305,7 @@ alert that says a backup exists and may not be usable.
 
 **Look at** The reason is in the alert and in
 `deploy/dc exec -T backup cat /ops-state/status/backup.json` under `drill.error`. Then
-`deploy/dc logs --tail 80 backup | grep restore-drill`. Typical causes: the identity in `deploy/.env`
+`deploy/dc logs --tail 80 backup | grep restore-drill`. Typical causes: the identity in the root `.env`
 is not the key the dump was written to (`BACKUP_AGE_IDENTITY`), the disk filled mid-restore, or a
 dump written by a version whose migration is not applied.
 
@@ -327,7 +327,7 @@ kept; the interview carries on in writing. This alert is how you learn of it.
 
 **Do** In this order, stopping when it is enough: `docker image prune -a -f` (old images; keep the
 current and previous version, which `upgrade.sh` records in `deploy/versions.env`),
-`docker builder prune -f`, lower `BACKUP_RETENTION_DAYS` in `deploy/.env` and
+`docker builder prune -f`, lower `BACKUP_RETENTION_DAYS` in the root `.env` and
 `deploy/dc up -d backup`. If the database itself is the size, that is capacity: grow the volume or
 move to a bigger host. Do not prune volumes.
 
@@ -433,7 +433,7 @@ a previous key any more.
 `packages/core/test/rekey.integration.test.ts` as the executable version:
 
 1. Generate a new key: `openssl rand -base64 32`.
-2. In `deploy/.env`: set `PLATFORM_ENCRYPTION_KEY` to the new key and `PLATFORM_ENCRYPTION_KEY_PREVIOUS`
+2. In the root `.env`: set `PLATFORM_ENCRYPTION_KEY` to the new key and `PLATFORM_ENCRYPTION_KEY_PREVIOUS`
    to the old one. `deploy/dc up -d api worker`. Check `/operator/crypto/status`: the ring lists both,
    `pending` counts what is under the old key, and the application works.
 3. Start the re-encryption: `POST /operator/crypto/rekey` (or run the `crypto.rekey` job from the
@@ -484,7 +484,7 @@ the product (the web app answers, and every call behind it fails).
 **Fixed when** The ready check returns `ok:true`.
 
 **What a participant sees when the API process is killed mid-turn** (rehearsed with `kill -9` on
-2026-10-14, `deploy/chaos/kill-api.mjs`): the stream ends, their answer is already saved (one copy),
+2026-10-14, `tools/rehearsal/chaos/kill-api.mjs`): the stream ends, their answer is already saved (one copy),
 Docker restarts the API in seconds, and the session is intact. The turn lock belongs to a process
 that no longer exists and is released by its TTL, 10 s (it is renewed every 2 s while a turn runs,
 D-282); until then every retry is refused with `conflict` (82 s in the rehearsal, with the earlier
@@ -588,11 +588,11 @@ turns it `unhealthy` and raises [`backup.failed`](#backupfailed); no success for
 
 ### The key
 
-Encryption uses an `age` key pair, created once and stored in `deploy/.env`:
+Encryption uses an `age` key pair, created once and stored in the root `.env`:
 `BACKUP_AGE_RECIPIENT` (public: encrypts) and `BACKUP_AGE_IDENTITY` (private: decrypts).
 `generate-env.sh` creates it for a new install and `upgrade.sh` for an existing one.
 
-**Lose the identity and every backup is noise.** `deploy/.env` is the file to copy to your password
+**Lose the identity and every backup is noise.** the root `.env` is the file to copy to your password
 manager the day you create it; it also holds `PLATFORM_ENCRYPTION_KEY`, without which a restored
 database cannot decrypt provider keys. The key is never rotated by itself: replacing it would make
 every earlier backup unreadable. To rotate, add a new key pair, take a backup, and keep the old
@@ -600,7 +600,7 @@ identity until the last backup written under it has aged out.
 
 ### Offsite
 
-Set `RCLONE_REMOTE` and the credentials in `deploy/.env` (the commented block `generate-env.sh`
+Set `RCLONE_REMOTE` and the credentials in the root `.env` (the commented block `generate-env.sh`
 wrote). Example for an S3-compatible bucket (Hetzner Object Storage, Scaleway):
 
 ```bash
@@ -665,12 +665,12 @@ Run it by hand any time: `deploy/dc exec -T backup /usr/local/bin/restore-drill.
 | ---------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------- | -------------------------------------- |
 | Data you can lose (RPO)                              | 24 h (12 h with two times) | `BACKUP_AT=03:20,15:20`                                                    | `backup.json` `lastSuccessAt`          |
 | Back in service after a bad release, same host (RTO) | 15 min                     | [`rollback.sh`](#upgrade-and-roll-back), then `restore.sh` if data changed | `drill.durationS` plus a rollback run  |
-| Back in service after losing the host (RTO)          | 90 min                     | new VPS, `git clone`, `deploy/.env` from your password manager, restore    | the table below, from the offsite copy |
+| Back in service after losing the host (RTO)          | 90 min                     | new VPS, `git clone`, the root `.env` from your password manager, restore  | the table below, from the offsite copy |
 | Verified                                             | weekly, automatic          | the restore drill above                                                    | `drill.lastSuccessAt`                  |
 
 **What a person has to prove, and the repository cannot.** The drill runs on the host the backups
 are on. It does not show that you can rebuild from the offsite copy on a machine that is not that
-host, with only `deploy/.env` from your password manager, inside ninety minutes. Do that once before
+host, with only the root `.env` from your password manager, inside ninety minutes. Do that once before
 the pilot and again after any change to the backup or the key, and write down what happened in
 `docs/team/drills/<date>-restore.md`. One row per rehearsal:
 
@@ -710,11 +710,11 @@ deploy/dc exec -T postgres psql -U app -d postgres -c 'drop database ai_discover
 ```
 
 **Onto a new host** (the host is gone): install Docker, clone the repository, put your saved
-`deploy/.env` in `deploy/`, `deploy/upgrade.sh` (starts an empty stack, which is fine), then bring
+the root `.env` in `deploy/`, `deploy/upgrade.sh` (starts an empty stack, which is fine), then bring
 the files back and restore:
 
 ```bash
-# the remote is the RCLONE_REMOTE value in deploy/.env; copy the newest pair (or all of daily/)
+# the remote is the RCLONE_REMOTE value in .env; copy the newest pair (or all of daily/)
 deploy/dc run --rm --no-deps --entrypoint rclone backup copy offsite:my-aidp-backups/daily /backups
 deploy/restore.sh --latest --force
 ```
@@ -734,7 +734,7 @@ deploy/rollback.sh             # back to the previous version, no rebuild, no ne
 
 1. **Refuses** if this host has `deploy_pgdata` volumes from before the project was named and
    `COMPOSE_PROJECT_NAME` does not match: the switch would start on an empty database. An install
-   made before the name was pinned puts `COMPOSE_PROJECT_NAME=deploy` in `deploy/.env`.
+   made before the name was pinned puts `COMPOSE_PROJECT_NAME=deploy` in the root `.env`.
 2. **Takes a backup** through the running backup container and stops if it fails. The dump it names
    is the data-side rollback.
 3. **Builds** the images tagged with the git SHA (`aidp-server:<sha>`, `aidp-web`, `aidp-backup`,
@@ -828,7 +828,7 @@ Symptom: the sign-in page ends on "the sign-in email could not be sent" (`/auth/
    user name, a password with `@`, `:` or `/` that is not percent-encoded, `smtp://` on port 465
    (that port wants `smtps://`), an outbound port blocked by the hosting provider (many block 25 and
    some 587; try 465 or 2525), or a sender address the relay is not allowed to send for.
-3. **Fix `EMAIL_SMTP_URL`** (and `EMAIL_FROM`) in `deploy/.env`, then `./deploy/dc up -d` so the api,
+3. **Fix `EMAIL_SMTP_URL`** (and `EMAIL_FROM`) in the root `.env`, then `./deploy/dc up -d` so the api,
    worker and web pick it up. Any SMTP relay works: a transactional email provider, the SMTP
    submission service of your organization's mailbox provider, or your own mail server. Publish SPF
    and DKIM for the sender's domain as that relay documents, or links land in spam.
@@ -842,7 +842,7 @@ problem to fix. To see who used it: Audit log, filtered by the action `auth.sign
 ## Provider timeouts and retries
 
 Every model call has a deadline (`packages/ai/src/providers/resilience.ts`). Defaults, in
-`deploy/.env` as milliseconds if a slow self-hosted gateway needs more:
+the root `.env` as milliseconds if a slow self-hosted gateway needs more:
 
 | Variable                          | Default | Meaning                                              |
 | --------------------------------- | ------- | ---------------------------------------------------- |
@@ -871,7 +871,7 @@ Three levels, from the cheapest to read.
    `ttsCharacters`, the estimated share of the cost, and the live-voice signals. `GET /spend` groups
    by `provider` and `status` as well as day, purpose, model and campaign; `GET /spend/budgets`
    shows spend against each budget line.
-3. **Grafana**, optional (`infra/observability`, [README](../infra/observability/README.md)):
+3. **Grafana**, optional (`deploy/observability`, [README](../deploy/observability/README.md)):
    Prometheus and Grafana with six dashboards and the objectives drawn on them. It needs 416 MB more
    than the stack; Tempo for traces needs another 192 MB and belongs on the 8 GB preset.
 
@@ -886,7 +886,7 @@ Three levels, from the cheapest to read.
 | Job success           | at or above 99.5 % over 7 days     | Grafana "Background jobs"                                                                         |
 | Backup                | newest under 26 h, drill under 9 d | Platform health, [`backup.missing`](#backupmissing), [`backup.drill_failed`](#backupdrill_failed) |
 
-**Tracing.** Set `OTEL_EXPORTER_OTLP_ENDPOINT` (in `deploy/.env`) and both `api` and `worker` export
+**Tracing.** Set `OTEL_EXPORTER_OTLP_ENDPOINT` (in the root `.env`) and both `api` and `worker` export
 spans. A request is one trace: `session.turn` with its `model.call` children in the API, and the
 `job <name>` spans of the follow-up jobs it queued in the worker, joined by the `traceparent` carried
 in each job's payload. With no endpoint nothing is loaded and nothing is paid for.
@@ -1065,18 +1065,18 @@ Each secret opens something different. Rotate the one that leaked first, then ju
 incident whether the ones next to it were exposed too. After any rotation, look at
 [Platform health](#looking-at-the-platform): nothing red.
 
-| What leaked                               | What it opens                                                       | Rotate                                                                                                                                             |
-| ----------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_SECRET`                             | Forging any staff session, including the operator's                 | New `AUTH_SECRET` in `deploy/.env`, `deploy/dc up -d --force-recreate api web`. Everyone is signed out. No data moves                              |
-| The internal header (`x-internal-auth`)   | The magic-link token store (D-260)                                  | Same as `AUTH_SECRET`: it is derived from it. A leak of only the derived value does not give the session key                                       |
-| `PLATFORM_ENCRYPTION_KEY`                 | Stored provider keys, SMTP passwords, GitHub tokens, export sealing | The [crypto.rekey](#cryptorekey) drill, **and** rotate the provider keys at the providers: the ciphertext was exposed                              |
-| A provider API key                        | Spend at that provider                                              | Rotate at the provider, then Admin → Providers (or Operator → Providers) to store the new one                                                      |
-| SMTP credentials                          | Sending mail as the platform                                        | New credentials at the relay; Settings → email (tenant) or `SMTP_USER`/`SMTP_PASSWORD` (platform), then `deploy/dc up -d`                          |
-| `BACKUP_AGE_IDENTITY`                     | Reading every backup and offsite copy                               | New key pair (`deploy/ensure-backup-key.sh`), a fresh backup, keep the old identity until old backups age out; consider the offsite bucket exposed |
-| Offsite bucket credentials                | The bucket's contents (encrypted dumps)                             | Rotate at the storage provider, update `deploy/.env`, `deploy/dc up -d backup`                                                                     |
-| `POSTGRES_PASSWORD` / `APP_DB_PASSWORD`   | The database                                                        | See [DEPLOY.md](DEPLOY.md#secrets-you-cannot-casually-rotate): change, recreate; assume the data was readable                                      |
-| The host (root, or `deploy/.env`)         | Everything above                                                    | Rebuild the host from the repository, restore from a backup taken **before** the incident, rotate every secret in this table, tell every tenant    |
-| A tenant admin's GitHub token (spec push) | That repository, with their scope                                   | It is never stored by the platform; the admin revokes it at GitHub                                                                                 |
+| What leaked                               | What it opens                                                       | Rotate                                                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET`                             | Forging any staff session, including the operator's                 | New `AUTH_SECRET` in the root `.env`, `deploy/dc up -d --force-recreate api web`. Everyone is signed out. No data moves                                   |
+| The internal header (`x-internal-auth`)   | The magic-link token store (D-260)                                  | Same as `AUTH_SECRET`: it is derived from it. A leak of only the derived value does not give the session key                                              |
+| `PLATFORM_ENCRYPTION_KEY`                 | Stored provider keys, SMTP passwords, GitHub tokens, export sealing | The [crypto.rekey](#cryptorekey) drill, **and** rotate the provider keys at the providers: the ciphertext was exposed                                     |
+| A provider API key                        | Spend at that provider                                              | Rotate at the provider, then Admin → Providers (or Operator → Providers) to store the new one                                                             |
+| SMTP credentials                          | Sending mail as the platform                                        | New credentials at the relay; Settings → email (tenant) or `SMTP_USER`/`SMTP_PASSWORD` (platform), then `deploy/dc up -d`                                 |
+| `BACKUP_AGE_IDENTITY`                     | Reading every backup and offsite copy                               | New key pair (`deploy/backup/ensure-backup-key.sh`), a fresh backup, keep the old identity until old backups age out; consider the offsite bucket exposed |
+| Offsite bucket credentials                | The bucket's contents (encrypted dumps)                             | Rotate at the storage provider, update the root `.env`, `deploy/dc up -d backup`                                                                          |
+| `POSTGRES_PASSWORD` / `APP_DB_PASSWORD`   | The database                                                        | See [DEPLOY.md](DEPLOY.md#secrets-you-cannot-casually-rotate): change, recreate; assume the data was readable                                             |
+| The host (root, or the root `.env`)       | Everything above                                                    | Rebuild the host from the repository, restore from a backup taken **before** the incident, rotate every secret in this table, tell every tenant           |
+| A tenant admin's GitHub token (spec push) | That repository, with their scope                                   | It is never stored by the platform; the admin revokes it at GitHub                                                                                        |
 
 **A leaked secret you have not rotated is a standing incident.** If you cannot rotate now
 (`PLATFORM_ENCRYPTION_KEY` with a campaign open: see the dedupe note in
@@ -1098,10 +1098,10 @@ informed; the disclosure policy is 90 days, coordinated.
 
 Two things, and the repository cannot hold either:
 
-1. **`deploy/.env`.** It holds the database passwords, `PLATFORM_ENCRYPTION_KEY` and the backup
+1. **the root `.env`.** It holds the database passwords, `PLATFORM_ENCRYPTION_KEY` and the backup
    identity: the keys to the data, the stored provider keys and the backups. Copy it to your
    password manager when it is created and whenever it changes.
-2. **The offsite bucket's credentials**, which are in `deploy/.env` too, and the bucket itself.
+2. **The offsite bucket's credentials**, which are in the root `.env` too, and the bucket itself.
 
 Everything else (compose, scripts, the alert catalog, the checks, this document) is in the repository
 and is what a new host is built from.

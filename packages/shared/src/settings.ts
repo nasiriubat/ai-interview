@@ -628,7 +628,7 @@ export const SETTINGS = {
   }),
   // Operations (D-90). Platform only: these decide who the operator is told, how loudly, and how
   // often. `deploy/ops/notify.sh` cannot read this catalog (it has to work when the database does
-  // not), so ALERT_EMAIL and ALERT_WEBHOOK_URL in deploy/.env are its copy and the fallback here.
+  // not), so ALERT_EMAIL and ALERT_WEBHOOK_URL in .env are its copy and the fallback here.
   "ops.alertEmail": def({
     schema: z.string().refine((v) => v === "" || isEmailAddress(v), { message: "Must be an email address" }),
     default: "",
