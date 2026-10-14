@@ -36,7 +36,7 @@ const staff = vi.hoisted(() => ({
   campaigns: { close: vi.fn(), open: vi.fn(), invite: vi.fn(), revoke: vi.fn(), remind: vi.fn() },
   requirements: { invitations: { create: vi.fn(), revoke: vi.fn() } },
   operator: { tenants: { create: vi.fn(), update: vi.fn() }, routes: { put: vi.fn() }, providers: {} },
-  users: { create: vi.fn(), update: vi.fn() },
+  users: { create: vi.fn(), update: vi.fn(), remove: vi.fn() },
   opportunities: { setStatus: vi.fn() },
   routes: { put: vi.fn() },
   providers: { models: vi.fn() },
@@ -211,6 +211,73 @@ describe("tenants and roles: ask first", () => {
     expect(staff.users.update).not.toHaveBeenCalled();
     await user.click(within(dialog()).getByRole("button", { name: "Change to Admin" }));
     expect(staff.users.update).toHaveBeenCalledWith("u1", { role: "admin" });
+  });
+
+  it("disabling a user asks first, says they are signed out at once, and offers no button for yourself", async () => {
+    staff.users.update.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <UsersPanel
+        users={[
+          UserSchema.parse({ id: "me", email: "boss@example.com", role: "admin" }),
+          UserSchema.parse({ id: "u1", email: "kim@example.com", role: "member" }),
+        ]}
+        canEdit
+        currentUserId="me"
+      />,
+    );
+    const mine = screen.getByRole("row", { name: /boss@example.com/ });
+    expect(within(mine).queryByRole("button", { name: "Disable" })).not.toBeInTheDocument();
+    expect(within(mine).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+
+    const row = screen.getByRole("row", { name: /kim@example.com/ });
+    await user.click(within(row).getByRole("button", { name: "Disable" }));
+    expect(within(dialog()).getByText("Disable kim@example.com?")).toBeInTheDocument();
+    expect(within(dialog()).getByText(/signed out of every device at once/)).toBeInTheDocument();
+    expect(staff.users.update).not.toHaveBeenCalled();
+    await user.click(within(dialog()).getByRole("button", { name: "Disable user" }));
+    expect(staff.users.update).toHaveBeenCalledWith("u1", { disabled: true });
+  });
+
+  it("deleting a user asks first and says what happens to what they owned", async () => {
+    staff.users.remove.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <UsersPanel
+        users={[UserSchema.parse({ id: "u1", email: "kim@example.com", role: "member" })]}
+        canEdit
+        currentUserId="me"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(within(dialog()).getByText("Delete kim@example.com?")).toBeInTheDocument();
+    expect(within(dialog()).getByText(/become yours/)).toBeInTheDocument();
+    expect(staff.users.remove).not.toHaveBeenCalled();
+    await user.click(within(dialog()).getByRole("button", { name: "Delete user" }));
+    expect(staff.users.remove).toHaveBeenCalledWith("u1");
+  });
+
+  it("a disabled user is marked, and can be enabled again", async () => {
+    staff.users.update.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <UsersPanel
+        users={[
+          UserSchema.parse({
+            id: "u1",
+            email: "kim@example.com",
+            role: "member",
+            disabledAt: "2026-10-01T10:00:00Z",
+          }),
+        ]}
+        canEdit
+        currentUserId="me"
+      />,
+    );
+    expect(screen.getByText("Disabled")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Enable" }));
+    await user.click(within(dialog()).getByRole("button", { name: "Enable user" }));
+    expect(staff.users.update).toHaveBeenCalledWith("u1", { disabled: false });
   });
 });
 

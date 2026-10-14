@@ -17,13 +17,25 @@ import type { User } from "@/lib/api/schemas";
 const s = t.admin.users;
 const ROLES = ["admin", "member"] as const;
 
-export function UsersPanel({ users, canEdit }: { users: User[]; canEdit: boolean }): React.JSX.Element {
+type Offboarding = { user: User; kind: "disable" | "enable" | "delete" };
+
+export function UsersPanel({
+  users,
+  canEdit,
+  currentUserId,
+}: {
+  users: User[];
+  canEdit: boolean;
+  /** The signed-in user: they cannot disable or delete themselves, so no buttons are drawn. */
+  currentUserId?: string | undefined;
+}): React.JSX.Element {
   const router = useRouter();
   const action = useAction();
   const [email, setEmail] = React.useState("");
   const [name, setName] = React.useState("");
   const [role, setRole] = React.useState<(typeof ROLES)[number]>("member");
   const [changing, setChanging] = React.useState<{ user: User; role: (typeof ROLES)[number] } | null>(null);
+  const [offboarding, setOffboarding] = React.useState<Offboarding | null>(null);
 
   return (
     <div className="grid gap-6">
@@ -76,6 +88,8 @@ export function UsersPanel({ users, canEdit }: { users: User[]; canEdit: boolean
               <TableHead>{s.email}</TableHead>
               <TableHead>{s.name}</TableHead>
               <TableHead>{s.role}</TableHead>
+              <TableHead>{s.status}</TableHead>
+              {canEdit ? <TableHead>{s.actions}</TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -109,6 +123,35 @@ export function UsersPanel({ users, canEdit }: { users: User[]; canEdit: boolean
                     t.admin.nav.role[u.role]
                   )}
                 </TableCell>
+                <TableCell>{u.disabledAt ? s.disabled : s.active}</TableCell>
+                {canEdit ? (
+                  <TableCell>
+                    {u.id === currentUserId ? (
+                      <span className="text-muted-foreground text-sm">{s.you}</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-2" role="group" aria-label={s.rowActions(u.email)}>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setOffboarding({ user: u, kind: u.disabledAt ? "enable" : "disable" })
+                          }
+                        >
+                          {u.disabledAt ? s.enable : s.disable}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setOffboarding({ user: u, kind: "delete" })}
+                        >
+                          {s.delete}
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))}
           </TableBody>
@@ -130,6 +173,48 @@ export function UsersPanel({ users, canEdit }: { users: User[]; canEdit: boolean
             await staffClient.users.update(c.user.id, { role: c.role });
             router.refresh();
           }, s.updated);
+        }}
+      />
+      <ConfirmDialog
+        open={offboarding !== null}
+        onOpenChange={(open) => {
+          if (!open) setOffboarding(null);
+        }}
+        title={
+          offboarding?.kind === "delete"
+            ? s.deleteTitle(offboarding.user.email)
+            : offboarding?.kind === "enable"
+              ? s.enableTitle(offboarding.user.email)
+              : s.disableTitle(offboarding?.user.email ?? "")
+        }
+        description={
+          <p>
+            {offboarding?.kind === "delete"
+              ? s.deleteBody
+              : offboarding?.kind === "enable"
+                ? s.enableBody
+                : s.disableBody}
+          </p>
+        }
+        confirmLabel={
+          offboarding?.kind === "delete"
+            ? s.deleteConfirm
+            : offboarding?.kind === "enable"
+              ? s.enableConfirm
+              : s.disableConfirm
+        }
+        tone={offboarding?.kind === "enable" ? "default" : "destructive"}
+        onConfirm={() => {
+          const o = offboarding;
+          if (!o) return;
+          void action.run(
+            async () => {
+              if (o.kind === "delete") await staffClient.users.remove(o.user.id);
+              else await staffClient.users.update(o.user.id, { disabled: o.kind === "disable" });
+              router.refresh();
+            },
+            o.kind === "delete" ? s.deletedDone : o.kind === "enable" ? s.enabledDone : s.disabledDone,
+          );
         }}
       />
     </div>

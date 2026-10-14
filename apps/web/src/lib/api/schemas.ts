@@ -269,6 +269,8 @@ export const UserSchema = z.looseObject({
   role: RoleSchema.catch("member"),
   status: z.string().nullish(),
   createdAt: iso.nullish(),
+  /** Set when access has been withdrawn (D-161). */
+  disabledAt: iso.nullish(),
 });
 export type User = z.infer<typeof UserSchema>;
 export const UserPageSchema = pagedOf(UserSchema, "users");
