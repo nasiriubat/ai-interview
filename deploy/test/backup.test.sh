@@ -22,6 +22,9 @@ setup() {
 #!/bin/bash
 [ -e "$SB/state/pgdump-fails" ] && { echo "pg_dump: error: connection refused" >&2; exit 1; }
 echo "PGDMP-fake-custom-format-archive"
+# A real database's dump is far larger than a pipe buffer. The stand-in can be told to be.
+[ -e "$SB/state/large-dump" ] && head -c 4000000 /dev/zero | tr '\0' 'x'
+exit 0
 FAKE
 	cat >"$SB/bin/psql" <<'FAKE'
 #!/bin/bash
@@ -38,7 +41,11 @@ FAKE
 	fi
 	cat >"$SB/bin/pg_restore" <<'FAKE'
 #!/bin/bash
-grep -q PGDMP && [ ! -e "$SB/state/restore-lists-fail" ]
+# Like the real `pg_restore --list` reading a pipe: it takes the header and the table of contents
+# and exits, leaving the rest of the archive unread. A verifier that does not drain what is left
+# is killed by SIGPIPE under pipefail, which is how every real backup larger than the pipe buffer
+# once failed its own verification.
+head -c 5 | grep -q PGDMP && [ ! -e "$SB/state/restore-lists-fail" ]
 FAKE
 	cat >"$SB/bin/rclone" <<'FAKE'
 #!/bin/bash
@@ -108,6 +115,16 @@ assert_eq "status records encryption" true "$(jqs .encrypted)"
 assert_eq "offsite is reported as not configured" not_configured "$(jqs .offsite)"
 health
 assert_status "the healthcheck passes" 0 "$HSTATUS"
+teardown
+
+echo "a dump larger than a pipe buffer"
+setup
+touch "$SB/state/large-dump"
+backup
+assert_status "is verified and written (pg_restore --list stops reading after the table of contents)" 0 "$STATUS"
+assert_eq "status says ok" ok "$(jqs .lastResult)"
+dumps=$(ls "$SB/backups"/ai_discovery-*.dump.age 2>/dev/null | wc -l | tr -d ' ')
+assert_eq "and the dump is kept" 1 "$dumps"
 teardown
 
 echo "pg_dump fails"
