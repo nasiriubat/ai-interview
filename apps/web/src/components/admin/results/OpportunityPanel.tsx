@@ -202,7 +202,7 @@ export function OpportunityPanel({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="grid flex-1 content-start gap-6 overflow-y-auto px-5 py-5">
+        <div tabIndex={0} className="grid flex-1 content-start gap-6 overflow-y-auto px-5 py-5">
           {o.whyNotAi ? (
             <div className="bg-warning-soft text-warning-soft-foreground flex gap-3 rounded-lg px-4 py-3">
               <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
