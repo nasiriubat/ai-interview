@@ -19,6 +19,9 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /users": ["user.create", "user.create_refused"],
   "PATCH /users/:id": ["user.update", "user.disable", "user.enable"],
   "DELETE /users/:id": ["user.delete"],
+  // the signed-in person's own profile (D-344)
+  "PATCH /me": ["user.update"],
+  "POST /me/sessions/revoke": ["user.sessions_revoke"],
   // templates
   "POST /templates": ["template.create"],
   "PUT /templates/:id": ["template.update"],

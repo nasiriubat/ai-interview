@@ -179,6 +179,37 @@ suite("audit rows: every administrative mutation writes one", () => {
     });
   });
 
+  it("PATCH /me and POST /me/sessions/revoke: the person's own profile and sessions (D-344)", async () => {
+    await audited(
+      "PATCH /me",
+      "/me",
+      { name: "Own name" },
+      { action: "user.update", targetType: "user", targetId: userIds.member, actor: "member" },
+    );
+    // Revoking ends that person's tokens, so it runs as a user of its own and not as the member the
+    // later scenarios still need.
+    const email = `audit-revoke-${Date.now().toString(36)}@test.io`;
+    const user = await world.db.user.create({ data: { companyId: world.companyId, email, role: "member" } });
+    const saved = { id: userIds.member, token: tokens.member };
+    userIds.member = user.id;
+    tokens.member = await encode({
+      token: { email },
+      secret: world.ctx.config.AUTH_SECRET,
+      salt: "authjs.session-token",
+    });
+    try {
+      await audited("POST /me/sessions/revoke", "/me/sessions/revoke", { confirm: true }, {
+        action: "user.sessions_revoke",
+        targetType: "user",
+        targetId: user.id,
+        actor: "member",
+      });
+    } finally {
+      userIds.member = saved.id;
+      tokens.member = saved.token;
+    }
+  });
+
   // ---------- templates ----------
 
   it("POST /templates, PUT /templates/:id, publish, preview, archive", async () => {
