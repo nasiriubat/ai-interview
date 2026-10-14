@@ -14,6 +14,21 @@
 --
 -- Handing the queue back to app_api restores the arrangement a healthy system has, rather than
 -- papering over it with grants.
+--
+-- The second thing only a restore loses is the database-level privilege. Migration 0010 grants
+-- app_api CREATE on the database (pg-boss creates its schema at start-up, and checks for the
+-- privilege before it looks at IF NOT EXISTS), but a restore drops and recreates the database, a
+-- pg_dump carries no database-level GRANT, and `prisma migrate deploy` does not run 0010 again
+-- because the dump says it already ran. Without this, the first live restore ends in
+-- "preflight: FAIL: app_api lacks CREATE on the database" with the stack down (found by the
+-- full-stack drill: the disaster path itself failed). A GRANT of a held privilege is a no-op.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_api') THEN
+    EXECUTE format('GRANT CREATE ON DATABASE %I TO app_api', current_database());
+  END IF;
+END $$;
+
 DO $$
 DECLARE obj record;
 BEGIN

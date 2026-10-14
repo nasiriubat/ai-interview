@@ -43,6 +43,13 @@ assert_not_contains "the production file never mentions the mail catcher" "$(cat
 dockerfile_fake="$REPO/tools/fake-provider/Dockerfile"
 assert_contains "the fake's Dockerfile builds from the repository root" "$(cat "$dockerfile_fake")" "COPY tools/fake-provider/src"
 
+echo "grants.sql repairs what only a restore loses"
+grants="$(cat "$DEPLOY_DIR/grants.sql")"
+# preflight.sh refuses to start the stack without CREATE on the database; a restore recreates the
+# database and the dump carries no database-level GRANT, so this file is the only place left to say it.
+assert_contains "grants CREATE on the database to app_api" "$grants" "GRANT CREATE ON DATABASE"
+assert_contains "and preflight is what asks for it" "$(cat "$DEPLOY_DIR/preflight.sh")" "'CREATE'"
+
 echo "the Caddyfile"
 caddyfile="$DEPLOY_DIR/Caddyfile"
 # A log filter field takes one filter type. A `regexp` and a `query` on request>uri in the same
