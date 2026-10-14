@@ -1,4 +1,4 @@
-import { readFile, statfs } from "node:fs/promises";
+import { readFile, stat, statfs } from "node:fs/promises";
 import { join } from "node:path";
 import { withSystemTenant } from "@aidp/db";
 import type { PrismaClient } from "@prisma/client";
@@ -62,6 +62,40 @@ export class PrismaHealthInputs implements HealthInputs {
     const free = s.bavail * s.bsize;
     const used = total - s.bfree * s.bsize;
     return { path, totalBytes: used + free, usedBytes: used };
+  }
+
+  async heartbeatAgeSeconds(): Promise<number | null> {
+    const dir = this.deps.opsStateDir;
+    if (!dir) return null;
+    try {
+      const s = await stat(join(dir, "heartbeat", "worker"));
+      return Math.max(0, Math.round((Date.now() - s.mtimeMs) / 1000));
+    } catch {
+      return null;
+    }
+  }
+
+  async tenantActivity(): Promise<{ companyId: string; activeSessions: number; storageBytes: number }[]> {
+    return withSystemTenant(async () => {
+      const since = new Date(Date.now() - 5 * 60_000);
+      const [active, storage] = await Promise.all([
+        this.deps.db.session.groupBy({
+          by: ["companyId"],
+          where: { updatedAt: { gte: since }, status: { in: ["active", "consented"] } },
+          _count: { _all: true },
+        }),
+        this.deps.db.attachment.groupBy({ by: ["companyId"], _sum: { sizeBytes: true } }),
+      ]);
+      const out = new Map<string, { companyId: string; activeSessions: number; storageBytes: number }>();
+      for (const a of active)
+        out.set(a.companyId, { companyId: a.companyId, activeSessions: a._count._all, storageBytes: 0 });
+      for (const s of storage) {
+        const row = out.get(s.companyId) ?? { companyId: s.companyId, activeSessions: 0, storageBytes: 0 };
+        row.storageBytes = s._sum.sizeBytes ?? 0;
+        out.set(s.companyId, row);
+      }
+      return [...out.values()];
+    });
   }
 
   async providerCalls(since: Date): Promise<ProviderCallStats[]> {
