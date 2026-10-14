@@ -803,6 +803,42 @@ newer schema, so rolling back is a tag switch. A migration that does not follow 
 and the gate that enforces it (`scripts/check-migrations.mjs`, in `pnpm check`) are in
 [`MIGRATIONS.md`](MIGRATIONS.md).
 
+## Locked out / email not working
+
+Symptom: the sign-in page ends on "the sign-in email could not be sent" (`/auth/error`, Auth.js
+`EmailSignin`), or the link never arrives, and nobody who could fix the relay is signed in.
+
+1. **Get one person in.** On the server:
+
+   ```bash
+   deploy/signin-link.sh admin@example.com      # or the operator's address
+   ```
+
+   It prints a one-time sign-in URL, valid for 15 minutes, for an existing, enabled staff user of an
+   active organization (the operator is never refused for their organization). Open it in the
+   browser that should be signed in. Exit status 1 means refused, and the reason is on stderr: an
+   unknown address, a disabled user (another admin or the operator re-enables them), or a suspended
+   organization (the operator reactivates it, or signs in as the operator instead). Each issued link
+   is an audit row `auth.signin_link_issued`, actor `cli`, and a warning line; the token is in
+   neither. [DEPLOY.md](DEPLOY.md#break-glass-a-sign-in-link-from-the-servers-shell) says why this
+   adds no privilege.
+
+2. **Find out what the relay says.** `./deploy/dc logs web --since 1h | grep -i -E 'smtp|mail'`
+   shows the transport error (the web app sends sign-in links). Typical causes: a wrong password or
+   user name, a password with `@`, `:` or `/` that is not percent-encoded, `smtp://` on port 465
+   (that port wants `smtps://`), an outbound port blocked by the hosting provider (many block 25 and
+   some 587; try 465 or 2525), or a sender address the relay is not allowed to send for.
+3. **Fix `EMAIL_SMTP_URL`** (and `EMAIL_FROM`) in `deploy/.env`, then `./deploy/dc up -d` so the api,
+   worker and web pick it up. Any SMTP relay works: a transactional email provider, the SMTP
+   submission service of your organization's mailbox provider, or your own mail server. Publish SPF
+   and DKIM for the sender's domain as that relay documents, or links land in spam.
+4. **Prove it.** Settings, Email, "Send test email" sends to your own address and names the class of
+   failure. Then sign out and sign in by email once, the way everyone else will.
+
+The break-glass link is not a substitute for mail: invitations, reports, alerts and every other
+person's sign-in still need the relay. If links are being issued routinely, the relay is the
+problem to fix. To see who used it: Audit log, filtered by the action `auth.signin_link_issued`.
+
 ## Provider timeouts and retries
 
 Every model call has a deadline (`packages/ai/src/providers/resilience.ts`). Defaults, in
