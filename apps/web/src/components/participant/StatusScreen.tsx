@@ -1,6 +1,5 @@
 import * as React from "react";
-import { CenteredShell } from "@/components/common/CenteredShell";
-import { LanguageSwitch } from "@/components/common/LanguageSwitch";
+import { ParticipantPage } from "./ParticipantFrame";
 import { PageHeading } from "@/components/common/PageHeading";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +11,7 @@ export function StatusScreen({
   children,
   note,
   tone = "neutral",
+  identity,
 }: {
   icon?: React.ReactNode;
   title: string;
@@ -20,14 +20,16 @@ export function StatusScreen({
   /** A short block under the body, such as the resume recap on the paused screen. */
   note?: React.ReactNode;
   tone?: "neutral" | "warning" | "success";
+  /** The name in the header, when the screen knows it (the interview's own name). */
+  identity?: string | undefined;
 }): React.JSX.Element {
   return (
-    <CenteredShell aside={<LanguageSwitch />} className="flex flex-col items-center gap-4 text-center">
+    <ParticipantPage title={identity} className="flex flex-col items-center gap-4 py-10 text-center sm:py-12">
       {icon ? (
         <div
           aria-hidden="true"
           className={cn(
-            "flex size-14 items-center justify-center rounded-full",
+            "flex size-16 items-center justify-center rounded-full [&_svg]:size-7",
             tone === "warning" && "bg-warning-soft text-warning-soft-foreground",
             tone === "success" && "bg-success-soft text-success-soft-foreground",
             tone === "neutral" && "bg-accent text-accent-foreground",
@@ -41,7 +43,7 @@ export function StatusScreen({
       {note ? (
         <div className="bg-card shadow-card max-w-prose rounded-xl p-4 text-left text-sm">{note}</div>
       ) : null}
-      {children ? <div className="mt-2 flex flex-wrap justify-center gap-2">{children}</div> : null}
-    </CenteredShell>
+      {children ? <div className="mt-3 flex flex-wrap justify-center gap-2">{children}</div> : null}
+    </ParticipantPage>
   );
 }

@@ -14,9 +14,6 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/*.config.{js,ts,mjs}",
       "**/prisma/migrations/**",
-      // One-off marketing demo drivers (marketing/demo-2026-10): not product code, not type-checked
-      // by the web image, which is why they live outside `scripts/`.
-      "apps/web/demo/**",
     ],
   },
   js.configs.recommended,

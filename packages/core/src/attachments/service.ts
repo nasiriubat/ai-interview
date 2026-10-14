@@ -77,6 +77,8 @@ export interface AttachmentView {
   summary: string | null;
   error: string | null;
   durationMs: number | null;
+  /** The message this was recorded or sent with, when there is one (a spoken answer's audio). */
+  messageId: string | null;
   createdAt: string;
 }
 
@@ -553,6 +555,7 @@ function view(row: {
   summary: string | null;
   error: string | null;
   durationMs: number | null;
+  messageId?: string | null;
   createdAt: Date;
 }): AttachmentView {
   return {
@@ -565,6 +568,7 @@ function view(row: {
     summary: row.summary,
     error: row.error,
     durationMs: row.durationMs,
+    messageId: row.messageId ?? null,
     createdAt: row.createdAt.toISOString(),
   };
 }

@@ -166,7 +166,11 @@ describe("server pages follow the lang cookie", () => {
     await renderPage(NotFound());
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(fi.participant.arrival.invalidTitle);
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    // The only controls are the language and appearance menus in the frame's header.
+    expect(screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
+      expect.stringMatching(/^(Kieli|Language): /),
+      expect.stringMatching(/^(Ulkoasu|Appearance): /),
+    ]);
   });
 
   it("an admin list page renders its header in Finnish", async () => {
