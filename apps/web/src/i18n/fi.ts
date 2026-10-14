@@ -1260,6 +1260,8 @@ export const fi: Strings = {
         exports: "Viennit",
         email: "Sähköposti",
         notifications: "Ilmoitukset",
+        ceiling: "Rajat",
+        ui: "Käyttöliittymä",
         ops: "Käytön hälytykset",
         other: "Muut",
       },
@@ -1730,6 +1732,7 @@ export const fi: Strings = {
         optional: "Valinnainen",
         off: "Pois käytöstä",
       },
+      "branding.language": { en: "Englanti", fi: "Suomi" },
       "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Yleinen" },
     },
     settingKey: {
@@ -1877,17 +1880,9 @@ export const fi: Strings = {
         label: "Mallipohjien ketjutus",
         description: "Mallipohja voi käynnistää toisen sen oppimien tietojen pohjalta.",
       },
-      "features.collaboration": {
-        label: "Kutsutut yhteistyökumppanit",
-        description: "Vaatimushaastattelun omistaja voi kutsua toisen henkilön vastaamaan.",
-      },
       "branding.productName": {
         label: "Osallistujille näytettävä tuotenimi",
         description: "Näkyy saapumissivulla ja sähköposteissa.",
-      },
-      "branding.primaryColor": {
-        label: "Pääväri",
-        description: "Tallennetaan myöhempää käyttöä varten; osallistujasivut eivät käytä sitä vielä.",
       },
       "branding.emailSender": {
         label: "Lähettäjän osoite (vanhentunut)",
@@ -2020,6 +2015,53 @@ export const fi: Strings = {
       "exports.bundleFormat": {
         label: "Agenttipaketin muoto",
         description: "Mille koodausagentille ladattava paketti valmistellaan.",
+      },
+      "notifications.campaignThreshold": {
+        label: "Lähetä sähköposti, kun haastatteluja on tarpeeksi",
+        description:
+          "Lähetä organisaation ylläpitäjille sähköposti, kun kampanja saavuttaa valmistumisrajansa ja analyysi alkaa.",
+      },
+      "notifications.analysisReady": {
+        label: "Lähetä sähköposti, kun analyysi on valmis",
+        description:
+          "Lähetä organisaation ylläpitäjille sähköposti, kun analyysi on valmis ja sen raportin voi lukea.",
+      },
+      "notifications.specReady": {
+        label: "Lähetä sähköposti, kun määrittelyn versio on valmis",
+        description: "Lähetä organisaation ylläpitäjille sähköposti, kun määrittelystä on luotu uusi versio.",
+      },
+      "branding.language": {
+        label: "Ylläpitäjille lähetettävien viestien kieli",
+        description: "Tämän organisaation ylläpitäjille lähetettävien ilmoitusten ja kutsujen kieli.",
+      },
+      "voice.enabled": {
+        label: "Äänivastaukset",
+        description:
+          "Saavatko osallistujat vastata äänellä. Pohja ei voi ottaa käyttöön sitä, minkä organisaatio on kytkenyt pois.",
+      },
+      "ui.onboardingDismissed": {
+        label: "Aloitusopas piilotettu",
+        description: "Asetetaan, kun ylläpitäjä piilottaa yhteenvetosivun aloitusoppaan.",
+      },
+      "ceiling.maxActiveCampaigns": {
+        label: "Kampanjoita enintään yhtä aikaa",
+        description:
+          "Kuinka monta kampanjaa organisaatiolla saa olla avoinna tai luonnoksena. 0 tarkoittaa, ettei rajaa ole. Alustan ylläpitäjä asettaa tämän.",
+      },
+      "ceiling.maxSessionsPerMonth": {
+        label: "Haastatteluja enintään kuukaudessa",
+        description:
+          "Kuinka monta haastattelua organisaatio saa aloittaa kalenterikuukaudessa. 0 tarkoittaa, ettei rajaa ole. Alustan ylläpitäjä asettaa tämän.",
+      },
+      "ceiling.storageBytes": {
+        label: "Tallennustilan raja (tavuina)",
+        description:
+          "Kuinka monta tavua tiedostoja ja äänitteitä organisaatio saa säilyttää. 0 tarkoittaa, ettei rajaa ole. Alustan ylläpitäjä asettaa tämän.",
+      },
+      "ceiling.voiceMinutes": {
+        label: "Puheminuutteja kuukaudessa",
+        description:
+          "Kuinka monta minuuttia puhetta organisaatio saa käyttää kalenterikuukaudessa. 0 tarkoittaa, ettei rajaa ole. Alustan ylläpitäjä asettaa tämän.",
       },
     },
   },

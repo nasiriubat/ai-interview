@@ -1256,6 +1256,8 @@ export const en = {
         exports: "Exports",
         email: "Email",
         notifications: "Notifications",
+        ceiling: "Limits",
+        ui: "Interface",
         ops: "Operations alerts",
         other: "Other",
       },
@@ -1735,6 +1737,7 @@ export const en = {
         optional: "Optional",
         off: "Off",
       },
+      "branding.language": { en: "English", fi: "Finnish" },
       "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Generic" },
     } as Record<string, Record<string, string>>,
     /** A name and a one-sentence description for every key of the settings catalog. */
@@ -1880,17 +1883,9 @@ export const en = {
         label: "Template chaining",
         description: "A template can start another one from what it learned.",
       },
-      "features.collaboration": {
-        label: "Invited collaborators",
-        description: "The owner of a requirements interview can invite a second person to answer.",
-      },
       "branding.productName": {
         label: "Product name shown to participants",
         description: "Appears on the arrival page and in emails.",
-      },
-      "branding.primaryColor": {
-        label: "Primary color",
-        description: "Saved for later use; the participant pages do not use it yet.",
       },
       "branding.emailSender": {
         label: "Sender address (deprecated)",
@@ -2023,6 +2018,54 @@ export const en = {
       "exports.bundleFormat": {
         label: "Agent bundle format",
         description: "Which coding agent the downloadable bundle is prepared for.",
+      },
+      "notifications.campaignThreshold": {
+        label: "Email when a campaign has enough interviews",
+        description:
+          "Email the organization's admins when a campaign reaches its completion threshold and its analysis starts.",
+      },
+      "notifications.analysisReady": {
+        label: "Email when an analysis is ready",
+        description:
+          "Email the organization's admins when an analysis has finished and its report can be read.",
+      },
+      "notifications.specReady": {
+        label: "Email when a specification version is ready",
+        description:
+          "Email the organization's admins when a new version of a specification has been generated.",
+      },
+      "branding.language": {
+        label: "Language of emails to admins",
+        description: "The language of the notices and invitations sent to this organization's admins.",
+      },
+      "voice.enabled": {
+        label: "Voice answers",
+        description:
+          "Whether participants may answer by voice. A template cannot turn on what the organization has turned off.",
+      },
+      "ui.onboardingDismissed": {
+        label: "Getting-started card dismissed",
+        description: "Set when an admin dismisses the getting-started card on the dashboard.",
+      },
+      "ceiling.maxActiveCampaigns": {
+        label: "Most campaigns at once",
+        description:
+          "The most campaigns this organization may have open or in draft. 0 means no limit. Set by the platform operator.",
+      },
+      "ceiling.maxSessionsPerMonth": {
+        label: "Most interviews per month",
+        description:
+          "The most interviews this organization may start in a calendar month. 0 means no limit. Set by the platform operator.",
+      },
+      "ceiling.storageBytes": {
+        label: "Storage limit (bytes)",
+        description:
+          "The most bytes of files and recordings this organization may keep. 0 means no limit. Set by the platform operator.",
+      },
+      "ceiling.voiceMinutes": {
+        label: "Voice minutes per month",
+        description:
+          "The most minutes of voice this organization may use in a calendar month. 0 means no limit. Set by the platform operator.",
       },
     } satisfies Record<SettingKey, { label: string; description: string }>,
   },
