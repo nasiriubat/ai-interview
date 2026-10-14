@@ -7,8 +7,10 @@ import {
   type LiveSpec,
   type Path,
   type SessionState,
+  type SpecDiagram,
   type SpecEdits,
 } from "@aidp/shared";
+import { isDiagramEditKey, liveDiagrams } from "./diagrams.js";
 
 export type SpecFieldFact = Extract<Fact, { kind: "spec_field" }>;
 
@@ -131,6 +133,8 @@ export interface LiveSpecInput {
   edits: SpecEdits;
   /** Section keys in order; unknown keys found in facts are appended. */
   sections?: readonly string[];
+  /** The newest version's diagrams, which the owner's diagram edits are laid over (FR-23). */
+  diagrams?: readonly SpecDiagram[];
 }
 
 /** Layer 2 of a requirements session made visible: the spec as it stands after the last turn (FR-22). */
@@ -138,7 +142,8 @@ export function renderLiveSpec(input: LiveSpecInput): LiveSpec {
   const facts = specFacts(input.state);
   const order = [...(input.sections ?? SPEC_SECTION_KEYS)];
   for (const f of facts) if (!order.includes(f.sectionKey)) order.push(f.sectionKey);
-  for (const k of Object.keys(input.edits)) if (!order.includes(k)) order.push(k);
+  // Diagram edits share the column but are not sections: they are shown, and applied, as diagrams.
+  for (const k of Object.keys(input.edits)) if (!isDiagramEditKey(k) && !order.includes(k)) order.push(k);
 
   const sections: LiveSection[] = order.map((key) => {
     const fields = facts
@@ -157,6 +162,7 @@ export function renderLiveSpec(input: LiveSpecInput): LiveSpec {
     path: input.path ?? null,
     context: input.state.contextAnswers,
     sections,
+    diagrams: liveDiagrams(input.diagrams ?? [], input.edits),
     findings: input.state.findings,
     decisions: input.state.decisions,
     mvpChallenge: input.state.mvpChallenge,

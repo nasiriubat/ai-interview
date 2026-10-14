@@ -164,6 +164,7 @@ describe("generateSpec", () => {
       "PLAN.md",
       "tasks/phase-1.md",
       "tasks/phase-2.md",
+      "diagrams/er.mmd",
       "spec.md",
       "spec.json",
     ]);
