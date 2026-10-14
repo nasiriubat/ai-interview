@@ -213,8 +213,41 @@ export function structuredAnswer(body: ChatBody): Json {
     const text = (body.messages ?? []).map((m) => contentText(m.content)).join("\n");
     return { facts: scriptedFacts(text) };
   }
-  return minimalValue(schema ?? {});
+  const value = minimalValue(schema ?? {});
+  // The specification pass: a document with diagrams in it, so PDF export has something for the
+  // diagram renderer to draw and a drill exercises that pair for real.
+  if ("sections" in props && "diagrams" in props && isRecord(value)) {
+    return {
+      ...value,
+      title: "Scripted specification",
+      diagrams: [
+        {
+          key: "context",
+          title: "System context",
+          type: "context",
+          mermaid: "flowchart LR\n  clerk[Ward clerk] --> app[Charting app]\n  app --> store[(Records)]",
+        },
+        {
+          key: "sequence",
+          title: "Recording bed status",
+          type: "sequence",
+          mermaid:
+            "sequenceDiagram\n  participant C as Clerk\n  participant A as App\n  C->>A: Enter status\n  A-->>C: Saved",
+        },
+        {
+          key: "entity",
+          title: "Data",
+          type: "entity",
+          mermaid: "erDiagram\n  BED ||--o{ STATUS : has\n  BED { string id }\n  STATUS { string value }",
+        },
+      ],
+    };
+  }
+  return value;
 }
+
+const isRecord = (v: unknown): v is Record<string, Json> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
 
 /** A rough token count, the way the platform's own estimate does it: four characters to a token. */
 export function tokens(text: string): number {

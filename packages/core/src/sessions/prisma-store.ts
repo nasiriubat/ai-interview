@@ -244,12 +244,25 @@ export class PrismaSessionStore implements SessionStore {
 
 type Tx = Parameters<Parameters<typeof tenantTransaction>[1]>[0];
 
+/** Takes the session row lock for the rest of the transaction. Re-entrant: the holder may take it again. */
+export async function lockSessionRow(tx: Tx, sessionId: string): Promise<void> {
+  await tx.$queryRaw`SELECT 1 FROM "Session" WHERE id = ${sessionId} FOR UPDATE`;
+}
+
 async function appendEventIn(
   tx: Tx,
   sessionId: string,
   type: SessionEventType,
   payload: unknown,
 ): Promise<void> {
+  // The next number is "highest so far plus one", which is only right for one writer at a time.
+  // A turn (the API) and an extraction commit (the worker) append to the same session within
+  // milliseconds of each other, and without this lock both read the same highest seq: the second
+  // insert fails the (sessionId, seq) unique constraint, and when that is the participant's turn the
+  // participant is told "Something went wrong" mid-interview (found by the full-stack drill, one
+  // participant, turn 12 of 20). The session row is the one thing every writer already contends
+  // on, so locking it serializes the appends and nothing else.
+  await lockSessionRow(tx, sessionId);
   const last = await tx.sessionEvent.findFirst({
     where: { sessionId },
     orderBy: { seq: "desc" },

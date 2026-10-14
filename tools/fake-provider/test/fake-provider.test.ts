@@ -156,6 +156,19 @@ describe("structured outputs", () => {
     expect(schema.parse(await ask(schema))).toBeTruthy();
   });
 
+  it("draws diagrams into a specification, for the renderer to draw", async () => {
+    const schema = z.object({
+      title: z.string().default(""),
+      sections: z.array(z.object({ key: z.string(), markdown: z.string() })).default([]),
+      diagrams: z
+        .array(z.object({ key: z.string(), title: z.string(), type: z.string(), mermaid: z.string() }))
+        .default([]),
+    });
+    const out = schema.parse(await ask(schema, "specification"));
+    expect(out.diagrams.map((d) => d.type)).toEqual(["context", "sequence", "entity"]);
+    expect(out.diagrams[0]?.mermaid).toMatch(/^flowchart/);
+  });
+
   it("minimalValue satisfies the platform's own state schemas", () => {
     for (const schema of [StateDeltaSchema, FactSchema, InterviewTemplateSchema]) {
       const json = z.toJSONSchema(schema, { target: "openapi-3.0", unrepresentable: "any" });

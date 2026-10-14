@@ -12,7 +12,7 @@ import {
   type SpecDocument,
 } from "@aidp/shared";
 import type { InterviewTemplate as TemplateRow, Prisma, SpecVersion } from "@prisma/client";
-import { templateFromRow } from "../sessions/prisma-store.js";
+import { lockSessionRow, templateFromRow } from "../sessions/prisma-store.js";
 import type { SettingScopeRef } from "../settings/service.js";
 import { RequirementsForbiddenError, RequirementsNotFoundError, SpecVersionNotReadyError } from "./errors.js";
 import { parseEdits, pathOf, REQUIREMENTS_TEMPLATE_KEY } from "./helpers.js";
@@ -125,6 +125,9 @@ export class RequirementsContext {
 
   async appendEvent(sessionId: string, type: SessionEventType, payload: unknown): Promise<void> {
     await tenantTransaction(this.deps.db, async (tx) => {
+      // The same race as PrismaSessionStore.appendEvent: the next seq is "highest plus one", so
+      // the appends of one session are serialized on its row.
+      await lockSessionRow(tx, sessionId);
       const last = await tx.sessionEvent.findFirst({
         where: { sessionId },
         orderBy: { seq: "desc" },
