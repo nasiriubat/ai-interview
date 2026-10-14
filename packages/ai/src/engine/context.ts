@@ -2,12 +2,12 @@ import type { ChatMessage, InterviewTemplate, SessionState } from "@aidp/shared"
 import { widgetResponseToText } from "@aidp/shared";
 import { estimateTokens } from "../cost/pricing.js";
 import { nextRequirementNumber } from "../spec/delta-validation.js";
-import { mvpItems, specFacts } from "../spec/live.js";
+import { mvpItems, requirementFacts, specFacts, titleOf } from "../spec/live.js";
 import { languageName } from "../util/language.js";
 import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js";
 import type { PromptDefinition } from "./prompts/index.js";
-import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v6.js";
+import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v7.js";
 import type { Focus } from "./selection.js";
 import { TURN_MARKER } from "./turn-parser.js";
 
@@ -119,6 +119,14 @@ export function renderState(
     lines.push(
       `Functional requirements recorded: ${requirements}; the next one is FR-${nextRequirementNumber(state)}`,
     );
+    // Titles, not just ids: a capability the interviewer cannot see is a capability it files twice.
+    const recorded = requirementFacts(state);
+    if (recorded.length) {
+      lines.push("Requirements recorded (re-record an id to change it; never file one twice):");
+      for (const f of recorded.slice(-40))
+        lines.push(`- ${f.path}: ${titleOf(f.value, f.path).replace(/\s+/g, " ").slice(0, 90)}`);
+      if (recorded.length > 40) lines.push(`(${recorded.length - 40} earlier requirements not shown)`);
+    }
     const mvp = mvpItems(state);
     if (mvp.length) lines.push(`MVP items: ${mvp.map((i) => `${i.path} ${i.title}`).join("; ")}`);
   }

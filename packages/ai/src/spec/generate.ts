@@ -33,6 +33,8 @@ import {
   titleOf,
 } from "./live.js";
 import { renderSpecMarkdown } from "./markdown.js";
+import { judgeCandidatePairs } from "./merge.js";
+import { curateRequirements, reqViewOf, type CurationReport } from "./quality.js";
 
 /** What the model returns; the document is assembled from it plus the owner's edits. */
 export const SpecGenerationOutputSchema = z.object({
@@ -90,6 +92,8 @@ export interface SpecGenerationResult {
   issues: Finding[];
   stats: SpecVersionStats;
   generated: "model" | "fallback";
+  /** What the quality pass did to the recorded requirements before the version was written (D-241). */
+  curation: CurationReport;
   error?: string;
   /**
    * Set when the version must not be offered as a specification: fewer requirements than the
@@ -126,7 +130,9 @@ export function mergeRequirements(
         : s,
     );
   }
-  for (const m of fromModel) if (!seen.has(m.id.toUpperCase())) out.push(m);
+  // A requirement the model added that the interview never recorded has no quote of the owner
+  // behind it: kept, but flagged for the owner to confirm (D-243).
+  for (const m of fromModel) if (!seen.has(m.id.toUpperCase())) out.push({ ...m, needsConfirmation: true });
   return out;
 }
 
@@ -140,8 +146,52 @@ export function requirementsFromState(state: SessionState): SpecDocument["requir
       scope: scopeOf(f.value),
       acceptance: Array.isArray(v.acceptance) ? v.acceptance.map(String) : [],
       ...(typeof v.reason === "string" && v.reason ? { reason: v.reason } : {}),
+      ...(typeof v.evidence === "string" && v.evidence ? { evidence: v.evidence } : {}),
+      ...(v.needsConfirmation === true ? { needsConfirmation: true } : {}),
+      ...(Array.isArray(v.mergedFrom) && v.mergedFrom.length ? { mergedFrom: v.mergedFrom.map(String) } : {}),
     };
   });
+}
+
+/**
+ * The quality pass over the recorded requirements (D-241 to D-243): decisions, constraints and
+ * questions filed as functional are rerouted, screen details are folded into their capability,
+ * duplicates are merged (plainly equal ones by word overlap, near ones after one cheap model look
+ * at those pairs only). The state returned is what the rest of the generation reads.
+ */
+export async function curateForGeneration(
+  deps: { caller: ModelCallerPort; prompts: PromptSource; logger: Logger },
+  input: { companyId: string; sessionId: string; state: SessionState },
+): Promise<{ state: SessionState; report: CurationReport }> {
+  const first = curateRequirements(input.state);
+  let curated = first;
+  if (first.report.candidates.length > 0) {
+    const reqs = requirementFacts({ ...input.state, facts: first.facts }).map((f) => reqViewOf(f));
+    const verdict = await judgeCandidatePairs(deps, {
+      companyId: input.companyId,
+      sessionId: input.sessionId,
+      reqs,
+      pairs: first.report.candidates,
+    });
+    if (verdict.same.length > 0 || verdict.different.length > 0) {
+      const second = curateRequirements(
+        { facts: first.facts },
+        { modelDuplicates: verdict.same, modelDistinct: verdict.different },
+      );
+      curated = {
+        facts: second.facts,
+        report: {
+          merged: [...first.report.merged, ...second.report.merged],
+          rerouted: first.report.rerouted,
+          withdrawn: first.report.withdrawn,
+          renumbered: first.report.renumbered,
+          folded: [...first.report.folded, ...second.report.folded],
+          candidates: second.report.candidates,
+        },
+      };
+    }
+  }
+  return { state: { ...input.state, facts: curated.facts }, report: curated.report };
 }
 
 /** The fingerprint a section is written from: the deterministic live rendering of its facts and edit. */
@@ -267,9 +317,11 @@ function statsOf(
  */
 export async function generateSpec(
   deps: SpecGenerationDeps,
-  input: SpecGenerationInput,
+  rawInput: SpecGenerationInput,
 ): Promise<SpecGenerationResult> {
   const now = (deps.now ?? (() => new Date()))();
+  const { state: curatedState, report: curation } = await curateForGeneration(deps, rawInput);
+  const input: SpecGenerationInput = { ...rawInput, state: curatedState };
   const issues = openIssues(input.state);
   const finish = (
     drawn: SpecDocument,
@@ -294,6 +346,7 @@ export async function generateSpec(
       issues,
       stats: statsOf(document, issues, promptVersions, generated),
       generated,
+      curation,
       ...(error ? { error } : {}),
       ...(failure ? { failure } : {}),
     };

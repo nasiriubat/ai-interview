@@ -65,6 +65,8 @@ export interface ContractInput {
   areas: string;
   focusText: string;
   participantAnswer: string;
+  /** The participant's recent messages, for verifying the evidence quotes of requirements (D-243). */
+  spoken?: string[] | undefined;
   signal?: AbortSignal | undefined;
 }
 
@@ -114,6 +116,7 @@ export async function settleTurnContract(
   input: ContractInput,
 ): Promise<{ meta: TurnMeta; delta: StateDelta; contract: ContractReport }> {
   const { state, producesSpec } = input;
+  const spokenOption = input.spoken ? { spoken: input.spoken } : {};
   let meta = input.meta;
   const markerMissed = Boolean(input.parseError) && Boolean(input.message) && Object.keys(meta).length === 0;
   const reasons: ContractReason[] = [];
@@ -121,7 +124,7 @@ export async function settleTurnContract(
 
   let parsed = parseStateDelta(meta.stateDelta);
   if (producesSpec && !markerMissed && parsed.dropped.length) reasons.push("dropped_fields");
-  const check = checkSpecFacts(parsed.delta.facts, state, { producesSpec });
+  const check = checkSpecFacts(parsed.delta.facts, state, { producesSpec, ...spokenOption });
   if (producesSpec) {
     for (const r of check.rejected) if (!reasons.includes(r.reason)) reasons.push(r.reason);
     const hasSpecFact = check.facts.some((f) => f.kind === "spec_field");
@@ -177,7 +180,7 @@ export async function settleTurnContract(
       // continue after the accepted ones instead of colliding with them.
       const kept = check.facts.filter((f) => !flood.includes(f));
       const stateWithTurn = { facts: mergeFacts(state.facts, kept) };
-      const recheck = checkSpecFacts(second.delta.facts, stateWithTurn, { producesSpec });
+      const recheck = checkSpecFacts(second.delta.facts, stateWithTurn, { producesSpec, ...spokenOption });
       const factsOut = mergeFacts(kept, recheck.facts);
       meta = markerMissed ? repaired : { ...repaired, ...meta };
       delta = combine(parsed.delta, second.delta, factsOut);
@@ -197,7 +200,7 @@ export async function settleTurnContract(
   } else if (reasons.length > 0) {
     // Nothing to ask about: no message came back at all.
     report.outcome = "failed";
-  } else if (check.repaired.length > 0) {
+  } else if (check.repaired.some((r) => r.kind !== "ungrounded")) {
     report.outcome = "repaired";
   }
 

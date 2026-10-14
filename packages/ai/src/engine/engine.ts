@@ -149,7 +149,9 @@ export class InterviewEngine {
     }
 
     // Issue detection (FR-21b): a separate pass over the spec state, every N turns and once at completion.
-    const scan = shouldScanIssues(session.template, state, policy, session.path);
+    const scan = shouldScanIssues(session.template, state, policy, session.path, {
+      nearEnd: state.turnCount >= settings.maxTurns - 2,
+    });
     if (scan) {
       const found = await detectIssues(this.deps, {
         companyId: session.companyId,
@@ -167,6 +169,7 @@ export class InterviewEngine {
         lastIssueScanTurn: state.turnCount,
         ...(scan === "final" ? { finalIssueScanDone: true } : {}),
         ...(scan === "completeness" ? { completenessAsks: state.completenessAsks + 1 } : {}),
+        ...(scan === "confirm" ? { requirementsConfirmAsked: true } : {}),
       };
       if (found.length) {
         await store.appendEvent(session.id, "finding", { kind: "detected", reason: scan, findings: found });
@@ -273,6 +276,7 @@ export class InterviewEngine {
           .join("\n"),
         focusText: renderFocus(focus, session.template, session.path, state),
         participantAnswer: lastUser ? renderStoredMessage(lastUser) : "",
+        spoken: recent.filter((m) => m.role === "user").map((m) => renderStoredMessage(m)),
         signal,
       },
     );
