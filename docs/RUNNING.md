@@ -77,6 +77,18 @@ alternative. Tenant admins can then set their own mail server under Settings, Em
 the mail a tenant sends but not the deployment's sign-in links. The full explanation is in
 [DEPLOY.md](DEPLOY.md#how-the-first-admin-signs-in).
 
+No mail at all (Mailpit not running, or you would rather not open it)? Print a one-time link for an
+existing user from the root `.env`:
+
+```bash
+pnpm signin-link admin@example.com    # the BOOTSTRAP_ADMIN_EMAIL or BOOTSTRAP_OPERATOR_EMAIL user
+```
+
+It needs `DATABASE_URL`, `AUTH_SECRET` (the one the web app uses) and `PUBLIC_WEB_URL` (default
+`http://localhost:3000`). The link works once, for 15 minutes, and writes the audit row
+`auth.signin_link_issued`. It is the development twin of the production break-glass command,
+`deploy/signin-link.sh` ([DEPLOY.md](DEPLOY.md#break-glass-a-sign-in-link-from-the-servers-shell)).
+
 ## Running on the host
 
 For working on the code with hot reload, run only Postgres in Docker:
