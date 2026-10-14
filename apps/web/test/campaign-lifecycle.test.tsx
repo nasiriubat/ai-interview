@@ -17,6 +17,7 @@ import { setClientLocale } from "@/i18n";
 import {
   AnalysisSchema,
   CampaignSchema,
+  InvitationResultSchema,
   SessionListItemSchema,
   SettingsResponseSchema,
 } from "@/lib/api/schemas";
@@ -432,6 +433,32 @@ describe("edit campaign", () => {
     expect(screen.getByRole("textbox", { name: "Your own consent text" })).toHaveValue("");
   });
 
+  it("edits the participant welcome and saves it with the campaign scope (D-460)", async () => {
+    staff.campaigns.update.mockResolvedValue(campaign);
+    staff.settings.put.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <CampaignEditForm
+        campaign={campaign}
+        consent={consent}
+        welcome={{ own: null, defaultText: "Default welcome words.", language: "English" }}
+      />,
+    );
+    expect(screen.getByText("Default welcome (English)")).toBeInTheDocument();
+    expect(screen.getByText("Default welcome words.")).toBeInTheDocument();
+    await user.type(
+      screen.getByRole("textbox", { name: "Your own welcome text" }),
+      "  Hello from the ward.  ",
+    );
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => {
+      expect(staff.settings.put).toHaveBeenCalledWith(
+        { scope: "campaign", scopeId: "c1" },
+        { "campaign.welcomeText": "Hello from the ward." },
+      );
+    });
+  });
+
   it("shows the organization's text instead when it has one", () => {
     render(<CampaignEditForm campaign={campaign} consent={{ ...consent, organizationText: "Org words." }} />);
     expect(screen.getByText("Your organization's text")).toBeInTheDocument();
@@ -522,5 +549,16 @@ describe("in Finnish", () => {
     expect(screen.getByRole("link", { name: "Yleiskatsaus" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Haastattelut" })).toBeInTheDocument();
     setClientLocale("en");
+  });
+});
+
+describe("the invitation result (simulation 2026-10-15)", () => {
+  it("reads the API's list of skipped addresses as a count instead of failing the send", () => {
+    expect(InvitationResultSchema.parse({ created: 2, skipped: [] })).toMatchObject({
+      created: 2,
+      skipped: 0,
+    });
+    expect(InvitationResultSchema.parse({ created: 1, skipped: ["a@b.example"] }).skipped).toBe(1);
+    expect(InvitationResultSchema.parse({ created: 1, skipped: 3 }).skipped).toBe(3);
   });
 });

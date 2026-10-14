@@ -35,6 +35,16 @@ export interface ConsentView {
   organizationText: string | null;
 }
 
+/** The campaign's welcome (D-460): its own text, or the default for the template kind and language. */
+export interface WelcomeView {
+  /** The text set for this campaign, or null when it has none. */
+  own: string | null;
+  /** What participants read when nothing is set. */
+  defaultText: string;
+  /** The interview language the default was chosen for. */
+  language: string;
+}
+
 const NONE: number | "" = "";
 
 const schema = z.object({
@@ -44,10 +54,12 @@ const schema = z.object({
   threshold: z.union([z.literal(""), z.number().int().min(1)]),
   expiresAt: z.string(),
   consent: z.string(),
+  welcome: z.string().max(2000),
 });
 
 /**
- * Edit a running or draft campaign (D-237, D-362): its name, limits and consent text, in the form
+ * Edit a running or draft campaign (D-237, D-362, D-460): its name, limits, welcome and consent
+ * text, in the form
  * kit (validation on blur and submit, unsaved-changes guard, floating save bar). Who can answer
  * and whether people are identified are shown but not editable: the API fixes them at creation,
  * because participants and invitations may already depend on them.
@@ -55,9 +67,11 @@ const schema = z.object({
 export function CampaignEditForm({
   campaign,
   consent,
+  welcome = { own: null, defaultText: t.participant.arrival.welcomeFallback, language: consent.language },
 }: {
   campaign: Campaign;
   consent: ConsentView;
+  welcome?: WelcomeView;
 }): React.JSX.Element {
   const s = t.admin.campaigns;
   const router = useRouter();
@@ -70,6 +84,7 @@ export function CampaignEditForm({
     threshold: campaign.completionThreshold ?? NONE,
     expiresAt: toLocalInput(campaign.expiresAt),
     consent: consent.own ?? "",
+    welcome: welcome.own ?? "",
   };
   const form = useForm({
     id: formId,
@@ -82,6 +97,7 @@ export function CampaignEditForm({
       threshold: s.completionThreshold,
       expiresAt: s.expiresAt,
       consent: s.consentLabel,
+      welcome: s.welcomeLabel,
     },
     savedText: s.savedToast,
     onSubmit: async (v) => {
@@ -95,12 +111,17 @@ export function CampaignEditForm({
         ...(v.threshold !== "" ? { completionThreshold: v.threshold } : {}),
         ...(v.expiresAt ? { expiresAt: new Date(v.expiresAt).toISOString() } : {}),
       });
-      if (v.consent !== initial.consent) {
-        // Empty clears the campaign's own text, so the default applies again.
-        await staffClient.settings.put(
-          { scope: "campaign", scopeId: campaign.id },
-          { "campaign.consentText": v.consent.trim() === "" ? null : v.consent },
-        );
+      // Empty clears the campaign's own text, so the default applies again. One write for both.
+      const texts = {
+        ...(v.welcome !== initial.welcome
+          ? { "campaign.welcomeText": v.welcome.trim() === "" ? null : v.welcome.trim() }
+          : {}),
+        ...(v.consent !== initial.consent
+          ? { "campaign.consentText": v.consent.trim() === "" ? null : v.consent }
+          : {}),
+      };
+      if (Object.keys(texts).length > 0) {
+        await staffClient.settings.put({ scope: "campaign", scopeId: campaign.id }, texts);
       }
       // What was just saved is no longer unsaved, so leaving does not ask again.
       guard.setDirty(formId, false);
@@ -161,6 +182,29 @@ export function CampaignEditForm({
               }
             />
           </div>
+        </Inset>
+      </FormSection>
+
+      <FormSection id="welcome" title={s.welcomeTitle}>
+        <p className="text-muted-foreground -mt-2 text-sm">{s.welcomeHint}</p>
+        <TextAreaField {...form.field("welcome")} label={s.welcomeLabel} rows={4} />
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={form.values.welcome === ""}
+            onClick={() => {
+              form.set("welcome", "");
+            }}
+          >
+            {s.welcomeUseDefault}
+          </Button>
+        </div>
+        <Inset>
+          <p className="text-foreground text-sm font-medium">{s.welcomeDefaultTitle(welcome.language)}</p>
+          <p className="mt-1 text-sm whitespace-pre-line">{welcome.defaultText}</p>
+          <p className="text-muted-foreground mt-2 text-xs">{s.welcomeDefaultHint}</p>
         </Inset>
       </FormSection>
 

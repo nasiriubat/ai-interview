@@ -1,3 +1,4 @@
+import { DEFAULT_WELCOME_TEXT } from "@aidp/shared";
 import type { Strings } from "./en";
 import { kitFi } from "./kit.fi";
 import { landingFi } from "./landing.fi";
@@ -74,8 +75,8 @@ export const fi: Strings = {
   participant: {
     arrival: {
       eyebrow: "Haastattelu",
-      welcome: (company: string): string => `${company} haluaa kuulla, miten työsi käytännössä tehdään.`,
       purposeHeading: "Miksi kysymme",
+      welcomeFallback: DEFAULT_WELCOME_TEXT.discovery.fi,
       lengthHeading: "Kesto",
       minutes: (n: number): string => `Noin ${n} minuuttia`,
       storedHeading: "Mitä säilytämme",
@@ -438,6 +439,7 @@ export const fi: Strings = {
       eyebrow: "Vaatimushaastattelu",
       welcome: (title: string): string => `Sinut on kutsuttu auttamaan ”${title}” -määrittelyssä.`,
       purposeHeading: "Miksi",
+      welcomeFallback: DEFAULT_WELCOME_TEXT.requirements.fi,
       storedHeading: "Mitä tallennetaan",
       stored:
         "Vastauksesi tallennetaan kutsujan haastatteluun, ja niistä kirjoitetaan määrittely. Kutsujan organisaation ylläpitäjät voivat lukea ne, ja organisaation käyttämät tekoälypalvelut käsittelevät niitä.",
@@ -882,7 +884,7 @@ export const fi: Strings = {
       started: "Aloittanut",
       completed: "Valmis",
       emptyTitle: "Ei vielä kampanjoita",
-      empty: "Ei vielä kampanjoita. Luo kampanja, niin saat linkin, jonka voit jakaa osallistujille.",
+      empty: "Luo kampanja, niin saat linkin, jonka voit jakaa osallistujille.",
       createTitle: "Uusi kampanja",
       createBody:
         "Valitse mallipohja ja anna kampanjalle nimi. Kaikki muu tulee asetuksista, ja sitä voi muuttaa myöhemmin.",
@@ -898,6 +900,8 @@ export const fi: Strings = {
       completionThreshold: "Haastatteluja lopullisiin tuloksiin",
       expiresAt: "Linkit vanhenevat",
       useDefault: "Käytä oletusta",
+      useDefaultNamed: (value: string): string => `Oletus: ${value}`,
+      useTemplateDefault: (value: string): string => `Mallipohjasta: ${value}`,
       createButton: "Luo kampanja",
       createdToast: "Kampanja luotu",
       linkTitle: "Jaettava linkki",
@@ -939,15 +943,14 @@ export const fi: Strings = {
         `Tämä lähettää sähköpostin ${n} henkilölle. Tarkista lista ensin: lähetettyjä viestejä ei voi perua.`,
       bulkConfirm: (n: number): string => `Lähetä ${n} kutsua`,
       anonymousEmail: "Piilotettu (anonyymi)",
-      noInvitations:
-        "Ei vielä kutsuja. Lisää sähköpostiosoitteita yllä, niin lähetät henkilökohtaiset linkit.",
+      noInvitations: "Lisää sähköpostiosoitteita yllä, niin lähetät henkilökohtaiset linkit.",
       sessionsTitle: "Haastattelut",
       sessionId: "Haastattelu",
       sessionStatus: "Tila",
       sessionProgress: "Eteneminen",
       sessionCost: "Kustannus",
       sessionUpdated: "Viimeisin toiminta",
-      noSessions: "Ei vielä haastatteluja. Ne ilmestyvät tähän, kun joku avaa linkin.",
+      noSessions: "Ne ilmestyvät tähän, kun joku avaa linkin.",
       viewSession: "Näytä",
       flagFilterLabel: "Huomio",
       flagFilterAll: "Kaikki haastattelut",
@@ -970,10 +973,17 @@ export const fi: Strings = {
       edit: "Muokkaa",
       editTitle: "Muokkaa kampanjaa",
       editBody:
-        "Muuta nimeä, rajoja ja suostumustekstiä. Kuka voi vastata ja tunnistetaanko ihmiset, lukitaan kampanjan luonnin jälkeen, koska ihmiset ovat voineet jo päättää sen perusteella.",
+        "Muuta nimeä, rajoja, tervetulotekstiä ja suostumustekstiä. Kuka voi vastata ja tunnistetaanko ihmiset, lukitaan kampanjan luonnin jälkeen, koska ihmiset ovat voineet jo päättää sen perusteella.",
       editFixedTitle: "Kampanjalla lukittuna",
       saveChanges: "Tallenna muutokset",
       savedToast: "Kampanja tallennettu",
+      welcomeTitle: "Tervetuloteksti",
+      welcomeHint:
+        "Ensimmäinen asia, jonka osallistujat lukevat kampanjan nimen alla. Kerro selkeästi, kuka kysyy ja miksi. Jätä tyhjäksi, niin käytetään haastattelun kielen oletusta. Pohjan haastattelijalle kirjoitettua tavoitetta ei koskaan näytetä osallistujille.",
+      welcomeLabel: "Oma tervetulotekstisi",
+      welcomeDefaultTitle: (language: string): string => `Oletustervehdys (${language})`,
+      welcomeDefaultHint: "Tämän osallistujat lukevat nyt, ellet kirjoita omaa tekstiä.",
+      welcomeUseDefault: "Käytä oletustervehdystä",
       consentTitle: "Suostumusteksti",
       consentHint:
         "Teksti, jonka osallistujat lukevat ennen aloittamista. Jätä tyhjäksi, niin käytetään haastattelun kielen oletusta.",
@@ -1816,7 +1826,8 @@ export const fi: Strings = {
           passwordUndo: "Säilytä se",
           from: "Lähettäjän osoite",
           fromHint:
-            "Osoite, josta viestit lähetetään. Palveluntarjoaja voi vaatia, että se on sen vahvistama osoite.",
+            "Osoite, josta viestit lähetetään. Palveluntarjoaja voi vaatia, että se on sen vahvistama osoite. Jätä tyhjäksi, niin käytetään asennuksessa asetettua osoitetta (EMAIL_FROM).",
+          fromPlaceholder: "Asennuksessa asetettu osoite",
           replyTo: "Vastausosoite",
           replyToHint: "Minne vastaukset menevät. Jätä tyhjäksi käyttääksesi lähettäjän osoitetta.",
           errors: {
@@ -1850,7 +1861,10 @@ export const fi: Strings = {
               "Suojattua yhteyttä ei saatu muodostettua. Tarkista, että suojausvalinta vastaa porttia.",
             timeout: "Postipalvelin ei vastannut ajoissa. Tarkista osoite ja portti.",
             host_not_found: "Postipalvelimen nimeä ei löytynyt. Tarkista osoitteen kirjoitusasu.",
-            blocked: "Tämä postipalvelimen osoite ei ole sallittu tällä alustalla.",
+            blocked:
+              "Osoite on yksityinen tai paikallinen, ja tämä palvelin välittää postia vain julkisille postipalvelimille. Pyydä alustan ylläpitäjältä sallittu osoite.",
+            blockedPlatform:
+              "Osoite on yksityinen tai paikallinen, ja palvelin estää sellaiset oletuksena. Jos haluat käyttää oman verkkosi välityspalvelinta, lisää sen nimi EGRESS_ALLOW_HOSTS-muuttujaan palvelimen asetuksissa (deploy/.env) ja käynnistä uudelleen, tai jätä tämä lomake tyhjäksi, jolloin käytetään asennuksessa asetettua palvelinta (SMTP_HOST).",
             rejected: "Postipalvelin hylkäsi viestin. Tarkista, että lähettäjän osoite on sen sallima.",
             not_configured:
               "Postipalvelinta ei ole määritetty, joten mitään ei voi lähettää. Täytä ensin lomake.",
@@ -1979,8 +1993,7 @@ export const fi: Strings = {
       deleted: "Palveluntarjoaja poistettu",
       created: "Palveluntarjoaja lisätty",
       updated: "Palveluntarjoaja päivitetty",
-      empty:
-        "Ei vielä palveluntarjoajia. Lisää palveluntarjoaja ja sen avain, jotta haastattelija voi toimia.",
+      empty: "Lisää palveluntarjoaja ja sen avain, jotta haastattelija voi toimia.",
       headers: "Lisäotsakkeet (yksi per rivi, nimi: arvo)",
     },
     routes: {
@@ -2241,7 +2254,7 @@ export const fi: Strings = {
       added: "Budjetti lisätty",
       delete: "Poista",
       deleted: "Budjetti poistettu",
-      empty: "Ei vielä budjetteja. Lisää budjetti rajaamaan, paljonko tekoälypalvelut saavat kuluttaa.",
+      empty: "Lisää budjetti rajaamaan, paljonko tekoälypalvelut saavat kuluttaa.",
       spentSoFar: (spent: string, limit: string): string => `${spent} käytetty / ${limit}`,
     },
     audit: {
@@ -2284,7 +2297,7 @@ export const fi: Strings = {
       added: "Käyttäjä lisätty",
       updated: "Käyttäjä päivitetty",
       emptyTitle: "Ei vielä käyttäjiä",
-      empty: "Ei vielä käyttäjiä. Lisää käyttäjä, niin työtoverisi voi kirjautua hallintaan.",
+      empty: "Lisää käyttäjä, niin työtoverisi voi kirjautua hallintaan.",
       inviteBody: "Hän saa kirjautumislinkin sähköpostiin. Salasanaa ei tarvitse asettaa.",
       changeRole: "Vaihda roolia",
       roleHints: {
@@ -2348,7 +2361,7 @@ export const fi: Strings = {
       suspendBody:
         "Henkilökunta ei voi kirjautua eikä osallistujat voi avata linkkejä, ennen kuin aktivoit asiakkaan uudelleen. Mitään ei poisteta.",
       suspendConfirm: "Jäädytä asiakas",
-      empty: "Ei vielä asiakkaita. Luo ensimmäinen, niin organisaatio saa omat asetukset ja käyttäjät.",
+      empty: "Luo ensimmäinen, niin organisaatio saa omat asetukset ja käyttäjät.",
       statsTitle: "Alustan tilastot",
       actAs: "Hallitse asiakasta",
       adminEmail: "Ensimmäisen ylläpitäjän sähköposti",
@@ -2812,6 +2825,11 @@ export const fi: Strings = {
       "campaign.consentText": {
         label: "Osallistujille näytettävä suostumusteksti",
         description: "Näytetään ennen ensimmäistä kysymystä. Kirjoita se haastattelun kielellä.",
+      },
+      "campaign.welcomeText": {
+        label: "Tervetuloteksti osallistujille",
+        description:
+          "Teksti, jonka osallistujat lukevat ensimmäisellä sivulla ennen aloittamista. Tyhjänä näytetään ystävällinen oletus haastattelun kielellä. Haastattelijan tavoitetta ei näytetä heille koskaan.",
       },
       "privacy.retentionMonths": {
         label: "Haastattelutietojen säilytysaika kuukausina",

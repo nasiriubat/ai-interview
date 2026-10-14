@@ -88,7 +88,8 @@ export interface InviteView {
   session: {
     title: string;
     productName: string;
-    purpose: string;
+    /** The owner-facing welcome (D-460); never the template's objective. */
+    welcome: string;
     consentText: string;
     consentVersion: string;
     pathSelection: string;

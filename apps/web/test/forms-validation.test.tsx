@@ -230,6 +230,26 @@ describe("campaign and requirements forms", () => {
     expect(screen.getByText("Fix 2 problems to save")).toBeInTheDocument();
   });
 
+  it("says what 'use default' means for participation and verification (simulation 2026-10-15)", () => {
+    renderGuarded(
+      <CampaignForm
+        templates={[
+          {
+            id: "t1",
+            key: "opportunity_discovery",
+            name: "Discovery",
+            version: 1,
+            status: "published",
+            privacyMode: "participant_choice",
+          },
+        ]}
+        defaultVerification="email_code"
+      />,
+    );
+    expect(screen.getByText("From the template: Participant chooses")).toBeInTheDocument();
+    expect(screen.getByText("Default: Shared link; email code required")).toBeInTheDocument();
+  });
+
   it("focuses the title of the requirements form, and the path group when only it is missing", async () => {
     const user = userEvent.setup();
     renderGuarded(<RequirementsForm templates={[]} />);
@@ -315,7 +335,7 @@ describe("arrival flow field errors", () => {
   const campaign = {
     name: "Acme",
     productName: "",
-    purpose: "",
+    welcome: "",
     expectedMinutes: 10,
     participationMode: "identified" as const,
     verification: "email_code" as const,
