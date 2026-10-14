@@ -32,6 +32,7 @@ import { SCOPED_MODELS, withSystemTenant, withTenant, withTenantScope } from "..
 /** Tables that are deliberately outside row-level security, and why. Mirrors deploy/rls-exempt.txt. */
 const RLS_EXEMPT: Record<string, string> = {
   VerificationToken: "Auth.js magic-link tokens are minted before any tenant is known",
+  PlatformAsset: "The platform's public logo: no tenant owns it and anyone may read it (D-432)",
 };
 
 const here = dirname(fileURLToPath(import.meta.url));

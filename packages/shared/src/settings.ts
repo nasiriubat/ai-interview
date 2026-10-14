@@ -509,7 +509,7 @@ export const SETTINGS = {
     default: "Discovery",
     scopes: ["platform", "tenant"],
     category: "branding",
-    description: "Name shown to participants",
+    description: "Product name shown on the site and to participants",
   }),
   "branding.primaryColor": def({
     schema: z.string().regex(/^#[0-9a-fA-F]{6}$/, "A colour as #rrggbb"),

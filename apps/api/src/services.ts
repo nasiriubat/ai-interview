@@ -20,6 +20,7 @@ import type { Logger as PinoLogger } from "pino";
 import type { Config } from "./config.js";
 import { AnalysisQueryService } from "./modules/analysis/service.js";
 import { AuditService } from "./modules/audit/service.js";
+import { BrandingService } from "./modules/branding/service.js";
 import { CampaignService } from "./modules/campaigns/service.js";
 import { ExportsService } from "./modules/exports/service.js";
 import { HealthService } from "./modules/health/service.js";
@@ -51,6 +52,7 @@ import { VoiceSetupService } from "./modules/voice/service.js";
  */
 export interface Services {
   audit: AuditService;
+  branding: BrandingService;
   users: UsersService;
   stats: StatsService;
   sessions: SessionsService;
@@ -153,6 +155,7 @@ export function buildServices(d: ServiceDeps): Services {
     sessions: new SessionsService(d.db, d.settings),
     privacy: new PrivacyService(d.db, d.settings),
     health: new HealthService(d.db),
+    branding: new BrandingService(d.db, d.settings, audit),
     campaigns: new CampaignService(d.db, d.crypto, d.settings, d.email, d.config.PUBLIC_WEB_URL, d.ceilings),
     templates: new TemplateService(d.db, d.settings),
     prompts: new PromptAdminService(d.db),

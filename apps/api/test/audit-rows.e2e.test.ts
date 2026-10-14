@@ -36,6 +36,14 @@ interface Expect {
   secrets?: string[];
 }
 
+/** A request body sent as it is, for the routes that take an upload rather than JSON. */
+class RawBody {
+  constructor(
+    readonly body: Buffer,
+    readonly contentType: string,
+  ) {}
+}
+
 /**
  * Mutating routes with no audit row, on purpose, and why: the declarations in
  * `auth/audit-actions.ts` that name a reason instead of an action.
@@ -107,14 +115,19 @@ suite("audit rows: every administrative mutation writes one", () => {
     exercised.add(route);
     const method = route.split(" ")[0] as Method;
     const since = new Date(Date.now() - 1000);
+    const raw = payload instanceof RawBody ? payload : null;
     const res = await world.app.inject({
       method,
       url: `/api/v1${url}`,
       headers: {
         ...as(tokens[expected.actor]),
-        ...(payload === undefined ? {} : { "content-type": "application/json" }),
+        ...(raw
+          ? { "content-type": raw.contentType }
+          : payload === undefined
+            ? {}
+            : { "content-type": "application/json" }),
       },
-      ...(payload === undefined ? {} : { payload: JSON.stringify(payload) }),
+      ...(raw ? { payload: raw.body } : payload === undefined ? {} : { payload: JSON.stringify(payload) }),
     });
     expect([200, 201, 202], `${route} -> ${res.statusCode} ${res.body.slice(0, 200)}`).toContain(
       res.statusCode,
@@ -890,6 +903,42 @@ suite("audit rows: every administrative mutation writes one", () => {
     await audited("POST /operator/crypto/rekey", "/operator/crypto/rekey", undefined, {
       action: "crypto.rekey_requested",
       targetType: "platform",
+      actor: "operator",
+    });
+  });
+
+  it("PUT and DELETE /operator/branding/logo: the platform logo (D-434)", async () => {
+    // The smallest PNG header the check accepts: a signature and an IHDR of 64 x 32.
+    const ihdr = Buffer.alloc(25);
+    ihdr.writeUInt32BE(13, 0);
+    ihdr.write("IHDR", 4, "latin1");
+    ihdr.writeUInt32BE(64, 8);
+    ihdr.writeUInt32BE(32, 12);
+    const logo = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), ihdr]);
+    const boundary = "----audit-logo";
+    const body = Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="logo.png"\r\n` +
+          "Content-Type: image/png\r\n\r\n",
+      ),
+      logo,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    await audited(
+      "PUT /operator/branding/logo",
+      "/operator/branding/logo",
+      new RawBody(body, `multipart/form-data; boundary=${boundary}`),
+      {
+        action: "branding.logo_update",
+        targetType: "platform",
+        targetId: "branding.logo",
+        actor: "operator",
+      },
+    );
+    await audited("DELETE /operator/branding/logo", "/operator/branding/logo", undefined, {
+      action: "branding.logo_remove",
+      targetType: "platform",
+      targetId: "branding.logo",
       actor: "operator",
     });
   });
