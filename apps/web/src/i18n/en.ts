@@ -1016,7 +1016,9 @@ export const en = {
       qrDownload: "Download QR code",
       thresholdTitle: "Completed interviews",
       thresholdValue: (done: number, needed: number): string =>
-        `${done} of ${needed} needed for final results`,
+        done >= needed
+          ? `${done} completed · ${needed} needed for final results`
+          : `${done} of ${needed} needed for final results`,
       thresholdMet: "Enough interviews for final results.",
       thresholdMore: (n: number): string =>
         n === 1

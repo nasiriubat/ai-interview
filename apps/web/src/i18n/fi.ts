@@ -1005,7 +1005,9 @@ export const fi: Strings = {
       qrDownload: "Lataa QR-koodi",
       thresholdTitle: "Valmiit haastattelut",
       thresholdValue: (done: number, needed: number): string =>
-        `${done} / ${needed} lopullisiin tuloksiin tarvittavasta`,
+        done >= needed
+          ? `${done} valmiina · ${needed} tarvitaan lopullisiin tuloksiin`
+          : `${done} / ${needed} lopullisiin tuloksiin tarvittavasta`,
       thresholdMet: "Haastatteluja on riittävästi lopullisiin tuloksiin.",
       thresholdMore: (n: number): string =>
         n === 1
