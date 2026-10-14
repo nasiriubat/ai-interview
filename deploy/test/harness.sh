@@ -118,7 +118,12 @@ exec)
 		;;
 	*"jq -r"*) echo "ai_discovery-20261013T100000Z.dump.age"; exit 0 ;;
 	*"/maintenance/on"*)
-		case "$*" in *"rm -f"*) echo "maintenance-off" >>"$SB/events.log" ;; *) echo "maintenance-on" >>"$SB/events.log" ;; esac
+		# The flag is a file in Caddy's volume, and Caddy answers 503 while it exists: the fake curl
+		# reads the same state, so a check made while the page is up is seen to fail, as it does.
+		case "$*" in
+		*"rm -f"*) echo "maintenance-off" >>"$SB/events.log"; rm -f "$state/maintenance" ;;
+		*) echo "maintenance-on" >>"$SB/events.log"; : >"$state/maintenance" ;;
+		esac
 		exit 0
 		;;
 	esac
@@ -202,7 +207,9 @@ FAKE
 	cat >"$SB/bin/curl" <<'FAKE'
 #!/bin/bash
 echo "curl $*" >>"$SB/curl.log"
-if [ -e "$SB/state/curl-code" ]; then cat "$SB/state/curl-code"; else echo 200; fi
+if [ -e "$SB/state/curl-code" ]; then cat "$SB/state/curl-code"
+elif [ -e "$SB/state/maintenance" ]; then echo 503
+else echo 200; fi
 FAKE
 	cat >"$SB/bin/df" <<'FAKE'
 #!/bin/bash

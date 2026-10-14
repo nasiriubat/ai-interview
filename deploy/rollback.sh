@@ -73,8 +73,14 @@ act dcx up -d --no-build --remove-orphans || {
 	exit 1
 }
 wait_healthy 300 api worker web caddy || warn "a service is not healthy yet: deploy/dc ps"
-smoke || warn "the smoke test failed on $previous: deploy/dc logs api web caddy"
+# The page comes down before the check through Caddy (which answers 503 while it is up), and goes
+# back up if the check fails, so participants see the honest page rather than a broken application.
 maintenance off
+if ! smoke; then
+	maintenance on
+	warn "the smoke test failed on $previous: deploy/dc logs api web caddy"
+	warn "the maintenance page is up; when the stack is healthy: deploy/dc exec -T caddy rm -f /maintenance/on"
+fi
 
 say "now running $previous"
 if [ -n "$dump" ]; then

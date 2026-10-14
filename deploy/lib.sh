@@ -146,6 +146,6 @@ smoke() {
 	insecure=(-k)
 	code=$(curl -sS "${insecure[@]}" --max-time 15 -o /dev/null -w '%{http_code}' \
 		--resolve "$host:$port:127.0.0.1" "$scheme://$host:$port/auth/signin" 2>/dev/null || echo 000)
-	[ "$code" = "200" ] || { warn "https://$host/auth/signin answered $code through Caddy"; return 1; }
+	[ "$code" = "200" ] || { warn "$scheme://$host:$port/auth/signin answered $code through Caddy"; return 1; }
 	return 0
 }

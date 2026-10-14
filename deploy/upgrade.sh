@@ -201,10 +201,17 @@ rollback_after_failure() {
 
 say "waiting for api, web and caddy to be healthy"
 wait_healthy 300 api worker web caddy || rollback_after_failure "a service did not become healthy within five minutes"
-say "smoke test through caddy"
-smoke || rollback_after_failure "the post-switch smoke test failed"
-
+# Caddy answers 503 for as long as the maintenance flag exists, so a check made through it while the
+# page is up can only fail. The page comes down first, and goes back up if the check fails: a
+# participant who arrives in that moment gets the honest page, not a half-started application.
+# (This used to check first and lower the page after, which made every upgrade roll itself back
+# the first time the real maintenance flag was in play: found by the full-stack drill.)
 maintenance off
+say "smoke test through caddy"
+if ! smoke; then
+	maintenance on
+	rollback_after_failure "the post-switch smoke test failed"
+fi
 
 # ---- 6. housekeeping -------------------------------------------------------------------------
 
