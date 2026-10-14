@@ -7,11 +7,11 @@ import { cleanHeadings, hasForeignScript } from "../../src/spec/generate.js";
 import { neutralize, newNonce, wrapUntrusted } from "../../src/util/untrusted.js";
 import { MemoryStore, ScriptedCaller, snapshot, template } from "./helpers.js";
 
-describe("interviewer prompt v5 (live run 2026-10-14 findings)", () => {
+describe("interviewer prompt v6 (v5 live run findings, plus requirements capture)", () => {
   const body = SHIPPED_PROMPTS.interviewer!.body;
 
-  it("is version 5 and keeps every placeholder the engine fills", () => {
-    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(5);
+  it("is version 6 and keeps every placeholder the engine fills", () => {
+    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(6);
     for (const p of [
       "{{objective}}",
       "{{language}}",

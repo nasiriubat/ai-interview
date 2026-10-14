@@ -29,6 +29,7 @@ const reqTemplate = template({
     },
   ],
   outputs: ["spec_field"],
+  completeness: { minRequirements: 0, requiredSections: [], requireAcceptance: false },
   issueDetection: {
     enabled: true,
     everyTurns: 2,
@@ -108,7 +109,21 @@ describe("requirements interview (spec 05)", () => {
           },
         ],
       }),
-      turn("Before we go on: how will people sign in? A magic link is the default.", { areaKey: "finding" }),
+      turn("Before we go on: how will people sign in? A magic link is the default.", {
+        areaKey: "finding",
+        // The answer to the functional question is filed on the turn that follows it.
+        stateDelta: {
+          facts: [
+            {
+              kind: "spec_field",
+              section: "users",
+              path: "nurse",
+              value: { role: "nurse", needs: "chart once" },
+              source: "user",
+            },
+          ],
+        },
+      }),
       // turn 4: user rejected -> push-back scheduled; focus moves to the MVP challenge
       turn("If version one shipped without single entry, what breaks?", {
         areaKey: "mvp_challenge",
@@ -119,6 +134,7 @@ describe("requirements interview (spec 05)", () => {
       // turn 5: push back once
       turn("Without a sign-in, anyone with the link can read patient charts. Keep it that way?", {
         areaKey: "finding",
+        stateDelta: { facts: [fr("FR-1", "Single entry", "mvp", "core problem")] },
       }),
       // turn 6: final rejection recorded as accepted; next MVP item
       turn("And Excel export: if version one shipped without it, what breaks?", {
