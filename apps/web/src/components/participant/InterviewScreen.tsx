@@ -5,7 +5,8 @@ import * as React from "react";
 import { AttachmentList } from "./AttachmentList";
 import { Composer } from "./Composer";
 import { LiveVoiceCall } from "./LiveVoiceCall";
-import { MessageList } from "./MessageList";
+import { LiveVoiceScreen } from "./LiveVoiceScreen";
+import { announcementText, MessageList } from "./MessageList";
 import { ModeSwitch } from "./ModeSwitch";
 import { ProgressAreas } from "./ProgressAreas";
 import { RecapBanner } from "./RecapBanner";
@@ -20,6 +21,7 @@ import { WidgetRenderer } from "@/components/widgets";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useInterview } from "@/hooks/useInterview";
 import { useLiveVoice } from "@/hooks/useLiveVoice";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useOnline } from "@/hooks/useOnline";
 import { useSpeech } from "@/hooks/useSpeech";
 import { t } from "@/i18n";
@@ -135,6 +137,9 @@ export function InterviewScreen({
   const spokenAnswers = gaveUp !== "text";
   const liveOffered = can.liveVoice && gaveUp === null;
   const inCall = live.status !== "idle" && live.status !== "unavailable";
+  // On a phone the call is a screen of its own (D-238); elsewhere it stays the panel above the composer.
+  const phone = useMediaQuery("(max-width: 767px)");
+  const callScreen = phone && inCall;
 
   // Nothing under the voice mode can work without a route that listens, so the interview moves to
   // typing rather than leaving a mode selected whose every control is broken.
@@ -427,7 +432,7 @@ export function InterviewScreen({
         <footer className="from-background via-background sticky bottom-0 bg-gradient-to-t from-60% to-transparent px-4 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="bg-card shadow-raised mx-auto grid max-w-2xl gap-2 rounded-2xl p-2">
             {mode === "voice" && liveOffered ? (
-              <LiveVoiceCall live={live} disabled={inputDisabled} onStart={live.start} />
+              <LiveVoiceCall live={live} disabled={inputDisabled} fullScreen={phone} onStart={live.start} />
             ) : null}
             {gaveUp !== null ? (
               <p className="text-muted-foreground mb-2 text-sm" role="status">
@@ -484,6 +489,29 @@ export function InterviewScreen({
           <CheckIcon className="size-4" aria-hidden="true" /> {t.participant.session.completedTitle}
         </footer>
       ) : null}
+      <LiveVoiceScreen
+        live={live}
+        open={callScreen}
+        title={title ?? t.participant.session.title}
+        messages={state.messages}
+        widget={activeWidget}
+        announcement={state.lastAnnouncement ? announcementText(state.lastAnnouncement) : ""}
+        onAnswer={(response) => {
+          if (!activeWidget) return;
+          typedTurn(() => {
+            void sendWidget(activeWidget, response);
+          });
+        }}
+        onTypeInstead={() => {
+          // Typing is a mode: leaving the call for the composer means leaving voice as the mode, or
+          // the composer would sit under a "voice first" prompt for a microphone that is off.
+          changeMode("chat");
+          setComposerFocus((n) => n + 1);
+        }}
+        returnFocus={() => {
+          document.querySelector<HTMLElement>("[data-mode-switch] [data-state=on]")?.focus();
+        }}
+      />
     </div>
   );
 }
