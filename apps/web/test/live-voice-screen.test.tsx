@@ -39,8 +39,12 @@ const controller = (over: Partial<LiveVoiceController> = {}): LiveVoiceControlle
   ...over,
 });
 
-const message = (over: Partial<Message> & Pick<Message, "id" | "role" | "content">): Message =>
-  ({ seq: 0, modality: "text", createdAt: "", ...over });
+const message = (over: Partial<Message> & Pick<Message, "id" | "role" | "content">): Message => ({
+  seq: 0,
+  modality: "text",
+  createdAt: "",
+  ...over,
+});
 
 const props = (over: Partial<React.ComponentProps<typeof LiveVoiceScreen>> = {}) => ({
   live: controller(),

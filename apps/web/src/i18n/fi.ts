@@ -1508,6 +1508,7 @@ export const fi: Strings = {
       name: "Nimi",
       kind: "Tyyppi",
       baseUrl: "Perusosoite",
+      baseUrlHint: "Julkinen https-osoite. Yksityisen verkon osoitteet hylätään.",
       apiKey: "API-avain",
       apiKeyHint: "Tallennetaan salattuna. Jätä tyhjäksi säilyttääksesi nykyisen avaimen.",
       hasKey: "Avain asetettu",
@@ -1520,6 +1521,8 @@ export const fi: Strings = {
       tenantLevel: "Organisaation asetus",
       test: "Testaa",
       testing: "Testataan…",
+      testToast: (name: string, model: string, latency: number): string =>
+        `Yhteys toimii: ${name} · ${model} · ${latency} ms`,
       testResult: (latency: number, tokens: number, cost: string): string =>
         `OK ${latency} ms, ${tokens} tokenia, ${cost}`,
       testFailed: (error: string): string => `Testi epäonnistui: ${error}`,
@@ -1888,6 +1891,7 @@ export const fi: Strings = {
       created: "Luotu",
       add: "Luo asiakas",
       addedToast: "Asiakas luotu",
+      newTenant: "Uusi vuokraaja",
       suspend: "Jäädytä",
       activate: "Aktivoi",
       updated: "Asiakas päivitetty",

@@ -5,6 +5,7 @@ import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import * as React from "react";
 import { OptionDetail } from "./OptionDetail";
 import { Button } from "@/components/ui/button";
+import { Inset } from "@/components/ui/inset";
 import { t } from "@/i18n";
 
 /** Ranking with up/down buttons (keyboard and screen-reader friendly; drag is a later enhancement). */
@@ -51,7 +52,7 @@ export function RankingWidget({
           const o = byKey.get(key);
           if (!o) return null;
           return (
-            <li key={key} className="flex items-start gap-2 rounded-lg border p-2 pl-3">
+            <Inset as="li" key={key} className="bg-muted/60 flex items-start gap-2 p-2 pl-3">
               <span className="bg-muted mt-1 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
                 {i + 1}
               </span>
@@ -85,7 +86,7 @@ export function RankingWidget({
                   <ArrowDownIcon />
                 </Button>
               </div>
-            </li>
+            </Inset>
           );
         })}
       </ol>
