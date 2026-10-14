@@ -102,6 +102,12 @@ export async function forwardToApi(
   extraHeaders: Record<string, string> = {},
 ): Promise<Response> {
   if (!isSameSiteRequest(req)) return jsonError(403, "forbidden", "Cross-site request refused");
+  // A dot segment would climb out of the API prefix once the URL is resolved, and into routes that
+  // take a different credential than this handler attached. Browsers and Next normalise the URL
+  // before a handler runs, so this is for a client that sends the path as it is (D-266).
+  if (segments.some((s) => s === "" || s === "." || s === "..")) {
+    return jsonError(400, "validation", "Invalid path");
+  }
 
   const path = segments.map(encodeURIComponent).join("/");
   const url = `${apiBaseUrl()}/${path}${req.nextUrl.search}`;

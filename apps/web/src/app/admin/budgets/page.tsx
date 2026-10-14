@@ -11,7 +11,7 @@ import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { enumFilter, isFiltered } from "@/lib/admin/toolbar";
-import { LISTS } from "@/lib/api/lists";
+import { LISTS, sortOf } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -60,7 +60,7 @@ export default async function BudgetsPage({ searchParams }: Props): Promise<Reac
                   (v) => t.admin.budgets.periods[v as "month" | "total"] ?? v,
                 ),
               ]}
-              sort={{ list: LISTS.budgets, labels: t.admin.list.fields }}
+              sort={{ list: sortOf(LISTS.budgets), labels: t.admin.list.fields }}
             />
             {budgets.data.items.length === 0 && isFiltered(lp.q, lp.filters) ? (
               <p className="text-muted-foreground py-6 text-sm">{t.admin.list.noMatches}</p>

@@ -534,6 +534,13 @@ export class CampaignService {
 
   async revoke(companyId: string, campaignId: string, invitationId: string): Promise<void> {
     await this.get(companyId, campaignId);
+    // An id that is not this campaign's is a 404, not an "ok" with an audit row: a request that
+    // changed nothing must not say it did (and must not file a record of revoking someone else's).
+    const inv = await this.db.invitation.findFirst({
+      where: { id: invitationId, campaignId },
+      select: { id: true },
+    });
+    if (!inv) throw notFound("Invitation");
     await this.db.invitation.updateMany({
       where: { id: invitationId, campaignId, status: { notIn: ["bound"] } },
       data: { status: "revoked" },

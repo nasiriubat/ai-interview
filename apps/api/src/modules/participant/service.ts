@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import {
   deleteSessionData,
   HOUR_MS,
+  MemoryAlerts,
+  MemoryUsageCounters,
   type AlertPort,
   type UsageCounters,
   emailDomain,
@@ -58,11 +60,7 @@ export type AbuseEvent = "abuse.code_request_capped" | "abuse.code_confirm_locke
  * `code_locked` is an address that used up its wrong codes.
  */
 export type AbuseLimit =
-  | "campaign_hour"
-  | "campaign_total"
-  | "tenant_hour"
-  | "address_emails"
-  | "code_locked";
+  "campaign_hour" | "campaign_total" | "tenant_hour" | "address_emails" | "code_locked";
 
 export interface AbuseMeta {
   campaignId: string;
@@ -96,8 +94,14 @@ export class ParticipantService {
     private readonly onAbuse: (event: AbuseEvent, meta: AbuseMeta) => void = () => undefined,
     /** Refuses a new interview past `ceiling.maxSessionsPerMonth` (D-188). */
     private readonly ceilings?: TenantCeilings,
-    /** Per-campaign and per-tenant buckets, per-address distinct-email caps, and the alert (D-261). */
-    private readonly abuse?: AbuseControls,
+    /**
+     * The counters and the alert (D-261). The default is in memory, per process: enough for a tool
+     * that builds the service without a database client of its own, never what a server runs with.
+     */
+    private readonly abuse: AbuseControls = {
+      counters: new MemoryUsageCounters(),
+      alerts: new MemoryAlerts(),
+    },
   ) {}
 
   async resolveLink(
@@ -159,15 +163,21 @@ export class ParticipantService {
     const { hash: emailHash, legacy } = this.hashes(campaign.id, email);
     // Per-address cap (D-82): the shared per-IP bucket cannot stop one person mail-bombing a
     // victim through this endpoint from many addresses, so the address itself is counted. The
-    // count is the EmailCode rows of the last hour, which persist across restarts and replicas.
-    // A refused request still answers "ok": the response must not say whether an address was
-    // already asked for, and the attacker learns nothing by hitting the cap.
+    // request is counted with one atomic increment *before* anything is sent (D-269): counting the
+    // rows that exist, as this did, let forty parallel requests all see "none yet" and send forty
+    // mails. A refused request still answers "ok": the response must not say whether an address
+    // was already asked for, and the attacker learns nothing by hitting the cap.
     const { requests } = await this.codeLimits(campaign.companyId);
     const since = new Date(Date.now() - HOUR_MS);
-    const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, ...legacy] } };
-    await this.db.emailCode.deleteMany({ where: { ...mine, createdAt: { lt: since } } });
-    const recent = await this.db.emailCode.count({ where: mine });
-    if (recent >= requests) {
+    await this.db.emailCode.deleteMany({
+      where: { campaignId: campaign.id, emailHash: { in: [emailHash, ...legacy] }, createdAt: { lt: since } },
+    });
+    const asked = await this.abuse.counters.hit(
+      campaign.companyId,
+      `code:request:${campaign.id}:${emailHash}`,
+      HOUR_MS,
+    );
+    if (asked > requests) {
       this.onAbuse("abuse.code_request_capped", { campaignId: campaign.id });
       return;
     }
@@ -204,26 +214,35 @@ export class ParticipantService {
     const { hash: emailHash, legacy } = this.hashes(campaign.id, email);
     const mine = { campaignId: campaign.id, emailHash: { in: [emailHash, ...legacy] } };
     // Guessing is bounded per address, not only per code: the six-digit space is small, and a
-    // fresh code resets a per-code counter.
+    // fresh code resets a per-code counter. Both bounds are taken by an atomic increment before
+    // the code is compared (D-269); reading the count and then writing it let sixty parallel
+    // guesses all see "none yet" and all be tried against one code.
     const { failures } = await this.codeLimits(campaign.companyId);
-    const since = new Date(Date.now() - HOUR_MS);
-    const spent = await this.db.emailCode.aggregate({
-      where: { ...mine, createdAt: { gte: since } },
-      _sum: { attempts: true },
-    });
-    if ((spent._sum.attempts ?? 0) >= failures) {
+    const tries = await this.abuse.counters.hit(
+      campaign.companyId,
+      `code:try:${campaign.id}:${emailHash}`,
+      HOUR_MS,
+    );
+    if (tries > failures) {
       this.onAbuse("abuse.code_confirm_locked", { campaignId: campaign.id });
       this.tell(campaign, "code_locked");
       throw new AppError("forbidden", "Code expired or invalid");
     }
     const row = await this.db.emailCode.findFirst({ where: mine, orderBy: { createdAt: "desc" } });
-    if (!row || row.expiresAt.getTime() < Date.now() || row.attempts >= 5)
+    if (!row || row.expiresAt.getTime() < Date.now())
       throw new AppError("forbidden", "Code expired or invalid");
-    if (!this.crypto.verifyTokenHash(code, row.codeHash)) {
-      await this.db.emailCode.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
+    // One of this code's five tries, taken only if one is left: a conditional write that either
+    // claims a try or does not, so no two requests share the last one.
+    const claimed = await this.db.emailCode.updateMany({
+      where: { id: row.id, attempts: { lt: 5 } },
+      data: { attempts: { increment: 1 } },
+    });
+    if (claimed.count !== 1) throw new AppError("forbidden", "Code expired or invalid");
+    if (!this.crypto.verifyTokenHash(code, row.codeHash))
       throw new AppError("forbidden", "Code expired or invalid");
-    }
-    await this.db.emailCode.delete({ where: { id: row.id } });
+    // Single use: of two requests presenting the right code at once, one deletes the row.
+    const used = await this.db.emailCode.deleteMany({ where: { id: row.id } });
+    if (used.count !== 1) throw new AppError("forbidden", "Code expired or invalid");
     return this.bind(campaign, {
       hash: emailHash,
       legacyHashes: legacy,
@@ -490,7 +509,6 @@ export class ParticipantService {
    */
   private async assertRoomForSession(campaign: Campaign): Promise<void> {
     const abuse = this.abuse;
-    if (!abuse) return;
     const v = await this.settings.resolveMany(
       ["abuse.campaignSessionsPerHour", "abuse.campaignSessionsTotal", "abuse.tenantSessionsPerHour"],
       [
@@ -506,7 +524,11 @@ export class ParticipantService {
       where: { campaignId: campaign.id, companyId: campaign.companyId },
     });
     if (existing >= total) this.refuse(campaign, "campaign_total");
-    const campaignHits = await abuse.counters.hit(campaign.companyId, `session:campaign:${campaign.id}`, HOUR_MS);
+    const campaignHits = await abuse.counters.hit(
+      campaign.companyId,
+      `session:campaign:${campaign.id}`,
+      HOUR_MS,
+    );
     if (campaignHits > perHour) this.refuse(campaign, "campaign_hour");
     const tenantHits = await abuse.counters.hit(campaign.companyId, "session:tenant", HOUR_MS);
     if (tenantHits > tenantPerHour) this.refuse(campaign, "tenant_hour");
@@ -515,7 +537,10 @@ export class ParticipantService {
   private refuse(campaign: Campaign, limit: AbuseLimit): never {
     this.onAbuse("abuse.limit_hit", { campaignId: campaign.id, limit });
     this.tell(campaign, limit);
-    throw new AppError("rate_limited", "This interview is receiving a lot of visitors. Please try again later.");
+    throw new AppError(
+      "rate_limited",
+      "This interview is receiving a lot of visitors. Please try again later.",
+    );
   }
 
   /** Whether this client address has asked codes for more different addresses than the limit allows. */
@@ -525,7 +550,6 @@ export class ParticipantService {
     clientAddress: string,
   ): Promise<boolean> {
     const abuse = this.abuse;
-    if (!abuse) return false;
     const limit = await this.settings.get("abuse.distinctEmailsPerAddressPerHour", [
       { scope: "tenant", scopeId: campaign.companyId },
     ]);
@@ -541,7 +565,7 @@ export class ParticipantService {
 
   /** Raises the alert without making the participant wait for it. Ids only; never throws. */
   private tell(campaign: Campaign, limit: AbuseLimit): void {
-    void this.abuse?.alerts.raise({
+    void this.abuse.alerts.raise({
       kind: "abuse.limit_hit",
       key: `abuse.limit_hit:${campaign.id}:${limit}`,
       companyId: campaign.companyId,
