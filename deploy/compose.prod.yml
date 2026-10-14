@@ -140,8 +140,8 @@ services:
       ops-state-init: { condition: service_completed_successfully }
     logging: *logging
 
-  # One-shot, and the only container of the stack that is told to run as root besides Caddy's
-  # setup. Creates the directories of the shared ops_state volume with the permissions its writers
+  # One-shot, and the only service of this file told to run as root. Creates
+  # the directories of the shared ops_state volume with the permissions its writers
   # need: preflight runs as the postgres user (999), the worker as uid 1000, the backup as 999 with
   # group 1000 and ops-notify as 10001 (D-312), and a named volume starts out root-owned, so nobody
   # but root could create their own.
