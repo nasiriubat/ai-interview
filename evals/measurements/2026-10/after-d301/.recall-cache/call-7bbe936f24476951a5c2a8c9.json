@@ -1,0 +1,19 @@
+{
+  "answers": [
+    { "key": "c1", "by": "S-integrations/note-flow" },
+    { "key": "c3", "by": "S-integrations/note-flow" },
+    { "key": "c4", "by": "S-users/ward-manager" },
+    { "key": "c5", "by": "S-users/finance" },
+    { "key": "c6", "by": "S-integrations/ward-spreadsheet-failure" },
+    { "key": "c7", "by": "S-users/ward-manager-check" },
+    { "key": "c8", "by": "S-rules/pending-state-display" },
+    { "key": "c9", "by": "S-integrations/note-flow" },
+    { "key": "c10", "by": "S-integrations/note-flow" },
+    { "key": "c11", "by": "S-integrations/ward-spreadsheet" },
+    { "key": "c12", "by": "S-rules/daily-share-time" },
+    { "key": "c13", "by": "S-users/finance" },
+    { "key": "c14", "by": "S-users/finance" },
+    { "key": "c15", "by": "S-integrations/ward-spreadsheet" },
+    { "key": "c16", "by": "S-rules/shift-export-timing" }
+  ]
+}

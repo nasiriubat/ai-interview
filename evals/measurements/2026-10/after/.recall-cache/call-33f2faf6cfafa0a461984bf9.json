@@ -1,0 +1,129 @@
+{
+  "capabilities": [
+    {
+      "text": "Copy progress note from Meditech to CareTrack",
+      "kind": "feature",
+      "quote": "she copied the same note into the hospital’s internal ward management system, called CareTrack"
+    },
+    {
+      "text": "Connect Meditech and CareTrack systems",
+      "kind": "feature",
+      "quote": "So we’ll focus only on connecting those two."
+    },
+    {
+      "text": "Specification written in plain language for a coding agent",
+      "kind": "constraint",
+      "quote": "the specification should be written in plain language that a coding agent can follow"
+    },
+    {
+      "text": "Tool simple enough for minimal tech experience users",
+      "kind": "constraint",
+      "quote": "I’ll make sure the tool is simple enough that even someone with minimal tech experience can use it."
+    },
+    {
+      "text": "Built using C#, .NET, and SQL Server",
+      "kind": "constraint",
+      "quote": "So we’ll specify the solution to be built using C#, .NET, and SQL Server"
+    },
+    {
+      "text": "Code managed in Azure DevOps",
+      "kind": "constraint",
+      "quote": "with all code managed in Azure DevOps"
+    },
+    {
+      "text": "Deployment to on-prem servers",
+      "kind": "constraint",
+      "quote": "and that the team will handle deployment to our on-prem servers."
+    },
+    {
+      "text": "Version one live by October 15",
+      "kind": "constraint",
+      "quote": "We need version one live on Ward 4B by October 15"
+    },
+    {
+      "text": "Nurse confirms note before sending to CareTrack",
+      "kind": "feature",
+      "quote": "Got it: the nurse reviews and confirms each note before it goes into CareTrack."
+    },
+    {
+      "text": "Budget of £45,000 for the full project",
+      "kind": "constraint",
+      "quote": "We have a budget of £45,000 for the full project"
+    },
+    {
+      "text": "Build in-house with external team",
+      "kind": "constraint",
+      "quote": "We’ll build it in-house with our external team."
+    },
+    {
+      "text": "Add 'Send to CareTrack' button in Meditech toolbar",
+      "kind": "feature",
+      "quote": "clicks a new “Send to CareTrack” button that appears in the bottom toolbar."
+    },
+    {
+      "text": "Confirm note send with pop-up preview",
+      "kind": "feature",
+      "quote": "A pop-up appears asking: “Send this note to CareTrack?” with the exact text of the note previewed."
+    },
+    {
+      "text": "Note appears in CareTrack with current time stamp",
+      "kind": "feature",
+      "quote": "The note then appears in CareTrack under the same patient’s record, timestamped with the current time"
+    },
+    {
+      "text": "Flag sent note in red for 30 seconds in CareTrack",
+      "kind": "feature",
+      "quote": "and is flagged in red for 30 seconds to show it was auto-synced"
+    },
+    {
+      "text": "Handle send failures with error message and retry option",
+      "kind": "feature",
+      "quote": "If a note fails to send, the nurse should see a clear error message on screen: “Failed to send to CareTrack — check connection and try again.”"
+    },
+    {
+      "text": "Note remains in Meditech if send fails",
+      "kind": "feature",
+      "quote": "The note remains in Meditech and is not lost; the nurse can retry immediately or later."
+    },
+    {
+      "text": "Log send failures and alert IT helpdesk after three consecutive failures",
+      "kind": "feature",
+      "quote": "If it fails three times in a row, the system logs the error automatically and sends an alert to the IT helpdesk."
+    },
+    {
+      "text": "Patient data stays within on-prem servers",
+      "kind": "constraint",
+      "quote": "All patient data must stay within our on-prem servers, never leave the hospital network"
+    },
+    {
+      "text": "Encrypt patient data at rest and in transit",
+      "kind": "constraint",
+      "quote": "and be encrypted at rest and in transit."
+    },
+    {
+      "text": "Log every send attempt with user, time, and outcome",
+      "kind": "feature",
+      "quote": "The tool must log every send attempt, including who sent it, when, and whether it succeeded"
+    },
+    {
+      "text": "Keep send logs for 12 months",
+      "kind": "constraint",
+      "quote": "and those logs must be kept for 12 months."
+    },
+    {
+      "text": "Single user role: 'Ward Nurse/Assistant'",
+      "kind": "feature",
+      "quote": "Just one role: “Ward Nurse/Assistant.”"
+    },
+    {
+      "text": "Users can only view and send their own notes",
+      "kind": "feature",
+      "quote": "they can only view and send their own notes, and only to CareTrack."
+    },
+    {
+      "text": "Check last progress note in Meditech before writing new one",
+      "kind": "feature",
+      "quote": "The first thing they do is check the last progress note in Meditech to see how the patient was doing at the end of the previous shift"
+    }
+  ]
+}

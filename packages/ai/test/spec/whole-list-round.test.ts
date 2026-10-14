@@ -54,7 +54,12 @@ describe("the whole-list round finds a restatement in other words (D-290)", () =
     const ids = r.document.requirements.map((q) => q.id);
     expect(ids).toContain("FR-1");
     expect(ids).not.toContain("FR-8");
-    expect(r.document.requirements.find((q) => q.id === "FR-1")?.acceptance).toEqual(["works 1", "works 8"]);
+    expect(r.document.requirements.find((q) => q.id === "FR-1")?.acceptance).toEqual([
+      "works 1",
+      "works 8",
+      // The restatement shares no words with its survivor, so its title is kept as a check (D-301).
+      "Send the ward record to the hospital system",
+    ]);
     expect(r.curation.merged).toEqual([{ into: "FR-1", from: ["FR-8"], via: "model" }]);
   });
 

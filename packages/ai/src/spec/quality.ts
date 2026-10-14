@@ -251,8 +251,15 @@ export function groupPairs(ids: string[], pairs: Pick<DuplicatePair, "a" | "b">[
 const idNumber = (id: string): number => Number(/(\d+)$/.exec(id)?.[1] ?? Number.MAX_SAFE_INTEGER);
 
 /**
+ * Share of a merged title's content words the survivor must already hold for the title to be
+ * dropped; a title with a single word the survivor lacks is a detail of it, not a capability.
+ */
+export const TITLE_KEPT = 0.8;
+
+/**
  * Folds a group into one requirement. The survivor is the one with the most acceptance criteria
- * (then the earliest id); the others' distinct criteria are appended, so nothing testable is lost.
+ * (then the earliest id); the others' distinct criteria are appended, so nothing testable is lost,
+ * and so is a merged title the survivor's own words do not hold (D-301).
  * Scope: the owner's recorded decision wins (a requirement with a reason is one they moved), else
  * MVP if any copy is MVP. `needsConfirmation` survives only if every copy lacked evidence.
  */
@@ -271,6 +278,21 @@ export function mergeGroup(members: ReqView[]): ReqView {
         seen.add(k);
         acceptance.push(a);
       }
+    }
+  }
+  // A merged title the survivor's words do not hold is a capability that would vanish from the
+  // document (D-301): it stays as an acceptance criterion, which is a check a tester can run.
+  const kept = new Set(contentTokens(`${keep.title} ${acceptance.join(" ")}`));
+  for (const m of sorted.slice(1)) {
+    const t = contentTokens(m.title);
+    if (t.length === 0) continue;
+    const held = t.filter((w) => kept.has(w)).length / t.length;
+    const k = normalizeTitle(m.title);
+    const missing = t.filter((w) => !kept.has(w)).length;
+    if (held < TITLE_KEPT && missing >= 2 && k && !seen.has(k)) {
+      seen.add(k);
+      acceptance.push(m.title);
+      for (const w of t) kept.add(w);
     }
   }
   const decided = members.find((m) => m.reason);

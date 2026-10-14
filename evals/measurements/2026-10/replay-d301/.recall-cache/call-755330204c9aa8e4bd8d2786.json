@@ -1,0 +1,124 @@
+{
+  "capabilities": [
+    {
+      "text": "Run in Azure, specifically in the UK South region",
+      "kind": "constraint",
+      "quote": "The tool will run in Azure, specifically in the UK South region to meet data residency requirements for NHS patient data."
+    },
+    {
+      "text": "Use Azure App Services for the web frontend",
+      "kind": "constraint",
+      "quote": "I’ll use Azure App Services for the web frontend and Azure SQL Database with Transparent Data Encryption for the backend, both compliant with NHS Digital’s security standards."
+    },
+    {
+      "text": "Use Azure SQL Database with Transparent Data Encryption for the backend",
+      "kind": "constraint",
+      "quote": "I’ll use Azure App Services for the web frontend and Azure SQL Database with Transparent Data Encryption for the backend, both compliant with NHS Digital’s security standards."
+    },
+    {
+      "text": "Enforce authentication via Azure AD, requiring nurses to sign in with NHS credentials",
+      "kind": "constraint",
+      "quote": "Authentication will be enforced via Azure AD, requiring nurses to sign in with their existing NHS credentials."
+    },
+    {
+      "text": "Retain all data for 7 years",
+      "kind": "constraint",
+      "quote": "All data will be retained for 7 years in accordance with NHS data retention policies."
+    },
+    {
+      "text": "Integrate with the hospital’s electronic patient record (EPR) system using FHIR-based APIs",
+      "kind": "feature",
+      "quote": "The tool must integrate with the hospital’s electronic patient record (EPR) system, which uses FHIR-based APIs hosted on a HL7 v2.5 gateway, and with the ward-level spreadsheet system, which is a SharePoint Online list synchronized via Power Automate."
+    },
+    {
+      "text": "Read patient demographics and admission status via FHIR API",
+      "kind": "feature",
+      "quote": "I’ll use the FHIR API to read patient demographics and admission status, and write ward notes using the FHIR Observation resource with a custom code system."
+    },
+    {
+      "text": "Write ward notes using the FHIR Observation resource",
+      "kind": "feature",
+      "quote": "I’ll use the FHIR API to read patient demographics and admission status, and write ward notes using the FHIR Observation resource with a custom code system."
+    },
+    {
+      "text": "Update the ward-level spreadsheet system (SharePoint Online list) via a secure, scheduled sync job using Azure Logic Apps with OAuth 2.0 through Azure AD",
+      "kind": "feature",
+      "quote": "The SharePoint list will be updated via a secure, scheduled sync job using Azure Logic Apps with OAuth 2.0 through Azure AD."
+    },
+    {
+      "text": "Build the frontend using Blazor Server",
+      "kind": "constraint",
+      "quote": "Given this, I’ll design the frontend using Blazor Server to leverage their existing .NET skills and minimize learning curve, avoiding any dependency on external JavaScript libraries."
+    },
+    {
+      "text": "Version one must be live by 15 October 2024",
+      "kind": "constraint",
+      "quote": "Version one must be live by 15 October 2024—this is aligned with the hospital group’s annual digital transformation milestone and the upcoming rollout of the new EPR system."
+    },
+    {
+      "text": "MVP functionality: nurse login via Azure AD",
+      "kind": "feature",
+      "quote": "This timeline requires a minimal viable product (MVP) with core functionality: nurse login via Azure AD, patient lookup via FHIR, ward note creation as a FHIR Observation resource, and sync to SharePoint via Power Automate."
+    },
+    {
+      "text": "MVP functionality: patient lookup via FHIR",
+      "kind": "feature",
+      "quote": "This timeline requires a minimal viable product (MVP) with core functionality: nurse login via Azure AD, patient lookup via FHIR, ward note creation as a FHIR Observation resource, and sync to SharePoint via Power Automate."
+    },
+    {
+      "text": "MVP functionality: ward note creation as a FHIR Observation resource",
+      "kind": "feature",
+      "quote": "This timeline requires a minimal viable product (MVP) with core functionality: nurse login via Azure AD, patient lookup via FHIR, ward note creation as a FHIR Observation resource, and sync to SharePoint via Power Automate."
+    },
+    {
+      "text": "MVP functionality: sync to SharePoint via Power Automate",
+      "kind": "feature",
+      "quote": "This timeline requires a minimal viable product (MVP) with core functionality: nurse login via Azure AD, patient lookup via FHIR, ward note creation as a FHIR Observation resource, and sync to SharePoint via Power Automate."
+    },
+    {
+      "text": "Budget capped at £45,000 for MVP delivery",
+      "kind": "constraint",
+      "quote": "The budget is capped at £45,000 for the full MVP delivery, including development, testing, and deployment."
+    },
+    {
+      "text": "Avoid third-party licensing costs",
+      "kind": "constraint",
+      "quote": "This allows us to build the core components in-house using existing Azure subscriptions and team capacity, but requires us to avoid third-party licensing costs."
+    },
+    {
+      "text": "Approximately 85 nurses will use the tool at launch",
+      "kind": "constraint",
+      "quote": "At launch, approximately 85 nurses across three acute wards will use the tool—each ward has about 25–30 nurses, with around 30% expected to be active daily."
+    },
+    {
+      "text": "Azure App Service will run on a Standard S1 tier with auto-scaling",
+      "kind": "constraint",
+      "quote": "This scale means the Azure App Service will run on a Standard S1 tier (1 core, 1.75 GB RAM) with auto-scaling enabled to handle peak load during shift changes."
+    },
+    {
+      "text": "Comply with UK GDPR, NHS Digital Information Governance Code of Practice, and Health and Social Care Act 2008 Regulations",
+      "kind": "constraint",
+      "quote": "The system must comply with UK GDPR, the NHS Digital Information Governance Code of Practice, and the Health and Social Care Act 2008 (Regulated Activities) Regulations."
+    },
+    {
+      "text": "Process all patient data under NHS Data Security and Protection Toolkit (DSPT) controls",
+      "kind": "constraint",
+      "quote": "All patient data will be processed under NHS Data Security and Protection Toolkit (DSPT) controls, with encryption at rest (Azure SQL TDE) and in transit (TLS 1.3)."
+    },
+    {
+      "text": "Retain access logs for 12 months",
+      "kind": "constraint",
+      "quote": "Access logs will be retained for 12 months, and all FHIR interactions will be audited via Azure Monitor with alerts on unauthorized access attempts."
+    },
+    {
+      "text": "Audit all FHIR interactions via Azure Monitor with alerts on unauthorized access attempts",
+      "kind": "feature",
+      "quote": "Access logs will be retained for 12 months, and all FHIR interactions will be audited via Azure Monitor with alerts on unauthorized access attempts."
+    },
+    {
+      "text": "Undergo a DSPT self-assessment prior to go-live",
+      "kind": "feature",
+      "quote": "The system will undergo a DSPT self-assessment prior to go-live."
+    }
+  ]
+}

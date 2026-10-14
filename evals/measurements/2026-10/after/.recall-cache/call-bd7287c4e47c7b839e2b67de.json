@@ -1,0 +1,125 @@
+{
+  "capabilities": [
+    {
+      "text": "Run in existing Azure cloud account",
+      "kind": "constraint",
+      "quote": "so the tool will run in our existing Azure cloud account."
+    },
+    {
+      "text": "Use Azure App Services for the web app",
+      "kind": "constraint",
+      "quote": "We’ll use Azure App Services for the web app"
+    },
+    {
+      "text": "Use Azure SQL Database for structured note storage",
+      "kind": "constraint",
+      "quote": "and Azure SQL Database for structured note storage"
+    },
+    {
+      "text": "Encrypt data at rest and in transit using Azure’s built-in compliance controls",
+      "kind": "constraint",
+      "quote": "with all data encrypted at rest and in transit using Azure’s built-in compliance controls."
+    },
+    {
+      "text": "Deploy using Azure DevOps pipeline with infrastructure-as-code using Bicep",
+      "kind": "constraint",
+      "quote": "The deployment will follow our standard Azure DevOps pipeline with infrastructure-as-code using Bicep."
+    },
+    {
+      "text": "Integrate with Epic EHR system via FHIR API",
+      "kind": "feature",
+      "quote": "The tool must integrate with two systems: our electronic health record (EHR) system, Epic, via its FHIR API"
+    },
+    {
+      "text": "Integrate with clinical messaging system using HL7 v2.5 over TCP",
+      "kind": "feature",
+      "quote": "and our clinical messaging system, which uses HL7 v2.5 over TCP"
+    },
+    {
+      "text": "Push notes to the patient’s chart",
+      "kind": "feature",
+      "quote": "to push notes to the patient’s chart."
+    },
+    {
+      "text": "Use Azure Logic Apps to handle integrations",
+      "kind": "constraint",
+      "quote": "We’ll use Azure Logic Apps to handle both integrations"
+    },
+    {
+      "text": "Use managed identities for secure authentication via Azure AD",
+      "kind": "constraint",
+      "quote": "with managed identities for secure authentication via Azure AD."
+    },
+    {
+      "text": "Use FHIR R4 endpoints for patient context and note ingestion",
+      "kind": "constraint",
+      "quote": "The EHR integration will use FHIR R4 endpoints for patient context and note ingestion"
+    },
+    {
+      "text": "Generate HL7 messages from structured note data in a standardized format",
+      "kind": "feature",
+      "quote": "while HL7 messages will be generated from structured note data in a standardized format."
+    },
+    {
+      "text": "Internal IT team to build the tool",
+      "kind": "constraint",
+      "quote": "This will be built by our internal IT team"
+    },
+    {
+      "text": "Use Agile Scrum process in Azure DevOps",
+      "kind": "constraint",
+      "quote": "The project will follow our standard Agile Scrum process using Azure DevOps"
+    },
+    { "text": "Two-week sprint lengths", "kind": "constraint", "quote": "with sprint lengths of two weeks" },
+    {
+      "text": "Code reviewed via pull requests",
+      "kind": "constraint",
+      "quote": "with all code reviewed via pull requests."
+    },
+    {
+      "text": "Use C#, .NET Core, and Azure services",
+      "kind": "constraint",
+      "quote": "The team is most proficient in C#, .NET Core, and Azure services"
+    },
+    {
+      "text": "Use .NET 8 for the web app",
+      "kind": "constraint",
+      "quote": "so we’ll use .NET 8 for the web app"
+    },
+    {
+      "text": "Leverage existing libraries and patterns for integration logic",
+      "kind": "constraint",
+      "quote": "and ensure all integration logic leverages existing libraries and patterns."
+    },
+    {
+      "text": "Reuse current logging and monitoring stack—Azure Application Insights",
+      "kind": "constraint",
+      "quote": "We’ll also reuse our current logging and monitoring stack—Azure Application Insights"
+    },
+    {
+      "text": "Use custom telemetry for note submission events",
+      "kind": "feature",
+      "quote": "with custom telemetry for note submission events."
+    },
+    {
+      "text": "Version one in production by December 15, 2024",
+      "kind": "constraint",
+      "quote": "Version one must be in production by December 15, 2024"
+    },
+    {
+      "text": "Minimal viable product with core note entry, EHR sync via FHIR, HL7 message generation, and SSO via Azure AD",
+      "kind": "feature",
+      "quote": "to deliver a minimal viable product with core note entry, EHR sync via FHIR, HL7 message generation, and SSO via Azure AD."
+    },
+    {
+      "text": "Budget capped at $45,000 for development",
+      "kind": "constraint",
+      "quote": "The budget is capped at $45,000 for development"
+    },
+    {
+      "text": "Budget capped at $12,000 annually for hosting and maintenance",
+      "kind": "constraint",
+      "quote": "and $12,000 annually for hosting and maintenance"
+    }
+  ]
+}

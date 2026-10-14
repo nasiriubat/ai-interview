@@ -1,0 +1,254 @@
+{
+  "capabilities": [
+    {
+      "text": "Enter a single ward note into both the electronic health record (EHR) system and the internal nursing documentation tool (CareTrack)",
+      "kind": "feature",
+      "quote": "On average, a nurse spends about 8 minutes entering a single ward note into both the electronic health record (EHR) system and the internal nursing documentation tool, which we call CareTrack."
+    },
+    {
+      "text": "Automatically push note from Medix to CareTrack without confirmation",
+      "kind": "feature",
+      "quote": "If the nurse saves the note in Medix, the system should automatically push it to CareTrack—no confirmation needed—because that’s where the nurse starts."
+    },
+    {
+      "text": "Flag existing different note in CareTrack with a clear warning and require nurse confirmation to overwrite",
+      "kind": "feature",
+      "quote": "But if the note already exists in CareTrack and is different, the system should flag it with a clear warning: “This note already exists in CareTrack with a different version. Do you want to overwrite it?”"
+    },
+    {
+      "text": "Prevent accidental overwrites of CareTrack notes",
+      "kind": "feature",
+      "quote": "That way, we avoid accidental overwrites, but we don’t block the workflow—nurses need to be able to move forward safely."
+    },
+    {
+      "text": "Enter a note once and have it appear in both Medix and CareTrack",
+      "kind": "feature",
+      "quote": "I’ll make sure the developer prioritizes just the core flow—typing the note in one place and having it appear in both Medix and CareTrack—without adding extra features like reminders or reporting in version one."
+    },
+    {
+      "text": "Nurse selects patient from a list tied to their assigned ward, auto-filled from Medix",
+      "kind": "feature",
+      "quote": "The nurse is the primary user—when they open the tool, they start by selecting a patient from a list tied to their assigned ward. That list auto-fills from Medix, and they can search by name, ID, or bed number."
+    },
+    {
+      "text": "Ward manager reviews all notes entered that day and checks for discrepancies",
+      "kind": "feature",
+      "quote": "The next most important group is the ward manager—they open the tool to review all notes entered that day, check for discrepancies, and run a daily summary report."
+    },
+    {
+      "text": "Ward manager sees a simple dashboard with a list of patients and a date filter",
+      "kind": "feature",
+      "quote": "The system should show a simple dashboard with a list of patients and a date filter."
+    },
+    {
+      "text": "Ward manager sees timestamps and conflict flags only on the dashboard, with click-through to full record",
+      "kind": "feature",
+      "quote": "Yes, let’s keep the default. The ward manager only needs to know if a note was entered, when, and whether there was a conflict—like a mismatch or failed sync—not the full clinical content."
+    },
+    {
+      "text": "Generate a daily summary including total notes per ward, number of conflicts, and list of patients involved",
+      "kind": "feature",
+      "quote": "The daily summary should include the total number of notes entered per ward, the number of notes that had conflicts (e.g., mismatched entries or failed syncs), and a list of the patients involved with the conflict, including the time and which system had the different version."
+    },
+    {
+      "text": "Daily summary appears in the ward manager’s dashboard as a PDF they can download or view on screen",
+      "kind": "feature",
+      "quote": "It should be generated automatically every morning at 8 a.m. and appear in the ward manager’s dashboard as a PDF they can download or view on screen."
+    },
+    {
+      "text": "Nurse enters a new note, hits save, system sends to Medix and CareTrack",
+      "kind": "feature",
+      "quote": "Once they hit save, the system sends the note to both Medix and CareTrack."
+    },
+    {
+      "text": "System prompts nurse with overwrite confirmation if CareTrack has a different version of the note",
+      "kind": "feature",
+      "quote": "If CareTrack already has a different version, they’re prompted: “This note has been modified. Do you want to overwrite the version in CareTrack?”"
+    },
+    {
+      "text": "System shows a green checkmark and message 'Note saved and synced to both systems' after successful save",
+      "kind": "feature",
+      "quote": "The tool then shows a green checkmark and a message: “Note saved and synced to both systems.”"
+    },
+    {
+      "text": "Nurse can amend their own note within the same shift",
+      "kind": "feature",
+      "quote": "Yes, a nurse can amend their own note as long as it’s within the same shift—say, during the midday check or later in the afternoon."
+    },
+    {
+      "text": "Amended note is treated as a new version and sent to both Medix and CareTrack",
+      "kind": "feature",
+      "quote": "If they edit it, the system treats it as a new version and sends the updated text to both Medix and CareTrack."
+    },
+    {
+      "text": "Conflict flag clears automatically after the next sync if the nurse corrected and resubmitted the note",
+      "kind": "feature",
+      "quote": "If the nurse already corrected the note and resubmitted it, the conflict should clear automatically after the next sync."
+    },
+    {
+      "text": "Conflict flag stays flagged until the nurse or shift lead takes action or manager marks it as resolved",
+      "kind": "feature",
+      "quote": "But if the conflict hasn’t been resolved, it stays flagged until the nurse or shift lead takes action. The flag stays until either the note is corrected or the manager marks it as resolved in the system."
+    },
+    {
+      "text": "Manager can tag a conflict for follow-up by sending a message to the nurse through the system",
+      "kind": "feature",
+      "quote": "The manager doesn’t need to fix it themselves—this is a visibility tool, not a correction tool—but they can tag it for follow-up by sending a message to the nurse through the system."
+    },
+    {
+      "text": "Nurse enters a note once in the tool, and it successfully appears in both Medix and CareTrack on the first try",
+      "kind": "feature",
+      "quote": "Yes, the absolute must-have is that a nurse enters a note once in the tool, and it successfully appears in both Medix and CareTrack—without retyping—on the first try."
+    },
+    {
+      "text": "Cloud hosting with a UK region",
+      "kind": "constraint",
+      "quote": "Yes, let’s go with cloud hosting. It’s faster to set up, easier to scale during peak shifts, and we won’t have to manage physical servers or deal with on-site IT delays."
+    },
+    {
+      "text": "App accessible from any browser on ward stations, no downloads or installations needed",
+      "kind": "feature",
+      "quote": "I’d just want to make sure the app is accessible from any browser on the ward stations, and that it works even if the internet is slow. No need for downloads or installations—just log in and go."
+    },
+    {
+      "text": "Keep the latest note text locally on the ward station and sync when the connection returns",
+      "kind": "feature",
+      "quote": "The app should keep the latest note text locally on the ward station and sync when the connection returns, so a nurse is not blocked by a slow network."
+    },
+    {
+      "text": "If CareTrack is unreachable, note stays on screen with clear message, draft kept until sync succeeds, system retries automatically",
+      "kind": "feature",
+      "quote": "Yes, exactly. If CareTrack is unreachable, the note should stay on screen with a clear message: “Cannot sync to CareTrack. Your note is saved locally and will be sent when the connection returns.” The system should keep trying automatically every 2 minutes for up to 15 minutes—no need for the nurse to press retry."
+    },
+    {
+      "text": "After 15 minutes of failed sync, note stays pending and flagged, system stops retrying automatically",
+      "kind": "feature",
+      "quote": "If it still fails after 15 minutes, the system stops retrying but leaves the draft intact so the nurse can finish it later."
+    },
+    {
+      "text": "Same text, same timestamp, both systems, within 30 seconds, and no errors in logs for core loop pass condition",
+      "kind": "feature",
+      "quote": "After a nurse saves a note on Ward 3B, the tester should see the exact same text—down to the punctuation and timestamp—appear in both Medix and CareTrack within 30 seconds."
+    },
+    {
+      "text": "Prevent saving a note for a patient who has been discharged or moved to another ward",
+      "kind": "feature",
+      "quote": "No, the tool should prevent a nurse from saving a note for a patient who has been discharged or moved to another ward."
+    },
+    {
+      "text": "If patient transferred mid-entry, keep draft, disable save button, display message, and do not link note to wrong ward",
+      "kind": "feature",
+      "quote": "If a patient is transferred mid-entry—say, while the nurse is typing a note for J. Smith on Ward 3B—the system keeps the draft in the editor window, but disables the save button and displays a message: “This patient has been moved to another ward. You can continue editing, but cannot save until the patient is assigned to this ward again.”"
+    },
+    {
+      "text": "Returning patient's draft reappears in the list automatically, marked 'Draft: Incomplete Note'",
+      "kind": "feature",
+      "quote": "If a patient moves out of Ward 3B and then returns later in the day—say, after a transfer to the ICU and back—the system checks the patient’s current assignment each time the nurse opens the tool. If the patient is back on Ward 3B, any unsaved draft from that patient reappears in the list, clearly marked as “Draft: Incomplete Note.”"
+    },
+    {
+      "text": "Keep only the most recent draft if a nurse has two unsaved drafts open for the same patient, ask for confirmation before discarding older one",
+      "kind": "feature",
+      "quote": "The system keeps only the most recent draft and asks the nurse to confirm before discarding the older one."
+    },
+    {
+      "text": "Ward manager dashboard shows patient list, last-note timestamps, green checkmark for sync success, red flag for conflict/failed sync",
+      "kind": "feature",
+      "quote": "After a set of notes has been entered the day before, the tester should see on the ward manager’s dashboard for Ward 3B a list of all patients from that ward who had a note entered, each showing the timestamp of the last note and a green checkmark if it synced successfully."
+    },
+    {
+      "text": "Dashboard loads in under 5 seconds, even with 30+ patients",
+      "kind": "feature",
+      "quote": "The dashboard should load in under 5 seconds, even with 30+ patients."
+    },
+    {
+      "text": "Dashboard shows a rolling 24-hour window of notes",
+      "kind": "feature",
+      "quote": "Yes, the dashboard should show a rolling 24-hour window—so it always reflects the past 24 hours, not the previous calendar day."
+    },
+    {
+      "text": "Daily summary PDF covers calendar day (00:00-23:59) and appears at 8 a.m.",
+      "kind": "feature",
+      "quote": "The daily summary, however, runs on the calendar day—so it covers 00:00 to 23:59 on the previous day and appears automatically at 8 a.m. each morning."
+    },
+    {
+      "text": "Daily summary PDF includes total notes, number of conflicts, and list of patients involved, marked as open or resolved",
+      "kind": "feature",
+      "quote": "Yes, the PDF should cover the full calendar day—from 00:00 to 23:59 yesterday—and include every conflict that occurred during that time, regardless of whether it was later resolved."
+    },
+    {
+      "text": "App must run on Windows desktops, including IE11",
+      "kind": "constraint",
+      "quote": "The developer should make sure the app works on IE11 at a minimum, even if it’s not ideal, because some nurses still rely on it."
+    },
+    {
+      "text": "System should not try to auto-update or prompt user to install anything",
+      "kind": "constraint",
+      "quote": "Also, the system shouldn’t try to auto-update or prompt the user to install anything—nurses won’t do that, and it would cause delays."
+    },
+    {
+      "text": "Developer works with ward team during testing",
+      "kind": "constraint",
+      "quote": "And finally, the developer should work with the ward team during testing—no silent builds or behind-the-scenes changes."
+    },
+    {
+      "text": "Developer uses .NET and C#",
+      "kind": "constraint",
+      "quote": "The developer I’d like to hire is experienced in .NET and C#, which is what our EHR system, Medix, uses, and also has some exposure to SQL databases"
+    },
+    {
+      "text": "Developer uses SQL databases",
+      "kind": "constraint",
+      "quote": "The developer I’d like to hire is experienced in .NET and C#, which is what our EHR system, Medix, uses, and also has some exposure to SQL databases"
+    },
+    {
+      "text": "Version one needed by December 15th",
+      "kind": "constraint",
+      "quote": "We need version one by the end of next quarter—specifically, December 15th—because that’s when the hospital group rolls out a new safety initiative focused on reducing documentation errors."
+    },
+    {
+      "text": "Budget under £40,000 for version one",
+      "kind": "constraint",
+      "quote": "We haven’t set a formal budget yet, but I’ve been told the project should stay under £40,000 for the first version."
+    },
+    {
+      "text": "Target budget closer to £30,000 for version one",
+      "kind": "constraint",
+      "quote": "So, I’d like to stay under that cap—ideally closer to £30,000—so we can keep it lean and still deliver something that works."
+    },
+    {
+      "text": "System handles up to 25 concurrent users without lag or crashes",
+      "kind": "feature",
+      "quote": "The system doesn’t need to support 120 at once, but it should handle 25 concurrent users without lag or crashes."
+    },
+    {
+      "text": "Only nurses on the same ward can see notes for patients on that ward",
+      "kind": "feature",
+      "quote": "Only nurses on the same ward can see the notes for patients on that ward."
+    },
+    {
+      "text": "Ward-level access enforced at the data layer",
+      "kind": "feature",
+      "quote": "But the system should enforce this at the data level, not just in the user interface, so no nurse can accidentally access a note they shouldn’t."
+    },
+    {
+      "text": "Note sent as JSON object containing patient ID, timestamp, nurse ID, and note text",
+      "kind": "feature",
+      "quote": "The note should be sent as a JSON object containing patient ID, timestamp, nurse ID, and note text."
+    },
+    {
+      "text": "System logs error, shows clear message to nurse, and retries once on failure during CareTrack sync",
+      "kind": "feature",
+      "quote": "If there’s a failure—like the server is down or the data format is invalid—the system should log the error, show a clear message to the nurse, and retry once before failing."
+    },
+    {
+      "text": "Keep a local draft until the sync is confirmed",
+      "kind": "feature",
+      "quote": "We don’t want nurses to lose their work, so we’ll keep a local draft until the sync is confirmed."
+    },
+    {
+      "text": "Manager marks conflict as resolved in the system",
+      "kind": "feature",
+      "quote": "The flag stays until either the note is corrected or the manager marks it as resolved in the system."
+    }
+  ]
+}

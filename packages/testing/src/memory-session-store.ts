@@ -1,4 +1,5 @@
 import {
+  addExtractedFacts,
   reconcileBackgroundProgress,
   type ExtractionCommit,
   type NewMessage,
@@ -110,9 +111,11 @@ export class MemorySessionStore implements SessionStore {
       events: [...this.events],
     };
     try {
-      this.state = { ...this.state, facts: [...this.state.facts, ...c.facts], lastExtractedSeq: c.toSeq };
+      const added = addExtractedFacts(this.state.facts, c.facts);
+      const accepted = added.accepted;
+      this.state = { ...this.state, facts: added.facts, lastExtractedSeq: c.toSeq };
       this.maybeFail("after_state");
-      c.facts.forEach((fact, ordinal) => {
+      accepted.forEach((fact, ordinal) => {
         const taken = this.factRows.some((r) => r.batchEndSeq === c.toSeq && r.ordinal === ordinal);
         if (!taken)
           this.factRows.push({
@@ -126,7 +129,7 @@ export class MemorySessionStore implements SessionStore {
           });
       });
       this.maybeFail("after_rows");
-      this.events.push({ type: "facts_extracted", payload: c.event });
+      this.events.push({ type: "facts_extracted", payload: { ...c.event, count: accepted.length } });
       this.maybeFail("after_event");
     } catch (err) {
       this.state = before.state;

@@ -1,0 +1,24 @@
+{
+  "answers": [
+    { "key": "c1", "by": "S-integrations/cerner-millennium" },
+    { "key": "c2", "by": "S-integrations/bedside-kiosk" },
+    { "key": "c3", "by": "S-integrations/bedside-kiosk" },
+    { "key": "c4", "by": "S-technical/auth" },
+    { "key": "c5", "by": "S-technical/auth" },
+    { "key": "c6", "by": "S-technical/auth" },
+    { "key": "c7", "by": "S-technical/auth" },
+    { "key": "c8", "by": "S-users/frontline_nurse" },
+    { "key": "c9", "by": "S-mvp/v1_scope" },
+    { "key": "c10", "by": "S-integrations/cerner-assessment-write" },
+    { "key": "c11", "by": "S-security/audit_logging" },
+    { "key": "c12", "by": "S-rules/edit_window_close_mid_edit" },
+    { "key": "c13", "by": "S-rules/edit_timing_limit" },
+    { "key": "c14", "by": "S-users/charge_nurse" },
+    { "key": "c15", "by": "S-stories/US-2" },
+    { "key": "c16", "by": "S-users/charge_nurse" },
+    { "key": "c17", "by": "S-users/charge_nurse" },
+    { "key": "c18", "by": "S-users/ward_manager_it_staff" },
+    { "key": "c21", "by": null },
+    { "key": "c22", "by": "S-integrations/bedside-kiosk" }
+  ]
+}
