@@ -3,6 +3,7 @@
  * file with the same shape; components only ever import `t` from `@/i18n`.
  */
 import type { BudgetScope, CallStatus, Effort, ProviderKind, Purpose, SettingKey } from "@aidp/shared";
+import { landingEn } from "./landing.en";
 
 export const en = {
   app: {
@@ -423,6 +424,7 @@ export const en = {
       invalidBody: "Check the address or ask the person who invited you for a new link.",
     },
   },
+  landing: landingEn,
   admin: {
     nav: {
       dashboard: "Overview",
@@ -1270,7 +1272,7 @@ export const en = {
     },
     report: {
       title: "Report",
-      subtitle: "The organization report from the analysis, with process maps.",
+      subtitle: "What the interviews found, analyzed together. Nothing here is attributed to one person.",
       backToResults: "Back to results",
       download: "Download Markdown",
       print: "Print or save as PDF",
@@ -1292,7 +1294,8 @@ export const en = {
       diagram: "Process map",
       diagramLoading: "Rendering diagram…",
       diagramError: "This diagram could not be rendered. The source is shown instead.",
-      preliminaryNote: "This report is preliminary: it was produced below the completion threshold.",
+      preliminaryNote:
+        "Preliminary: fewer interviews than the completion threshold. Counts may change, so treat the ranking as indicative.",
     },
     sessions: {
       title: (id: string): string => `Interview ${id}`,

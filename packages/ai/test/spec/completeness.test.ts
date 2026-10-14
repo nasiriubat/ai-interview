@@ -103,9 +103,16 @@ describe("requirements completeness (D-191)", () => {
 
     // After maxAsks rounds the interview is allowed to close.
     const spent = SessionStateSchema.parse({ ...base, completenessAsks: reqTemplate.completeness.maxAsks });
-    expect(shouldScanIssues(reqTemplate, spent, policy, "technical")).toBeUndefined();
-    // And a complete specification is not asked again.
-    const done = SessionStateSchema.parse({ ...base, facts: [...base.facts, fr(2), fr(3)] });
+    // The one thing left is reading the list back (D-244), once.
+    expect(shouldScanIssues(reqTemplate, spent, policy, "technical")).toBe("confirm");
+    const confirmed = SessionStateSchema.parse({ ...spent, requirementsConfirmAsked: true });
+    expect(shouldScanIssues(reqTemplate, confirmed, policy, "technical")).toBeUndefined();
+    // And a complete specification is not asked for more, only to be confirmed.
+    const done = SessionStateSchema.parse({
+      ...base,
+      facts: [...base.facts, fr(2), fr(3)],
+      requirementsConfirmAsked: true,
+    });
     expect(shouldScanIssues(reqTemplate, done, policy, "technical")).toBeUndefined();
   });
 

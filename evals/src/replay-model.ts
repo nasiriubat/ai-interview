@@ -53,7 +53,13 @@ export class ReplayModel implements ModelCallerPort {
         kind: "spec_field",
         section: "functional",
         path,
-        value: { title: gold.title, scope: gold.scope, acceptance: gold.acceptance },
+        // The quote is the participant's own first sentence of the turn that introduced it.
+        value: {
+          title: gold.title,
+          scope: gold.scope,
+          acceptance: gold.acceptance,
+          evidence: turn.text.split(/(?<=[.!?])\s/)[0] ?? turn.text,
+        },
         source: "user",
       });
     }
@@ -115,6 +121,50 @@ export class ReplayModel implements ModelCallerPort {
         }));
       case "no_capture":
         return [];
+      case "duplicate_capture":
+        // Every requirement of the turn once more, as a model that does not see what it recorded does.
+        return [
+          ...facts,
+          ...facts
+            .filter((f) => (f as { section?: string }).section === "functional")
+            .map((f) => {
+              const v = (f as { value: { title: string } }).value;
+              return {
+                ...(f as object),
+                path: `FR-${this.nextFr++}`,
+                value: { ...v, title: `Users can ${v.title}`, acceptance: [] },
+              };
+            }),
+        ];
+      case "detail_as_fr":
+        return [
+          ...facts,
+          ...facts
+            .filter((f) => (f as { section?: string }).section === "functional")
+            .map((f) => {
+              const v = (f as { value: { title: string } }).value;
+              return {
+                ...(f as object),
+                path: `FR-${this.nextFr++}`,
+                value: { ...v, title: `${v.title} button label`, acceptance: [] },
+              };
+            }),
+        ];
+      case "decision_as_fr":
+        return [
+          ...facts,
+          {
+            kind: "spec_field",
+            section: "functional",
+            path: `FR-decision-${n}`,
+            value: {
+              title: `Decision: host on the hospital's own servers (turn ${n})`,
+              scope: "mvp",
+              acceptance: [],
+            },
+            source: "user",
+          },
+        ];
       default:
         return facts;
     }

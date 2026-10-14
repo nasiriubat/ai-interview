@@ -73,3 +73,20 @@ describe("splitReportSections", () => {
     expect(parseReportSections(undefined)).toHaveLength(8);
   });
 });
+
+describe("the report cover does not shift the section mapping", () => {
+  const cover =
+    "# Discovery report: Ward\n\nGenerated 2026-10-14.\n\n**Method.** 6 of 8 invited people completed.\n\n" +
+    "**What this report does not do.** It does not name anyone.\n\n**Reproducibility.** template t v1.\n\n";
+
+  it("keeps the cover as unkeyed preface and maps the n-th heading to the n-th section", () => {
+    const md = `${cover}## Executive summary\n\nE\n\n## Participation and method\n\nP\n\n## Recommended next steps\n\nN\n`;
+    const chunks = splitReportSections(md, ["executive_summary", "participation", "next_steps"]);
+    expect(chunks.map((c) => c.key)).toEqual([null, "executive_summary", "participation", "next_steps"]);
+    expect(chunks[0]?.markdown).toContain("**Reproducibility.**");
+    const shown = visibleMarkdown(chunks, new Set(["next_steps"]));
+    expect(shown).toContain("**Method.**");
+    expect(shown).toContain("## Recommended next steps");
+    expect(shown).not.toContain("## Executive summary");
+  });
+});
