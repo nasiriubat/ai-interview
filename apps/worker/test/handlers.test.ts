@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { ShippedPromptSource, promptVersionTag, SHIPPED_PROMPTS } from "@aidp/ai";
 import {
   EmailInFlightError,
@@ -7,6 +8,7 @@ import {
   MemoryEmailOutbox,
   MemoryJobPublisher,
   MemoryStorage,
+  Crypto as RealCrypto,
   type Crypto,
   type JobName,
   type SettingsService,
@@ -285,16 +287,18 @@ describe("email.send", () => {
 });
 
 describe("privacy.confirm-deletion", () => {
+  // The real cipher: what the API encrypts with is what the worker decrypts with.
+  const cipher = new RealCrypto(randomBytes(32).toString("base64"));
   const job = {
     companyId: "c1",
     sessionId: "s1",
-    toEnc: "enc:ida@clinic.test",
+    toEnc: cipher.encrypt("ida@clinic.test"),
     campaignName: "Ward interviews",
     language: "en",
     deletedAt: "2026-10-14T09:00:00.000Z",
   };
   const withCrypto = (t: Harness): void => {
-    t.deps.crypto = { decrypt: (s: string) => s.replace(/^enc:/, "") } as unknown as Crypto;
+    t.deps.crypto = cipher;
   };
 
   it("decrypts the address, sends the notice once under deletion-notice:<session>, and keeps no copy", async () => {
