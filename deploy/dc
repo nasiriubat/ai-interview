@@ -10,7 +10,8 @@
 # (written by upgrade.sh and rollback.sh, never by hand). Without the last one compose cannot name
 # an image. This is the `dc` alias DEPLOY.md and OPERATIONS.md use.
 #
-# Overrides, for a non-default layout: COMPOSE_FILE_PATH, ENV_FILE_PATH, VERSIONS_FILE_PATH.
+# Overrides, for a non-default layout: COMPOSE_FILE_PATH, ENV_FILE_PATH, VERSIONS_FILE_PATH, and
+# COMPOSE_OVERRIDE_FILES (space separated; the full-stack drill's fake provider overlay).
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -19,7 +20,9 @@ env_file="${ENV_FILE_PATH:-$here/.env}"
 versions_file="${VERSIONS_FILE_PATH:-$here/versions.env}"
 
 [ -f "$env_file" ] || { echo "dc: no $env_file; run deploy/generate-env.sh first" >&2; exit 1; }
-args=(-f "$compose_file" --env-file "$env_file")
+args=(-f "$compose_file")
+for extra in ${COMPOSE_OVERRIDE_FILES:-}; do args+=(-f "$extra"); done
+args+=(--env-file "$env_file")
 if [ -f "$versions_file" ]; then
 	args+=(--env-file "$versions_file")
 elif [ -z "${AIDP_VERSION:-}" ]; then

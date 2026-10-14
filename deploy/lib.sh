@@ -9,6 +9,9 @@ here="${AIDP_DEPLOY_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 compose_file="${COMPOSE_FILE_PATH:-$here/compose.prod.yml}"
 env_file="${ENV_FILE_PATH:-$here/.env}"
 versions_file="${VERSIONS_FILE_PATH:-$here/versions.env}"
+# Extra compose files, space separated, layered over compose.prod.yml. Only the full-stack drill
+# uses this (deploy/compose.fake.yml); a real deployment runs the one file.
+compose_overrides="${COMPOSE_OVERRIDE_FILES:-}"
 DRY_RUN="${DRY_RUN:-0}"
 
 say() { echo "release: $*"; }
@@ -21,7 +24,10 @@ die() {
 # `docker compose` for this stack. AIDP_VERSION (the image tag) comes from the environment when a
 # script is about to write versions.env, and from the file otherwise.
 dcx() {
-	local args=(-f "$compose_file" --env-file "$env_file")
+	local args=(-f "$compose_file") extra
+	# Unquoted on purpose: a space-separated list of paths.
+	for extra in $compose_overrides; do args+=(-f "$extra"); done
+	args+=(--env-file "$env_file")
 	[ -f "$versions_file" ] && args+=(--env-file "$versions_file")
 	docker compose "${args[@]}" "$@"
 }
