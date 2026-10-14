@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
+import { isVersionNumber } from "@/lib/admin/validation";
 import { isApiError } from "@/lib/api/errors";
 import { staffServer } from "@/lib/api/server";
 
@@ -28,6 +29,9 @@ export default async function SpecVersionPage({ params }: Props): Promise<React.
   await requestLocale();
   await requireMe();
   const { id, v } = await params;
+  // A version is a positive number; anything else ("latest", a typo) is a missing page, not the
+  // 500 the API's validation error used to become (simulation 2026-10-15).
+  if (!isVersionNumber(v)) notFound();
   const api = await staffServer();
   const [detailR, listR, sessionR] = await Promise.allSettled([
     api.requirements.versions.get(id, v),

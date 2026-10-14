@@ -117,6 +117,13 @@ describe("weekly time on an opportunity (simulation 2026-10-15)", () => {
   });
 });
 
+describe("the threshold once it is passed (simulation 2026-10-15)", () => {
+  it("does not read '6 of 5 needed'", () => {
+    expect(en.admin.campaigns.thresholdValue(6, 5)).toBe("6 completed · 5 needed for final results");
+    expect(en.admin.campaigns.thresholdValue(2, 5)).toBe("2 of 5 needed for final results");
+  });
+});
+
 describe("a withheld department cell (simulation 2026-10-15)", () => {
   it("says the share has too few people behind it, not that the group did", () => {
     // A department of three showed "Fewer than 3 people in this group answered".
