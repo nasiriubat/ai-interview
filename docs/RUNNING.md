@@ -19,7 +19,8 @@ variable and tags it required, bootstrap, fallback or runtime). There is nothing
 
 **Precedence**, highest first: a variable set in the shell, then the root `.env`, then (only while
 it still exists) the legacy `apps/api/.env`, then the code's default. In Docker, values the compose
-file sets itself (`DATABASE_URL` to the `postgres` host, `EMAIL_SMTP_URL` to Mailpit, ports) win
+file sets itself (`DATABASE_URL` to the `postgres` host, `SMTP_HOST=mailpit` with `SMTP_PORT=1025` and
+`SMTP_SECURITY=none`, ports) win
 over the file, so a host-style `DATABASE_URL=...localhost` in `.env` is correct for both.
 
 **The values are a fallback, not the source of truth.** Once the platform is running the admin owns
@@ -28,8 +29,9 @@ configuration, and `.env` is what it starts from:
 - _Bootstrap only:_ `BOOTSTRAP_*` (first operator, admin and tenant) and `ANTHROPIC_API_KEY`,
   `OPENAI_API_KEY`, `OPENROUTER_API_KEY` (seed the platform providers and their routes on first
   boot). They are not read again; change providers, routes and people in the admin.
-- _Fallback for an admin setting:_ `EMAIL_SMTP_URL` and `EMAIL_FROM` are used only while the
-  settings `email.smtpUrl` and `email.from` are empty at both tenant and platform scope.
+- _Fallback for an admin setting:_ the relay (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`,
+  `SMTP_USER`, `SMTP_PASSWORD`; the deprecated `EMAIL_SMTP_URL` only while `SMTP_HOST` is empty)
+  and `EMAIL_FROM` are used only while the settings `email.smtpUrl` and `email.from` are empty at both tenant and platform scope.
 - _Always from the environment:_ `PLATFORM_ENCRYPTION_KEY` (it decrypts everything the admin
   stores, so it cannot live in the admin), `AUTH_SECRET`, `DATABASE_URL`, ports and origins,
   egress and timeouts, alert targets.
@@ -71,7 +73,8 @@ inbox at `http://localhost:8025`. Without the Docker stack the web app falls bac
 `smtp://localhost:1025` in development only.
 
 Mailpit is not part of a production deployment. There the relay is a real SMTP server set at deploy
-time as `EMAIL_SMTP_URL` in `deploy/.env` (required by `compose.prod.yml`), the first admin is
+time as `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER` and `SMTP_PASSWORD` in
+`deploy/.env` (the stack refuses to start without `SMTP_HOST`), the first admin is
 `BOOTSTRAP_ADMIN_EMAIL`, and Google sign-in (`AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`) is the
 alternative. Tenant admins can then set their own mail server under Settings, Email, which covers
 the mail a tenant sends but not the deployment's sign-in links. The full explanation is in

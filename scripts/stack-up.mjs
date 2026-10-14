@@ -42,6 +42,17 @@ for (const k of ["PLATFORM_ENCRYPTION_KEY", "AUTH_SECRET"]) {
   if (!(merged[k] ?? "").trim())
     console.warn(`WARNING: ${k} is empty (openssl rand -base64 32); the stack will not work without it.`);
 }
+// The relay (D-445). The compose stack points every service at Mailpit itself, so this is only
+// about the names: the one-URL form still works but is deprecated (D-446).
+const set = (k) => (merged[k] ?? "").trim() !== "";
+if (set("EMAIL_SMTP_URL") || set("EMAIL_SERVER")) {
+  const which = ["EMAIL_SMTP_URL", "EMAIL_SERVER"].filter(set).join(" and ");
+  console.warn(
+    set("SMTP_HOST")
+      ? `WARNING: ${which} is ignored because SMTP_HOST is set; remove it from .env.`
+      : `WARNING: ${which} is deprecated; use SMTP_HOST, SMTP_PORT, SMTP_SECURITY, SMTP_USER, SMTP_PASSWORD. pnpm env:migrate splits EMAIL_SMTP_URL for you.`,
+  );
+}
 const run = (args) => spawnSync("docker", args, { stdio: "inherit" }).status ?? 1;
 const up = run(["compose", "up", "-d", "--build", "--remove-orphans"]);
 if (up !== 0) process.exit(up);

@@ -1,3 +1,5 @@
+import { resolveSmtpEnv, SMTP_ENV_REQUIRED_MESSAGE, type SmtpEnvInput } from "@aidp/shared";
+
 /**
  * Decides which SMTP relay the magic-link provider should use, and whether a missing one is a
  * mistake worth stopping for.
@@ -9,16 +11,19 @@
  */
 export const DEV_SMTP_FALLBACK = "smtp://localhost:1025";
 
-export interface SmtpEnv {
+export interface SmtpEnv extends SmtpEnvInput {
+  /** Deprecated (D-446): the web app's old name for the relay URL, read after EMAIL_SMTP_URL. */
   EMAIL_SERVER?: string | undefined;
   NODE_ENV?: string | undefined;
   NEXT_PHASE?: string | undefined;
 }
 
 /**
- * Returns the relay URL to hand to Nodemailer.
+ * Returns the relay to hand to Nodemailer.
  *
- * - Set: use it, in every environment.
+ * - Configured: SMTP_HOST and the other SMTP_* variables, else the deprecated EMAIL_SMTP_URL or
+ *   EMAIL_SERVER. The same rule as the API and the worker (`resolveSmtpEnv`, D-445), so sign-in
+ *   mail and every other mail leave through the same relay.
  * - Unset in development or test: fall back to Mailpit, which is what `docker-compose.yml` runs.
  * - Unset in production: throw, because sign-in is by magic link and a silent fallback would make
  *   the system look healthy while no one could ever log in. The one exception is `next build`,
@@ -26,12 +31,12 @@ export interface SmtpEnv {
  *   does not need one — Next sets NEXT_PHASE to distinguish that from actually serving traffic.
  */
 export function resolveSmtpUrl(env: SmtpEnv): string {
-  if (env.EMAIL_SERVER) return env.EMAIL_SERVER;
+  // An empty value is "not set" (compose passes unset variables as ""), so it falls through.
+  const legacy = [env.EMAIL_SMTP_URL, env.EMAIL_SERVER].find((v) => v !== undefined && v.trim() !== "");
+  const relay = resolveSmtpEnv({ ...env, ...(legacy ? { EMAIL_SMTP_URL: legacy } : {}) });
+  if (relay.source !== "none") return relay.url;
   if (env.NODE_ENV === "production" && env.NEXT_PHASE !== "phase-production-build") {
-    throw new Error(
-      "EMAIL_SERVER is not set. Sign-in is by magic link, so the web app needs an SMTP relay; " +
-        "set EMAIL_SMTP_URL in deploy/.env (see docs/DEPLOY.md).",
-    );
+    throw new Error(SMTP_ENV_REQUIRED_MESSAGE);
   }
   return DEV_SMTP_FALLBACK;
 }

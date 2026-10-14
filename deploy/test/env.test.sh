@@ -68,6 +68,13 @@ assert_contains "and the identity" "$content" "BACKUP_AGE_IDENTITY=AGE-SECRET-KE
 assert_contains "offers the alert variables" "$content" "ALERT_WEBHOOK_URL="
 assert_contains "and the offsite variables" "$content" "RCLONE_REMOTE="
 assert_contains "and the provider limits" "$content" "PROVIDER_TIMEOUT_MS="
+for k in SMTP_HOST SMTP_PORT SMTP_SECURITY SMTP_USER SMTP_PASSWORD EMAIL_FROM; do
+	assert_contains "writes the relay line $k (D-445)" "$content" "
+$k="
+done
+assert_not_contains "and not the deprecated one-URL relay" "$content" "EMAIL_SMTP_URL"
+assert_not_contains "nor tells anyone to write a URL with credentials" "$content" "smtp://"
+assert_contains "the next steps name the split variables" "$OUT" "set SMTP_HOST"
 assert_contains "tells the operator to copy the file off the host" "$OUT" "copy"
 OUT=$("$SB/deploy/generate-env.sh" pilot.example.com ops@example.com 2>&1)
 assert_contains "refuses to overwrite an existing file" "$OUT" "already exists"

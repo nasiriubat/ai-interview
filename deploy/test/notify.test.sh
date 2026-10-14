@@ -69,6 +69,7 @@ FAKE
 	export OPS_STATE_DIR="$SB/ops" NOTIFY_ONCE=1 PUBLIC_HOSTNAME=pilot.example.com
 	export ALERT_WEBHOOK_URL="https://ntfy.example.com/aidp-ops" ALERT_WEBHOOK_FORMAT=ntfy
 	export ALERT_EMAIL="" EMAIL_SMTP_URL="" EMAIL_FROM="no-reply@pilot.example.com"
+	export SMTP_HOST="" SMTP_PORT="" SMTP_SECURITY="" SMTP_USER="" SMTP_PASSWORD=""
 	export DISK_PATH="$SB/uploads" TLS_CONNECT="caddy:443"
 	export API_READY_URL="http://api:4000/api/v1/health/ready"
 	export NOTIFY_STARTED NOTIFY_NOW
@@ -125,7 +126,47 @@ assert_eq "slack is text plus one section block" "section" "$(echo "$slack" | jq
 assert_contains "whose title is the subject" "$(echo "$slack" | jq -r .text)" "RLS preflight failed"
 rm -rf "$SB"
 
-echo "email"
+echo "email through the split SMTP_* variables (D-447)"
+setup
+export ALERT_WEBHOOK_URL="" ALERT_EMAIL="ops@example.com"
+export SMTP_HOST="smtp.example.com" SMTP_PORT="587" SMTP_SECURITY="starttls" SMTP_USER="relay@x"
+export SMTP_PASSWORD='p@ss:w/rd#1 %41 x'
+export EMAIL_SMTP_URL="smtp://legacy.example.com:25"
+drop "a.json" "$PREFLIGHT"
+pass_once
+smtp=$(grep -- '--mail-rcpt' "$SB/curl.log" | head -n1)
+assert_contains "SMTP_HOST wins over the legacy URL" "$smtp" "--url smtp://smtp.example.com:587"
+assert_contains "starttls is required, not attempted" "$smtp" "--ssl-reqd"
+assert_contains "the credentials go through as written, nothing decoded" "$smtp" "--user relay@x:p@ss:w/rd#1 %41 x"
+assert_eq "and the file counts as delivered" 1 "$(sent | grep -c 'a.json')"
+rm -rf "$SB"
+
+setup
+export ALERT_WEBHOOK_URL="" ALERT_EMAIL="ops@example.com" SMTP_HOST="mail.example.com" SMTP_SECURITY="tls"
+drop "a.json" "$PREFLIGHT"
+pass_once
+smtp=$(grep -- '--mail-rcpt' "$SB/curl.log" | head -n1)
+assert_contains "tls is implicit TLS on 465 by default" "$smtp" "--url smtps://mail.example.com:465"
+assert_not_contains "with no user, no --user" "$smtp" "--user"
+rm -rf "$SB"
+
+setup
+export ALERT_WEBHOOK_URL="" ALERT_EMAIL="ops@example.com" SMTP_HOST="mailpit" SMTP_PORT="1025" SMTP_SECURITY="none"
+drop "a.json" "$PREFLIGHT"
+pass_once
+smtp=$(grep -- '--mail-rcpt' "$SB/curl.log" | head -n1)
+assert_contains "none is plain SMTP" "$smtp" "--url smtp://mailpit:1025"
+assert_not_contains "without asking for TLS" "$smtp" "--ssl"
+rm -rf "$SB"
+
+setup
+export ALERT_WEBHOOK_URL="" ALERT_EMAIL="ops@example.com" SMTP_HOST="smtp.example.com" SMTP_SECURITY="maybe"
+drop "a.json" "$PREFLIGHT"
+pass_once
+assert_eq "an unknown SMTP_SECURITY sends nothing" 0 "$(grep -c -- '--mail-rcpt' "$SB/curl.log")"
+rm -rf "$SB"
+
+echo "email through the deprecated EMAIL_SMTP_URL"
 setup
 export ALERT_WEBHOOK_URL="" ALERT_EMAIL="ops@example.com" EMAIL_SMTP_URL="smtp://relay%40x:p%40ss@smtp.example.com:587"
 drop "a.json" "$PREFLIGHT"

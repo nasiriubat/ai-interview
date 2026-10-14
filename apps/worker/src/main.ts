@@ -93,7 +93,7 @@ async function main(): Promise<void> {
   // Identical resolution to the API, so a message sent from a job looks like one sent from a request.
   const email = new SettingsEmail({
     settings,
-    env: { smtpUrl: config.EMAIL_SMTP_URL, from: config.EMAIL_FROM },
+    env: { smtpUrl: config.smtpRelayUrl, from: config.EMAIL_FROM },
     fallback: new MemoryEmail((m) => {
       log.info({ to: m.to, subject: m.subject }, "email (console)");
     }),
