@@ -94,7 +94,7 @@ export type CallEffect =
   | { type: "stop_playback" }
   | { type: "begin_speech"; mime: string }
   | { type: "discard_speech" }
-  | { type: "play_speech" }
+  | { type: "play_speech"; more: boolean }
   | { type: "begin_utterance" }
   | { type: "end_utterance" }
   /** The run of loud polls that makes a barge-in starts over. */
@@ -232,7 +232,7 @@ function onFrame(state: CallState, frame: ServerFrame): Transition {
         const listening = toListening(state);
         return { state: listening.state, effects: [{ type: "discard_speech" }, ...listening.effects] };
       }
-      return { state, effects: [{ type: "play_speech" }] };
+      return { state, effects: [{ type: "play_speech", more: frame.more }] };
     }
     case "first_word":
       // The server already folds this into the session's `voice.live` event, which is where the

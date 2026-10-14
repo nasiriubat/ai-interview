@@ -12,6 +12,8 @@ export class Player {
   private element: HTMLAudioElement | null = null;
   private pending: { mime: string; chunks: Blob[] } | null = null;
   private objectUrl: string | null = null;
+  private playing = false;
+  private queue: { blob: Blob | undefined; onDone: () => void; onRefused: () => void }[] = [];
 
   /** Audio frames that arrive from now on belong to a speech of this type. */
   begin(mime: string): void {
@@ -30,37 +32,68 @@ export class Player {
   /** Forgets the speech in flight without playing it (the server said it was interrupted). */
   discard(): void {
     this.pending = null;
+    this.queue = [];
   }
 
   /**
    * Plays what was collected. `onDone` runs when it ends, or at once when there is nothing to
    * play; `onRefused` runs first when the browser would not start it (autoplay refused, or a
    * container it cannot decode).
+   *
+   * `more` says another segment of the same reply follows (D-280): the interviewer's first
+   * sentence is played while the rest is still being produced. A segment that arrives while the
+   * previous one is playing waits its turn, and `onDone` is called once, after the last segment,
+   * so the interview goes back to listening only when the whole reply has been heard.
    */
-  play(onDone: () => void, onRefused: () => void): void {
+  play(onDone: () => void, onRefused: () => void, more = false): void {
     const speech = this.pending;
     this.pending = null;
-    if (!speech || speech.chunks.length === 0) {
-      onDone();
+    const blob =
+      speech && speech.chunks.length > 0 ? new Blob(speech.chunks, { type: speech.mime }) : undefined;
+    const settle = (): void => {
+      if (!more) onDone();
+    };
+    if (!blob) {
+      if (!this.playing && this.queue.length === 0) settle();
+      else this.queue.push({ blob: undefined, onDone: settle, onRefused });
+      return;
+    }
+    const segment = { blob, onDone: settle, onRefused };
+    if (this.playing) this.queue.push(segment);
+    else this.start(segment);
+  }
+
+  private start(segment: { blob: Blob | undefined; onDone: () => void; onRefused: () => void }): void {
+    if (!segment.blob) {
+      this.next(segment.onDone);
       return;
     }
     const player = (this.element ??= new Audio());
-    const url = URL.createObjectURL(new Blob(speech.chunks, { type: speech.mime }));
+    const url = URL.createObjectURL(segment.blob);
     this.objectUrl = url;
+    this.playing = true;
     const done = (): void => {
       if (this.objectUrl === url) {
         URL.revokeObjectURL(url);
         this.objectUrl = null;
       }
-      onDone();
+      this.playing = false;
+      this.next(segment.onDone);
     };
     player.onended = done;
     player.onerror = done;
     player.src = url;
     player.play().catch(() => {
-      onRefused();
+      segment.onRefused();
       done();
     });
+  }
+
+  /** After a segment: the queued one, else report this segment's own completion. */
+  private next(finished: () => void): void {
+    finished();
+    const following = this.queue.shift();
+    if (following) this.start(following);
   }
 
   /** Silences the player and frees what it held. */
@@ -77,5 +110,7 @@ export class Player {
       this.objectUrl = null;
     }
     this.pending = null;
+    this.playing = false;
+    this.queue = [];
   }
 }

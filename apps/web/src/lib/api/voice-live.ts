@@ -97,6 +97,8 @@ const SpeechStartFrameSchema = z.object({
 const SpeechEndFrameSchema = z.object({
   type: z.literal("speech_end"),
   interrupted: z.boolean().default(false),
+  /** More of the same reply follows (D-280): play this, queue the next, and keep the interviewer speaking. */
+  more: z.boolean().default(false),
 });
 
 /** Question asked to first audible word, the number spec 09 puts a target on. */

@@ -138,6 +138,8 @@ describe("call state machine: a turn", () => {
     expect(types(started.effects)).toEqual(["end_utterance", "begin_speech", "reset_barge"]);
     const ended = play([frame({ type: "speech_end", interrupted: false })], started.state);
     expect(types(ended.effects)).toEqual(["play_speech"]);
+    const more = play([frame({ type: "speech_end", interrupted: false, more: true })], started.state);
+    expect(more.effects[0]).toMatchObject({ type: "play_speech", more: true });
     const done = reduce(ended.state, { type: "playback_finished" });
     expect(done.state.status).toBe("listening");
   });
