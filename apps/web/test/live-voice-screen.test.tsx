@@ -432,11 +432,11 @@ describe("the interview screen on a phone", () => {
     vi.unstubAllGlobals();
   });
 
-  it("opens the call as a screen, hides the panel under it, and returns focus to the mode switch", async () => {
+  it("opens the call as a screen, hides the panel under it, and returns focus to the Talk button", async () => {
     vi.stubGlobal("matchMedia", matchMedia(true));
     window.matchMedia = matchMedia(true) as never;
     render(<InterviewScreen initial={session as never} api={api} />);
-    fireEvent.click(screen.getByRole("radio", { name: "Voice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Talk" }));
     await settle();
     SocketStub.instances.at(-1)!.emit({ type: "ready", captions: true, bargeIn: true });
 
@@ -450,7 +450,7 @@ describe("the interview screen on a phone", () => {
     await settle();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await vi.waitFor(() => {
-      expect(screen.getByRole("radio", { name: "Voice" })).toHaveFocus();
+      expect(screen.getByRole("button", { name: "Talk" })).toHaveFocus();
     });
   });
 
@@ -458,7 +458,7 @@ describe("the interview screen on a phone", () => {
     vi.stubGlobal("matchMedia", matchMedia(false));
     window.matchMedia = matchMedia(false) as never;
     render(<InterviewScreen initial={session as never} api={api} />);
-    fireEvent.click(screen.getByRole("radio", { name: "Voice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Talk" }));
     await settle();
     SocketStub.instances.at(-1)!.emit({ type: "ready", captions: true, bargeIn: true });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

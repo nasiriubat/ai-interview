@@ -3,6 +3,7 @@
 import type { Widget } from "@aidp/shared";
 import { SquareIcon, Volume2Icon } from "lucide-react";
 import * as React from "react";
+import { VoiceClip, type ClipSource } from "./VoiceClip";
 import { controlChipOf, type Announcement, type ControlChip } from "@/hooks/useInterview";
 import { usePrefersReducedMotion } from "@/hooks/useMediaQuery";
 import type { Speech } from "@/hooks/useSpeech";
@@ -31,9 +32,21 @@ export function MessageBubble({
   message,
   streaming = false,
   speech,
+  clip,
 }: {
-  message: Pick<Message, "role" | "content"> & { id?: string | undefined };
+  message: Pick<Message, "role" | "content"> & { id?: string | undefined; modality?: string | undefined };
   streaming?: boolean;
+  /**
+   * A spoken answer is shown as a clip inside the bubble rather than as a row above the composer.
+   * `state` says whether it is on its way, failed (with `onRetry` right in the bubble) or done.
+   */
+  clip?:
+    | {
+        source?: ClipSource | undefined;
+        state: "sending" | "failed" | "ready";
+        onRetry?: (() => void) | undefined;
+      }
+    | undefined;
   /** Offers "Listen" under interviewer messages when the browser can speak the language. */
   speech?: Speech | undefined;
 }): React.JSX.Element {
@@ -44,7 +57,8 @@ export function MessageBubble({
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
       <div
         className={cn(
-          "max-w-[88%] min-w-0 rounded-2xl px-4 py-3 text-base leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] sm:max-w-[75%]",
+          "max-w-[88%] min-w-0 rounded-2xl px-4 py-3 text-base leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] sm:max-w-[80%]",
+          clip && "w-full max-w-[88%] sm:w-[22rem] sm:max-w-[80%]",
           isUser
             ? "bg-primary text-primary-foreground rounded-br-md"
             : "bg-card text-foreground shadow-card rounded-bl-md",
@@ -53,7 +67,17 @@ export function MessageBubble({
         <span className="sr-only">
           {isUser ? t.participant.session.you : t.participant.session.interviewer}:{" "}
         </span>
-        {message.content}
+        {clip ? (
+          <VoiceClip
+            messageKey={message.id ?? "clip"}
+            source={clip.source}
+            transcript={message.content}
+            state={clip.state}
+            onRetry={clip.onRetry}
+          />
+        ) : (
+          message.content
+        )}
         {streaming ? <span className="sr-only"> ({t.participant.session.streaming})</span> : null}
       </div>
       {listenable ? (
@@ -136,8 +160,19 @@ export function MessageList({
   announcement,
   speech,
   children,
+  followEnd = true,
+  clipFor,
+  failedSend = false,
+  onRetrySend,
 }: {
   messages: Message[];
+  /** False when a `ChatViewport` around the list owns scrolling (the interview screen). */
+  followEnd?: boolean;
+  /** The recording that belongs to a spoken message, when the server has it. */
+  clipFor?: ((message: Message) => ClipSource | undefined) | undefined;
+  /** The last send failed: an empty spoken bubble then offers its retry instead of "sending". */
+  failedSend?: boolean;
+  onRetrySend?: (() => void) | undefined;
   streaming: string | null;
   pending: boolean;
   /** The last completed interviewer turn; changes once per turn. */
@@ -148,10 +183,18 @@ export function MessageList({
   const endRef = React.useRef<HTMLDivElement>(null);
   const reduceMotion = usePrefersReducedMotion();
   React.useEffect(() => {
+    if (!followEnd) return;
     endRef.current?.scrollIntoView({ block: "end", behavior: reduceMotion ? "auto" : "smooth" });
-  }, [messages.length, streaming, pending, reduceMotion]);
+  }, [messages.length, streaming, pending, reduceMotion, followEnd]);
 
   // A system message is not transcript; only the chips this screen made for a control are shown.
+  const clipOf = (m: Message): React.ComponentProps<typeof MessageBubble>["clip"] => {
+    if (m.role !== "user" || m.modality !== "voice") return undefined;
+    // A bubble made when the recording was sent has no words yet: on its way, or it failed.
+    if (m.content === "" && m.id.startsWith("local-"))
+      return failedSend ? { state: "failed", onRetry: onRetrySend } : { state: "sending" };
+    return { state: "ready", source: clipFor?.(m) };
+  };
   const visible = messages.filter((m) => m.role !== "system" || controlChipOf(m) !== undefined);
   return (
     <div className="flex flex-col gap-3">
@@ -163,7 +206,7 @@ export function MessageList({
               {chip ? (
                 <p className="text-muted-foreground text-center text-xs">{controlChipText(chip)}</p>
               ) : (
-                <MessageBubble message={m} speech={speech} />
+                <MessageBubble message={m} speech={speech} clip={clipOf(m)} />
               )}
             </li>
           );
