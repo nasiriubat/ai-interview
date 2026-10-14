@@ -159,7 +159,10 @@ describeDb("own profile, session revocation and audit export", () => {
       /^attachment; filename="audit-log-\d{4}-\d{2}-\d{2}\.csv"$/,
     );
     expect(res.headers["cache-control"]).toBe("private, no-store");
-    const lines = res.body.replace(/^ /, "").trimEnd().split("\r\n");
+    const lines = res.body
+      .replace(/^\ufeff/, "")
+      .trimEnd()
+      .split("\r\n");
     expect(lines[0]).toBe("created_at,actor,action,target_type,target_id,details");
     expect(lines.length).toBeGreaterThan(1);
     expect(lines.slice(1).every((l) => l.includes("user.update"))).toBe(true);
