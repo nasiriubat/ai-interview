@@ -189,6 +189,13 @@ services:
       # reloading from the volume takes about a second. 0 keeps it loaded.
       SPEECH_MODEL_IDLE_MINUTES: ${SPEECH_MODEL_IDLE_MINUTES:-10}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      # The Prometheus scrape endpoint (D-222): on the compose network only, in no Caddy route.
+      # Nothing scrapes it unless the observability profile is up (infra/observability).
+      METRICS_PORT: "9464"
+      # Shown on the operator health page, so "which release is this" is a fact and not a memory.
+      AIDP_VERSION: ${AIDP_VERSION:?}
+      # Read-only: the operator health page reads the backup status and the worker heartbeat.
+      OPS_STATE_DIR: /ops-state
       LOG_LEVEL: ${LOG_LEVEL:-info}
       # Proxies between the internet and this process that write X-Forwarded-For, counted from
       # here: Caddy is one, for the web app's calls (which forward the address Caddy wrote) and for
@@ -212,6 +219,7 @@ services:
     volumes:
       - uploads:/uploads
       - models:/models
+      - ops_state:/ops-state:ro
     healthcheck:
       test:
         - CMD
@@ -225,6 +233,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       preflight: { condition: service_completed_successfully }
+      ops-state-init: { condition: service_completed_successfully }
     logging: *logging
     deploy:
       resources:
@@ -254,8 +263,10 @@ services:
       # The same volume the API writes to: the API stores the upload, the worker reads it back to
       # extract, transcribe and chunk it. Two containers, one directory, one copy of the bytes.
       UPLOAD_DIR: /uploads
-      # No OTEL_EXPORTER_OTLP_ENDPOINT: the worker does not read it, and passing a variable
-      # nothing reads is how a setting appears to work and does not. Worker tracing is planned.
+      # The worker traces too (D-222): a job joins the trace of the request that queued it, through
+      # the `traceparent` in its payload. Empty leaves tracing off and costs nothing.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      METRICS_PORT: "9465"
       LOG_LEVEL: ${LOG_LEVEL:-info}
       EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-}
       ALERT_EMAIL: ${ALERT_EMAIL:-}
@@ -415,6 +426,11 @@ services:
       BACKUP_AGE_IDENTITY: ${BACKUP_AGE_IDENTITY:-}
       BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-26}
       OPS_STATE_DIR: /ops-state
+      # The weekly restore drill (D-227): newest dump restored into a scratch database and checked
+      # against its manifest. `off` disables it.
+      BACKUP_DRILL: ${BACKUP_DRILL:-on}
+      BACKUP_DRILL_DAY: ${BACKUP_DRILL_DAY:-7}
+      BACKUP_DRILL_AT: ${BACKUP_DRILL_AT:-04:40}
       # Offsite copy. Unset means "not configured", which /operator and OPERATIONS.md call out as
       # an accepted risk, not a silent one. rclone reads the remote's settings from RCLONE_CONFIG_*.
       RCLONE_REMOTE: ${RCLONE_REMOTE:-}
