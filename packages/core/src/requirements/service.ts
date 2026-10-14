@@ -1,4 +1,5 @@
 import { RequirementsContext } from "./context.js";
+import { RequirementsDiagrams } from "./diagrams.js";
 import { RequirementsExports } from "./exports.js";
 import { RequirementsInvitations } from "./invitations.js";
 import { RequirementsSessions } from "./sessions.js";
@@ -29,12 +30,14 @@ export type {
  * a single class to depend on while each concern is one file under 500 lines:
  *
  * - `sessions.ts`    create, list, get, the live spec, path, completion, edits, findings, preview
+ * - `diagrams.ts`   edit, add, reset and preview the diagrams of a specification
  * - `versions.ts`    queue, generate (the worker's job body), list, get, diff
  * - `exports.ts`     file exports and the GitHub push
  * - `invitations.ts` send, revoke, resolve and open an invitation
  */
 export class RequirementsService {
   private readonly sessions: RequirementsSessions;
+  private readonly diagrams: RequirementsDiagrams;
   private readonly versions: RequirementsVersions;
   private readonly exports: RequirementsExports;
   private readonly invitations: RequirementsInvitations;
@@ -42,6 +45,7 @@ export class RequirementsService {
   constructor(deps: RequirementsServiceDeps) {
     const cx = new RequirementsContext(deps);
     this.sessions = new RequirementsSessions(cx);
+    this.diagrams = new RequirementsDiagrams(cx);
     this.versions = new RequirementsVersions(cx);
     this.exports = new RequirementsExports(cx);
     this.invitations = new RequirementsInvitations(cx);
@@ -89,6 +93,20 @@ export class RequirementsService {
   }
   preview(...a: Parameters<RequirementsSessions["preview"]>): ReturnType<RequirementsSessions["preview"]> {
     return this.sessions.preview(...a);
+  }
+
+  // ---------- Diagrams (FR-23) ----------
+
+  saveDiagram(...a: Parameters<RequirementsDiagrams["save"]>): ReturnType<RequirementsDiagrams["save"]> {
+    return this.diagrams.save(...a);
+  }
+  resetDiagram(...a: Parameters<RequirementsDiagrams["reset"]>): ReturnType<RequirementsDiagrams["reset"]> {
+    return this.diagrams.reset(...a);
+  }
+  previewDiagram(
+    ...a: Parameters<RequirementsDiagrams["preview"]>
+  ): ReturnType<RequirementsDiagrams["preview"]> {
+    return this.diagrams.preview(...a);
   }
 
   // ---------- Versions ----------

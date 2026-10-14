@@ -1,8 +1,14 @@
 import {
+  DiagramInvalidError,
+  DiagramLimitError,
+  DiagramNotFoundError,
+  ExportBusyError,
   GitHubError,
   GitHubNotConfiguredError,
   InvalidSectionError,
   PathRequiredError,
+  PdfNotAvailableError,
+  PdfTooLargeError,
   RequirementsForbiddenError,
   RequirementsNotFoundError,
   SessionNotOpenError,
@@ -10,7 +16,8 @@ import {
   SpecVersionNotReadyError,
   type Viewer,
 } from "@aidp/core";
-import { FindingOutcomeSchema, PathSchema } from "@aidp/shared";
+import { DiagramTypeSchema, FindingOutcomeSchema, PathSchema } from "@aidp/shared";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
@@ -49,6 +56,13 @@ export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<v
       if (e instanceof SessionNotOpenError) throw new AppError("conflict", e.message);
       if (e instanceof InvalidSectionError) throw new AppError("validation", e.message);
       if (e instanceof GitHubNotConfiguredError) throw new AppError("conflict", e.message);
+      if (e instanceof DiagramInvalidError) throw new AppError("validation", e.message, { issues: e.issues });
+      if (e instanceof DiagramNotFoundError) throw notFound("Diagram");
+      if (e instanceof DiagramLimitError) throw new AppError("validation", e.message);
+      if (e instanceof ExportBusyError) throw new AppError("rate_limited", e.message);
+      if (e instanceof PdfTooLargeError)
+        throw new AppError("too_large", `${e.message}; export it as Markdown instead`);
+      if (e instanceof PdfNotAvailableError) throw new AppError("internal", e.message);
       if (e instanceof GitHubError)
         throw new AppError(e.status === 401 || e.status === 403 ? "forbidden" : "provider_error", e.message);
       throw e;
@@ -276,20 +290,153 @@ export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<v
       ),
   );
 
+  /** One file out of a finished version, with the warnings a PDF carries in a header (D-211). */
+  const sendExport = async (
+    req: FastifyRequest,
+    reply: FastifyReply,
+    id: string,
+    v: number,
+    format: "md" | "json" | "bundle" | "pdf",
+  ) => {
+    const file = await wrap(() => svc.exportVersion(req.companyId, id, v, format, viewerOf(req)));
+    await ctx.services.audit.record(req.companyId, {
+      actorId: staff(req).userId,
+      action: "requirements.export",
+      targetType: "session",
+      targetId: id,
+      diff: {
+        format,
+        version: v,
+        ...(file.pages !== undefined ? { pages: file.pages } : {}),
+        ...(file.warnings?.length ? { warnings: file.warnings } : {}),
+      },
+    });
+    if (file.warnings?.length) reply.header("x-export-warnings", file.warnings.join(","));
+    if (file.pages !== undefined) reply.header("x-export-pages", String(file.pages));
+    return reply
+      .header("content-type", file.contentType)
+      .header("content-disposition", `attachment; filename="${file.filename}"`)
+      .header("cache-control", "private, no-store")
+      .send(file.body);
+  };
+
   app.get(
     "/requirements/:id/versions/:v/export",
     {
-      ...guard.staff(),
-      schema: { params: VersionParams, querystring: z.object({ format: z.enum(["md", "json", "bundle"]) }) },
+      ...guard.staff(expensiveLimit(ctx.config)),
+      schema: {
+        params: VersionParams,
+        querystring: z.object({ format: z.enum(["md", "json", "bundle", "pdf"]) }),
+      },
+    },
+    async (req, reply) => sendExport(req, reply, req.params.id, req.params.v, req.query.format),
+  );
+
+  app.get(
+    "/requirements/:id/versions/:v/export.pdf",
+    { ...guard.staff(expensiveLimit(ctx.config)), schema: { params: VersionParams } },
+    async (req, reply) => sendExport(req, reply, req.params.id, req.params.v, "pdf"),
+  );
+
+  // ---------- Diagrams (FR-23) ----------
+
+  const DiagramBody = z.object({
+    mermaid: z.string().min(1).max(40_000),
+    // The caption and the alt text: a diagram without one is not finished.
+    description: z.string().trim().min(1).max(500),
+    title: z.string().trim().min(1).max(120).optional(),
+    type: DiagramTypeSchema.optional(),
+  });
+  const DiagramKey = z.object({ id: z.string(), key: z.string().min(1).max(64) });
+
+  const auditDiagram = async (
+    req: FastifyRequest,
+    id: string,
+    action: string,
+    diff: Record<string, unknown>,
+  ): Promise<void> => {
+    await ctx.services.audit.record(req.companyId, {
+      actorId: staff(req).userId,
+      action,
+      targetType: "session",
+      targetId: id,
+      diff,
+    });
+  };
+
+  app.put(
+    "/requirements/:id/spec/diagrams/:key",
+    { ...guard.staff(expensiveLimit(ctx.config)), schema: { params: DiagramKey, body: DiagramBody } },
+    async (req) => {
+      const result = await wrap(() =>
+        svc.saveDiagram(
+          req.companyId,
+          req.params.id,
+          req.params.key,
+          req.body,
+          staff(req).userId,
+          viewerOf(req),
+        ),
+      );
+      await auditDiagram(req, req.params.id, "requirements.diagram_edit", {
+        key: result.key,
+        chars: req.body.mermaid.length,
+        verified: result.verified,
+      });
+      return { spec: result.spec, key: result.key, verified: result.verified };
+    },
+  );
+
+  app.post(
+    "/requirements/:id/spec/diagrams",
+    { ...guard.staff(expensiveLimit(ctx.config)), schema: { params: Id, body: DiagramBody } },
+    async (req, reply) => {
+      const result = await wrap(() =>
+        svc.saveDiagram(req.companyId, req.params.id, null, req.body, staff(req).userId, viewerOf(req)),
+      );
+      await auditDiagram(req, req.params.id, "requirements.diagram_add", {
+        key: result.key,
+        chars: req.body.mermaid.length,
+        verified: result.verified,
+      });
+      return reply.status(201).send({ spec: result.spec, key: result.key, verified: result.verified });
+    },
+  );
+
+  app.delete(
+    "/requirements/:id/spec/diagrams/:key",
+    { ...guard.staff(), schema: { params: DiagramKey } },
+    async (req) => {
+      const spec = await wrap(() =>
+        svc.resetDiagram(req.companyId, req.params.id, req.params.key, viewerOf(req)),
+      );
+      await auditDiagram(req, req.params.id, "requirements.diagram_reset", { key: req.params.key });
+      return { spec };
+    },
+  );
+
+  /**
+   * An image of what the editor holds, for the live preview. The answer is an SVG that is only ever
+   * shown through `<img>`, and says so: no script can run in an image, and the sandbox policy and
+   * `nosniff` keep it that way if someone opens the URL directly.
+   */
+  app.post(
+    "/requirements/:id/diagrams/preview",
+    {
+      ...guard.staff(expensiveLimit(ctx.config)),
+      schema: { params: Id, body: z.object({ mermaid: z.string().min(1).max(40_000) }) },
     },
     async (req, reply) => {
-      const file = await wrap(() =>
-        svc.exportVersion(req.companyId, req.params.id, req.params.v, req.query.format, viewerOf(req)),
+      const out = await wrap(() =>
+        svc.previewDiagram(req.companyId, req.params.id, req.body.mermaid, viewerOf(req)),
       );
+      if (!out.svg) throw new AppError("provider_error", "The diagram preview is not available right now");
       return reply
-        .header("content-type", file.contentType)
-        .header("content-disposition", `attachment; filename="${file.filename}"`)
-        .send(file.body);
+        .header("content-type", "image/svg+xml")
+        .header("content-security-policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'")
+        .header("x-content-type-options", "nosniff")
+        .header("cache-control", "private, no-store")
+        .send(out.svg);
     },
   );
 

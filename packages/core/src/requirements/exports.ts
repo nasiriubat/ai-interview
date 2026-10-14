@@ -1,6 +1,6 @@
 import { AgentBundleSchema } from "@aidp/shared";
 import type { RequirementsContext } from "./context.js";
-import { GitHubNotConfiguredError } from "./errors.js";
+import { GitHubNotConfiguredError, PdfNotAvailableError } from "./errors.js";
 import { nonEmpty, slug } from "./helpers.js";
 import type { ExportFormat, RequirementsServiceDeps, Viewer } from "./types.js";
 import { zipFiles } from "./zip.js";
@@ -19,11 +19,36 @@ export class RequirementsExports {
     v: number,
     format: ExportFormat,
     viewer: Viewer,
-  ): Promise<{ filename: string; contentType: string; body: Buffer | string }> {
+  ): Promise<{
+    filename: string;
+    contentType: string;
+    body: Buffer | string;
+    /** Machine-readable notes about what the file leaves out, such as `diagram_unrendered:2`. */
+    warnings?: string[];
+    pages?: number;
+  }> {
     const row = await this.cx.load(companyId, id, viewer);
     const version = await this.cx.versionRow(row.id, v);
     const document = this.cx.documentOf(version);
     const base = `${slug(row.title || document.title)}-v${version.version}`;
+    if (format === "pdf") {
+      if (!this.deps.exporter) throw new PdfNotAvailableError();
+      const pdf = await this.deps.exporter.render({
+        companyId,
+        title: row.title || document.title,
+        markdown: version.specMd,
+        language: document.language,
+        versionLabel: `Version ${version.version}${version.label ? `: ${version.label}` : ""}`,
+        date: version.finishedAt ?? version.createdAt,
+      });
+      return {
+        filename: `${base}.pdf`,
+        contentType: "application/pdf",
+        body: pdf.bytes,
+        warnings: pdf.warnings,
+        pages: pdf.pages,
+      };
+    }
     if (format === "md")
       return { filename: `${base}.md`, contentType: "text/markdown; charset=utf-8", body: version.specMd };
     if (format === "json")
