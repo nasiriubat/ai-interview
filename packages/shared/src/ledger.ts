@@ -19,6 +19,20 @@ export const LedgerEntrySchema = z.object({
   campaignId: z.string().optional(),
   sessionId: z.string().optional(),
   createdAt: z.date(),
+  /**
+   * Time from the request to the first piece of streamed output (NFR-01). Only for calls that
+   * stream and produced output; the p95 of this column is the SLO the dashboards plot.
+   */
+  firstTokenMs: z.number().int().nonnegative().optional(),
+  /**
+   * True when the usage is our estimate rather than what the provider reported: an abandoned
+   * stream (barge-in, disconnect) or a call that died before a final usage report (D-221). The
+   * monthly statement shows the estimated share separately so an invoice can say how much of it
+   * is not provider-confirmed.
+   */
+  estimated: z.boolean().optional(),
+  /** `fallback` when the purpose's fallback route served the call because the primary was down (D-228). */
+  routeTier: z.enum(["primary", "fallback"]).optional(),
 });
 export type LedgerEntry = z.infer<typeof LedgerEntrySchema>;
 

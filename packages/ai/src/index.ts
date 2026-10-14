@@ -52,6 +52,12 @@ export * from "./cost/ledger.js";
 export * from "./cost/budget.js";
 export * from "./callModel.js";
 export {
+  CircuitBreaker,
+  countsAgainstProvider,
+  type BreakerOptions,
+  type BreakerState,
+} from "./providers/breaker.js";
+export {
   DEFAULT_TRANSCRIPTION_MODEL,
   DEFAULT_TTS_MODEL,
   LIVE_TRANSCRIPTION_MODEL,
