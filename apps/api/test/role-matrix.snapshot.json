@@ -11,6 +11,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "DELETE /campaigns/:id/cluster-edits/:editId": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "DELETE /operator/providers/:id": {
     "access": "operator",
     "isolation": true,
@@ -107,6 +119,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "GET /analyses/:id/departments": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "GET /analyses/:id/diff/:otherId": {
     "access": "staff",
     "isolation": true,
@@ -180,6 +204,18 @@
     }
   },
   "GET /campaigns/:id/analyses": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /campaigns/:id/cluster-edits": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -381,6 +417,18 @@
       "admin": 403,
       "operator": 200,
       "crossTenantAdmin": 403
+    }
+  },
+  "GET /opportunities/:id/split-proposal": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
     }
   },
   "GET /p/:linkToken": {
@@ -707,6 +755,66 @@
       "crossTenantAdmin": 200
     }
   },
+  "GET /stats/ai": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /stats/discovery": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /stats/health": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /stats/participation": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /stats/requirements": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
   "GET /templates": {
     "access": "staff",
     "isolation": false,
@@ -791,6 +899,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "HEAD /analyses/:id/departments": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "HEAD /analyses/:id/diff/:otherId": {
     "access": "staff",
     "isolation": true,
@@ -864,6 +984,18 @@
     }
   },
   "HEAD /campaigns/:id/analyses": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /campaigns/:id/cluster-edits": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -1065,6 +1197,18 @@
       "admin": 403,
       "operator": 200,
       "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /opportunities/:id/split-proposal": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
     }
   },
   "HEAD /p/:linkToken": {
@@ -1379,6 +1523,66 @@
       "crossTenantAdmin": 200
     }
   },
+  "HEAD /stats/ai": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats/discovery": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats/health": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats/participation": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats/requirements": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
   "HEAD /templates": {
     "access": "staff",
     "isolation": false,
@@ -1521,6 +1725,18 @@
       "admin": 400,
       "operator": 400,
       "crossTenantAdmin": 400
+    }
+  },
+  "POST /analyses/:id/opportunities/merge": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
     }
   },
   "POST /budgets": {
@@ -1760,6 +1976,18 @@
       "member": 403,
       "admin": 404,
       "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /opportunities/:id/split": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
       "crossTenantAdmin": 404
     }
   },

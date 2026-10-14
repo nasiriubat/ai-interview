@@ -532,7 +532,13 @@ export class ParticipantService {
     }
     await this.db.session.update({
       where: { id: sessionId },
-      data: { status: "consented", consentVersion: input.consentVersion, consentedAt: new Date() },
+      data: {
+        status: "consented",
+        consentVersion: input.consentVersion,
+        consentedAt: new Date(),
+        // Whether they gave their identity, for the dashboard's identified share (spec 07).
+        identified: !anonymous,
+      },
     });
   }
 

@@ -1,5 +1,5 @@
-import type { ClusterStats, Factors, ReportSection, SolutionClass } from "@aidp/shared";
-import { FACTOR_KEYS } from "@aidp/shared";
+import type { ClusterStats, DepartmentComparison, Factors, ReportSection, SolutionClass } from "@aidp/shared";
+import { FACTOR_KEYS, isNotAi } from "@aidp/shared";
 
 export interface ReportOpportunity {
   clusterKey: string;
@@ -28,6 +28,8 @@ export interface ReportInput {
   sections: ReportSection[];
   k: number;
   language: string;
+  /** Present when the comparison was computed; the section says why when it was not shown. */
+  departments?: DepartmentComparison | undefined;
 }
 
 const CLASS_LABEL: Record<SolutionClass, string> = {
@@ -89,6 +91,8 @@ export function renderReport(input: ReportInput): string {
     }
   }
 
+  if (on("department_comparison")) out.push(...departmentSection(input.departments, input.k));
+
   if (on("opportunities")) {
     out.push("## Opportunities by solution class", "");
     for (const cls of ["ai", "automation", "software", "process"] as const) {
@@ -143,7 +147,7 @@ export function renderReport(input: ReportInput): string {
   }
 
   if (on("not_ai")) {
-    const notAi = ranked.filter((o) => o.solutionClass === "process" || o.solutionClass === "none");
+    const notAi = ranked.filter((o) => isNotAi(o.solutionClass));
     out.push("## Where AI is not the answer", "");
     out.push(
       ...(notAi.length
@@ -181,4 +185,51 @@ export function processMap(proc: { name: string; steps: string[] }): string {
     "  end",
     "```",
   ].join("\n");
+}
+
+const NOT_SHOWN: Record<string, string> = {
+  disabled: "The department comparison is turned off for this campaign.",
+  no_departments: "Participants did not give a department, so there is nothing to compare.",
+  too_few_eligible:
+    "Fewer than two groups have enough participants to be compared without singling anyone out.",
+};
+
+const COMPARED_CLASSES = ["ai", "automation", "software", "process"] as const;
+
+/**
+ * Always exactly one `##` heading when the section is on: the web client maps the n-th heading to
+ * the n-th enabled section, so a section that vanished would shift every one after it.
+ */
+function departmentSection(d: DepartmentComparison | undefined, k: number): string[] {
+  const out = ["## Department comparison", ""];
+  if (!d?.shown) {
+    out.push(
+      `Not shown. ${NOT_SHOWN[d?.reason ?? "too_few_eligible"] ?? ""} A department needs at least ${k} participants.`,
+      "",
+    );
+    return out;
+  }
+  const pct = (x: number | undefined): string => (x === undefined ? "withheld" : `${Math.round(x * 100)}%`);
+  out.push(
+    `Each group below has at least ${k} participants. Shares are of the group's own participants.`,
+    "",
+    `| Group | Participants | Hours per week | ${COMPARED_CLASSES.map((c) => CLASS_LABEL[c]).join(" | ")} | Most shared |`,
+    `|---|---|---|${COMPARED_CLASSES.map(() => "---").join("|")}|---|`,
+  );
+  for (const row of d.departments) {
+    const name = row.kind === "other" ? "Other departments" : (row.name ?? "Unspecified");
+    const top =
+      row.topOpportunities.map((t) => `${t.title} (${pct(t.share)})`).join("; ") ||
+      "none shared by enough people";
+    out.push(
+      `| ${name} | ${row.participants} | ${Math.round(row.minutesPerWeek / 60)} | ${COMPARED_CLASSES.map((c) => pct(row.solutionClassShare[c])).join(" | ")} | ${top} |`,
+    );
+  }
+  out.push("");
+  if (d.belowK > 0)
+    out.push(
+      `${d.belowK} department${d.belowK === 1 ? "" : "s"} with fewer than ${k} participants ${d.belowK === 1 ? "is" : "are"} not shown by name.`,
+      "",
+    );
+  return out;
 }

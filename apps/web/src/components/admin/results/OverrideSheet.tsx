@@ -128,25 +128,31 @@ export function OverrideSheet({
                       <label htmlFor={id} className="text-sm font-medium">
                         {s.factors[k]}
                       </label>
-                      <select
-                        id={id}
+                      <Select
                         value={current ? String(current.score) : GENERATED}
-                        onChange={(e) => {
+                        onValueChange={(v) => {
                           dispatch({
                             type: "factorScore",
                             key: k,
-                            score: e.target.value === GENERATED ? null : Number(e.target.value),
+                            score: v === GENERATED ? null : Number(v),
                           });
                         }}
-                        className="bg-card text-foreground shadow-control h-8 rounded-md border-0 px-2 text-xs"
                       >
-                        <option value={GENERATED}>{s.override.generated(`${generated.score}/5`)}</option>
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <option key={n} value={n}>
-                            {n}/5
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger id={id} size="sm" className="w-56 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* The generated value is the first item, which is the reset for this factor. */}
+                          <SelectItem value={GENERATED}>
+                            {s.override.generated(`${generated.score}/5`)}
+                          </SelectItem>
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <SelectItem key={n} value={String(n)}>
+                              {n}/5
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <p className="text-muted-foreground text-xs">{generated.rationale}</p>
                     {current ? (

@@ -69,6 +69,7 @@ describe("splitReportSections", () => {
 
   it("parses the settings value tolerantly", () => {
     expect(parseReportSections(["work_map", "junk", "not_ai"])).toEqual(["work_map", "not_ai"]);
-    expect(parseReportSections(undefined)).toHaveLength(7);
+    // Every section, department_comparison (FR-17) included.
+    expect(parseReportSections(undefined)).toHaveLength(8);
   });
 });
