@@ -42,6 +42,8 @@ export interface RecorderController {
   elapsedMs: number;
   /** True when the length cap stopped the recording, so the participant can be told why. */
   maxedOut: boolean;
+  /** Microphone loudness from 0 to 1 while recording; a few readings a second. */
+  level: number;
   problem: RecorderProblem | null;
   start: () => Promise<void>;
   /** Stops and hands the audio over. */
@@ -82,6 +84,8 @@ export function useRecorder(onRecorded: (audio: Blob, durationMs: number) => voi
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [maxedOut, setMaxedOut] = React.useState(false);
   const [problem, setProblem] = React.useState<RecorderProblem | null>(null);
+  const [level, setLevel] = React.useState(0);
+  const meterRef = React.useRef<{ ctx: AudioContext; analyser: AnalyserNode } | null>(null);
 
   const recorderRef = React.useRef<MediaRecorder | null>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
@@ -97,6 +101,11 @@ export function useRecorder(onRecorded: (audio: Blob, durationMs: number) => voi
     }
     for (const track of streamRef.current?.getTracks() ?? []) track.stop();
     streamRef.current = null;
+    if (meterRef.current) {
+      void meterRef.current.ctx.close().catch(() => undefined);
+      meterRef.current = null;
+    }
+    setLevel(0);
     recorderRef.current = null;
   }, []);
 
@@ -189,16 +198,35 @@ export function useRecorder(onRecorded: (audio: Blob, durationMs: number) => voi
       });
     };
 
+    // A level meter is a courtesy: a browser without Web Audio simply records without one.
+    try {
+      const ctx = new window.AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      meterRef.current = { ctx, analyser };
+    } catch {
+      meterRef.current = null;
+    }
+
     recorder.start();
     setStatus("recording");
+    const samples = new Uint8Array(128);
     timerRef.current = setInterval(() => {
       const ms = Date.now() - startedAtRef.current;
       setElapsedMs(ms);
+      const meter = meterRef.current;
+      if (meter) {
+        meter.analyser.getByteTimeDomainData(samples);
+        let peak = 0;
+        for (const v of samples) peak = Math.max(peak, Math.abs(v - 128));
+        setLevel(Math.min(1, (peak / 128) * 2.2));
+      }
       if (ms >= MAX_RECORDING_MS) {
         setMaxedOut(true);
         finish(false);
       }
-    }, 250);
+    }, 120);
   }, [finish, release]);
 
   const stop = React.useCallback((): void => {
@@ -221,5 +249,5 @@ export function useRecorder(onRecorded: (audio: Blob, durationMs: number) => voi
     };
   }, [release]);
 
-  return { status, elapsedMs, maxedOut, problem, start, stop, cancel, dismissProblem };
+  return { status, elapsedMs, maxedOut, level, problem, start, stop, cancel, dismissProblem };
 }

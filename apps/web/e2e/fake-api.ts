@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { pathToFileURL } from "node:url";
 import { decode } from "next-auth/jwt";
 import * as f from "./fixtures";
-import { participantVariant } from "./participant-variants";
+import { participantAttachments, participantVariant } from "./participant-variants";
 import { scenarioRead } from "./review-data";
 
 /**
@@ -464,7 +464,10 @@ const READS: [RegExp, Handler][] = [
       },
     }),
   ],
-  [/^\/p\/session\/attachments$/, () => ({ body: { attachments: [] } })],
+  [
+    /^\/p\/session\/attachments$/,
+    (_u, req) => ({ body: { attachments: participantAttachments(req.headers.authorization ?? "") } }),
+  ],
   [
     /^\/p\/session\/summary$/,
     () => ({

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AttachmentList } from "@/components/participant/AttachmentList";
 import { Composer } from "@/components/participant/Composer";
 import { InterviewScreen } from "@/components/participant/InterviewScreen";
+import { MessageBubble } from "@/components/participant/MessageList";
 import { useAttachments, type AttachmentsOptions } from "@/hooks/useAttachments";
 import { ApiError } from "@/lib/api/errors";
 import { participantApi, type ParticipantApi } from "@/lib/api/participant";
@@ -136,12 +137,9 @@ describe("Composer recording", () => {
 });
 
 describe("attachments", () => {
-  it("shows every status, plays a recording from a blob URL, and removes a file", async () => {
-    const created = vi.spyOn(URL, "createObjectURL");
-    const revoked = vi.spyOn(URL, "revokeObjectURL");
+  it("shows every status of a file on one line, and removes a file", async () => {
     const onRemove = vi.fn();
-    const fetchBytes = vi.fn(() => Promise.resolve(new Blob(["audio"], { type: "audio/webm" })));
-    const { unmount } = render(
+    render(
       <AttachmentList
         items={[
           attachment({ id: "p1", filename: "notes.md", status: "pending" }),
@@ -153,32 +151,70 @@ describe("attachments", () => {
             status: "failed",
             error: "We could not read any text in that image",
           }),
+          // A recording is not listed here: a spoken answer lives in its own bubble.
           attachment({ id: "v1", kind: "audio", filename: "recording.webm", durationMs: 7000 }),
         ]}
         uploading={false}
         error={null}
         onRemove={onRemove}
-        fetchBytes={fetchBytes}
+        fetchBytes={() => Promise.resolve(new Blob())}
       />,
     );
 
     expect(screen.getByText(/Reading your file…/)).toBeInTheDocument();
     expect(screen.getByText("2 kB · Ready")).toBeInTheDocument();
     expect(screen.getByText(/We could not read any text in that image/)).toBeInTheDocument();
-    expect(screen.getByText(/0:07/)).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.queryByText(/recording/i)).not.toBeInTheDocument();
 
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Play Your recording" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "Remove handbook.pdf" }));
+    expect(onRemove).toHaveBeenCalledWith("r1");
+  });
+
+  it("plays a spoken answer from a blob URL inside its bubble, and lets go of it afterwards", async () => {
+    const created = vi.spyOn(URL, "createObjectURL");
+    const revoked = vi.spyOn(URL, "revokeObjectURL");
+    const fetchBytes = vi.fn(() => Promise.resolve(new Blob(["audio"], { type: "audio/webm" })));
+    const { unmount } = render(
+      <MessageBubble
+        message={{ id: "m9", role: "user", modality: "voice", content: "I run the night shift." }}
+        clip={{
+          state: "ready",
+          source: {
+            attachment: attachment({ id: "v1", kind: "audio", filename: "recording.webm", durationMs: 7000 }),
+            fetchBytes,
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText("I run the night shift.")).toBeInTheDocument();
+    expect(screen.getByText("0:07")).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Play Your recording" }));
     await waitFor(() => {
       expect(created).toHaveBeenCalledTimes(1);
     });
     expect(fetchBytes).toHaveBeenCalledWith("v1");
-
-    await user.click(screen.getByRole("button", { name: "Remove handbook.pdf" }));
-    expect(onRemove).toHaveBeenCalledWith("r1");
-
     unmount();
     expect(revoked).toHaveBeenCalledTimes(1);
+  });
+
+  it("says a recording is on its way, and offers the retry inside the bubble when it failed", async () => {
+    const onRetry = vi.fn();
+    const { rerender } = render(
+      <MessageBubble
+        message={{ id: "local-1", role: "user", modality: "voice", content: "" }}
+        clip={{ state: "sending" }}
+      />,
+    );
+    expect(screen.getByText("Writing out what you said…")).toBeInTheDocument();
+    rerender(
+      <MessageBubble
+        message={{ id: "local-1", role: "user", modality: "voice", content: "" }}
+        clip={{ state: "failed", onRetry }}
+      />,
+    );
+    await userEvent.setup().click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it("renders nothing when there is nothing to report", () => {
@@ -315,10 +351,10 @@ describe("capabilities", () => {
     setMode: () => Promise.resolve(),
   } as unknown as ParticipantApi;
 
-  it("offers the microphone, the voice mode and the paperclip when the session allows them", () => {
+  it("offers the microphone, Talk and the paperclip when the session allows them", () => {
     render(<InterviewScreen initial={session({}) as never} api={api} />);
     expect(screen.getByRole("button", { name: "Record your answer" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Voice" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Talk" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Attach a file" })).toBeInTheDocument();
   });
 
@@ -330,10 +366,8 @@ describe("capabilities", () => {
       />,
     );
     expect(screen.queryByRole("button", { name: "Record your answer" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: "Voice" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Talk" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Attach a file" })).not.toBeInTheDocument();
-    // A stored voice preference from before the setting changed falls back to chat.
-    expect(screen.getByRole("radio", { name: "Text" })).toHaveAttribute("aria-checked", "true");
   });
 });
 
