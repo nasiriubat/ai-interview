@@ -14,6 +14,8 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/*.config.{js,ts,mjs}",
       "**/prisma/migrations/**",
+      // One-off marketing capture scripts; excluded from the web tsconfig (see apps/web/tsconfig.json).
+      "apps/web/scripts/demo-*.ts",
     ],
   },
   js.configs.recommended,
