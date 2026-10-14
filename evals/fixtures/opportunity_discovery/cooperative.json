@@ -1,0 +1,834 @@
+{
+  "id": "opportunity_discovery/cooperative",
+  "version": 1,
+  "templateKey": "opportunity_discovery",
+  "persona": "cooperative",
+  "locale": "en",
+  "turns": [
+    {
+      "n": 1,
+      "text": "I am a nurse on the surgical ward and I look after eight patients per shift.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 2,
+      "text": "Mornings are rounds and medication, then charting, then calls to the lab for results.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 3,
+      "text": "Charting happens twice, in the patient system and again in the ward spreadsheet, about 45 minutes every shift.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T1"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 4,
+      "text": "I phone the lab for blood results several times a shift and wait on the line.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T2"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 5,
+      "text": "After the medication round I write what was given on paper and then enter it later.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T3"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 6,
+      "text": "At handover I write a summary by hand for the next nurse and read it out.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T4"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 7,
+      "text": "Once a week I count the supply cupboard and order what is missing by email.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T5"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 8,
+      "text": "Whenever a patient moves I update the bed status on the whiteboard and in the system.",
+      "labels": {
+        "requirements": [],
+        "facts": ["T6"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 9,
+      "text": "Results come from the lab by phone and I type them into the patient system by hand.",
+      "labels": {
+        "requirements": [],
+        "facts": ["I1"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 10,
+      "text": "Quick questions to the doctors go over WhatsApp because paging is slow.",
+      "labels": {
+        "requirements": [],
+        "facts": ["I2"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 11,
+      "text": "The double entry causes mistakes and nobody knows which number is right.",
+      "labels": {
+        "requirements": [],
+        "facts": ["P1"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 12,
+      "text": "I wait for the lab most days, sometimes an hour, and the doctors wait for me.",
+      "labels": {
+        "requirements": [],
+        "facts": ["P2"],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 13,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 14,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 15,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 16,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 17,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 18,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 19,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 20,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 21,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 22,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 23,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 24,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 25,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 26,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 27,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 28,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 29,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 30,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 31,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 32,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 33,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 34,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 35,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 36,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 37,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 38,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 39,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 40,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 41,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 42,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 43,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 44,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 45,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 46,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 47,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 48,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 49,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 50,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 51,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 52,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 53,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 54,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 55,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 56,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 57,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 58,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 59,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 60,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    }
+  ],
+  "goldRequirements": [],
+  "goldFacts": [
+    {
+      "id": "T1",
+      "kind": "task",
+      "terms": ["charting", "twice"],
+      "introducedAtTurn": 3,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Charting in two systems",
+        "frequency": "daily",
+        "minutesPerOccurrence": 45,
+        "tools": ["patient system", "spreadsheet"],
+        "painScore": 7
+      }
+    },
+    {
+      "id": "T2",
+      "kind": "task",
+      "terms": ["lab"],
+      "introducedAtTurn": 4,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Phoning the lab for results",
+        "frequency": "daily",
+        "minutesPerOccurrence": 20,
+        "tools": ["phone"],
+        "painScore": 6
+      }
+    },
+    {
+      "id": "T3",
+      "kind": "task",
+      "terms": ["medication"],
+      "introducedAtTurn": 5,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Medication round documentation",
+        "frequency": "daily",
+        "minutesPerOccurrence": 30,
+        "tools": ["paper"],
+        "painScore": 5
+      }
+    },
+    {
+      "id": "T4",
+      "kind": "task",
+      "terms": ["handover"],
+      "introducedAtTurn": 6,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Shift handover notes",
+        "frequency": "daily",
+        "minutesPerOccurrence": 25,
+        "tools": ["paper"],
+        "painScore": 4
+      }
+    },
+    {
+      "id": "T5",
+      "kind": "task",
+      "terms": ["supply"],
+      "introducedAtTurn": 7,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Ordering supplies",
+        "frequency": "weekly",
+        "minutesPerOccurrence": 40,
+        "tools": ["email"],
+        "painScore": 3
+      }
+    },
+    {
+      "id": "T6",
+      "kind": "task",
+      "terms": ["bed"],
+      "introducedAtTurn": 8,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "task",
+        "name": "Bed status updates",
+        "frequency": "daily",
+        "minutesPerOccurrence": 15,
+        "tools": ["whiteboard", "patient system"],
+        "painScore": 5
+      }
+    },
+    {
+      "id": "I1",
+      "kind": "information_flow",
+      "terms": ["results", "phone"],
+      "introducedAtTurn": 9,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "information_flow",
+        "from": "lab",
+        "to": "nurse",
+        "what": "blood results by phone"
+      }
+    },
+    {
+      "id": "I2",
+      "kind": "information_flow",
+      "terms": ["whatsapp"],
+      "introducedAtTurn": 10,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "information_flow",
+        "from": "nurse",
+        "to": "doctor",
+        "what": "questions on WhatsApp"
+      }
+    },
+    {
+      "id": "P1",
+      "kind": "pain_point",
+      "terms": ["mistakes"],
+      "introducedAtTurn": 11,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "pain_point",
+        "description": "Double entry causes mistakes and nobody knows which number is right",
+        "severity": 8
+      }
+    },
+    {
+      "id": "P2",
+      "kind": "pain_point",
+      "terms": ["wait", "hour"],
+      "introducedAtTurn": 12,
+      "mustSurviveSummary": true,
+      "fact": {
+        "kind": "pain_point",
+        "description": "Waiting for the lab delays decisions by an hour",
+        "severity": 6
+      }
+    }
+  ],
+  "goldFindings": [],
+  "modelBehavior": {
+    "flaws": {
+      "3": "marker_missing",
+      "9": "malformed_json",
+      "14": "truncated"
+    },
+    "scans": []
+  },
+  "expect": {
+    "coverage": [
+      {
+        "afterTurn": 12,
+        "covered": 2
+      },
+      {
+        "afterTurn": 24,
+        "covered": 4
+      }
+    ],
+    "endedWithin": 60
+  }
+}

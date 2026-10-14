@@ -147,6 +147,11 @@ export async function settleTurnContract(
     dropped: parsed.dropped,
   };
 
+  // Rules that arrived with no requirement anywhere are what the model was asked to re-file: when
+  // the repair answers they are replaced by what it filed, not kept beside it as duplicates.
+  const flood = reasons.includes("rules_without_requirements")
+    ? check.facts.filter((f) => f.kind === "spec_field" && f.section === "rules")
+    : [];
   let delta = { ...parsed.delta, facts: check.facts };
   let heldBack = check.heldBack;
   if (reasons.length > 0 && input.message) {
@@ -162,7 +167,7 @@ export async function settleTurnContract(
       captureSpec: producesSpec,
       problems: reasons.map((r) => PROBLEM_TEXT[r]),
       ...(producesSpec ? { recordedRequirements: requirementSummary(state, check.facts) } : {}),
-      ...(check.heldBack.length ? { rejectedFacts: check.heldBack } : {}),
+      ...(check.heldBack.length || flood.length ? { rejectedFacts: [...check.heldBack, ...flood] } : {}),
       signal: input.signal,
     };
     const repaired = await repairTurnMeta(deps, repairInput);
@@ -170,9 +175,10 @@ export async function settleTurnContract(
       const second = parseStateDelta(repaired.stateDelta);
       // The repaired facts are checked against the state plus what this turn already filed, so ids
       // continue after the accepted ones instead of colliding with them.
-      const stateWithTurn = { facts: mergeFacts(state.facts, check.facts) };
+      const kept = check.facts.filter((f) => !flood.includes(f));
+      const stateWithTurn = { facts: mergeFacts(state.facts, kept) };
       const recheck = checkSpecFacts(second.delta.facts, stateWithTurn, { producesSpec });
-      const factsOut = mergeFacts(check.facts, recheck.facts);
+      const factsOut = mergeFacts(kept, recheck.facts);
       meta = markerMissed ? repaired : { ...repaired, ...meta };
       delta = combine(parsed.delta, second.delta, factsOut);
       heldBack = recheck.heldBack;

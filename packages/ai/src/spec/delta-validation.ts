@@ -43,6 +43,8 @@ export interface DeltaCheck {
 }
 
 const FR_ID = /^FR-(\d+)$/i;
+/** `FR-1.acceptance`, `FR-1/acceptance`, `FR-1 acceptance criteria`, ... */
+const ACCEPTANCE_PATH = /^(FR-\d+)[\s._/:-]+(?:acceptance|criteria|ac)\b/i;
 /** Rules at or above this count with no requirement recorded read as the 2026-10-14 failure. */
 export const RULES_FLOOD_THRESHOLD = 6;
 
@@ -203,6 +205,53 @@ export function checkSpecFacts(
         heldRules.push(f);
       }
       file(f, section);
+      continue;
+    }
+
+    // Acceptance criteria written as their own field ("FR-1.acceptance", or a fact in the
+    // `acceptance` section): they belong on the requirement, not beside it.
+    const ac = ACCEPTANCE_PATH.exec(path);
+    if (ac?.[1] && (typeof f.value === "string" || Array.isArray(f.value))) {
+      const target = ac[1].toUpperCase();
+      const current =
+        out.facts.find((x) => x.kind === "spec_field" && x.section === "functional" && x.path === target) ??
+        state.facts.find(
+          (x) =>
+            x.kind === "spec_field" &&
+            (normalizeSectionKey(x.section) ?? x.section) === "functional" &&
+            x.path.toUpperCase() === target,
+        );
+      const base = current?.kind === "spec_field" ? coerceRequirement(current.value) : undefined;
+      if (base) {
+        const extra = (Array.isArray(f.value) ? f.value : [f.value])
+          .filter((a): a is string => typeof a === "string" && a.trim() !== "")
+          .map((a) => a.trim());
+        const have = (base.acceptance as string[]).map((a) => a.toLowerCase());
+        const merged = {
+          ...base,
+          acceptance: [
+            ...(base.acceptance as string[]),
+            ...extra.filter((a) => !have.includes(a.toLowerCase())),
+          ],
+        };
+        const fact: SpecFact = { ...f, section: "functional", path: target, value: merged };
+        const at = out.facts.findIndex(
+          (x) => x.kind === "spec_field" && x.section === "functional" && x.path === target,
+        );
+        if (at >= 0) out.facts[at] = fact;
+        else out.facts.push(fact);
+        out.repaired.push({
+          kind: "coerced",
+          section: "functional",
+          path,
+          detail: `acceptance criteria moved onto ${target}`,
+        });
+        continue;
+      }
+    }
+    // A plain note in the functional section that is not a requirement id stays a note.
+    if (typeof f.value === "string" && requirementNumber(path) === undefined) {
+      file(f, "functional");
       continue;
     }
 

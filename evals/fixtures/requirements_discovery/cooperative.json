@@ -1,0 +1,779 @@
+{
+  "id": "requirements_discovery/cooperative",
+  "version": 1,
+  "templateKey": "requirements_discovery",
+  "persona": "cooperative",
+  "locale": "en",
+  "path": "nontechnical",
+  "turns": [
+    {
+      "n": 1,
+      "text": "Probably a managed platform, we do not have servers.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 2,
+      "text": "It has to work with the spreadsheet we use today and maybe the email system.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 3,
+      "text": "A coding agent will build it, with me reviewing.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 4,
+      "text": "I know spreadsheets well, not much else.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 5,
+      "text": "We would like version one in about two months.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 6,
+      "text": "The budget is small, a few hundred euros a month at most.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 7,
+      "text": "About twenty people at launch.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 8,
+      "text": "Nothing special, just keep personal data private.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 9,
+      "text": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["overview"]
+      }
+    },
+    {
+      "n": 10,
+      "text": "Ward nurses write the notes and the charge nurse reviews them every shift.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["users"]
+      }
+    },
+    {
+      "n": 11,
+      "text": "A nurse must be able to enter a ward note once and have it reach the patient system without retyping it.",
+      "labels": {
+        "requirements": ["R1"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 12,
+      "text": "The charge nurse needs to sign off the notes of a shift, and a signed note is locked.",
+      "labels": {
+        "requirements": ["R2"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 13,
+      "text": "At the end of a shift the system should produce a handover summary of open items for the next nurse.",
+      "labels": {
+        "requirements": ["R3"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 14,
+      "text": "Nurses must be able to search notes by patient and see the newest first.",
+      "labels": {
+        "requirements": ["R4"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 15,
+      "text": "Later it would be nice to dictate a note by voice instead of typing.",
+      "labels": {
+        "requirements": ["R5"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 16,
+      "text": "Managers want to export a shift's notes to Excel, but that can wait for a later version.",
+      "labels": {
+        "requirements": ["R6"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 17,
+      "text": "The system should warn a nurse when a patient's vitals have not been charted for four hours.",
+      "labels": {
+        "requirements": ["R7"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 18,
+      "text": "The ward wifi drops, so working offline and syncing later would help, in a later version.",
+      "labels": {
+        "requirements": ["R8"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 19,
+      "text": "A note may not be edited after the charge nurse has signed it.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["rules"]
+      }
+    },
+    {
+      "n": 20,
+      "text": "It should be a web app that runs on the hospital intranet and works on the ward tablets.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["technical"]
+      }
+    },
+    {
+      "n": 21,
+      "text": "We keep patients, notes, shifts and sign-offs, and every note belongs to one patient and one shift.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["data"]
+      }
+    },
+    {
+      "n": 22,
+      "text": "It has to read patients from the hospital patient system and write notes back to it.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["integrations"]
+      }
+    },
+    {
+      "n": 23,
+      "text": "Only staff on the ward may see its patients, and every read of a note is logged.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["security"]
+      }
+    },
+    {
+      "n": 24,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 25,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 26,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 27,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 28,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 29,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 30,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 31,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 32,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 33,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 34,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 35,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 36,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 37,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 38,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 39,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 40,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 41,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 42,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 43,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 44,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 45,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 46,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 47,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 48,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 49,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 50,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 51,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 52,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 53,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 54,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 55,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 56,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 57,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 58,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 59,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 60,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    }
+  ],
+  "goldRequirements": [
+    {
+      "id": "R1",
+      "title": "Enter a ward note once",
+      "terms": ["note", "once"],
+      "scope": "mvp",
+      "acceptance": ["A saved note appears in the patient system"],
+      "introducedAtTurn": 11
+    },
+    {
+      "id": "R2",
+      "title": "Charge nurse sign-off",
+      "terms": ["sign-off"],
+      "scope": "mvp",
+      "acceptance": ["A signed note can no longer be edited"],
+      "introducedAtTurn": 12
+    },
+    {
+      "id": "R3",
+      "title": "Shift handover summary",
+      "terms": ["handover"],
+      "scope": "mvp",
+      "acceptance": ["A one page summary lists the open items"],
+      "introducedAtTurn": 13
+    },
+    {
+      "id": "R4",
+      "title": "Search notes by patient",
+      "terms": ["search"],
+      "scope": "mvp",
+      "acceptance": ["Notes of one patient list newest first"],
+      "introducedAtTurn": 14
+    },
+    {
+      "id": "R5",
+      "title": "Voice dictation of notes",
+      "terms": ["dictat"],
+      "scope": "future",
+      "acceptance": ["Dictated text appears in the note field"],
+      "introducedAtTurn": 15
+    },
+    {
+      "id": "R6",
+      "title": "Export notes to Excel",
+      "terms": ["excel"],
+      "scope": "future",
+      "acceptance": ["A shift exports to a spreadsheet file"],
+      "introducedAtTurn": 16
+    },
+    {
+      "id": "R7",
+      "title": "Alert on missing vitals",
+      "terms": ["vitals"],
+      "scope": "mvp",
+      "acceptance": ["A banner shows when vitals are older than four hours"],
+      "introducedAtTurn": 17
+    },
+    {
+      "id": "R8",
+      "title": "Work offline on the ward",
+      "terms": ["offline"],
+      "scope": "future",
+      "acceptance": ["Notes entered offline sync when the network returns"],
+      "introducedAtTurn": 18
+    }
+  ],
+  "goldFacts": [],
+  "goldFindings": [
+    {
+      "id": "F1",
+      "type": "missing_decision",
+      "section": "security",
+      "turns": []
+    }
+  ],
+  "modelBehavior": {
+    "flaws": {
+      "6": "marker_missing",
+      "12": "marker_missing",
+      "14": "wrong_section",
+      "16": "descriptive_id",
+      "18": "malformed_json"
+    },
+    "scans": [
+      [
+        {
+          "type": "missing_decision",
+          "section": "security",
+          "description": "No sign-in method has been decided",
+          "resolution": "Choose how people sign in",
+          "default": "email link",
+          "confidence": "high"
+        }
+      ]
+    ]
+  },
+  "expect": {
+    "coverage": [
+      {
+        "afterTurn": 12,
+        "covered": 1
+      },
+      {
+        "afterTurn": 30,
+        "covered": 5
+      }
+    ],
+    "endedWithin": 60
+  }
+}
