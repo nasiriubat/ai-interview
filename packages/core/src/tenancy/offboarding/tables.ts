@@ -11,6 +11,8 @@ import type { PrismaClient } from "@prisma/client";
 
 /** Tables that carry a company but are not erased with the tenant, and why. */
 export const RETAINED_TABLES: Readonly<Record<string, string>> = {
+  ErasureLedger:
+    "The record of what was erased: ids only, and the whole point is that it outlives the erasure.",
   TenantStatement:
     "The frozen monthly statements are the invoicing record: aggregates by provider, model and purpose, no personal data, kept for accounting.",
 };

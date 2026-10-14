@@ -379,11 +379,11 @@ describeDb("tenant export and offboarding", () => {
     expect(file.at(-1)).toMatchObject({ kind: "tenant", targetId: t.companyId });
     // Ids only: no name, no address, no count of anything.
     expect(Object.keys(file.at(-1) ?? {}).sort()).toEqual([
+      "companyId",
       "erasedAt",
       "kind",
       "requestedBy",
       "targetId",
-      "companyId",
     ]);
     expect(alerts.raised.some((a) => a.kind === "tenant.offboarded")).toBe(true);
 
