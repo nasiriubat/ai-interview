@@ -15,7 +15,8 @@ DOCKERFILE="$WEB/Dockerfile"
 
 echo "web image: files the type check reaches outside apps/web"
 # Relative imports that climb out of apps/web, from every directory its tsconfig includes.
-imports=$(grep -rhoE "from \"(\.\./){3,}(packages|evals|scripts|tools)/[^\"]+\"|import\(\"(\.\./){3,}(packages|evals|scripts|tools)/[^\"]+\"" \
+# scripts/demo-*.ts are excluded from tsconfig.json (they drive the live harness), so they are not type-checked.
+imports=$(grep -rhoE --exclude="demo-*.ts" "from \"(\.\./){3,}(packages|evals|scripts|tools)/[^\"]+\"|import\(\"(\.\./){3,}(packages|evals|scripts|tools)/[^\"]+\"" \
 	"$WEB/src" "$WEB/test" "$WEB/e2e" "$WEB/scripts" "$WEB/vitest.setup.ts" "$WEB/playwright.config.ts" 2>/dev/null |
 	grep -oE "(packages|evals|scripts|tools)/[^\"]+" | sort -u)
 if [ -z "$imports" ]; then
