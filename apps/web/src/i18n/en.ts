@@ -1430,7 +1430,7 @@ export const en = {
         reopen: "Reopen",
         reopened: "Interview reopened",
         completedNote: "This interview is complete. Reopen it to keep refining the specification.",
-        tabs: { spec: "Specification", findings: "Findings", versions: "Versions" },
+        tabs: { spec: "Draft", findings: "Findings", versions: "Specification documents" },
         panelLabel: "Specification panel",
       },
       spec: {

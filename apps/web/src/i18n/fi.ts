@@ -1433,7 +1433,7 @@ export const fi: Strings = {
         reopen: "Avaa uudelleen",
         reopened: "Haastattelu avattu uudelleen",
         completedNote: "Tämä haastattelu on valmis. Avaa se uudelleen, jos haluat hioa määrittelyä.",
-        tabs: { spec: "Määrittely", findings: "Havainnot", versions: "Versiot" },
+        tabs: { spec: "Luonnos", findings: "Havainnot", versions: "Määrittelydokumentit" },
         panelLabel: "Määrittelypaneeli",
       },
       spec: {
