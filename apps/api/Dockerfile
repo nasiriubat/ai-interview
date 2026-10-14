@@ -48,7 +48,7 @@ COPY apps/api ./apps/api
 COPY apps/worker ./apps/worker
 # The root .dockerignore keeps every `.env` out of the build context. This asserts it worked.
 # It is here because it already failed once: images were built and run carrying the operator's
-# real PLATFORM_ENCRYPTION_KEY and AUTH_SECRET in `apps/api/.env`, which nothing in the build
+# real PLATFORM_ENCRYPTION_KEY and AUTH_SECRET in `apps/api/.env` (now the root `.env`), which nothing in the build
 # noticed and nothing in the running container revealed. An ignore file is a promise; this is
 # the check. Secrets arrive at run time from compose `environment:` entries, and nowhere else.
 RUN if find . -name '.env' -not -name '.env.example' -not -path '*/node_modules/*' | grep -q .; then \

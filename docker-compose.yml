@@ -11,10 +11,19 @@
 # Two images are built, not four: `aidp-server` (migrate, api and worker run it with different
 # commands) and `aidp-web`. See docs/discovery/decisions.md D-74.
 #
-# Secrets and bootstrap identities come from apps/api/.env (copy apps/api/.env.example).
+# Secrets and bootstrap identities come from the root .env (copy .env.example). Every service reads
+# it through the `x-env-files` anchor below, and compose uses the same file for ${VARIABLE} substitution.
+# apps/api/.env is legacy: if it still exists it is read underneath the root file (root wins) so an
+# install that has not run `pnpm env:migrate` keeps working; `pnpm stack:up` warns about it.
 # Emails (magic links, invitations, verification codes) are caught by Mailpit: http://localhost:8025
 # Logs rotate at 10 MB x 3 per container, as in production. Without this a development stack that
 # stays up for weeks keeps every health-check line it ever wrote.
+x-env-files: &env-files
+  - path: apps/api/.env # legacy, optional; later files win
+    required: false
+  - path: .env
+    required: false
+
 x-logging: &logging
   logging:
     driver: json-file
@@ -54,7 +63,7 @@ services:
     <<: *logging
     image: aidp-server:latest
     build: { context: ., dockerfile: apps/api/Dockerfile }
-    env_file: apps/api/.env
+    env_file: *env-files
     environment:
       DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
     command: >
@@ -68,7 +77,7 @@ services:
     image: aidp-server:latest
     pull_policy: never
     stop_grace_period: 40s
-    env_file: apps/api/.env
+    env_file: *env-files
     environment:
       UPLOAD_DIR: /uploads
       # Recorded answers are transcribed here, by Whisper on this machine (D-75); the model is
@@ -102,7 +111,7 @@ services:
     command: ["node", "apps/worker/dist/main.js"]
     healthcheck: { disable: true }
     stop_grace_period: 40s
-    env_file: apps/api/.env
+    env_file: *env-files
     environment:
       UPLOAD_DIR: /uploads
       DATABASE_URL: postgresql://app:app@postgres:5432/ai_discovery
@@ -125,7 +134,7 @@ services:
         # the voice socket on its own origin. In production Caddy puts both behind one hostname
         # and this is left empty.
         NEXT_PUBLIC_VOICE_WS_URL: ws://localhost:4000/api/v1/p/session/live
-    env_file: apps/api/.env # AUTH_SECRET is shared with the API
+    env_file: *env-files # AUTH_SECRET is shared with the API
     environment:
       API_URL: http://api:4000
       AUTH_URL: http://localhost:3000

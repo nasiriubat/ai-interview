@@ -22,7 +22,7 @@ CLI can add more later.
 ## Run
 
 ```sh
-cp apps/web/.env.example apps/web/.env      # fill AUTH_SECRET, Google, SMTP
+cp .env.example .env                       # at the repo root: fill AUTH_SECRET, Google, SMTP
 pnpm install
 pnpm --filter @aidp/shared build            # the web app imports the built package
 pnpm --filter @aidp/web dev                 # http://localhost:3000
