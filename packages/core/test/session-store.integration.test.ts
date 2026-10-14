@@ -84,7 +84,7 @@ describeDb("PrismaSessionStore extraction commit", () => {
     // land on one session at the same moment. Before the row lock, some of these threw the
     // (sessionId, seq) unique constraint and failed the participant's turn.
     const writers = [
-      ...Array.from({ length: 12 }, (_, i) => store.appendEvent(id, "turn", { n: i })),
+      ...Array.from({ length: 12 }, (_, i) => store.appendEvent(id, "state_delta", { n: i })),
       ...Array.from({ length: 6 }, (_, i) =>
         store.commitExtraction(id, commit(i * 24, (i + 1) * 24, [`c${i}`])),
       ),
