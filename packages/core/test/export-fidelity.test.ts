@@ -326,6 +326,7 @@ describe("report fidelity", () => {
     "Executive summary",
     "Participation and method",
     "Work map",
+    "Department comparison",
     "Opportunities by solution class",
     "Quick wins and strategic bets",
     "Where AI is not the answer",
