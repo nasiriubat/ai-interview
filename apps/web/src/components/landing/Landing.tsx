@@ -31,7 +31,7 @@ import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
 import { LandingHeader } from "./LandingHeader";
-import { LanguageSwitch } from "@/components/common/LanguageSwitch";
+import { LanguageMenu } from "@/components/common/PreferenceMenus";
 import { Button } from "@/components/ui/button";
 import type { LandingStrings } from "@/i18n/landing.en";
 import { mailtoHref } from "@/lib/landing";
@@ -587,7 +587,7 @@ export function Landing({ strings: s, appName, signedIn, contact }: LandingProps
           </div>
           <div className="border-border mt-10 flex items-center justify-between gap-4 border-t pt-6">
             <span className="text-muted-foreground text-sm">{s.footer.language}</span>
-            <LanguageSwitch id="landing-footer-language" />
+            <LanguageMenu showName align="end" side="top" />
           </div>
         </div>
       </footer>
