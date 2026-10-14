@@ -116,6 +116,27 @@ describe("OpenAICompatibleProvider: capability memory and attempt reports (live 
     expect(bodies).toHaveLength(3);
   });
 
+  it("retries without the reasoning control when the route answers 404 for it (live run: two jobs failed)", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock: typeof fetch = async (_url, init) => {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      bodies.push(body);
+      // OpenRouter with require_parameters: "No endpoints found that support reasoning".
+      if (body.reasoning) return new Response("{}", { status: 404 });
+      return Response.json({ choices: [{ message: { content: '{"ok":true}' } }] });
+    };
+    const p = new OpenAICompatibleProvider({ id: "or", kind: "openrouter", apiKey: "k", fetch: fetchMock });
+    const reports: string[] = [];
+    const res = await p.complete(
+      "vendor/model",
+      req({ reasoning: "off", onAttempt: (a: { note?: string }) => reports.push(a.note ?? "ok") }),
+      Ok,
+    );
+    expect(res.value).toEqual({ ok: true });
+    expect(bodies.at(-1)).not.toHaveProperty("reasoning");
+    expect(reports[0]).toBe("rejected");
+  });
+
   it("blames the schema, not the reasoning control, when the same 400 comes back without it", async () => {
     const bodies: Record<string, unknown>[] = [];
     const fetchMock: typeof fetch = async (_url, init) => {

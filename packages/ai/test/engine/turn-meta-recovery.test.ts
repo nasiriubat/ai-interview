@@ -109,6 +109,14 @@ describe("the engine asks for the metadata once when a reply carries none", () =
     expect(result.state.coverage.role?.status).toBe("partial");
   });
 
+  it("does not fail the turn when the model writes a reason longer than the schema allows", async () => {
+    const store = new MemoryStore();
+    const long = JSON.stringify({ areaKey: "role", reason: "r".repeat(500) });
+    const caller = new ScriptedCaller([`Hi! What is your role?\n<<<TURN_META>>>\n${long}`]);
+    const result = await runTurn(engineFor(store, caller), store);
+    expect(result.state.turnCount).toBe(1);
+  });
+
   it("carries on with the message alone when the repair call fails", async () => {
     const store = new MemoryStore();
     const caller = new ScriptedCaller(["Hi! What is your role?", "not json at all"]);
