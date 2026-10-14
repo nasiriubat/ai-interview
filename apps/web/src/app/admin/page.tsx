@@ -8,6 +8,7 @@ import { DiscoveryTiles } from "@/components/admin/DiscoveryTiles";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Panel } from "@/components/admin/Panel";
+import { SetupChecklist } from "@/components/admin/SetupChecklist";
 import { StatTile } from "@/components/admin/StatTile";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
@@ -45,17 +46,22 @@ function shortDay(iso: string): string {
 
 export default async function DashboardPage(): Promise<React.JSX.Element> {
   await requestLocale();
-  await requireMe();
+  const me = await requireMe();
   const api = await staffServer();
   const r = ranges();
-  const [statsR, purposeR, dailyR] = await Promise.allSettled([
+  // The checklist is for the people who can act on it; a member is not asked, and a failure to
+  // load it leaves the dashboard as it was.
+  const canSetUp = me?.user.role === "admin" || me?.user.role === "platform_operator";
+  const [statsR, purposeR, dailyR, onboardingR] = await Promise.allSettled([
     api.stats(),
     api.spend({ ...r.month, groupBy: "purpose" }),
     api.spend({ ...r.daily, groupBy: "day" }),
+    canSetUp ? api.onboarding.get() : Promise.reject(new Error("not for members")),
   ]);
   const stats = settled(statsR);
   const byPurpose = settled(purposeR);
   const daily = settled(dailyR);
+  const onboarding = onboardingR.status === "fulfilled" ? onboardingR.value : null;
   const s = t.admin.dashboard;
 
   const n = stats.data ? dashboardNumbers(stats.data) : null;
@@ -71,6 +77,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
     <>
       <PageHeader title={s.title} subtitle={s.subtitle} />
       <div className="grid gap-6">
+        {onboarding ? <SetupChecklist state={onboarding} /> : null}
         <section aria-label={s.title} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatTile
             icon={EuroIcon}
