@@ -135,6 +135,7 @@ export const PAGES: Entry[] = [
   operator("operator-routes", "/admin/operator/routes", "app/admin/operator/routes/page.tsx"),
   operator("operator-stats", "/admin/operator/stats", "app/admin/operator/stats/page.tsx"),
   operator("operator-jobs", "/admin/operator/jobs", "app/admin/operator/jobs/page.tsx"),
+  operator("operator-health", "/admin/operator/health", "app/admin/operator/health/page.tsx"),
 ];
 
 /** Routes that serve no document (JSON or redirects), so there is nothing for axe to read. */

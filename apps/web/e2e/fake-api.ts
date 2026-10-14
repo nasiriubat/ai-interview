@@ -208,6 +208,44 @@ const READS: [RegExp, Handler][] = [
   [/^\/operator\/providers\/[^/]+\/prices$/, () => ({ body: page("prices", []) })],
   [/^\/operator\/routes$/, () => ({ body: { routes: f.routes } })],
   [/^\/operator\/stats$/, () => ({ body: { platform: { tenants: 1, sessions: 15 } } })],
+  [
+    /^\/operator\/health$/,
+    () => ({
+      body: {
+        generatedAt: "2026-10-14T08:00:00.000Z",
+        version: "2026.10",
+        signals: [
+          { key: "backup", status: "ok", detail: "Last backup 3 hours ago", value: 3 },
+          { key: "disk", status: "warn", detail: "Disk at 82 percent", value: 82 },
+        ],
+        providers: [
+          {
+            providerId: "prov_1",
+            name: "OpenRouter",
+            calls: 120,
+            failed: 2,
+            errorRate: 0.017,
+            circuit: "closed",
+          },
+        ],
+        latency: {
+          firstTokenP50Ms24h: 900,
+          firstTokenP95Ms24h: 2100,
+          firstTokenTargetMs: 2000,
+          voiceFirstWordP95Ms24h: null,
+          voiceFirstWordTargetMs: 1500,
+        },
+        backup: {
+          lastResult: "ok",
+          lastSuccessAt: "2026-10-14T05:00:00.000Z",
+          ageHours: 3,
+          offsite: "ok",
+          drill: { result: "ok", at: "2026-10-12T03:00:00.000Z", error: null, durationS: 94 },
+        },
+        tenants: [],
+      },
+    }),
+  ],
   [/^\/operator\/jobs$/, () => ({ body: { queues: [] } })],
   [/^\/operator\/jobs\/dead$/, () => ({ body: { jobs: [] } })],
   // Participant
