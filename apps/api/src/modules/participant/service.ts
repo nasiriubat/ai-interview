@@ -5,13 +5,16 @@ import {
   newNumericCode,
   newToken,
   normalizeEmail,
+  voiceAllowedForSession,
   type Crypto,
   type EmailPort,
   type SettingsService,
+  type TenantCeilings,
   type TenantGate,
+  type VoiceMode,
 } from "@aidp/core";
 import { tenantTransaction } from "@aidp/db";
-import { COMPLETION_REQUESTED_TURN_COUNT } from "@aidp/shared";
+import { COMPLETION_REQUESTED_TURN_COUNT, defaultConsentText } from "@aidp/shared";
 import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
@@ -36,6 +39,16 @@ export type AbuseEvent = "abuse.code_request_capped" | "abuse.code_confirm_locke
 
 const HOUR_MS = 60 * 60_000;
 
+/**
+ * The version a participant consents to: a hash of the exact words shown. Changing the words
+ * (an edited text, or a new shipped default) gives a new version, and a session keeps the
+ * version it consented under, so nobody is recorded as having agreed to words they never saw
+ * (D-185). Nothing re-validates an old version against the current text.
+ */
+export function consentVersionOf(text: string): string {
+  return `v${createHash("sha256").update(text).digest("hex").slice(0, 12)}`;
+}
+
 /** The public participant flow: link resolution, uniqueness, session binding (FR-04, FR-10, FR-11, 06). */
 export class ParticipantService {
   constructor(
@@ -45,6 +58,8 @@ export class ParticipantService {
     private readonly email: EmailPort,
     private readonly tenants: TenantGate,
     private readonly onAbuse: (event: AbuseEvent, meta: { campaignId: string }) => void = () => undefined,
+    /** Refuses a new interview past `ceiling.maxSessionsPerMonth` (D-188). */
+    private readonly ceilings?: TenantCeilings,
   ) {}
 
   async resolveLink(
@@ -59,7 +74,17 @@ export class ParticipantService {
       { scope: "campaign" as const, scopeId: campaign.id },
       { scope: "tenant" as const, scopeId: campaign.companyId },
     ];
-    const values = await this.settings.resolveMany(["branding.productName", "campaign.consentText"], chain);
+    const resolved = await this.settings.resolveDetailed(
+      ["branding.productName", "campaign.consentText"],
+      chain,
+    );
+    // Nobody wrote a consent text at any level: the default speaks the interview's language
+    // (D-185). A text someone saved is shown exactly as saved, whatever its language.
+    const explicitConsent = resolved["campaign.consentText"]?.scope != null;
+    const consentText = explicitConsent
+      ? (resolved["campaign.consentText"]?.value as string)
+      : defaultConsentText(campaign.template.language);
+    const values = { "branding.productName": resolved["branding.productName"]?.value };
     const expired = campaign.expiresAt ? campaign.expiresAt.getTime() < Date.now() : false;
     // A suspended tenant's link answers exactly as a closed campaign does, so nothing about the
     // link reveals that the organization is suspended (S8).
@@ -75,11 +100,8 @@ export class ParticipantService {
         expectedMinutes: Math.max(10, Math.round(campaign.maxTurns / 3)),
         participationMode: campaign.participationMode,
         verification: campaign.verification,
-        consentText: values["campaign.consentText"] as string,
-        consentVersion: `v${createHash("sha256")
-          .update(values["campaign.consentText"] as string)
-          .digest("hex")
-          .slice(0, 12)}`,
+        consentText,
+        consentVersion: consentVersionOf(consentText),
         participantFields: campaign.template.participantFields,
         pathSelection: campaign.template.pathSelection,
         status: expired ? "expired" : campaign.status === "open" && !suspended ? "open" : "closed",
@@ -403,11 +425,13 @@ export class ParticipantService {
   }
 
   private async createParticipantAndSession(
-    db: Pick<PrismaClient, "participant" | "session">,
+    db: Pick<PrismaClient, "participant" | "session" | "interviewTemplate">,
     campaign: Campaign,
     emailHash: string | null,
     email: string | null = null,
   ): Promise<{ participantToken: string; sessionId: string; participantId: string }> {
+    // Before anything is written: a refused interview leaves no participant row behind.
+    await this.ceilings?.assertRoom(campaign.companyId, "maxSessionsPerMonth");
     const token = newToken(24);
     const fields: Record<string, string> = {};
     // Only a campaign that is not anonymous keeps a pointer on the participant row: its email is
@@ -423,6 +447,11 @@ export class ParticipantService {
         tokenHash: this.crypto.hashToken(token),
       },
     });
+    // The version of the row the campaign pins (FR-62), not a constant.
+    const pinned = await db.interviewTemplate.findUniqueOrThrow({
+      where: { id: campaign.templateId },
+      select: { version: true },
+    });
     const session = await db.session.create({
       data: {
         companyId: campaign.companyId,
@@ -431,9 +460,10 @@ export class ParticipantService {
         participantId: participant.id,
         sourceKind: "campaign",
         status: "created",
-        templateVersion: 1,
+        templateVersion: pinned.version,
       },
     });
+    await this.ceilings?.afterChange(campaign.companyId);
     return { participantToken: token, sessionId: session.id, participantId: participant.id };
   }
 
@@ -481,6 +511,11 @@ export class ParticipantService {
       where: { id: sessionId },
       data: { status: "consented", consentVersion: input.consentVersion, consentedAt: new Date() },
     });
+  }
+
+  /** Whether this interview may use voice of this kind: the tenant's flag ANDed with the template's (D-186). */
+  voiceAllowed(companyId: string, sessionId: string, mode: VoiceMode): Promise<boolean> {
+    return voiceAllowedForSession(this.db, this.settings, { companyId, sessionId, mode });
   }
 
   async setPath(sessionId: string, path: "technical" | "nontechnical"): Promise<void> {

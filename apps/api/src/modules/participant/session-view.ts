@@ -1,4 +1,10 @@
-import { toStored, type AttachmentService, type AttachmentView, type SettingsService } from "@aidp/core";
+import {
+  switchEnabled,
+  toStored,
+  type AttachmentService,
+  type AttachmentView,
+  type SettingsService,
+} from "@aidp/core";
 import type { PrismaClient } from "@prisma/client";
 import type { ParticipantService } from "./service.js";
 
@@ -12,6 +18,7 @@ export interface ParticipantSessionPayload {
       liveVoice: boolean;
       captions: boolean;
       fileUpload: boolean;
+      optionsView: boolean;
       maxSizeMb: number;
       allowedTypes: string[];
     };
@@ -61,12 +68,16 @@ export class ParticipantSessionReader {
         "features.recordedVoice",
         "features.realtimeVoice",
         "features.fileUpload",
+        "features.optionsView",
         "files.maxSizeMb",
         "files.allowedTypes",
         "voice.captions",
       ],
       chain,
     );
+    // The template's `voice.enabled` is ANDed with the tenant's (D-186), so the browser hides the
+    // microphone for a template that turned voice off instead of finding out from a 403.
+    const voiceOn = await switchEnabled(this.settings, "voice.enabled", chain);
     const attachments =
       session.status === "deleted" ? [] : await this.attachments.list(companyId, session.id);
 
@@ -77,10 +88,12 @@ export class ParticipantSessionReader {
         messages: messages.map(toStored),
         attachments,
         capabilities: {
-          recordedVoice: values["features.recordedVoice"] as boolean,
+          recordedVoice: (values["features.recordedVoice"] as boolean) && voiceOn,
           // Live voice ships off: it costs money per second of conversation and needs both a
           // transcription and a speech route, which most tenants will not have on day one.
-          liveVoice: values["features.realtimeVoice"] as boolean,
+          liveVoice: (values["features.realtimeVoice"] as boolean) && voiceOn,
+          // Off hides the "options" answer mode; the engine already sends no widgets (D-187).
+          optionsView: values["features.optionsView"] as boolean,
           captions: values["voice.captions"] as boolean,
           fileUpload: values["features.fileUpload"] as boolean,
           maxSizeMb: values["files.maxSizeMb"] as number,

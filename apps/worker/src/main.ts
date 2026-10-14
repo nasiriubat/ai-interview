@@ -146,6 +146,7 @@ async function main(): Promise<void> {
     storage,
     tenants,
     health,
+    alerts,
     publicWebUrl: config.PUBLIC_WEB_URL,
     log: {
       info: (m, meta) => {

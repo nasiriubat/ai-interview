@@ -173,6 +173,14 @@ export const fi: Strings = {
         what: "Tätä ei voitu hyväksyä.",
         next: "Tarkista syöttämäsi tiedot ja yritä uudelleen.",
       },
+      limit: {
+        what: "Tähän haastattelukierrokseen ei mahdu juuri nyt lisää ihmisiä.",
+        next: "Kerro asiasta kutsujalle; hän voi tehdä tilaa.",
+      },
+      featureOff: {
+        what: "Tämä vastaustapa on kytketty pois tästä haastattelusta.",
+        next: "Vastaa kirjoittamalla.",
+      },
       provider: {
         what: "Haastattelija ei ole juuri nyt tavoitettavissa.",
         next: "Yritä hetken kuluttua uudelleen.",
@@ -506,6 +514,39 @@ export const fi: Strings = {
       cost: "Kustannus",
       noStats:
         "Ei vielä näytettävää. Luvut ilmestyvät, kun kampanja on avattu ja joku on aloittanut haastattelun.",
+      setup: {
+        title: "Aloita tästä",
+        description: "Neljä vaihetta ensimmäiseen haastatteluun. Kortti poistuu, kun ne on tehty.",
+        progress: (done: number, total: number): string => `${done} / ${total} tehty`,
+        dismiss: "Piilota kortti",
+        done: "Tehty",
+        up: "Seuraava vaihe",
+        stepsLabel: "Käyttöönoton vaiheet",
+        steps: {
+          provider: {
+            title: "Yhdistä malli",
+            text: "Haastattelut tarvitsevat tekoälymallin, jonka kanssa ihmiset keskustelevat.",
+            doneTenant: "Haastatteluihin vastaa oma palveluntarjoajasi.",
+            donePlatform: "Haastatteluihin vastaa alustan oletusmalli, joka laskutetaan alustan budjetista.",
+            action: "Palveluntarjoajat",
+          },
+          template: {
+            title: "Valitse pohja",
+            text: "Aloita valmiista pohjasta ja muokkaa se työhösi sopivaksi.",
+            action: "Pohjat",
+          },
+          campaign: {
+            title: "Luo kampanja",
+            text: "Kampanja on yksi haastattelukierros: pohja, linkki ja raja.",
+            action: "Kampanjat",
+          },
+          invite: {
+            title: "Kutsu ensimmäinen henkilö",
+            text: "Lähetä kutsuja tai jaa kampanjan linkki.",
+            action: "Avaa kampanjat",
+          },
+        },
+      },
       statsUnavailable: "Tilastot eivät ole juuri nyt saatavilla.",
       group: {
         participation: "Osallistuminen",
@@ -546,6 +587,33 @@ export const fi: Strings = {
       diffTitle: "Muutokset vakioversioon nähden",
       diffNone: "Sama kuin vakioversio.",
       diffChanged: (n: number): string => `${n} muutettua kenttää`,
+      versions: {
+        title: "Versiot",
+        description:
+          "Kaikki tämän pohjan tallennetut versiot. Palauttaminen luo uuden version; mitään ei ylikirjoiteta, ja kampanjat pitävät version, jolla ne alkoivat.",
+        version: "Versio",
+        status: "Tila",
+        saved: "Tallennettu",
+        by: "Tekijä",
+        changes: "Muutokset",
+        campaigns: "Kampanjat",
+        current: "Nykyinen",
+        thisOne: "Avaa versio",
+        first: "Ensimmäinen versio",
+        restore: "Palauta",
+        restoreTitle: (from: number): string => `Palautetaanko versio ${from}?`,
+        restoreBody: (from: number, to: number): string =>
+          `Tämä luo version ${to}, jonka sisältö on version ${from} sisältö. Väliin jääneet versiot säilyvät historiassa, ja kampanjat pitävät käyttämänsä version.`,
+        restoreConfirm: "Palauta versio",
+        restored: (v: number): string => `Palautettu versioksi ${v}`,
+        empty: "Versioita on vain yksi.",
+      },
+      voice: {
+        title: "Äänivastaukset",
+        label: "Osallistujat saavat vastata äänellä",
+        hint: "Koskee vain tätä pohjaa. Organisaation asetuksen kohdassa Asetukset, Ääni täytyy silti sallia ääni.",
+        saved: "Ääniasetus tallennettu",
+      },
       shipped: "Vakio",
       current: "Nykyinen",
       createTitle: "Uusi mallipohja",
@@ -1192,6 +1260,36 @@ export const fi: Strings = {
       saved: "Asetukset tallennettu",
       listHint: "Yksi arvo per rivi",
       categoriesLabel: "Asetusluokat",
+      operatorOnly: "Alustan ylläpitäjän asettama",
+      operatorOnlyHint: "Vain alustan ylläpitäjä voi muuttaa tätä.",
+      search: {
+        label: "Etsi asetusta",
+        placeholder: "Hae nimellä tai kuvauksella",
+        results: (n: number): string => (n === 1 ? "1 asetus vastaa hakua" : `${n} asetusta vastaa hakua`),
+        none: "Yksikään asetus ei vastaa hakua.",
+        inCategory: (category: string): string => `Luokassa ${category}`,
+        clear: "Tyhjennä haku",
+      },
+      whatChanged: {
+        title: "Mikä on muuttunut viime käyntisi jälkeen",
+        newSettings: (n: number, release: string): string =>
+          n === 1 ? `1 uusi asetus julkaisussa ${release}` : `${n} uutta asetusta julkaisussa ${release}`,
+        changes: (n: number): string => (n === 1 ? "1 muutos toiselta" : `${n} muutosta muilta`),
+        line: (who: string, keys: string, when: string): string => `${who} muutti: ${keys} (${when})`,
+        resetSuffix: "palautettu",
+        seen: "Merkitse nähdyksi",
+      },
+      history: {
+        title: "Muutoshistoria",
+        description: "Kuka muutti mitäkin asetusta ja milloin. Arvoja ei tallenneta.",
+        empty: "Asetuksia ei ole vielä muutettu.",
+        when: "Milloin",
+        who: "Kuka",
+        level: "Taso",
+        settings: "Asetukset",
+        reset: "palautettu",
+        system: "Alusta",
+      },
       secret: {
         set: "Asetettu",
         notSet: "Ei asetettu",
@@ -1260,6 +1358,8 @@ export const fi: Strings = {
         exports: "Viennit",
         email: "Sähköposti",
         notifications: "Ilmoitukset",
+        ceiling: "Rajat",
+        ui: "Käyttöliittymä",
         ops: "Käytön hälytykset",
         other: "Muut",
       },
@@ -1424,6 +1524,21 @@ export const fi: Strings = {
       empty: "Ei vielä asiakkaita. Luo ensimmäinen, niin organisaatio saa omat asetukset ja käyttäjät.",
       statsTitle: "Alustan tilastot",
       actAs: "Hallitse asiakasta",
+      adminEmail: "Ensimmäisen ylläpitäjän sähköposti",
+      language: "Sähköpostien kieli",
+      languages: { en: "Englanti", fi: "Suomi" },
+      ceilings: "Rajat",
+      ceilingHint: "Jätä raja tyhjäksi, niin käytetään alustan oletusta; 0 tarkoittaa, ettei rajaa ole.",
+      ceilingNames: {
+        maxActiveCampaigns: "Kampanjoita yhtä aikaa",
+        maxSessionsPerMonth: "Haastatteluja kuukaudessa",
+        storageBytes: "Tallennustila (Mt)",
+        voiceMinutes: "Puheminuutteja kuukaudessa",
+      },
+      invitationSent: (email: string): string => `Kutsu lähetetty osoitteeseen ${email}`,
+      utilisation: "Rajojen käyttö",
+      noLimit: "ei rajaa",
+      setupProgress: (done: number, total: number): string => `${done} / ${total} valmiina`,
       jobs: {
         title: "Taustatyöt",
         subtitle:
@@ -1730,6 +1845,7 @@ export const fi: Strings = {
         optional: "Valinnainen",
         off: "Pois käytöstä",
       },
+      "branding.language": { en: "Englanti", fi: "Suomi" },
       "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Yleinen" },
     },
     settingKey: {
@@ -1877,17 +1993,9 @@ export const fi: Strings = {
         label: "Mallipohjien ketjutus",
         description: "Mallipohja voi käynnistää toisen sen oppimien tietojen pohjalta.",
       },
-      "features.collaboration": {
-        label: "Kutsutut yhteistyökumppanit",
-        description: "Vaatimushaastattelun omistaja voi kutsua toisen henkilön vastaamaan.",
-      },
       "branding.productName": {
         label: "Osallistujille näytettävä tuotenimi",
         description: "Näkyy saapumissivulla ja sähköposteissa.",
-      },
-      "branding.primaryColor": {
-        label: "Pääväri",
-        description: "Tallennetaan myöhempää käyttöä varten; osallistujasivut eivät käytä sitä vielä.",
       },
       "branding.emailSender": {
         label: "Lähettäjän osoite (vanhentunut)",
@@ -2020,6 +2128,53 @@ export const fi: Strings = {
       "exports.bundleFormat": {
         label: "Agenttipaketin muoto",
         description: "Mille koodausagentille ladattava paketti valmistellaan.",
+      },
+      "notifications.campaignThreshold": {
+        label: "Lähetä sähköposti, kun haastatteluja on tarpeeksi",
+        description:
+          "Lähetä organisaation ylläpitäjille sähköposti, kun kampanja saavuttaa valmistumisrajansa ja analyysi alkaa.",
+      },
+      "notifications.analysisReady": {
+        label: "Lähetä sähköposti, kun analyysi on valmis",
+        description:
+          "Lähetä organisaation ylläpitäjille sähköposti, kun analyysi on valmis ja sen raportin voi lukea.",
+      },
+      "notifications.specReady": {
+        label: "Lähetä sähköposti, kun määrittelyn versio on valmis",
+        description: "Lähetä organisaation ylläpitäjille sähköposti, kun määrittelystä on luotu uusi versio.",
+      },
+      "branding.language": {
+        label: "Ylläpitäjille lähetettävien viestien kieli",
+        description: "Tämän organisaation ylläpitäjille lähetettävien ilmoitusten ja kutsujen kieli.",
+      },
+      "voice.enabled": {
+        label: "Äänivastaukset",
+        description:
+          "Saavatko osallistujat vastata äänellä. Pohja ei voi ottaa käyttöön sitä, minkä organisaatio on kytkenyt pois.",
+      },
+      "ui.onboardingDismissed": {
+        label: "Aloitusopas piilotettu",
+        description: "Asetetaan, kun ylläpitäjä piilottaa yhteenvetosivun aloitusoppaan.",
+      },
+      "ceiling.maxActiveCampaigns": {
+        label: "Kampanjoita enintään yhtä aikaa",
+        description:
+          "Kuinka monta kampanjaa organisaatiolla saa olla avoinna tai luonnoksena. 0 tarkoittaa, ettei rajaa ole. Alustan ylläpitäjä asettaa tämän.",
+      },
+      "ceiling.maxSessionsPerMonth": {
+        label: "Haastatteluja enintään kuukaudessa",
+        description:
+          "Kuinka monta haastattelua organisaatio saa aloittaa kalenterikuukaudessa. 0 tarkoittaa, ettei rajaa ole. Alustan ylläpitäjä asettaa tämän.",
+      },
+      "ceiling.storageBytes": {
+        label: "Tallennustilan raja (tavuina)",
+        description:
+          "Kuinka monta tavua tiedostoja ja äänitteitä organisaatio saa säilyttää. 0 tarkoittaa, ettei rajaa ole. Alustan ylläpitäjä asettaa tämän.",
+      },
+      "ceiling.voiceMinutes": {
+        label: "Puheminuutteja kuukaudessa",
+        description:
+          "Kuinka monta minuuttia puhetta organisaatio saa käyttää kalenterikuukaudessa. 0 tarkoittaa, ettei rajaa ole. Alustan ylläpitäjä asettaa tämän.",
       },
     },
   },

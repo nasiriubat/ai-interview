@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { TemplateActions } from "@/components/admin/templates/TemplateActions";
 import { TemplateDiff } from "@/components/admin/templates/TemplateDiff";
+import { VersionsPanel } from "@/components/admin/templates/VersionsPanel";
+import { VoiceSwitch } from "@/components/admin/templates/VoiceSwitch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { t } from "@/i18n";
@@ -25,16 +27,25 @@ interface Props {
 
 export default async function TemplatePage({ params }: Props): Promise<React.JSX.Element> {
   await requestLocale();
-  await requireMe();
+  const me = await requireMe();
   const { id } = await params;
   const api = await staffServer();
-  const [tplR, diffR] = await Promise.allSettled([api.templates.get(id), api.templates.diffShipped(id)]);
+  const [tplR, diffR, versionsR, settingsR] = await Promise.allSettled([
+    api.templates.get(id),
+    api.templates.diffShipped(id),
+    api.templates.versions(id),
+    // The template's own settings, to show whether voice is switched off for it.
+    api.settings.get({ scope: "template", scopeId: id }),
+  ]);
   if (tplR.status === "rejected") {
     if (isApiError(tplR.reason) && tplR.reason.isNotFound) notFound();
     throw tplR.reason;
   }
   const tpl = tplR.value;
   const diff = settled(diffR);
+  const versions = settled(versionsR);
+  const voiceOn = settled(settingsR).data?.values["voice.enabled"] !== false;
+  const isAdmin = me?.user.role === "admin" || me?.user.role === "platform_operator";
   const s = t.admin.templates;
   const f = s.fields;
   return (
@@ -54,6 +65,7 @@ export default async function TemplatePage({ params }: Props): Promise<React.JSX
       />
       <div className="grid gap-6">
         <TemplateActions template={tpl} />
+        {isAdmin ? <VoiceSwitch templateId={tpl.id} initial={voiceOn} disabled={!tpl.companyId} /> : null}
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
@@ -142,6 +154,15 @@ export default async function TemplatePage({ params }: Props): Promise<React.JSX
             </CardContent>
           </Card>
         ) : null}
+        {versions.data ? (
+          <VersionsPanel
+            versions={versions.data}
+            currentId={tpl.id}
+            canRestore={isAdmin && Boolean(tpl.companyId)}
+          />
+        ) : (
+          <LoadError error={versions.error} />
+        )}
         <Card>
           <CardHeader>
             <CardTitle>{s.diffTitle}</CardTitle>

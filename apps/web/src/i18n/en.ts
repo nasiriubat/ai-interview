@@ -177,6 +177,14 @@ export const en = {
         what: "That could not be accepted.",
         next: "Check what you entered and try again.",
       },
+      limit: {
+        what: "This interview round cannot take more people right now.",
+        next: "Tell the person who invited you; they can make room.",
+      },
+      featureOff: {
+        what: "That way of answering is turned off for this interview.",
+        next: "Answer in writing instead.",
+      },
       provider: {
         what: "The interviewer is temporarily unavailable.",
         next: "Try again in a moment.",
@@ -509,6 +517,39 @@ export const en = {
       cost: "Cost",
       noStats:
         "Nothing to show yet. Numbers appear once a campaign is open and someone has started an interview.",
+      setup: {
+        title: "Get started",
+        description: "Four steps to your first interview. This card goes away when they are done.",
+        progress: (done: number, total: number): string => `${done} of ${total} done`,
+        dismiss: "Hide this card",
+        done: "Done",
+        up: "Next step",
+        stepsLabel: "Setup steps",
+        steps: {
+          provider: {
+            title: "Connect a model",
+            text: "Interviews need an AI model to talk with people.",
+            doneTenant: "Your own provider answers interviews.",
+            donePlatform: "The platform's default model answers interviews, billed to the platform's budget.",
+            action: "Providers",
+          },
+          template: {
+            title: "Choose a template",
+            text: "Start from a built-in template and adapt it to your work.",
+            action: "Templates",
+          },
+          campaign: {
+            title: "Create a campaign",
+            text: "A campaign is one round of interviews with a template, a link and a threshold.",
+            action: "Campaigns",
+          },
+          invite: {
+            title: "Invite the first person",
+            text: "Send invitations, or share the campaign link.",
+            action: "Open campaigns",
+          },
+        },
+      },
       statsUnavailable: "Statistics are unavailable right now.",
       group: {
         participation: "Participation",
@@ -549,6 +590,33 @@ export const en = {
       diffTitle: "Changes from the built-in version",
       diffNone: "Same as the built-in version.",
       diffChanged: (n: number): string => `${n} changed field${n === 1 ? "" : "s"}`,
+      versions: {
+        title: "Versions",
+        description:
+          "Every saved version of this template. Restoring writes a new version; nothing is overwritten, and campaigns keep the version they started with.",
+        version: "Version",
+        status: "Status",
+        saved: "Saved",
+        by: "By",
+        changes: "Changes",
+        campaigns: "Campaigns",
+        current: "Current",
+        thisOne: "Open version",
+        first: "First version",
+        restore: "Restore",
+        restoreTitle: (from: number): string => `Restore version ${from}?`,
+        restoreBody: (from: number, to: number): string =>
+          `This creates version ${to} with the content of version ${from}. The versions in between stay in the history, and campaigns keep the version they use.`,
+        restoreConfirm: "Restore version",
+        restored: (v: number): string => `Restored as version ${v}`,
+        empty: "There is only one version.",
+      },
+      voice: {
+        title: "Voice answers",
+        label: "Participants may answer by voice",
+        hint: "Applies to this template only. The organization's setting under Settings, Voice still has to allow it.",
+        saved: "Voice setting saved",
+      },
       shipped: "Built-in",
       current: "Current",
       createTitle: "New template",
@@ -1189,6 +1257,37 @@ export const en = {
       saved: "Settings saved",
       listHint: "One value per line",
       categoriesLabel: "Setting categories",
+      operatorOnly: "Set by your platform operator",
+      operatorOnlyHint: "Only your platform operator can change this.",
+      search: {
+        label: "Find a setting",
+        placeholder: "Search by name or description",
+        results: (n: number): string => (n === 1 ? "1 setting matches" : `${n} settings match`),
+        none: "No setting matches that.",
+        inCategory: (category: string): string => `In ${category}`,
+        clear: "Clear search",
+      },
+      whatChanged: {
+        title: "What changed since your last visit",
+        newSettings: (n: number, release: string): string =>
+          n === 1 ? `1 new setting in release ${release}` : `${n} new settings in release ${release}`,
+        changes: (n: number): string =>
+          n === 1 ? "1 change by someone else" : `${n} changes by other people`,
+        line: (who: string, keys: string, when: string): string => `${who} changed ${keys} (${when})`,
+        resetSuffix: "reset",
+        seen: "Mark as seen",
+      },
+      history: {
+        title: "Change history",
+        description: "Who changed which settings, and when. Values are not recorded.",
+        empty: "No settings have been changed yet.",
+        when: "When",
+        who: "Who",
+        level: "Level",
+        settings: "Settings",
+        reset: "reset",
+        system: "The platform",
+      },
       secret: {
         set: "Set",
         notSet: "Not set",
@@ -1256,6 +1355,8 @@ export const en = {
         exports: "Exports",
         email: "Email",
         notifications: "Notifications",
+        ceiling: "Limits",
+        ui: "Interface",
         ops: "Operations alerts",
         other: "Other",
       },
@@ -1417,6 +1518,21 @@ export const en = {
       empty: "No tenants yet. Create the first one to give an organization its own settings and users.",
       statsTitle: "Platform statistics",
       actAs: "Manage this tenant",
+      adminEmail: "First admin's email",
+      language: "Language of emails",
+      languages: { en: "English", fi: "Finnish" },
+      ceilings: "Limits",
+      ceilingHint: "Leave a limit empty to use the platform default; 0 means no limit.",
+      ceilingNames: {
+        maxActiveCampaigns: "Campaigns at once",
+        maxSessionsPerMonth: "Interviews per month",
+        storageBytes: "Storage (MB)",
+        voiceMinutes: "Voice minutes per month",
+      },
+      invitationSent: (email: string): string => `Invitation sent to ${email}`,
+      utilisation: "Use of limits",
+      noLimit: "no limit",
+      setupProgress: (done: number, total: number): string => `${done} of ${total} set up`,
       jobs: {
         title: "Background jobs",
         subtitle:
@@ -1735,6 +1851,7 @@ export const en = {
         optional: "Optional",
         off: "Off",
       },
+      "branding.language": { en: "English", fi: "Finnish" },
       "exports.bundleFormat": { claude_code: "Claude Code", codex: "Codex", generic: "Generic" },
     } as Record<string, Record<string, string>>,
     /** A name and a one-sentence description for every key of the settings catalog. */
@@ -1880,17 +1997,9 @@ export const en = {
         label: "Template chaining",
         description: "A template can start another one from what it learned.",
       },
-      "features.collaboration": {
-        label: "Invited collaborators",
-        description: "The owner of a requirements interview can invite a second person to answer.",
-      },
       "branding.productName": {
         label: "Product name shown to participants",
         description: "Appears on the arrival page and in emails.",
-      },
-      "branding.primaryColor": {
-        label: "Primary color",
-        description: "Saved for later use; the participant pages do not use it yet.",
       },
       "branding.emailSender": {
         label: "Sender address (deprecated)",
@@ -2023,6 +2132,54 @@ export const en = {
       "exports.bundleFormat": {
         label: "Agent bundle format",
         description: "Which coding agent the downloadable bundle is prepared for.",
+      },
+      "notifications.campaignThreshold": {
+        label: "Email when a campaign has enough interviews",
+        description:
+          "Email the organization's admins when a campaign reaches its completion threshold and its analysis starts.",
+      },
+      "notifications.analysisReady": {
+        label: "Email when an analysis is ready",
+        description:
+          "Email the organization's admins when an analysis has finished and its report can be read.",
+      },
+      "notifications.specReady": {
+        label: "Email when a specification version is ready",
+        description:
+          "Email the organization's admins when a new version of a specification has been generated.",
+      },
+      "branding.language": {
+        label: "Language of emails to admins",
+        description: "The language of the notices and invitations sent to this organization's admins.",
+      },
+      "voice.enabled": {
+        label: "Voice answers",
+        description:
+          "Whether participants may answer by voice. A template cannot turn on what the organization has turned off.",
+      },
+      "ui.onboardingDismissed": {
+        label: "Getting-started card dismissed",
+        description: "Set when an admin dismisses the getting-started card on the dashboard.",
+      },
+      "ceiling.maxActiveCampaigns": {
+        label: "Most campaigns at once",
+        description:
+          "The most campaigns this organization may have open or in draft. 0 means no limit. Set by the platform operator.",
+      },
+      "ceiling.maxSessionsPerMonth": {
+        label: "Most interviews per month",
+        description:
+          "The most interviews this organization may start in a calendar month. 0 means no limit. Set by the platform operator.",
+      },
+      "ceiling.storageBytes": {
+        label: "Storage limit (bytes)",
+        description:
+          "The most bytes of files and recordings this organization may keep. 0 means no limit. Set by the platform operator.",
+      },
+      "ceiling.voiceMinutes": {
+        label: "Voice minutes per month",
+        description:
+          "The most minutes of voice this organization may use in a calendar month. 0 means no limit. Set by the platform operator.",
       },
     } satisfies Record<SettingKey, { label: string; description: string }>,
   },

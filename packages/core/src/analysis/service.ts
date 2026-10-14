@@ -13,6 +13,7 @@ import {
   type Weights,
 } from "@aidp/shared";
 import { Prisma, type PrismaClient } from "@prisma/client";
+import type { TenantNotices } from "../alerts/tenant-notices.js";
 import type { JobPublisher } from "../jobs/definitions.js";
 import type { CallerFactory } from "../providers/caller-factory.js";
 import { templateFromRow } from "../sessions/prisma-store.js";
@@ -25,6 +26,8 @@ export interface AnalysisServiceDeps {
   settings: SettingsService;
   jobs: JobPublisher;
   log: Logger;
+  /** Tenant notices (D-181). Absent in tools that never mail anyone. */
+  notices?: TenantNotices;
 }
 
 /**
@@ -74,6 +77,20 @@ export class AnalysisService {
   async maybeQueueForCampaign(companyId: string, campaignId: string): Promise<boolean> {
     const threshold = await this.thresholdMet(campaignId, companyId);
     if (!threshold.met) return false;
+    // One notice per campaign: its key is the campaign id, so every later completion is a duplicate.
+    if (this.deps.notices) {
+      const campaign = await this.deps.db.campaign.findFirst({
+        where: { id: campaignId, companyId },
+        select: { name: true },
+      });
+      await this.deps.notices.campaignThreshold({
+        companyId,
+        campaignId,
+        campaignName: campaign?.name ?? "",
+        completed: threshold.completed,
+        needed: threshold.needed,
+      });
+    }
     const existing = await this.deps.db.analysis.findFirst({
       where: { campaignId, status: { in: ["queued", "running"] } },
     });
@@ -255,6 +272,15 @@ export class AnalysisService {
         analysisId,
         opportunities: result.opportunities.length,
         clusters: result.clusters.length,
+      });
+      // After the commit, so nobody is told about a report that was rolled back.
+      await this.deps.notices?.analysisReady({
+        companyId,
+        campaignId: analysis.campaignId,
+        campaignName: analysis.campaign.name,
+        analysisId,
+        version: analysis.version,
+        preliminary: !threshold.met,
       });
     } catch (err) {
       log.warn("analysis failed", { analysisId, error: err instanceof Error ? err.message : String(err) });
