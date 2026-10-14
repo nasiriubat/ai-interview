@@ -43,7 +43,7 @@ pre-upgrade backup, a maintenance page, a failing migration that leaves the old 
 encrypted backups with a weekly restore drill and an offsite option; 14 alert kinds to email and a
 webhook with a runbook each; job administration; budgets at tenant, campaign and session; prompt
 administration with tenant versions, canary and rollback; Grafana dashboards with SLO panels in
-`infra/observability`.
+`deploy/observability`.
 
 **Quality gate.** `pnpm check` (format, build, typecheck, lint, tests) with a database; 2,770+ tests,
 no skipped suite, no network from tests; deterministic engine replays in `evals`.

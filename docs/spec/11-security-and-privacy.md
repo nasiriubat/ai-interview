@@ -1,7 +1,7 @@
 # 11 Security and privacy
 
 - NFR-02 EU hosting; content goes only to the configured providers and the database. Data residency per tenant can select self-hosted STT and TTS and EU model endpoints.
-- NFR-03 Tenant isolation: scoped client plus Postgres RLS on every table (a table is exempt only by being named with a reason in `deploy/rls-exempt.txt`; the boot preflight enforces it); covered by a conformance test that attempts cross-tenant reads, writes and moves on every model (D-140, D-141).
+- NFR-03 Tenant isolation: scoped client plus Postgres RLS on every table (a table is exempt only by being named with a reason in `deploy/lib/rls-exempt.txt`; the boot preflight enforces it); covered by a conformance test that attempts cross-tenant reads, writes and moves on every model (D-140, D-141).
 - Staff identity: one tenant per email address, unique and lower-case; the address that signs in resolves to exactly one user (D-84). A suspended tenant's staff are refused with a stated reason and its participants, jobs and outgoing email stop; deletion jobs still run (D-86).
 - FR-01 to FR-04 Roles: platform_operator, admin, member; participants have no accounts; signed links with expiry; email verification for uniqueness; anonymous mode stores only an email hash salted per campaign, on the campaign, with no stored link to the session and timestamps at day resolution (D-142).
 - Consent: version and timestamp per session; consent text per tenant.
