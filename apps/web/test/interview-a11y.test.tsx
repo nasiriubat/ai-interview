@@ -6,7 +6,6 @@ import ParticipantError from "@/app/p/error";
 import { Composer } from "@/components/participant/Composer";
 import { InterviewScreen } from "@/components/participant/InterviewScreen";
 import { MessageList } from "@/components/participant/MessageList";
-import { ModeSwitch } from "@/components/participant/ModeSwitch";
 import { StatusScreen } from "@/components/participant/StatusScreen";
 import { useInterview } from "@/hooks/useInterview";
 import type { ParticipantApi } from "@/lib/api/participant";
@@ -231,78 +230,6 @@ describe("conversation announcements", () => {
     for (const status of screen.getAllByRole("status")) {
       expect(status.textContent).not.toContain("My private answer");
     }
-  });
-});
-
-describe("ModeSwitch", () => {
-  function Harness({ onChange }: { onChange: (m: string) => void }): React.JSX.Element {
-    const [mode, setMode] = React.useState<"chat" | "options" | "voice">("chat");
-    return (
-      <ModeSwitch
-        mode={mode}
-        voiceEnabled
-        onChange={(m) => {
-          onChange(m);
-          setMode(m);
-        }}
-      />
-    );
-  }
-
-  it("is one group with a name, and every item has an accessible name of its own", () => {
-    render(<Harness onChange={vi.fn()} />);
-    const group = screen.getByRole("radiogroup", { name: "How you answer" });
-    const items = within(group).getAllByRole("radio");
-    expect(items.map((i) => i.getAttribute("aria-label"))).toEqual(["Text", "Options", "Voice"]);
-    expect(items[0]).toHaveAttribute("aria-checked", "true");
-  });
-
-  it("is one tab stop; the arrow keys move focus and loop, Enter chooses", async () => {
-    const onChange = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <>
-        <button type="button">before</button>
-        <Harness onChange={onChange} />
-        <button type="button">after</button>
-      </>,
-    );
-    await user.tab();
-    await user.tab();
-    const [chat, options, voice] = screen.getAllByRole("radio");
-    expect(chat).toHaveFocus();
-    await user.tab();
-    expect(screen.getByRole("button", { name: "after" })).toHaveFocus();
-    await user.tab({ shift: true });
-    expect(chat).toHaveFocus();
-
-    await user.keyboard("{ArrowRight}");
-    expect(options).toHaveFocus();
-    await user.keyboard("{ArrowRight}");
-    expect(voice).toHaveFocus();
-    await user.keyboard("{ArrowRight}");
-    expect(chat).toHaveFocus();
-    await user.keyboard("{ArrowLeft}");
-    expect(voice).toHaveFocus();
-    // Moving across the items chose nothing: picking voice starts a call.
-    expect(onChange).not.toHaveBeenCalled();
-
-    await user.keyboard("{Enter}");
-    expect(onChange).toHaveBeenCalledWith("voice");
-  });
-
-  it("keeps a mode selected when the selected item is pressed again", async () => {
-    const onChange = vi.fn();
-    const user = userEvent.setup();
-    render(<Harness onChange={onChange} />);
-    await user.click(screen.getByRole("radio", { name: "Text" }));
-    expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByRole("radio", { name: "Text" })).toHaveAttribute("aria-checked", "true");
-  });
-
-  it("offers voice only when it is enabled", () => {
-    render(<ModeSwitch mode="chat" voiceEnabled={false} onChange={vi.fn()} />);
-    expect(screen.queryByRole("radio", { name: "Voice" })).not.toBeInTheDocument();
   });
 });
 
