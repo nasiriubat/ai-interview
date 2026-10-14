@@ -64,7 +64,7 @@ Nothing running; follow-up wave being launched (see Left).
 ## Left, in order
 
 1. **Full-stack follow-ups:** full k6 run under default abuse limits, Playwright journeys against the stack. Done (D-280 to D-283): voice first sentence before metadata (p95 1.79 s to 1.04 s at 250 chars/s), orphaned active jobs reclaimed by the next worker, turn-lock TTL 10 s, disk-full upload answers `storage_full`.
-2. **Requirement quality follow-ups (D-249):** grouped merge pass, regenerate fresh interviews, read-back eval; duplicates 18% to under 5%.
+2. **Requirement quality:** judge duplicates 11% fresh (about 2 real of 44 by hand) vs <5% target; whether stated requirements are lost is unsettled (median 7 for ward notes, uncovered 39%): needs a human-style transcript-vs-list comparison; scope-tag corrections in read-back untested.
 3. **M4 remainder:** scheduled model-backed evals, Lighthouse budgets, tenant-scoped sweeps in retention tests, re-run `pnpm live:run` on the merged tip. Done: requirements/version pages in the axe inventory, the two drifted e2e fixtures, `scripts/live-run/README.md`, cold-build ordering (D-284).
 4. **Owner-only:** pen test budget, counsel review of DPA and consent, security contact, product name, usability tests with real people, restore and chaos drills, live voice on a phone, rotation drill on staging, make security workflow a required check.
 5. **M5 close:** phase plan marked Done with evidence links, release notes.
@@ -118,3 +118,5 @@ contact address, live voice in the first pilot (default: behind its flag).
 - 2026-10-14 — Full-stack drill merged (D-250..259): fake provider, production compose run, k6 load (0 errors, first token p95 532 ms, voice 1.44 s), chaos 7/7, ten defects fixed (Caddyfile never loaded, upgrades rolled themselves back, backups >64 KB failed verification, session seq race, and more). Five open findings recorded in docs/team/drills/. Gate green.
 
 - 2026-10-14 — Reliability follow-ups merged (D-280..284): voice speaks first sentence early (p95 1788 → 1040 ms), orphaned active jobs reclaimed via worker lease, turn lock recovers in ~10 s, storage_full 507 with en/fi wording, three drifted e2e fixtures fixed (354 e2e checks, axe clean, error screens now fail), cold build fixed, live-run README. Gate green.
+
+- 2026-10-14 — Requirement quality second pass merged (D-290..294): grouped merge, found and fixed read-back never running when owner presses done (11 of 14 saved transcripts were never read their list), unreviewed-list open question, read-back correction eval. Fresh 6: duplicates 11% by judge, grounded 93%; loss of requirements not ruled out. Gate green.
