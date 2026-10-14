@@ -1,0 +1,1107 @@
+{
+  "persona": "nontechnical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Before we get into features, I need to know where this would run. Hosting shapes the architecture, the running cost, and the compliance defaults, so it's worth settling early. Do you already have somewhere it would live, or is that still open?"
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks for that. You already have a cloud account, so I'll record hosting as cloud and move on to the nurses' note-taking."
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "Yes, we’re using Microsoft Azure for our cloud infrastructure, and the tool would run in the same region as our current electronic health record system—West Europe—to keep data local and meet UK NHS data protection rules. I’ve confirmed with IT that we can deploy a new application there without needing additional compliance approvals."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "Thanks, that's useful: Azure, West Europe, same region as the patient record system, and IT has already confirmed no extra approvals are needed.\n\nNext, which systems would this need to connect to? Knowing this shapes what data we have to move and how much work the integration is. If you're not sure, I'll assume none for now."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "The tool needs to connect to two systems: our main electronic health record system, called EpicCare, and our ward management system, called Sensus. Nurses would enter the note once in the new tool, and it must appear in both systems—EpicCare within 30 seconds and Sensus within 60 seconds. I don’t want nurses to have to re-enter anything or check two places, so both integrations are critical."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "Thanks, that's clear: EpicCare and Sensus, with the timing targets you gave. Since the answer is already in, I'll record it and move on.\n\nWho uses this tool day to day? I'm asking because the nurses who type the notes are the first group I need to describe."
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "The primary users are the 120 registered nurses and 20 healthcare assistants on the 12 adult wards across our three hospitals. They’re the ones who document patient observations, medication timing, and care changes—usually during shift handovers or after bedside checks. I’ve seen them spend an average of 7 minutes per shift just copying their notes from paper or one system into another, so this tool is meant to cut that time in half."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "Thanks for the detail on who uses it. Before we go deeper into their workflow, one question about delivery: who will build this? It shapes how I phrase the specification and the plan. If you're not sure, I'll assume a coding agent."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": "We’ll use a dedicated internal team of three developers and one business analyst from our digital health unit, supported by a nurse advisor from each of the three hospitals. They’ve built similar tools before, like the recent fall-risk alert system, so they know how our systems work and how nurses think. I’d prefer not to use a coding agent because the workflow is too specific to our wards—especially around shift handover timing and how nurses prioritize notes."
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "Thanks, that settles who builds it: an in-house team, with a nurse advisor from each hospital. Their knowledge of handover timing and note priority is exactly what the specification needs to capture.\n\nNow let's look at the work itself. Walk me through a recent shift handover: when a nurse first writes a note, what do they type, and when does that copy into the spreadsheet or the patient system?"
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": "On a typical evening shift, a nurse starts writing a note around 6:15 PM after checking on a patient who’s had a fall risk assessment. They type the patient’s name, MRN, the time of the observation (6:18 PM), a short summary like “Patient ambulated with walker, no dizziness, vital signs stable,” and tag it with “post-ambulation” and “high risk.” This note is entered into the new tool once, and within 30 seconds it appears in EpicCare, where it’s visible to the night team. The same note shows up in Sensus by 6:30 PM, where it triggers a reminder for the next morning’s review. The nurse doesn’t touch either system again—no copy-paste, no double entry."
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "Thanks for the walkthrough. It makes the goal clear: one entry, and the note appears in both systems.\n\nOne quick background question: what does your digital health team usually build with? A stack they already know usually beats a slightly better one they'd have to learn. If you're not sure, I'll assume unknown for now."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "They mostly use .NET for backend services and Blazor for the front end, with Azure DevOps for CI/CD. They’ve built several internal tools with this stack before, including the fall-risk alert system, so they’re already comfortable with it. I’d prefer to stick with what they know—switching to something new would slow us down, and we’re already behind on reducing nurse workload."
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "Thanks, that's clear: .NET for the backend, Blazor for the front end, and Azure DevOps for delivery, all of which the team has used before. Since you've answered this, I'll record it and move on.\n\nNext, the functional side. In the example, the nurse types the patient name, MRN, observation time, a summary, and tags. Does the nurse enter the MRN themselves, or does the tool look up the patient from a ward list?"
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "The tool will pull the MRN and patient name automatically from a live list of patients on the ward, which syncs every two minutes from Sensus. The nurse only needs to select the patient from a dropdown—no typing the MRN. The time field will auto-populate with the current time when they start typing, but they can edit it if the event happened earlier. That way, they don’t waste time re-entering details they already have."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "When does version one need to be in use on the wards? The date shapes how much we include in the first release, so if there's no fixed deadline, I'll use \"no fixed date.\""
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": "We need version one live by 15th October—our next major shift change cycle starts then, and the nursing team has already committed to trying the tool during their evening handovers. If it’s not ready by then, we’ll lose their trust and it’ll delay adoption across all 12 wards. I’ve checked with the digital team, and they’re confident they can deliver by that date with this scope."
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Thanks, 15 October is clear and gives us a firm target for scope. That's the timeline recorded.\n\nNext, I'd like to confirm the note-entry requirement in your own words. Here's what I have so far:\n\n1. Nurse enters a ward note once and it reaches EpicCare and Sensus\n2. Nurse selects a patient from the ward list and the tool fills in the MRN and name\n3. Observation time defaults to now and can be edited\n\nIs that list right, or is something missing or wrong?"
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "Yes, that’s exactly right—and I’d add one more thing: the note must be saved instantly, even if the nurse hasn’t finished typing, so they don’t lose their work if the system glitches. We’ve had one incident where a nurse lost a full shift’s notes after a browser crash, so that’s a must. Also, the tool should show a small green tick when the note has successfully synced to both systems—the nurses want that visual confirmation."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "Thanks for the two additions. Autosave and the sync tick both matter, so I'll capture them as requirements.\n\nNext, is there a budget range for this tool? It affects whether the team builds it in-house or buys something, and the default is \"not decided\" if you don't have one yet."
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": "We’ve allocated £80,000 for the development and rollout of this tool, including testing, training, and support for the first three months. That covers the in-house team’s time, licensing for any new components, and the cost of bringing in a nurse advisor for each hospital during the pilot. I’ve already approved this budget with finance, so we’re good to go."
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "Thanks, I've recorded the £80,000 budget, which includes the first three months of support and the nurse advisors. Since you've answered it, we can move on.\n\nNext, the nurses need to know the note reached both systems, and you've asked for a green tick. What should happen when a note fails to sync to one system, say EpicCare is down? Default: the nurse sees a clear warning and the note stays saved in the tool until it can sync. That means no note is lost, but the nurse must check the warning.\n\nShould we keep that default?"
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "Yes, keep the default—nurses can’t afford to lose a note, especially during a shift handover. If one system is down, the tool should show a red warning with a clear message: “Note saved locally but not sent to EpicCare—check again later.” The note stays in the tool, and the nurse can see it’s pending. I’d also recommend a silent retry every 10 seconds for the first 2 minutes, then stop. That way, it’s not spamming them if the system’s down for hours."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "Thanks, the red warning and the 10-second retry for two minutes are clear, and I'll record them.\n\nOne sizing question: roughly how many people will use the tool at launch? It decides how much capacity we plan for. If you're not sure, I'll assume under 100."
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "At launch, about 140 people will use the tool—120 nurses and 20 healthcare assistants across the 12 wards. Some will use it multiple times a day, especially during shift changes, so we need to make sure it handles bursts of activity, like when 10 nurses log in at once after a handover. I’ve asked the team to test it under load with at least 20 concurrent users to be safe."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "Thanks, that gives a clear sizing picture: about 140 users, with bursts at shift change and a load test at 20 concurrent users. I'll record it."
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "Understood. I’ve noted the 140 users, peak usage during shift changes, and the requirement to test with 20 concurrent users. The team will ensure the tool stays responsive under that load, and we’ll monitor performance closely during the first week of launch."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "Thanks, that's clear on load. Next, compliance: this tool handles patient health data, so the rules that apply affect hosting, access control and audit requirements. Default: UK GDPR and NHS data protection standards. That means patient-identifiable data stays within the NHS data protection framework and access is logged.\n\nShould we keep that default?"
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Thanks, compliance is recorded as UK GDPR and NHS data protection.\n\nWe still need to pin down how the tool talks to EpicCare. The developers need the connection details: how they reach EpicCare, how they sign in, what a note looks like when it's sent, and what EpicCare sends back when something fails. Default: ask your IT team or EpicCare supplier for the existing interface specification, and the team builds to that. That means no guesswork on the note format.\n\nShould we use that default?"
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": "Yes, we should use that default. Our IT team already has a working interface specification for Sensus to EpicCare, and we’ve used it before for the fall-risk alerts. I’ll ask them to share it with the developers so they can build the same way—no guessing, no rework. It’s safer and faster than designing a new format, especially since we’re on a tight timeline."
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "Thanks, I've recorded that the EpicCare connection will be built to the existing Sensus-to-EpicCare interface specification your IT team already uses.\n\nNow back to the start of the project. In a typical shift, how many notes does a nurse write, and roughly how long does the double entry take them?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": "On a busy evening shift, a nurse typically writes about 8 to 12 notes—mostly around vital signs, medication times, patient movement, and changes in condition. Right now, copying each one from the paper or system into both EpicCare and Sensus takes an average of 7 minutes per shift, sometimes more if the systems are slow or the nurse has to correct errors. That’s nearly 100 minutes a week per nurse just on duplication, which adds up across the 12 wards."
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "Thanks, that's a useful picture of the workload. Seven minutes a shift adds up, and the double entry is the main cost.\n\nCould you walk me through one recent note from start to finish? Include which screen or paper form the nurse starts from, what they copy into EpicCare, what they copy into Sensus, and whether any step is slowed down by a system problem."
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": "Sure—on 10th September, a nurse on Ward 4B was checking on Mr. James Carter, a 78-year-old with heart failure. She started with a paper handover sheet that listed his current status and recent observations. She wrote down: “6:15 PM – Ambulated with walker, no dizziness, BP 138/86, HR 72, SpO2 97% on room air.” Then she opened EpicCare and copied the entire note into the “Nursing Note” section, which took about 45 seconds. Next, she opened Sensus and pasted the same text into the “Clinical Observation” field, which took another 40 seconds. During that time, Sensus was slow—she had to wait 15 seconds for the screen to load—so she had to wait before pasting. She didn’t make a mistake, but it felt like wasted time. After that, she closed both systems and moved on. That one note took her just over a minute, and she did this eight times that shift."
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "That walk-through shows the cost clearly: the same text typed twice, plus waiting on a slow Sensus screen. Since the tool will store each note once and send it to both systems, we can ask how often the slow screens happen across a shift.\n\nRoughly how many of a nurse's eight notes on a shift get held up by slow screens or corrections, and how long does each hold-up take?"
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "Out of eight notes per shift, about five are delayed by slow screens—usually Sensus, which often lags during peak handover times. On average, each delay is about 15 seconds, mainly waiting for the screen to load or for the note to save. Add in one or two corrections—like fixing a typo or finding the wrong patient—because the nurse accidentally pasted into the wrong field, and that adds another 30 to 45 seconds. So, in total, a nurse loses about 100 seconds just on delays and fixes per shift—almost two minutes—and that’s on top of the 7 minutes already spent copying."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "Thanks, that adds to the picture: about five delayed notes a shift, roughly 15 seconds each, plus one or two corrections. In total, that's around 100 seconds of delay and fixing on top of the 7 minutes of copying.\n\nDoes that total match what your nurse advisors see on the wards, or do some shifts run much worse?"
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "Yes, that matches what my nurse advisors see—but some shifts are worse. On a busy Friday evening, when three patients are being discharged and two handover shifts overlap, the delays can go up to six or seven notes affected, and Sensus takes up to 30 seconds to load. One nurse told me she once had to wait a full minute just to save a note. That’s why the tool must work even if one system is slow—nurses shouldn’t be stuck waiting. It’s not just about speed; it’s about not losing momentum during a high-pressure time."
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Thanks, the Friday peak is important, and it's why the tool must keep working when one system is slow.\n\nOne gap: the Sensus side of the link is not yet written down. We have the EpicCare interface specification from IT, but nothing yet for Sensus: how the tool connects to it, what each note looks like when it's sent, how it signs in, and what Sensus sends back when something fails. Default: ask IT to document the Sensus connection alongside the EpicCare specification, so the developers build both from written contracts. That means no guessing on either side.\n\nShould we keep that default?"
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "Thanks, I've recorded that IT will document the Sensus connection alongside the EpicCare specification.\n\nNow the people who will use the tool. Take a nurse on a busy evening shift: what is the first thing she needs to do in the tool when she starts writing a note?"
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": "The first thing she needs to do is open the tool from the ward’s digital station and select her patient from a live list of current patients—she doesn’t type anything. The list updates every two minutes, so she’ll see all the patients on her ward, including those who’ve just been admitted or moved. Once she picks Mr. Carter from the list, the tool fills in his name and MRN automatically, and the time field shows 6:15 PM—matching the moment she’s entering the note. She doesn’t need to do a thing except confirm the time or adjust it if needed."
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Thanks, that's a clear first step: pick the patient from the live ward list, and the name, MRN and time fill in. Does the healthcare assistant follow the same first step, or does she start from a different task, such as recording observations at the bedside?"
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": "The healthcare assistant follows the same first step—she picks the patient from the same live ward list on the station, and the system auto-fills the name and MRN. She doesn’t need to log in separately or switch between screens. If she’s recording an observation at the bedside, she’ll use the same tool on her tablet, and the process is identical: select patient, start typing, and the note goes to both systems. The only difference is that she’ll usually enter shorter, more basic notes—like “Patient moved from bed to chair, no help needed”—but the entry flow is the same for everyone."
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "Thanks, so both roles start the same way: pick the patient from the live ward list, and the entry flow is identical on the station or the tablet. Next I want to confirm the goals. What does the nurse most need to get out of the tool, and does the healthcare assistant have a different goal?"
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "The nurse’s main goal is to save time and reduce stress during shift handovers—she needs to document care quickly and accurately without losing track of details or making mistakes from double entry. She also wants peace of mind that her note has reached both systems, so she doesn’t have to double-check. The healthcare assistant’s goal is simpler: to record observations reliably and quickly, knowing the note will be visible to the whole team without her having to jump between systems. Both want to avoid delays and errors, but the nurse cares more about time efficiency and system confidence, while the assistant values simplicity and clarity."
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "Thanks, those goals are clear. The nurse wants speed and confidence that the note has arrived, and the assistant wants simplicity and visibility for the team.\n\nCould you give me one concrete example of a moment where the assistant's shorter note matters to the nurse? For instance, a moment when the nurse checks what the assistant recorded before a handover."
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": "On 12th September, a nurse was reviewing the handover notes for Mr. James Carter just before midnight. She saw a short note from the healthcare assistant: “6:50 PM – Patient walked to bathroom with walker, sat on edge of bed for 2 minutes, no dizziness.” That detail was critical—because the nurse knew from the earlier entry that he’d been dizzy earlier, so this confirmed he was stable now. She didn’t need to ask the assistant for clarification; the note was clear, timely, and already in both systems. It saved her five minutes and eased her concern about whether he’d been left unattended. That’s exactly why the assistant’s quick, accurate entry matters—it becomes part of the nurse’s situational awareness."
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "Thanks for that example, it shows why the assistant's note matters to the nurse.\n\nI also need to flag a gap in the note-sending rule. The requirement says a note must reach EpicCare within 30 seconds, but nothing says how long the tool should keep retrying if EpicCare stays unavailable. Default: 5 minutes. That means that after 5 minutes of failed attempts the tool stops retrying, and the note stays saved and marked pending for the nurse to see.\n\nShould we keep the 5-minute default?"
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "Thanks, the 5-minute retry limit is now recorded for EpicCare.\n\nNow the user stories. In one sentence, what does the nurse do with the tool on a typical shift, and why does she do it?"
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": "She uses the tool to enter each patient note once during her shift, so she can save time, avoid errors from double entry, and be confident her care documentation reaches both EpicCare and Sensus without having to check both systems."
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "That's a clear story: the nurse enters each note once and trusts that it reaches both systems.\n\nNext, the healthcare assistant. In one sentence, what does she do with the tool during a shift, and why?"
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": "She uses the tool to quickly record observations at the bedside or during rounds, so she can document care clearly and reliably without switching systems, knowing the note will be visible to the nurse and team right away."
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "Thanks. So far we have the nurse's story and the assistant's story. The stories also need to cover reviewing notes, which we haven't covered yet. Who reads the notes after they're entered, and what do they check for?"
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": "The night nurse reads the notes during shift handover—she checks for any changes in the patient’s condition, like new dizziness, falls, or medication changes, and confirms that all observations are up to date before taking over care. The healthcare assistant might also review their own notes later, especially if a patient’s status shifts, to make sure they didn’t miss anything. But the main reviewer is the night nurse, and she needs to see everything in one place, not split between two systems."
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "Thanks, that gives us the review story. The night nurse needs to see every note for a patient in one place before she takes over.\n\nCould you walk me through one handover, from the night nurse opening a patient's notes to her confirming the patient is ready to hand over? I want to see what she looks at first and what would make her stop and ask the day nurse a question."
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": "On 14th September, the night nurse opened Mr. James Carter’s notes at 6:55 PM and saw all the entries from the day shift appear in a single timeline—typed by both the nurse and two healthcare assistants. She scanned the observations, starting with the 6:15 PM note: “Ambulated with walker, no dizziness,” and then the 6:50 PM assistant note: “Walked to bathroom, sat on edge of bed, no dizziness.” Both said stable. But then she saw a note from 6:30 PM that read: “BP 148/92, HR 90—elevated, patient anxious.” She paused—there was no follow-up note, no indication the blood pressure had settled. She called the day nurse and asked, “Why wasn’t that rechecked?”—that’s exactly the kind of gap this tool needs to flag, so she doesn’t miss an issue."
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "Thanks for the handover example. It shows the night nurse needs one clear view of every note, including the 6:30 PM blood pressure entry with no follow-up.\n\nI also need to raise a gap in the sync rules. FR-6 says a note must reach Sensus within 60 seconds, but nothing says when the tool should stop retrying Sensus. Default: 5 minutes, the same as EpicCare. That means if Sensus stays unavailable, the tool stops after 5 minutes and the note stays saved and marked pending for the nurse to see.\n\nShould we keep the 5-minute default for Sensus?"
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": "Yes, keep the 5-minute default for Sensus. The nurse and assistant need to know when the system is down, not be stuck waiting forever. If Sensus doesn’t accept the note within 5 minutes, the tool should show a red warning and save the note locally—just like with EpicCare. That way, no data is lost, and the nurse can act if needed, like checking manually or reporting the outage. It keeps the workflow consistent across both systems."
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "Thanks, the 5-minute limit for Sensus is now recorded, and it matches EpicCare.\n\nNext, the functional list. Some steps are still missing from note entry. When the nurse finishes typing a note, what does she do to send it, and is there a way to fix a mistake after it has been sent?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": "When the nurse finishes typing, she just clicks “Save and Send”—the tool does the rest. There’s no extra step like pressing “submit” or choosing a system. If she realises a mistake after the note has been sent, she can’t edit it directly in the tool, but she can write a new note with a correction—like “Correction: BP was 138/86, not 148/92”—and tag it as “Correction” so the night nurse knows. The original note stays in place, but the new one is clear and visible. We’re not allowing edits to avoid confusion, especially if the original was already seen by another team."
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "Thanks, that's clear: the nurse clicks \"Save and Send\" once, and a mistake is corrected by a new note tagged \"Correction\" while the original stays visible.\n\nI'll record this as a functional requirement. Before going further, could you confirm one detail: when the nurse presses \"Save and Send\" and the note hasn't yet reached both systems, should the note count as sent, or should she wait for the green tick?"
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": "She should not count the note as sent until she sees the green tick. The tick confirms it’s in both systems—EpicCare and Sensus—so she knows it’s done. Until then, it’s still pending, and she might need to check later if it fails. We don’t want her thinking it’s out there when it’s not, especially during a handover. The tick is her signal to move on."
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "Thanks, so the green tick is the only signal that a note is sent, and until she sees it the note stays pending.\n\nNext, I'd like to confirm the functional list before we move on. Here are the requirements as recorded:\n\n1. Nurse enters a ward note once and it reaches EpicCare and Sensus\n2. Nurse selects a patient from the ward list and the tool fills in the MRN and name\n3. Observation time defaults to now and can be edited\n4. Nurse's note is saved instantly, even while the note is still being typed\n5. Nurse sees a green tick once the note has synced to both systems\n6. Note stays saved and pending when a system is unavailable\n7. Nurse sees a live list of current patients on her ward\n8. Night nurse sees all notes for a patient in one place\n9. Nurse sends a note with one Save and Send action\n10. Nurse corrects a sent note with a tagged follow-up note\n\nAre these correct, or does anything need changing?"
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "Yes, that list is correct—exactly what we’ve discussed. The only thing I’d add is a small reminder: when a note is pending, the tool should show a small yellow icon next to it, not just a red warning, to distinguish between a failure and a temporary delay. That way, nurses don’t panic if it’s just slow. Other than that, the ten points cover everything."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "Thanks, I'll add the yellow pending icon. It's a useful distinction: a yellow icon means the note is still trying to send, and a red warning means it has stopped and needs attention.\n\nHere is the new requirement I'll record for it:\n\nFR-11: Nurse sees a yellow icon on a note that is still pending, separate from the red failure warning.\n\nDoes the yellow icon need its own label or tooltip, or is the icon alone enough for nurses to understand it?"
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": "The icon alone won’t be enough—nurses are used to visual cues, but they need a quick explanation. I’d add a tooltip that appears when they hover over the yellow icon: “Note is saving—still trying to reach both systems.” That way, they know it’s not broken, just waiting, and they don’t feel the need to re-enter it. It keeps things calm during a busy handover."
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Thanks, I'll add that tooltip to FR-11 so nurses know the note is still trying to send and don't re-enter it.\n\nNow the business rules. When a nurse saves a note, what should happen if she leaves the patient selection empty or picks the wrong patient?"
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": "If she leaves the patient selection empty or picks the wrong patient, the tool won’t allow her to save the note—she’ll see a red warning message: “Please select a patient before saving.” If she tries to save without a patient, the system blocks it and highlights the field. We don’t want any notes floating without a patient ID, especially not in EpicCare. If she realises after saving that she picked the wrong patient, she must write a correction note and tag it as “Wrong patient—that’s not my patient,” then report it. But the system stops her from saving in the first place."
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "Thanks, that's clear: the tool blocks a save with no patient selected, and a wrong patient is fixed with a tagged correction note.\n\nCould you clarify one thing? If the nurse selects a patient but the ward list has just changed and that patient has left the ward, should the tool block the save, or let it through with a warning?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": "If the patient has left the ward and is no longer on the live list, the tool should still allow the note to be saved—but show a clear yellow warning: “This patient is no longer on your ward. Note will be sent, but confirm this is correct.” The nurse might be documenting something for a patient who just moved, or she might have made a mistake. Either way, we don’t want to block her completely, but we need her to confirm it’s intentional. After she saves, the note will still go to both systems with the correct MRN, just so we don’t lose the data—this is critical for audit trails."
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Thanks, that gives us a clear rule: a patient who has left the ward can still be saved, but the nurse must confirm it with a yellow warning, and the note goes to both systems with the correct MRN.\n\nCould you say what the nurse should do to confirm? Does she click one button in the warning, or does she have to retype something?"
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "Thanks, a single click to confirm is recorded for the departed-patient warning.\n\nNext, the sync rules. If a nurse saves a note and EpicCare is down, the note stays pending for up to 5 minutes. After that, what happens to the note, and how does the nurse find it again?"
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": "After 5 minutes, if EpicCare is still down, the note stays saved locally in the tool with a red warning: “Not sent to EpicCare—check later.” The nurse can find it again by clicking a “Pending Notes” tab at the top of the screen, which shows all unsent notes with a red icon. She can see the patient, the time, and the reason for failure. If she wants to re-send, she can click “Retry”—the tool will try again for one more minute. But if it fails again, she’ll have to manually check the system or report it. We’re not allowing her to delete it—data must be preserved for audit."
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "Thanks, I've recorded the Pending Notes tab, the Retry option, and the rule that notes cannot be deleted.\n\nNow for acceptance: how will a tester check that the green tick appears only after a note has reached both systems? Would you like them to send a note with both systems up and confirm the tick, or is there a different check you'd prefer?"
+    },
+    {
+      "seq": 80,
+      "role": "assistant",
+      "content": "Before we go on, here is the functional list exactly as recorded:\n\n1. Nurse enters a ward note once and it reaches EpicCare and Sensus\n2. Nurse selects a patient from the ward list and the tool fills in the MRN and name\n3. Observation time defaults to now and can be edited\n4. Nurse's note is saved instantly, even while the note is still being typed\n5. Nurse sees a green tick once the note has synced to both systems\n6. Note stays saved and pending when a system is unavailable\n7. Nurse sees a live list of current patients on her ward\n8. Night nurse sees all notes for a patient in one place\n9. Nurse sends a note with one Save and Send action\n10. Nurse corrects a sent note with a tagged follow-up note\n11. Nurse sees a yellow warning and confirms with one click when saving a note for a patient who has left the ward\n\nIs anything on this list wrong or missing? Default: keep the list as it is."
+    },
+    {
+      "seq": 81,
+      "role": "user",
+      "content": "Yes, the list is correct—everything matches what we’ve discussed, and the logic flows from start to finish. The only thing I’d gently add is that the green tick should appear only after both systems confirm receipt, not just when the tool sends it. That’s the key difference—so we should make sure the test verifies that the tick only shows when both EpicCare and Sensus return a success signal. But that’s already implied in FR-5, so I’m happy to keep the list as is."
+    },
+    {
+      "seq": 82,
+      "role": "assistant",
+      "content": "The participant confirmed the list and asked that the tick be tested against both systems' success signals, which FR-5 already covers. I'll keep that as an acceptance point for later.\n\nIs there anything about this product we have not covered that a developer would need to know?"
+    },
+    {
+      "seq": 83,
+      "role": "user",
+      "content": "Yes—there’s one thing: the tool must not store any unencrypted patient data locally on the device, even temporarily. All notes are saved in the tool only while being typed, but they’re encrypted in transit and at rest in Azure, and the device never keeps a copy after closing the browser. We’ve had issues before with tablets being left behind, so this is a hard rule. Also, if a nurse uses a tablet, she must log out and lock it when stepping away—even for a minute. That’s part of the security policy."
+    },
+    {
+      "seq": 84,
+      "role": "assistant",
+      "content": "Thank you. Here is what I've captured: notes are entered once and sent to EpicCare and Sensus with one Save and Send action. The green tick appears only when both systems confirm, and a yellow icon marks notes still pending. Patient selection is required, and departed patients need a one-click confirmation. Failed notes stay on a Pending Notes tab and cannot be deleted. Corrections are new tagged notes. Notes are not stored unencrypted on devices, and tablets must be locked when unattended.\n\nPlease tell me if anything is wrong or missing."
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "Microsoft Azure, West Europe",
+        "reason": "Same region as the patient record system to keep data local and meet UK NHS data protection rules; IT confirmed no extra approvals needed.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epiccare",
+      "value": {
+        "system": "EpicCare",
+        "role": "main electronic health record",
+        "direction": "outbound from the tool",
+        "timing": "note visible within 30 seconds",
+        "critical": true
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sensus",
+      "value": {
+        "system": "Sensus",
+        "role": "ward management",
+        "direction": "outbound from the tool",
+        "timing": "note visible within 60 seconds",
+        "critical": true
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "integration_latency",
+      "value": "EpicCare within 30 seconds and Sensus within 60 seconds after a note is saved",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem",
+      "value": "Nurses on the ward type each note twice, once into EpicCare and once into a spreadsheet; they want to enter it once and have it reach both EpicCare and Sensus without re-entry.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting.region",
+      "value": "West Europe",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "nurse",
+      "value": {
+        "role": "Registered nurse",
+        "needs": "Document care quickly and accurately during shift handovers without double entry; confidence that each note reached EpicCare and Sensus. First action: select the patient from the live ward list on the station."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "healthcare_assistant",
+      "value": {
+        "role": "Healthcare assistant",
+        "needs": "Record observations reliably and quickly from a tablet at the bedside, visible to the team without switching systems. Usually writes shorter, basic notes. First action: select the patient from the same live ward list."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "scale",
+      "value": "120 registered nurses and 20 healthcare assistants across 12 adult wards in three hospitals; target is to halve the average 7 minutes per shift spent copying notes.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "builder",
+      "value": "In-house digital health team: three developers, one business analyst, nurse advisors from each of three hospitals",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "example",
+      "value": "10 Sept, Ward 4B: a nurse wrote one note about a patient's observations and entered it in EpicCare (about 45 seconds) and then in Sensus (about 40 seconds plus a 15-second wait for a slow screen). The note took just over a minute, and she did it eight times that shift.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "builder_mode",
+      "value": "In-house team, not a coding agent; the workflow is too ward-specific to delegate.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "team",
+      "value": {
+        "choice": "in-house team of three developers, one business analyst, and one nurse advisor from each hospital",
+        "reason": "workflow is too specific to our wards, especially around shift handover timing and how nurses prioritize notes",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "Nurse enters a ward note once and it reaches EpicCare and Sensus",
+        "scope": "mvp",
+        "acceptance": [
+          "A note entered once appears in EpicCare within 30 seconds",
+          "A note entered once appears in Sensus within 60 seconds",
+          "If EpicCare stays unavailable, the tool stops retrying after 5 minutes and the note stays pending"
+        ],
+        "description": "Notes are sent to EpicCare and Sensus from one entry.",
+        "reason": "Removes duplicate entry",
+        "evidence": "On a typical evening shift, a nurse starts writing a note around 6:15 PM after checking on a patient who’s had a fall risk assessment. They type the patient’s name, MRN, the time of the observation (6:18 PM), a short summary like “Patient ambulated with walker, no dizziness, vital signs stable,” and tag it with “post-ambulation” and “high risk.” This note is entered into the new tool once, and within 30 seconds it appears in EpicCare, where it’s visible to the night team. The same note shows up in Sensus by 6:30 PM, where it triggers a reminder for the next morning’s review. The nurse doesn’t touch either system again—no copy-paste, no double entry."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": ".NET backend, Blazor front end, Azure DevOps CI/CD",
+        "reason": "Team already experienced with this stack from the fall-risk alert system.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "Nurse selects a patient from the ward list and the tool fills in the MRN and name",
+        "scope": "mvp",
+        "acceptance": [
+          "Nurse opens a note and sees a dropdown of current patients on their ward",
+          "After selecting a patient, the MRN and name appear without typing",
+          "Ward list refreshes from Sensus within two minutes of a change"
+        ],
+        "description": "Patient list is synced from Sensus every two minutes; nurse chooses from a dropdown and does not type the MRN.",
+        "evidence": "The tool will pull the MRN and patient name automatically from a live list of patients on the ward, which syncs every two minutes from Sensus. The nurse only needs to select the patient from a dropdown—no typing the MRN."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "Observation time defaults to now and can be edited",
+        "scope": "mvp",
+        "acceptance": [
+          "On starting a note, the time field shows the current time",
+          "Nurse can change the time to an earlier time and the saved note keeps the edited time"
+        ],
+        "description": "When a nurse starts a note the time field fills in with the current time, and the nurse can change it if the event happened earlier.",
+        "evidence": "The time field will auto-populate with the current time when they start typing, but they can edit it if the event happened earlier."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "deadline",
+      "value": "Version one live by 15 October",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "Nurse's note is saved instantly, even while the note is still being typed",
+        "scope": "mvp",
+        "acceptance": [
+          "A note in progress is saved without the nurse pressing save",
+          "After a browser crash, the note text is recoverable with no loss"
+        ],
+        "reason": "A nurse lost a full shift's notes after a browser crash",
+        "evidence": "the note must be saved instantly, even if the nurse hasn’t finished typing, so they don’t lose their work if the system glitches"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "Nurse sees a green tick once the note has synced to both systems",
+        "scope": "mvp",
+        "acceptance": [
+          "A green tick appears only after the note has reached both EpicCare and Sensus",
+          "No tick is shown while either sync is pending"
+        ],
+        "reason": "Nurses want visual confirmation of sync",
+        "evidence": "the tool should show a small green tick when the note has successfully synced to both systems"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "Note stays saved and pending when a system is unavailable",
+        "scope": "mvp",
+        "acceptance": [
+          "When EpicCare is down, the nurse sees a red warning reading 'Note saved locally but not sent to EpicCare—check again later' and the note is shown as pending",
+          "The tool retries the sync silently every 10 seconds for the first 2 minutes, then stops retrying"
+        ],
+        "description": "If a note cannot sync to EpicCare or Sensus, it stays in the tool and the nurse sees a red warning.",
+        "reason": "Nurses cannot afford to lose a note during handover.",
+        "evidence": "If one system is down, the tool should show a red warning with a clear message"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "sync_retry",
+      "value": "Silent retry every 10 seconds for the first 2 minutes after a failed sync, then stop.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "concurrency",
+      "value": "Handles bursts of about 10 nurses logging in at once after handover; load tested with at least 20 concurrent users",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": {
+        "regulation": "UK GDPR and NHS data protection",
+        "source": "confirmed"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epiccare.specification",
+      "value": "Build to the existing Sensus-to-EpicCare interface specification held by IT, shared with developers",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "volume",
+      "value": "8 to 12 notes per busy evening shift, mostly vital signs, medication times, patient movement and changes in condition",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "duplication_time",
+      "value": "About 7 minutes per shift on duplicate entry into EpicCare and Sensus, more when systems are slow or errors need correcting; about 100 minutes per nurse per week",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "delays_per_shift",
+      "value": "About 100 seconds per shift lost to slow-screen delays and corrections, on top of about 7 minutes of double entry",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "sensus-latency",
+      "value": "Tool must keep working when Sensus is slow; Sensus can take up to 30 seconds to load and nurses must not wait on it to save a note.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "sensus-contract",
+      "value": "The Sensus integration contract (endpoint, payload, authentication, error shape) is not yet documented; default proposed: IT documents it alongside the EpicCare specification.",
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sensus.documentation",
+      "value": "IT to document the Sensus endpoint, payload, authentication and error details alongside the EpicCare specification",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "typo-corrections",
+      "value": {
+        "average": 30,
+        "peak": 45,
+        "quote": "Add in one or two corrections—like fixing a typo or finding the wrong patient—because the nurse accidentally pasted into the wrong field, and that adds another 30 to 45 seconds."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "delays-per-shift",
+      "value": {
+        "average": 100,
+        "peak": "unknown",
+        "quote": "In total, a nurse loses about 100 seconds just on delays and fixes per shift—almost two minutes—and that’s on top of the 7 minutes already spent copying."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a nurse, I want to enter each patient note once from the live ward list so that I save time, avoid double-entry errors, and trust that the note reaches both EpicCare and Sensus.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "Nurse sees a live list of current patients on her ward",
+        "scope": "mvp",
+        "acceptance": [
+          "The list shows all current patients on the nurse's ward.",
+          "A patient admitted or moved onto the ward appears within two minutes."
+        ],
+        "description": "The list updates every two minutes and includes newly admitted or transferred patients.",
+        "evidence": "The list updates every two minutes, so she'll see all the patients on her ward, including those who've just been admitted or moved."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "retry-epiccare",
+      "value": "Retry a failed EpicCare send for 5 minutes, then stop and leave the note pending.",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-2",
+      "value": "As a nurse, I enter each patient note once during my shift, so I can save time, avoid errors from double entry, and be confident my care documentation reaches both EpicCare and Sensus without having to check both systems.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-3",
+      "value": "As a nurse, I want to review the notes my team has entered so that I can see the patient's recent condition before handover",
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-4",
+      "value": "As a night nurse, I want to review all of a patient's notes in one place at handover so that I can spot changes in condition and confirm observations are up to date before I take over care.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "night_nurse",
+      "value": {
+        "role": "Night nurse",
+        "needs": "See all notes for each patient in one place at handover, to spot changes in condition and confirm observations are current."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "retry-sensus",
+      "value": "Sensus sync retries stop after 5 minutes; the note stays pending with a red warning.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-5",
+      "value": "As a night nurse, I want to see every note for a patient in one timeline at handover so that I can spot changes in condition such as an elevated blood pressure with no recheck.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-6",
+      "value": "As a night nurse, I want to see all notes for a patient in one place so that I can quickly check for changes in the patient’s condition during shift handover",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-8",
+      "value": {
+        "title": "Night nurse sees all notes for a patient in one place",
+        "scope": "mvp",
+        "acceptance": [
+          "Night nurse opens a patient's notes and sees all entries from the day shift in a single timeline",
+          "Night nurse can scan the observations in chronological order",
+          "Night nurse can identify gaps or issues in the notes"
+        ],
+        "evidence": "On 14th September, the night nurse opened Mr. James Carter’s notes at 6:55 PM and saw all the entries from the day shift appear in a single timeline—typed by both the nurse and two healthcare assistants. She scanned the observations, starting with the 6:15 PM note: “Ambulated with walker, no dizziness,” and then the 6:50 PM assistant note: “Walked to bathroom, sat on edge of bed, no dizziness.” Both said stable. But then she saw a note from 6:30 PM that read: “BP 148/92, HR 90—elevated, patient anxious.” She paused—there was no follow-up note, no indication the blood pressure had settled. She called the day nurse and asked, “Why wasn’t that rechecked?”—that’s exactly the kind of gap this tool needs to flag, so she doesn’t miss an issue."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "Nurse sends a note with one Save and Send action",
+        "scope": "mvp",
+        "acceptance": [
+          "Nurse clicks Save and Send once and the note is sent to both systems with no further step",
+          "The note is not treated as sent until the green tick appears"
+        ],
+        "evidence": "When the nurse finishes typing, she just clicks “Save and Send”—the tool does the rest."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-10",
+      "value": {
+        "title": "Nurse corrects a sent note with a tagged follow-up note",
+        "scope": "mvp",
+        "acceptance": [
+          "A correction is entered as a new note tagged Correction",
+          "The original note cannot be edited and stays visible"
+        ],
+        "evidence": "she can write a new note with a correction—like “Correction: BP was 138/86, not 148/92”—and tag it as “Correction”"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-11",
+      "value": {
+        "title": "Nurse sees a yellow icon on a note that is still pending, separate from the red failure warning",
+        "scope": "mvp",
+        "acceptance": [
+          "A note still retrying shows a yellow icon",
+          "Hovering over the yellow icon shows the tooltip 'Note is saving—still trying to reach both systems.'",
+          "A note that has stopped retrying shows a red warning, not the yellow icon"
+        ],
+        "description": "A yellow icon with a tooltip reading 'Note is saving—still trying to reach both systems.'",
+        "reason": "Nurses should not panic or re-enter a note that is only slow to send.",
+        "evidence": "The icon alone won't be enough—nurses are used to visual cues, but they need a quick explanation."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "patient-required",
+      "value": "A note cannot be saved without a selected patient; the tool shows 'Please select a patient before saving.' and highlights the field.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "wrong-patient",
+      "value": "A note saved against the wrong patient is corrected with a follow-up note tagged 'Wrong patient—that's not my patient.'",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "departed-patient",
+      "value": "A patient no longer on the ward can still be saved after a yellow warning that the nurse confirms with one click; the note is sent to both systems with the correct MRN.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "pending-notes",
+      "value": "After the 5-minute retry window a note stays saved locally with a red warning. A Pending Notes tab lists unsent notes with the patient, time and reason. Retry tries again for one more minute. Notes cannot be deleted.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-12",
+      "value": {
+        "title": "Nurse sees a yellow warning and confirms with one click when saving a note for a patient who has left the ward",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse sees a yellow warning when saving a note for a patient who has left the ward",
+          "The nurse confirms with one click",
+          "The note is sent to both systems with the correct MRN"
+        ],
+        "evidence": "If the patient has left the ward and is no longer on the live list, the tool should still allow the note to be saved—but show a clear yellow warning: “This patient is no longer on your ward. Note will be sent, but confirm this is correct.” The nurse might be documenting something for a patient who just moved, or she might have made a mistake. Either way, we don’t want to block her completely, but we need her to confirm it’s intentional. After she saves, the note will still go to both systems with the correct MRN, just so we don’t lose the data—this is critical for audit trails."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "device-storage",
+      "value": "No unencrypted patient data stored locally on any device, even temporarily; notes exist only while being typed; tablets must be logged out and locked when unattended.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "tablet-locking",
+      "value": "Nurses must log out and lock tablets when stepping away, even for a minute.",
+      "source": "user"
+    }
+  ],
+  "summary": "The tool will run on Microsoft Azure in the West Europe region, the same as the electronic health record (EHR) system, to comply with UK NHS data protection rules. IT has confirmed no additional compliance approvals are needed.\n\nThe tool must integrate with two systems: EpicCare (EHR) and Sensus (ward management). Notes must appear in EpicCare within 30 seconds and in Sensus within 60 seconds. The primary users are 140 people—120 registered nurses and 20 healthcare assistants across 12 adult wards in three hospitals. They currently spend an average of 7 minutes per shift copying notes, and the goal is to cut this time in half. At launch, about 140 people will use the tool—120 nurses and 20 healthcare assistants across the 12 wards. Some will use it multiple times a day, especially during shift changes, so we need to make sure it handles bursts of activity, like when 10 nurses log in at once after a handover. The team will test it under load with at least 20 concurrent users to be safe. The tool must stay responsive under that load, and we’ll monitor performance closely during the first week of launch.\n\nThe tool will be built by an in-house team consisting of three developers, one business analyst, and a nurse advisor from each hospital. The team has experience building similar tools, such as the recent fall-risk alert system. The digital health team's usual development stack is .NET for backend services, Blazor for the front end, and Azure DevOps for CI/CD.\n\nDuring a typical evening shift handover, a nurse writes a note at 6:18 PM in the new tool, including the patient's name, MRN, observation time, a short summary, and tags. The tool will pull the MRN and patient name automatically from a live list of patients on the ward, which syncs every two minutes from Sensus. The nurse only needs to select the patient from a dropdown, and the time field will auto-populate with the current time when they start typing, but they can edit it if the event happened earlier. The note appears in EpicCare within 30 seconds and in Sensus by 6:30 PM, triggering a reminder for the next morning's review. The nurse does not need to enter the note into either system manually.\n\nThe tool must autosave notes instantly to prevent data loss and show a small green tick when the note has successfully synced to both systems. If a note fails to sync to one system, the tool should show a red warning with a clear message: “Note saved locally but not sent to EpicCare—check again later.” The note stays in the tool, and the nurse can see it’s pending. The tool will attempt to resync the note every 10 seconds for the first 2 minutes, then stop. The same 5-minute retry limit applies to Sensus.\n\nThe budget for the development and rollout of this tool, including testing, training, and support for the first three months, is £80,000. This covers the in-house team’s time, licensing for any new components, and the cost of bringing in a nurse advisor for each hospital during the pilot. The tool needs to be live by 15th October to align with the next major shift change cycle.\n\nThe tool will be built to the existing Sensus-to-EpicCare interface specification, which the IT team already has and has used before for the fall-risk alerts. This avoids guesswork on the note format and ensures compatibility. IT will document the Sensus connection alongside the EpicCare specification.\n\nOn a busy evening shift, a nurse typically writes about 8 to 12 notes, mostly around vital signs, medication times, patient movement, and changes in condition. Currently, copying each note from the paper or system into both EpicCare and Sensus takes an average of 7 minutes per shift, sometimes more if the systems are slow or the nurse has to correct errors. For example, on 10th September, a nurse on Ward 4B wrote a note for Mr. James Carter, which took just over a minute due to a slow Sensus screen. The nurse had to wait 15 seconds for the screen to load before pasting the text. This delay is a common issue, and it's estimated that roughly 2-3 notes per shift are held up by slow screens or corrections, with each hold-up taking around 15-30 seconds. Out of eight notes per shift, about five are delayed by slow screens—usually Sensus, which often lags during peak handover times. On average, each delay is about 15 seconds, mainly waiting for the screen to load or for the note to save. Add in one or two corrections—like fixing a typo or finding the wrong patient—because the nurse accidentally pasted into the wrong field, and that adds another 30 to 45 seconds. So, in total, a nurse loses about 100 seconds just on delays and fixes per shift—almost two minutes—and that’s on top of the 7 minutes already spent copying. On a busy Friday evening, when three patients are being discharged and two handover shifts overlap, the delays can go up to six or seven notes affected, and Sensus takes up to 30 seconds to load. One nurse told me she once had to wait a full minute just to save a note. That’s why the tool must work even if one system is slow—nurses shouldn’t be stuck waiting. It’s not just about speed; it’s about not losing momentum during a high-pressure time.\n\nThe nurse’s main goal is to save time and reduce stress during shift handovers—she needs to document care quickly and accurately without losing track of details or making mistakes from double entry. She also wants peace of mind that her note has reached both systems, so she doesn’t have to double-check. The healthcare assistant’s goal is simpler: to record observations reliably and quickly, knowing the note will be visible to the whole team without her having to jump between systems. Both want to avoid delays and errors, but the nurse cares more about time efficiency and system confidence, while the assistant values simplicity and clarity. The healthcare assistant follows the same first step—she picks the patient from the same live ward list on the station, and the system auto-fills the name and MRN. She doesn’t need to log in separately or switch between screens. If she’s recording an observation at the bedside, she’ll use the same tool on her tablet, and the process is identical: select patient, start typing, and the note goes to both systems. The only difference is that she’ll usually enter shorter, more basic notes—like “Patient moved from bed to chair, no help needed”—but the entry flow is the same for everyone.\n\nOn 12th September, a nurse was reviewing the handover notes for Mr. James Carter just before midnight. She saw a short note from the healthcare assistant: “6:50 PM – Patient walked to bathroom with walker, sat on edge of bed for 2 minutes, no dizziness.” That detail was critical—because the nurse knew from the earlier entry that he’d been dizzy earlier, so this confirmed he was stable now. She didn’t need to ask the assistant for clarification; the note was clear, timely, and already in both systems. It saved her five minutes and eased her concern about whether he’d been left unattended. That’s exactly why the assistant’s quick, accurate entry matters—it becomes part of the nurse’s situational awareness.\n\nThe nurse enters each note once and trusts that it reaches both systems. The healthcare assistant uses the tool to quickly record observations at the bedside or during rounds, so she can document care clearly and reliably without switching systems, knowing the note will be visible to the nurse and team right away. The night nurse reads the notes during shift handover—she checks for any changes in the patient’s condition, like new dizziness, falls, or medication changes, and confirms that all observations are up to date before taking over care. The healthcare assistant might also review their own notes later, especially if a patient’s status shifts, to make sure they didn’t miss anything. But the main reviewer is the night nurse, and she needs to see everything in one place, not split between two systems.\n\nOn 14th September, the night nurse opened Mr. James Carter’s notes at 6:55 PM and saw all the entries from the day shift appear in a single timeline—typed by both the nurse and two healthcare assistants. She scanned the observations, starting with the 6:15 PM note: “Ambulated with walker, no dizziness,” and then the 6:50 PM assistant note: “Walked to bathroom, sat on edge of bed, no dizziness.” Both said stable. But then she saw a note from 6:30 PM that read: “BP 148/92, HR 90—elevated, patient anxious.” She paused—there was no follow-up note, no indication the blood pressure had settled. She called the day nurse and asked, “Why wasn’t that rechecked?”—that’s exactly the kind of gap this tool needs to flag, so she doesn’t miss an issue.",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "Nurse enters a ward note once and it reaches EpicCare and Sensus",
+      "scope": "mvp",
+      "acceptance": [
+        "A note entered once appears in EpicCare within 30 seconds",
+        "A note entered once appears in Sensus within 60 seconds",
+        "If EpicCare stays unavailable, the tool stops retrying after 5 minutes and the note stays pending"
+      ],
+      "reason": "Removes duplicate entry",
+      "evidence": "On a typical evening shift, a nurse starts writing a note around 6:15 PM after checking on a patient who’s had a fall risk assessment. They type the patient’s name, MRN, the time of the observation (6:18 PM), a short summary like “Patient ambulated with walker, no dizziness, vital signs stable,” and tag it with “post-ambulation” and “high risk.” This note is entered into the new tool once, and within 30 seconds it appears in EpicCare, where it’s visible to the night team. The same note shows up in Sensus by 6:30 PM, where it triggers a reminder for the next morning’s review. The nurse doesn’t touch either system again—no copy-paste, no double entry."
+    },
+    {
+      "id": "FR-2",
+      "title": "Nurse selects a patient from the ward list and the tool fills in the MRN and name",
+      "scope": "mvp",
+      "acceptance": [
+        "Nurse opens a note and sees a dropdown of current patients on their ward",
+        "After selecting a patient, the MRN and name appear without typing",
+        "Ward list refreshes from Sensus within two minutes of a change"
+      ],
+      "evidence": "The tool will pull the MRN and patient name automatically from a live list of patients on the ward, which syncs every two minutes from Sensus. The nurse only needs to select the patient from a dropdown—no typing the MRN."
+    },
+    {
+      "id": "FR-3",
+      "title": "Observation time defaults to now and can be edited",
+      "scope": "mvp",
+      "acceptance": [
+        "On starting a note, the time field shows the current time",
+        "Nurse can change the time to an earlier time and the saved note keeps the edited time"
+      ],
+      "evidence": "The time field will auto-populate with the current time when they start typing, but they can edit it if the event happened earlier."
+    },
+    {
+      "id": "FR-4",
+      "title": "Nurse's note is saved instantly, even while the note is still being typed",
+      "scope": "mvp",
+      "acceptance": [
+        "A note in progress is saved without the nurse pressing save",
+        "After a browser crash, the note text is recoverable with no loss"
+      ],
+      "reason": "A nurse lost a full shift's notes after a browser crash",
+      "evidence": "the note must be saved instantly, even if the nurse hasn’t finished typing, so they don’t lose their work if the system glitches"
+    },
+    {
+      "id": "FR-5",
+      "title": "Nurse sees a green tick once the note has synced to both systems",
+      "scope": "mvp",
+      "acceptance": [
+        "A green tick appears only after the note has reached both EpicCare and Sensus",
+        "No tick is shown while either sync is pending",
+        "A note still retrying shows a yellow icon",
+        "Hovering over the yellow icon shows the tooltip 'Note is saving—still trying to reach both systems.'",
+        "A note that has stopped retrying shows a red warning, not the yellow icon"
+      ],
+      "reason": "Nurses want visual confirmation of sync",
+      "evidence": "the tool should show a small green tick when the note has successfully synced to both systems",
+      "mergedFrom": ["FR-11"]
+    },
+    {
+      "id": "FR-6",
+      "title": "Note stays saved and pending when a system is unavailable",
+      "scope": "mvp",
+      "acceptance": [
+        "When EpicCare is down, the nurse sees a red warning reading 'Note saved locally but not sent to EpicCare—check again later' and the note is shown as pending",
+        "The tool retries the sync silently every 10 seconds for the first 2 minutes, then stops retrying"
+      ],
+      "reason": "Nurses cannot afford to lose a note during handover.",
+      "evidence": "If one system is down, the tool should show a red warning with a clear message"
+    },
+    {
+      "id": "FR-7",
+      "title": "Nurse sees a live list of current patients on her ward",
+      "scope": "mvp",
+      "acceptance": [
+        "The list shows all current patients on the nurse's ward.",
+        "A patient admitted or moved onto the ward appears within two minutes."
+      ],
+      "evidence": "The list updates every two minutes, so she'll see all the patients on her ward, including those who've just been admitted or moved."
+    },
+    {
+      "id": "FR-8",
+      "title": "Night nurse sees all notes for a patient in one place",
+      "scope": "mvp",
+      "acceptance": [
+        "Night nurse opens a patient's notes and sees all entries from the day shift in a single timeline",
+        "Night nurse can scan the observations in chronological order",
+        "Night nurse can identify gaps or issues in the notes"
+      ],
+      "evidence": "On 14th September, the night nurse opened Mr. James Carter’s notes at 6:55 PM and saw all the entries from the day shift appear in a single timeline—typed by both the nurse and two healthcare assistants. She scanned the observations, starting with the 6:15 PM note: “Ambulated with walker, no dizziness,” and then the 6:50 PM assistant note: “Walked to bathroom, sat on edge of bed, no dizziness.” Both said stable. But then she saw a note from 6:30 PM that read: “BP 148/92, HR 90—elevated, patient anxious.” She paused—there was no follow-up note, no indication the blood pressure had settled. She called the day nurse and asked, “Why wasn’t that rechecked?”—that’s exactly the kind of gap this tool needs to flag, so she doesn’t miss an issue."
+    },
+    {
+      "id": "FR-9",
+      "title": "Nurse sends a note with one Save and Send action",
+      "scope": "mvp",
+      "acceptance": [
+        "Nurse clicks Save and Send once and the note is sent to both systems with no further step",
+        "The note is not treated as sent until the green tick appears"
+      ],
+      "evidence": "When the nurse finishes typing, she just clicks “Save and Send”—the tool does the rest."
+    },
+    {
+      "id": "FR-10",
+      "title": "Nurse corrects a sent note with a tagged follow-up note",
+      "scope": "mvp",
+      "acceptance": [
+        "A correction is entered as a new note tagged Correction",
+        "The original note cannot be edited and stays visible"
+      ],
+      "evidence": "she can write a new note with a correction—like “Correction: BP was 138/86, not 148/92”—and tag it as “Correction”"
+    },
+    {
+      "id": "FR-12",
+      "title": "Nurse sees a yellow warning and confirms with one click when saving a note for a patient who has left the ward",
+      "scope": "mvp",
+      "acceptance": [
+        "The nurse sees a yellow warning when saving a note for a patient who has left the ward",
+        "The nurse confirms with one click",
+        "The note is sent to both systems with the correct MRN"
+      ],
+      "evidence": "If the patient has left the ward and is no longer on the live list, the tool should still allow the note to be saved—but show a clear yellow warning: “This patient is no longer on your ward. Note will be sent, but confirm this is correct.” The nurse might be documenting something for a patient who just moved, or she might have made a mistake. Either way, we don’t want to block her completely, but we need her to confirm it’s intentional. After she saves, the note will still go to both systems with the correct MRN, just so we don’t lose the data—this is critical for audit trails."
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: nontechnical · Generated: 2026-10-14T15:09:04.908Z\n\n## Product overview and problem\n\n### Product overview and problem\n\nNurses on hospital wards currently enter patient notes twice: once into EpicCare (the patient electronic health record system) and once into Sensus (a ward management spreadsheet). This duplicate entry wastes time and risks errors. The goal is to create a tool that allows nurses and healthcare assistants to enter each note once, with the note automatically sent to both EpicCare and Sensus. The target users are approximately 120 registered nurses and 20 healthcare assistants across 12 adult wards in three hospitals.\n\nThe current practice requires 7 minutes per shift per nurse on average for double entry, plus delays due to slow systems and corrections, amounting to about 100 seconds extra per shift lost in delays. The new tool aims to halve the duplication time, improve accuracy, and provide confidence that the note has been successfully sent to both systems.\n\nThe tool will be built by an in-house digital health team experienced with similar ward-specific workflows. It will be live by 15 October to align with upcoming shift schedules.\n\n### Scale and context\n\n- About 140 users (120 nurses, 20 healthcare assistants)\n- Notes per busy shift: 8 to 12\n- Systems: EpicCare (EHR), Sensus (ward management)\n- Average duplicate entry: 7 minutes per nurse per shift\n- Delays due to system slowness and corrections: about 100 seconds per shift\n\n## Target users and roles\n\n### Target users and roles\n\n- **Registered nurses:** Document care quickly and accurately during shift handovers to save time and avoid double entry errors. Select patients from a live ward list to start notes. Need confidence the note has reached both EpicCare and Sensus.\n\n- **Healthcare assistants:** Record basic observations quickly at the bedside using a tablet with the same workflow as nurses. Need reliable, visible notes for the team without system switching.\n\n- **Night nurses:** Review all notes for each patient in one combined timeline during handover to identify changes in condition and gaps.\n\n## User stories\n\n### User stories\n\n- **US-1:** As a nurse, I want to enter each patient note once from the live ward list, so I save time and avoid errors.\n- **US-2:** As a nurse, I want to be confident my notes reach both EpicCare and Sensus without checking separately.\n- **US-3:** As a nurse, I want to review team notes before handover to see recent patient condition.\n- **US-4:** As a night nurse, I want to see all patient notes in one place at handover to spot changes.\n- **US-5:** As a night nurse, I want to see every note for a patient in a timeline to detect issues like missing rechecks.\n- **US-6:** As a night nurse, I want quick access to all notes for efficient shift handover.\n\n## Functional requirements\n\n### Functional requirements\n\nThis project includes functional requirements focused on nurses and healthcare assistants entering and reviewing notes efficiently, with real-time syncing to EpicCare and Sensus, autosave features, visual sync status, patient selection from live ward lists, and handling system unavailability gracefully.\n\n### MVP\n\n- **FR-1** Nurse enters a ward note once and it reaches EpicCare and Sensus\n  - Acceptance: A note entered once appears in EpicCare within 30 seconds\n  - Acceptance: A note entered once appears in Sensus within 60 seconds\n  - Acceptance: If EpicCare stays unavailable, the tool stops retrying after 5 minutes and the note stays pending\n  - Reason: Removes duplicate entry\n- **FR-2** Nurse selects a patient from the ward list and the tool fills in the MRN and name\n  - Acceptance: Nurse opens a note and sees a dropdown of current patients on their ward\n  - Acceptance: After selecting a patient, the MRN and name appear without typing\n  - Acceptance: Ward list refreshes from Sensus within two minutes of a change\n- **FR-3** Observation time defaults to now and can be edited\n  - Acceptance: On starting a note, the time field shows the current time\n  - Acceptance: Nurse can change the time to an earlier time and the saved note keeps the edited time\n- **FR-4** Nurse's note is saved instantly, even while the note is still being typed\n  - Acceptance: A note in progress is saved without the nurse pressing save\n  - Acceptance: After a browser crash, the note text is recoverable with no loss\n  - Reason: A nurse lost a full shift's notes after a browser crash\n- **FR-5** Nurse sees a green tick once the note has synced to both systems\n  - Acceptance: A green tick appears only after the note has reached both EpicCare and Sensus\n  - Acceptance: No tick is shown while either sync is pending\n  - Acceptance: A note still retrying shows a yellow icon\n  - Acceptance: Hovering over the yellow icon shows the tooltip 'Note is saving—still trying to reach both systems.'\n  - Acceptance: A note that has stopped retrying shows a red warning, not the yellow icon\n  - Reason: Nurses want visual confirmation of sync\n- **FR-6** Note stays saved and pending when a system is unavailable\n  - Acceptance: When EpicCare is down, the nurse sees a red warning reading 'Note saved locally but not sent to EpicCare—check again later' and the note is shown as pending\n  - Acceptance: The tool retries the sync silently every 10 seconds for the first 2 minutes, then stops retrying\n  - Reason: Nurses cannot afford to lose a note during handover.\n- **FR-7** Nurse sees a live list of current patients on her ward\n  - Acceptance: The list shows all current patients on the nurse's ward.\n  - Acceptance: A patient admitted or moved onto the ward appears within two minutes.\n- **FR-8** Night nurse sees all notes for a patient in one place\n  - Acceptance: Night nurse opens a patient's notes and sees all entries from the day shift in a single timeline\n  - Acceptance: Night nurse can scan the observations in chronological order\n  - Acceptance: Night nurse can identify gaps or issues in the notes\n- **FR-9** Nurse sends a note with one Save and Send action\n  - Acceptance: Nurse clicks Save and Send once and the note is sent to both systems with no further step\n  - Acceptance: The note is not treated as sent until the green tick appears\n- **FR-10** Nurse corrects a sent note with a tagged follow-up note\n  - Acceptance: A correction is entered as a new note tagged Correction\n  - Acceptance: The original note cannot be edited and stays visible\n- **FR-12** Nurse sees a yellow warning and confirms with one click when saving a note for a patient who has left the ward\n  - Acceptance: The nurse sees a yellow warning when saving a note for a patient who has left the ward\n  - Acceptance: The nurse confirms with one click\n  - Acceptance: The note is sent to both systems with the correct MRN\n\n## Business rules\n\n### Business rules\n\n- Retry a failed EpicCare send for up to 5 minutes, then stop and mark the note as pending.\n- Retry Sensus sync up to 5 minutes, then stop and leave note pending with warning.\n- A note must have a selected patient before saving.\n- Corrections to notes are saved as new tagged follow-up notes; original notes remain uneditable.\n- Notes for patients who have left the ward trigger a yellow warning requiring nurse confirmation.\n- Pending notes that fail to send remain saved locally with a red warning and appear in a Pending Notes tab.\n- Nurses must log out and lock tablets when stepping away, even for short periods.\n\n## Technical requirements\n\n### Technical requirements\n\nThe tool will be hosted on Microsoft Azure West Europe to keep data local and comply with UK NHS data protection. The development team is an in-house group of three developers, one business analyst, and nurse advisors from each hospital to handle ward-specific workflows. The technology stack includes .NET for backend APIs, Blazor for the front-end UI, and Azure DevOps for continuous integration and deployment.\n\nAlternatives considered but not selected include other cloud providers and outsourcing development; the chosen approach prioritizes data locality, compliance, and domain expertise.\n\n## Data requirements\n\n### Data requirements\n\n- The main data entities are: Patient (with MRN and name), Ward Note (with patient ID, note text, observation time, tags including Correction), and System Sync Status.\n- The patient list is refreshed every two minutes from Sensus.\n- Notes include timestamps, status flags (pending, synced, failed), and audit trail of corrections.\n\n## Integrations\n\n### Integrations\n\n- **EpicCare:** Main electronic health record system. Notes sent from the tool must appear within 30 seconds. This integration is critical.\n- **Sensus:** Ward management system. Notes sent from the tool must appear within 60 seconds. This integration is critical.\n- The tool will be built to fit the existing Sensus-to-EpicCare interface specification.\n- IT will document the Sensus API details (endpoint, payload, authentication, error handling) alongside the EpicCare specification.\n\n## Security and privacy\n\n### Security and privacy\n\n- Compliant with UK GDPR and NHS data protection regulations.\n- No unencrypted patient data will be stored locally on devices.\n- Notes only exist transiently while being typed.\n- Tablets must be logged out and locked when unattended to prevent unauthorized access.\n\n## Non-functional requirements\n\n### Non-functional requirements\n\n1. Integration latency: Notes must appear in EpicCare within 30 seconds and in Sensus within 60 seconds of save.\n2. Sync retry: Failed sync attempts retry silently every 10 seconds for the first 2 minutes, then stop.\n3. Concurrency: System must support bursts of at least 10 nurses logging in simultaneously; load tested for 20 concurrent users.\n4. Responsiveness: Tool must remain usable when Sensus is slow (up to 30 seconds load times), without blocking nurse workflows.\n5. Correction handling: Support adding one or two corrections per shift, adding about 30-45 seconds per nurse.\n6. Delay handling: Tool must reduce nurse delays currently averaging 100 seconds per shift related to system lag and fixes.\n\n## Administrative surface\n\n### Administrative surface\n\n- Live ward patient list display, updated every two minutes.\n- Pending Notes tab listing unsent notes with patient, time, and reason for failure.\n- Visual status indicators on notes: green tick (synced), yellow warning (retrying), red warning (failed).\n- Warnings and confirmations for notes saved on departed patients.\n- Logout and tablet lock enforcement reminders.\n\n## MVP scope\n\n### MVP scope\n\nThe MVP includes all functional requirements from FR-1 to FR-12 except FR-11 which was not specified. The MVP covers all nurse and healthcare assistant note entry features, syncing to EpicCare and Sensus, autosave and error handling, patient selection, and note review for night nurses. The MVP deadline is 15 October.\n\nIn version one:\n- FR-1\n- FR-2\n- FR-3\n- FR-4\n- FR-5\n- FR-6\n- FR-7\n- FR-8\n- FR-9\n- FR-10\n- FR-12\n\n## Future scope\n\n## Implementation phases\n\n### Implementation phases\n\nWe will deliver the solution in phases to gradually build and validate core features.\n\n### Phase 1: Core note entry and sync\n\nGoals:\n- Enable nurses and healthcare assistants to enter a note once and sync it to EpicCare and Sensus\n- Implement live ward patient list with two-minute refresh\n- Implement autosave and note recovery\n- Display sync status with icons and warnings\n\nTasks:\n- Implement patient selection dropdown synced from Sensus\n  - Acceptance: Nurse opens a note and sees a dropdown of current patients on their ward\n  - Acceptance: Ward list refreshes from Sensus within two minutes of a change\n- Implement single note entry with autosave and sync to both systems\n  - Acceptance: A note entered once appears in EpicCare within 30 seconds\n  - Acceptance: A note entered once appears in Sensus within 60 seconds\n  - Acceptance: A note in progress is saved without the nurse pressing save\n  - Acceptance: Note text recovers after browser crash\n- Implement sync status indicators (green tick, yellow retry, red warning)\n  - Acceptance: Green tick appears after note synced to both systems\n  - Acceptance: Yellow icon shows while retrying\n  - Acceptance: Red warning shows if retry stops\n\nPhase acceptance:\n- Core note entry works end-to-end\n- Patient list updates dynamically\n- Autosave prevents data loss\n- Sync status indicators function correctly\n\n### Phase 2: Error handling and corrections\n\nGoals:\n- Handle system unavailability and pending notes\n- Support corrections as tagged follow-up notes\n- Implement warnings for notes on departed patients\n\nTasks:\n- Implement retry logic with 5-minute timeout and pending notes list\n  - Acceptance: Failed syncs retry silently every 10 seconds for 2 minutes, then stop after 5 minutes total\n  - Acceptance: Pending notes show with patient, time, and reason\n  - Acceptance: Notes cannot be deleted\n- Implement correction notes tagged 'Correction' and prevent editing original notes\n  - Acceptance: Corrections saved as new notes tagged Correction\n  - Acceptance: Original notes remain visible and uneditable\n- Implement yellow warning and confirmation flow when saving a note for a departed patient\n  - Acceptance: Yellow warning appears for departed patients\n  - Acceptance: Nurse can confirm with one click\n  - Acceptance: Note is sent with correct MRN\n\nDepends on: phase1\n\nPhase acceptance:\n- System handles unavailability without data loss\n- Nurses can correct notes clearly\n- Warnings prevent errors on departed patients\n\n### Phase 3: Review and handover support\n\nGoals:\n- Allow night nurses to view all notes for a patient in one timeline\n- Facilitate identification of gaps or issues in notes\n\nTasks:\n- Build patient notes timeline view for night nurses\n  - Acceptance: Night nurse opens patient's notes and sees all entries from the day shift in chronological order\n  - Acceptance: Night nurse can identify missing rechecks or changes\n\nDepends on: phase2\n\nPhase acceptance:\n- Night nurses can review notes efficiently for handovers\n- Gaps and issues in patient condition documentation are visible\n\n## Open questions\n\n### Open questions\n\n- The Sensus integration contract (endpoint, payload, authentication, error shape) is not yet documented. The default plan is for IT to document it alongside the EpicCare specification.\n\n- What are the exact Sensus integration contract details (endpoint, payload, authentication, error format)? _Default taken: IT will document the Sensus contract alongside the EpicCare specification._\n- The participant did not review the requirement list: the interview ended before it was read back and confirmed. Is anything on it wrong or missing? _Default taken: The list is built as recorded._\n",
+  "curation": {
+    "merged": [],
+    "rerouted": [],
+    "withdrawn": [],
+    "renumbered": [],
+    "folded": [
+      {
+        "id": "FR-11",
+        "into": "FR-5"
+      }
+    ],
+    "candidates": []
+  }
+}

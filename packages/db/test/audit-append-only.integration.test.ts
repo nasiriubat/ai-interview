@@ -1,5 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { describeDb, purgeAuditLog } from "@aidp/testing";
+import {
+  describeDb,
+  purgeAuditLog,
+  APP_ROLE_TEST_PASSWORD,
+  APP_ROLE_TEST_USER,
+  setAppRolePassword,
+} from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { withTenant, withTenantScope } from "../src/index.js";
@@ -13,7 +19,7 @@ import { withTenant, withTenantScope } from "../src/index.js";
  */
 describeDb("audit log: append-only and hash-chained", () => {
   const owner = new PrismaClient();
-  const PASSWORD = "audit-append-only-password";
+  const PASSWORD = APP_ROLE_TEST_PASSWORD;
   let api: PrismaClient;
   let scoped: PrismaClient;
   let companyId = "";
@@ -29,9 +35,9 @@ describeDb("audit log: append-only and hash-chained", () => {
 
   beforeAll(async () => {
     const url = process.env.DATABASE_URL!;
-    await owner.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD '${PASSWORD}'`);
+    await setAppRolePassword(owner);
     const u = new URL(url);
-    u.username = "app_api";
+    u.username = APP_ROLE_TEST_USER;
     u.password = PASSWORD;
     api = new PrismaClient({ datasources: { db: { url: u.toString() } } });
     scoped = withTenantScope(api);

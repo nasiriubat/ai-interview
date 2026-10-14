@@ -3,6 +3,9 @@ import {
   containsQuote,
   costCents,
   extractJson,
+  lockIsHeld,
+  portForRunId,
+  resolveRunConfig,
   flagMessage,
   parseDotenv,
   percentile,
@@ -129,5 +132,37 @@ describe("misc", () => {
   it("extracts JSON from prose and fences", () => {
     expect(extractJson('Sure:\n```json\n{"a": 1}\n```')).toEqual({ a: 1 });
     expect(extractJson("no json")).toBeNull();
+  });
+});
+
+describe("run isolation", () => {
+  it("keeps the historical names without a run id", () => {
+    const c = resolveRunConfig({}, "/tmp");
+    expect(c).toMatchObject({ dbName: "ai_discovery_live", apiPort: 4100, outSubdir: "" });
+    expect(c.scratchDir).toBe("/tmp/ai-discovery-live");
+  });
+
+  it("gives two run ids different database, port, scratch and output", () => {
+    const a = resolveRunConfig({ LIVE_RUN_ID: "alpha" }, "/tmp");
+    const b = resolveRunConfig({ LIVE_RUN_ID: "beta" }, "/tmp");
+    expect(a.dbName).not.toBe(b.dbName);
+    expect(a.apiPort).not.toBe(b.apiPort);
+    expect(a.scratchDir).not.toBe(b.scratchDir);
+    expect(a.outSubdir).not.toBe(b.outSubdir);
+    expect(a.dbName).not.toBe("ai_discovery_live");
+    expect(a.apiPort).not.toBe(4100);
+    expect(portForRunId("alpha")).toBe(a.apiPort);
+  });
+
+  it("lets the individual overrides win and rejects unsafe ids", () => {
+    const c = resolveRunConfig({ LIVE_RUN_ID: "x", LIVE_DB_NAME: "mine", LIVE_API_PORT: "4999" }, "/tmp");
+    expect(c).toMatchObject({ dbName: "mine", apiPort: 4999 });
+    expect(() => resolveRunConfig({ LIVE_RUN_ID: "a; drop database" }, "/tmp")).toThrow(/LIVE_RUN_ID/);
+  });
+
+  it("treats a lock as held only while its pid is alive", () => {
+    expect(lockIsHeld("123\n", (p) => p === 123)).toBe(true);
+    expect(lockIsHeld("123\n", () => false)).toBe(false);
+    expect(lockIsHeld("garbage", () => true)).toBe(false);
   });
 });
