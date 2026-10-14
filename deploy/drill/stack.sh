@@ -112,6 +112,10 @@ case "${1:-}" in
 up) shift; cmd_up "$@" ;;
 down) cmd_down ;;
 env) cmd_env ;;
+# deploy/dc with this drill's env, so `stack.sh dc ps` works from any shell.
+dc) shift; export COMPOSE_PROJECT_NAME=aidpfull; exec "$deploy/dc" "$@" ;;
+# Any command with the drill's environment: `stack.sh run node deploy/drill/interview.mjs`.
+run) shift; eval "$(cmd_env)"; exec "$@" ;;
 configure) shift; exec node "$here/configure.mjs" "$@" ;;
 *) sed -n '2,16p' "$0"; exit 64 ;;
 esac
