@@ -353,7 +353,7 @@ suite("tenancy operations", () => {
     });
     expect(queued.statusCode).toBe(202);
     expect(world.jobs.published.some((j) => j.name === "tenant.export")).toBe(true);
-    const meta = await world.ctx.exporter.run(t.id, "operator");
+    const meta = await world.ctx.tenantExporter.run(t.id, "operator");
     const listed = (
       await world.app.inject({ method: "GET", url: `/api/v1/operator/tenants/${t.id}/exports`, headers })
     ).json<{ exports: { stamp: string }[] }>();

@@ -1,0 +1,779 @@
+{
+  "id": "requirements_discovery/off_topic",
+  "version": 1,
+  "templateKey": "requirements_discovery",
+  "persona": "off_topic",
+  "locale": "en",
+  "path": "nontechnical",
+  "turns": [
+    {
+      "n": 1,
+      "text": "Probably a managed platform, we do not have servers.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 2,
+      "text": "It has to work with the spreadsheet we use today and maybe the email system.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 3,
+      "text": "A coding agent will build it, with me reviewing.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 4,
+      "text": "I know spreadsheets well, not much else.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 5,
+      "text": "We would like version one in about two months.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 6,
+      "text": "The budget is small, a few hundred euros a month at most.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 7,
+      "text": "About twenty people at launch.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 8,
+      "text": "Nothing special, just keep personal data private.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 9,
+      "text": "A small town library lends tools like drills and ladders from a notebook, and we want a simple lending system.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["overview"]
+      }
+    },
+    {
+      "n": 10,
+      "text": "Sorry, off topic, but did you see the weather forecast for the weekend?",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 11,
+      "text": "By the way my coffee machine broke this morning, it has been that kind of week.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 12,
+      "text": "The librarian lends and takes back items and members borrow and reserve them.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["users"]
+      }
+    },
+    {
+      "n": 13,
+      "text": "That reminds me, I need to book a dentist appointment before I forget.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 14,
+      "text": "The librarian must be able to lend an item to a member and see the due date.",
+      "labels": {
+        "requirements": ["R1"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 15,
+      "text": "Anyway, the parking situation at the office is terrible lately.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 16,
+      "text": "Not related, but we had a very long meeting about the new coffee budget.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 17,
+      "text": "Returning an item should mark it available again and note its condition.",
+      "labels": {
+        "requirements": ["R2"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 18,
+      "text": "Sorry, off topic, but did you see the weather forecast for the weekend?",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 19,
+      "text": "Members should be able to reserve an item that is on loan.",
+      "labels": {
+        "requirements": ["R3"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 20,
+      "text": "By the way my coffee machine broke this morning, it has been that kind of week.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 21,
+      "text": "That reminds me, I need to book a dentist appointment before I forget.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 22,
+      "text": "The system must email a member when a loan is overdue.",
+      "labels": {
+        "requirements": ["R4"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 23,
+      "text": "Anyway, the parking situation at the office is terrible lately.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 24,
+      "text": "Scanning a barcode at the desk would speed things up, which can come later.",
+      "labels": {
+        "requirements": ["R5"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 25,
+      "text": "Not related, but we had a very long meeting about the new coffee budget.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 26,
+      "text": "Sorry, off topic, but did you see the weather forecast for the weekend?",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 27,
+      "text": "Members could look at their own loans online, in a later version.",
+      "labels": {
+        "requirements": ["R6"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 28,
+      "text": "By the way my coffee machine broke this morning, it has been that kind of week.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 29,
+      "text": "The system should stop a member from borrowing more than three items at once.",
+      "labels": {
+        "requirements": ["R7"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 30,
+      "text": "That reminds me, I need to book a dentist appointment before I forget.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 31,
+      "text": "Anyway, the parking situation at the office is terrible lately.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 32,
+      "text": "The council wants a monthly usage report, but not for the first version.",
+      "labels": {
+        "requirements": ["R8"],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 33,
+      "text": "Not related, but we had a very long meeting about the new coffee budget.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 34,
+      "text": "A member may borrow at most three tools at a time for seven days.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["rules"]
+      }
+    },
+    {
+      "n": 35,
+      "text": "Sorry, off topic, but did you see the weather forecast for the weekend?",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 36,
+      "text": "By the way my coffee machine broke this morning, it has been that kind of week.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 37,
+      "text": "A simple web app on a cheap server, with a barcode scanner at the desk.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["technical"]
+      }
+    },
+    {
+      "n": 38,
+      "text": "That reminds me, I need to book a dentist appointment before I forget.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 39,
+      "text": "Items, members, loans and reservations, an item has one condition note.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["data"]
+      }
+    },
+    {
+      "n": 40,
+      "text": "Anyway, the parking situation at the office is terrible lately.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 41,
+      "text": "Not related, but we had a very long meeting about the new coffee budget.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 42,
+      "text": "We would like to send overdue reminders by email.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["integrations"]
+      }
+    },
+    {
+      "n": 43,
+      "text": "Sorry, off topic, but did you see the weather forecast for the weekend?",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": true,
+        "sections": []
+      }
+    },
+    {
+      "n": 44,
+      "text": "Member contact details are private and only the librarian sees them.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": ["security"]
+      }
+    },
+    {
+      "n": 45,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 46,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 47,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 48,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 49,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 50,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 51,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 52,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 53,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 54,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 55,
+      "text": "Yes, that is right.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 56,
+      "text": "Correct, go on.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 57,
+      "text": "That sounds fine to me.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 58,
+      "text": "Yes, keep it that way.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 59,
+      "text": "No, nothing to add there.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    },
+    {
+      "n": 60,
+      "text": "Good, that works for us.",
+      "labels": {
+        "requirements": [],
+        "facts": [],
+        "rescopes": [],
+        "offTopic": false,
+        "sections": []
+      }
+    }
+  ],
+  "goldRequirements": [
+    {
+      "id": "R1",
+      "title": "Lend an item to a member",
+      "terms": ["lend"],
+      "scope": "mvp",
+      "acceptance": ["A loan records item, member and due date"],
+      "introducedAtTurn": 14
+    },
+    {
+      "id": "R2",
+      "title": "Return an item",
+      "terms": ["return"],
+      "scope": "mvp",
+      "acceptance": ["A returned item becomes available"],
+      "introducedAtTurn": 17
+    },
+    {
+      "id": "R3",
+      "title": "Reserve an item",
+      "terms": ["reserve"],
+      "scope": "mvp",
+      "acceptance": ["A reserved item cannot be lent to someone else"],
+      "introducedAtTurn": 19
+    },
+    {
+      "id": "R4",
+      "title": "Overdue email reminders",
+      "terms": ["overdue"],
+      "scope": "mvp",
+      "acceptance": ["An email goes out the day after the due date"],
+      "introducedAtTurn": 22
+    },
+    {
+      "id": "R5",
+      "title": "Scan barcodes at the desk",
+      "terms": ["barcode"],
+      "scope": "future",
+      "acceptance": ["Scanning an item opens its record"],
+      "introducedAtTurn": 24
+    },
+    {
+      "id": "R6",
+      "title": "Member self service page",
+      "terms": ["self"],
+      "scope": "future",
+      "acceptance": ["A member sees their own loans"],
+      "introducedAtTurn": 27
+    },
+    {
+      "id": "R7",
+      "title": "Loan limit of three items",
+      "terms": ["limit"],
+      "scope": "mvp",
+      "acceptance": ["A fourth loan is refused"],
+      "introducedAtTurn": 29
+    },
+    {
+      "id": "R8",
+      "title": "Monthly usage report",
+      "terms": ["report"],
+      "scope": "future",
+      "acceptance": ["A report lists loans per item"],
+      "introducedAtTurn": 32
+    }
+  ],
+  "goldFacts": [],
+  "goldFindings": [
+    {
+      "id": "F1",
+      "type": "missing_decision",
+      "section": "security",
+      "turns": []
+    }
+  ],
+  "modelBehavior": {
+    "flaws": {
+      "6": "marker_missing",
+      "17": "marker_missing",
+      "22": "wrong_section",
+      "27": "descriptive_id",
+      "32": "malformed_json"
+    },
+    "scans": [
+      [
+        {
+          "type": "missing_decision",
+          "section": "security",
+          "description": "No sign-in method has been decided",
+          "resolution": "Choose how people sign in",
+          "default": "email link",
+          "confidence": "high"
+        }
+      ]
+    ]
+  },
+  "expect": {
+    "coverage": [
+      {
+        "afterTurn": 12,
+        "covered": 1
+      },
+      {
+        "afterTurn": 30,
+        "covered": 5
+      }
+    ],
+    "endedWithin": 60
+  }
+}

@@ -57,3 +57,28 @@ export class GitHubNotConfiguredError extends Error {
     this.name = "GitHubNotConfiguredError";
   }
 }
+export class DiagramInvalidError extends Error {
+  constructor(readonly issues: { message: string; line?: number | undefined }[]) {
+    super(issues[0]?.message ?? "The diagram is not valid");
+    this.name = "DiagramInvalidError";
+  }
+}
+export class DiagramNotFoundError extends Error {
+  constructor(readonly key: string) {
+    super(`There is no edit to diagram '${key}'`);
+    this.name = "DiagramNotFoundError";
+  }
+}
+export class DiagramLimitError extends Error {
+  constructor(readonly max: number) {
+    super(`A specification holds at most ${max} diagrams`);
+    this.name = "DiagramLimitError";
+  }
+}
+/** A PDF or a diagram check was asked for in a process that has no exporter (the worker). */
+export class PdfNotAvailableError extends Error {
+  constructor() {
+    super("PDF export is not available in this process");
+    this.name = "PdfNotAvailableError";
+  }
+}

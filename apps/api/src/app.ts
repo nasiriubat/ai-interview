@@ -30,6 +30,7 @@ import { principalKey, RATE_LIMIT_WINDOW } from "./lib/rate-limit.js";
 import { analysisRoutes } from "./modules/analysis/routes.js";
 import { auditRoutes } from "./modules/audit/routes.js";
 import { campaignRoutes } from "./modules/campaigns/routes.js";
+import { exportsRoutes } from "./modules/exports/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
 import { internalAuthRoutes } from "./modules/internal-auth/routes.js";
 import { onboardingRoutes } from "./modules/onboarding/routes.js";
@@ -202,6 +203,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await privacyRoutes(a, routes);
       await analysisRoutes(a, routes);
       await requirementsRoutes(a, routes);
+      await exportsRoutes(a, routes);
       await operatorRoutes(a, routes);
       a.get("/openapi.json", { ...guard.public() }, async () => a.swagger());
     },

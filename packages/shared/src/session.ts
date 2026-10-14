@@ -125,6 +125,8 @@ const SessionStateObjectSchema = z.object({
   findings: z.array(FindingSchema).default([]),
   lastIssueScanTurn: z.number().int().nonnegative().default(0),
   finalIssueScanDone: z.boolean().default(false),
+  /** Times the completeness check sent the interview back for missing requirements (D-191). */
+  completenessAsks: z.number().int().nonnegative().default(0),
   mvpChallenge: z
     .object({
       started: z.boolean().default(false),

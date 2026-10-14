@@ -17,8 +17,8 @@ import type {
 import { promptVersionTag, type PromptSource } from "./prompts/index.js";
 import { areasComplete, chooseFocus, contextComplete, type Focus } from "./selection.js";
 import { admitWidget, applyDelta, isMinimalAnswer, noteUserAnswer } from "./state.js";
-import { parseStateDelta, TurnParser } from "./turn-parser.js";
-import { repairTurnMeta } from "./turn-repair.js";
+import { settleTurnContract, type ContractReport } from "./turn-contract.js";
+import { TurnParser } from "./turn-parser.js";
 
 /**
  * A context question asked twice without the model recording the answer is answered with
@@ -80,6 +80,8 @@ export interface TurnOptions {
 export interface TurnResult {
   ended: boolean;
   state: SessionState;
+  /** How the turn's metadata and spec facts were obtained (absent when the turn ended without a model call). */
+  contract?: ContractReport;
   /** The caller schedules these as jobs; the engine never touches a queue. */
   followUps: { summarize: boolean; extract: boolean };
 }
@@ -164,6 +166,7 @@ export class InterviewEngine {
         findings: [...state.findings, ...found],
         lastIssueScanTurn: state.turnCount,
         ...(scan === "final" ? { finalIssueScanDone: true } : {}),
+        ...(scan === "completeness" ? { completenessAsks: state.completenessAsks + 1 } : {}),
       };
       if (found.length) {
         await store.appendEvent(session.id, "finding", { kind: "detected", reason: scan, findings: found });
@@ -244,34 +247,38 @@ export class InterviewEngine {
       }
     }
     const { message, meta: parsedMeta, rest, error } = parser.finish();
-    let meta = parsedMeta;
     if (rest) yield { type: "text", text: rest };
     if (error)
       logger.warn("turn metadata not parsed; continuing with message only", { sessionId: session.id, error });
-    // Nothing recoverable in the reply: ask for the metadata once, so the turn's coverage and facts
-    // are not lost with it (29 of them were in the live run of 2026-10-14).
-    if (error && message && Object.keys(meta).length === 0) {
-      const lastUser = [...recent].reverse().find((m) => m.role === "user");
-      const repaired = await repairTurnMeta(
-        { caller: this.deps.caller, prompts: this.deps.prompts },
-        {
-          companyId: session.companyId,
-          sessionId: session.id,
-          campaignId: session.campaignId,
-          areas: session.template.coverageAreas
-            .map((a) => `- ${a.key}: ${a.name}. Covered when: ${a.doneWhen}`)
-            .join("\n"),
-          focus: renderFocus(focus, session.template, session.path, state),
-          participantAnswer: lastUser ? renderStoredMessage(lastUser) : "",
-          interviewerMessage: message,
-          signal,
-        },
-      );
-      if (repaired) meta = repaired;
-    }
-
-    const { delta, dropped } = parseStateDelta(meta.stateDelta);
-    if (dropped.length) logger.warn("state delta fields dropped", { sessionId: session.id, dropped });
+    // The turn contract (D-190): the metadata must parse and, on a requirements template, the
+    // delta must survive validation and capture something. Short of that one structured call
+    // rebuilds coverage and spec facts; what it cannot file is kept as an open question.
+    const lastUser = [...recent].reverse().find((m) => m.role === "user");
+    const settled = await settleTurnContract(
+      { caller: this.deps.caller, prompts: this.deps.prompts, logger },
+      {
+        companyId: session.companyId,
+        sessionId: session.id,
+        campaignId: session.campaignId,
+        message,
+        meta: parsedMeta,
+        parseError: error,
+        state,
+        focus,
+        answered: Boolean(answer && !isControl(answer)),
+        answerMinimal: lastAnswerMinimal,
+        producesSpec: session.template.outputs.includes("spec_field"),
+        areas: session.template.coverageAreas
+          .map((a) => `- ${a.key}: ${a.name}. Covered when: ${a.doneWhen}`)
+          .join("\n"),
+        focusText: renderFocus(focus, session.template, session.path, state),
+        participantAnswer: lastUser ? renderStoredMessage(lastUser) : "",
+        signal,
+      },
+    );
+    const { meta, delta, contract } = settled;
+    if (contract.dropped.length)
+      logger.warn("state delta fields dropped", { sessionId: session.id, dropped: contract.dropped });
     const nextTurnCount = state.turnCount + 1;
     state = applyDelta({ ...state, turnCount: nextTurnCount }, delta, session.template, focus, {
       pushBackOnce: policy.pushBackOnce,
@@ -310,6 +317,15 @@ export class InterviewEngine {
     await store.appendEvent(session.id, "state_delta", {
       focus,
       delta,
+      contract: {
+        outcome: contract.outcome,
+        markerMissed: contract.markerMissed,
+        reasons: contract.reasons,
+        repairCalls: contract.repairCalls,
+        fixed: contract.fixed.length,
+        rejected: contract.rejected.length,
+        salvaged: contract.salvaged,
+      },
       reason: turn.reason,
       tokensEstimate: ctx.tokensEstimate,
       recentTurnsIncluded: ctx.recentTurnsIncluded,
@@ -344,6 +360,7 @@ export class InterviewEngine {
     return {
       ended,
       state,
+      contract,
       followUps: {
         summarize: !ended && sinceSummary >= settings.summarizeEveryTurns * 2,
         extract: ended || sinceExtract >= settings.extractEveryTurns * 2,

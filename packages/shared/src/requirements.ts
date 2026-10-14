@@ -179,11 +179,28 @@ export const MvpChallengeStateSchema = z.object({
 });
 export type MvpChallengeState = z.infer<typeof MvpChallengeStateSchema>;
 
+/** A diagram as the owner sees it in the live spec: generated, edited over a generated one, or added. */
+export const LiveDiagramSchema = z.object({
+  key: z.string(),
+  title: z.string(),
+  type: DiagramTypeSchema,
+  mermaid: z.string(),
+  description: z.string(),
+  status: z.enum(["generated", "edited", "added"]),
+  /** False when the renderer was unreachable the last time the source was saved. */
+  verified: z.boolean(),
+  /** What the generator drew, when the owner has replaced it. */
+  original: z.string().optional(),
+});
+export type LiveDiagram = z.infer<typeof LiveDiagramSchema>;
+
 export const LiveSpecSchema = z.object({
   title: z.string(),
   path: PathSchema.nullable(),
   context: z.record(z.string(), z.string()),
   sections: z.array(LiveSectionSchema),
+  /** Editable diagrams (FR-23): the newest version's, with the owner's edits and additions applied. */
+  diagrams: z.array(LiveDiagramSchema).default([]),
   findings: z.array(FindingSchema),
   decisions: z.array(DecisionSchema),
   mvpChallenge: MvpChallengeStateSchema,
@@ -200,6 +217,17 @@ export const SpecEditSchema = z.object({
   markdown: z.string(),
   editedAt: z.string(),
   editedBy: z.string().nullable().default(null),
+  /**
+   * Diagram edits live under the key `diagram:<key>` (FR-23) in the same column, so no migration:
+   * the Mermaid source goes in `mermaid`, `markdown` stays empty (which every section reader treats
+   * as "no edit"), and `description` is the caption and the alt text.
+   */
+  mermaid: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  type: DiagramTypeSchema.optional(),
+  /** When the diagram renderer last accepted this source; absent means it was never verified. */
+  validatedAt: z.string().nullable().optional(),
 });
 export const SpecEditsSchema = z.record(z.string(), SpecEditSchema);
 export type SpecEdits = z.infer<typeof SpecEditsSchema>;
@@ -231,6 +259,12 @@ export const SpecDiagramSchema = z.object({
   title: z.string(),
   type: DiagramTypeSchema,
   mermaid: z.string(),
+  /** Caption and alt text (FR-23); empty for diagrams the model drew. */
+  description: z.string().optional(),
+  /** Where the source came from: the generator, or the owner (an edit, or a diagram they added). */
+  source: z.enum(["generated", "edited", "added"]).optional(),
+  /** What the generator drew, kept when the owner's edit replaced it, so a reset shows the original. */
+  original: z.string().optional(),
 });
 export type SpecDiagram = z.infer<typeof SpecDiagramSchema>;
 

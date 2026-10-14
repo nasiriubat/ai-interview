@@ -8,10 +8,12 @@ import {
   EgressGuard,
   EngineFactory,
   GitHubApi,
+  HttpKroki,
   MemoryEmail,
   MemoryJobAdmin,
   NoopMetrics,
   PlatformHealthService,
+  PdfExporter,
   PrismaAlertState,
   PrismaHealthInputs,
   RequirementsService,
@@ -31,11 +33,12 @@ import {
   type JobAdminPort,
   type JobPublisher,
   type Metrics,
+  type KrokiPort,
   type StoragePort,
 } from "@aidp/core";
 import type { PrismaClient } from "@prisma/client";
 import type { Logger as PinoLogger } from "pino";
-import type { Config } from "./config.js";
+import { egressAllowHosts, type Config } from "./config.js";
 import { engineLogger } from "./lib/logger.js";
 import { buildServices, type Services } from "./services.js";
 
@@ -60,6 +63,8 @@ export interface AppContext {
   analysis: AnalysisService;
   requirements: RequirementsService;
   github: GitHubPort;
+  /** PDF composition and diagram checks; its renderer is `KROKI_URL` through the egress guard. */
+  exporter: PdfExporter;
   storage: StoragePort;
   attachments: AttachmentService;
   /** Whether a tenant may act at all (suspension, S8). */
@@ -84,7 +89,7 @@ export interface AppContext {
   ceilings: TenantCeilings;
   /** Statements, tenant export and offboarding, for the operator routes (D-224 to D-226). */
   statements: StatementService;
-  exporter: TenantExporter;
+  tenantExporter: TenantExporter;
   /** Every platform signal and per-tenant utilisation, for `/operator/health` (D-222). */
   platformHealth: PlatformHealthService;
 }
@@ -103,6 +108,8 @@ export function buildContext(input: {
   jobs: JobPublisher;
   email?: EmailPort;
   github?: GitHubPort;
+  /** Tests pass a FakeKroki (or null for "no renderer"); production builds one from KROKI_URL. */
+  kroki?: KrokiPort | null;
   /** Tests pass a MemoryStorage; production passes nothing and gets one from UPLOAD_DIR. */
   storage?: StoragePort;
   /** Tests pass a guard with a fake resolver; production builds one from the environment. */
@@ -130,7 +137,7 @@ export function buildContext(input: {
     new EgressGuard(
       egressConfigFromEnv({
         mode: config.EGRESS_MODE,
-        allowHosts: config.EGRESS_ALLOW_HOSTS,
+        allowHosts: egressAllowHosts(config),
         nodeEnv: config.NODE_ENV,
         // The admin's one-step voice setup writes this URL onto a tenant's provider (D-77).
         trustedUrls: [config.OPENAI_BASE_URL],
@@ -214,6 +221,23 @@ export function buildContext(input: {
     notices,
   });
   const github = input.github ?? new GitHubApi();
+  // The diagram renderer is the one outbound call PDF export and the diagram editor make. It goes
+  // through the egress guard as a platform address (D-210): the host must be allow-listed.
+  const kroki =
+    input.kroki !== undefined
+      ? input.kroki
+      : config.KROKI_URL
+        ? new HttpKroki({ baseUrl: config.KROKI_URL, fetch: egress.fetchFor("platform") })
+        : null;
+  const exporter = new PdfExporter({
+    settings,
+    kroki,
+    log: {
+      warn: (message, meta) => {
+        log.warn(meta ?? {}, message);
+      },
+    },
+  });
   // The API stores uploads and hands them to the worker to read; it never ingests them itself,
   // so it needs no model caller here.
   const storage = input.storage ?? createStorage(config.UPLOAD_DIR);
@@ -229,8 +253,9 @@ export function buildContext(input: {
     crypto,
     github,
     notices,
+    exporter,
   });
-  const exporter = new TenantExporter({ db, storage, crypto });
+  const tenantExporter = new TenantExporter({ db, storage, crypto });
   // The operator's one page (D-222): the sweep's own inputs, read on request.
   const platformHealth = new PlatformHealthService({
     db,
@@ -284,6 +309,7 @@ export function buildContext(input: {
     ceilings,
     onboarding,
     exporter,
+    tenantExporter,
     jobAdmin,
   });
   return {
@@ -300,6 +326,7 @@ export function buildContext(input: {
     analysis,
     requirements,
     github,
+    exporter,
     storage,
     attachments,
     tenants,
@@ -311,7 +338,7 @@ export function buildContext(input: {
     metrics,
     ceilings,
     statements: new StatementService({ db }),
-    exporter,
+    tenantExporter,
     platformHealth,
   };
 }

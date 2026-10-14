@@ -4,6 +4,7 @@ import type { InterviewTemplate as TemplateRow, PrismaClient, Session } from "@p
 import type { TenantNotices } from "../alerts/tenant-notices.js";
 import type { Crypto } from "../crypto.js";
 import type { EmailPort } from "../email/port.js";
+import type { PdfExporter } from "../exports/exporter.js";
 import type { JobPublisher } from "../jobs/definitions.js";
 import type { CallerFactory } from "../providers/caller-factory.js";
 import type { SettingsService } from "../settings/service.js";
@@ -20,6 +21,8 @@ export interface RequirementsServiceDeps {
   crypto: Crypto;
   /** Tenant notices (D-181): told when a version is generated. Absent in tools that never mail. */
   notices?: TenantNotices;
+  /** PDF composition and diagram checks (D-210). Absent where they never happen (the worker). */
+  exporter?: PdfExporter;
   /** Absent where pushes never happen (the worker). */
   github?: GitHubPort;
 }
@@ -79,7 +82,7 @@ export interface SpecVersionSummary {
   stats: SpecVersionStats;
 }
 
-export type ExportFormat = "md" | "json" | "bundle";
+export type ExportFormat = "md" | "json" | "bundle" | "pdf";
 
 export interface InviteView {
   session: {

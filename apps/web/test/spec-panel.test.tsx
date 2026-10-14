@@ -45,6 +45,7 @@ const spec: LiveSpec = {
     },
     { key: "users", title: "Users", status: "empty", markdown: "", fields: [] },
   ],
+  diagrams: [],
   findings: [finding],
   decisions: [],
   mvpChallenge: { started: true, done: false, asked: ["FR-1", "FR-2"] },

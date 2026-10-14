@@ -1,6 +1,20 @@
-import type { SpecDocument, SpecPhase, SpecRequirement } from "@aidp/shared";
+import type { SpecDiagram, SpecDocument, SpecPhase, SpecRequirement } from "@aidp/shared";
 
-const fence = (mermaid: string): string => `\`\`\`mermaid\n${mermaid.trim()}\n\`\`\``;
+/** A Mermaid fence one backtick longer than any run inside the source, so the source cannot end it. */
+const fence = (mermaid: string): string => {
+  const body = mermaid.trim();
+  const longest = Math.max(2, ...[...body.matchAll(/`+/g)].map((m) => m[0].length));
+  const ticks = "`".repeat(longest + 1);
+  return `${ticks}mermaid\n${body}\n${ticks}`;
+};
+
+/** One diagram as it appears in the document: its title, the caption when there is one, the source. */
+function renderDiagram(d: SpecDiagram): string[] {
+  const lines = [`### ${d.title}`, ""];
+  if (d.description?.trim()) lines.push(d.description.trim(), "");
+  lines.push(fence(d.mermaid), "");
+  return lines;
+}
 
 export function renderRequirements(reqs: SpecRequirement[]): string {
   if (reqs.length === 0) return "";
@@ -54,6 +68,7 @@ export function renderSpecMarkdown(doc: SpecDocument): string {
     out.push("");
   }
   const entity = doc.diagrams.find((d) => d.type === "entity");
+  const shown = new Set<string>();
   for (const s of doc.sections) {
     out.push(`## ${s.title}`, "");
     if (s.markdown.trim()) out.push(s.markdown.trim(), "");
@@ -72,12 +87,25 @@ export function renderSpecMarkdown(doc: SpecDocument): string {
         if (doc.mvp.movedOut.length)
           out.push("Moved to future scope:", ...doc.mvp.movedOut.map((x) => `- ${x.id}: ${x.reason}`), "");
         if (doc.mvp.next.length) out.push("Next:", ...doc.mvp.next.map((x) => `- ${x}`), "");
-      } else if (s.key === "data" && entity) {
-        out.push(`### ${entity.title}`, "", fence(entity.mermaid), "");
+      } else if (s.key === "data" && entity && !shown.has(entity.key)) {
+        out.push(...renderDiagram(entity));
+        shown.add(entity.key);
       } else if (s.key === "diagrams") {
-        for (const d of doc.diagrams) out.push(`### ${d.title}`, "", fence(d.mermaid), "");
+        for (const d of doc.diagrams) {
+          // The entity diagram is under Data requirements; once is enough.
+          if (shown.has(d.key)) continue;
+          out.push(...renderDiagram(d));
+          shown.add(d.key);
+        }
       }
     }
+  }
+  // A diagram the owner added belongs to the document even when the diagrams section is not one of
+  // its sections (or the owner rewrote that section's text): it goes at the end rather than nowhere.
+  const left = doc.diagrams.filter((d) => !shown.has(d.key) && d.source === "added");
+  if (left.length) {
+    out.push("## Diagrams", "");
+    for (const d of left) out.push(...renderDiagram(d));
   }
   return `${out.join("\n").trim()}\n`;
 }
