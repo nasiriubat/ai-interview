@@ -215,6 +215,9 @@ services:
       # here: Caddy is one, for the web app's calls (which forward the address Caddy wrote) and for
       # the live-voice socket alike. Any other number makes per-address rate limits spoofable.
       TRUST_PROXY_HOPS: "1"
+      # People a minute per client address on the link routes (D-310). The default is the right one
+      # for an office behind one address; lower it only against a flood from a few addresses.
+      RATE_LIMIT_PUBLIC_MAX: ${RATE_LIMIT_PUBLIC_MAX:-120}
       # Hostnames a platform provider may reach on a private address: here the diagram renderer
       # (D-213), plus whatever the operator adds, such as a model server inside this network.
       # Tenants never can. The renderer's own host is always allowed when KROKI_URL names it.

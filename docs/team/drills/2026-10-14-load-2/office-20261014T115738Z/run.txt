@@ -1,0 +1,7 @@
+scenario=office
+version=c09d7bd7b952
+provider={"latencyMs":400,"jitterMs":100,"firstTokenMs":0,"charsPerSecond":400,"errorRate":0,"errorStatus":500,"rate429":0,"hangRate":0,"hangMs":0,"cutRate":0,"transcript":"We print the order and type it in again by hand.","sttUtteranceMs":1000,"ttsFirstByteMs":250,"ttsBytes":24000,"embeddings":"unsupported","realtime":"ok","seed":1}
+host_cpus=14
+host_memory_bytes=8216498176
+k6_image=grafana/k6:latest
+links=3

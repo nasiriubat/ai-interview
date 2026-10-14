@@ -89,7 +89,9 @@ await staff(operator, "PUT", "/settings?scope=platform", {
       : {}),
   },
 });
-log(`platform monthly ceilings removed; abuse limits ${raiseAbuse ? "raised to their maximum" : "left at their defaults"}`);
+log(
+  `platform monthly ceilings removed; abuse limits ${raiseAbuse ? "raised to their maximum" : "left at their defaults"}`,
+);
 const admin = await signIn(ADMIN_EMAIL, "admin");
 log("tenant admin signed in");
 // Live voice is off until a tenant turns it on (features.realtimeVoice, default false).

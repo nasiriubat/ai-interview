@@ -437,6 +437,16 @@ dc exec -T backup cat /ops-state/status/backup.json        # the last result, as
 dc exec -T backup /usr/local/bin/backup.sh once            # take one now
 ```
 
+**Who it runs as.** Neither `backup` nor `ops-notify` runs as root (D-312). `backup` is the image's
+`postgres` user (uid 999) with supplementary group 1000, which is how it reads the uploads volume
+(the application writes its files `0640` as uid and gid 1000); `ops-notify` is uid 10001. A named
+volume starts out root-owned, so the one-shot `ops-state-init` (the only service told to run as
+root) gives `/backups` to 999 and the alert and watchdog directories to 10001 on every `up`,
+including the first one after upgrading from a release in which they ran as root; there is no
+manual `chown`. Checked in the rehearsal stack: `dc exec -T backup id` prints `uid=999(postgres)`,
+a dump with an upload in the archive, the restore drill, a scratch restore and a live
+`restore.sh --force` all work as that user.
+
 **Encryption.** The key pair is `BACKUP_AGE_RECIPIENT` and `BACKUP_AGE_IDENTITY` in `deploy/.env`,
 made once by `generate-env.sh` or `upgrade.sh`. Lose the identity and every backup is unreadable;
 that is why `deploy/.env` goes to your password manager on day one.
@@ -726,12 +736,27 @@ and the build is not run on top of it.
 `ceiling.maxSessionsPerMonth` (default 1000) counts it whether or not the person ever answers. The
 rehearsal's own load runs (about 300 interviews each) used a tenant's month up in four runs, and the
 product answered every further open with `403 limit_reached`, as designed. The abuse limits on open
-links (D-261: 120 interviews an hour per campaign, 500 per tenant, 2000 per campaign in all) sit in
-front of that and were merged after the load runs recorded here, so they were **not** in play for
-those numbers: `configure.mjs` raises the rehearsal platform's ceilings and abuse limits to their
-maximum, because a full run starts about 290 interviews in five minutes, and the single-address
-control (`load/k6/single-ip.js`) is what shows the per-address limiter. A real launch of more than
-120 people in an hour on one campaign needs `abuse.campaignSessionsPerHour` raised first.
+links (D-261) sit in front of that. The first drill's numbers above predate them; the second drill
+(2026-10-14, [full-stack-2](team/drills/2026-10-14-full-stack-2.md), version `59e30a812e31`) ran the
+load against the **defaults**, with the traffic spread over three campaigns and over 150 source
+addresses, and asked whether legitimate people were turned away:
+
+| Profile (defaults as they were)                                         | People turned away                                                                               |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Full run, one campaign took the burst (120 an hour per campaign)        | 311 of 499 open attempts (the cap of one campaign, reached inside five minutes; retries counted) |
+| Full run over three campaigns                                           | 0 of 277 (113, 85 and 79 of 120 used: no refusal, and no margin)                                 |
+| 40 colleagues behind one address in two minutes (30 a minute per route) | 0                                                                                                |
+| 90 colleagues behind one address in one minute (30 a minute per route)  | 60 of 90                                                                                         |
+
+So two defaults were wrong for a real launch and were changed (D-310, D-311): the per-address bucket
+on the link routes is `RATE_LIMIT_PUBLIC_MAX`, **120** a minute (was 30), and `abuse.campaignSessionsPerHour`
+is **300** (was 120), `abuse.tenantSessionsPerHour` **1000** (was 500). With them: 90 colleagues from
+one address in a minute, 0 turned away; the same full run with every arrival on one campaign (279 opens
+in five minutes), 0 turned away; 200 opens from one address are still cut at 120. `abuse.campaignSessionsTotal`
+stays 2000: it is the cost ceiling for a leaked link, and a campaign inviting more people sets it
+higher at campaign scope. The limits are counted in Postgres and so survive a restart; a refused
+attempt is counted too, so a person who keeps retrying keeps the window shut until the hour ends.
+`configure.mjs` no longer raises the limits (`AIDP_DRILL_RAISE_ABUSE=1` does, for a pure capacity run).
 
 **What the numbers do not say**: they are one tenant, a fake provider, a 40 MB database and a
 machine with plenty of CPU. A pilot's own data (transcripts of real length, a real model's

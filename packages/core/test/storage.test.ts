@@ -274,7 +274,10 @@ describe("an object store's quota error is the same typed failure (D-313)", () =
     ["AWS-style QuotaExceeded", s3("QuotaExceeded", 403)],
     ["StorageQuotaExceeded", s3("StorageQuotaExceeded", 403)],
     ["Backblaze storage_cap_exceeded", Object.assign(new Error("cap"), { code: "storage_cap_exceeded" })],
-    ["a Code field as the XML body carries it", Object.assign(new Error("x"), { Code: "InsufficientStorage" })],
+    [
+      "a Code field as the XML body carries it",
+      Object.assign(new Error("x"), { Code: "InsufficientStorage" }),
+    ],
     ["HTTP 507 whatever it is called", s3("ServiceException", 507)],
     ["507 as statusCode", Object.assign(new Error("x"), { statusCode: 507 })],
     ["EDQUOT", Object.assign(new Error("x"), { code: "EDQUOT" })],
