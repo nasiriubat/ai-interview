@@ -22,11 +22,18 @@ export const landingEn = {
     label: "On this page",
     paths: "Two interviews",
     how: "How it works",
+    results: "Results",
     chatbot: "Why not a chatbot",
     trust: "Trust",
     faq: "Questions",
   },
-  header: { signIn: "Sign in", dashboard: "Go to the overview" },
+  header: {
+    signIn: "Sign in",
+    dashboard: "Go to the overview",
+    menu: "Menu",
+    closeMenu: "Close menu",
+    menuTitle: "Menu",
+  },
   hero: {
     eyebrow: "For organizations that want to know before they build",
     title: "Understand the problem before deciding what to build.",
@@ -36,6 +43,9 @@ export const landingEn = {
     dashboard: "Go to the overview",
     noContact:
       "Workspaces are created by the operator of this platform. Ask them, or sign in if you have one.",
+    visualAlt:
+      "The results page of a campaign: counts of interviews, extracted items and groups, then opportunities ranked by score with the scoring weights beside them.",
+    phoneAlt: "The interview on a phone: topic chips above, a participant's answer, the next question below.",
     small: [
       "No account for participants",
       "Built to run on one server you operate",
@@ -84,6 +94,7 @@ export const landingEn = {
     heading: "How it works",
     discovery: {
       title: "Discovery interviews",
+      visualAlt: "An interview on a phone, with topic chips, the participant's answer and the next question.",
       steps: [
         {
           title: "Create a campaign from a template",
@@ -105,6 +116,8 @@ export const landingEn = {
     },
     requirements: {
       title: "Requirements interviews",
+      visualAlt:
+        "A requirements interview: the conversation on the left, the specification being built on the right.",
       steps: [
         {
           title: "Describe the idea",
@@ -124,6 +137,32 @@ export const landingEn = {
         },
       ],
     },
+  },
+  gallery: {
+    heading: "What you get",
+    intro: "Screens from the product, taken from a run with invented colleagues.",
+    items: [
+      {
+        title: "Opportunities, ranked and classified",
+        body: "Each opportunity is scored on seven factors and classified as AI, automation, software, process change or no change recommended. Reweight the factors and the list re-ranks at once.",
+        alt: "The opportunity list grouped by solution class, each with a score bar, seven factor bars and actions.",
+      },
+      {
+        title: "Evidence behind every score",
+        body: "Open an opportunity to see the rationale for each factor and the evidence that supports it. A quote appears only when enough people said something similar.",
+        alt: "An opportunity opened to show its seven factors with a rationale each, and anonymized evidence quotes below.",
+      },
+      {
+        title: "A versioned specification",
+        body: "Numbered requirements marked MVP or future, phases and open findings, downloadable as Markdown, JSON and a bundle for your coding agent. Every version is kept and can be compared.",
+        alt: "A specification version with counts of sections, requirements, MVP items and phases, and download buttons.",
+      },
+      {
+        title: "Diagrams in the specification",
+        body: "Sequence diagrams are part of the specification and can be edited.",
+        alt: "A sequence diagram of a visitor check-in flow between visitor, web app, spreadsheet and reception.",
+      },
+    ],
   },
   chatbot: {
     heading: "Why not just use a chatbot?",
@@ -267,6 +306,14 @@ export const landingEn = {
       "Running discovery for clients? Each client can be its own organization with its own templates, model providers, budgets and reports. Ask about operator access.",
   },
   footer: {
+    navLabel: "Footer",
+    product: "Product",
+    access: "Access",
+    trust: "Trust and contact",
+    privacy: "Privacy and anonymity",
+    contact: "Contact",
+    security: "Report a vulnerability (security.txt)",
+    language: "Language",
     note: "This page runs no tracking and makes no requests to other sites. Your language and appearance choices stay in your browser.",
     signIn: "Sign in",
   },

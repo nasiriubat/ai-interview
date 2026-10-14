@@ -14,7 +14,14 @@ const CHOICES: readonly ThemeChoice[] = ["system", "light", "dark"];
  * between the choices, and each choice carries its name (the phone layout shows only the icon).
  * The choice applies at once and is remembered in this browser.
  */
-export function ThemeSwitch({ className }: { className?: string }): React.JSX.Element {
+export function ThemeSwitch({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  /** Icons only, at every width (the landing header, where room is tight). */
+  compact?: boolean;
+}): React.JSX.Element {
   const s = t.app.theme;
   // "system" on the server and on the first client render, so hydration matches; the stored choice
   // is read right after.
@@ -57,7 +64,7 @@ export function ThemeSwitch({ className }: { className?: string }): React.JSX.El
             )}
           >
             <Icon className="size-4" aria-hidden="true" />
-            <span aria-hidden="true" className="hidden xl:inline">
+            <span aria-hidden="true" className={compact ? "hidden" : "hidden xl:inline"}>
               {label}
             </span>
           </ToggleGroup.Item>
