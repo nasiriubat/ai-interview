@@ -32,7 +32,7 @@ import {
 } from "@aidp/core";
 import type { PrismaClient } from "@prisma/client";
 import type { Logger as PinoLogger } from "pino";
-import type { Config } from "./config.js";
+import { egressAllowHosts, type Config } from "./config.js";
 import { engineLogger } from "./lib/logger.js";
 import { buildServices, type Services } from "./services.js";
 
@@ -119,7 +119,7 @@ export function buildContext(input: {
     new EgressGuard(
       egressConfigFromEnv({
         mode: config.EGRESS_MODE,
-        allowHosts: config.EGRESS_ALLOW_HOSTS,
+        allowHosts: egressAllowHosts(config),
         nodeEnv: config.NODE_ENV,
         // The admin's one-step voice setup writes this URL onto a tenant's provider (D-77).
         trustedUrls: [config.OPENAI_BASE_URL],
