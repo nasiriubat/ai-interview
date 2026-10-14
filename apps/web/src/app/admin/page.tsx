@@ -4,6 +4,12 @@ import Link from "next/link";
 import * as React from "react";
 import { BarList } from "@/components/admin/charts/BarList";
 import { DailyColumns } from "@/components/admin/charts/DailyColumns";
+import {
+  HealthPanel,
+  LatencyPanel,
+  ParticipationPanel,
+  RequirementsPanel,
+} from "@/components/admin/DashboardStats";
 import { DiscoveryTiles } from "@/components/admin/DiscoveryTiles";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -52,12 +58,18 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
   // The checklist is for the people who can act on it; a member is not asked, and a failure to
   // load it leaves the dashboard as it was.
   const canSetUp = me?.user.role === "admin" || me?.user.role === "platform_operator";
-  const [statsR, purposeR, dailyR, onboardingR] = await Promise.allSettled([
-    api.stats(),
-    api.spend({ ...r.month, groupBy: "purpose" }),
-    api.spend({ ...r.daily, groupBy: "day" }),
-    canSetUp ? api.onboarding.get() : Promise.reject(new Error("not for members")),
-  ]);
+  const [statsR, purposeR, dailyR, onboardingR, participationR, requirementsR, aiR, healthR] =
+    await Promise.allSettled([
+      api.stats(),
+      api.spend({ ...r.month, groupBy: "purpose" }),
+      api.spend({ ...r.daily, groupBy: "day" }),
+      canSetUp ? api.onboarding.get() : Promise.reject(new Error("not for members")),
+      api.statsSegments.participation(),
+      api.statsSegments.requirements(),
+      api.statsSegments.ai(),
+      // Queue depth is the platform's, so it is for the people who run things.
+      canSetUp ? api.statsSegments.health() : Promise.reject(new Error("not for members")),
+    ]);
   const stats = settled(statsR);
   const byPurpose = settled(purposeR);
   const daily = settled(dailyR);
@@ -231,6 +243,11 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
         </div>
 
         {discovery ? <DiscoveryTiles discovery={discovery} /> : null}
+
+        <ParticipationPanel segment={settled(participationR)} />
+        <RequirementsPanel segment={settled(requirementsR)} />
+        <LatencyPanel segment={settled(aiR)} />
+        {canSetUp ? <HealthPanel segment={settled(healthR)} /> : null}
       </div>
     </>
   );

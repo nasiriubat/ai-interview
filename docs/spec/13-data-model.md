@@ -16,6 +16,7 @@ erDiagram
   Campaign ||--o{ Participant : has
   Campaign ||--o{ Session : contains
   Campaign ||--o{ Analysis : produces
+  Campaign ||--o{ ClusterEdit : "merges and splits"
   Participant ||--o{ Session : takes
   Session ||--o{ Message : has
   Session ||--o{ SessionEvent : logs

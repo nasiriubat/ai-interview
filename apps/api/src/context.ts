@@ -227,6 +227,7 @@ export function buildContext(input: {
     jobs: input.jobs,
     ceilings,
     onboarding,
+    jobAdmin,
   });
   return {
     config,
