@@ -40,6 +40,7 @@ import { participantRoutes } from "./modules/participant/routes.js";
 import { participantVoiceLiveRoutes } from "./modules/participant/voice-live/routes.js";
 import { participantVoiceRoutes } from "./modules/participant/voice.js";
 import { privacyRoutes } from "./modules/privacy/routes.js";
+import { promptRoutes } from "./modules/prompts/routes.js";
 import { providerRoutes } from "./modules/providers/routes.js";
 import { requirementsRoutes } from "./modules/requirements/routes.js";
 import { sessionRoutes } from "./modules/sessions/routes.js";
@@ -187,6 +188,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await voiceAdminRoutes(a, routes);
       await statsRoutes(a, routes);
       await onboardingRoutes(a, routes);
+      await promptRoutes(a, routes);
       await auditRoutes(a, routes);
       await privacyRoutes(a, routes);
       await analysisRoutes(a, routes);

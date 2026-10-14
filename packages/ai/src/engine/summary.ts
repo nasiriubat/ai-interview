@@ -20,7 +20,7 @@ export async function updateRollingSummary(
   const toFold = older.slice(0, Math.max(0, older.length - keep));
   if (toFold.length === 0) return { updated: false, upToSeq: state.summaryUpToSeq };
 
-  const prompt = await deps.prompts.get(session.companyId, "summary");
+  const prompt = await deps.prompts.get(session.companyId, "summary", session.id);
   const nonce = newNonce();
   const transcript = toFold
     .map((m) =>
