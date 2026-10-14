@@ -76,6 +76,10 @@ const RUNS = Number(process.env.LIVE_RUNS ?? 5);
 const CAP_USD = Number(process.env.LIVE_CAP_USD ?? 1.5);
 const PERSONA = (process.env.LIVE_PERSONA ?? "nontechnical") as "nontechnical" | "technical";
 const MAX_TURNS = Number(process.env.LIVE_MAX_TURNS ?? 48);
+/** After this many assistant turns the owner presses "I'm done", as in the product (default: never). */
+const FINISH_AT = Number(process.env.LIVE_FINISH_AT ?? 0);
+/** Turns allowed after "done" for the confirmation, the closing question and the summary. */
+const AFTER_FINISH_TURNS = 8;
 const CONCURRENCY = Number(process.env.LIVE_CONCURRENCY ?? 3);
 const MODEL_TURN = process.env.LIVE_MODEL_TURN ?? "anthropic/claude-haiku-5.5";
 const MODEL_STRUCTURED = process.env.LIVE_MODEL_STRUCTURED ?? "mistralai/mistral-small-3.2-24b-instruct";
@@ -161,6 +165,13 @@ interface RunResult {
   generationFallback: boolean;
   costUsd: number;
   error?: string;
+}
+
+/** Where each interview's transcript, facts and generated specification are saved (LIVE_SAVE_DIR). */
+const SAVE_DIR = process.env.LIVE_SAVE_DIR ?? join(tmpdir(), "ai-discovery-live", `variance-${Date.now()}`);
+function saveArtifact(run: number, body: unknown): void {
+  mkdirSync(SAVE_DIR, { recursive: true });
+  writeFileSync(join(SAVE_DIR, `${PERSONA}-${run}.json`), redact(JSON.stringify(body, null, 2)));
 }
 
 const median = (xs: number[]): number => {
@@ -282,7 +293,8 @@ async function main(): Promise<void> {
     let endReason = "turn cap";
     let widgetOffers = 0;
     try {
-      for (; turns < MAX_TURNS;) {
+      let finished = false;
+      for (; turns < (finished ? MAX_TURNS + AFTER_FINISH_TURNS : MAX_TURNS);) {
         if (spent() >= CAP_USD) {
           endReason = "cost cap";
           break;
@@ -312,6 +324,11 @@ async function main(): Promise<void> {
         }
         history.push({ role: "assistant", content: message });
         let next: Parameters<InterviewEngine["nextTurn"]>[1];
+        if (FINISH_AT > 0 && turns >= FINISH_AT && !finished) {
+          finished = true;
+          answer = { control: { type: "finish" } };
+          continue;
+        }
         if (widget) {
           widgetOffers += 1;
           if (widgetOffers % 2 === 1) {
@@ -372,6 +389,14 @@ async function main(): Promise<void> {
         },
       );
       generatedRequirements = gen.document.requirements.length;
+      saveArtifact(run, {
+        persona: PERSONA,
+        messages: store.messages.map((m) => ({ seq: m.seq, role: m.role, content: m.content })),
+        facts: state.facts,
+        summary: store.summary,
+        requirements: gen.document.requirements,
+        markdown: gen.markdown,
+      });
       generationFallback = gen.generated === "fallback";
       generationFailure = gen.failure ?? null;
     } catch (e) {
