@@ -958,6 +958,25 @@ export const OpportunityEnvelopeSchema = z.preprocess(
   OpportunitySchema,
 );
 
+/** The queued edit run a merge, split or undo answers with. */
+export const ClusterEditResultSchema = z.looseObject({
+  analysis: AnalysisSchema,
+  editId: z.string().optional(),
+});
+export type ClusterEditResult = z.infer<typeof ClusterEditResultSchema>;
+
+export const ClusterEditSchema = z.looseObject({
+  id: z.string(),
+  op: z.enum(["merge", "split"]),
+  createdAt: iso,
+  revokedAt: iso.nullish(),
+  clusters: z.number().int().optional(),
+  parts: z.number().int().optional(),
+  title: z.string().optional(),
+});
+export type ClusterEdit = z.infer<typeof ClusterEditSchema>;
+export const ClusterEditListSchema = z.object({ edits: z.array(ClusterEditSchema) });
+
 export const ReportSchema = z.looseObject({
   id: z.string(),
   analysisId: z.string().default(""),

@@ -519,7 +519,15 @@ export class CampaignService {
     const token = newToken(24);
     await this.db.invitation.update({
       where: { id: inv.id },
-      data: { tokenHash: this.crypto.hashToken(token), sentAt: new Date(), status: "sent" },
+      data: {
+        tokenHash: this.crypto.hashToken(token),
+        sentAt: new Date(),
+        status: "sent",
+        // The dashboard's "reminders sent" (spec 07) counts these, not audit rows, which are kept
+        // for less time than a campaign runs.
+        reminderCount: { increment: 1 },
+        lastRemindedAt: new Date(),
+      },
     });
     await this.sendInvitation(campaign, inv.email, token, null, true);
   }

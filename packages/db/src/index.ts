@@ -79,6 +79,7 @@ export const SCOPED_MODELS: ReadonlySet<string> = new Set([
   "Opportunity",
   "OpportunityEvidence",
   "Report",
+  "ClusterEdit",
   "Invitation",
   "CampaignEmailHash",
   "EmailCode",

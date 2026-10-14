@@ -144,6 +144,7 @@ model Campaign {
   participants Participant[]
   sessions     Session[]
   analyses     Analysis[]
+  clusterEdits ClusterEdit[]
   llmCalls     LlmCall[]
 
   @@unique([id, companyId])
@@ -185,6 +186,8 @@ model Session {
   flaggedAt      DateTime?
   flagAckedAt    DateTime?
   flagAckedBy    String?
+  /// The participant gave their identity (false: anonymous, or not a campaign interview). Set at consent.
+  identified     Boolean   @default(false)
 
   company     Company           @relation(fields: [companyId], references: [id])
   template    InterviewTemplate @relation(fields: [templateId], references: [id])
@@ -336,6 +339,10 @@ model Analysis {
   status      String    @default("queued") // queued | running | done | failed
   preliminary Boolean   @default(false)
   stats       Json      @default("{}")
+  /// Every cluster of this run before administrator edits, as { key, name, summary, factIds }. An
+  /// edit run (merge, split, undo) starts from these instead of clustering again (D-200). Never
+  /// returned by the API: it is a list of fact ids.
+  clusters    Json      @default("[]")
   startedAt  DateTime?
   finishedAt DateTime?
   createdAt  DateTime  @default(now())
@@ -346,6 +353,23 @@ model Analysis {
 
   @@unique([campaignId, version])
   @@unique([id, companyId])
+}
+
+/// An administrator's merge or split of clusters (FR-18), stored against fact ids so it can be
+/// applied to a later clustering of the same facts (D-200). Revoked, never deleted: undo is an edit.
+model ClusterEdit {
+  id         String    @id @default(cuid())
+  companyId  String
+  campaignId String
+  op         String // merge | split
+  payload    Json // ClusterEditPayload
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+
+  campaign Campaign @relation(fields: [campaignId, companyId], references: [id, companyId], onDelete: Cascade)
+
+  @@index([companyId, campaignId, revokedAt])
 }
 
 model Opportunity {
@@ -366,6 +390,8 @@ model Opportunity {
   risks         Json     @default("[]")
   whyNotAi      String?
   promotedSessionId String?
+  /// Every fact in the cluster, not only the twelve evidence rows. Internal; never returned.
+  factIds       Json     @default("[]")
   createdAt     DateTime @default(now())
 
   analysis Analysis              @relation(fields: [analysisId, companyId], references: [id, companyId], onDelete: Cascade)
@@ -441,9 +467,12 @@ model Invitation {
   openedAt   DateTime?
   expiresAt  DateTime
   createdAt  DateTime  @default(now())
+  /// Reminders sent for this invitation, and when the last went out (spec 07: reminders sent).
+  reminderCount  Int       @default(0)
+  lastRemindedAt DateTime?
 
   campaign Campaign @relation(fields: [campaignId, companyId], references: [id, companyId], onDelete: Cascade)
-  session  Session? @relation(fields: [sessionId, companyId], references: [id, companyId])
+  session  Session?@relation(fields: [sessionId, companyId], references: [id, companyId])
 
   @@unique([campaignId, emailHash])
   @@unique([sessionId, companyId])

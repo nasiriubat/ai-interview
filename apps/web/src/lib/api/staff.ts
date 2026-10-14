@@ -1,12 +1,27 @@
-import type {
-  BudgetLimit,
-  FindingOutcome,
-  InterviewTemplateInput,
-  OpportunityOverride,
-  PageInput,
-  Path,
-  Route,
-  TurnControl,
+import {
+  DepartmentComparisonSchema,
+  SplitProposalSchema,
+  StatsAiSchema,
+  StatsDiscoverySchema,
+  StatsHealthSchema,
+  StatsParticipationSchema,
+  StatsRequirementsSchema,
+  type DepartmentComparison,
+  type SplitProposal,
+  type StatsAi,
+  type StatsDiscovery,
+  type StatsHealth,
+  type StatsParticipation,
+  type StatsRange,
+  type StatsRequirements,
+  type BudgetLimit,
+  type FindingOutcome,
+  type InterviewTemplateInput,
+  type OpportunityOverride,
+  type PageInput,
+  type Path,
+  type Route,
+  type TurnControl,
 } from "@aidp/shared";
 import { type z } from "zod";
 import { request, requestStream, type Transport } from "./http";
@@ -34,6 +49,10 @@ import {
   type SpecVersionSummary,
   type Analysis,
   type AnalysisDetail,
+  type ClusterEdit,
+  ClusterEditListSchema,
+  type ClusterEditResult,
+  ClusterEditResultSchema,
   AnalysisDetailSchema,
   type AnalysisDiff,
   AnalysisDiffSchema,
@@ -126,6 +145,15 @@ import {
   type VoiceReadiness,
   VoiceReadinessSchema,
 } from "./schemas";
+
+/** `from` and `to` travel as ISO strings; unset fields are not sent. */
+function rangeQuery(q: StatsRange | undefined): Record<string, string> {
+  return {
+    ...(q?.from ? { from: q.from.toISOString() } : {}),
+    ...(q?.to ? { to: q.to.toISOString() } : {}),
+    ...(q?.campaignId ? { campaignId: q.campaignId } : {}),
+  };
+}
 
 export interface CampaignCreateInput {
   templateId: string;
@@ -361,6 +389,26 @@ export function staffApi(transport: Transport): StaffApi {
       get: (id) => request(transport, { path: `/analyses/${id}`, schema: AnalysisDetailSchema }),
       diff: (id, otherId) =>
         request(transport, { path: `/analyses/${id}/diff/${otherId}`, schema: AnalysisDiffSchema }),
+      departments: (id) =>
+        request(transport, { path: `/analyses/${id}/departments`, schema: DepartmentComparisonSchema }),
+      merge: (id, body) =>
+        request(transport, {
+          method: "POST",
+          path: `/analyses/${id}/opportunities/merge`,
+          body,
+          schema: ClusterEditResultSchema,
+        }),
+      clusterEdits: (campaignId) =>
+        request(transport, {
+          path: `/campaigns/${campaignId}/cluster-edits`,
+          schema: ClusterEditListSchema,
+        }).then((r) => r.edits),
+      undoClusterEdit: (campaignId, editId) =>
+        request(transport, {
+          method: "DELETE",
+          path: `/campaigns/${campaignId}/cluster-edits/${editId}`,
+          schema: ClusterEditResultSchema,
+        }),
     },
 
     opportunities: {
@@ -384,6 +432,15 @@ export function staffApi(transport: Transport): StaffApi {
           path: `/opportunities/${id}/promote`,
           body: {},
           schema: PromoteResultSchema,
+        }),
+      splitProposal: (id) =>
+        request(transport, { path: `/opportunities/${id}/split-proposal`, schema: SplitProposalSchema }),
+      split: (id, parts) =>
+        request(transport, {
+          method: "POST",
+          path: `/opportunities/${id}/split`,
+          body: { parts },
+          schema: ClusterEditResultSchema,
         }),
     },
 
@@ -530,6 +587,24 @@ export function staffApi(transport: Transport): StaffApi {
 
     spend: (q) => request(transport, { path: "/spend", query: { ...q }, schema: SpendSchema }),
     stats: () => request(transport, { path: "/stats", schema: StatsSchema }),
+    statsSegments: {
+      participation: (q) =>
+        request(transport, {
+          path: "/stats/participation",
+          query: rangeQuery(q),
+          schema: StatsParticipationSchema,
+        }),
+      discovery: (q) =>
+        request(transport, { path: "/stats/discovery", query: rangeQuery(q), schema: StatsDiscoverySchema }),
+      requirements: (q) =>
+        request(transport, {
+          path: "/stats/requirements",
+          query: rangeQuery(q),
+          schema: StatsRequirementsSchema,
+        }),
+      ai: (q) => request(transport, { path: "/stats/ai", query: rangeQuery(q), schema: StatsAiSchema }),
+      health: () => request(transport, { path: "/stats/health", schema: StatsHealthSchema }),
+    },
     audit: (q) => request(transport, { path: "/audit", query: { ...q }, schema: AuditPageSchema }),
 
     requirements: {
@@ -804,8 +879,17 @@ export interface StaffApi {
     list(campaignId: string, q?: AnalysisListQuery): Promise<Paged<Analysis>>;
     get(id: string): Promise<AnalysisDetail>;
     diff(id: string, otherId: string): Promise<AnalysisDiff>;
+    /** Department comparison under the anonymity rule: groups below k are not in the answer (FR-17). */
+    departments(id: string): Promise<DepartmentComparison>;
+    /** Merges opportunities of the newest analysis; the answer is the queued edit run (FR-18). */
+    merge(id: string, body: { opportunityIds: string[]; title?: string }): Promise<ClusterEditResult>;
+    clusterEdits(campaignId: string): Promise<ClusterEdit[]>;
+    undoClusterEdit(campaignId: string, editId: string): Promise<ClusterEditResult>;
   };
   opportunities: {
+    /** The cluster's facts as text, grouped by similarity, for the split dialog. */
+    splitProposal(id: string): Promise<SplitProposal>;
+    split(id: string, parts: string[][]): Promise<ClusterEditResult>;
     override(id: string, override: OpportunityOverride): Promise<Opportunity>;
     setStatus(id: string, status: OpportunityStatusInput): Promise<Opportunity>;
     promote(id: string): Promise<PromoteResult>;
@@ -866,6 +950,14 @@ export interface StaffApi {
   };
   spend(q: SpendQuery): Promise<Spend>;
   stats(): Promise<Stats>;
+  /** Dashboard segments (spec 07); each is parsed with the contract the API serves. */
+  statsSegments: {
+    participation(q?: StatsRange): Promise<StatsParticipation>;
+    discovery(q?: StatsRange): Promise<StatsDiscovery>;
+    requirements(q?: StatsRange): Promise<StatsRequirements>;
+    ai(q?: StatsRange): Promise<StatsAi>;
+    health(): Promise<StatsHealth>;
+  };
   audit(q?: AuditListQuery): Promise<Paged<AuditEntry>>;
   /** Contract 18: requirements sessions owned by staff, their live spec, versions and invitations. */
   requirements: RequirementsApi;

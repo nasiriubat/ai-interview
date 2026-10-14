@@ -492,6 +492,84 @@ suite("audit rows: every administrative mutation writes one", () => {
     });
   });
 
+  it("cluster merge, split, rename and undo (FR-18)", async () => {
+    const factor = { score: 3, rationale: "r" };
+    const factors = {
+      expected_impact: factor,
+      affected_employees: factor,
+      frequency: factor,
+      implementation_complexity: factor,
+      data_availability: factor,
+      risk: factor,
+      ai_suitability: factor,
+    };
+    let version = 700;
+    /** A finished, editable analysis that is the newest of the campaign. */
+    const editable = async (): Promise<{ analysisId: string; ids: string[] }> => {
+      const a = await world.db.analysis.create({
+        data: {
+          companyId: world.companyId,
+          campaignId: s.campaign!,
+          // Ten apart: a merge queues the edit run at the next number.
+          version: (version += 10),
+          status: "done",
+          clusters: [{ key: "ca", name: "A", summary: "", factIds: ["f1", "f2", "f3"] }],
+        },
+      });
+      const ids: string[] = [];
+      for (const [i, facts] of [["f1", "f2"], ["f3"]].entries()) {
+        const o = await world.db.opportunity.create({
+          data: {
+            companyId: world.companyId,
+            analysisId: a.id,
+            title: `Cluster ${i}`,
+            summary: "s",
+            solutionClass: "automation",
+            factors,
+            rationale: "r",
+            rankScore: 1,
+            clusterKey: `audit-cluster-${version}-${i}`,
+            factIds: facts,
+            stats: { participants: 5 },
+          },
+        });
+        ids.push(o.id);
+      }
+      return { analysisId: a.id, ids };
+    };
+
+    const first = await editable();
+    await audited(
+      "PATCH /opportunities/:id",
+      `/opportunities/${first.ids[0]}`,
+      { title: "A clearer name" },
+      { action: "cluster.rename", targetType: "opportunity", targetId: first.ids[0]!, actor: "admin" },
+    );
+    const merged = await audited(
+      "POST /analyses/:id/opportunities/merge",
+      `/analyses/${first.analysisId}/opportunities/merge`,
+      { opportunityIds: first.ids, title: "Both" },
+      { action: "cluster.merge", targetType: "analysis", targetId: first.analysisId, actor: "admin" },
+    );
+    const editId = merged.json<{ editId: string }>().editId;
+
+    const second = await editable();
+    await audited(
+      "POST /opportunities/:id/split",
+      `/opportunities/${second.ids[0]}/split`,
+      { parts: [["f1"], ["f2"]] },
+      { action: "cluster.split", targetType: "opportunity", targetId: second.ids[0]!, actor: "admin" },
+    );
+
+    await editable();
+    await audited(
+      "DELETE /campaigns/:id/cluster-edits/:editId",
+      `/campaigns/${s.campaign}/cluster-edits/${editId}`,
+      undefined,
+      { action: "cluster.edit.undo", targetType: "campaign", targetId: s.campaign!, actor: "admin" },
+    );
+  });
+
   // ---------- requirements (staff routes, members included) ----------
 
   it("the requirements workspace: create through push, as a member", async () => {
