@@ -20,8 +20,8 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
-import { guard, installAccessGuard } from "./auth/access.js";
 import { installAccessAudit } from "./auth/access-audit.js";
+import { guard, installAccessGuard } from "./auth/access.js";
 import { installAuditDeclarationCheck } from "./auth/audit-actions.js";
 import { authPlugin } from "./auth/plugin.js";
 import { PrincipalResolver } from "./auth/principal.js";

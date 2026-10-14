@@ -1,6 +1,6 @@
 import type { Server } from "node:http";
-import { encode } from "@auth/core/jwt";
 import { shippedTemplates } from "@aidp/db";
+import { encode } from "@auth/core/jwt";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fakeModelServer, TEST_AUTH_SECRET, testWorld, type TestWorld } from "./helpers.js";
 
