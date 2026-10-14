@@ -26,6 +26,11 @@ RUN --mount=type=cache,id=aidp-pnpm-store,target=/pnpm/store \
 FROM deps AS build
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
+# Not shipped, but type-checked: `next build` runs tsc over everything tsconfig.json includes, and
+# that includes e2e/fixtures.ts, which imports the shipped template as a fixture. Without these
+# files the production image cannot be built (found by the full-stack drill; deploy/test/images.test.sh
+# keeps this list honest).
+COPY packages/db/src/seed-templates packages/db/src/seed-templates
 COPY apps/web apps/web
 # Same assertion as apps/api/Dockerfile, for the same reason: the root .dockerignore keeps every
 # `.env` out of the build context, and this is the check that it did. The final image copies only
