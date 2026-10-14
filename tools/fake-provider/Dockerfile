@@ -2,7 +2,7 @@
 #
 # The fake model provider (tools/fake-provider): an OpenAI-compatible server with scripted,
 # deterministic behaviour, for load tests, chaos drills and the full-stack drill. It is never part
-# of a production deployment; deploy/compose.fake.yml and docker-compose.fake.yml add it.
+# of a production deployment; deploy/compose.fake.yml adds it for the rehearsal.
 #
 #   docker build -f tools/fake-provider/Dockerfile -t aidp-fake-provider .   # from the repository root
 #
