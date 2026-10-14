@@ -76,7 +76,7 @@ export class ArchiveFormatError extends Error {
 export function readKeyId(head: Buffer): string {
   if (head.length < MAGIC.length + 1 || !head.subarray(0, MAGIC.length).equals(MAGIC))
     throw new ArchiveFormatError("Not a sealed export archive");
-  const len = head[MAGIC.length]!;
+  const len = head.readUInt8(MAGIC.length);
   if (head.length < MAGIC.length + 1 + len) throw new ArchiveFormatError("Truncated archive header");
   return head.subarray(MAGIC.length + 1, MAGIC.length + 1 + len).toString("utf8");
 }
@@ -88,8 +88,6 @@ export async function* openStream(
 ): AsyncGenerator<Buffer> {
   let buf = Buffer.alloc(0);
   let counter = 0;
-  let key: Buffer | undefined;
-  let prefix: Buffer | undefined;
   let sawLast = false;
 
   const iterator = source[Symbol.asyncIterator]();
@@ -103,12 +101,12 @@ export async function* openStream(
   };
 
   if (!(await fill(MAGIC.length + 1))) throw new ArchiveFormatError("Not a sealed export archive");
-  const kidLen = buf[MAGIC.length]!;
+  const kidLen = buf.readUInt8(MAGIC.length);
   if (!(await fill(MAGIC.length + 1 + kidLen + 4))) throw new ArchiveFormatError("Truncated archive header");
   const keyId = readKeyId(buf);
-  key = keyFor(keyId) ?? undefined;
+  const key = keyFor(keyId);
   if (!key) throw new ArchiveFormatError(`The archive is sealed under key ${keyId}, which is not available`);
-  prefix = buf.subarray(MAGIC.length + 1 + kidLen, MAGIC.length + 1 + kidLen + 4);
+  const prefix = buf.subarray(MAGIC.length + 1 + kidLen, MAGIC.length + 1 + kidLen + 4);
   buf = buf.subarray(MAGIC.length + 1 + kidLen + 4);
 
   for (;;) {

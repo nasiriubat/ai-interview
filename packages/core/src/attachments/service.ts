@@ -193,10 +193,11 @@ export class AttachmentService {
     }
     // The operator's ceiling is the platform's promise and sits above the tenant's own quota
     // setting: it refuses with the tenant told once, and caps this upload to what is left of it.
-    const ceiling = await this.deps.ceilings?.standing(input.companyId, "storageBytes");
+    const ceilings = this.deps.ceilings;
+    const ceiling = await ceilings?.standing(input.companyId, "storageBytes");
     const ceilingRoom = ceiling && ceiling.max > 0 ? ceiling.max - ceiling.used : undefined;
-    if (ceiling && ceilingRoom !== undefined && ceilingRoom <= 0)
-      throw await this.deps.ceilings!.reached(input.companyId, "storageBytes", ceiling.used, ceiling.max);
+    if (ceilings && ceiling && ceilingRoom !== undefined && ceilingRoom <= 0)
+      throw await ceilings.reached(input.companyId, "storageBytes", ceiling.used, ceiling.max);
     const maxBytes = Math.min(perFile, quotas.sessionRoom, quotas.tenantRoom, ceilingRoom ?? Infinity);
     const overflow: Error =
       maxBytes === perFile
@@ -271,11 +272,11 @@ export class AttachmentService {
     }
     // Two uploads that each fit when they began may not both fit now; the ceiling is re-read
     // after the write, like the quotas above, and the one that crossed it is removed.
-    if (ceiling && ceiling.max > 0) {
-      const now = await this.deps.ceilings!.standing(input.companyId, "storageBytes");
+    if (ceilings && ceiling && ceiling.max > 0) {
+      const now = await ceilings.standing(input.companyId, "storageBytes");
       if (now.used > now.max) {
         await this.discard(row.id, key);
-        throw await this.deps.ceilings!.reached(input.companyId, "storageBytes", now.used, now.max);
+        throw await ceilings.reached(input.companyId, "storageBytes", now.used, now.max);
       }
     }
     await this.deps.ceilings?.afterChange(input.companyId);

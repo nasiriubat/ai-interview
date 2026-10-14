@@ -119,7 +119,7 @@ export class TenantPurger {
           tx.$queryRawUnsafe<{ n: number }[]>("SELECT audit_purge_tenant($1) AS n", companyId),
         ),
       );
-      report.auditRows = Number(removed[0]?.n ?? 0);
+      report.auditRows = removed[0]?.n ?? 0;
     }
 
     // 5. The scan.

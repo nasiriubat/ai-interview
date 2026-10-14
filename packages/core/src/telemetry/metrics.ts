@@ -261,18 +261,42 @@ export type GaugeName =
   | "worker_heartbeat_age_seconds";
 
 export class NoopMetrics implements Metrics {
-  modelCall(): void {}
-  turn(): void {}
-  voiceFirstWord(): void {}
-  voiceFirstPartial(): void {}
-  voiceEvent(): void {}
-  budgetBlocked(): void {}
-  job(): void {}
-  http(): void {}
-  circuit(): void {}
-  alert(): void {}
-  queue(): void {}
-  gauge(): void {}
+  modelCall(): void {
+    return;
+  }
+  turn(): void {
+    return;
+  }
+  voiceFirstWord(): void {
+    return;
+  }
+  voiceFirstPartial(): void {
+    return;
+  }
+  voiceEvent(): void {
+    return;
+  }
+  budgetBlocked(): void {
+    return;
+  }
+  job(): void {
+    return;
+  }
+  http(): void {
+    return;
+  }
+  circuit(): void {
+    return;
+  }
+  alert(): void {
+    return;
+  }
+  queue(): void {
+    return;
+  }
+  gauge(): void {
+    return;
+  }
   render(): string {
     return "";
   }

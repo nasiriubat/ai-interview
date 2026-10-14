@@ -103,7 +103,7 @@ export class PlatformHealthService {
   }
 
   async snapshot(): Promise<PlatformHealth> {
-    const { db, inputs } = this.deps;
+    const { inputs } = this.deps;
     const now = this.now();
     const t = await this.deps.thresholds();
     const hourAgo = new Date(now.getTime() - 3_600_000);
@@ -318,7 +318,6 @@ export class PlatformHealthService {
     });
 
     const tenants = await settle(this.tenants(monthStart, dayAgo), []);
-    db;
 
     return {
       generatedAt: now.toISOString(),
@@ -528,7 +527,7 @@ export class PlatformHealthService {
           ),
         ),
       );
-      return new Map(rows.filter((r) => r.company).map((r) => [r.company!, Number(r.n)]));
+      return new Map(rows.filter((r) => r.company).map((r) => [r.company ?? "", Number(r.n)]));
     } catch {
       return new Map();
     }

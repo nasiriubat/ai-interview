@@ -84,7 +84,7 @@ export class ErasureLedger {
       if (!line.trim()) continue;
       try {
         const e = JSON.parse(line) as ErasureEntry;
-        if ((e.kind === "tenant" || e.kind === "session") && e.targetId && e.tenantRef) out.push(e);
+        if (e.targetId && e.tenantRef) out.push(e);
       } catch {
         // A torn last line from a crash: the entries before it are still good.
       }

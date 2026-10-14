@@ -131,7 +131,8 @@ export class TenantExporter {
             if (page.length === 0) return;
             let text = "";
             for (const row of page) {
-              for (const col of omit) delete row[col];
+              for (const [col, v] of Object.entries(row))
+                if (omit.has(col)) row[col] = v === null ? null : undefined;
               if (table === "Setting" && typeof row.value === "string" && SEALED.test(row.value))
                 row.value = "[secret omitted]";
               text += jsonLine(row);
@@ -145,7 +146,7 @@ export class TenantExporter {
       return { source, count: () => count };
     };
 
-    const self = this;
+    const clock = this.now;
     async function* entries(): AsyncGenerator<StreamEntry> {
       yield {
         path: "README.txt",
@@ -210,7 +211,7 @@ export class TenantExporter {
         JSON.stringify(
           {
             companyId,
-            createdAt: self.now().toISOString(),
+            createdAt: clock().toISOString(),
             requestedBy,
             rows,
             files,
@@ -222,7 +223,7 @@ export class TenantExporter {
         ),
         "utf8",
       );
-      signature = createHmac("sha256", signing!.key).update(body).digest("hex");
+      signature = createHmac("sha256", signing.key).update(body).digest("hex");
       yield { path: "manifest.json", data: body };
       yield { path: "manifest.sig", data: `${signature}\n` };
     }

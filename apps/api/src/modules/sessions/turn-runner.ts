@@ -87,7 +87,7 @@ export async function* streamTurn(
         span.setAttribute("turn.first_token_ms", firstTokenMs);
       }
       if (item.event === "ended") ended = true;
-      if (item.event === "error") failed = String((item.data as { code?: string }).code ?? "error");
+      if (item.event === "error") failed = (item.data as { code?: string }).code ?? "error";
       yield item;
     }
   } finally {
