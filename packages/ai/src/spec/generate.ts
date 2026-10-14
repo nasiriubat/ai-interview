@@ -39,6 +39,7 @@ import {
   reqViewOf,
   requirementSimilarity,
   type CurationReport,
+  type DuplicateThresholds,
   type ReqView,
 } from "./quality.js";
 
@@ -90,6 +91,22 @@ export interface SpecGenerationInput {
   minRequirements?: number;
 }
 
+export type ReadBackStatus = "confirmed" | "unanswered" | "never";
+
+/** The question an unconfirmed list adds, so a reader of the specification knows it was never reviewed. */
+export const UNREVIEWED_LIST_QUESTION =
+  "The participant did not review the requirement list: the interview ended before it was read back and confirmed. Is anything on it wrong or missing?";
+
+/** Reads the state's record of the confirmation read-back (D-244). */
+export function readBackStatus(
+  state: Pick<SessionState, "findings" | "requirementsConfirmAsked">,
+): ReadBackStatus {
+  if (!state.requirementsConfirmAsked) return "never";
+  const f = state.findings.find((x) => x.description.startsWith("Requirements confirmation."));
+  if (!f) return "never";
+  return f.status === "open" || f.status === "raised" ? "unanswered" : "confirmed";
+}
+
 export interface SpecGenerationResult {
   document: SpecDocument;
   markdown: string;
@@ -100,6 +117,11 @@ export interface SpecGenerationResult {
   generated: "model" | "fallback";
   /** What the quality pass did to the recorded requirements before the version was written (D-241). */
   curation: CurationReport;
+  /**
+   * Whether the owner heard the list (D-290): `confirmed` (read back and answered), `unanswered`
+   * (read back, the participant left before answering), `never` (the interview ended without it).
+   */
+  readBack: ReadBackStatus;
   error?: string;
   /**
    * Set when the version must not be offered as a specification: fewer requirements than the
@@ -197,37 +219,61 @@ export function requirementsFromState(state: SessionState): SpecDocument["requir
  * duplicates are merged (plainly equal ones by word overlap, near ones after one cheap model look
  * at those pairs only). The state returned is what the rest of the generation reads.
  */
+/** Requirements from which the second, whole-list round runs (D-290). */
+const WHOLE_LIST_MIN = 8;
+
+/**
+ * Overlap at which a pair is shown to the model, per round (D-290). The second round is the whole
+ * list: every pair is a candidate, so a restatement in different words is looked at too.
+ */
+const MERGE_ROUNDS: DuplicateThresholds[] = [
+  { auto: 0.8, candidate: 0.25 },
+  { auto: 0.8, candidate: 0.0 },
+];
+
 export async function curateForGeneration(
   deps: { caller: ModelCallerPort; prompts: PromptSource; logger: Logger },
   input: { companyId: string; sessionId: string; state: SessionState },
 ): Promise<{ state: SessionState; report: CurationReport }> {
-  const first = curateRequirements(input.state);
-  let curated = first;
-  if (first.report.candidates.length > 0) {
-    const reqs = requirementFacts({ ...input.state, facts: first.facts }).map((f) => reqViewOf(f));
+  let curated = curateRequirements(input.state, {
+    thresholds: MERGE_ROUNDS[0] ?? { auto: 0.8, candidate: 0.25 },
+  });
+  const distinct: { a: string; b: string }[] = [];
+  for (let round = 0; round < MERGE_ROUNDS.length; round++) {
+    const thresholds = MERGE_ROUNDS[round];
+    if (!thresholds) break;
+    if (round > 0) {
+      // A short list is read whole by its owner; the wide look is for lists a person stops reading.
+      if (requirementFacts({ ...input.state, facts: curated.facts }).length < WHOLE_LIST_MIN) continue;
+      // The merges of the last round changed the survivors; look again at what is left, wider.
+      const again = curateRequirements({ facts: curated.facts }, { thresholds, modelDistinct: distinct });
+      curated = { facts: again.facts, report: { ...curated.report, candidates: again.report.candidates } };
+    }
+    if (curated.report.candidates.length === 0) continue;
+    const reqs = requirementFacts({ ...input.state, facts: curated.facts }).map((f) => reqViewOf(f));
     const verdict = await judgeCandidatePairs(deps, {
       companyId: input.companyId,
       sessionId: input.sessionId,
       reqs,
-      pairs: first.report.candidates,
+      pairs: curated.report.candidates,
     });
-    if (verdict.same.length > 0 || verdict.different.length > 0) {
-      const second = curateRequirements(
-        { facts: first.facts },
-        { modelDuplicates: verdict.same, modelDistinct: verdict.different },
-      );
-      curated = {
-        facts: second.facts,
-        report: {
-          merged: [...first.report.merged, ...second.report.merged],
-          rerouted: first.report.rerouted,
-          withdrawn: first.report.withdrawn,
-          renumbered: first.report.renumbered,
-          folded: [...first.report.folded, ...second.report.folded],
-          candidates: second.report.candidates,
-        },
-      };
-    }
+    distinct.push(...verdict.different);
+    if (verdict.same.length === 0 && verdict.different.length === 0) continue;
+    const next = curateRequirements(
+      { facts: curated.facts },
+      { thresholds, modelDuplicates: verdict.same, modelDistinct: distinct },
+    );
+    curated = {
+      facts: next.facts,
+      report: {
+        merged: [...curated.report.merged, ...next.report.merged],
+        rerouted: curated.report.rerouted,
+        withdrawn: curated.report.withdrawn,
+        renumbered: curated.report.renumbered,
+        folded: [...curated.report.folded, ...next.report.folded],
+        candidates: next.report.candidates,
+      },
+    };
   }
   return { state: { ...input.state, facts: curated.facts }, report: curated.report };
 }
@@ -369,7 +415,21 @@ export async function generateSpec(
   ): SpecGenerationResult => {
     // The owner's diagram edits and additions are laid over whatever was drawn, on the model path
     // and the fallback alike (FR-23, D-214); the generator never sees them.
-    const document: SpecDocument = { ...drawn, diagrams: mergeDiagrams(drawn.diagrams, input.edits) };
+    const readBack = readBackStatus(rawInput.state);
+    const unreviewed =
+      readBack !== "confirmed" &&
+      drawn.requirements.length > 0 &&
+      !drawn.openQuestions.some((q) => q.question === UNREVIEWED_LIST_QUESTION);
+    const document: SpecDocument = {
+      ...drawn,
+      diagrams: mergeDiagrams(drawn.diagrams, input.edits),
+      openQuestions: unreviewed
+        ? [
+            ...drawn.openQuestions,
+            { question: UNREVIEWED_LIST_QUESTION, defaultTaken: "The list is built as recorded." },
+          ]
+        : drawn.openQuestions,
+    };
     const markdown = renderSpecMarkdown(document);
     const bundle = renderBundle(document, input.bundleFormat, markdown);
     const min = input.minRequirements ?? 0;
@@ -385,6 +445,7 @@ export async function generateSpec(
       stats: statsOf(document, issues, promptVersions, generated),
       generated,
       curation,
+      readBack,
       ...(error ? { error } : {}),
       ...(failure ? { failure } : {}),
     };

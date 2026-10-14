@@ -4,7 +4,7 @@ import { reportPromptV2 } from "../../analysis/prompts/report.v2.js";
 import { fileSummaryPromptV2 } from "../../ingest/prompts/file-summary.v2.js";
 import { imageDescribePromptV2 } from "../../ingest/prompts/image-describe.v2.js";
 import { issuesPromptV3 } from "../../spec/prompts/issues.v3.js";
-import { requirementMergePromptV1 } from "../../spec/prompts/requirement-merge.v1.js";
+import { requirementMergePromptV2 } from "../../spec/prompts/requirement-merge.v2.js";
 import { specPromptV3 } from "../../spec/prompts/spec.v3.js";
 import { extractionPromptV4 } from "./extraction.v4.js";
 import { interviewerPromptV7 } from "./interviewer.v7.js";
@@ -35,7 +35,7 @@ export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
   report: reportPromptV2,
   issues: issuesPromptV3,
   spec: specPromptV3,
-  requirement_merge: requirementMergePromptV1,
+  requirement_merge: requirementMergePromptV2,
   file_summary: fileSummaryPromptV2,
   image_describe: imageDescribePromptV2,
 };

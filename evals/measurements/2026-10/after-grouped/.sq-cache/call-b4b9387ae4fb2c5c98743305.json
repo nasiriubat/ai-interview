@@ -1,0 +1,58 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "She uses her existing hospital login—no new account needed. The tool will use the same credentials she uses to access OmniCare, and it will authenticate through the hospital’s single sign-on system.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "She finish the note, click “Save & Send,” and the tool pushes it to both OmniCare and the spreadsheet in one click—no extra steps. ... the tool shows a green message: “Note saved in OmniCare, pending spreadsheet update.” It doesn’t say “sent” or “complete” until both are confirmed.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "The ward manager needs to view the notes daily to track patient progress and staff workload... spreadsheet must be formatted so that each note is clearly labeled with the patient name, time, and nurse’s name, and the file must be saved and shared automatically by 7:30 AM each day.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "Finance pulls the updated spreadsheet every Monday morning... They check first that all 15 notes from the previous week are present and properly dated, and that there are no blank or garbled entries. ... can import the file directly into their cost calculation tool, so we’ll make sure it’s saved as a CSV with a consistent format.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "She’ll only need to check the total number of entries matches the number of nurses on shift. ... (I picked: {\"type\":\"yes_no\",\"value\":true})",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "partial",
+      "quote": "Default: they show within two seconds of her selecting the patient, and if OmniCare can't be reached the form shows a clear message instead of a blank. That means no waiting on a blank screen during a busy shift.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

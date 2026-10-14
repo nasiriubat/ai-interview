@@ -1,0 +1,75 @@
+{
+  "capabilities": [
+    {
+      "key": "c1",
+      "text": "Automatically trigger spreadsheet update and email alert to ward manager at 7:30 a.m. when a nurse saves a ward note"
+    },
+    {
+      "key": "c2",
+      "text": "Send reminder emails to nurse and team leader at 10 a.m. if a note is not entered"
+    },
+    { "key": "c3", "text": "Sync nurse-entered notes from InHealth to ShareSheet by 8 a.m. the next day" },
+    {
+      "key": "c4",
+      "text": "Flag connection failures to IT via email while allowing nurses to save notes locally"
+    },
+    {
+      "key": "c5",
+      "text": "Provide care coordinator with daily ShareSheet report highlighting urgent or new assessment notes for task planning"
+    },
+    {
+      "key": "c6",
+      "text": "Allow care coordinator to notify team leader of missing notes via a pre-filled message inside the system"
+    },
+    {
+      "key": "c7",
+      "text": "Send team leader an alert at 10:15 a.m. with nurse name, patient name, note type, and due time for missing notes"
+    },
+    {
+      "key": "c8",
+      "text": "Escalate unresolved missing notes to ward manager at 11 a.m. with detailed alert and dashboard priority"
+    },
+    {
+      "key": "c9",
+      "text": "Allow ward manager to view summary dashboard showing notes entered, overdue notes, and nurses with missing notes including patient details"
+    },
+    {
+      "key": "c10",
+      "text": "Enable ward manager to send messages directly to flagged nurses from the dashboard view"
+    },
+    {
+      "key": "c11",
+      "text": "Display nurses' 'Today's Notes' dashboard on login with red flags for missing or overdue notes linking directly to note entry"
+    },
+    {
+      "key": "c12",
+      "text": "Show real-time status line on nurse's note entry screen during ShareSheet sync retries, updating from 'Retrying' to 'Sent' without refresh"
+    },
+    {
+      "key": "c13",
+      "text": "Automatically retry sending unsynced notes every 5 minutes for up to 30 minutes, then prompt nurse to contact IT if still failing"
+    },
+    {
+      "key": "c14",
+      "text": "Keep duplicate note entries with timestamps and flag them as 'Duplicate entry — check for accuracy' in ShareSheet"
+    },
+    {
+      "key": "c15",
+      "text": "Lock notes from editing after 48 hours unless a supervisor approves corrections, which are stored as new linked entries"
+    },
+    {
+      "key": "c16",
+      "text": "Store and transmit all patient notes encrypted, log every access, and allow permanent deletion of notes within 72 hours upon patient request"
+    },
+    { "key": "c17", "text": "Use the same login system as InHealth to avoid extra passwords for nurses" },
+    { "key": "c18", "text": "Log sync delays with timestamps and alert IT within 5 minutes of failure" },
+    {
+      "key": "c19",
+      "text": "Maintain full retry history of note sync attempts including save time, retry times, results, and final sync time for at least 90 days"
+    },
+    {
+      "key": "c20",
+      "text": "Build the note-to-ShareSheet sync as an internal API service called by InHealth on note save, using JavaScript, .NET, and secure internal APIs"
+    }
+  ]
+}

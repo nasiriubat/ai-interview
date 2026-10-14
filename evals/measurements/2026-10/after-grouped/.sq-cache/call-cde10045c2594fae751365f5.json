@@ -1,0 +1,14 @@
+{
+  "pairs": [
+    { "a": "FR-2", "b": "FR-3", "same": false },
+    { "a": "FR-3", "b": "FR-11", "same": false },
+    { "a": "FR-2", "b": "FR-7", "same": false },
+    { "a": "FR-2", "b": "FR-11", "same": false },
+    { "a": "FR-2", "b": "FR-13", "same": false },
+    { "a": "FR-3", "b": "FR-7", "same": false },
+    { "a": "FR-3", "b": "FR-13", "same": false },
+    { "a": "FR-7", "b": "FR-11", "same": false },
+    { "a": "FR-7", "b": "FR-13", "same": false },
+    { "a": "FR-7", "b": "FR-17", "same": false }
+  ]
+}

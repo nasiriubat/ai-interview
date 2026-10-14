@@ -1,0 +1,157 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "I’d prefer structured fields—nurses already enter vitals, medications, and key observations in the handover sheet, so we should capture those consistently. The form will include fields for blood pressure, heart rate, temperature, pain score, and any new medications",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "I do want to make sure the tool logs every time a note is created or edited, and who did it, so we can audit access later... The logs will include the nurse’s ID, timestamp, and action type—like “created” or “edited”—and will be retained for at least seven years",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "partial",
+      "quote": "The first thing a nurse does when they start a shift is open the tool from their tablet, log in with their NHS smartcard",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "They select the patient they’re responsible for—usually by tapping their name or MRN—and the tool auto-populates the patient’s bed number and current status",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "yes",
+      "quote": "They need to see the dose, the unit (like mg or mL), and the time the medication was given... The tool should show them a dropdown with the approved medications from the hospital’s formulary... New medication flagged for review by the ward manager the next day... confirm the patient’s bed number and MRN are correct before saving",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-10",
+      "grounded": "yes",
+      "quote": "Every note creation and edit is logged once, with nurse ID, timestamp, and action type, stored read-only for seven years",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-11",
+      "grounded": "yes",
+      "quote": "The ward manager’s list will include medication flags for new entries, so they can review them the next day",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "Letting nurses enter observations first—those are the most frequent and time-sensitive updates, especially blood pressure and heart rate... The pain score is also critical... Medications come next, but only after the core observations are captured",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-13",
+      "grounded": "yes",
+      "quote": "Heart rates above 200 should trigger a warning... temperature above 45°C or below 30°C should show a warning... systolic above 250 or below 80, and diastolic above 150 or below 50, should be flagged... warning will help catch input errors without stopping the nurse",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-14",
+      "grounded": "yes",
+      "quote": "Saving with a blank pain score is blocked... The system should show a clear message: “Pain score is missing—please enter a value before saving.”",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-15",
+      "grounded": "yes",
+      "quote": "I’ll make sure the form includes clear fields for each observation, with dropdowns or numeric inputs to reduce errors",
+      "granularity": "too_fine",
+      "kind": "detail",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-18",
+      "grounded": "yes",
+      "quote": "A dose ten times the usual amount shows the warning 'This dose is 10 times the usual amount—please confirm with a senior nurse or pharmacist.' The nurse can still save after the warning is shown",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-19",
+      "grounded": "yes",
+      "quote": "Before saving, the nurse must see the dose, unit (like mg or mL), and time given clearly displayed in the form—each in its own labeled field... The time should default to the current time, but they should be able to edit it if it’s wrong. The unit must be selected from a dropdown",
+      "granularity": "too_fine",
+      "kind": "detail",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-20",
+      "grounded": "yes",
+      "quote": "If a nurse has to re-enter a note because the tool crashed or closed unexpectedly, it counts as a double entry and fails the pass test. The tool must hold the note in progress—either by auto-saving every few minutes or by prompting the nurse to confirm before closing",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "pilot-pass-test",
+      "grounded": "yes",
+      "quote": "We’ll need three clean shifts in a row—no double entry, no major errors, and all notes successfully saved and visible in the handover file. ... ward manager to confirm each time that the notes match what they see in the EPR and the spreadsheet",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "major-error-definition",
+      "grounded": "yes",
+      "quote": "Only mismatches that delay handover count as major errors... If a nurse has to re-enter a note because the tool crashed or closed unexpectedly, it counts as a double entry and fails the pass test",
+      "granularity": "ok",
+      "kind": "decision",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "pass-test",
+      "grounded": "yes",
+      "quote": "The pass test is one full shift on the pilot ward with every note entered once, in the tool, with no retyping into SharePoint... Three clean shifts in a row with no major errors... Ward manager confirms notes match Epic and the spreadsheet",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

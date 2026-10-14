@@ -1,0 +1,67 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "The first thing a ward nurse does when opening the app is enter the patient’s MRN into a search field, which triggers a synchronous FHIR GET to Cerner’s Patient resource to validate the patient exists and retrieve their current unit assignment. If the MRN is invalid or the patient is not found, the app shows a red error: “Patient not found—please check the MRN and try again.” If the patient is valid, the app auto-populates the patient’s name and unit",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "After saving a note, the nurse sees a green confirmation toast: “Note saved successfully to Cerner and spreadsheet.” The message includes the timestamp and the nurse’s UPN, and remains visible for 5 seconds. The nurse is then returned to the patient search screen... The nurse sees a green confirmation toast: “Note saved successfully to Cerner.” The nurse sees a yellow warning banner: “Note not yet synced to spreadsheet—retry or contact IT.” The note is counted as saved in Cerner and remains visible in the app with a “Partial Sync” badge. The note is kept in the local draft state for up to 30 minutes, allowing retries. A Cerner 4xx response shows an error toast and is not retried. A Cerner 5xx response is retried with backoff and stops after 30 seconds total, then the note is kept as a draft.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "If the nurse wants to verify the note later, they can reopen the app, enter the patient’s MRN, and see a “Notes” tab that lists all saved notes with timestamps and the nurse’s UPN. Each note shows a status badge: “Synced” in green if both Cerner and the spreadsheet are confirmed, or “Pending” if the database still holds a draft. The nurse can tap a note to view its full content and a “View in Cerner” button that opens the patient’s record in Cerner Millennium via a secure SSO redirect. The status is updated via a nightly background sync, but also refreshed on-demand when the nurse opens the note list.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "The app must not hide the failure from the nurse—on a failed spreadsheet write, the note is marked \"Synced to Cerner only\" in the local UI and appears in the Notes tab with a yellow \"Partial Sync\" badge. The nurse sees a toast: “Note saved to Cerner, but spreadsheet update failed—try again or contact IT.” This is critical for audit integrity... The system logs the failure to Azure Monitor and sends an alert to the IT team if the same nurse fails twice in one hour.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "If Cerner returns an inactive patient or one with no unit assignment, the red error says: “Patient not active or missing unit assignment—please verify the MRN and try again.” The note text the nurse has already typed is preserved in the form field, so they can correct the MRN without retyping. The system maintains a local draft state in memory (not persisted until save), allowing the nurse to fix the MRN and retry.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "The app must first validate the MRN by calling Cerner’s FHIR Patient endpoint—this ensures the patient is active and assigned to a valid unit. Only after a successful MRN check does it validate the note content: minimum 10 characters, no disallowed terms (like “died” or “failed”), and no SQL-like syntax. If the MRN is invalid, the app blocks the save and shows a red error immediately.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "yes",
+      "quote": "Once saved, a nurse can edit a note only within the first 15 minutes—after that, it becomes read-only. If edited within the window, the update replaces the original in both Cerner and the spreadsheet. The edit is logged in the audit trail with the nurse’s UPN, timestamp, and a change reason field... The update is sent as a FHIR PUT to the original note’s URL, and the CSV is updated via the same retry mechanism. At 14:16, the app shows a red error: “This note cannot be edited—edit window has closed.” The edit is blocked, and the note is displayed as read-only.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

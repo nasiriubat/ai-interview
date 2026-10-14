@@ -1,0 +1,82 @@
+[
+  {
+    "key": "c1",
+    "text": "Automatically sync a saved fall risk assessment from Cerner to CarePath without nurse confirmation"
+  },
+  {
+    "key": "c2",
+    "text": "Validate nursing note data on entry in Cerner and block sync if validation fails"
+  },
+  {
+    "key": "c3",
+    "text": "Log all API calls and sync attempts with detailed audit trails in Azure Monitor"
+  },
+  {
+    "key": "c4",
+    "text": "Expose a single secured REST API endpoint for nursing notes integration, protected by Azure AD OAuth 2.0"
+  },
+  {
+    "key": "c5",
+    "text": "Transform HL7 v2.5.1 messages from Cerner into FHIR R4 Observation resources for CarePath ingestion"
+  },
+  {
+    "key": "c6",
+    "text": "Enforce encryption of all data in transit (TLS 1.3) and at rest (AES-256 with customer-managed keys)"
+  },
+  {
+    "key": "c7",
+    "text": "Provide ward-scoped, read-only access for clinical informatics analysts to view full payloads and errors in Azure Monitor"
+  },
+  {
+    "key": "c8",
+    "text": "Provide full administrative access for IT operations administrators to manage infrastructure, logs, and configurations"
+  },
+  {
+    "key": "c9",
+    "text": "Display no notification to nurses on successful sync; show inline non-modal warning in Cerner on sync failure"
+  },
+  {
+    "key": "c10",
+    "text": "Automatically retry transient sync failures every 5 minutes for up to 30 minutes before escalating alerts"
+  },
+  {
+    "key": "c11",
+    "text": "Allow nurses to manually trigger a retry of a transient sync failure from within Cerner without re-entering data"
+  },
+  {
+    "key": "c12",
+    "text": "Replace previous CarePath observation with the latest saved note from Cerner, not keep multiple versions"
+  },
+  {
+    "key": "c13",
+    "text": "Retain last successfully synced observation in CarePath if a subsequent save fails validation"
+  },
+  {
+    "key": "c14",
+    "text": "Enforce data residency within the U.S. West Central Azure region with Azure Policy compliance controls"
+  },
+  {
+    "key": "c15",
+    "text": "Include a required FHIR Observation context extension referencing the Cerner encounter ID in every payload"
+  },
+  {
+    "key": "c16",
+    "text": "Filter analyst access to patient data by ward using Azure AD role-based access control with claims-based filtering"
+  },
+  {
+    "key": "c17",
+    "text": "Provide a single Azure Monitor screen for analysts showing patient ID, timestamp, error message, raw HL7, and full FHIR payload"
+  },
+  {
+    "key": "c18",
+    "text": "Log manual retry attempts with a manual_retry flag and timestamp in audit logs"
+  },
+  {
+    "key": "c19",
+    "text": "Alert analysts immediately on validation failures without retrying"
+  },
+  {
+    "key": "c20",
+    "text": "Support high availability and scale with AKS cluster auto-scaling and Azure API Management premium tier with rate limiting"
+  }
+]

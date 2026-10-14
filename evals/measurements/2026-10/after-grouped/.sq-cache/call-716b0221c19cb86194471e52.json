@@ -1,0 +1,84 @@
+{
+  "capabilities": [
+    {
+      "key": "c1",
+      "text": "Nurse writes and saves a ward note once with mandatory fields: patient name, time, vitals, observations, and care tasks"
+    },
+    {
+      "key": "c2",
+      "text": "Automatically send saved ward notes to both CarePath and WardFlow within 2 seconds under normal conditions"
+    },
+    {
+      "key": "c3",
+      "text": "Show clear save status messages including 'Note saved successfully', 'Note saved and sending...', and retry options if sending fails"
+    },
+    {
+      "key": "c4",
+      "text": "Retry sending notes every 5 minutes up to 20 times if CarePath or WardFlow is down, then alert supervisor via admin panel"
+    },
+    {
+      "key": "c5",
+      "text": "Autosave nurse's draft note every 30 seconds in browser local storage and retry sending when network is restored"
+    },
+    {
+      "key": "c6",
+      "text": "Role-based access control with nurses having full note entry, ward managers having read, comment, follow-up, and sign-off rights, and night nurses restricted to their own shift's notes"
+    },
+    {
+      "key": "c7",
+      "text": "Ward managers can add comments or follow-up actions on nurse notes but cannot edit original nurse entries"
+    },
+    {
+      "key": "c8",
+      "text": "Manager comments flagged as 'Review Requested' with visible labels and banners on nurse's note until resolved"
+    },
+    {
+      "key": "c9",
+      "text": "Nurses can edit only their own notes in response to manager comments, with all edits logged in an audit trail"
+    },
+    {
+      "key": "c10",
+      "text": "Audit trail records all note creations, edits, and comments with user identity and timestamps, retaining logs for at least 12 months"
+    },
+    {
+      "key": "c11",
+      "text": "Automatically close review requests and notify managers when nurses save corrected notes"
+    },
+    {
+      "key": "c12",
+      "text": "Use OAuth with IT-managed credentials for secure, revocable connections to CarePath and WardFlow"
+    },
+    {
+      "key": "c13",
+      "text": "Web application accessible via any modern browser with no software installation required, supporting login via hospital’s existing identity provider"
+    },
+    {
+      "key": "c14",
+      "text": "Handle personal and health data in compliance with GDPR and UK Data Protection Act, including encryption in transit and at rest"
+    },
+    {
+      "key": "c15",
+      "text": "Data retention policy: no storage of patient data longer than 30 days unless part of official CarePath record; no caching beyond 5 minutes after sending"
+    },
+    {
+      "key": "c16",
+      "text": "Clear all local drafts automatically on nurse logout or browser close to prevent data retention on devices"
+    },
+    {
+      "key": "c17",
+      "text": "Support up to 18 concurrent nurse users during peak times without performance degradation"
+    },
+    {
+      "key": "c18",
+      "text": "Admin panel shows active users, allows quick user addition, and displays alerts for failed note deliveries or system delays"
+    },
+    {
+      "key": "c19",
+      "text": "Send reminders to nurses and managers if review requests are not addressed within two hours"
+    },
+    {
+      "key": "c20",
+      "text": "Send end-of-shift reminders to ward managers for unreviewed notes, escalating to clinical lead if notes remain unreviewed two hours after shift end"
+    }
+  ]
+}

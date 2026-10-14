@@ -1,0 +1,49 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "The nurse must be alerted immediately with a clear message like “Note sent to CareFlow but failed to Meditech—contact IT.” ... The nurse must see the alert within 10 seconds ... showing the exact system that failed and the reason ... They see a red banner ... a button labeled “Contact IT” appears ... When a note is saved successfully, the nurse sees a green checkmark ... The system also plays a soft chime ... Saving is blocked until clinical text is entered ... The system will pre-fill patient and nurse details ... The note should reach both systems within 30 seconds ...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "Ward managers need access to view all ward notes for their shift ... They can see the full note history in a simple timeline view, but they can’t edit anything ... Ward managers can only see notes from their own ward—no exceptions ... When a ward manager logs in, they see a dashboard with a list of all patients on their ward, grouped by nurse ... Each patient has a small “View Note” button ... They can filter by date or nurse if needed.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "After logging in, the nurse sees a simple dashboard with a list of their assigned patients for the shift—each one with a “New Note” button right next to it. They click the button for the first patient, and a clean, blank note form appears with the patient’s name and ID pre-filled at the top ... There’s a save button at the bottom, and a small progress indicator ...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "When IT logs in, they see a real-time dashboard showing all send attempts over the past 24 hours—successes in green, failures in red, and pending in yellow. Each row shows the note ID, patient ID, timestamp, and the system it was sent to. ... There’s also a filter for time, system, or nurse ...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "A ward manager should be able to flag a note directly from the tool—they can click a “Report Issue” button next to any note, which opens a simple form to select a reason like “Missing vital signs” or “Inconsistent timing,” then send it to the nurse’s inbox in the system. The nurse gets a notification and can reply or correct it. ... The flag doesn’t hide or alter the note ... it stays intact ... with a visible “Flagged” tag in the nurse’s view ... The ward manager can’t edit the note themselves ...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

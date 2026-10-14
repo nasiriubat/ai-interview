@@ -1,0 +1,80 @@
+{
+  "capabilities": [
+    {
+      "key": "c1",
+      "text": "Launch the tool from a custom button embedded in the Epic EHR navigation menu for the current patient"
+    },
+    {
+      "key": "c2",
+      "text": "Automatically retrieve and display the most recent clinical note for the patient from Epic via the FHIR API"
+    },
+    {
+      "key": "c3",
+      "text": "Allow nurses to review and edit the retrieved clinical note in a clean, editable text field"
+    },
+    {
+      "key": "c4",
+      "text": "Save the edited note to a designated SharePoint Online worksheet using the SharePoint REST API"
+    },
+    {
+      "key": "c5",
+      "text": "Include metadata with each saved note such as timestamp, nurse ID, and patient ID"
+    },
+    {
+      "key": "c6",
+      "text": "Enforce role-based access control restricting tool usage to nurses in the Azure AD group for Ward 4B"
+    },
+    {
+      "key": "c7",
+      "text": "Show a visible success confirmation message after a note is successfully saved to SharePoint"
+    },
+    {
+      "key": "c8",
+      "text": "Handle save failures by keeping the edited text in the editor, showing an error message, and automatically retrying once after 10 seconds"
+    },
+    {
+      "key": "c9",
+      "text": "Provide a manual Retry button after a failed automatic retry to allow nurses to attempt saving again"
+    },
+    {
+      "key": "c10",
+      "text": "Block saving of empty or whitespace-only notes and prompt nurses to enter text before saving"
+    },
+    {
+      "key": "c11",
+      "text": "Allow nurses to cancel editing and close the tool without saving changes, discarding any edits"
+    },
+    {
+      "key": "c12",
+      "text": "Disable the Save button and show a message if the SharePoint worksheet is unreachable at tool startup"
+    },
+    {
+      "key": "c13",
+      "text": "Hide the Epic launch button for users not in the authorized Ward 4B Azure AD group"
+    },
+    {
+      "key": "c14",
+      "text": "Display clear error messages and deny access if a user outside the authorized group attempts to access the tool directly"
+    },
+    {
+      "key": "c15",
+      "text": "Display an error and disable saving if the patient context (MRN or encounter ID) is missing when launching the tool"
+    },
+    {
+      "key": "c16",
+      "text": "Log all save attempts, successes, failures, and retries with nurse ID, timestamp, patient context, and HTTP status codes in Azure Monitor"
+    },
+    {
+      "key": "c17",
+      "text": "Use a minimal REST API with two endpoints: one to retrieve the latest note and one to save the edited note, secured with Azure AD bearer tokens"
+    },
+    {
+      "key": "c18",
+      "text": "Deploy the tool as a single-page web app served from an Azure Function App behind API Management with throttling to handle up to 30 requests per minute"
+    },
+    {
+      "key": "c19",
+      "text": "Display a clear UI disclaimer that edits made in the tool do not update the original note in Epic, which remains the source of truth"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "capabilities": [
+    { "key": "c1", "text": "Sync a single nurse note instantly to both Epic and CareFlow systems" },
+    {
+      "key": "c2",
+      "text": "Display a real-time patient list filtered by ward, showing name, ID, and bed number"
+    },
+    {
+      "key": "c3",
+      "text": "Automatically update patient list within 5 seconds when a patient is moved or discharged"
+    },
+    {
+      "key": "c4",
+      "text": "Provide a simple note entry form with templates that dynamically change fields based on template selection"
+    },
+    {
+      "key": "c5",
+      "text": "Suggest a default template based on time of day and shift pattern, allowing nurse override"
+    },
+    {
+      "key": "c6",
+      "text": "Show a count badge on each patient in the list indicating number of successful notes sent during the shift"
+    },
+    { "key": "c7", "text": "Autosave note drafts locally during entry and interruptions" },
+    { "key": "c8", "text": "Lock sent notes from editing; corrections must be sent as new follow-up notes" },
+    {
+      "key": "c9",
+      "text": "Handle failed note sends by showing a red Failed badge with a Retry button for immediate resend"
+    },
+    {
+      "key": "c10",
+      "text": "Persist failed notes locally with a persistent failure state until successfully sent or nurse contacts IT"
+    },
+    {
+      "key": "c11",
+      "text": "Prevent nurse from moving on or closing a failed note until it is resolved or escalated"
+    },
+    {
+      "key": "c12",
+      "text": "Prompt nurse to confirm sending a note if the patient has been moved or discharged before sending"
+    },
+    {
+      "key": "c13",
+      "text": "Block sending notes to discharged patients’ records; allow sending to moved patients with a 'Moved' flag"
+    },
+    {
+      "key": "c14",
+      "text": "Provide a read-only summary dashboard in the app for ward managers showing note counts and sync failure alerts"
+    },
+    {
+      "key": "c15",
+      "text": "Show nurses immediate sync failure notifications on their sent notes to enable quick retry"
+    },
+    {
+      "key": "c16",
+      "text": "Ensure app loads in under 3 seconds even during peak concurrent user load (up to 125 users)"
+    },
+    {
+      "key": "c17",
+      "text": "Enforce security compliance: encrypt data in transit and at rest, log all access, restrict access to own ward patients only"
+    },
+    {
+      "key": "c18",
+      "text": "Do not store any patient data locally on tablets except for drafts of failed sends"
+    },
+    { "key": "c19", "text": "Automatically log out users after 15 minutes of inactivity" },
+    {
+      "key": "c20",
+      "text": "Support zero downtime with automatic failover within 30 seconds and alert IT and ward manager if downtime exceeds 60 seconds"
+    }
+  ]
+}

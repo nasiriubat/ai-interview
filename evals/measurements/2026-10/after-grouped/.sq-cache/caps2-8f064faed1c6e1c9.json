@@ -1,0 +1,82 @@
+[
+  {
+    "key": "c1",
+    "text": "Validate patient MRN by querying Cerner FHIR Patient resource before note entry"
+  },
+  {
+    "key": "c2",
+    "text": "Allow ward nurses to enter ward notes with required fields and content length validation"
+  },
+  {
+    "key": "c3",
+    "text": "Save ward notes atomically to Cerner Millennium via FHIR POST and to a wound care CSV spreadsheet in SharePoint"
+  },
+  {
+    "key": "c4",
+    "text": "Display immediate error toast and store note draft locally for 30 minutes if Cerner save fails"
+  },
+  {
+    "key": "c5",
+    "text": "Retry failed spreadsheet writes asynchronously after Cerner confirms note save, with retry backoff and 30-second timeout"
+  },
+  {
+    "key": "c6",
+    "text": "Show green confirmation toast with timestamp and nurse UPN after successful save to both Cerner and spreadsheet"
+  },
+  {
+    "key": "c7",
+    "text": "Allow nurses to view a Notes tab listing all saved notes with status badges (Synced, Pending, Partial Sync) and note details"
+  },
+  {
+    "key": "c8",
+    "text": "Enable nurses to edit a saved note within 15 minutes of first successful Cerner save, replacing original note in both Cerner and spreadsheet"
+  },
+  {
+    "key": "c9",
+    "text": "Enforce read-only access to notes after 15-minute edit window, visible to writing nurse, unit nurses, and clinical leadership only"
+  },
+  {
+    "key": "c10",
+    "text": "Filter and find patient notes by MRN in the wound care spreadsheet within 10 seconds using ISO 8601 timestamp for sorting"
+  },
+  {
+    "key": "c11",
+    "text": "Prune wound care spreadsheet to retain only last 13 weeks of notes with daily automated deletion job"
+  },
+  {
+    "key": "c12",
+    "text": "Enforce role-based access control for note entry and spreadsheet reading via Azure AD security groups"
+  },
+  {
+    "key": "c13",
+    "text": "Persist note drafts in browser session storage until saved or discarded to prevent data loss on tab close or timeout"
+  },
+  {
+    "key": "c14",
+    "text": "Log all save, retry, failure, and audit events to Azure Monitor with custom namespace"
+  },
+  {
+    "key": "c15",
+    "text": "Store note data and retry state in Azure SQL database with encryption and secure configuration"
+  },
+  {
+    "key": "c16",
+    "text": "Notify nurses with a yellow Partial Sync badge and warning toast if spreadsheet write fails after Cerner save"
+  },
+  {
+    "key": "c17",
+    "text": "Allow nurses to manually retry failed spreadsheet writes and escalate persistent failures to IT support"
+  },
+  {
+    "key": "c18",
+    "text": "Enable wound care readers to view the spreadsheet for trend spotting but require clinical actions to be documented in Cerner"
+  },
+  {
+    "key": "c19",
+    "text": "Enforce compliance with HIPAA and HITRUST CSF including encryption at rest and in transit, audit logging, and least privilege access"
+  },
+  {
+    "key": "c20",
+    "text": "Provide secure single sign-on via Azure AD with OAuth2 scopes limited to required FHIR permissions"
+  }
+]

@@ -1,0 +1,81 @@
+{
+  "capabilities": [
+    {
+      "key": "c1",
+      "text": "Restrict access so only nurses on the same ward and their team leaders can view or edit notes"
+    },
+    {
+      "key": "c2",
+      "text": "Encrypt all data at rest and in transit to comply with HIPAA and hospital data governance policies"
+    },
+    {
+      "key": "c3",
+      "text": "Integrate with the Epic electronic patient record system to pull patient identifiers, names, MRN, and current bed number"
+    },
+    {
+      "key": "c4",
+      "text": "Integrate with the ward’s daily handover spreadsheet in SharePoint to append final notes once a day"
+    },
+    {
+      "key": "c5",
+      "text": "Allow nurses to enter structured fields for observations including blood pressure, heart rate, temperature, and pain score"
+    },
+    {
+      "key": "c6",
+      "text": "Allow nurses to add medications using a dropdown formulary with dose, unit, and time given fields visible before saving"
+    },
+    { "key": "c7", "text": "Flag new medications added by nurses for ward manager review the next day" },
+    {
+      "key": "c8",
+      "text": "Require nurses to log in with NHS smartcard and select their patient from a live list pulled from Epic at shift start"
+    },
+    {
+      "key": "c9",
+      "text": "Block saving a note if required observations like pain score are missing, showing a clear error message"
+    },
+    {
+      "key": "c10",
+      "text": "Show warnings for impossible or out-of-range observation values (e.g., heart rate above 200 bpm) but allow saving"
+    },
+    {
+      "key": "c11",
+      "text": "Show warnings for medication doses outside normal ranges but allow saving with nurse confirmation"
+    },
+    {
+      "key": "c12",
+      "text": "Log every note creation and edit with nurse ID, timestamp, and action type in a read-only audit log stored separately for seven years"
+    },
+    {
+      "key": "c13",
+      "text": "Preserve full audit trail history including all versions of a note with timestamps and authorship"
+    },
+    {
+      "key": "c14",
+      "text": "Allow ward managers and senior nurses to view completed notes and audit information without editing capability"
+    },
+    {
+      "key": "c15",
+      "text": "Include medication flags in the ward manager’s review list to facilitate approval of new medications"
+    },
+    {
+      "key": "c16",
+      "text": "Auto-populate patient bed number and MRN from Epic in the note entry form for nurse verification before saving"
+    },
+    {
+      "key": "c17",
+      "text": "Auto-save notes in progress or prompt nurses to confirm before closing to prevent data loss and re-entry"
+    },
+    {
+      "key": "c18",
+      "text": "Retain completed patient notes for at least seven years with automatic archiving to read-only format and block deletion before that"
+    },
+    {
+      "key": "c19",
+      "text": "Support a pilot deployment on a ward with about 17 users, targeting three clean shifts with no double entry or major errors as acceptance criteria"
+    },
+    {
+      "key": "c20",
+      "text": "Build the solution using Power Apps for the form, Power Automate for integrations, and a .NET service hosted in AWS behind a secure API gateway"
+    }
+  ]
+}

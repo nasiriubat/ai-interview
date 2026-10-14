@@ -1,0 +1,121 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "the nurse reviews and confirms before anything reaches Epic",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "the nurse needs to be able to see a clear success message, know the note is now in Epic, and move on to the next patient without having to log into another system or check anything manually",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "If Epic fails to save the note, the nurse needs to see a clear error message that says what went wrong... given a simple option to retry or flag it for IT... a log of the failed attempt",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "partial",
+      "quote": "unconfirmed notes stay saved as drafts",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "partly",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "when a nurse returns, they should see the draft exactly as they left it... Drafts should be kept for 72 hours",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-10",
+      "grounded": "yes",
+      "quote": "notes start blank",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "the confirmation screen should show the note text, the patient’s name, and their unique ID...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-17",
+      "grounded": "yes",
+      "quote": "After confirming a note and seeing the success message, the system should take them straight to the next patient’s blank note... But if they want to skip ahead or go back, they should still be able to return to the patient list with one tap",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-20",
+      "grounded": "yes",
+      "quote": "The nurse should see a message saying “Failed to send to Epic. Connection lost. Retry in a few minutes.” The note should stay saved as a draft... After three failed attempts, the nurse sees a message... They can tap a button to send a help request...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-22",
+      "grounded": "yes",
+      "quote": "The success screen will show the patient's name, medical record number, the note timestamp, the nurse's name, and a confirmation that the note appears in Epic",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-23",
+      "grounded": "yes",
+      "quote": "The nurse should see a message saying 'Failed to send to Epic. Connection lost. Retry in a few minutes.' The note stays saved as a draft with the original timestamp and nurse info The nurse can retry sending the note from the draft",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-26",
+      "grounded": "yes",
+      "quote": "They should see a confirmation message that says, “Help request sent successfully. IT will contact you within 15 minutes.” The request should appear in a dedicated IT queue that’s monitored in real time",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-28",
+      "grounded": "yes",
+      "quote": "The review screen should clearly show the note text, patient name, medical record number, and timestamp, with a “Confirm” button and a “Go Back” button",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

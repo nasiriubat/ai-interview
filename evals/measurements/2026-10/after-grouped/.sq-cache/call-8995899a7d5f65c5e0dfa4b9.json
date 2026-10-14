@@ -1,0 +1,78 @@
+{
+  "capabilities": [
+    {
+      "key": "c1",
+      "text": "Authenticate users via Azure AD single sign-on limited to the Nursing Staff group"
+    },
+    {
+      "key": "c2",
+      "text": "Display a real-time ward patient list filtered by nurse's assigned ward, refreshed every 30 seconds"
+    },
+    { "key": "c3", "text": "Allow nurses to select a patient from the ward list to enter a ward note" },
+    { "key": "c4", "text": "Provide a rich text editor for nurses to compose and submit ward notes" },
+    {
+      "key": "c5",
+      "text": "Submit ward notes to both Epic EHR via FHIR R4 API and to a ward tracking Excel spreadsheet via Microsoft Graph API"
+    },
+    {
+      "key": "c6",
+      "text": "Append each ward note as a new row in the spreadsheet with fields: Patient MRN, Timestamp, Nurse ID, Note Text, Source System, and Note ID (transaction ID)"
+    },
+    {
+      "key": "c7",
+      "text": "Ensure idempotent note submission using a unique transaction ID to prevent duplicate rows"
+    },
+    {
+      "key": "c8",
+      "text": "Enforce a 10-second timeout for note delivery to Epic and the spreadsheet, showing error and allowing retry on timeout"
+    },
+    {
+      "key": "c9",
+      "text": "Cache the last 10 notes entered by the nurse during the current shift locally, showing them on the main screen for context"
+    },
+    {
+      "key": "c10",
+      "text": "Support discarding a note in progress, clearing the editor and local cache without logging an audit trail"
+    },
+    {
+      "key": "c11",
+      "text": "Detect patient discharge or transfer status changes during note entry and show a warning banner without blocking editing"
+    },
+    {
+      "key": "c12",
+      "text": "Block submission of notes for discharged patients at send time, keeping the note in the editor until nurse selects a different patient or discards it"
+    },
+    {
+      "key": "c13",
+      "text": "Persist pending notes locally with retry logic surviving app restarts, retrying automatically in background for up to 24 hours"
+    },
+    {
+      "key": "c14",
+      "text": "After three transient submission failures, display a persistent banner allowing nurse to retry or discard the note"
+    },
+    {
+      "key": "c15",
+      "text": "Skip retries and immediately show failure banner for permanent errors such as invalid MRN or rejected notes from Epic"
+    },
+    {
+      "key": "c16",
+      "text": "Log all note submissions and access events with audit trails stored in Azure SQL Database with row-level security and 6-year retention"
+    },
+    {
+      "key": "c17",
+      "text": "Send a daily summary email to each ward manager’s configured email address listing all notes submitted that day, grouped by patient and nurse"
+    },
+    {
+      "key": "c18",
+      "text": "Validate user group membership at login using Azure AD group claims to restrict app access to authorized nursing staff only"
+    },
+    {
+      "key": "c19",
+      "text": "Provide confirmation message after successful note submission showing transaction ID"
+    },
+    {
+      "key": "c20",
+      "text": "Use managed Azure services hosted in US East region with compliance to HIPAA and HITRUST, encrypting PHI at rest and in transit"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "I’d prefer the nurse to type the note into the new tool once, and have it saved to both CareCom and the ward flow sheet.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "When a nurse opens the tool, they see a list of the patients on their ward... then they’re taken to a clean, simple text box with a timestamp already filled in.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "They tap the patient they’re writing for... then they’re taken to a clean, simple text box with a timestamp already filled in... They can scroll through them, but they can’t edit older ones—only add new ones.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-10",
+      "grounded": "yes",
+      "quote": "She only sees the patients on her assigned ward—no access to other wards’ patients... The patient list is populated from the hospital’s master list, filtered by the ward she’s assigned to, and updated daily.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-11",
+      "grounded": "yes",
+      "quote": "If printing fails, I want the nurse to see a clear message like “Print failed—note saved to CareCom,” and then have a button to retry or print manually. The note must still be saved to CareCom even if the paper copy doesn’t print.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "If the save to CareCom fails... she must see a clear message: “Could not save to CareCom. Note is saved locally. Tap to retry.” Her text should stay on screen so she can try again right away, no need to retype.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-13",
+      "grounded": "yes",
+      "quote": "Yes, the tool should block the save if the text box is empty. She should see a clear message: “Please type a note before saving.”",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

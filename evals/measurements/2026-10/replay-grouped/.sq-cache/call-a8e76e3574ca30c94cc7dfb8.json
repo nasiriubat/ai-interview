@@ -1,0 +1,103 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "A nurse documented a patient’s fall risk assessment during evening rounds. She first entered the note into the EPR using the FHIR Observation resource: fields included patient ID, timestamp, author (her NHS ID), category (clinical assessment), code (‘fall-risk’), and text",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "I’ll use the FHIR API to read patient demographics and admission status",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "The SharePoint list will be updated via a secure, scheduled sync job using Azure Logic Apps with OAuth 2.0 through Azure AD",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "After login, senior nurse sees only pending notes for selected ward - Notes with blank author IDs or failed syncs do not appear in nurse dashboard",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "Pending means notes that have been created in the EPR but not yet acknowledged by a senior nurse or clinical lead—specifically, any FHIR Observation with a “note status” of “pending review” and a non-blank author ID",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "The ward selection is dynamic and can be changed mid-shift. When a nurse switches wards, she selects the new ward from the same dropdown, and the system immediately reloads the patient list and pending notes for that ward. The change is reflected instantly, with no need to log out or restart. However, the system logs the ward switch in the audit trail with the NHS ID and timestamp, and retains the old ward context for 30 minutes to support reconciliation",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "When a Band 5 nurse acknowledges a note, the system records the NHS ID of the nurse, the timestamp (UTC), and the action type (\"acknowledged\") as a FHIR Annotation resource linked to the original Observation. This annotation is visible to all senior nurses, clinical leads, and ward clerks with read access. The acknowledgment is not editable or deletable",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-10",
+      "grounded": "yes",
+      "quote": "A nurse can edit a saved note within 15 minutes of submission—after that, the note becomes immutable. When edited, the system creates a new FHIR Observation resource with the corrected data, marks the original as “replaced,” and adds a FHIR Annotation stating “Version 2: corrected patient ID.” All changes are logged in the audit trail with the NHS ID, timestamp, and action",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-11",
+      "grounded": "yes",
+      "quote": "When a nurse successfully saves a note, the UI displays a green confirmation toast with the message “Note saved and synced to EPR,” followed by a timestamp in UTC. The note immediately appears in the patient’s note list with the author’s name and the “saved” status, and the “Save” button changes to “Saved” with a checkmark icon. Additionally, the audit log captures the event with the action type “created,” NHS ID, and timestamp",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "A failed EPR write returns an error to the nurse, and the note stays in draft",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6.audit",
+      "grounded": "yes",
+      "quote": "The system logs the ward switch in the audit trail with the NHS ID and timestamp, and retains the old ward context for 30 minutes to support reconciliation",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

@@ -42,13 +42,15 @@ export function shouldScanIssues(
 ): ScanReason | undefined {
   if (!policy.enabled) return undefined;
   if (state.phase === "done" || state.phase === "summary" || state.closingAsked) return undefined;
-  if (!contextComplete(template, state)) return undefined;
-  if (state.findings.some((f) => f.status === "open" || f.status === "raised")) return undefined;
   const hasFacts = specFacts(state).length > 0;
   // The list is read back once (D-244): when the areas are done, or when the interview is being
-  // closed early (the owner pressed done, or the turn budget is nearly spent).
+  // closed early (the owner pressed done, or the turn budget is nearly spent). An early close reads
+  // it back whatever else is open: an open finding or an unanswered context question must not
+  // cost the owner the only look at the list (D-290; 11 of 14 live interviews skipped it).
   const confirmDue = hasFacts && !state.requirementsConfirmAsked && requirementFacts(state).length > 0;
   if (confirmDue && (state.finishRequested || options.nearEnd)) return "confirm";
+  if (!contextComplete(template, state)) return undefined;
+  if (state.findings.some((f) => f.status === "open" || f.status === "raised")) return undefined;
   if (areasComplete(template, state, path)) {
     if (hasFacts && !state.finalIssueScanDone) return "final";
     // Every area is done and the model-side pass has run: the deterministic check decides whether

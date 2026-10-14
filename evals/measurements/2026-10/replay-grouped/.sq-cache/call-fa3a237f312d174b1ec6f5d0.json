@@ -1,0 +1,12 @@
+{
+  "pairs": [
+    { "a": "FR-17", "b": "FR-22", "same": false },
+    { "a": "FR-22", "b": "FR-23", "same": false },
+    { "a": "FR-26", "b": "FR-31", "same": false },
+    { "a": "FR-26", "b": "roster_membership", "same": false },
+    { "a": "FR-27", "b": "FR-29", "same": true },
+    { "a": "FR-17", "b": "FR-23", "same": false },
+    { "a": "FR-20", "b": "FR-25", "same": false },
+    { "a": "FR-31", "b": "roster_membership", "same": false }
+  ]
+}

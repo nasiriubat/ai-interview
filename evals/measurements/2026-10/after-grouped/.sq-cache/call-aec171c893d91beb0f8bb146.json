@@ -1,0 +1,130 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "A nurse successfully completes a fall risk assessment when they open the patient’s chart in Cerner, select the pre-configured “Fall Risk Assessment” template, enter the required values ... The system automatically sends the data to CarePath in the background ... no pop-ups, no confirmations. The assessment appears in CarePath within 60 seconds ... A save that fails validation logs an error and prompts the nurse in Cerner to correct the missing field before retry",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "The first thing a nurse does is log into Cerner using Azure AD SSO",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "The nurse navigates to the patient’s chart and opens the nursing notes section",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "They select the “Fall Risk Assessment” template, which pre-populates the form with the patient’s basic demographic and clinical data",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "If the sync fails, a non-modal, inline warning will appear in the Cerner note interface, briefly stating: “Note sync to CarePath failed—check status in the Audit Log.” The nurse can then click the link to view details in the IT operations dashboard via Azure Monitor. If the sync succeeds, no notification is shown",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "The system will retry the sync automatically every 5 minutes for up to 30 minutes before escalating to an alert",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "The analyst first opened the Azure Monitor dashboard and filtered the API Management logs for the nursing-notes endpoint ... They checked the incoming HL7 v2.5.1 message, confirmed it was valid, then traced the FHIR transformation step ... The analyst needs to see the patient ID, the exact timestamp, the full FHIR payload, the error message from CarePath’s API, and the raw HL7 message ... All this data will be available in Azure Monitor with a drill-down view ... filtered by ward-scoped Azure AD role",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "yes",
+      "quote": "Validation failures alert immediately with no retry, and only transient failures are retried every 5 minutes for up to 30 minutes before alerting",
+      "granularity": "ok",
+      "kind": "business rule",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-11",
+      "grounded": "yes",
+      "quote": "A nurse should be able to manually trigger a retry on a failed sync from within Cerner ... The retry button will appear only after a transient failure ... Pressing it resends the same FHIR payload without re-entry ... The action is logged in Azure Monitor with a manual_retry flag and timestamp ... After a repeat failure, a non-modal warning appears ... The retry button remains enabled until success, 30-minute window ends, or IT disables it",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "When the same note is saved again in Cerner, the later save replaces the earlier one in CarePath",
+      "granularity": "ok",
+      "kind": "business rule",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-13",
+      "grounded": "yes",
+      "quote": "The simplest test is: after a nurse saves a fall risk assessment in Cerner, a tester checks CarePath’s API logs and confirms that a valid FHIR Observation resource with matching patient.reference, code.coding.system (http://loinc.org), and status=final appears within 60 seconds on the first attempt",
+      "granularity": "ok",
+      "kind": "test",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-14",
+      "grounded": "yes",
+      "quote": "The FHIR Observation resource must include a context extension with a reference to the Cerner encounter ID formatted as Encounter/<id> ... If missing, the sync fails with a validation error logged at observation.extension[context].valueReference.identifier.value",
+      "granularity": "ok",
+      "kind": "business rule",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "manual-retry-overlap",
+      "grounded": "yes",
+      "quote": "A manual press runs one immediate attempt and leaves the automatic schedule and its 30-minute window unchanged",
+      "granularity": "ok",
+      "kind": "business rule",
+      "testable": "no",
+      "scope": "correct"
+    },
+    {
+      "id": "core-sync-first-attempt",
+      "grounded": "yes",
+      "quote": "The 60-second target applies only to a successful first attempt, and retries run after it. The core-sync test covers only a clean first-attempt success, and retry scenarios are tested separately",
+      "granularity": "ok",
+      "kind": "decision",
+      "testable": "no",
+      "scope": "correct"
+    }
+  ]
+}

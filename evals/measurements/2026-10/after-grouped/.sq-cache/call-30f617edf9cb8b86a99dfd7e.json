@@ -1,0 +1,76 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "a clear “Note saved successfully” message should appear within 2 seconds, and it should stay on screen for at least 5 seconds ... If it fails, the message should say “Note saved locally, sending to systems…” and show a retry button ... The system must check each one before allowing the save, and it should highlight any missing field in red ... After logging in, the nurse should see a clean, simple form to write a ward note, including fields for patient name, time, vitals, observations, and care tasks ... the note appears in both CarePath and WardFlow automatically ... 2 seconds is the right target ... If it takes longer, the system must show a clear \"sending...\" status ... If it’s regularly over 5 seconds, we need to alert IT.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "I’d like it to connect to both CarePath and WardFlow—having them linked is essential ... The note needs to be saved in CarePath for legal and clinical records, and it must populate WardFlow to avoid missing shifts or medication errors ... after logging in, the nurse should see a clean, simple form to write a ward note ... it’s sent to both CarePath and WardFlow automatically. No extra steps, no copying.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "I’d want the nurse to see a clear message that the note is “pending” and that it’s trying to send ... retry every five minutes, but not more than 20 times ... If it still hasn’t sent after 20 tries, we should alert a supervisor via the system’s admin panel ...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "A ward manager can read and review all notes, but they can’t edit a nurse’s original entry—only add a comment or a follow-up action if needed. They can also sign off on the daily summary once per shift ... That sign-off triggers a notification to the clinical lead ... They do this while monitoring the dashboard for any flagged notes ...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "The system sends them a reminder if any notes are still unreviewed at the end of the shift ... System sends reminder to manager if any notes remain unreviewed at shift end",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "If a note stays unreviewed after 2 hours past shift end, then yes—send a notification to the clinical lead ...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "night-shift nurses should only see notes from their own shift—no access to day-shift entries ... On a typical night, a night nurse logs in, reviews only the notes from their own shift, writes their own updates, and saves them once ... System sends the note to both CarePath and WardFlow ...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "yes",
+      "quote": "the draft should be saved automatically every 30 seconds to the browser’s local storage ... When the network comes back, the system should check if the note is still in draft and try to send it ... If it fails, the system shows a “Pending” status and keeps retrying ... I’d want the nurse to see that the note is safe, even if it’s not yet in both systems.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}
