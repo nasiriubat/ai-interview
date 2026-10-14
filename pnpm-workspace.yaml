@@ -1,8 +1,6 @@
 packages:
   - "apps/*"
   - "packages/*"
-  - "evals"
-  - "scripts/*"
   - "tools/*"
 # Deliberately not run (D-75). onnxruntime-node ships its CPU binaries for linux x64/arm64 and
 # macOS inside the package; its postinstall only downloads the CUDA provider from NuGet on
@@ -17,7 +15,7 @@ onlyBuiltDependencies:
   - esbuild
 # Transitive advisories (pnpm audit --prod) that the direct dependency bumps do not reach. Each
 # override is the lowest patched version; remove it when the parent package ships a fix, and keep
-# `audit-ignore.json` for anything that genuinely cannot be fixed (docs/discovery/decisions.md D-85).
+# `.github/security/audit-ignore.json` for anything that genuinely cannot be fixed (docs/discovery/decisions.md D-85).
 overrides:
   # next-auth's peer range stops at nodemailer 8; 10.x carries the fixes (D-85).
   "@grpc/grpc-js@<1.14.5": "^1.14.5"
@@ -31,4 +29,4 @@ overrides:
   # reason to carry it.
   "tinypool@<2.1.2": "^2.1.2"
 patchedDependencies:
-  sonner: patches/sonner.patch
+  sonner: tools/patches/sonner.patch

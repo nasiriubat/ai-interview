@@ -9,7 +9,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r build && pnpm -r typecheck",
     "test": "pnpm -r build && pnpm -r test",
-    "lint": "eslint packages apps evals scripts/live-run tools",
+    "lint": "eslint packages apps tools/evals tools/live-run tools/fake-provider",
     "check": "tsx scripts/check.ts",
     "format": "prettier --write .",
     "docs:privacy": "tsx scripts/gen-privacy-docs.ts",
@@ -22,12 +22,12 @@
     "stack:clean": "docker compose down --remove-orphans && docker image rm -f aidp-server aidp-web ai-interview-api ai-interview-migrate ai-interview-worker ai-interview-web; docker image prune -f --filter label=com.docker.compose.project=ai-interview",
     "db:up": "docker compose up -d --wait postgres && DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery pnpm --filter @aidp/db exec prisma migrate deploy && echo 'export DATABASE_URL=postgresql://app:app@localhost:5432/ai_discovery'",
     "live:run": "pnpm --filter @aidp/live-run live:run",
-    "drill:up": "deploy/drill/stack.sh up",
-    "drill:configure": "deploy/drill/stack.sh configure",
-    "drill:down": "deploy/drill/stack.sh down",
-    "load:smoke": "load/run.sh smoke",
-    "load:full": "load/run.sh full",
-    "chaos": "deploy/chaos/run.sh"
+    "drill:up": "tools/rehearsal/drill/stack.sh up",
+    "drill:configure": "tools/rehearsal/drill/stack.sh configure",
+    "drill:down": "tools/rehearsal/drill/stack.sh down",
+    "load:smoke": "tools/load/run.sh smoke",
+    "load:full": "tools/load/run.sh full",
+    "chaos": "tools/rehearsal/chaos/run.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

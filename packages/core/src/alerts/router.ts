@@ -26,7 +26,7 @@ export interface AlertRouterDeps {
   /** Deep links are built from this. */
   publicWebUrl: string;
   /**
-   * What deploy/.env says when the catalog has no value: the same variables `deploy/ops/notify.sh`
+   * What the root .env says when the catalog has no value: the same variables `deploy/ops/notify.sh`
    * reads, so the app and the sidecar tell the same person the same way before anyone has opened
    * the settings screen.
    */

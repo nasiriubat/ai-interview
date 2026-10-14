@@ -2021,7 +2021,7 @@ export const fi: Strings = {
       evalsYours:
         "Omista versioistasi tarkistetaan vain rakenne: paikkamerkit, lainatun osallistujan tekstin säännöt ja tulosteen muoto. Se, kuinka hyvin haastattelija noudattaa sanamuotojasi, näkyy vasta käytössä.",
       evalsDocPrefix: "Arvioinnit on kuvattu tiedostossa",
-      evalsDoc: "evals/README.md",
+      evalsDoc: "tools/evals/README.md",
       evalsDocSuffix: "koodivarastossa.",
       groups: {
         interview: "Haastattelu",

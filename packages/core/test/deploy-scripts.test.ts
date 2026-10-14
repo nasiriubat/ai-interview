@@ -79,43 +79,40 @@ describe("deploy script harnesses", () => {
 
 describe("every script is syntactically valid bash", () => {
   const scripts = [
-    "backup.sh",
-    "backup-lib.sh",
-    "restore-drill.sh",
-    "backup-health.sh",
-    "restore.sh",
-    "preflight.sh",
-    "generate-env.sh",
-    "ensure-backup-key.sh",
-    "upgrade.sh",
-    "rollback.sh",
-    "lib.sh",
-    "dc",
-    "ops/notify.sh",
-    "drill/stack.sh",
-    "chaos/run.sh",
+    "deploy/backup/backup.sh",
+    "deploy/backup/backup-lib.sh",
+    "deploy/backup/restore-drill.sh",
+    "deploy/backup/backup-health.sh",
+    "deploy/backup/ensure-backup-key.sh",
+    "deploy/restore.sh",
+    "deploy/lib/preflight.sh",
+    "deploy/lib/lib.sh",
+    "deploy/generate-env.sh",
+    "deploy/upgrade.sh",
+    "deploy/rollback.sh",
+    "deploy/signin-link.sh",
+    "deploy/dc",
+    "deploy/ops/notify.sh",
+    "tools/rehearsal/drill/stack.sh",
+    "tools/rehearsal/chaos/run.sh",
+    "tools/load/run.sh",
   ];
   for (const s of scripts) {
     it(s, () => {
-      const r = spawnSync("bash", ["-n", join(deploy, s)], { encoding: "utf8" });
+      const r = spawnSync("bash", ["-n", join(root, s)], { encoding: "utf8" });
       expect(r.stderr).toBe("");
       expect(r.status).toBe(0);
     });
   }
-
-  it("load/run.sh", () => {
-    const r = spawnSync("bash", ["-n", join(root, "load", "run.sh")], { encoding: "utf8" });
-    expect(r.stderr).toBe("");
-    expect(r.status).toBe(0);
-  });
 });
 
 describe("the rehearsal's Node scripts parse", () => {
   // They are not part of the build or the lint, and are run by hand against a stack, so a syntax
   // slip would otherwise be found in the middle of a drill.
+  const rehearsal = join(root, "tools", "rehearsal");
   const scripts = [
-    ...readdirSync(join(deploy, "drill")).map((f) => join("drill", f)),
-    ...readdirSync(join(deploy, "chaos")).map((f) => join("chaos", f)),
+    ...readdirSync(join(rehearsal, "drill")).map((f) => join("drill", f)),
+    ...readdirSync(join(rehearsal, "chaos")).map((f) => join("chaos", f)),
   ].filter((f) => f.endsWith(".mjs"));
   it("has the scripts the drill record names", () => {
     expect(scripts).toEqual(
@@ -129,7 +126,7 @@ describe("the rehearsal's Node scripts parse", () => {
   });
   for (const s of scripts) {
     it(s, () => {
-      const r = spawnSync(process.execPath, ["--check", join(deploy, s)], { encoding: "utf8" });
+      const r = spawnSync(process.execPath, ["--check", join(rehearsal, s)], { encoding: "utf8" });
       expect(r.stderr).toBe("");
       expect(r.status).toBe(0);
     });
@@ -148,7 +145,7 @@ describe("shell producers and the alert catalog", () => {
     return [...found];
   }
 
-  for (const file of ["backup.sh", "restore-drill.sh", "preflight.sh", "ops/notify.sh"]) {
+  for (const file of ["backup/backup.sh", "backup/restore-drill.sh", "lib/preflight.sh", "ops/notify.sh"]) {
     it(`${file} only emits kinds the catalog defines`, () => {
       const kinds = emitted(read("deploy", file));
       expect(kinds.length, `${file} should emit at least one alert`).toBeGreaterThan(0);
@@ -158,7 +155,7 @@ describe("shell producers and the alert catalog", () => {
 
   it("together emit the shell-side alerts the plan lists", () => {
     const all = new Set(
-      ["backup.sh", "restore-drill.sh", "preflight.sh", "ops/notify.sh"].flatMap((f) =>
+      ["backup/backup.sh", "backup/restore-drill.sh", "lib/preflight.sh", "ops/notify.sh"].flatMap((f) =>
         emitted(read("deploy", f)),
       ),
     );
@@ -236,7 +233,7 @@ describe("docs/OPERATIONS.md", () => {
         expect(section, `${heading} is missing ${part}`).toContain(part);
     }
     // The preflight message and the DEPLOY.md link use GitHub's slug of these headings.
-    expect(read("deploy", "preflight.sh")).toContain("OPERATIONS.md#auditchain_broken");
+    expect(read("deploy", "lib", "preflight.sh")).toContain("OPERATIONS.md#auditchain_broken");
     expect(read("docs", "DEPLOY.md")).toContain("OPERATIONS.md#cryptorekey");
   });
 
@@ -251,8 +248,8 @@ describe("docs/OPERATIONS.md", () => {
   });
 });
 
-describe("compose.prod.yml", () => {
-  const compose = read("deploy", "compose.prod.yml");
+describe("compose.yml", () => {
+  const compose = read("deploy", "compose.yml");
 
   it("pins the project name and tags every built image with the version", () => {
     expect(compose).toMatch(/^name: aidp$/m);

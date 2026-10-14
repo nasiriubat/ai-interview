@@ -63,7 +63,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Fails on any high or critical advisory in what ships. The gate adds expiring, justified
-      # exceptions (audit-ignore.json) for the case where no fixed version exists yet.
+      # exceptions (.github/security/audit-ignore.json) for the case where no fixed version exists yet.
       - run: pnpm audit --prod --audit-level=high || node scripts/audit-gate.mjs
       - run: node --test scripts/audit-gate.test.mjs
 
