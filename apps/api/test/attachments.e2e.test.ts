@@ -334,6 +334,80 @@ suite("attachments and recorded voice", () => {
     expect(audio?.status).toBe("failed");
   });
 
+  it("transcribes a recording into a draft for one field, taking no turn and keeping no audio", async () => {
+    const token = await participant();
+    await world.app.inject({
+      method: "POST",
+      url: "/api/v1/p/session/turns",
+      headers: { authorization: token },
+    });
+    const before = (await world.db.message.count({ where: { companyId: world.companyId } })) as number;
+    const previous = transcript;
+    transcript = { text: "  We also use a whiteboard.  ", duration: 2 };
+
+    const body = multipart({ name: "other.webm", type: "audio/webm;codecs=opus", body: webm("opus") });
+    const res = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/p/session/transcribe",
+      headers: { authorization: token, ...body.headers },
+      payload: body.payload,
+    });
+    transcript = previous;
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ text: "We also use a whiteboard." });
+    // A draft, not an answer: nothing was added to the conversation and no recording was stored.
+    expect(await world.db.message.count({ where: { companyId: world.companyId } })).toBe(before);
+    const listed = await world.app.inject({
+      method: "GET",
+      url: "/api/v1/p/session/attachments",
+      headers: { authorization: token },
+    });
+    expect(listed.json().attachments).toEqual([]);
+    // It is a model call like any other, so it is in the ledger.
+    const call = await world.db.llmCall.findFirstOrThrow({
+      where: { companyId: world.companyId, purpose: "transcription" },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(call.status).toBe("ok");
+  });
+
+  it("says it heard nothing, and refuses what is not audio, on the transcription path", async () => {
+    const token = await participant();
+    const previous = transcript;
+    transcript = { text: "   " };
+    const silent = multipart({ name: "x.webm", type: "audio/webm", body: webm("x") });
+    const empty = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/p/session/transcribe",
+      headers: { authorization: token, ...silent.headers },
+      payload: silent.payload,
+    });
+    transcript = previous;
+    expect(empty.statusCode).toBe(400);
+    expect(empty.json().error.message).toMatch(/could not hear/i);
+
+    const text = multipart({ name: "n.txt", type: "text/plain", body: Buffer.from("hello") });
+    const bad = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/p/session/transcribe",
+      headers: { authorization: token, ...text.headers },
+      payload: text.payload,
+    });
+    expect(bad.statusCode).toBe(400);
+  });
+
+  it("refuses transcription without a participant session", async () => {
+    const body = multipart({ name: "x.webm", type: "audio/webm", body: webm("x") });
+    const res = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/p/session/transcribe",
+      headers: body.headers,
+      payload: body.payload,
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
   it("refuses something that is not audio on the voice path", async () => {
     const token = await participant();
     const body = multipart({ name: "note.txt", type: "text/plain", body: Buffer.from("hello") });

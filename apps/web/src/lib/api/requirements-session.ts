@@ -58,6 +58,7 @@ export function requirementsSessionApi(id: string, api: StaffApi = staffClient):
     sendTurn: (input, signal) => r.sendTurn(id, input, signal),
     sendControl: (control, signal) => r.sendControl(id, control, signal),
     sendVoice: notAvailable,
+    transcribe: notAvailable,
     uploadAttachment: notAvailable,
     listAttachments: notAvailable,
     attachmentBytes: notAvailable,

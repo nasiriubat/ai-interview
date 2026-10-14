@@ -10,9 +10,12 @@ import { PageHeading } from "@/components/common/PageHeading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChoiceTile } from "@/components/ui/choice-tile";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useCooldown } from "@/hooks/useCooldown";
 import { t } from "@/i18n";
 import { participantClient } from "@/lib/api/browser";
 import { isApiError, participantErrorText } from "@/lib/api/errors";
@@ -23,6 +26,9 @@ type Step = "arrival" | "email" | "code" | "details" | "consent" | "path";
 type Choice = "identified" | "anonymous";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** How long a person waits before asking for another sign-in code. */
+export const RESEND_SECONDS = 30;
 
 function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -82,6 +88,10 @@ export function ArrivalFlow({
   const [fields, setFields] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [agreed, setAgreed] = React.useState(false);
+  // A new code may be asked for 30 s after the last one, so a stuck mail is not answered with ten more.
+  const cooldown = useCooldown(RESEND_SECONDS);
+  const [resendNote, setResendNote] = React.useState<string | null>(null);
   /**
    * What is wrong with one field, shown under it and tied to it (`aria-describedby`); the page-level
    * alert stays for failures that belong to no field (the network, the server). `focus` moves
@@ -149,6 +159,9 @@ export function ArrivalFlow({
     setFieldErrors({});
     void run(async () => {
       await api.requestCode(linkToken, email);
+      cooldown.start();
+      // Said once, when the code goes out again; the countdown itself is not announced.
+      setResendNote(step === "code" ? t.participant.verify.resendWait(RESEND_SECONDS) : null);
       setStep("code");
     });
   };
@@ -189,6 +202,7 @@ export function ArrivalFlow({
   };
 
   const consent = (): void => {
+    if (!agreed) return;
     void run(async () => {
       await api.consent({
         consentVersion: consentVersion(campaign.consentText),
@@ -365,7 +379,7 @@ export function ArrivalFlow({
             <Button type="submit" size="lg" disabled={busy || code.length !== 6}>
               {busy ? t.participant.verify.confirming : t.participant.verify.confirm}
             </Button>
-            <div className="flex justify-between">
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
               <Button
                 type="button"
                 variant="ghost"
@@ -376,10 +390,20 @@ export function ArrivalFlow({
               >
                 {t.participant.verify.changeEmail}
               </Button>
-              <Button type="button" variant="ghost" disabled={busy} onClick={sendCode}>
-                {t.participant.verify.resend}
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy || cooldown.remaining > 0}
+                onClick={sendCode}
+              >
+                {cooldown.remaining > 0
+                  ? t.participant.verify.resendIn(cooldown.remaining)
+                  : t.participant.verify.resend}
               </Button>
             </div>
+            <p role="status" className="text-muted-foreground text-center text-xs">
+              {resendNote ?? ""}
+            </p>
           </form>
         </Shell>
       );
@@ -415,10 +439,7 @@ export function ArrivalFlow({
                       ["anonymous", t.participant.details.anonymous, t.participant.details.anonymousHint],
                     ] as const
                   ).map(([value, label, hint]) => (
-                    <label
-                      key={value}
-                      className="flex cursor-pointer items-start gap-3 rounded-lg border p-3"
-                    >
+                    <ChoiceTile key={value}>
                       <RadioGroupItem value={value} className="mt-0.5" aria-describedby={`${value}-hint`} />
                       <span className="grid gap-0.5">
                         <span className="font-medium">{label}</span>
@@ -426,7 +447,7 @@ export function ArrivalFlow({
                           {hint}
                         </span>
                       </span>
-                    </label>
+                    </ChoiceTile>
                   ))}
                 </RadioGroup>
               </fieldset>
@@ -470,14 +491,37 @@ export function ArrivalFlow({
         <Shell key="consent">
           <Heading focus={moved.current} title={t.participant.consent.title} />
           <Card>
-            <CardContent className="text-sm leading-relaxed whitespace-pre-wrap">
+            <CardContent
+              // Focusable so a keyboard user can scroll a long text; the text itself is all shown.
+              tabIndex={0}
+              role="region"
+              aria-label={t.participant.consent.textLabel}
+              className="max-h-[50dvh] overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap"
+            >
               {campaign.consentText}
             </CardContent>
           </Card>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="consent-agree"
+              checked={agreed}
+              onCheckedChange={(v) => {
+                setAgreed(v === true);
+              }}
+            />
+            <Label htmlFor="consent-agree" className="leading-snug">
+              {t.participant.consent.checkbox}
+            </Label>
+          </div>
           {errorBox}
-          <Button size="lg" onClick={consent} loading={busy} className="w-full">
+          <Button size="lg" onClick={consent} loading={busy} disabled={busy || !agreed} className="w-full">
             {busy ? t.participant.consent.starting : t.participant.consent.start}
           </Button>
+          {!agreed ? (
+            <p className="text-muted-foreground -mt-3 text-center text-xs">
+              {t.participant.consent.needsCheck}
+            </p>
+          ) : null}
         </Shell>
       );
 

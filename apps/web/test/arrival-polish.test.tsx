@@ -1,0 +1,251 @@
+import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import * as React from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ArrivalFlow, RESEND_SECONDS } from "@/components/participant/ArrivalFlow";
+import { InviteArrival } from "@/components/participant/InviteArrival";
+import { OtherInput } from "@/components/widgets/OtherInput";
+import { WidgetVoiceProvider } from "@/components/widgets/voice-context";
+import { useCooldown } from "@/hooks/useCooldown";
+import { setClientLocale } from "@/i18n";
+import type { ParticipantApi } from "@/lib/api/participant";
+import type { InviteArrival as InviteInfo } from "@/lib/api/schemas";
+
+/*
+ * The participant arrival, finished (spec 06, D-239): explicit agreement, a wait before a second
+ * code, and speech into the "Other" field. Each test is a thing a participant does.
+ */
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push, back: vi.fn(), refresh: vi.fn() }),
+}));
+
+const campaign = {
+  name: "Acme",
+  productName: "",
+  purpose: "",
+  expectedMinutes: 10,
+  participationMode: "participant_choice" as const,
+  verification: "email_code" as const,
+  consentText: "We keep your answers for your organization.",
+  participantFields: [],
+  pathSelection: "none" as const,
+};
+
+const mocks = () => ({
+  requestCode: vi.fn(() => Promise.resolve()),
+  confirmCode: vi.fn(() => Promise.resolve({ sessionId: "s", resume: false })),
+  open: vi.fn(() => Promise.resolve({ sessionId: "s", resume: false })),
+  consent: vi.fn(() => Promise.resolve()),
+});
+const api = (m: ReturnType<typeof mocks> = mocks()): ParticipantApi => m as unknown as ParticipantApi;
+
+beforeEach(() => {
+  push.mockReset();
+  setClientLocale("en");
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+async function toConsent(user: ReturnType<typeof userEvent.setup>, a: ParticipantApi): Promise<void> {
+  render(<ArrivalFlow linkToken="t" campaign={{ ...campaign, verification: "open" }} api={a} />);
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await screen.findByText("A few details");
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await screen.findByRole("heading", { name: "Before we start" });
+}
+
+describe("consent in the arrival flow", () => {
+  it("cannot be skipped: the button waits for the box, and says why", async () => {
+    const user = userEvent.setup();
+    const m = mocks();
+    await toConsent(user, api(m));
+    const start = screen.getByRole("button", { name: "Start the interview" });
+    expect(start).toBeDisabled();
+    expect(screen.getByText("Tick the box to start.")).toBeInTheDocument();
+    await user.click(start);
+    expect(m.consent).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("checkbox", { name: /I have read the text above/ }));
+    expect(start).toBeEnabled();
+    expect(screen.queryByText("Tick the box to start.")).not.toBeInTheDocument();
+    await user.click(start);
+    await waitFor(() => {
+      expect(m.consent).toHaveBeenCalledWith(expect.objectContaining({ participationChoice: "identified" }));
+    });
+    expect(push).toHaveBeenCalledWith("/p/session");
+  });
+
+  it("shows the consent text in a focusable, scrollable region that is named", async () => {
+    const user = userEvent.setup();
+    await toConsent(user, api());
+    const region = screen.getByRole("region", { name: "Consent text" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region.className).toContain("max-h-[50dvh]");
+    expect(region).toHaveTextContent("We keep your answers for your organization.");
+  });
+
+  it("presents the participation choice as tiles, each with its consequence", async () => {
+    const user = userEvent.setup();
+    render(<ArrivalFlow linkToken="t" campaign={{ ...campaign, verification: "open" }} api={api()} />);
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("A few details");
+    const tiles = document.querySelectorAll('[data-slot="choice-tile"]');
+    expect(tiles).toHaveLength(2);
+    const radio = screen.getByRole("radio", { name: /Anonymous/ });
+    await user.click(radio);
+    expect(radio).toBeChecked();
+  });
+});
+
+describe("invited requirements participant", () => {
+  const session: InviteInfo["session"] = {
+    title: "Ward intake",
+    purpose: "",
+    consentText: "Consent.",
+    consentVersion: "v1",
+    pathSelection: "none",
+    productName: "",
+  } as InviteInfo["session"];
+
+  it("says why the start button is off, as the arrival flow does", async () => {
+    const user = userEvent.setup();
+    render(<InviteArrival token="tok" session={session} api={api()} />);
+    await user.click(screen.getByRole("button", { name: /Start|Get started|Continue/ }));
+    expect(screen.getByRole("button", { name: "Start the interview" })).toBeDisabled();
+    expect(screen.getByText("Tick the box to start.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Consent text" })).toHaveAttribute("tabindex", "0");
+  });
+});
+
+describe("a new sign-in code", () => {
+  it("counts down in the button and is announced once, not every second", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const m = mocks();
+    render(<ArrivalFlow linkToken="t" campaign={campaign} api={api(m)} />);
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.type(screen.getByLabelText("Email"), "ada@example.com");
+    await user.click(screen.getByRole("button", { name: "Send code" }));
+    await screen.findByLabelText("Six-digit code");
+
+    // The first code started the wait.
+    const resend = screen.getByRole("button", { name: `Send a new code in ${String(RESEND_SECONDS)} s` });
+    expect(resend).toBeDisabled();
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(screen.getByRole("button", { name: /Send a new code in (19|20) s/ })).toBeDisabled();
+    // A button label that ticks is not a live region.
+    expect(screen.getByRole("button", { name: /Send a new code in/ })).not.toHaveAttribute("aria-live");
+
+    act(() => {
+      vi.advanceTimersByTime(21_000);
+    });
+    const ready = screen.getByRole("button", { name: "Send a new code" });
+    expect(ready).toBeEnabled();
+    await user.click(ready);
+    await waitFor(() => {
+      expect(m.requestCode).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("You can ask for a new code in 30 seconds.");
+    expect(screen.getByRole("button", { name: /Send a new code in/ })).toBeDisabled();
+  });
+
+  it("stacks the two actions on a narrow screen instead of colliding", async () => {
+    const user = userEvent.setup();
+    render(<ArrivalFlow linkToken="t" campaign={campaign} api={api()} />);
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.type(screen.getByLabelText("Email"), "ada@example.com");
+    await user.click(screen.getByRole("button", { name: "Send code" }));
+    await screen.findByLabelText("Six-digit code");
+    const row = screen.getByRole("button", { name: "Change email" }).parentElement!;
+    expect(row.className).toContain("flex-col");
+    expect(row.className).toContain("sm:flex-row");
+  });
+
+  it("useCooldown is zero until started and then falls to zero on its own", () => {
+    vi.useFakeTimers();
+    const { result } = rendered(() => useCooldown(5));
+    expect(result.current.remaining).toBe(0);
+    act(() => {
+      result.current.start();
+    });
+    expect(result.current.remaining).toBe(5);
+    act(() => {
+      vi.advanceTimersByTime(6000);
+    });
+    expect(result.current.remaining).toBe(0);
+  });
+});
+
+function rendered<T>(hook: () => T): { result: { current: T } } {
+  const result = { current: undefined as unknown as T };
+  function Probe(): null {
+    result.current = hook();
+    return null;
+  }
+  render(<Probe />);
+  return { result };
+}
+
+describe("the Other field takes speech", () => {
+  function Field({
+    voice,
+  }: {
+    voice: Parameters<typeof WidgetVoiceProvider>[0]["value"];
+  }): React.JSX.Element {
+    const [v, setV] = React.useState("");
+    return (
+      <WidgetVoiceProvider value={voice}>
+        <OtherInput id="o" value={v} onChange={setV} />
+      </WidgetVoiceProvider>
+    );
+  }
+
+  it("is plain typing when the interview takes no recorded voice", () => {
+    render(<Field voice={null} />);
+    expect(screen.getByLabelText("Other")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Speak your answer" })).not.toBeInTheDocument();
+  });
+
+  it("records, writes the words into the field and tells the participant to check them", async () => {
+    const user = userEvent.setup();
+    const transcribe = vi.fn().mockResolvedValue("a whiteboard in the corridor");
+    render(<Field voice={{ transcribe }} />);
+    await user.type(screen.getByLabelText("Other"), "Also");
+    await user.click(screen.getByRole("button", { name: "Speak your answer" }));
+    const stop = await screen.findByRole("button", { name: "Stop recording" });
+    expect(stop).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("Recording. Press stop");
+    await user.click(stop);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Other")).toHaveValue("Also a whiteboard in the corridor");
+    });
+    expect(transcribe).toHaveBeenCalledWith(expect.any(Blob), expect.any(Number));
+    expect(screen.getByRole("status")).toHaveTextContent("Added what you said. Check it");
+    expect(screen.getByLabelText("Other")).toHaveFocus();
+  });
+
+  it("keeps what was typed and says what went wrong when the words cannot be written out", async () => {
+    const user = userEvent.setup();
+    const transcribe = vi.fn().mockRejectedValue(new Error("offline"));
+    render(<Field voice={{ transcribe }} />);
+    await user.type(screen.getByLabelText("Other"), "Kept");
+    await user.click(screen.getByRole("button", { name: "Speak your answer" }));
+    await user.click(await screen.findByRole("button", { name: "Stop recording" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByLabelText("Other")).toHaveValue("Kept");
+    // The microphone control is back, so another try is one press away.
+    expect(screen.getByRole("button", { name: "Speak your answer" })).toBeEnabled();
+  });
+
+  it("names the control in Finnish", () => {
+    setClientLocale("fi");
+    render(<Field voice={{ transcribe: vi.fn() }} />);
+    expect(screen.getByRole("button", { name: "Sano vastauksesi" })).toBeInTheDocument();
+  });
+});
