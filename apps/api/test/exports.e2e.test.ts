@@ -47,10 +47,12 @@ const specification = {
   ],
   requirements: [
     { id: "FR-1", title: "Enter a note once", scope: "mvp", acceptance: ["Saved once, visible twice"] },
+    { id: "FR-2", title: "See a note at the bedside", scope: "mvp", acceptance: ["Shown on the ward screen"] },
+    { id: "FR-3", title: "Correct a note", scope: "mvp", acceptance: ["The edit is audited"] },
   ],
   phases: [],
   openQuestions: [],
-  mvp: { in: ["FR-1"], movedOut: [], next: [] },
+  mvp: { in: ["FR-1", "FR-2", "FR-3"], movedOut: [], next: [] },
   diagrams: [
     { key: "ctx", title: "Context", type: "context", mermaid: "flowchart LR\n  Nurse-->GENERATED_ONE" },
   ],
