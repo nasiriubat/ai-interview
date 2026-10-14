@@ -29,7 +29,7 @@ export const DEFAULT_MARKDOWN_LIMITS: MarkdownLimits = {
   maxChars: 400_000,
   maxBlocks: 6_000,
   maxNesting: 5,
-  maxTableColumns: 8,
+  maxTableColumns: 10,
   maxTableRows: 400,
   maxDiagrams: 12,
   maxDiagramChars: 20_000,
@@ -378,12 +378,12 @@ export function codeBlock(code: string, theme: PdfTheme): unknown {
 }
 
 function table(tokens: Token[], theme: PdfTheme, limits: MarkdownLimits, warnings: string[]): unknown {
-  const rows: { cells: unknown[]; head: boolean }[] = [];
-  let row: { cells: unknown[]; head: boolean } | null = null;
+  const rows: { cells: unknown[]; lens: number[]; head: boolean }[] = [];
+  let row: { cells: unknown[]; lens: number[]; head: boolean } | null = null;
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (!t) continue;
-    if (t.type === "tr_open") row = { cells: [], head: false };
+    if (t.type === "tr_open") row = { cells: [], lens: [], head: false };
     else if (t.type === "tr_close" && row) {
       rows.push(row);
       row = null;
@@ -391,6 +391,7 @@ function table(tokens: Token[], theme: PdfTheme, limits: MarkdownLimits, warning
       const head = t.type === "th_open";
       row.head = row.head || head;
       const body = inline(tokens[i + 1]?.children, theme);
+      row.lens.push((tokens[i + 1]?.content ?? "").length);
       row.cells.push({
         text: body.length ? body : " ",
         bold: head,
@@ -403,13 +404,18 @@ function table(tokens: Token[], theme: PdfTheme, limits: MarkdownLimits, warning
   const width = Math.min(limits.maxTableColumns, Math.max(1, ...rows.map((r) => r.cells.length)));
   if (rows.some((r) => r.cells.length > width)) warnings.push("table_columns_truncated");
   if (rows.length > limits.maxTableRows) warnings.push("table_rows_truncated");
+  // Short columns (ranks, scores, counts) take what they need; the rest share what is left.
+  const widths = Array.from({ length: width }, (_, c) =>
+    Math.max(0, ...rows.map((r) => r.lens[c] ?? 0)) <= 8 ? "auto" : "*",
+  );
+  if (widths.every((w) => w === "auto")) widths[widths.length - 1] = "*";
   const body = rows.slice(0, limits.maxTableRows).map((r) => {
     const cells = r.cells.slice(0, width);
     while (cells.length < width) cells.push({ text: " " });
     return cells;
   });
   return {
-    table: { headerRows: rows[0]?.head ? 1 : 0, widths: Array<string>(width).fill("*"), body },
+    table: { headerRows: rows[0]?.head ? 1 : 0, widths, body },
     layout: {
       hLineWidth: () => 0.5,
       vLineWidth: () => 0,
