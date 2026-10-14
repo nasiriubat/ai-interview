@@ -143,7 +143,7 @@ describeDb("voice: the first sentence is spoken while the metadata is written", 
     // What was synthesized, in order, is the displayed message and nothing else.
     const spoken = (model.requests.slice(speechBefore) as { input?: string }[])
       .filter((r) => typeof r.input === "string")
-      .map((r) => r.input as string);
+      .map((r) => r.input!);
     expect(spoken.length).toBe(2);
     expect(spoken.join(" ")).toBe(MESSAGE);
     const turn = frames.find((f) => f.type === "turn") as { message: { content: string } } | undefined;
