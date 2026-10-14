@@ -31,6 +31,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   BudgetGuard,
+  confirmationLines,
   extractFacts,
   generateSpec,
   InMemoryLedger,
@@ -80,6 +81,8 @@ const MAX_TURNS = Number(process.env.LIVE_MAX_TURNS ?? 48);
 const FINISH_AT = Number(process.env.LIVE_FINISH_AT ?? 0);
 /** Turns allowed after "done" for the confirmation, the closing question and the summary. */
 const AFTER_FINISH_TURNS = 8;
+/** The owner disagrees with the read-back list: edits one item, removes one, adds one (D-290). */
+const DISAGREE = process.env.LIVE_DISAGREE === "1";
 const CONCURRENCY = Number(process.env.LIVE_CONCURRENCY ?? 3);
 const MODEL_TURN = process.env.LIVE_MODEL_TURN ?? "anthropic/claude-haiku-5.5";
 const MODEL_STRUCTURED = process.env.LIVE_MODEL_STRUCTURED ?? "mistralai/mistral-small-3.2-24b-instruct";
@@ -292,6 +295,8 @@ async function main(): Promise<void> {
     let ended = false;
     let endReason = "turn cap";
     let widgetOffers = 0;
+    let disagreement:
+      { edit: { id: string; title: string }; remove: { id: string; title: string } } | undefined;
     try {
       let finished = false;
       for (; turns < (finished ? MAX_TURNS + AFTER_FINISH_TURNS : MAX_TURNS);) {
@@ -302,12 +307,19 @@ async function main(): Promise<void> {
         const gen = engine.nextTurn(snapshot(), answer, SETTINGS);
         let message = "";
         let widget: Extract<EngineEvent, { type: "turn" }>["turn"]["widget"];
+        let readBackTurn = false;
         let r = await gen.next();
         while (!r.done) {
           const ev = r.value;
           if (ev.type === "turn") {
             message = ev.turn.message;
             widget = ev.turn.widget;
+            const focus = ev.focus;
+            readBackTurn =
+              focus.mode === "finding" &&
+              (ev.state.findings.find((f) => f.id === focus.findingId)?.description ?? "").startsWith(
+                "Requirements confirmation.",
+              );
           }
           r = await gen.next();
         }
@@ -328,6 +340,23 @@ async function main(): Promise<void> {
           finished = true;
           answer = { control: { type: "finish" } };
           continue;
+        }
+        if (DISAGREE && !disagreement && readBackTurn) {
+          const lines = confirmationLines(store.state)
+            .map((l) => /^(\d+)\.\s+(.*?)\s+\((FR-\d+);/.exec(l))
+            .filter((m): m is RegExpExecArray => m !== null);
+          const edit = lines[0];
+          const remove = lines[1];
+          if (edit && remove) {
+            disagreement = {
+              edit: { id: edit[3]!, title: edit[2]! },
+              remove: { id: remove[3]!, title: remove[2]! },
+            };
+            const text = `Number ${edit[1]} is not what I meant: it must also work with the badge scanner at the ward door, please change that one. Number ${remove[1]}, "${remove[2]}", is wrong, we do not want that at all, take it out. And you are missing one: nurses must be able to attach a photo of a wound to a note.`;
+            history.push({ role: "user", content: text });
+            answer = { content: text, modality: "text" };
+            continue;
+          }
         }
         if (widget) {
           widgetOffers += 1;
@@ -389,7 +418,28 @@ async function main(): Promise<void> {
         },
       );
       generatedRequirements = gen.document.requirements.length;
+      // What the disagreeing owner asked for, found in the specification (D-290).
+      const mentions = (r: (typeof gen.document.requirements)[number], re: RegExp): boolean =>
+        re.test([r.title, ...r.acceptance].join(" "));
+      const readBack = disagreement
+        ? {
+            asked: disagreement,
+            edited: gen.document.requirements.some(
+              (r) =>
+                (r.id === disagreement?.edit.id || r.mergedFrom?.includes(disagreement?.edit.id ?? "")) &&
+                mentions(r, /badge|scanner/i),
+            ),
+            removed: !gen.document.requirements.some(
+              (r) =>
+                r.id === disagreement?.remove.id || r.mergedFrom?.includes(disagreement?.remove.id ?? ""),
+            ),
+            added: gen.document.requirements.some((r) => mentions(r, /photo/i)),
+            status: gen.readBack,
+          }
+        : { asked: null, status: gen.readBack };
+      console.warn(`run ${run} read-back: ${JSON.stringify(readBack)}`);
       saveArtifact(run, {
+        readBack,
         persona: PERSONA,
         messages: store.messages.map((m) => ({ seq: m.seq, role: m.role, content: m.content })),
         facts: state.facts,

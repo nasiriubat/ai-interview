@@ -1,0 +1,11 @@
+{
+  "pairs": [
+    { "a": "FR-5", "b": "FR-26", "same": false },
+    { "a": "FR-5", "b": "FR-28", "same": false },
+    { "a": "FR-7", "b": "FR-8", "same": true },
+    { "a": "FR-8", "b": "FR-13", "same": false },
+    { "a": "FR-8", "b": "FR-20", "same": true },
+    { "a": "FR-8", "b": "FR-23", "same": false },
+    { "a": "FR-20", "b": "FR-28", "same": false }
+  ]
+}

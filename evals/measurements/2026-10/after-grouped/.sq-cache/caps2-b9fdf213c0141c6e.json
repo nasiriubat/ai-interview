@@ -1,0 +1,74 @@
+[
+  {
+    "key": "c1",
+    "text": "Automatically send a nurse's note from Epic Cogito to CareTrack upon clicking 'Save and Close' with no extra user action"
+  },
+  {
+    "key": "c2",
+    "text": "Display a toast notification in Epic Cogito to the day nurse confirming note sent, showing MRN, timestamp, and a green checkmark"
+  },
+  {
+    "key": "c3",
+    "text": "Show a green 'Received' badge with note text, author, and timestamp in CareTrack's Shift Handover dashboard for successfully delivered notes"
+  },
+  {
+    "key": "c4",
+    "text": "Show a grey 'Pending' badge with clock icon in CareTrack for notes expected but not yet received, updating to green within 30 seconds of receipt"
+  },
+  {
+    "key": "c5",
+    "text": "Trigger a silent alert to the bridge monitoring dashboard if a note remains pending in CareTrack for more than 5 minutes"
+  },
+  {
+    "key": "c6",
+    "text": "Retry sending a note once automatically if the initial send to CareTrack fails, without interrupting the nurse"
+  },
+  {
+    "key": "c7",
+    "text": "Log failed note sends after two attempts in Azure Monitor and send a Teams alert to the IT incident channel"
+  },
+  {
+    "key": "c8",
+    "text": "Discard notes after two failed send attempts without queuing, requiring manual resend via a backdoor endpoint by IT or care coordinators"
+  },
+  {
+    "key": "c9",
+    "text": "Restrict access to audit logs containing note data to IT security team and compliance officer authenticated via Azure AD with elevated roles"
+  },
+  {
+    "key": "c10",
+    "text": "Retain audit logs and bridge logs containing full note data for 90 days, automatically purging records thereafter with 48-hour advance notice to compliance"
+  },
+  {
+    "key": "c11",
+    "text": "Send 48-hour purge warning notifications to compliance officer and IT security lead via Teams and email, allowing manual backup requests"
+  },
+  {
+    "key": "c12",
+    "text": "Validate incoming CareTrack webhook calls using Azure AD OAuth 2.0 tokens with tenant endpoint verification and rotate client secrets every 90 days"
+  },
+  {
+    "key": "c13",
+    "text": "Deduplicate note sends by discarding duplicate payloads with the same Epic FHIR event versionId received within 5 minutes, logging duplicates silently"
+  },
+  {
+    "key": "c14",
+    "text": "Support a load of at least 50 note send requests per minute with an average response time of 2 seconds using Azure App Service with 4 vCPUs and 16 GB RAM"
+  },
+  {
+    "key": "c15",
+    "text": "Allow night shift nurses to see a timestamp-synchronized green 'Received' badge within 30 seconds of note save in Epic, or a grey 'Pending' badge if delayed"
+  },
+  {
+    "key": "c16",
+    "text": "Send Teams alerts to nurse supervisors (not nurses) if a note remains pending beyond 5 minutes, while night nurses proceed with manual checks"
+  },
+  {
+    "key": "c17",
+    "text": "Ensure the note payload sent to CareTrack includes full note text, nurse author, MRN, encounter ID, and timestamp with no lookups required by CareTrack"
+  },
+  {
+    "key": "c18",
+    "text": "Pass automated load tests simulating 50 note sends with at least 48 successful 'Received' badge displays within 30 seconds, triggering rollback on 3+ failures"
+  }
+]

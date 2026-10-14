@@ -2,7 +2,12 @@ import { SessionStateSchema } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
 import { ShippedPromptSource } from "../../src/engine/prompts/index.js";
 import { generateSpec, type SpecGenerationInput } from "../../src/spec/generate.js";
-import { judgeCandidatePairs, MAX_MERGE_CALLS, MAX_MERGE_PAIRS } from "../../src/spec/merge.js";
+import {
+  judgeCandidatePairs,
+  MAX_CLUSTER_SIZE,
+  MAX_MERGE_CALLS,
+  MAX_MERGE_ITEMS,
+} from "../../src/spec/merge.js";
 import type { DuplicatePair, ReqView } from "../../src/spec/quality.js";
 import { ScriptedCaller } from "../engine/helpers.js";
 
@@ -16,94 +21,120 @@ const pair = (a: string, b: string, kind: DuplicatePair["kind"] = "candidate"): 
   score: 0.5,
   kind,
 });
+const deps = (caller: ScriptedCaller) => ({
+  caller: caller.asCaller(),
+  prompts: new ShippedPromptSource(),
+  logger,
+});
 
-describe("the merge pass over near-duplicate candidates (D-241)", () => {
-  it("asks one cheap call about the pairs only, never the transcript, and returns the verdicts", async () => {
+describe("the grouped merge pass over near-duplicate components (D-241, D-290)", () => {
+  it("asks one call per batch of components, shows clusters only, and returns groups as merges", async () => {
     const caller = new ScriptedCaller([
       JSON.stringify({
-        pairs: [
-          { a: "FR-1", b: "FR-2", same: true },
-          { a: "FR-3", b: "FR-4", same: false },
-          { a: "FR-1", b: "FR-9", same: true },
+        groups: [
+          { ids: ["FR-1", "FR-2", "FR-5"] },
+          { ids: ["FR-3", "FR-9"] }, // FR-9 is not in the cluster: no group
         ],
       }),
     ]);
-    const r = await judgeCandidatePairs(
-      { caller: caller.asCaller(), prompts: new ShippedPromptSource(), logger },
-      {
-        companyId: "c",
-        sessionId: "s",
-        reqs: [view("FR-1", "A"), view("FR-2", "A again"), view("FR-3", "B"), view("FR-4", "C")],
-        pairs: [pair("FR-1", "FR-2"), pair("FR-3", "FR-4"), pair("FR-1", "FR-3", "exact")],
-      },
-    );
+    const r = await judgeCandidatePairs(deps(caller), {
+      companyId: "c",
+      sessionId: "s",
+      reqs: [
+        view("FR-1", "A"),
+        view("FR-2", "A again"),
+        view("FR-3", "B"),
+        view("FR-4", "C"),
+        view("FR-5", "A thrice"),
+      ],
+      pairs: [
+        pair("FR-1", "FR-2"),
+        pair("FR-2", "FR-5"),
+        pair("FR-3", "FR-4"),
+        pair("FR-7", "FR-8", "exact"),
+      ],
+    });
     expect(caller.requests).toHaveLength(1);
     expect(caller.requests[0]?.purpose).toBe("issue_detection");
     const body = String(caller.requests[0]?.req.messages[0]?.content);
+    expect(body).toContain("Cluster 1");
+    expect(body).toContain("Cluster 2");
     expect(body).toContain("FR-1: A");
-    expect(body).not.toContain("FR-1 | FR-3"); // the exact pair is merged without a model
-    // A verdict about a pair that was not asked is ignored.
-    expect(r.same).toEqual([{ a: "FR-1", b: "FR-2" }]);
+    expect(body).not.toContain("FR-7"); // the exact pair is merged without a model
+    // A group with an id from another cluster contributes only its own cluster's members.
+    expect(r.same).toEqual([
+      { a: "FR-1", b: "FR-2" },
+      { a: "FR-1", b: "FR-5" },
+    ]);
+    // FR-3 and FR-4 were looked at and kept apart.
     expect(r.different).toEqual([{ a: "FR-3", b: "FR-4" }]);
   });
 
-  it("makes no call when no pair needs one, batches the pairs, and stops at the call limit", async () => {
+  it("makes no call when no pair needs one, cuts a large component, and stops at the call limit", async () => {
     const none = new ScriptedCaller([]);
-    await judgeCandidatePairs(
-      { caller: none.asCaller(), prompts: new ShippedPromptSource(), logger },
-      { companyId: "c", sessionId: "s", reqs: [], pairs: [pair("FR-1", "FR-2", "exact")] },
-    );
+    await judgeCandidatePairs(deps(none), {
+      companyId: "c",
+      sessionId: "s",
+      reqs: [],
+      pairs: [pair("FR-1", "FR-2", "exact")],
+    });
     expect(none.requests).toHaveLength(0);
+
+    // One chain of candidates longer than a cluster is cut in id order.
+    const chain = new ScriptedCaller([JSON.stringify({ groups: [] }), JSON.stringify({ groups: [] })]);
+    const n = MAX_CLUSTER_SIZE + 3;
+    await judgeCandidatePairs(deps(chain), {
+      companyId: "c",
+      sessionId: "s",
+      reqs: [],
+      pairs: Array.from({ length: n - 1 }, (_, i) => pair(`FR-${i + 1}`, `FR-${i + 2}`)),
+    });
+    const shown = chain.requests.flatMap((q) => String(q.req.messages[0]?.content).match(/FR-\d+/g) ?? []);
+    expect(Math.max(...shown.map((s) => Number(s.slice(3))))).toBe(n);
+
+    // Many disjoint pairs: bounded by calls and items.
     const many = new ScriptedCaller(
-      Array.from({ length: MAX_MERGE_CALLS + 2 }, () => JSON.stringify({ pairs: [] })),
+      Array.from({ length: MAX_MERGE_CALLS + 2 }, () => JSON.stringify({ groups: [] })),
     );
-    const pairs = Array.from({ length: MAX_MERGE_PAIRS * (MAX_MERGE_CALLS + 1) }, (_, i) =>
+    const pairs = Array.from({ length: MAX_MERGE_ITEMS * MAX_MERGE_CALLS }, (_, i) =>
       pair(`FR-${i}`, `FR-${i + 1000}`),
     );
-    await judgeCandidatePairs(
-      { caller: many.asCaller(), prompts: new ShippedPromptSource(), logger },
-      { companyId: "c", sessionId: "s", reqs: [], pairs },
-    );
+    await judgeCandidatePairs(deps(many), { companyId: "c", sessionId: "s", reqs: [], pairs });
     expect(many.requests).toHaveLength(MAX_MERGE_CALLS);
-    const sent = String(many.requests[0]?.req.messages[0]?.content).match(/Pair \d+/g) ?? [];
-    expect(sent).toHaveLength(MAX_MERGE_PAIRS);
+    const sent = String(many.requests[0]?.req.messages[0]?.content).match(/Cluster \d+/g) ?? [];
+    expect(sent).toHaveLength(MAX_MERGE_ITEMS / 2);
   });
 
-  it("reads the id from a verdict that echoes the whole line it was shown (seen live)", async () => {
+  it("reads the id from a group that echoes the whole line it was shown (seen live)", async () => {
     const caller = new ScriptedCaller([
       JSON.stringify({
-        pairs: [
+        groups: [
           {
-            a: "FR-1: Confirm note before Epic | acceptance: a note is not sent until confirmed",
-            b: "FR-2: Nurse review of notes before sending | acceptance: one review",
-            same: true,
+            ids: [
+              "FR-1: Confirm note before Epic | acceptance: a note is not sent until confirmed",
+              "FR-2: Nurse review of notes before sending | acceptance: one review",
+            ],
           },
         ],
       }),
     ]);
-    const r = await judgeCandidatePairs(
-      { caller: caller.asCaller(), prompts: new ShippedPromptSource(), logger },
-      {
-        companyId: "c",
-        sessionId: "s",
-        reqs: [view("FR-1", "Confirm note before Epic"), view("FR-2", "Nurse review of notes")],
-        pairs: [pair("FR-1", "FR-2")],
-      },
-    );
+    const r = await judgeCandidatePairs(deps(caller), {
+      companyId: "c",
+      sessionId: "s",
+      reqs: [view("FR-1", "Confirm note before Epic"), view("FR-2", "Nurse review of notes")],
+      pairs: [pair("FR-1", "FR-2")],
+    });
     expect(r.same).toEqual([{ a: "FR-1", b: "FR-2" }]);
   });
 
   it("keeps the candidates apart when the call fails instead of failing the specification", async () => {
     const caller = new ScriptedCaller(["{ not json"]);
-    const r = await judgeCandidatePairs(
-      { caller: caller.asCaller(), prompts: new ShippedPromptSource(), logger },
-      {
-        companyId: "c",
-        sessionId: "s",
-        reqs: [view("FR-1", "A"), view("FR-2", "B")],
-        pairs: [pair("FR-1", "FR-2")],
-      },
-    );
+    const r = await judgeCandidatePairs(deps(caller), {
+      companyId: "c",
+      sessionId: "s",
+      reqs: [view("FR-1", "A"), view("FR-2", "B")],
+      pairs: [pair("FR-1", "FR-2")],
+    });
     expect(r).toEqual({ same: [], different: [] });
   });
 });
@@ -141,7 +172,7 @@ describe("generation curates before it writes (D-241 to D-243)", () => {
 
   it("writes one requirement for a duplicated capability, reroutes the question, drops the tombstone, and records mergedFrom", async () => {
     const caller = new ScriptedCaller([
-      JSON.stringify({ pairs: [{ a: "FR-3", b: "FR-4", same: true }] }),
+      JSON.stringify({ groups: [{ ids: ["FR-3", "FR-4"] }] }),
       JSON.stringify({ title: "T", sections: [{ key: "overview", markdown: "o" }], requirements: [] }),
     ]);
     const r = await generateSpec(
@@ -162,7 +193,7 @@ describe("generation curates before it writes (D-241 to D-243)", () => {
 
   it("keeps what the quality pass learned when the model echoes the requirement, and folds a model-added restatement", async () => {
     const caller = new ScriptedCaller([
-      JSON.stringify({ pairs: [{ a: "FR-3", b: "FR-4", same: true }] }),
+      JSON.stringify({ groups: [{ ids: ["FR-3", "FR-4"] }] }),
       JSON.stringify({
         title: "T",
         sections: [],
@@ -190,7 +221,7 @@ describe("generation curates before it writes (D-241 to D-243)", () => {
 
   it("does not fold a model-added requirement into a different capability that shares a word", async () => {
     const caller = new ScriptedCaller([
-      JSON.stringify({ pairs: [{ a: "FR-3", b: "FR-4", same: false }] }),
+      JSON.stringify({ groups: [] }),
       JSON.stringify({
         title: "T",
         sections: [],
@@ -206,7 +237,7 @@ describe("generation curates before it writes (D-241 to D-243)", () => {
 
   it("flags a requirement only the model wrote as needing confirmation, and never drops one the interview recorded", async () => {
     const caller = new ScriptedCaller([
-      JSON.stringify({ pairs: [{ a: "FR-3", b: "FR-4", same: false }] }),
+      JSON.stringify({ groups: [] }),
       JSON.stringify({
         title: "T",
         sections: [],

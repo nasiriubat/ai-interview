@@ -1,0 +1,17 @@
+{
+  "pairs": [
+    { "a": "FR-4", "b": "FR-5", "same": true },
+    { "a": "FR-1", "b": "FR-3", "same": false },
+    { "a": "FR-1", "b": "FR-7", "same": false },
+    { "a": "FR-3", "b": "FR-7", "same": false },
+    { "a": "FR-1", "b": "FR-2", "same": false },
+    { "a": "FR-6", "b": "FR-6.audit", "same": false },
+    { "a": "FR-11", "b": "FR-12", "same": false },
+    { "a": "FR-1", "b": "FR-4", "same": false },
+    { "a": "FR-1", "b": "FR-5", "same": false },
+    { "a": "FR-1", "b": "FR-6", "same": false },
+    { "a": "FR-4", "b": "FR-7", "same": false },
+    { "a": "FR-5", "b": "FR-7", "same": false },
+    { "a": "FR-6", "b": "FR-7", "same": false }
+  ]
+}

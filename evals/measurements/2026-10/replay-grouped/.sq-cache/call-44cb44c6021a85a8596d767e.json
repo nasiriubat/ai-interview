@@ -1,0 +1,81 @@
+{
+  "capabilities": [
+    { "key": "c1", "text": "Authenticate nurses via Azure AD using their existing NHS credentials" },
+    {
+      "key": "c2",
+      "text": "Integrate with hospital EPR system using FHIR-based APIs for patient demographics and ward note creation"
+    },
+    {
+      "key": "c3",
+      "text": "Synchronize ward notes bidirectionally with SharePoint Online lists via Power Automate and Azure Logic Apps"
+    },
+    {
+      "key": "c4",
+      "text": "Allow senior nurses and clinical leads to create, edit (within 15 minutes), and manage ward notes as FHIR Observation resources"
+    },
+    {
+      "key": "c5",
+      "text": "Enable Band 5 nurses to view and acknowledge ward notes, recording acknowledgements as FHIR Annotations"
+    },
+    {
+      "key": "c6",
+      "text": "Provide a ward selection dropdown populated from EPR Ward Resource list, supporting dynamic mid-shift ward switching with immediate context update"
+    },
+    {
+      "key": "c7",
+      "text": "Display a dashboard for senior nurses showing all pending ward notes requiring review and action"
+    },
+    {
+      "key": "c8",
+      "text": "Implement draft saving of unsaved notes per nurse, retaining drafts for 48 hours accessible only to the author"
+    },
+    {
+      "key": "c9",
+      "text": "Maintain an audit trail of key actions including ward switches, note creations, edits, acknowledgements, and access logs, searchable by authorized audit roles"
+    },
+    {
+      "key": "c10",
+      "text": "Enforce note immutability after 15 minutes, with edits creating new versions and annotating replaced originals visible to senior staff"
+    },
+    {
+      "key": "c11",
+      "text": "Use a single ASP.NET Core Web API backend serving the Blazor Server frontend and handling EPR and SharePoint integrations"
+    },
+    {
+      "key": "c12",
+      "text": "Translate between internal domain model (WardNote entity) and FHIR resources at API boundary, hiding raw FHIR endpoints from clients"
+    },
+    {
+      "key": "c13",
+      "text": "Return immediate error to nurse and keep note in draft if EPR write fails, preventing silent data loss"
+    },
+    {
+      "key": "c14",
+      "text": "Display a confirmation toast on successful note save with message 'Note saved to EPR' and timestamp, updating UI status accordingly"
+    },
+    {
+      "key": "c15",
+      "text": "Perform hourly scheduled sync of notes from EPR to SharePoint via Azure Logic Apps with exponential backoff retry on failures"
+    },
+    {
+      "key": "c16",
+      "text": "Flag notes that fail all sync retries for manual review and display them on an admin dashboard within the hour"
+    },
+    {
+      "key": "c17",
+      "text": "Restrict read-only access to ward clerks for viewing notes in SharePoint without edit or create permissions"
+    },
+    {
+      "key": "c18",
+      "text": "Log all read access by Band 5 nurses and ward clerks in Azure Monitor for audit purposes"
+    },
+    {
+      "key": "c19",
+      "text": "Implement auto-scaling of Azure App Service based on CPU usage thresholds during peak shift-change periods"
+    },
+    {
+      "key": "c20",
+      "text": "Enforce compliance with UK GDPR, NHS Digital standards, and DSPT controls including encryption, access logging, and audit retention"
+    }
+  ]
+}

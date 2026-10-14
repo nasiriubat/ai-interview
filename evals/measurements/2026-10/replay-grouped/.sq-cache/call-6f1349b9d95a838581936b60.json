@@ -1,0 +1,112 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "A nurse can edit a saved note within 15 minutes of submission... creates a new FHIR Observation resource...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "I’ll use the FHIR API to read patient demographics and admission status...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "The SharePoint list will be updated via a secure, scheduled sync job using Azure Logic Apps... Author field error is the highest risk...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "After login, the senior nurse sees only pending notes for the selected ward - Notes with blank author IDs or failed syncs do not appear in the nurse dashboard",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "Pending means notes that have been created in the EPR but not yet acknowledged by a senior nurse or clinical lead...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "The ward selection is dynamic and can be changed mid-shift... system immediately reloads the patient list and pending notes for that ward... old view is purged",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "When a Band 5 nurse acknowledges a note, the system records... and the note’s status updates to 'acknowledged'...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "yes",
+      "quote": "Selecting a new ward reloads the patient list and pending notes for that ward without logout... ward switch is written to audit trail with NHS ID and UTC timestamp... previous ward context retained for 30 minutes",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-10",
+      "grounded": "yes",
+      "quote": "A nurse can edit a saved note within 15 minutes of submission... creates a new FHIR Observation resource... edit after 15 minutes rejected... audit trail records edits",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-11",
+      "grounded": "yes",
+      "quote": "When a nurse successfully saves a note, the UI displays a green confirmation toast with message 'Note saved to EPR'... audit log captures event...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "A failed EPR write returns an error to the nurse immediately and the note stays in draft... no note recorded as saved until EPR confirms write",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6.audit",
+      "grounded": "yes",
+      "quote": "Each ward switch is logged with NHS ID, timestamp, old and new ward codes... old ward context held for 30 minutes in audit record",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

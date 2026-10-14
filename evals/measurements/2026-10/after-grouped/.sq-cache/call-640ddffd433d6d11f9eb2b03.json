@@ -1,0 +1,84 @@
+{
+  "capabilities": [
+    {
+      "key": "c1",
+      "text": "Allow nurses to sign in via Azure AD SSO and display their assigned patients and pending notes from the previous shift within 3 seconds"
+    },
+    {
+      "key": "c2",
+      "text": "Enable nurses to create and save ward notes with free-text content, patient selection, and optional timestamp override limited to the current shift"
+    },
+    {
+      "key": "c3",
+      "text": "Synchronize each saved ward note to both the hospital’s FHIR-compliant EHR system and the legacy spreadsheet within 10 seconds"
+    },
+    {
+      "key": "c4",
+      "text": "Generate and assign a unique, immutable UUIDv7 note ID to each ward note, included in all data stores and shown to the nurse upon save"
+    },
+    {
+      "key": "c5",
+      "text": "Implement a status field on ward notes with values Pending Review, Discrepancy Identified, Resolved, and Escalated to track review and escalation workflow"
+    },
+    {
+      "key": "c6",
+      "text": "Allow charge nurses to log in via Azure AD, access a daily review dashboard, and filter ward notes by patient, nurse, time range, or status"
+    },
+    {
+      "key": "c7",
+      "text": "Enable charge nurses to flag and annotate ward notes with discrepancy labels and assign them back to the originating nurse for resolution"
+    },
+    {
+      "key": "c8",
+      "text": "Send push notifications to nurses when a charge nurse assigns a flagged note, requiring resolution within 30 minutes"
+    },
+    {
+      "key": "c9",
+      "text": "Escalate unresolved flagged notes after 30 minutes to the unit manager with appropriate notifications"
+    },
+    {
+      "key": "c10",
+      "text": "Allow unit managers (HospitalSupervisors group) to view all flagged notes, reassign them, and approve overrides for high-priority cases"
+    },
+    {
+      "key": "c11",
+      "text": "Implement an override mechanism where unit managers can mark a note as Validated in the spreadsheet with an audit trail explaining the override reason"
+    },
+    {
+      "key": "c12",
+      "text": "Enforce strict authentication and authorization using OAuth 2.0 with Azure AD, including conditional access policies and MFA"
+    },
+    {
+      "key": "c13",
+      "text": "Store ward notes in Azure Cosmos DB SQL API with a WardNotes container partitioned by patientId, including automatic indexing on timestamp, authorId, and noteText"
+    },
+    {
+      "key": "c14",
+      "text": "Implement a daily batch ingestion pipeline to synchronize legacy spreadsheet event log data into the FHIR server, with error handling and reprocessing"
+    },
+    {
+      "key": "c15",
+      "text": "Log every note creation or update action with structured metadata (user ID, timestamp, action type, patient ID) in Azure Monitor Logs retained for seven years"
+    },
+    {
+      "key": "c16",
+      "text": "Provide rate limiting at the API gateway to limit each authenticated user to 100 requests per minute and batch FHIR API calls up to 10 notes per request"
+    },
+    {
+      "key": "c17",
+      "text": "Implement encryption at rest using customer-managed keys and encryption in transit with TLS 1.3 to meet HIPAA compliance"
+    },
+    {
+      "key": "c18",
+      "text": "Implement automated daily backups of Cosmos DB with 30-day retention, encrypted with customer-managed keys, and weekly restore verification"
+    },
+    {
+      "key": "c19",
+      "text": "Provide a user interface confirmation after note save showing unique note ID and a sync status indicator that turns green when synchronization completes"
+    },
+    {
+      "key": "c20",
+      "text": "Allow charge nurses and administrators to access role-specific dashboards with least-privilege access controlled by Azure AD group membership"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "pairs": [
+    { "a": "FR-3", "b": "FR-10", "same": true },
+    { "a": "pilot-pass-test", "b": "pass-test", "same": false },
+    { "a": "FR-9", "b": "FR-19", "same": true },
+    { "a": "FR-13", "b": "FR-18", "same": false },
+    { "a": "FR-13", "b": "FR-14", "same": false },
+    { "a": "FR-1", "b": "FR-18", "same": false },
+    { "a": "FR-12", "b": "FR-15", "same": true }
+  ]
+}

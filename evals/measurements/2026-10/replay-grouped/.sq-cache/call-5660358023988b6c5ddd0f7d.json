@@ -1,0 +1,29 @@
+{
+  "pairs": [
+    { "a": "FR-6", "b": "FR-23", "same": true },
+    { "a": "FR-12", "b": "FR-28", "same": true },
+    { "a": "FR-1", "b": "FR-5", "same": false },
+    { "a": "FR-13", "b": "FR-16", "same": true },
+    { "a": "FR-1", "b": "FR-13", "same": false },
+    { "a": "FR-1", "b": "FR-20", "same": false },
+    { "a": "FR-1", "b": "FR-22", "same": false },
+    { "a": "FR-1", "b": "FR-26", "same": false },
+    { "a": "FR-1", "b": "FR-28", "same": false },
+    { "a": "FR-5", "b": "FR-7", "same": false },
+    { "a": "FR-5", "b": "FR-20", "same": false },
+    { "a": "FR-5", "b": "FR-22", "same": true },
+    { "a": "FR-20", "b": "FR-23", "same": false },
+    { "a": "FR-22", "b": "FR-28", "same": false },
+    { "a": "FR-12", "b": "FR-22", "same": false },
+    { "a": "FR-12", "b": "FR-13", "same": false },
+    { "a": "FR-13", "b": "FR-28", "same": false },
+    { "a": "FR-12", "b": "FR-16", "same": false },
+    { "a": "FR-16", "b": "FR-28", "same": false },
+    { "a": "FR-1", "b": "FR-7", "same": false },
+    { "a": "FR-1", "b": "FR-12", "same": false },
+    { "a": "FR-5", "b": "FR-6", "same": false },
+    { "a": "FR-5", "b": "FR-8", "same": false },
+    { "a": "FR-5", "b": "FR-13", "same": false },
+    { "a": "FR-5", "b": "FR-23", "same": false }
+  ]
+}

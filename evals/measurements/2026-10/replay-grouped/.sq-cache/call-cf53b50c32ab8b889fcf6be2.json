@@ -1,0 +1,58 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-29",
+      "grounded": "yes",
+      "quote": "If a note is missing, I want it to be obvious — not just a blank row, but a red highlight with the patient’s name and the time it was due.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-31",
+      "grounded": "yes",
+      "quote": "When a nurse saves a note and ShareSheet is unreachable, the nurse should see a clear message on screen... retries every 5 minutes for 30 minutes... then a contact IT message... IT team gets an alert with nurse’s name, patient ID, and time of failure.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-33",
+      "grounded": "yes",
+      "quote": "If the nurse saves the same patient's note twice during an outage, the system should keep both copies... show both in ShareSheet with timestamps and a note 'Duplicate entry — check for accuracy.'",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-34",
+      "grounded": "yes",
+      "quote": "The status line must update in real time, without needing a refresh. If the connection comes back, the nurse should see 'Sent' appear automatically on the same screen, right after the 'Retrying' message.",
+      "granularity": "detail",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-37",
+      "grounded": "yes",
+      "quote": "At 10:15 a.m., the team leader should see a clear alert in their dashboard with nurse’s name, patient’s full name, note type, due time, all in one line, red, pinned to the top, with a direct link to the note entry page.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-38",
+      "grounded": "yes",
+      "quote": "The alert should stay open until the sync is confirmed — even if the team leader clicks 'Marked as resolved.' If sync still fails after 5 minutes, alert reverts to red and IT is notified.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}
