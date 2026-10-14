@@ -1,3 +1,4 @@
+import { smtpRelayUrlFromEnv } from "@aidp/shared";
 import { z } from "zod";
 
 const Env = z.object({
@@ -6,6 +7,13 @@ const Env = z.object({
   PLATFORM_ENCRYPTION_KEY: z.string().min(1),
   /** Comma-separated keys that stay readable during a rotation (D-164); empty when none. */
   PLATFORM_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
+  // The deployment relay (D-445), resolved exactly as in the API by `smtpRelayUrlFromEnv`.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_SECURITY: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  /** Deprecated (D-446): one-URL form, read only when SMTP_HOST is not set. */
   EMAIL_SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().default("no-reply@example.com"),
   PUBLIC_WEB_URL: z.string().default("http://localhost:3000"),
@@ -52,7 +60,10 @@ const Env = z.object({
    */
   WORKER_SHUTDOWN_GRACE_SECONDS: z.coerce.number().int().min(1).max(600).default(25),
 });
-export type Config = z.infer<typeof Env>;
+export type Config = z.infer<typeof Env> & {
+  /** The resolved deployment relay, or undefined for none. Carries the password: never log it. */
+  smtpRelayUrl: string | undefined;
+};
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = Env.safeParse(env);
@@ -60,5 +71,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(
       `Invalid configuration: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`,
     );
-  return parsed.data;
+  let smtpRelayUrl: string | undefined;
+  try {
+    smtpRelayUrl = smtpRelayUrlFromEnv(parsed.data);
+  } catch (e) {
+    throw new Error(`Invalid configuration: ${(e as Error).message}`);
+  }
+  return { ...parsed.data, smtpRelayUrl };
 }

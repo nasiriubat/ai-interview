@@ -169,7 +169,7 @@ export function buildServices(d: ServiceDeps): Services {
           d.log.warn(meta, message);
         },
       },
-      Boolean(d.config.EMAIL_SMTP_URL),
+      Boolean(d.config.smtpRelayUrl),
       d.config.EMAIL_FROM,
     ),
     analysisQueries,

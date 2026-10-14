@@ -19,7 +19,11 @@
 #
 # Configuration, all from deploy/.env through compose:
 #   ALERT_WEBHOOK_URL, ALERT_WEBHOOK_FORMAT (ntfy|slack|generic, default ntfy)
-#   ALERT_EMAIL (falls back to BOOTSTRAP_OPERATOR_EMAIL), EMAIL_SMTP_URL, EMAIL_FROM
+#   ALERT_EMAIL (falls back to BOOTSTRAP_OPERATOR_EMAIL), EMAIL_FROM, and the relay:
+#     SMTP_HOST, SMTP_PORT, SMTP_SECURITY (none|starttls|tls, default starttls), SMTP_USER,
+#     SMTP_PASSWORD; or the deprecated EMAIL_SMTP_URL when SMTP_HOST is empty. The same rule as
+#     resolveSmtpEnv in packages/shared/src/smtp.ts (D-447), written again here because this image
+#     carries no Node.
 #   PUBLIC_HOSTNAME (subjects, TLS check), API_READY_URL, TLS_CONNECT (default caddy:443)
 #   ALERT_EMAIL_MIN_SEVERITY (warning), ALERT_WEBHOOK_MIN_SEVERITY (info)
 #   DISK_WARN_PERCENT (80), DISK_CRITICAL_PERCENT (90), DISK_PATH (/watch/uploads)
@@ -37,6 +41,17 @@ WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
 WEBHOOK_FORMAT="${ALERT_WEBHOOK_FORMAT:-ntfy}"
 MAIL_TO="${ALERT_EMAIL:-${BOOTSTRAP_OPERATOR_EMAIL:-}}"
 SMTP_URL="${EMAIL_SMTP_URL:-}"
+RELAY_HOST="${SMTP_HOST:-}"
+RELAY_SECURITY=$(printf '%s' "${SMTP_SECURITY:-starttls}" | tr 'A-Z' 'a-z')
+RELAY_USER="${SMTP_USER:-}"
+RELAY_PASSWORD="${SMTP_PASSWORD:-}"
+case "$RELAY_SECURITY" in
+'' | starttls) RELAY_SECURITY=starttls RELAY_DEFAULT_PORT=587 ;;
+tls | ssl) RELAY_SECURITY=tls RELAY_DEFAULT_PORT=465 ;;
+none) RELAY_DEFAULT_PORT=25 ;;
+*) RELAY_SECURITY=invalid RELAY_DEFAULT_PORT=0 ;;
+esac
+RELAY_PORT="${SMTP_PORT:-$RELAY_DEFAULT_PORT}"
 MAIL_FROM="${EMAIL_FROM:-no-reply@$HOST}"
 EMAIL_MIN="${ALERT_EMAIL_MIN_SEVERITY:-warning}"
 WEBHOOK_MIN="${ALERT_WEBHOOK_MIN_SEVERITY:-info}"
@@ -121,9 +136,16 @@ post_webhook() {
 	curl -fsS --max-time 10 -X POST -H 'content-type: application/json' --data "$body" "$(webhook_target)" >/dev/null
 }
 
+# Whether a relay is configured at all: SMTP_HOST, or the deprecated EMAIL_SMTP_URL.
+mail_relay_set() { [ -n "$RELAY_HOST" ] || [ -n "$SMTP_URL" ]; }
+
 send_mail() {
-	local file=$1 msg subject rest hostport userinfo user pass url scheme
-	[ -n "$MAIL_TO" ] && [ -n "$SMTP_URL" ] || return 1
+	local file=$1 msg subject rest hostport userinfo user pass url scheme tls_flag
+	[ -n "$MAIL_TO" ] && mail_relay_set || return 1
+	if [ -n "$RELAY_HOST" ] && [ "$RELAY_SECURITY" = invalid ]; then
+		log "SMTP_SECURITY must be one of none, starttls, tls; not sending mail"
+		return 1
+	fi
 	subject="[aidp $HOST] $(jq -r '.title' "$file" | tr -d '\r\n')"
 	msg=$(mktemp)
 	{
@@ -131,6 +153,25 @@ send_mail() {
 			"$MAIL_FROM" "$MAIL_TO" "$subject" "$(date -u '+%a, %d %b %Y %H:%M:%S +0000')"
 		jq -r '.message + "\n\nWhat to do: " + .runbook + "\n\nSent by ops-notify, which runs outside the application."' "$file"
 	} >"$msg"
+	if [ -n "$RELAY_HOST" ]; then
+		# The split variables: credentials are used as written, nothing to decode.
+		case "$RELAY_SECURITY" in
+		tls) url="smtps://$RELAY_HOST:$RELAY_PORT" tls_flag="" ;;
+		none) url="smtp://$RELAY_HOST:$RELAY_PORT" tls_flag="" ;;
+		*) url="smtp://$RELAY_HOST:$RELAY_PORT" tls_flag="--ssl-reqd" ;;
+		esac
+		if [ -n "$RELAY_USER" ]; then
+			curl -fsS --max-time 20 $tls_flag --url "$url" --mail-from "$MAIL_FROM" --mail-rcpt "$MAIL_TO" \
+				--user "$RELAY_USER:$RELAY_PASSWORD" --upload-file "$msg" >/dev/null
+		else
+			curl -fsS --max-time 20 $tls_flag --url "$url" --mail-from "$MAIL_FROM" --mail-rcpt "$MAIL_TO" \
+				--upload-file "$msg" >/dev/null
+		fi
+		local rc=$?
+		rm -f "$msg"
+		return $rc
+	fi
+	# Deprecated EMAIL_SMTP_URL: the credentials inside it are percent-encoded.
 	scheme=${SMTP_URL%%://*}
 	rest=${SMTP_URL#*://}
 	userinfo=""
@@ -161,7 +202,7 @@ deliver() {
 	if [ -n "$WEBHOOK_URL" ] && [ "$rank" -ge "$(sev_rank "$WEBHOOK_MIN")" ]; then
 		if post_webhook "$file"; then ok=0; else log "webhook delivery failed"; fi
 	fi
-	if [ -n "$MAIL_TO" ] && [ -n "$SMTP_URL" ] && [ "$rank" -ge "$(sev_rank "$EMAIL_MIN")" ]; then
+	if [ -n "$MAIL_TO" ] && mail_relay_set && [ "$rank" -ge "$(sev_rank "$EMAIL_MIN")" ]; then
 		if send_mail "$file"; then ok=0; else log "email delivery failed"; fi
 	fi
 	return $ok
@@ -371,7 +412,9 @@ fi
 
 # The webhook URL is a credential (a Slack hook, an ntfy topic) and is never printed.
 if [ -n "$WEBHOOK_URL" ]; then webhook_state="configured ($WEBHOOK_FORMAT)"; else webhook_state="none"; fi
-log "up: webhook $webhook_state, mail to ${MAIL_TO:-nobody}"
+# Only which variables configure the relay is printed: the values hold a password.
+if [ -n "$RELAY_HOST" ]; then relay_state="SMTP_HOST ($RELAY_SECURITY)"; elif [ -n "$SMTP_URL" ]; then relay_state="EMAIL_SMTP_URL (deprecated)"; else relay_state="none"; fi
+log "up: webhook $webhook_state, mail to ${MAIL_TO:-nobody} via relay $relay_state"
 [ -n "$WEBHOOK_URL" ] || [ -n "$MAIL_TO" ] || log "WARNING: no ALERT_WEBHOOK_URL and no ALERT_EMAIL; alerts queue in $ALERTS and reach nobody"
 while true; do
 	pass

@@ -191,7 +191,7 @@ export const kitFi: KitStrings = {
     errorBody: "Linkki on voinut vanhentua tai se on jo käytetty. Pyydä uusi linkki ja yritä uudelleen.",
     errorMailTitle: "Kirjautumissähköpostia ei voitu lähettää",
     errorMailBody:
-      "Tämän asennuksen postipalvelin ei hyväksynyt viestiä. Yritä hetken kuluttua uudelleen. Jos ongelma toistuu, asennuksen ylläpitäjän on tarkistettava postireleen asetus (EMAIL_SMTP_URL tiedostossa deploy/.env) tai käytettävä Google-kirjautumista, jos se on otettu käyttöön.",
+      "Tämän asennuksen postipalvelin ei hyväksynyt viestiä. Yritä hetken kuluttua uudelleen. Jos ongelma toistuu, asennuksen ylläpitäjän on tarkistettava postireleen asetus (SMTP_HOST ja muut SMTP_*-asetukset tiedostossa deploy/.env) tai käytettävä Google-kirjautumista, jos se on otettu käyttöön.",
     signOutTitle: "Kirjaudutaanko ulos Discoverysta?",
     signOutBody: "Tarvitset uuden kertakäyttölinkin palataksesi.",
     signOutConfirm: "Kirjaudu ulos",

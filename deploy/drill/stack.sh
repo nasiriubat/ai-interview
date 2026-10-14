@@ -74,7 +74,9 @@ cmd_up() {
 		set_kv HTTP_PORT "$HTTP_PORT"
 		set_kv FAKE_PROVIDER_PORT "$FAKE_PORT"
 		set_kv MAILPIT_PORT "$MAILPIT_PORT"
-		set_kv EMAIL_SMTP_URL smtp://mailpit:1025
+		set_kv SMTP_HOST mailpit
+		set_kv SMTP_PORT 1025
+		set_kv SMTP_SECURITY none
 		set_kv EMAIL_FROM "no-reply@$HOSTNAME_PUBLIC"
 		set_kv EGRESS_ALLOW_HOSTS kroki,fake-provider,mailpit
 		set_kv ALERT_EMAIL "ops@aidp.test"
