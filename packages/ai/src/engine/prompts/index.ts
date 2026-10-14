@@ -5,7 +5,7 @@ import { fileSummaryPromptV2 } from "../../ingest/prompts/file-summary.v2.js";
 import { imageDescribePromptV2 } from "../../ingest/prompts/image-describe.v2.js";
 import { issuesPromptV3 } from "../../spec/prompts/issues.v3.js";
 import { specPromptV2 } from "../../spec/prompts/spec.v2.js";
-import { extractionPromptV2 } from "./extraction.v2.js";
+import { extractionPromptV3 } from "./extraction.v3.js";
 import { interviewerPromptV6 } from "./interviewer.v6.js";
 import { recapPromptV1 } from "./recap.v1.js";
 import { summaryPromptV2 } from "./summary.v2.js";
@@ -23,7 +23,7 @@ export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
   summary: summaryPromptV2,
   recap: recapPromptV1,
   turn_meta_repair: turnMetaRepairPromptV2,
-  extraction: extractionPromptV2,
+  extraction: extractionPromptV3,
   clustering: clusteringPromptV2,
   opportunity: opportunityPromptV2,
   report: reportPromptV2,
