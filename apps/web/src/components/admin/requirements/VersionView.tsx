@@ -4,10 +4,10 @@ import { AlertTriangleIcon, GitBranchIcon, Loader2Icon } from "lucide-react";
 import * as React from "react";
 import { GitHubPushDialog } from "./GitHubPushDialog";
 import { VersionDiff } from "./VersionDiff";
-import { ExportsPanel } from "@/components/admin/ExportsPanel";
 import { StatTile } from "@/components/admin/StatTile";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { DateText } from "@/components/common/DateText";
+import { ExportMenu } from "@/components/data/ExportMenu";
 import { ReportMarkdown } from "@/components/report/ReportMarkdown";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -41,16 +41,69 @@ export function VersionView({
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <StatusBadge status={v.status} />
-        {v.label ? <span className="text-sm font-medium">{v.label}</span> : null}
-        <span className="text-muted-foreground text-xs">
-          {s.created}: <DateText iso={v.createdAt} />
-        </span>
-        {v.finishedAt ? (
-          <span className="text-muted-foreground text-xs">
-            {s.finished}: <DateText iso={v.finishedAt} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          <StatusBadge status={v.status} />
+          <span className="text-muted-foreground text-sm">
+            {s.created}: <DateText iso={v.createdAt} />
           </span>
+          {v.finishedAt ? (
+            <span className="text-muted-foreground text-sm">
+              {s.finished}: <DateText iso={v.finishedAt} />
+            </span>
+          ) : null}
+        </div>
+        {v.status === "done" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportMenu
+              labelled
+              withFilters={false}
+              label={s.downloads}
+              formats={[
+                {
+                  id: "pdf",
+                  label: t.admin.exportsPanel.pdf,
+                  what: "PDF",
+                  path: specExportUrl(sessionId, v.version, "pdf"),
+                  fallbackName: `specification-v${String(v.version)}.pdf`,
+                },
+                {
+                  id: "md",
+                  label: s.downloadMd,
+                  what: "spec.md",
+                  path: specExportUrl(sessionId, v.version, "md"),
+                  fallbackName: `specification-v${String(v.version)}.md`,
+                },
+                {
+                  id: "json",
+                  label: s.downloadJson,
+                  what: "spec.json",
+                  path: specExportUrl(sessionId, v.version, "json"),
+                  fallbackName: `specification-v${String(v.version)}.json`,
+                },
+                {
+                  id: "bundle",
+                  label: s.downloadBundle,
+                  what: s.bundle,
+                  path: specExportUrl(sessionId, v.version, "bundle"),
+                  fallbackName: `specification-v${String(v.version)}-bundle.zip`,
+                },
+              ]}
+            />
+            <Button
+              onClick={() => {
+                setGithub(true);
+              }}
+            >
+              <GitBranchIcon /> {s.github.open}
+            </Button>
+            <GitHubPushDialog
+              sessionId={sessionId}
+              version={v.version}
+              open={github}
+              onOpenChange={setGithub}
+            />
+          </div>
         ) : null}
       </div>
 
@@ -81,56 +134,6 @@ export function VersionView({
         <StatTile label={s.stats.phases} value={v.stats.phases} />
         <StatTile label={s.stats.openFindings} value={v.stats.openFindings} />
       </div>
-
-      {v.status === "done" ? (
-        <ExportsPanel
-          heading={s.downloads}
-          items={[
-            {
-              id: "pdf",
-              label: t.admin.exportsPanel.pdf,
-              what: "PDF",
-              url: specExportUrl(sessionId, v.version, "pdf"),
-              fallbackName: `specification-v${v.version}.pdf`,
-            },
-            {
-              id: "md",
-              label: s.downloadMd,
-              what: "spec.md",
-              url: specExportUrl(sessionId, v.version, "md"),
-              fallbackName: `specification-v${v.version}.md`,
-            },
-            {
-              id: "json",
-              label: s.downloadJson,
-              what: "spec.json",
-              url: specExportUrl(sessionId, v.version, "json"),
-              fallbackName: `specification-v${v.version}.json`,
-            },
-            {
-              id: "bundle",
-              label: s.downloadBundle,
-              what: s.bundle,
-              url: specExportUrl(sessionId, v.version, "bundle"),
-              fallbackName: `specification-v${v.version}-bundle.zip`,
-            },
-          ]}
-        >
-          <Button
-            onClick={() => {
-              setGithub(true);
-            }}
-          >
-            <GitBranchIcon /> {s.github.open}
-          </Button>
-          <GitHubPushDialog
-            sessionId={sessionId}
-            version={v.version}
-            open={github}
-            onOpenChange={setGithub}
-          />
-        </ExportsPanel>
-      ) : null}
 
       {v.status === "done" ? <VersionDiff sessionId={sessionId} current={v} others={others} /> : null}
 

@@ -133,3 +133,15 @@ there is no motion the shell needs that a transition does not do, and it would c
 `pnpm --filter @aidp/web exec tsx scripts/screenshots.ts` writes screenshots of any pages at any
 widths, themes and languages (see the header of the script); `scripts/overflow.ts` names what sticks
 out past the viewport.
+
+## Participant screens and the diagram viewer (D-380 to D-384)
+
+The participant has no shell: `CenteredShell` frames arrival and status screens, `InterviewScreen` is the chat. Rules that held up in review:
+
+- Mobile first at 360 px. Controls are at least 36 px high (44 on touch); `e2e/participant-layout.spec.ts` enforces it, and fails on sideways scroll.
+- Message text uses `[overflow-wrap:anywhere]`; anything a participant or a model wrote can contain a word longer than the screen.
+- Failures a person can retry (provider, offline, session expiry) are `Alert variant="warning"`; red is for what is wrong with their input.
+- `DiagramViewer` (`components/report/`) is the only way a diagram is shown: zoom, pan, full screen, source.
+- `ExportMenu labelled` is the page-header form of the export menu; the icon form is for table toolbars.
+
+Review states: `BASE=http://localhost:3470 OUT=/tmp/shots pnpm exec tsx scripts/review-shots.ts` (`ONLY`, `WIDTHS`, `THEMES`, `LOCALES`).

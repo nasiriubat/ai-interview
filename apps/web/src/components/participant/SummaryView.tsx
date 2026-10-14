@@ -1,9 +1,19 @@
 "use client";
 
 import type { Fact } from "@aidp/shared";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,6 +81,7 @@ export function SummaryView({
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const id = React.useId();
 
   React.useEffect(() => {
@@ -125,14 +136,25 @@ export function SummaryView({
   };
 
   return (
-    <section aria-labelledby={`${id}-title`} className="bg-card shadow-card mt-2 grid gap-4 rounded-xl p-5">
-      <div>
-        <h2 id={`${id}-title`} className="text-xl font-semibold">
-          {t.participant.summary.title}
-        </h2>
-        {view.kind === "unavailable" || view.kind === "error" ? null : (
-          <p className="text-muted-foreground text-sm">{t.participant.summary.body}</p>
-        )}
+    <section
+      aria-labelledby={`${id}-title`}
+      className="bg-card shadow-card mt-4 grid gap-5 rounded-2xl p-5 sm:p-6"
+    >
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className="bg-success-soft text-success-soft-foreground grid size-10 shrink-0 place-items-center rounded-full"
+        >
+          <CheckIcon className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <h2 id={`${id}-title`} className="text-xl leading-tight font-semibold">
+            {t.participant.summary.title}
+          </h2>
+          {view.kind === "unavailable" || view.kind === "error" ? null : (
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{t.participant.summary.body}</p>
+          )}
+        </div>
       </div>
       {view.kind === "loading" || view.kind === "pending" ? (
         <div className="grid gap-2" aria-busy="true">
@@ -182,7 +204,7 @@ export function SummaryView({
             </Alert>
           ) : null}
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" className="h-11" loading={saving}>
               {saving ? t.app.saving : t.participant.summary.save}
             </Button>
             {saved ? (
@@ -193,16 +215,41 @@ export function SummaryView({
           </div>
         </form>
       )}
-      <div>
-        <h3 className="text-sm font-medium">{t.participant.summary.whatNext}</h3>
-        <p className="text-muted-foreground text-sm">{t.participant.summary.whatNextBody}</p>
+      <div className="bg-muted/60 rounded-xl p-4">
+        <h3 className="text-sm font-semibold">{t.participant.summary.whatNext}</h3>
+        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+          {t.participant.summary.whatNextBody}
+        </p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">{t.participant.summary.close}</p>
-        <Button variant="ghost" className="text-destructive hover:text-destructive" onClick={onDelete}>
-          {t.participant.session.deleteData}
+        <Button
+          variant="outline"
+          className="text-destructive hover:text-destructive h-11 w-full sm:w-auto"
+          onClick={() => {
+            setConfirmDelete(true);
+          }}
+        >
+          <Trash2Icon aria-hidden="true" /> {t.participant.session.deleteData}
         </Button>
       </div>
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.participant.session.deleteTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{t.participant.session.deleteBody}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.app.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              onClick={onDelete}
+            >
+              {t.participant.session.deleteConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

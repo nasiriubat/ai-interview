@@ -44,7 +44,7 @@ export function MessageBubble({
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
       <div
         className={cn(
-          "max-w-[85%] rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap sm:max-w-[75%]",
+          "max-w-[88%] min-w-0 rounded-2xl px-4 py-3 text-base leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] sm:max-w-[75%]",
           isUser
             ? "bg-primary text-primary-foreground rounded-br-md"
             : "bg-card text-foreground shadow-card rounded-bl-md",
@@ -66,7 +66,7 @@ export function MessageBubble({
             else if (message.id !== undefined) speech.speak(message.id, message.content);
           }}
           className={cn(
-            "mt-1 ml-1 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium",
+            "mt-0.5 ml-1 inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium",
             speaking
               ? "bg-accent text-accent-foreground"
               : "text-muted-foreground hover:text-foreground hover:bg-muted",
