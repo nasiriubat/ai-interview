@@ -1,0 +1,20 @@
+{
+  "name": "@aidp/marketing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Photographs a running stack for marketing material: signs in through Mailpit and captures the important pages.",
+  "scripts": {
+    "capture": "tsx src/capture.ts",
+    "voiceover": "tsx src/voiceover.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

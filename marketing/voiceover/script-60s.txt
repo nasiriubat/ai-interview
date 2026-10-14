@@ -1,0 +1,28 @@
+KESTREL DISCOVERY DEMO: VOICE-OVER (60-second cut)
+
+Simulated demo: the company and people are fictional; the product was running. Legend as in
+script.txt: [pause 0.4s] [pause 1s] [beat] *emphasis* (slower) (warm).
+
+------------------------------------------------------------------------------------------------
+SCENE 1  00:00-00:08  [01-landing-hero.png]
+(warm) Before you decide what to automate, [beat] ask the people who do the work.
+
+SCENE 2  00:08-00:18  [07-participant-arrival-phone.png]
+Share one link. [pause 0.4s] Your team answers an AI interviewer on a phone or a laptop, [pause 0.4s]
+no account needed.
+
+SCENE 3  00:18-00:28  [08-participant-chat.png]
+One question at a time, the same template for everyone, [pause 0.4s] and it is instructed *never*
+to ask where AI should go.
+
+SCENE 4  00:28-00:40  [13-results-overview.png]
+The answers are grouped, counted and scored across the whole campaign, [pause 0.4s] and a quote or a
+department shows only when, by default, at least three people are behind it.
+
+SCENE 5  00:40-00:50  [19-requirements-workspace.png]
+A promising opportunity becomes a requirements interview, [beat] and then a versioned specification
+your developers, or your coding agent, can build from.
+
+SCENE 6  00:50-01:00  [03-landing-trust.png]
+(slower) Built to run on a server you operate, with the providers you choose. [pause 1s]
+(warm) Understand the problem before deciding what to build.

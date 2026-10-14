@@ -1,0 +1,78 @@
+KESTREL DISCOVERY DEMO: VOICE-OVER (full cut, 3 minutes 22 seconds)
+
+Everything on screen is a simulated demo: "Kestrel Health" and its people are fictional, and their
+answers were played by a language model. The product is real and was running; nothing was mocked up.
+Product name on screen: "Kestrel Discovery" is the demo's own branding, set under Settings.
+
+LEGEND
+  [pause 0.4s]  short breath
+  [pause 1s]    full stop, let the picture land
+  [beat]        a half-second hold before the next phrase, for weight
+  *word*        emphasis
+  (slower)      slow down until the end of the sentence
+  (warm)        friendlier, smiling voice until the end of the sentence
+  Times are scene start to scene end. Read at a relaxed pace, about 140 words a minute.
+
+------------------------------------------------------------------------------------------------
+SCENE 1  00:00-00:12  [01-landing-hero.png]
+(warm) Most teams decide what to automate from a hunch, a vendor demo, or the loudest person in the
+room. [pause 0.4s] There is a better place to start: [beat] the people who do the work.
+
+SCENE 2  00:12-00:24  [05-campaign.png]
+You set up a discovery campaign from a template, [pause 0.4s] write a short welcome, [pause 0.4s]
+and share one link, or a QR code, with your team.
+
+SCENE 3  00:24-00:40  [07-participant-arrival-phone.png]
+Your colleagues open it on a laptop or a phone. [pause 0.4s] No account. [beat] They see who is
+asking and why, what is kept, and how to delete it, [pause 0.4s] before they agree to anything.
+
+SCENE 4  00:40-00:58  [08-participant-chat.png]
+Then an AI interviewer asks about their actual week. [pause 0.4s] One question at a time. [pause 0.4s]
+It follows the same template for everyone, [pause 0.4s] and it is instructed *never* to ask where AI
+should go. (slower) It asks what fills the day, and what gets in the way.
+
+SCENE 5  00:58-01:08  [10-participant-voice-phone.png]
+They can type, tap an answer option, or simply record an answer, [pause 0.4s] where voice is set up.
+
+SCENE 6  01:08-01:20  [11-participant-summary.png]
+At the end, they see a summary they can correct. [pause 0.4s] They can download what they said,
+[beat] or delete it.
+
+SCENE 7  01:20-01:40  [13-results-overview.png]
+Now the part a chat window cannot give you. [pause 0.4s] Every interview is turned into items on a
+fixed schema, [pause 0.4s] then grouped, counted and scored across the whole campaign. [pause 1s]
+In this demo: six simulated colleagues, nine groups.
+
+SCENE 8  01:40-01:56  [15-opportunity-detail.png]
+Each opportunity is scored on seven factors, with the reasons. [pause 0.4s] And sometimes the answer
+is *not* AI. [beat] Here it says why plain automation fits better. [pause 0.4s] That is a result,
+too.
+
+SCENE 9  01:56-02:08  [16-results-departments.png]
+Departments are compared only when at least three people, the default, are behind a number. [pause 0.4s] Below
+that, it is withheld. [beat] By design.
+
+SCENE 10  02:08-02:20  [17-report.png]
+The report states its method, and what it does not do, [pause 0.4s] and exports as a PDF you can
+hand to leadership.
+
+SCENE 11  02:20-02:38  [19-requirements-workspace.png]
+When something is worth building, [pause 0.4s] one click starts a requirements interview, [pause 0.4s]
+carrying over what the interviews found. [pause 0.4s] It asks one decision at a time, suggests a
+sensible default, [beat] and pushes back when something does not add up.
+
+SCENE 12  02:38-02:50  [20-requirements-readback.png]
+Before it finishes, it reads back what it understood, [pause 0.4s] so the owner can correct it.
+
+SCENE 13  02:50-03:02  [22-spec-compare.png]
+The result is a versioned specification with numbered requirements, [pause 0.4s] and you can see
+exactly what changed between versions.
+
+SCENE 14  03:02-03:10  [24-spec-export.png]
+Download it as a PDF, as Markdown, [pause 0.4s] or as a bundle for coding agents like Claude Code or
+Codex.
+
+SCENE 15  03:10-03:22  [03-landing-trust.png]
+(slower) It is built to run on a server you operate, [pause 0.4s] with the AI providers you choose,
+[pause 0.4s] and every model call is recorded with its cost. [pause 1s]
+(warm) Understand the problem, [beat] before deciding what to build.

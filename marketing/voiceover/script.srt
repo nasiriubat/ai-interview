@@ -1,0 +1,123 @@
+1
+00:00:00,000 --> 00:00:07,396
+Most teams decide what to automate from a hunch, a vendor demo, or the loudest person in the room.
+
+2
+00:00:07,396 --> 00:00:12,000
+There is a better place to start: the people who do the work.
+
+3
+00:00:12,000 --> 00:00:24,000
+You set up a discovery campaign from a template, write a short welcome, and share one link, or a QR code, with your team.
+
+4
+00:00:24,000 --> 00:00:28,821
+Your colleagues open it on a laptop or a phone.
+
+5
+00:00:28,821 --> 00:00:29,949
+No account.
+
+6
+00:00:29,949 --> 00:00:40,000
+They see who is asking and why, what is kept, and how to delete it, before they agree to anything.
+
+7
+00:00:40,000 --> 00:00:44,179
+Then an AI interviewer asks about their actual week.
+
+8
+00:00:44,179 --> 00:00:46,027
+One question at a time.
+
+9
+00:00:46,027 --> 00:00:53,741
+It follows the same template for everyone, and it is instructed never to ask where AI should go.
+
+10
+00:00:53,741 --> 00:00:58,000
+It asks what fills the day, and what gets in the way.
+
+11
+00:00:58,000 --> 00:01:08,000
+They can type, tap an answer option, or simply record an answer, where voice is set up.
+
+12
+00:01:08,000 --> 00:01:14,063
+At the end, they see a summary they can correct.
+
+13
+00:01:14,063 --> 00:01:20,000
+They can download what they said, or delete it.
+
+14
+00:01:20,000 --> 00:01:24,095
+Now the part a chat window cannot give you.
+
+15
+00:01:24,095 --> 00:01:35,048
+Every interview is turned into items on a fixed schema, then grouped, counted and scored across the whole campaign.
+
+16
+00:01:35,048 --> 00:01:40,000
+In this demo: six simulated colleagues, nine groups.
+
+17
+00:01:40,000 --> 00:01:46,012
+Each opportunity is scored on seven factors, with the reasons.
+
+18
+00:01:46,012 --> 00:01:49,406
+And sometimes the answer is not AI.
+
+19
+00:01:49,406 --> 00:01:53,867
+Here it says why plain automation fits better.
+
+20
+00:01:53,867 --> 00:01:56,000
+That is a result, too.
+
+21
+00:01:56,000 --> 00:02:04,531
+Departments are compared only when at least three people, the default, are behind a number.
+
+22
+00:02:04,531 --> 00:02:07,063
+Below that, it is withheld.
+
+23
+00:02:07,063 --> 00:02:08,000
+By design.
+
+24
+00:02:08,000 --> 00:02:20,000
+The report states its method, and what it does not do, and exports as a PDF you can hand to leadership.
+
+25
+00:02:20,000 --> 00:02:29,360
+When something is worth building, one click starts a requirements interview, carrying over what the interviews found.
+
+26
+00:02:29,360 --> 00:02:38,000
+It asks one decision at a time, suggests a sensible default, and pushes back when something does not add up.
+
+27
+00:02:38,000 --> 00:02:50,000
+Before it finishes, it reads back what it understood, so the owner can correct it.
+
+28
+00:02:50,000 --> 00:03:02,000
+The result is a versioned specification with numbered requirements, and you can see exactly what changed between versions.
+
+29
+00:03:02,000 --> 00:03:10,000
+Download it as a PDF, as Markdown, or as a bundle for coding agents like Claude Code or Codex.
+
+30
+00:03:10,000 --> 00:03:18,380
+It is built to run on a server you operate, with the AI providers you choose, and every model call is recorded with its cost.
+
+31
+00:03:18,380 --> 00:03:22,000
+Understand the problem, before deciding what to build.
