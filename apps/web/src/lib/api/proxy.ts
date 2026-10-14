@@ -142,6 +142,12 @@ export async function forwardToApi(
   const contentType = upstream.headers.get("content-type");
   if (contentType) outHeaders.set("content-type", contentType);
   outHeaders.set("cache-control", "no-store");
+  // A download keeps its file name, and an export says what it left out (D-211). These are the only
+  // other response headers that cross: everything else the API sets is for the API's own caller.
+  for (const name of ["content-disposition", "x-export-warnings", "x-export-pages"]) {
+    const value = upstream.headers.get(name);
+    if (value) outHeaders.set(name, value);
+  }
   if (contentType?.includes("text/event-stream")) {
     outHeaders.set("x-accel-buffering", "no");
     outHeaders.set("connection", "keep-alive");
