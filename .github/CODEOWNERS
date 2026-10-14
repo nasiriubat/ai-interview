@@ -7,11 +7,8 @@
 /apps/api/test/role-matrix.snapshot.json          @nasiriubat
 /apps/api/src/auth/                               @nasiriubat
 /packages/db/prisma/migrations/                   @nasiriubat
-/deploy/rls-exempt.txt                            @nasiriubat
-/deploy/preflight.sh                              @nasiriubat
-/eslint-rules/                                    @nasiriubat
+/deploy/lib/rls-exempt.txt                        @nasiriubat
+/deploy/lib/preflight.sh                          @nasiriubat
+/tools/eslint-rules/                              @nasiriubat
 /.github/                                         @nasiriubat
-/.gitleaks.toml                                   @nasiriubat
-/.trivyignore.yaml                                @nasiriubat
-/audit-ignore.json                                @nasiriubat
 /apps/web/public/.well-known/security.txt         @nasiriubat

@@ -11,7 +11,7 @@ export * from "./filesystem.js";
  *
  * Memory is the right default for a test and for `pnpm dev` with nothing configured — uploads work,
  * they simply do not outlive the process. It is the wrong default for a server, which is why
- * `deploy/compose.prod.yml` always sets `UPLOAD_DIR` and mounts a volume at it, and why the
+ * `deploy/compose.yml` always sets `UPLOAD_DIR` and mounts a volume at it, and why the
  * readiness check reports which store is in force rather than leaving it to be discovered when a
  * participant's recording vanishes on the next deploy.
  */

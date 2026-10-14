@@ -6,7 +6,7 @@
 #   deploy/dc exec -T backup /usr/local/bin/backup.sh once
 #
 # Three things every invocation needs and nobody should have to remember: the compose file, the
-# secrets in deploy/.env, and deploy/versions.env, which holds the image tag the stack is running
+# settings and secrets in the repository-root .env (the one env file, D-450), and deploy/versions.env, which holds the image tag the stack is running
 # (written by upgrade.sh and rollback.sh, never by hand). Without the last one compose cannot name
 # an image. This is the `dc` alias DEPLOY.md and OPERATIONS.md use.
 #
@@ -15,10 +15,12 @@
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
-compose_file="${COMPOSE_FILE_PATH:-$here/compose.prod.yml}"
-env_file="${ENV_FILE_PATH:-$here/.env}"
-versions_file="${VERSIONS_FILE_PATH:-$here/versions.env}"
+AIDP_DEPLOY_DIR="$here"
+# compose_file, env_file (<repo>/.env), versions_file and refuse_legacy_env.
+# shellcheck source=deploy/lib/lib.sh
+. "$here/lib/lib.sh"
 
+refuse_legacy_env dc
 [ -f "$env_file" ] || { echo "dc: no $env_file; run deploy/generate-env.sh first" >&2; exit 1; }
 args=(-f "$compose_file")
 for extra in ${COMPOSE_OVERRIDE_FILES:-}; do args+=(-f "$extra"); done

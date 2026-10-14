@@ -1,5 +1,5 @@
 #!/bin/bash
-# deploy/preflight.sh: that its refusals now reach the ops-notify sidecar (D-94), and that its
+# deploy/lib/preflight.sh: that its refusals now reach the ops-notify sidecar (D-94), and that its
 # checks are unchanged. The gate runs before the API and the worker, so when it refuses nothing in
 # the application is alive to say so; a file on the ops_state volume is the only voice it has.
 . "$(dirname "$0")/harness.sh"
@@ -42,7 +42,7 @@ FAKE
 }
 
 pre() {
-	OUT=$("$DEPLOY_DIR/preflight.sh" 2>&1)
+	OUT=$("$DEPLOY_DIR/lib/preflight.sh" 2>&1)
 	STATUS=$?
 }
 alerts() { ls "$SB/ops/alerts"/*.json 2>/dev/null; }
@@ -74,7 +74,7 @@ setup
 echo "VerificationToken" >"$SB/state/contradicting"
 pre
 assert_status "refuses" 1 "$STATUS"
-assert_contains "naming it" "$(jq -r .message "$(alerts | head -n1)")" "on deploy/rls-exempt.txt but carry a companyId: VerificationToken"
+assert_contains "naming it" "$(jq -r .message "$(alerts | head -n1)")" "on deploy/lib/rls-exempt.txt but carry a companyId: VerificationToken"
 rm -rf "$SB"
 
 echo "an audit log the application role could rewrite"
@@ -126,7 +126,7 @@ echo "OpsAlert" >"$SB/state/unprotected"
 rm -rf "$SB/ops"
 pre
 assert_status "still refuses" 1 "$STATUS"
-assert_contains "and says why on the terminal" "$OUT" "not on deploy/rls-exempt.txt: OpsAlert"
+assert_contains "and says why on the terminal" "$OUT" "not on deploy/lib/rls-exempt.txt: OpsAlert"
 unset OPS_STATE_DIR
 pre
 assert_status "also with the variable unset" 1 "$STATUS"

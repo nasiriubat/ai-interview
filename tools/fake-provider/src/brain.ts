@@ -6,7 +6,7 @@ import { contentText, minimalValue, schemaOfRequest, type ChatBody, type Json } 
  * It behaves as an ideal interviewer would, driven by the one thing the engine tells every model
  * the same way: the `<engine_focus>` block at the end of the last message (packages/ai/src/engine/
  * context.ts). Open an area, go one level deeper, ask the closing question, summarize and end. The
- * logic is the one the in-process eval fakes use (evals/src/requirements-model.ts), made stateless
+ * logic is the one the in-process eval fakes use (tools/evals/src/requirements-model.ts), made stateless
  * so many sessions can share one server: everything it needs is in the request.
  */
 

@@ -28,7 +28,7 @@ WORKDIR /repo
 FROM base AS manifests
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
 # pnpm refuses to install when patchedDependencies names a file it cannot find.
-COPY patches patches
+COPY tools/patches tools/patches
 COPY packages/shared/package.json packages/shared/
 COPY packages/ai/package.json packages/ai/
 COPY packages/db/package.json packages/db/
@@ -36,7 +36,7 @@ COPY packages/core/package.json packages/core/
 COPY apps/api/package.json apps/api/
 COPY apps/worker/package.json apps/worker/
 COPY apps/web/package.json apps/web/
-COPY evals/package.json evals/
+COPY tools/evals/package.json tools/evals/
 
 # Everything needed to compile: TypeScript, Prisma's generator, the lot. None of it ships.
 FROM manifests AS build

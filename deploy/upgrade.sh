@@ -31,8 +31,9 @@ set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
 export AIDP_DEPLOY_DIR="$here"
-# shellcheck source=deploy/lib.sh
-. "$here/lib.sh"
+# shellcheck source=deploy/lib/lib.sh
+. "$here/lib/lib.sh"
+refuse_legacy_env upgrade
 
 target_ref=""
 allow_dirty=0
@@ -144,8 +145,8 @@ say "building images tagged $version"
 export AIDP_VERSION="$version"
 # The backup image first, on its own: it carries age-keygen, and compose will not even parse the
 # stack until the key exists in the env file.
-act docker build -q -f "$here/backup.Dockerfile" -t "aidp-backup:$version" "$here" >/dev/null
-act env ENV_FILE_PATH="$env_file" "$here/ensure-backup-key.sh" --image "aidp-backup:$version"
+act docker build -q -f "$here/backup/backup.Dockerfile" -t "aidp-backup:$version" "$here/backup" >/dev/null
+act env ENV_FILE_PATH="$env_file" "$here/backup/ensure-backup-key.sh" --image "aidp-backup:$version"
 act dcx build
 if [ "$DRY_RUN" != 1 ]; then
 	# --env-file versions.env is not written yet, so the build above read AIDP_VERSION from here.

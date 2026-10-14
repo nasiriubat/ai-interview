@@ -35,11 +35,11 @@ else
 fi
 
 echo "the fake-provider overlay"
-overlay="$DEPLOY_DIR/compose.fake.yml"
+overlay="$REPO/tools/rehearsal/compose.fake.yml"
 assert_contains "the overlay adds the fake provider" "$(cat "$overlay")" "fake-provider:"
 assert_contains "the overlay adds a mail catcher" "$(cat "$overlay")" "mailpit:"
-assert_not_contains "the production file never mentions the fake" "$(cat "$DEPLOY_DIR/compose.prod.yml")" "fake-provider"
-assert_not_contains "the production file never mentions the mail catcher" "$(cat "$DEPLOY_DIR/compose.prod.yml")" "mailpit"
+assert_not_contains "the production file never mentions the fake" "$(cat "$DEPLOY_DIR/compose.yml")" "fake-provider"
+assert_not_contains "the production file never mentions the mail catcher" "$(cat "$DEPLOY_DIR/compose.yml")" "mailpit"
 dockerfile_fake="$REPO/tools/fake-provider/Dockerfile"
 assert_contains "the fake's Dockerfile builds from the repository root" "$(cat "$dockerfile_fake")" "COPY tools/fake-provider/src"
 
@@ -62,7 +62,7 @@ SMTP_SECURITY=none
 EMAIL_FROM=no-reply@example.com
 BACKUP_AGE_RECIPIENT=age1testtesttesttesttesttesttesttesttesttesttesttesttesttesttest
 ENV
-	plain=$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf" config 2>&1)
+	plain=$(docker compose -f "$DEPLOY_DIR/compose.yml" --env-file "$envf" config 2>&1)
 	assert_contains "default: no port in WEB_ORIGIN" "$plain" "WEB_ORIGIN: https://pilot.example.com"
 	assert_not_contains "default: no port anywhere in the public URLs" "$plain" "https://pilot.example.com:"
 	# api, worker, web and ops-notify each get the split relay variables (D-445, D-447).
@@ -73,32 +73,32 @@ ENV
 	# renders and the processes refuse to start (D-448, apps/api/test/smtp-config.test.ts).
 	grep -v '^SMTP_' "$envf" >"$envf.norelay"
 	assert_contains "compose renders without a relay; the processes refuse instead" \
-		"$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf.norelay" config 2>&1)" "SMTP_HOST: \"\""
+		"$(docker compose -f "$DEPLOY_DIR/compose.yml" --env-file "$envf.norelay" config 2>&1)" "SMTP_HOST: \"\""
 	rm -f "$envf.norelay"
 	# A password is written as the provider gives it; single quotes keep $, # and spaces literal.
 	cp "$envf" "$envf.quoted"
 	printf '%s\n' "SMTP_USER=relay@example.com" "SMTP_PASSWORD='p@ss w#rd \$x %41:/'" >>"$envf.quoted"
 	assert_contains "a quoted password reaches the service byte for byte" \
-		"$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf.quoted" config 2>&1)" 'SMTP_PASSWORD: p@ss w#rd $$x %41:/'
+		"$(docker compose -f "$DEPLOY_DIR/compose.yml" --env-file "$envf.quoted" config 2>&1)" 'SMTP_PASSWORD: p@ss w#rd $$x %41:/'
 	rm -f "$envf.quoted"
 	echo "HTTPS_PORT=5543" >>"$envf"
-	ported=$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf" config 2>&1)
+	ported=$(docker compose -f "$DEPLOY_DIR/compose.yml" --env-file "$envf" config 2>&1)
 	assert_contains "HTTPS_PORT: WEB_ORIGIN has it" "$ported" "WEB_ORIGIN: https://pilot.example.com:5543"
 	assert_contains "HTTPS_PORT: PUBLIC_WEB_URL has it" "$ported" "PUBLIC_WEB_URL: https://pilot.example.com:5543"
 	assert_contains "HTTPS_PORT: AUTH_URL has it" "$ported" "AUTH_URL: https://pilot.example.com:5543"
 	echo "API_MEMORY_LIMIT=1024M" >>"$envf"
-	assert_contains "a limit variable reaches the service" "$(docker compose -f "$DEPLOY_DIR/compose.prod.yml" --env-file "$envf" config 2>&1)" "memory: \"1073741824\""
+	assert_contains "a limit variable reaches the service" "$(docker compose -f "$DEPLOY_DIR/compose.yml" --env-file "$envf" config 2>&1)" "memory: \"1073741824\""
 	rm -f "$envf"
 else
 	echo "  note docker compose is not on this machine; the interpolation checks were not run"
 fi
 
 echo "grants.sql repairs what only a restore loses"
-grants="$(cat "$DEPLOY_DIR/grants.sql")"
+grants="$(cat "$DEPLOY_DIR/lib/grants.sql")"
 # preflight.sh refuses to start the stack without CREATE on the database; a restore recreates the
 # database and the dump carries no database-level GRANT, so this file is the only place left to say it.
 assert_contains "grants CREATE on the database to app_api" "$grants" "GRANT CREATE ON DATABASE"
-assert_contains "and preflight is what asks for it" "$(cat "$DEPLOY_DIR/preflight.sh")" "'CREATE'"
+assert_contains "and preflight is what asks for it" "$(cat "$DEPLOY_DIR/lib/preflight.sh")" "'CREATE'"
 
 echo "the Caddyfile"
 caddyfile="$DEPLOY_DIR/Caddyfile"
