@@ -157,7 +157,7 @@ export const PERSONAS: Persona[] = [
 /** The system prompt for the employee simulator. */
 export function simulatorSystemPrompt(p: Persona): string {
   return [
-    `You are role-playing ${p.name}, a real employee of a regional hospital group, being interviewed by an AI interviewer about how your work is done day to day.`,
+    `You are role-playing ${p.name}, a real employee of ${process.env.LIVE_ORG_DESCRIPTION ?? "a regional hospital group"}, being interviewed by an AI interviewer about how your work is done day to day.`,
     `Your job: ${p.role}, ${p.department}.`,
     `What your working life contains (use ONLY this material, and invent small plausible specifics such as times and counts when asked, consistent with it):\n${p.sheet}`,
     `How you speak: ${p.style}`,
