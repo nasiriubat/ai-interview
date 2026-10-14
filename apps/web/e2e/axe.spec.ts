@@ -39,10 +39,11 @@ for (const entry of PAGES) {
     // policy is enforced in this run (CSP_MODE=enforce in playwright.config.ts), so an entry here
     // is something production would block (D-264).
     await page.addInitScript(() => {
-      const w = window as unknown as { __cspViolations: string[] };
-      w.__cspViolations = [];
+      const w = window as Window & { __cspViolations?: string[] };
+      const found: string[] = [];
+      w.__cspViolations = found;
       document.addEventListener("securitypolicyviolation", (e) => {
-        w.__cspViolations.push(
+        found.push(
           `${e.effectiveDirective} blocked ${e.blockedURI || "inline"} at ${e.sourceFile || "page"}:${String(e.lineNumber)}`,
         );
       });
@@ -73,7 +74,7 @@ for (const entry of PAGES) {
       );
     }
     const violations = await page.evaluate(
-      () => (window as unknown as { __cspViolations?: string[] }).__cspViolations ?? [],
+      () => (window as Window & { __cspViolations?: string[] }).__cspViolations ?? [],
     );
     expect(violations, `${entry.path} raised Content-Security-Policy violations`).toEqual([]);
     const blocking = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");

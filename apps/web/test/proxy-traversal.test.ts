@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { forwardToApi } from "@/lib/api/proxy";
 
 /**
@@ -7,19 +7,17 @@ import { forwardToApi } from "@/lib/api/proxy";
  * that is `..` must not be able to climb out of `/api/v1/` or into the machine-to-machine
  * routes, whichever credential the handler attaches.
  */
-type Fetch = typeof globalThis.fetch;
-const originalFetch: Fetch = globalThis.fetch;
 let seen = "";
 
 beforeEach(() => {
   seen = "";
-  globalThis.fetch = (async (url: string) => {
-    seen = url;
-    return new Response(null, { status: 204 });
-  }) as unknown as Fetch;
+  vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    seen = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    return Promise.resolve(new Response(null, { status: 204 }));
+  });
 });
 afterEach(() => {
-  globalThis.fetch = originalFetch;
+  vi.restoreAllMocks();
 });
 
 const request = (): never =>
