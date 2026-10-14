@@ -9,6 +9,10 @@ import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js"
 import type { PromptDefinition } from "./prompts/index.js";
 import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v6.js";
 import type { Focus } from "./selection.js";
+import { TURN_MARKER } from "./turn-parser.js";
+
+/** The last line of every interviewer request (see `assembleContext`). */
+export const FORMAT_REMINDER = `Reply format: your message to the participant, then a line containing exactly ${TURN_MARKER}, then the JSON metadata object. Earlier interviewer messages above are shown without their metadata; yours must include it.`;
 
 export interface AssembledContext {
   system: string;
@@ -262,7 +266,10 @@ export function assembleContext(input: {
     used = estimateTokens(system) + estimateTokens(contextText());
   }
 
-  const focusText = `<engine_focus>\n${renderFocus(focus, session.template, session.path, session.state)}\n</engine_focus>`;
+  // The interviewer's earlier messages are shown without their metadata block, so a model that
+  // imitates its history stops writing one (about half the replies of a cheap model in the live
+  // run of 2026-10-14). The reminder sits last, next to the question, where it is followed.
+  const focusText = `<engine_focus>\n${renderFocus(focus, session.template, session.path, session.state)}\n</engine_focus>\n\n${FORMAT_REMINDER}`;
   used += estimateTokens(focusText);
 
   // Recent window: newest first until the budget is spent, then restore order.
