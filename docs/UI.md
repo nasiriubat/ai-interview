@@ -239,7 +239,7 @@ its name is typed, and the person is told the date.
 
 ## Participant screens and the diagram viewer (D-380 to D-384)
 
-The participant has no shell: `CenteredShell` frames arrival and status screens, `InterviewScreen` is the chat. Rules that held up in review:
+The participant has one frame (D-420 to D-425), `components/participant/ParticipantFrame.tsx`. `ParticipantPage` holds a single card (arrival, details, consent, paused, deleted, closed); `InterviewFrame` is the app frame for the chat: a slim header (name, progress, Pause and save, panel toggle, language and appearance menus from `PreferenceMenus.tsx`, overflow menu), a full-height conversation card with the composer docked at its bottom, and a collapsible side panel (`SessionPanel`) from 1280 px, a sheet below. `ChatViewport` is the only thing that scrolls: bottom-anchored, follows the end only at the end, "Jump to latest". There is no answer-mode switch (D-421): the composer has a field, Send, a microphone and, with live voice, Talk; quick-reply choices sit above it. A recording is a clip inside the participant's own bubble (`VoiceClip`), never a row above the composer. `e2e/participant-frame.spec.ts` guards all of it at six widths. Rules that held up in review:
 
 - Mobile first at 360 px. Controls are at least 36 px high (44 on touch); `e2e/participant-layout.spec.ts` enforces it, and fails on sideways scroll.
 - Message text uses `[overflow-wrap:anywhere]`; anything a participant or a model wrote can contain a word longer than the screen.
