@@ -118,7 +118,12 @@ exec)
 		;;
 	*"jq -r"*) echo "ai_discovery-20261013T100000Z.dump.age"; exit 0 ;;
 	*"/maintenance/on"*)
-		case "$*" in *"rm -f"*) echo "maintenance-off" >>"$SB/events.log" ;; *) echo "maintenance-on" >>"$SB/events.log" ;; esac
+		# The flag is a file in Caddy's volume, and Caddy answers 503 while it exists: the fake curl
+		# reads the same state, so a check made while the page is up is seen to fail, as it does.
+		case "$*" in
+		*"rm -f"*) echo "maintenance-off" >>"$SB/events.log"; rm -f "$state/maintenance" ;;
+		*) echo "maintenance-on" >>"$SB/events.log"; : >"$state/maintenance" ;;
+		esac
 		exit 0
 		;;
 	esac
@@ -149,7 +154,7 @@ compose)
 	shift
 	sub=""
 	for a in "$@"; do
-		case "$a" in build | up | ps | exec | logs | config) sub=$a; break ;; esac
+		case "$a" in build | up | run | ps | exec | logs | config) sub=$a; break ;; esac
 	done
 	v=$(version_from_args "$@")
 	case "$sub" in
@@ -160,8 +165,18 @@ compose)
 		;;
 	up)
 		echo "compose-up version=$v $*" >>"$SB/events.log"
-		has up-fails && { echo "service \"migrate\" didn't complete successfully: exit 1" >&2; exit 1; }
+		# Replacing the application can fail on its own (a port, a healthcheck dependency).
+		case "$*" in *--remove-orphans*) has switch-fails && { echo "service \"api\" failed to start" >&2; exit 1; } ;; esac
 		# a second call (the automatic rollback) may be told to succeed
+		exit 0
+		;;
+	run)
+		# A one-shot (migrate, db-grants, preflight) run on its own, as upgrade.sh does before it
+		# replaces anything. up-fails: the migration fails.
+		svc=""
+		for a in "$@"; do case "$a" in ops-state-init | migrate | db-grants | preflight) svc=$a ;; esac; done
+		echo "compose-run $svc version=$v" >>"$SB/events.log"
+		has up-fails && [ "$svc" = migrate ] && { echo "migrate: ERROR: division by zero" >&2; exit 1; }
 		exit 0
 		;;
 	ps)
@@ -202,7 +217,9 @@ FAKE
 	cat >"$SB/bin/curl" <<'FAKE'
 #!/bin/bash
 echo "curl $*" >>"$SB/curl.log"
-if [ -e "$SB/state/curl-code" ]; then cat "$SB/state/curl-code"; else echo 200; fi
+if [ -e "$SB/state/curl-code" ]; then cat "$SB/state/curl-code"
+elif [ -e "$SB/state/maintenance" ]; then echo 503
+else echo 200; fi
 FAKE
 	cat >"$SB/bin/df" <<'FAKE'
 #!/bin/bash

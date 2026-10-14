@@ -1,0 +1,6 @@
+scenario=full
+version=ffd17ea6ce11
+provider={"latencyMs":0,"jitterMs":0,"firstTokenMs":0,"charsPerSecond":0,"errorRate":0,"errorStatus":500,"rate429":0,"hangRate":0,"hangMs":0,"cutRate":0,"transcript":"We print the order and type it in again by hand.","sttUtteranceMs":1000,"ttsFirstByteMs":0,"ttsBytes":24000,"embeddings":"unsupported","realtime":"ok","seed":1}
+host_cpus=14
+host_memory_bytes=8216498176
+k6_image=grafana/k6:latest

@@ -31,7 +31,7 @@ COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 # `next build` type-checks everything the tsconfig includes, and e2e/fixtures.ts reads the shipped
 # template JSON from packages/db. Without these files the image does not build (found by the
-# Security M3 image scan; it had not been built since the e2e harness landed).
+# Security M3 image scan and again by the full-stack drill; it had not been built since the e2e harness landed).
 COPY packages/db/src/seed-templates packages/db/src/seed-templates
 COPY apps/web apps/web
 # Same assertion as apps/api/Dockerfile, for the same reason: the root .dockerignore keeps every

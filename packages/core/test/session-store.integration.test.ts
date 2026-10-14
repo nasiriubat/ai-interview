@@ -78,6 +78,26 @@ describeDb("PrismaSessionStore extraction commit", () => {
     expect(await db.sessionEvent.count({ where: { sessionId: id, type: "facts_extracted" } })).toBe(1);
   });
 
+  it("appends events from concurrent writers without colliding on seq (a turn beside an extraction)", async () => {
+    const id = await newSession();
+    // The shape of the production race: the API's turn events and the worker's extraction commits
+    // land on one session at the same moment. Before the row lock, some of these threw the
+    // (sessionId, seq) unique constraint and failed the participant's turn.
+    const writers = [
+      ...Array.from({ length: 12 }, (_, i) => store.appendEvent(id, "state_delta", { n: i })),
+      ...Array.from({ length: 6 }, (_, i) =>
+        store.commitExtraction(id, commit(i * 24, (i + 1) * 24, [`c${i}`])),
+      ),
+    ];
+    const settled = await Promise.allSettled(writers);
+    expect(settled.filter((s) => s.status === "rejected")).toEqual([]);
+    const seqs = (await db.sessionEvent.findMany({ where: { sessionId: id }, orderBy: { seq: "asc" } })).map(
+      (e) => e.seq,
+    );
+    expect(seqs.length).toBeGreaterThanOrEqual(12);
+    expect(seqs).toEqual(Array.from({ length: seqs.length }, (_, i) => i + 1));
+  });
+
   it("two overlapping runs from the same cursor: exactly one commits", async () => {
     const id = await newSession();
 

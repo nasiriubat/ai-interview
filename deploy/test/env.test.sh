@@ -103,4 +103,27 @@ assert_eq "and kept mode 600" 600 "$perm"
 assert_contains "and warned to copy the file off the host" "$OUT" "copy"
 rm -rf "$SB"
 
+echo "size presets and an env file outside the repository"
+setup
+with_local_age
+cp -R "$DEPLOY_DIR/sizes" "$SB/deploy/sizes"
+OUT=$(ENV_FILE_PATH="$SB/elsewhere.env" "$SB/deploy/generate-env.sh" pilot.example.com ops@example.com --size 4gb 2>&1)
+STATUS=$?
+assert_status "--size 4gb succeeds" 0 "$STATUS"
+assert_eq "ENV_FILE_PATH is honoured: nothing is written beside the script" 0 "$([ -f "$SB/deploy/.env" ] && echo 1 || echo 0)"
+content=$(cat "$SB/elsewhere.env")
+assert_contains "the 4 GB limits are appended" "$content" "API_MEMORY_LIMIT=1024M"
+assert_contains "including the database buffers" "$content" "POSTGRES_SHARED_BUFFERS=192MB"
+assert_not_contains "without the preset's comments" "$content" "Resource limits for a 4 GB host (deploy/generate-env.sh"
+assert_contains "and the secrets are still generated" "$content" "PLATFORM_ENCRYPTION_KEY="
+OUT=$("$SB/deploy/generate-env.sh" pilot.example.com ops@example.com --size 2gb 2>&1)
+assert_status "an unknown size is refused" 64 "$?"
+assert_contains "and the presets are named" "$OUT" "4gb"
+# Every limit variable the production file reads has a value in the 8 GB preset, so the two cannot drift.
+for var in $(grep -oE '\$\{[A-Z_]+_(MEMORY_LIMIT|SHARED_BUFFERS|MAX_CONNECTIONS):-' "$DEPLOY_DIR/compose.prod.yml" | sed -E 's/\$\{([A-Z_]+):-/\1/'); do
+	assert_contains "8gb.env sets $var" "$(cat "$DEPLOY_DIR/sizes/8gb.env")" "$var="
+	assert_contains "4gb.env sets $var" "$(cat "$DEPLOY_DIR/sizes/4gb.env")" "$var="
+done
+rm -rf "$SB"
+
 finish

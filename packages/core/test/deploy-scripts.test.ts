@@ -92,10 +92,44 @@ describe("every script is syntactically valid bash", () => {
     "lib.sh",
     "dc",
     "ops/notify.sh",
+    "drill/stack.sh",
+    "chaos/run.sh",
   ];
   for (const s of scripts) {
     it(s, () => {
       const r = spawnSync("bash", ["-n", join(deploy, s)], { encoding: "utf8" });
+      expect(r.stderr).toBe("");
+      expect(r.status).toBe(0);
+    });
+  }
+
+  it("load/run.sh", () => {
+    const r = spawnSync("bash", ["-n", join(root, "load", "run.sh")], { encoding: "utf8" });
+    expect(r.stderr).toBe("");
+    expect(r.status).toBe(0);
+  });
+});
+
+describe("the rehearsal's Node scripts parse", () => {
+  // They are not part of the build or the lint, and are run by hand against a stack, so a syntax
+  // slip would otherwise be found in the middle of a drill.
+  const scripts = [
+    ...readdirSync(join(deploy, "drill")).map((f) => join("drill", f)),
+    ...readdirSync(join(deploy, "chaos")).map((f) => join("chaos", f)),
+  ].filter((f) => f.endsWith(".mjs"));
+  it("has the scripts the drill record names", () => {
+    expect(scripts).toEqual(
+      expect.arrayContaining([
+        join("drill", "configure.mjs"),
+        join("drill", "journey.mjs"),
+        join("chaos", "kill-worker.mjs"),
+        join("chaos", "disk-full.mjs"),
+      ]),
+    );
+  });
+  for (const s of scripts) {
+    it(s, () => {
+      const r = spawnSync(process.execPath, ["--check", join(deploy, s)], { encoding: "utf8" });
       expect(r.stderr).toBe("");
       expect(r.status).toBe(0);
     });
@@ -236,14 +270,23 @@ describe("compose.prod.yml", () => {
   it("filters link tokens and secret query keys out of the access log (D-223)", () => {
     const caddyfile = read("deploy", "Caddyfile");
     expect(caddyfile).toContain("format filter");
-    expect(caddyfile).toContain("request>uri regexp (/p/(?:r/)?)[A-Za-z0-9_-]{16,} $1<token>");
-    for (const key of ["token", "code", "email"]) expect(caddyfile).toContain(`delete ${key}`);
+    // One multi_regexp: Caddy refuses a regexp and a query filter on the same field, and the file
+    // as it was written (a regexp plus `query { delete ... }`) never loaded (full-stack drill).
+    expect(caddyfile).toContain("request>uri multi_regexp {");
+    expect(caddyfile).not.toMatch(/request>uri\s+query/);
+    expect(caddyfile).toContain("regexp (/p/(?:r/)?)[A-Za-z0-9_-]{16,} $1<token>");
+    expect(caddyfile).toContain("regexp ([?&](?:token|code|email|callbackUrl)=)[^&]* ${1}REDACTED");
     // The pattern matches a token and not a fixed route, which is the whole of its contract.
     const pattern = /(\/p\/(?:r\/)?)[A-Za-z0-9_-]{16,}/;
     expect("/p/Zk3p9xQ2mVb7LrTn4WcYd8HfGa6JeUs1/open".replace(pattern, "$1<token>")).toBe("/p/<token>/open");
     expect("/p/r/Zk3p9xQ2mVb7LrTn4WcYd8HfGa6JeUs1".replace(pattern, "$1<token>")).toBe("/p/r/<token>");
     expect("/api/participant/p/session/turns".replace(pattern, "$1<token>")).toBe(
       "/api/participant/p/session/turns",
+    );
+    // The query half, in Go's replacement syntax ($1 followed by a letter needs the braces).
+    const query = /([?&](?:token|code|email|callbackUrl)=)[^&]*/g;
+    expect("/auth/callback?token=SECRET&x=1&code=123456&email=a%40b.c".replace(query, "$1REDACTED")).toBe(
+      "/auth/callback?token=REDACTED&x=1&code=REDACTED&email=REDACTED",
     );
   });
 

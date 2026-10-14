@@ -161,18 +161,43 @@ write_versions "$version" "$previous" "$dump"
 unset AIDP_VERSION
 maintenance on
 
+# The database steps run on their own, BEFORE anything is replaced. They used to be left to
+# `up -d`, which on a failed migrate had already stopped, removed and re-created api, web and worker
+# under the new tag and then refused to start them: the message said "the previous version is still
+# running" while Caddy answered 502 to every participant, and the maintenance page had been taken
+# down (found by the full-stack drill with a deliberately failing migration). `run` executes the
+# one-shot service and returns its exit status without touching any other container.
 switched=0
-say "switching: migrate, preflight, then api, worker, web"
-if act dcx up -d --no-build --remove-orphans; then
+failed_step=""
+say "migrating: postgres, migrate, db-grants, preflight (nothing is replaced until all of them pass)"
+if act dcx up -d --no-build postgres && wait_healthy 180 postgres; then
 	switched=1
+	for svc in ops-state-init migrate db-grants preflight; do
+		if ! act dcx run --rm --no-deps -T "$svc"; then
+			switched=0
+			failed_step=$svc
+			break
+		fi
+	done
+fi
+if [ "$switched" = 1 ]; then
+	switched=0
+	say "switching: api, worker, web, behind the maintenance page"
+	if act dcx up -d --no-build --remove-orphans; then
+		switched=1
+	fi
 fi
 
-# A dependency that did not complete (migrate, preflight) means nothing was recreated after it: the
+# A one-shot that did not complete (migrate, db-grants, preflight) means nothing was replaced: the
 # previous containers are still serving. Say which one failed and put the record back.
 if [ "$switched" != 1 ]; then
 	restore_versions
 	maintenance off
-	warn "the switch failed before the application was replaced; the previous version is still running."
+	if [ -n "$failed_step" ]; then
+		warn "$failed_step failed; nothing was replaced and the previous version is still running."
+	else
+		warn "the switch failed; check deploy/dc ps: the previous version may not be fully running."
+	fi
 	for svc in migrate preflight db-grants; do
 		echo "---- $svc (last lines) ----" >&2
 		dcx logs --no-color --tail 15 "$svc" 2>&1 >&2 || true
@@ -201,10 +226,17 @@ rollback_after_failure() {
 
 say "waiting for api, web and caddy to be healthy"
 wait_healthy 300 api worker web caddy || rollback_after_failure "a service did not become healthy within five minutes"
-say "smoke test through caddy"
-smoke || rollback_after_failure "the post-switch smoke test failed"
-
+# Caddy answers 503 for as long as the maintenance flag exists, so a check made through it while the
+# page is up can only fail. The page comes down first, and goes back up if the check fails: a
+# participant who arrives in that moment gets the honest page, not a half-started application.
+# (This used to check first and lower the page after, which made every upgrade roll itself back
+# the first time the real maintenance flag was in play: found by the full-stack drill.)
 maintenance off
+say "smoke test through caddy"
+if ! smoke; then
+	maintenance on
+	rollback_after_failure "the post-switch smoke test failed"
+fi
 
 # ---- 6. housekeeping -------------------------------------------------------------------------
 
