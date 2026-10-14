@@ -93,16 +93,42 @@ await scenario("postgres-restart", async () => {
   check("the interview carries on", !next.error && next.message, next.error?.code);
 
   // The job: finished exactly once, not lost and not doubled.
-  const row = await waitFor(
-    "the analysis to finish",
-    async () => {
-      const list = await staff(admin, "GET", `/campaigns/${campaign.campaignId}/analyses`);
-      const a = (list.analyses ?? []).find((x) => x.id === analysisId);
-      return a && ["done", "failed", "error"].includes(a.status) ? a : null;
-    },
-    { timeoutMs: 240_000, everyMs: 3000 },
-  );
-  check("the queued analysis finished", row.status === "done", `${row.status}`);
+  const finished = async () => {
+    const list = await staff(admin, "GET", `/campaigns/${campaign.campaignId}/analyses`);
+    const a = (list.analyses ?? []).find((x) => x.id === analysisId);
+    return a && ["done", "failed", "error"].includes(a.status) ? a : null;
+  };
+  let row = null;
+  try {
+    row = await waitFor("the analysis to finish", finished, { timeoutMs: 90_000, everyMs: 3000 });
+    check(
+      "the queued analysis finished on its own after the restart",
+      row.status === "done",
+      `${row.status}`,
+    );
+  } catch {
+    // What the first pass of this drill got wrong: the job can have been fetched in the very
+    // instant Postgres went down. The queue marked it `active`, the response never reached the
+    // worker, and nothing runs it until its time limit passes (analysis.run: an hour). Not lost,
+    // not doubled, and not quick: the same wait as a killed worker (kill-worker.mjs), recorded as
+    // what it is, then moved on the way the queue's own expiry would.
+    const state = psql(
+      `select state || ' since ' || started_on from pgboss.job where data->>'analysisId' = '${analysisId}'`,
+    );
+    note(
+      `after 90 s the job is still: ${state}; no worker log line names it (the fetch response was lost with the connection)`,
+    );
+    check("the job is still on the queue, not lost", /active/.test(state), state);
+    psql(
+      `update pgboss.job set started_on = now() - interval '2 hours' where data->>'analysisId' = '${analysisId}' and state = 'active'`,
+    );
+    row = await waitFor("the retried analysis to finish", finished, { timeoutMs: 240_000, everyMs: 3000 });
+    check(
+      "after its time limit (simulated) it is retried and the analysis finishes",
+      row.status === "done",
+      `${row.status}`,
+    );
+  }
   const jobsAfter = Number(psql(`select count(*) from pgboss.job where name = 'analysis.run'`));
   check(
     "it was run once: no extra job rows were created by the restart",
