@@ -99,7 +99,12 @@ export const PAGES: Entry[] = [
     for (let i = 0; i < (await summaries.count()); i++) await summaries.nth(i).click();
   }),
   publicPage("signin", "/auth/signin", "app/auth/signin/page.tsx"),
+  publicPage("signin-expired", "/auth/signin?reason=expired", "app/auth/signin/page.tsx"),
+  publicPage("signin-signed-out", "/auth/signin?signedOut=1", "app/auth/signin/page.tsx"),
   publicPage("verify-request", "/auth/verify", "app/auth/verify/page.tsx"),
+  publicPage("signout", "/auth/signout", "app/auth/signout/page.tsx"),
+  publicPage("maintenance", "/maintenance", "app/maintenance/page.tsx"),
+  { ...publicPage("states-gallery", "/dev/states", "app/dev/states/page.tsx"), isErrorPage: true },
   {
     ...publicPage("auth-error", "/auth/error?error=Configuration", "app/auth/error/page.tsx"),
     isErrorPage: true,
@@ -260,6 +265,7 @@ export const NOT_DOCUMENTS = new Set([
   "app/error.tsx",
   "app/p/error.tsx",
   "app/admin/error.tsx",
+  "app/admin/not-found.tsx",
   "app/layout.tsx",
   "app/admin/layout.tsx",
   "app/admin/operator/layout.tsx",

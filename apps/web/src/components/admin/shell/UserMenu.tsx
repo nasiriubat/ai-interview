@@ -57,13 +57,7 @@ const THEMES: readonly ThemeChoice[] = ["system", "light", "dark"];
  * Everything that belongs to the signed-in person, in one menu in the top bar: profile, theme,
  * language and sign out (D-340). Theme and language apply at once; sign out is a server action.
  */
-export function UserMenu({
-  me,
-  signOutAction,
-}: {
-  me: Me | null;
-  signOutAction: () => Promise<void>;
-}): React.JSX.Element {
+export function UserMenu({ me }: { me: Me | null }): React.JSX.Element {
   const k = t.kit.shell;
   const [theme, setTheme] = React.useState<ThemeChoice>("system");
   React.useEffect(() => {
@@ -173,14 +167,12 @@ export function UserMenu({
           ))}
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
-        <form action={signOutAction}>
-          <DropdownMenuItem asChild destructive>
-            <button type="submit" className="w-full">
-              <LogOutIcon aria-hidden="true" />
-              {t.app.signOut}
-            </button>
-          </DropdownMenuItem>
-        </form>
+        <DropdownMenuItem asChild destructive>
+          <Link href="/auth/signout">
+            <LogOutIcon aria-hidden="true" />
+            {t.app.signOut}
+          </Link>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

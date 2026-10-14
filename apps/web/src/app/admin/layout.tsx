@@ -1,10 +1,11 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import * as React from "react";
-import { signOutAction } from "./actions";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { parseSidebar, SIDEBAR_COOKIE } from "@/components/admin/shell/sidebar-state";
 import { CurrencyProvider } from "@/components/common/CurrencyProvider";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { StateView } from "@/components/common/StateView";
+import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { requestLocale } from "@/i18n/server";
 import { getMe } from "@/lib/admin/me";
@@ -19,23 +20,66 @@ export default async function AdminLayout({
   await requestLocale();
   const r = await getMe();
   const me = r.ok ? r.me : null;
+  const k = t.kit.states;
+  const blocked =
+    r.ok || r.reason === "unauthenticated"
+      ? null
+      : r.reason === "forbidden"
+        ? {
+            illustration: "lock" as const,
+            code: k.code(403),
+            title: k.forbidden.title,
+            body: k.forbidden.body,
+            retry: k.backHome,
+            detail: undefined,
+          }
+        : r.reason === "suspended"
+          ? {
+              illustration: "suspended" as const,
+              code: undefined,
+              title: k.suspended.title,
+              body: k.suspended.body,
+              retry: t.app.retry,
+              detail: undefined,
+            }
+          : r.reason === "maintenance"
+            ? {
+                illustration: "maintenance" as const,
+                code: k.code(503),
+                title: k.maintenance.title,
+                body: k.maintenance.body,
+                retry: t.app.retry,
+                detail: k.maintenance.hint,
+              }
+            : {
+                illustration: "offline" as const,
+                code: undefined,
+                title: k.unavailable.title,
+                body: k.unavailable.body,
+                retry: t.app.retry,
+                detail: undefined,
+              };
   const collapsed = parseSidebar((await cookies()).get(SIDEBAR_COOKIE)?.value);
   return (
     <CurrencyProvider currency={me?.company?.currency}>
-      <AdminShell me={me} signOutAction={signOutAction} initialCollapsed={collapsed}>
-        {!r.ok && r.reason === "forbidden" ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>{t.auth.forbiddenTitle}</AlertTitle>
-            <AlertDescription>{t.auth.noAccess}</AlertDescription>
-          </Alert>
-        ) : null}
-        {!r.ok && r.reason === "unavailable" ? (
-          <Alert variant="warning" role="status" className="mb-4">
-            <AlertTitle>{t.admin.common.loadFailed}</AlertTitle>
-            <AlertDescription>{t.admin.dashboard.statsUnavailable}</AlertDescription>
-          </Alert>
-        ) : null}
-        {children}
+      <AdminShell me={me} initialCollapsed={collapsed}>
+        {blocked ? (
+          <StateView
+            size="panel"
+            illustration={blocked.illustration}
+            code={blocked.code}
+            title={blocked.title}
+            body={blocked.body}
+            actions={
+              <Button asChild variant="outline">
+                <Link href="/admin">{blocked.retry}</Link>
+              </Button>
+            }
+            detail={blocked.detail}
+          />
+        ) : (
+          children
+        )}
       </AdminShell>
     </CurrencyProvider>
   );

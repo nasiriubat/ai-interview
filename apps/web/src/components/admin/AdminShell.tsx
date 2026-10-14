@@ -24,12 +24,10 @@ import { cn } from "@/lib/utils";
  */
 export function AdminShell({
   me,
-  signOutAction,
   initialCollapsed = false,
   children,
 }: {
   me: Me | null;
-  signOutAction: () => Promise<void>;
   initialCollapsed?: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
@@ -113,7 +111,6 @@ export function AdminShell({
           <div className="bg-card shadow-card flex min-w-0 flex-1 flex-col lg:rounded-xl print:shadow-none">
             <TopBar
               me={me}
-              signOutAction={signOutAction}
               collapsed={collapsed}
               onToggleSidebar={toggle}
               onOpenDrawer={() => {

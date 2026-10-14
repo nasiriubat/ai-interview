@@ -3,5 +3,5 @@
 import { signOut } from "@/auth";
 
 export async function signOutAction(): Promise<void> {
-  await signOut({ redirectTo: "/auth/signin" });
+  await signOut({ redirectTo: "/auth/signin?signedOut=1" });
 }
