@@ -179,6 +179,18 @@
       "crossTenantAdmin": 200
     }
   },
+  "GET /audit.csv": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
   "GET /budgets": {
     "access": "admin",
     "isolation": false,
@@ -1091,6 +1103,18 @@
       "crossTenantAdmin": 200
     }
   },
+  "HEAD /audit.csv": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
   "HEAD /budgets": {
     "access": "admin",
     "isolation": false,
@@ -1931,6 +1955,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "PATCH /me": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
+    }
+  },
   "PATCH /operator/providers/:id": {
     "access": "operator",
     "isolation": true,
@@ -2145,6 +2181,18 @@
       "admin": 401,
       "operator": 401,
       "crossTenantAdmin": 401
+    }
+  },
+  "POST /me/sessions/revoke": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
     }
   },
   "POST /onboarding/dismiss": {
