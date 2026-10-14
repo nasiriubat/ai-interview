@@ -187,6 +187,22 @@ export interface ProviderInput {
   enabled?: boolean;
 }
 
+/** The mail relay as the form submits it; `password` is `__unchanged__` to keep the stored one. */
+export interface SmtpFormBody {
+  host: string;
+  port: number;
+  security: "starttls" | "ssl" | "none";
+  username: string;
+  password: string | null;
+}
+
+/** What a test send may carry beyond the scope: the unsaved form, sender and reply-to. */
+export interface EmailTestDraft {
+  smtp?: SmtpFormBody;
+  from?: string;
+  replyTo?: string;
+}
+
 export interface SettingsQuery {
   scope?: string;
   scopeId?: string;
@@ -481,24 +497,24 @@ export function staffApi(transport: Transport): StaffApi {
       get: (q) => request(transport, { path: "/settings", query: { ...q }, schema: SettingsResponseSchema }),
       scopes: (scope) =>
         request(transport, { path: "/settings/scopes", query: { scope }, schema: ScopeTargetListSchema }),
-      emailTest: (q) =>
+      emailTest: (q, draft) =>
         request(transport, {
           method: "POST",
           path: "/settings/email/test",
           // The route reads the scope from the body; sending it as a query string tested the
-          // tenant chain whichever scope was selected.
-          body: { scope: q.scope === "platform" ? "platform" : "tenant" },
+          // tenant chain whichever scope was selected. A draft tests the form without saving it.
+          body: { scope: q.scope === "platform" ? "platform" : "tenant", ...(draft ?? {}) },
           schema: EmailTestSchema,
         }),
       history: (q = {}) =>
         request(transport, { path: "/settings/history", query: { ...q }, schema: SettingsHistorySchema }),
-      put: (q, values) =>
+      put: (q, values, smtp) =>
         ok(
           request(transport, {
             method: "PUT",
             path: "/settings",
             query: { ...q },
-            body: { values },
+            body: { values, ...(smtp ? { smtp } : {}) },
             schema: OkSchema,
           }),
         ),
@@ -993,11 +1009,12 @@ export interface StaffApi {
   };
   settings: {
     get(q: SettingsQuery): Promise<SettingsResponse>;
-    put(q: SettingsQuery, values: Record<string, unknown>): Promise<void>;
+    /** `smtp` is the structured mail relay; the API composes it into `email.smtpUrl`. */
+    put(q: SettingsQuery, values: Record<string, unknown>, smtp?: SmtpFormBody): Promise<void>;
     /** Named targets for a scope picker, newest first (contract 19). */
     scopes(scope: ScopeKind): Promise<ScopeTarget[]>;
     /** Sends a test message with the configuration in effect for the scope. */
-    emailTest(q: SettingsQuery): Promise<EmailTest>;
+    emailTest(q: SettingsQuery, draft?: EmailTestDraft): Promise<EmailTest>;
     /** Who changed which keys and when, newest first (D-182). */
     history(q?: {
       scope?: string;

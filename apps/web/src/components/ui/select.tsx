@@ -5,6 +5,13 @@ import { Select as SelectPrimitive } from "radix-ui";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/** The nonce the page's CSP was issued with, published in a meta tag by the root layout. */
+function pageNonce(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const content = document.querySelector<HTMLMetaElement>('meta[name="csp-nonce"]')?.content;
+  return content === undefined || content === "" ? undefined : content;
+}
+
 export function Select(props: React.ComponentProps<typeof SelectPrimitive.Root>): React.JSX.Element {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
 }
@@ -63,6 +70,7 @@ export function SelectContent({
   position = "popper",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>): React.JSX.Element {
+  const nonce = pageNonce();
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -80,6 +88,9 @@ export function SelectContent({
           <ChevronUpIcon className="size-4" />
         </SelectPrimitive.ScrollUpButton>
         <SelectPrimitive.Viewport
+          // Radix writes a <style> that hides the viewport's scrollbar; under the nonce-only
+          // style-src it is a violation unless it carries the page's nonce (D-264, D-415).
+          {...(nonce === undefined ? {} : { nonce })}
           className={cn(
             "p-1",
             position === "popper" &&

@@ -352,6 +352,7 @@ export const PAGES: Entry[] = [
   ),
   admin("settings", "/admin/settings", "app/admin/settings/page.tsx"),
   admin("settings-privacy", "/admin/settings?scope=tenant&category=privacy", "app/admin/settings/page.tsx"),
+  admin("settings-email", "/admin/settings?scope=tenant&category=email", "app/admin/settings/page.tsx"),
   admin("providers", "/admin/providers", "app/admin/providers/page.tsx"),
   admin("provider", "/admin/providers/p1", "app/admin/providers/[id]/page.tsx"),
   admin("routes", "/admin/routes", "app/admin/routes/page.tsx"),

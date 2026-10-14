@@ -137,6 +137,14 @@ describe("server pages follow the lang cookie", () => {
     expect(screen.getByText(fi.kit.authPages.linkSentBody)).toBeInTheDocument();
   });
 
+  it("a sign-in email that could not be sent says so, in Finnish, and names where to look (D-413)", async () => {
+    const { default: ErrorPage } = await import("@/app/auth/error/page");
+    await renderPage(ErrorPage({ searchParams: Promise.resolve({ error: "EmailSignin" }) }));
+    expect(screen.getByText(fi.kit.authPages.errorMailBody)).toBeInTheDocument();
+    expect(fi.kit.authPages.errorMailBody).toContain("EMAIL_SMTP_URL");
+    expect(screen.queryByText(fi.kit.authPages.errorBody)).not.toBeInTheDocument();
+  });
+
   it("not-found page in Finnish, with no way to the staff sign-in for a participant", async () => {
     const { default: NotFound } = await import("@/app/not-found");
     await renderPage(NotFound());

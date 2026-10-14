@@ -110,6 +110,7 @@ export function SettingsCategories({
           scope={scope}
           scopeId={scopeId}
           operator={operator}
+          smtp={data.smtp}
         />
       </div>
     </div>

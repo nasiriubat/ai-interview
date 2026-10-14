@@ -112,6 +112,13 @@ ComboField, FormSection, ErrorSummary, ValidatedForm) plus `components/form/`:
 - `SaveBarView` also takes `saveDisabled` (blocked by a check, not by "nothing changed") and `cleanText`
   (what the bar says when nothing is edited; a prompt says its text is unchanged rather than "saved").
 - `ConfirmDialog`: pass `confirmPhrase` to make a person type it first, for what cannot be taken back.
+- A setting that is really several fields gets a panel, not a text box (D-410):
+  `components/admin/settings/EmailPanel.tsx` is the pattern. Its draft state lives in `CategoryForm`
+  so the one save bar, the dirty guard and Discard still work; a secret part is a `SecretField`
+  with an explicit "remove" and never reads back; the source of the value is a badge plus a
+  sentence; the test action sits inside the panel and shows its result in an `Alert` with
+  `aria-live`. Radix `Select` content takes the page nonce (`ui/select.tsx`), or opening it is a
+  style-src violation.
 
 ## FileUpload (`components/upload/`)
 
