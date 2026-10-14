@@ -16,8 +16,6 @@ import { promptVersionTag, type PromptSource } from "../engine/prompts/index.js"
 import { languageName } from "../util/language.js";
 import { neutralize, newNonce, wrapUntrusted } from "../util/untrusted.js";
 import { agglomerate } from "./cluster.js";
-import { compareDepartments } from "./departments.js";
-import { applyClusterEdits, type ClusterEditOp } from "./edits.js";
 import {
   centroidOf,
   chunk,
@@ -28,6 +26,8 @@ import {
   type DraftCluster,
   type OverrideAnchor,
 } from "./clustering.js";
+import { compareDepartments } from "./departments.js";
+import { applyClusterEdits, type ClusterEditOp } from "./edits.js";
 import { LEXICAL_THRESHOLD, LexicalEmbeddings, type EmbeddingSource } from "./embeddings.js";
 import { renderReport, type ReportOpportunity } from "./report.js";
 import { sanitizeSnippet } from "./sanitize.js";
@@ -206,7 +206,6 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
   const applied = applyClusterEdits(base, input.edits ?? []);
   const clusters: NamedCluster[] = applied.clusters;
 
-
   // 3. Per-cluster aggregates with k-anonymity. Every fact is in a cluster; opportunities are
   // generated for the highest-ranked clusters only, so the number of model calls does not grow
   // with the campaign (a 500-fact campaign used to mean hundreds of sequential calls).
@@ -258,8 +257,8 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     const factors = applyFactorOverride(draft.factors, override);
     opportunities.push({
       clusterKey: c.key,
-      title: override?.title ?? draft.title,
-      summary: draft.summary,
+      title: override?.title ?? c.title ?? draft.title,
+      summary: override?.summary ?? draft.summary,
       solutionClass: override?.solutionClass ?? draft.solutionClass,
       rationale: draft.rationale,
       factors,
@@ -481,6 +480,8 @@ export interface NamedCluster {
   name: string;
   summary: string;
   factIds: string[];
+  /** Set by a merge that carried a title: the opportunity takes it over the model's. */
+  title?: string | undefined;
 }
 
 export function reconcile(clusters: NamedCluster[], facts: AnalysisFact[]): NamedCluster[] {
@@ -718,4 +719,3 @@ async function clusterFacts(
   const clusters = await mergeAndName(deps, ctx, input, facts, drafts, versions);
   return { clusters, embedding };
 }
-

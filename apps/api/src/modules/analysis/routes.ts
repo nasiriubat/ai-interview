@@ -1,5 +1,10 @@
-import { AnalysisInProgressError, OpportunityNotFoundError } from "@aidp/core";
-import { OpportunityOverrideSchema } from "@aidp/shared";
+import {
+  AnalysisInProgressError,
+  ClusterEditRefusedError,
+  OpportunityNotFoundError,
+  RerunRequiredError,
+} from "@aidp/core";
+import { MergeBodySchema, OpportunityOverrideSchema, SplitBodySchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
@@ -51,18 +56,32 @@ export async function analysisRoutes(app: App, ctx: RouteContext): Promise<void>
     reads.detail(req.companyId, staff(req).role, req.params.id),
   );
 
+  /** Department comparison under the anonymity rule (FR-17): groups below k are never named. */
+  app.get("/analyses/:id/departments", { ...guard.staff(), schema: { params: Id } }, async (req) =>
+    reads.departments(req.companyId, staff(req).role, req.params.id),
+  );
+
   app.get(
     "/analyses/:id/diff/:otherId",
     { ...guard.staff(), schema: { params: z.object({ id: z.string(), otherId: z.string() }) } },
     async (req) => reads.diff(req.companyId, req.params.id, req.params.otherId),
   );
 
+  /** Turns the core's refusals into the API's: 404 for what is not this tenant's, 409 and 400 for the rest. */
   const wrapNotFound = async <T>(fn: () => Promise<T>): Promise<T> => {
     try {
       const value = await fn();
       return value;
     } catch (e) {
       if (e instanceof OpportunityNotFoundError) throw notFound("Opportunity");
+      if (e instanceof AnalysisInProgressError)
+        throw new AppError("conflict", e.message, { reason: "in_progress", analysisId: e.analysisId });
+      if (e instanceof RerunRequiredError)
+        throw new AppError("conflict", e.message, { reason: "rerun_required" });
+      if (e instanceof ClusterEditRefusedError)
+        throw new AppError(e.reason === "validation" ? "validation" : "conflict", e.message, {
+          reason: e.reason,
+        });
       throw e;
     }
   };
@@ -72,14 +91,87 @@ export async function analysisRoutes(app: App, ctx: RouteContext): Promise<void>
     { ...guard.admin(), schema: { params: Id, body: OpportunityOverrideSchema } },
     async (req) => {
       await wrapNotFound(() => svc.override(req.companyId, req.params.id, req.body));
+      // A title or summary on its own is a rename (FR-18); anything else is an override of the
+      // assessment. The audit log tells the two apart.
+      const renameOnly =
+        (req.body.title !== undefined || req.body.summary !== undefined) &&
+        req.body.solutionClass === undefined &&
+        req.body.factors === undefined;
       await audit.record(req.companyId, {
         actorId: staff(req).userId,
-        action: "opportunity.override",
+        action: renameOnly ? "cluster.rename" : "opportunity.override",
         targetType: "opportunity",
         targetId: req.params.id,
         diff: req.body,
       });
       return reads.opportunity(req.companyId, req.params.id);
+    },
+  );
+
+  app.post(
+    "/analyses/:id/opportunities/merge",
+    { ...guard.admin(), schema: { params: Id, body: MergeBodySchema } },
+    async (req, reply) => {
+      const p = staff(req);
+      const { analysis, editId } = await wrapNotFound(() =>
+        svc.merge(req.companyId, req.params.id, req.body.opportunityIds, req.body.title, p.userId),
+      );
+      await audit.record(req.companyId, {
+        actorId: p.userId,
+        action: "cluster.merge",
+        targetType: "analysis",
+        targetId: req.params.id,
+        diff: { opportunityIds: req.body.opportunityIds, editId, newAnalysisId: analysis.id },
+      });
+      return reply.status(202).send({ analysis: await reads.summary(req.companyId, analysis.id), editId });
+    },
+  );
+
+  app.get("/opportunities/:id/split-proposal", { ...guard.admin(), schema: { params: Id } }, async (req) =>
+    wrapNotFound(() => svc.splitProposal(req.companyId, req.params.id)),
+  );
+
+  app.post(
+    "/opportunities/:id/split",
+    { ...guard.admin(), schema: { params: Id, body: SplitBodySchema } },
+    async (req, reply) => {
+      const p = staff(req);
+      const { analysis, editId } = await wrapNotFound(() =>
+        svc.split(req.companyId, req.params.id, req.body.parts, p.userId),
+      );
+      await audit.record(req.companyId, {
+        actorId: p.userId,
+        action: "cluster.split",
+        targetType: "opportunity",
+        targetId: req.params.id,
+        diff: { parts: req.body.parts.map((x) => x.length), editId, newAnalysisId: analysis.id },
+      });
+      return reply.status(202).send({ analysis: await reads.summary(req.companyId, analysis.id), editId });
+    },
+  );
+
+  app.get("/campaigns/:id/cluster-edits", { ...guard.staff(), schema: { params: Id } }, async (req) => {
+    await reads.assertCampaign(req.companyId, req.params.id);
+    return { edits: await svc.listEdits(req.companyId, req.params.id) };
+  });
+
+  app.delete(
+    "/campaigns/:id/cluster-edits/:editId",
+    { ...guard.admin(), schema: { params: z.object({ id: z.string(), editId: z.string() }) } },
+    async (req, reply) => {
+      await reads.assertCampaign(req.companyId, req.params.id);
+      const p = staff(req);
+      const { analysis } = await wrapNotFound(() =>
+        svc.undoEdit(req.companyId, req.params.id, req.params.editId, p.userId),
+      );
+      await audit.record(req.companyId, {
+        actorId: p.userId,
+        action: "cluster.edit.undo",
+        targetType: "campaign",
+        targetId: req.params.id,
+        diff: { editId: req.params.editId, newAnalysisId: analysis.id },
+      });
+      return reply.status(202).send({ analysis: await reads.summary(req.companyId, analysis.id) });
     },
   );
 

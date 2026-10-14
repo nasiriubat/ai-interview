@@ -197,7 +197,10 @@ export type MergeBody = z.infer<typeof MergeBodySchema>;
 
 /** `POST /opportunities/:id/split`: a partition of the cluster's fact ids into two or three parts. */
 export const SplitBodySchema = z.object({
-  parts: z.array(z.array(z.string().min(1)).min(1)).min(2).max(MAX_SPLIT_PARTS),
+  parts: z
+    .array(z.array(z.string().min(1)).min(1))
+    .min(2)
+    .max(MAX_SPLIT_PARTS),
 });
 export type SplitBody = z.infer<typeof SplitBodySchema>;
 
@@ -230,7 +233,12 @@ export type SplitProposal = z.infer<typeof SplitProposalSchema>;
  * behind it; smaller ones are pooled into "Other" when the pool itself reaches k, and are
  * otherwise left out without a name or a number.
  */
-export const DEPARTMENT_NOT_SHOWN_REASONS = ["disabled", "no_departments", "too_few_eligible"] as const;
+export const DEPARTMENT_NOT_SHOWN_REASONS = [
+  "disabled",
+  "no_departments",
+  "too_few_eligible",
+  "rerun_required",
+] as const;
 export const DepartmentRowSchema = z.object({
   /** Display name; null for the pool and for the people who gave none. */
   name: z.string().nullable(),

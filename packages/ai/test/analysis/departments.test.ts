@@ -118,7 +118,12 @@ describe("compareDepartments", () => {
   });
 
   it("explains an empty comparison when nobody gave a department", () => {
-    const r = compareDepartments({ facts: people(undefined, 8, "x"), opportunities: [], k: 3, enabled: true });
+    const r = compareDepartments({
+      facts: people(undefined, 8, "x"),
+      opportunities: [],
+      k: 3,
+      enabled: true,
+    });
     expect(r).toMatchObject({ shown: false, reason: "no_departments" });
   });
 
@@ -177,11 +182,18 @@ describe("compareDepartments", () => {
       const unspecified = rand() < 0.5 ? Math.floor(rand() * 5) : 0;
       if (unspecified) facts.push(...people(undefined, unspecified, `t${trial}u`));
       const opportunities = facts.length
-        ? [opp("o1", SOLUTION_CLASSES[Math.floor(rand() * 5)] ?? "ai", facts.filter(() => rand() < 0.6))]
+        ? [
+            opp(
+              "o1",
+              SOLUTION_CLASSES[Math.floor(rand() * 5)] ?? "ai",
+              facts.filter(() => rand() < 0.6),
+            ),
+          ]
         : [];
       const r = compareDepartments({ facts, opportunities, k, enabled: true });
       const text = JSON.stringify(r);
-      for (const [name, n] of sizes) if (n < k) expect(text, `trial ${trial}: ${name} (${n} < ${k})`).not.toContain(`"${name}"`);
+      for (const [name, n] of sizes)
+        if (n < k) expect(text, `trial ${trial}: ${name} (${n} < ${k})`).not.toContain(`"${name}"`);
       for (const d of r.departments) {
         expect(d.participants, `trial ${trial}`).toBeGreaterThanOrEqual(k);
         for (const share of Object.values(d.solutionClassShare)) expect(share).toBeLessThanOrEqual(1);

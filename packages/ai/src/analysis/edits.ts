@@ -7,6 +7,8 @@ export interface EditableCluster {
   summary: string;
   /** Member fact ids. */
   factIds: string[];
+  /** The title an administrator gave a merge: the opportunity takes it over the model's. */
+  title?: string | undefined;
 }
 
 /**
@@ -63,7 +65,10 @@ const unique = (xs: readonly string[]): string[] => [...new Set(xs)].sort();
  * whichever way the clustering happened to number its drafts. An edit that no longer matches is
  * skipped and reported rather than guessed at.
  */
-export function applyClusterEdits(clusters: readonly EditableCluster[], edits: readonly ClusterEditOp[]): AppliedEdits {
+export function applyClusterEdits(
+  clusters: readonly EditableCluster[],
+  edits: readonly ClusterEditOp[],
+): AppliedEdits {
   let current = clusters.map((c) => ({ ...c, factIds: [...c.factIds] }));
   const orphaned: string[] = [];
   let unassignedNew = 0;
@@ -87,10 +92,15 @@ export function applyClusterEdits(clusters: readonly EditableCluster[], edits: r
       if (members.length === 1) {
         // Already one cluster, because the pipeline joined them itself: only the title remains.
         const only = members[0];
-        if (only && edit.title) current = current.map((c) => (c.key === only.key ? { ...c, name: edit.title ?? c.name } : c));
+        if (only && edit.title)
+          current = current.map((c) =>
+            c.key === only.key ? { ...c, name: edit.title ?? c.name, title: edit.title } : c,
+          );
         continue;
       }
-      const lead = [...members].sort((a, b) => b.factIds.length - a.factIds.length || a.key.localeCompare(b.key))[0];
+      const lead = [...members].sort(
+        (a, b) => b.factIds.length - a.factIds.length || a.key.localeCompare(b.key),
+      )[0];
       const factIds = unique(members.flatMap((m) => m.factIds));
       const gone = new Set(members.map((m) => m.key));
       current = [
@@ -100,6 +110,7 @@ export function applyClusterEdits(clusters: readonly EditableCluster[], edits: r
           name: edit.title ?? lead?.name ?? "",
           summary: lead?.summary ?? "",
           factIds,
+          ...(edit.title ? { title: edit.title } : {}),
         },
       ];
       continue;
