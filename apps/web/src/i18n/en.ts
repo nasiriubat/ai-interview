@@ -2608,6 +2608,29 @@ export const en = {
         description:
           "How many wrong codes one email address may enter per campaign in an hour before it is locked.",
       },
+      "abuse.campaignSessionsPerHour": {
+        label: "New interviews per campaign and hour",
+        description:
+          "How many interviews one campaign may start in an hour. A link that leaks or is scripted stops here instead of filling the campaign.",
+      },
+      "abuse.campaignSessionsTotal": {
+        label: "Interviews per campaign in all",
+        description:
+          "The most interviews one campaign may ever have. Raise it before a campaign that invites more people than this.",
+      },
+      "abuse.tenantSessionsPerHour": {
+        label: "New interviews per organization and hour",
+        description: "How many interviews all campaigns of the organization together may start in an hour.",
+      },
+      "abuse.distinctEmailsPerAddressPerHour": {
+        label: "Different email addresses per client address and hour",
+        description:
+          "How many different email addresses one internet address may ask a verification code for, per campaign, in an hour. It stops someone using the link to mail strangers.",
+      },
+      "notifications.abuseLimits": {
+        label: "Abuse limit reached",
+        description: "Email the admins when an interview link hits one of its abuse limits.",
+      },
       "cost.warnFraction": {
         label: "Budget share that triggers a warning",
         description: "Admins are warned when spending reaches this share of a budget. 0.8 means 80 percent.",

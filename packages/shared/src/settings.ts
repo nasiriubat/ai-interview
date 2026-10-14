@@ -245,6 +245,40 @@ export const SETTINGS = {
     category: "privacy",
     description: "Wrong codes accepted per email address and campaign in an hour before it is locked",
   }),
+  // Abuse limits on open links (A1, D-261). Counted in Postgres (UsageCounter), so they hold across
+  // restarts and replicas. A refused open answers 429 and raises `abuse.limit_hit`.
+  "abuse.campaignSessionsPerHour": def({
+    schema: z.number().int().min(1).max(100000),
+    default: 120,
+    scopes: ["platform", "tenant", "campaign"],
+    category: "privacy",
+    since: "2026.10",
+    description: "New interviews one campaign may start per hour, whatever the number of addresses",
+  }),
+  "abuse.campaignSessionsTotal": def({
+    schema: z.number().int().min(1).max(1000000),
+    default: 2000,
+    scopes: ["platform", "tenant", "campaign"],
+    category: "privacy",
+    since: "2026.10",
+    description: "Interviews one campaign may have in all; a cost ceiling for a link that leaks",
+  }),
+  "abuse.tenantSessionsPerHour": def({
+    schema: z.number().int().min(1).max(100000),
+    default: 500,
+    scopes: ["platform", "tenant"],
+    category: "privacy",
+    since: "2026.10",
+    description: "New interviews all of an organization's campaigns together may start per hour",
+  }),
+  "abuse.distinctEmailsPerAddressPerHour": def({
+    schema: z.number().int().min(1).max(100),
+    default: 5,
+    scopes: ["platform", "tenant"],
+    category: "privacy",
+    since: "2026.10",
+    description: "Different email addresses one client address may ask a code for per hour and campaign",
+  }),
   // Cost
   "cost.warnFraction": def({
     schema: z.number().min(0.1).max(1),
@@ -597,6 +631,14 @@ export const SETTINGS = {
     scopes: ["platform", "tenant"],
     category: "notifications",
     description: "Email the tenant's admins when a budget passes its warning threshold",
+  }),
+  "notifications.abuseLimits": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["platform", "tenant"],
+    category: "notifications",
+    since: "2026.10",
+    description: "Email the tenant's admins when an interview link hits an abuse limit",
   }),
   // Analysis
   "analysis.weightsPreset": def({

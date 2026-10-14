@@ -2604,6 +2604,30 @@ export const fi: Strings = {
         description:
           "Kuinka monta väärää koodia yksi sähköpostiosoite saa syöttää kampanjaa kohti tunnissa, ennen kuin se lukitaan.",
       },
+      "abuse.campaignSessionsPerHour": {
+        label: "Uusia haastatteluja kampanjaa ja tuntia kohti",
+        description:
+          "Kuinka monta haastattelua yksi kampanja saa aloittaa tunnissa. Vuotanut tai skriptattu linkki pysähtyy tähän eikä täytä kampanjaa.",
+      },
+      "abuse.campaignSessionsTotal": {
+        label: "Haastatteluja kampanjaa kohti yhteensä",
+        description:
+          "Suurin määrä haastatteluja, jonka yksi kampanja voi koskaan saada. Nosta rajaa ennen kampanjaa, joka kutsuu tätä useampia ihmisiä.",
+      },
+      "abuse.tenantSessionsPerHour": {
+        label: "Uusia haastatteluja organisaatiota ja tuntia kohti",
+        description:
+          "Kuinka monta haastattelua organisaation kaikki kampanjat yhteensä saavat aloittaa tunnissa.",
+      },
+      "abuse.distinctEmailsPerAddressPerHour": {
+        label: "Eri sähköpostiosoitteita verkko-osoitetta ja tuntia kohti",
+        description:
+          "Kuinka monelle eri sähköpostiosoitteelle yksi verkko-osoite saa pyytää vahvistuskoodin kampanjaa kohti tunnissa. Raja estää linkin käytön vieraiden ihmisten postittamiseen.",
+      },
+      "notifications.abuseLimits": {
+        label: "Väärinkäytön raja täyttyi",
+        description: "Lähetä ylläpitäjille sähköposti, kun haastattelulinkki täyttää väärinkäytön rajan.",
+      },
       "cost.warnFraction": {
         label: "Budjetin osuus, jolla varoitus annetaan",
         description:

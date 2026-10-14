@@ -450,6 +450,30 @@ the product (the web app answers, and every call behind it fails).
 
 **Fixed when** The ready check returns `ok:true`.
 
+### abuse.limit_hit
+
+**Symptom** An interview link refused new interviews or verification codes because it reached an
+abuse limit. The message names the limit: `campaign_hour` (`abuse.campaignSessionsPerHour`),
+`campaign_total` (`abuse.campaignSessionsTotal`), `tenant_hour` (`abuse.tenantSessionsPerHour`) or
+`address_emails` (`abuse.distinctEmailsPerAddressPerHour`, one internet address asking codes for
+many different email addresses). Participants over the limit see "busy, try again later" (429);
+the email-code endpoints keep answering "ok" and send nothing, so an attacker learns nothing. The
+tenant's admins and you are told, once an hour per campaign and limit.
+
+**Look at** Is it real demand or an attack? A campaign that invited 3000 people and hit
+`campaign_total` is demand; a link posted somewhere public and `campaign_hour` hit at 03:00 is not.
+`deploy/dc exec -T postgres psql -U app -d ai_discovery -c "select \"key\", \"count\", \"windowStart\" from \"UsageCounter\" where \"windowStart\" > now() - interval '3 hours' order by \"count\" desc limit 20"`
+(the keys name campaigns and keyed address hashes, never addresses). The API log lines
+`abuse signal` carry the campaign id and the limit. Interviews already created are not removed.
+
+**Do** Demand: raise the limit (Settings, category Privacy, at the campaign or tenant scope).
+Attack: close the campaign (`Admin → Campaigns → Close`) and issue a new link or switch it to
+`email_code` verification with an allowed domain; if one address is the source, block it at the host
+firewall (`ufw deny from <address>`). Check the model spend of the tenant
+(`Admin → Budgets`): the tenant ceiling `ceiling.maxSessionsPerMonth` is the last fence.
+
+**Fixed when** The hourly windows pass, or the limit is raised; the next hit is a new alert.
+
 ### alerts.storm
 
 **Symptom** The hourly ceiling (30 per audience by default) was reached and the rest were

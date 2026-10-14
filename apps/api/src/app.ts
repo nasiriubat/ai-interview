@@ -21,6 +21,7 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import { guard, installAccessGuard } from "./auth/access.js";
+import { installAccessAudit } from "./auth/access-audit.js";
 import { installAuditDeclarationCheck } from "./auth/audit-actions.js";
 import { authPlugin } from "./auth/plugin.js";
 import { PrincipalResolver } from "./auth/principal.js";
@@ -159,6 +160,8 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   // After the limiter, so the guard is ordered behind its hook; before every route, so none escapes.
   installAccessGuard(app as unknown as FastifyInstance);
   installAuditDeclarationCheck(app);
+  // Operator access to a tenant and sensitive reads leave a row (A2, D-262).
+  installAccessAudit(app as unknown as FastifyInstance, ctx.services.audit);
   // A path with no route has no route-level hook, so the 404 handler carries the limiter itself:
   // otherwise scanning for endpoints that do not exist is the one thing left without a ceiling.
   // The cast only drops the plugin's pino-specific `Logger` generic for Fastify's own
