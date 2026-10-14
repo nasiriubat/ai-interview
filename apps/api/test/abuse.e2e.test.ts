@@ -81,7 +81,7 @@ suite("abuse controls on open links", () => {
     expect(bystander.json<{ sessionId: string }>().sessionId).toBeTruthy();
   });
 
-  it("does not turn away an office: fifty colleagues behind one address open the link in a minute (D-310)", async () => {
+  it("does not turn away an office: fifty colleagues behind one address open the link in a minute, which 30 a minute refused (D-310)", async () => {
     const c = await createCampaign("open", "Office");
     const office = "203.0.113.210";
     const codes: number[] = [];
