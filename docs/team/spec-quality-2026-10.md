@@ -277,3 +277,15 @@ sets of six, the first discarded when the read-back defect was found), judge of 
 - Duplicates in the judge's reading are not under 5%; the judge has false positives here (kappa 0.79
   was measured on the earlier lists) and its number should be read as an upper bound for this set.
 - The scope-tag and ordering corrections of the read-back are untested.
+
+## Third pass: is anything lost? (D-300 to D-305)
+
+The second pass could not tell loss from padding. `docs/team/recall-2026-10-14.md` measures it with
+an independent extraction of what the owner stated, quotes verified in code, and coverage decided by
+words first: final FR list recall 62% on the original lists and 85% to 87% on fresh interviews,
+anywhere in the specification 91% and 95% to 96%, and only 26% of the original requirements
+supported by something the owner said against 98% to 100% now. The earlier lists were padded; the
+median of 7 to 8 is not a loss. The "39% uncovered" of D-294 was the judge model's own list and
+coverage, checked nowhere. Merging does drop a title in a few percent of merges, which is guarded
+(D-301), and the 8 to 20 target is withdrawn (D-303). The live re-run found duplicated requirement
+ids in a finished specification, fixed in D-302.

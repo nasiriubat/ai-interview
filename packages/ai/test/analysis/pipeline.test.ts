@@ -5,7 +5,13 @@ import type { z } from "zod";
 import { agglomerate } from "../../src/analysis/cluster.js";
 import { stableClusterKey } from "../../src/analysis/clustering.js";
 import { cosine, LexicalEmbeddings } from "../../src/analysis/embeddings.js";
-import { clusterStats, reconcile, runAnalysis, type AnalysisFact } from "../../src/analysis/pipeline.js";
+import {
+  clampText,
+  clusterStats,
+  reconcile,
+  runAnalysis,
+  type AnalysisFact,
+} from "../../src/analysis/pipeline.js";
 import { processMap, renderReport } from "../../src/analysis/report.js";
 import type { CallRequest, ModelCaller } from "../../src/callModel.js";
 import { ShippedPromptSource } from "../../src/engine/prompts/index.js";
@@ -80,7 +86,10 @@ const facts: AnalysisFact[] = [
 class ScriptedAnalysisModel {
   calls: { purpose: string; name?: string | undefined }[] = [];
   embedCalls = 0;
-  constructor(private readonly failClustering = false) {}
+  constructor(
+    private readonly failClustering = false,
+    private readonly longRationale = false,
+  ) {}
   async embed(): Promise<undefined> {
     this.embedCalls++;
     return undefined; // no embedding route: lexical fallback
@@ -130,7 +139,7 @@ class ScriptedAnalysisModel {
         title: notAi ? "Night shift staffing" : "Single entry of patient notes",
         summary: "Summary.",
         solutionClass: notAi ? "process" : "automation",
-        rationale: "Rationale.",
+        rationale: this.longRationale ? "A reason that runs on. ".repeat(80) : "Rationale.",
         factors: {
           expected_impact: { score: 4, rationale: "r" },
           affected_employees: { score: 4, rationale: "r" },
@@ -306,5 +315,33 @@ describe("report rendering", () => {
     });
     expect(md).toContain("## Executive summary");
     expect(md).not.toContain("## Participation");
+  });
+});
+
+describe("a rationale longer than the stored limit (D-304)", () => {
+  it("is cut at a word boundary and the cluster keeps its opportunity", async () => {
+    const model = new ScriptedAnalysisModel(false, true);
+    const r = await runAnalysis(
+      {
+        caller: model.asCaller(),
+        prompts: new ShippedPromptSource(),
+        logger,
+        now: () => new Date("2026-09-10"),
+      },
+      input(),
+    );
+    expect(r.opportunities).toHaveLength(3);
+    for (const o of r.opportunities) {
+      expect(o.rationale.length).toBeLessThanOrEqual(1200);
+      expect(o.rationale.endsWith("\u2026")).toBe(true);
+      expect(o.rationale).not.toMatch(/ru\u2026$/);
+    }
+  });
+
+  it("clampText leaves short text alone and never cuts inside a long word run", () => {
+    expect(clampText("  short  ", 20)).toBe("short");
+    const cut = clampText("word ".repeat(100), 50);
+    expect(cut.length).toBeLessThanOrEqual(50);
+    expect(cut.endsWith("word\u2026")).toBe(true);
   });
 });

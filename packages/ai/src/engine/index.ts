@@ -8,6 +8,7 @@ export * from "./context.js";
 export * from "./engine.js";
 export * from "./summary.js";
 export * from "./extraction.js";
+export * from "./extracted-facts.js";
 export * from "./recall.js";
 export * from "./quotes.js";
 export * from "./turn-repair.js";

@@ -79,7 +79,11 @@
     "retired": true
   },
   "requirement_merge@2": {
-    "sha256": "a24a73d156465243c1fe0065584f3b92a74336df4f3117c7b348f9c07c538db3"
+    "sha256": "a24a73d156465243c1fe0065584f3b92a74336df4f3117c7b348f9c07c538db3",
+    "retired": true
+  },
+  "requirement_merge@3": {
+    "sha256": "4775820bf6465785bad22d10c11287316dc1dd93e7ba03c7888d71bd85586814"
   },
   "spec@1": {
     "sha256": "95d169c722fd76fff431e9aefff84e3661a3ee16e37aa43948b94875afc5f792",

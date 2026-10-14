@@ -1,0 +1,124 @@
+{
+  "capabilities": [
+    {
+      "text": "Send nurse notes from Epic Cogito to CareTrack",
+      "kind": "feature",
+      "quote": "We’re only bridging the gap between Epic Cogito and CareTrack, avoiding double data entry"
+    },
+    {
+      "text": "Extract patient identifiers (MRN, encounter ID) from FHIR Observation resource",
+      "kind": "feature",
+      "quote": "We’ll extract these from the FHIR Observation resource in Epic using the `identifier` and `valueString` fields."
+    },
+    {
+      "text": "Send full note text and patient identifiers to CareTrack",
+      "kind": "feature",
+      "quote": "CareTrack must receive the full note text and the patient identifiers—specifically the MRN (Medical Record Number) and the encounter ID"
+    },
+    {
+      "text": "Ward manager views notes in CareTrack for daily audits",
+      "kind": "feature",
+      "quote": "The ward manager needs to see the full note text and timestamp to verify handover completeness during daily audits."
+    },
+    {
+      "text": "Night shift nurse views notes in CareTrack for care planning",
+      "kind": "feature",
+      "quote": "The night shift nurse needs to see the note text, the nurse’s name, and the timestamp to inform their care plan."
+    },
+    {
+      "text": "Send note as JSON payload with specific fields (text, author, authoredOn, mrn, encounterId)",
+      "kind": "feature",
+      "quote": "We’ll send the note as a JSON payload containing `text`, `author`, `authoredOn`, `mrn`, and `encounterId`—no additional metadata."
+    },
+    {
+      "text": "Azure Functions for processing notes",
+      "kind": "constraint",
+      "quote": "I’ll build it using Azure Functions with C# and the Azure App Service for hosting"
+    },
+    {
+      "text": "Azure App Service for hosting",
+      "kind": "constraint",
+      "quote": "I’ll build it using Azure Functions with C# and the Azure App Service for hosting"
+    },
+    {
+      "text": "Azure AD for Single Sign-On (SSO)",
+      "kind": "constraint",
+      "quote": "leveraging Azure AD for SSO."
+    },
+    {
+      "text": "C# and .NET stack for development",
+      "kind": "constraint",
+      "quote": "I’ll stick with C# and .NET for consistency, faster development, and better maintainability."
+    },
+    {
+      "text": "HIPAA compliance for data handling",
+      "kind": "constraint",
+      "quote": "This data is subject to HIPAA, as it contains protected health information (PHI) including MRN, encounter ID, and clinical note text."
+    },
+    {
+      "text": "Encryption at rest and in transit (TLS 1.3)",
+      "kind": "constraint",
+      "quote": "We’ll enforce encryption at rest and in transit (TLS 1.3)"
+    },
+    {
+      "text": "Restrict access via Azure AD roles with least privilege",
+      "kind": "constraint",
+      "quote": "restrict access via Azure AD roles with the principle of least privilege"
+    },
+    {
+      "text": "Azure App Service in a dedicated virtual network with private endpoints",
+      "kind": "constraint",
+      "quote": "The Azure App Service will run in a dedicated virtual network with private endpoints for Epic and CareTrack integrations"
+    },
+    {
+      "text": "Azure Monitor with audit trails for data flows (version 1: 90-day retention)",
+      "kind": "feature",
+      "quote": "For version one, we’ll implement audit trails only for the core data flow—specifically, successful note sends to CareTrack—and store those logs in Azure Monitor with a retention of 90 days."
+    },
+    {
+      "text": "Azure AD authentication for CareTrack webhook",
+      "kind": "constraint",
+      "quote": "I’ll keep Azure AD for the webhook—CareTrack already supports OAuth 2.0 with Azure AD"
+    },
+    {
+      "text": "90-day secret rotation policy for Azure AD client secret",
+      "kind": "constraint",
+      "quote": "set up a secrets rotation policy to refresh the client secret every 90 days."
+    },
+    {
+      "text": "Automatic note sending from Epic to CareTrack upon Save and Close",
+      "kind": "feature",
+      "quote": "Yes, the note must send automatically when the nurse clicks “Save and Close” in Epic Cogito"
+    },
+    {
+      "text": "Toast notification in Epic confirming note send (MRN, timestamp, green checkmark)",
+      "kind": "feature",
+      "quote": "The message will appear as a toast notification in Epic, showing the patient’s MRN, the timestamp, and a green checkmark."
+    },
+    {
+      "text": "Night nurse sees a green 'Received' badge in CareTrack for successfully ingested notes",
+      "kind": "feature",
+      "quote": "So we’ll add a “Received” badge in green if the note was successfully ingested via the bridge"
+    },
+    {
+      "text": "Night nurse sees a grey 'Pending' badge for notes not yet received",
+      "kind": "feature",
+      "quote": "She should see a grey \"Pending\" badge with a clock icon—indicating the note is expected but not yet received."
+    },
+    {
+      "text": "Silent alert to monitoring dashboard if note remains pending for 5 minutes",
+      "kind": "feature",
+      "quote": "If it remains pending after 5 minutes, the system will trigger a silent alert to the bridge’s monitoring dashboard"
+    },
+    {
+      "text": "Log failure in Azure Monitor after second send attempt fails",
+      "kind": "feature",
+      "quote": "If the second attempt fails, the note is logged in Azure Monitor with a failure reason (e.g., timeout, 401, malformed payload)"
+    },
+    {
+      "text": "Send Teams alert to IT incident channel after second send attempt fails",
+      "kind": "feature",
+      "quote": "and a Teams alert is sent to the IT incident channel."
+    }
+  ]
+}

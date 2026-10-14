@@ -1,0 +1,13 @@
+{
+  "answers": [
+    { "key": "c1", "by": "S-integrations/epic_cogito_to_caretrack" },
+    { "key": "c4", "by": "S-users/ward_manager" },
+    { "key": "c5", "by": "S-users/night_shift_nurse" },
+    { "key": "c6", "by": "S-integrations/epic_cogito_to_caretrack_payload" },
+    { "key": "c14", "by": "S-security/audit_logging" },
+    { "key": "c17", "by": "S-integrations/epic_cogito_to_caretrack" },
+    { "key": "c18", "by": "S-users/day_nurse" },
+    { "key": "c19", "by": "S-users/night_shift_nurse" },
+    { "key": "c20", "by": "S-users/night_shift_nurse" }
+  ]
+}

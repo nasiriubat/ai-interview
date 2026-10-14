@@ -1,0 +1,18 @@
+{
+  "answers": [
+    { "key": "c1", "by": "S-stories/US-2" },
+    { "key": "c2", "by": "S-stories/US-2" },
+    { "key": "c3", "by": "S-integrations/CareCom" },
+    { "key": "c4", "by": "S-integrations/ward-flow-sheet" },
+    { "key": "c5", "by": "S-stories/US-2" },
+    { "key": "c6", "by": "S-stories/US-1" },
+    { "key": "c9", "by": "S-stories/US-save-confirmation" },
+    { "key": "c16", "by": "S-nfr/concurrency" },
+    { "key": "c17", "by": "S-security/data-protection" },
+    { "key": "c18", "by": "S-security/data-protection" },
+    { "key": "c19", "by": "S-security/data-protection" },
+    { "key": "c20", "by": "S-rules/history-cross-ward" },
+    { "key": "c21", "by": "S-rules/note-history-scope" },
+    { "key": "c22", "by": "S-integrations/ward-flow-sheet" }
+  ]
+}

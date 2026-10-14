@@ -1,0 +1,16 @@
+{
+  "answers": [
+    { "key": "c1", "by": "S-users/nurse" },
+    { "key": "c3", "by": "S-rerouted/FR-2" },
+    { "key": "c4", "by": "S-users/charge_nurse" },
+    { "key": "c7", "by": "S-technical/sandbox" },
+    { "key": "c11", "by": "S-nfr/budget" },
+    { "key": "c13", "by": "S-nfr/users_at_launch" },
+    { "key": "c14", "by": "S-users/sandbox_testers" },
+    { "key": "c15", "by": "S-users/sandbox_testers" },
+    { "key": "c17", "by": "S-security/access_logging" },
+    { "key": "c18", "by": "S-security/compliance" },
+    { "key": "c23", "by": "S-rerouted/FR-3" },
+    { "key": "c24", "by": "S-rerouted/failure_path" }
+  ]
+}

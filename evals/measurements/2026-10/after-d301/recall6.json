@@ -1,0 +1,1141 @@
+{
+  "extractor": "google/gemini-2.5-flash-lite",
+  "matcher": "google/gemini-2.5-flash-lite",
+  "usd": 0.079,
+  "final": [
+    {
+      "persona": "nontechnical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.88,
+        "low": 0.762,
+        "high": 0.944,
+        "k": 44,
+        "n": 50,
+        "bootstrap": {
+          "low": 0.792,
+          "high": 1
+        }
+      },
+      "precision": {
+        "rate": 0.958,
+        "low": 0.798,
+        "high": 0.993,
+        "k": 23,
+        "n": 24,
+        "bootstrap": {
+          "low": 0.923,
+          "high": 1
+        }
+      },
+      "perInterviewRecall": [0.933, 1, 0.737]
+    },
+    {
+      "persona": "technical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.857,
+        "low": 0.685,
+        "high": 0.943,
+        "k": 24,
+        "n": 28,
+        "bootstrap": {
+          "low": 0.5,
+          "high": 0.917
+        }
+      },
+      "precision": {
+        "rate": 1,
+        "low": 0.851,
+        "high": 1,
+        "k": 22,
+        "n": 22,
+        "bootstrap": {
+          "low": 1,
+          "high": 1
+        }
+      },
+      "perInterviewRecall": [0.5, 0.917, 0.857]
+    },
+    {
+      "persona": "all",
+      "interviews": 6,
+      "recall": {
+        "rate": 0.872,
+        "low": 0.78,
+        "high": 0.929,
+        "k": 68,
+        "n": 78,
+        "bootstrap": {
+          "low": 0.783,
+          "high": 0.947
+        }
+      },
+      "precision": {
+        "rate": 0.978,
+        "low": 0.887,
+        "high": 0.996,
+        "k": 45,
+        "n": 46,
+        "bootstrap": {
+          "low": 0.94,
+          "high": 1
+        }
+      },
+      "perInterviewRecall": [0.933, 1, 0.737, 0.5, 0.917, 0.857]
+    }
+  ],
+  "recorded": [
+    {
+      "persona": "nontechnical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.9,
+        "low": 0.786,
+        "high": 0.957,
+        "k": 45,
+        "n": 50,
+        "bootstrap": {
+          "low": 0.83,
+          "high": 1
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.094,
+        "k": 0,
+        "n": 37,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.933, 1, 0.789]
+    },
+    {
+      "persona": "technical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.857,
+        "low": 0.685,
+        "high": 0.943,
+        "k": 24,
+        "n": 28,
+        "bootstrap": {
+          "low": 0.5,
+          "high": 0.917
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.077,
+        "k": 0,
+        "n": 46,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.5, 0.917, 0.857]
+    },
+    {
+      "persona": "all",
+      "interviews": 6,
+      "recall": {
+        "rate": 0.885,
+        "low": 0.795,
+        "high": 0.938,
+        "k": 69,
+        "n": 78,
+        "bootstrap": {
+          "low": 0.813,
+          "high": 0.947
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.044,
+        "k": 0,
+        "n": 83,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [0.933, 1, 0.789, 0.5, 0.917, 0.857]
+    }
+  ],
+  "anywhere": [
+    {
+      "persona": "nontechnical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.96,
+        "low": 0.865,
+        "high": 0.989,
+        "k": 48,
+        "n": 50,
+        "bootstrap": {
+          "low": 0.925,
+          "high": 1
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.138,
+        "k": 0,
+        "n": 24,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [1, 1, 0.895]
+    },
+    {
+      "persona": "technical",
+      "interviews": 3,
+      "recall": {
+        "rate": 0.964,
+        "low": 0.823,
+        "high": 0.994,
+        "k": 27,
+        "n": 28,
+        "bootstrap": {
+          "low": 0.933,
+          "high": 1
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.149,
+        "k": 0,
+        "n": 22,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [1, 1, 0.929]
+    },
+    {
+      "persona": "all",
+      "interviews": 6,
+      "recall": {
+        "rate": 0.962,
+        "low": 0.893,
+        "high": 0.987,
+        "k": 75,
+        "n": 78,
+        "bootstrap": {
+          "low": 0.922,
+          "high": 1
+        }
+      },
+      "precision": {
+        "rate": 0,
+        "low": 0,
+        "high": 0.077,
+        "k": 0,
+        "n": 46,
+        "bootstrap": {
+          "low": 0,
+          "high": 0
+        }
+      },
+      "perInterviewRecall": [1, 1, 0.895, 1, 1, 0.929]
+    }
+  ],
+  "details": [
+    {
+      "spec": "nontechnical-1",
+      "persona": "nontechnical",
+      "ownerMessages": 41,
+      "extracted": 24,
+      "verified": 15,
+      "constraintsExcluded": 7,
+      "rejected": [
+        {
+          "reason": "duplicate of an earlier capability",
+          "text": "Note entered in the new tool appears in Sensus within 60 seconds"
+        },
+        {
+          "reason": "quote not in the owner's words",
+          "text": "Adhere to UK GDPR and NHS data protection standards"
+        }
+      ],
+      "mergedAway": 4,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 8,
+      "requirementsRecorded": 12,
+      "coverFinal": {
+        "model": 8,
+        "evidence": 6,
+        "none": 1
+      },
+      "assignments": [
+        {
+          "key": "c3",
+          "text": "Connect to EpicCare",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse enters a ward note once and it reaches EpicCare and Sensus"
+        },
+        {
+          "key": "c4",
+          "text": "Connect to Sensus",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse enters a ward note once and it reaches EpicCare and Sensus"
+        },
+        {
+          "key": "c5",
+          "text": "Note entered in the new tool appears in EpicCare within 30 seconds",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse enters a ward note once and it reaches EpicCare and Sensus"
+        },
+        {
+          "key": "c6",
+          "text": "Reduce nurse time spent copying notes by half",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse enters a ward note once and it reaches EpicCare and Sensus"
+        },
+        {
+          "key": "c9",
+          "text": "Pull MRN and patient name automatically from a live list of patients on the ward",
+          "how": "evidence",
+          "by": "FR-2",
+          "byTitle": "Nurse selects a patient from the ward list and the tool fills in the MRN and name"
+        },
+        {
+          "key": "c10",
+          "text": "Live patient list syncs every two minutes from Sensus",
+          "how": "evidence",
+          "by": "FR-2",
+          "byTitle": "Nurse selects a patient from the ward list and the tool fills in the MRN and name"
+        },
+        {
+          "key": "c11",
+          "text": "Nurse selects patient from a dropdown, no typing of MRN",
+          "how": "evidence",
+          "by": "FR-2",
+          "byTitle": "Nurse selects a patient from the ward list and the tool fills in the MRN and name"
+        },
+        {
+          "key": "c12",
+          "text": "Observation time field auto-populates with current time",
+          "how": "evidence",
+          "by": "FR-3",
+          "byTitle": "Observation time defaults to now and can be edited"
+        },
+        {
+          "key": "c13",
+          "text": "Allow editing of observation time",
+          "how": "evidence",
+          "by": "FR-3",
+          "byTitle": "Observation time defaults to now and can be edited"
+        },
+        {
+          "key": "c14",
+          "text": "Save note instantly, even if nurse hasn’t finished typing",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse enters a ward note once and it reaches EpicCare and Sensus"
+        },
+        {
+          "key": "c15",
+          "text": "Show a green tick when note has successfully synced to both systems",
+          "how": "evidence",
+          "by": "FR-5",
+          "byTitle": "Nurse sees a green tick once the note has synced to both systems"
+        },
+        {
+          "key": "c17",
+          "text": "Show a red warning with a clear message if a system is down",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "Note stays saved and pending when a system is unavailable"
+        },
+        {
+          "key": "c18",
+          "text": "Silent retry every 10 seconds for the first 2 minutes if a system is down",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "Note stays saved and pending when a system is unavailable"
+        },
+        {
+          "key": "c19",
+          "text": "Handle bursts of activity, like 10 nurses logging in at once",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c22",
+          "text": "Nurse enters note once, saves and sends with one action",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse enters a ward note once and it reaches EpicCare and Sensus"
+        }
+      ],
+      "coverRecorded": {
+        "model": 6,
+        "evidence": 8,
+        "none": 1
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c19",
+          "text": "Handle bursts of activity, like 10 nurses logging in at once",
+          "quote": "so we need to make sure it handles bursts of activity, like when 10 nurses log in at once after a handover.",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c19"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": []
+    },
+    {
+      "spec": "nontechnical-2",
+      "persona": "nontechnical",
+      "ownerMessages": 41,
+      "extracted": 25,
+      "verified": 16,
+      "constraintsExcluded": 8,
+      "rejected": [
+        {
+          "reason": "quote not in the owner's words",
+          "text": "Patient name and ID appear within two seconds of selection"
+        }
+      ],
+      "mergedAway": 4,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 6,
+      "requirementsRecorded": 11,
+      "coverFinal": {
+        "words": 4,
+        "model": 6,
+        "evidence": 6
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Nurse logs in with existing hospital credentials",
+          "how": "words",
+          "by": "FR-1",
+          "byTitle": "Nurse can log in with existing hospital credentials"
+        },
+        {
+          "key": "c2",
+          "text": "Form shows patient name and ID from OmniCare",
+          "how": "model",
+          "by": "FR-9",
+          "byTitle": "Patient name and ID appear within two seconds of selection"
+        },
+        {
+          "key": "c3",
+          "text": "Nurse saves a note once to OmniCare and the spreadsheet",
+          "how": "words",
+          "by": "FR-3",
+          "byTitle": "Nurse can save a note once to OmniCare and the spreadsheet"
+        },
+        {
+          "key": "c4",
+          "text": "Ward manager views notes in spreadsheet",
+          "how": "words",
+          "by": "FR-4",
+          "byTitle": "Ward manager can view notes in spreadsheet"
+        },
+        {
+          "key": "c5",
+          "text": "Finance imports a complete weekly spreadsheet of patient notes",
+          "how": "evidence",
+          "by": "FR-5",
+          "byTitle": "Finance can import a complete weekly spreadsheet of patient notes"
+        },
+        {
+          "key": "c6",
+          "text": "Nurse sees a note saved in OmniCare but not yet in the spreadsheet",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Nurse can save a note once to OmniCare and the spreadsheet"
+        },
+        {
+          "key": "c7",
+          "text": "Ward manager sees the morning count check",
+          "how": "words",
+          "by": "FR-7",
+          "byTitle": "Ward manager can see the morning count check"
+        },
+        {
+          "key": "c8",
+          "text": "Nurse sees a pending message until a note is in both systems",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Nurse can save a note once to OmniCare and the spreadsheet"
+        },
+        {
+          "key": "c9",
+          "text": "Nurse sees a green confirmation message within two seconds of saving a note",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Nurse can save a note once to OmniCare and the spreadsheet"
+        },
+        {
+          "key": "c10",
+          "text": "Tool pushes note to OmniCare and spreadsheet in one click",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Nurse can save a note once to OmniCare and the spreadsheet"
+        },
+        {
+          "key": "c11",
+          "text": "Ward manager sees notes clearly labeled with patient name, time, and nurse’s name",
+          "how": "evidence",
+          "by": "FR-4",
+          "byTitle": "Ward manager can view notes in spreadsheet"
+        },
+        {
+          "key": "c12",
+          "text": "Spreadsheet file saved and shared automatically by 7:30 AM each day",
+          "how": "evidence",
+          "by": "FR-4",
+          "byTitle": "Ward manager can view notes in spreadsheet"
+        },
+        {
+          "key": "c13",
+          "text": "Finance checks that all notes from the previous week are present and properly dated",
+          "how": "evidence",
+          "by": "FR-5",
+          "byTitle": "Finance can import a complete weekly spreadsheet of patient notes"
+        },
+        {
+          "key": "c14",
+          "text": "Finance imports the file directly into their cost calculation tool",
+          "how": "evidence",
+          "by": "FR-5",
+          "byTitle": "Finance can import a complete weekly spreadsheet of patient notes"
+        },
+        {
+          "key": "c15",
+          "text": "Spreadsheet saved as a CSV with a consistent format",
+          "how": "evidence",
+          "by": "FR-5",
+          "byTitle": "Finance can import a complete weekly spreadsheet of patient notes"
+        },
+        {
+          "key": "c16",
+          "text": "Tool generates one clean, complete entry per note",
+          "how": "model",
+          "by": "FR-5",
+          "byTitle": "Finance can import a complete weekly spreadsheet of patient notes"
+        }
+      ],
+      "coverRecorded": {
+        "words": 6,
+        "evidence": 8,
+        "model": 2
+      },
+      "uncoveredFinal": [],
+      "loss": {
+        "neverRecorded": [],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": []
+    },
+    {
+      "spec": "nontechnical-3",
+      "persona": "nontechnical",
+      "ownerMessages": 41,
+      "extracted": 24,
+      "verified": 19,
+      "constraintsExcluded": 3,
+      "rejected": [
+        {
+          "reason": "quote not in the owner's words",
+          "text": "Note is locked once saved"
+        },
+        {
+          "reason": "duplicate of an earlier capability",
+          "text": "Encrypt data at rest"
+        }
+      ],
+      "mergedAway": 5,
+      "mergedTitlesLost": [
+        {
+          "into": "FR-4",
+          "id": "FR-6",
+          "title": "A nurse taps a patient and sees a blank note with the time auto-filled",
+          "kept": 0.667
+        },
+        {
+          "into": "FR-4",
+          "id": "FR-9",
+          "title": "A nurse opens a patient's full note history from a View History button",
+          "kept": 0.75
+        }
+      ],
+      "requirementsFinal": 10,
+      "requirementsRecorded": 14,
+      "coverFinal": {
+        "words": 1,
+        "model": 11,
+        "evidence": 2,
+        "none": 5
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Type a note once and have it saved to CareCom and the ward flow sheet",
+          "how": "words",
+          "by": "FR-1",
+          "byTitle": "A nurse can enter a ward note once and it saves to both ward flow sheet and CareCom"
+        },
+        {
+          "key": "c2",
+          "text": "Print a clean copy of the note for the ward board",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "A nurse can type a note and tap 'Save and Print'"
+        },
+        {
+          "key": "c3",
+          "text": "Connect to CareCom",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "A nurse can enter a ward note once and it saves to both ward flow sheet and CareCom"
+        },
+        {
+          "key": "c4",
+          "text": "Connect to the ward flow sheet",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "A nurse can enter a ward note once and it saves to both ward flow sheet and CareCom"
+        },
+        {
+          "key": "c5",
+          "text": "Capture the note on the ward flow sheet and push it to CareCom automatically",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "A nurse can enter a ward note once and it saves to both ward flow sheet and CareCom"
+        },
+        {
+          "key": "c6",
+          "text": "Display a list of patients on the ward with names, bed numbers, and last note date/time",
+          "how": "evidence",
+          "by": "FR-3",
+          "byTitle": "A nurse can pick a patient and see their ward's patient list"
+        },
+        {
+          "key": "c7",
+          "text": "Allow nurse to tap a patient to start writing a note",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "A nurse can write a note in a clean text box with pre-filled timestamp"
+        },
+        {
+          "key": "c8",
+          "text": "Provide a clean, simple text box with a timestamp already filled in for note entry",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "A nurse can write a note in a clean text box with pre-filled timestamp"
+        },
+        {
+          "key": "c9",
+          "text": "Include a 'Save and Print' button",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "A nurse can type a note and tap 'Save and Print'"
+        },
+        {
+          "key": "c10",
+          "text": "Run on a tablet via a web browser",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c11",
+          "text": "Work even if the Wi-Fi is a bit slow",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c15",
+          "text": "Prefer off-the-shelf option if it meets needs",
+          "how": "model",
+          "by": "FR-12",
+          "byTitle": "A nurse can keep note on screen and retry saving if CareCom save fails"
+        },
+        {
+          "key": "c16",
+          "text": "Handle 60 active users simultaneously without slowing down",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c17",
+          "text": "Encrypt data in transit",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c18",
+          "text": "Keep access logs",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c19",
+          "text": "Allow only authorised staff to view or edit notes",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "A nurse can enter a ward note once and it saves to both ward flow sheet and CareCom"
+        },
+        {
+          "key": "c20",
+          "text": "Nurses see only patients on their assigned ward",
+          "how": "evidence",
+          "by": "FR-10",
+          "byTitle": "A nurse sees only patients on her assigned ward"
+        },
+        {
+          "key": "c21",
+          "text": "Allow nurse to tap a patient's name and see a list of all past notes, sorted by date and time",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "A nurse can pick a patient and see their ward's patient list"
+        },
+        {
+          "key": "c22",
+          "text": "Print a standard page with patient name, bed, timestamp, and note text",
+          "how": "model",
+          "by": "FR-4",
+          "byTitle": "A nurse can write a note in a clean text box with pre-filled timestamp"
+        }
+      ],
+      "coverRecorded": {
+        "evidence": 3,
+        "words": 2,
+        "model": 10,
+        "none": 4
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c10",
+          "text": "Run on a tablet via a web browser",
+          "quote": "So I’d say the tool should run on a tablet via a web browser, like the other systems they use",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c11",
+          "text": "Work even if the Wi-Fi is a bit slow",
+          "quote": "and it should work even if the Wi-Fi is a bit slow.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c16",
+          "text": "Handle 60 active users simultaneously without slowing down",
+          "quote": "The tool should handle 60 active users at the same time without slowing down",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c17",
+          "text": "Encrypt data in transit",
+          "quote": "that means the tool must encrypt the data both in transit and at rest",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c18",
+          "text": "Keep access logs",
+          "quote": "keep access logs, and only allow authorised staff to view or edit notes.",
+          "kind": "feature",
+          "stage": "lost after capture"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c10", "c11", "c16", "c17"],
+        "lostAfterCapture": ["c18"],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": ["FR-save-confirmation"]
+    },
+    {
+      "spec": "technical-1",
+      "persona": "technical",
+      "ownerMessages": 41,
+      "extracted": 4,
+      "verified": 2,
+      "constraintsExcluded": 2,
+      "rejected": [],
+      "mergedAway": 0,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 5,
+      "requirementsRecorded": 5,
+      "coverFinal": {
+        "none": 1,
+        "model": 1
+      },
+      "assignments": [
+        {
+          "key": "c3",
+          "text": "Integrate with FHIR-compliant electronic health record (EHR) system",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c4",
+          "text": "Integrate with legacy spreadsheet-based event log system",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse can enter ward note once that syncs to EHR and spreadsheet"
+        }
+      ],
+      "coverRecorded": {
+        "none": 1,
+        "model": 1
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c3",
+          "text": "Integrate with FHIR-compliant electronic health record (EHR) system",
+          "quote": "I need to integrate with two existing systems: the hospital’s FHIR-compliant electronic health record (EHR) system",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c3"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": []
+    },
+    {
+      "spec": "technical-2",
+      "persona": "technical",
+      "ownerMessages": 41,
+      "extracted": 25,
+      "verified": 12,
+      "constraintsExcluded": 12,
+      "rejected": [
+        {
+          "reason": "quote too short",
+          "text": "Perform unit testing with xUnit"
+        }
+      ],
+      "mergedAway": 8,
+      "mergedTitlesLost": [],
+      "requirementsFinal": 8,
+      "requirementsRecorded": 21,
+      "coverFinal": {
+        "model": 9,
+        "evidence": 2,
+        "none": 1
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Integrate with Epic as the source of truth for clinical notes",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse sees the most recent Epic note for the patient already loaded and editable"
+        },
+        {
+          "key": "c2",
+          "text": "Integrate with SharePoint Online for ward notes",
+          "how": "model",
+          "by": "FR-11",
+          "byTitle": "Nurse can manually copy the note to SharePoint as a fallback"
+        },
+        {
+          "key": "c3",
+          "text": "Read note data from Epic using FHIR API",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse sees the most recent Epic note for the patient already loaded and editable"
+        },
+        {
+          "key": "c4",
+          "text": "Write note data to SharePoint using REST API",
+          "how": "model",
+          "by": "FR-10",
+          "byTitle": "Nurse sees an error message and can retry saving on failure"
+        },
+        {
+          "key": "c13",
+          "text": "Launch the tool from an Epic custom button",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse sees the most recent Epic note for the patient already loaded and editable"
+        },
+        {
+          "key": "c14",
+          "text": "Automatically populate the note text from Epic",
+          "how": "evidence",
+          "by": "FR-7",
+          "byTitle": "Nurse sees the most recent Epic note for the patient already loaded and editable"
+        },
+        {
+          "key": "c15",
+          "text": "Display the note in a clean, editable field",
+          "how": "evidence",
+          "by": "FR-2",
+          "byTitle": "Nurse can review and edit ward note before saving"
+        },
+        {
+          "key": "c16",
+          "text": "Write the edited note to SharePoint Online",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Nurse can review and edit ward note before saving"
+        },
+        {
+          "key": "c17",
+          "text": "Include metadata (timestamp, nurse ID, patient ID) in SharePoint write",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse sees the most recent Epic note for the patient already loaded and editable"
+        },
+        {
+          "key": "c19",
+          "text": "Write the edited version of the note to SharePoint",
+          "how": "model",
+          "by": "FR-2",
+          "byTitle": "Nurse can review and edit ward note before saving"
+        },
+        {
+          "key": "c21",
+          "text": "Embed a custom button in the Epic Care Management module",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c22",
+          "text": "Pass patient MRN and encounter ID as query parameters from Epic button",
+          "how": "model",
+          "by": "FR-7",
+          "byTitle": "Nurse sees the most recent Epic note for the patient already loaded and editable"
+        }
+      ],
+      "coverRecorded": {
+        "model": 7,
+        "none": 1,
+        "evidence": 4
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c21",
+          "text": "Embed a custom button in the Epic Care Management module",
+          "quote": "We’ll embed a custom button in the Epic Care Management module using Epic’s FHIR-based integration framework",
+          "kind": "feature",
+          "stage": "lost after capture"
+        }
+      ],
+      "loss": {
+        "neverRecorded": [],
+        "lostAfterCapture": ["c21"],
+        "gainedAfterCapture": ["c3"]
+      },
+      "unsupportedRequirements": []
+    },
+    {
+      "spec": "technical-3",
+      "persona": "technical",
+      "ownerMessages": 41,
+      "extracted": 24,
+      "verified": 14,
+      "constraintsExcluded": 9,
+      "rejected": [
+        {
+          "reason": "duplicate of an earlier capability",
+          "text": "Azure App Service for hosting"
+        }
+      ],
+      "mergedAway": 11,
+      "mergedTitlesLost": [
+        {
+          "into": "FR-6",
+          "id": "FR-5",
+          "title": "The bridge raises a silent alert when a note stays pending for 5 minutes",
+          "kept": 0.667
+        },
+        {
+          "into": "FR-6",
+          "id": "FR-12",
+          "title": "The night nurse proceeds with a manual check when a note stays pending for 5 minutes",
+          "kept": 0.5
+        },
+        {
+          "into": "FR-6",
+          "id": "FR-13",
+          "title": "The system logs a failure in Azure Monitor when a note stays pending for 5 minutes",
+          "kept": 0.778
+        },
+        {
+          "into": "FR-15",
+          "id": "FR-18",
+          "title": "The system logs a failure in Azure Monitor with a reason and alerts IT after two retries",
+          "kept": 0.75
+        }
+      ],
+      "requirementsFinal": 9,
+      "requirementsRecorded": 20,
+      "coverFinal": {
+        "model": 10,
+        "none": 2,
+        "evidence": 2
+      },
+      "assignments": [
+        {
+          "key": "c1",
+          "text": "Send nurse notes from Epic Cogito to CareTrack",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse note is sent automatically to CareTrack"
+        },
+        {
+          "key": "c2",
+          "text": "Extract patient identifiers (MRN, encounter ID) from FHIR Observation resource",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c3",
+          "text": "Send full note text and patient identifiers to CareTrack",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse note is sent automatically to CareTrack"
+        },
+        {
+          "key": "c4",
+          "text": "Ward manager views notes in CareTrack for daily audits",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Night nurse sees green Received badge on delivered notes"
+        },
+        {
+          "key": "c5",
+          "text": "Night shift nurse views notes in CareTrack for care planning",
+          "how": "model",
+          "by": "FR-3",
+          "byTitle": "Night nurse sees green Received badge on delivered notes"
+        },
+        {
+          "key": "c6",
+          "text": "Send note as JSON payload with specific fields (text, author, authoredOn, mrn, encounterId)",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse note is sent automatically to CareTrack"
+        },
+        {
+          "key": "c14",
+          "text": "Azure Monitor with audit trails for data flows (version 1: 90-day retention)",
+          "how": "none",
+          "by": null,
+          "byTitle": null
+        },
+        {
+          "key": "c17",
+          "text": "Automatic note sending from Epic to CareTrack upon Save and Close",
+          "how": "model",
+          "by": "FR-1",
+          "byTitle": "Nurse note is sent automatically to CareTrack"
+        },
+        {
+          "key": "c18",
+          "text": "Toast notification in Epic confirming note send (MRN, timestamp, green checkmark)",
+          "how": "model",
+          "by": "FR-20",
+          "byTitle": "Night nurse sees green Received badge within 30 seconds of Epic save"
+        },
+        {
+          "key": "c19",
+          "text": "Night nurse sees a green 'Received' badge in CareTrack for successfully ingested notes",
+          "how": "evidence",
+          "by": "FR-3",
+          "byTitle": "Night nurse sees green Received badge on delivered notes"
+        },
+        {
+          "key": "c20",
+          "text": "Night nurse sees a grey 'Pending' badge for notes not yet received",
+          "how": "evidence",
+          "by": "FR-4",
+          "byTitle": "Night nurse sees grey Pending badge for notes not yet received"
+        },
+        {
+          "key": "c21",
+          "text": "Silent alert to monitoring dashboard if note remains pending for 5 minutes",
+          "how": "model",
+          "by": "FR-6",
+          "byTitle": "Supervisor receives Teams alert for notes pending over 5 minutes"
+        },
+        {
+          "key": "c22",
+          "text": "Log failure in Azure Monitor after second send attempt fails",
+          "how": "model",
+          "by": "FR-15",
+          "byTitle": "Failed send to CareTrack retried once and logged without nurse interruption"
+        },
+        {
+          "key": "c23",
+          "text": "Send Teams alert to IT incident channel after second send attempt fails",
+          "how": "model",
+          "by": "FR-15",
+          "byTitle": "Failed send to CareTrack retried once and logged without nurse interruption"
+        }
+      ],
+      "coverRecorded": {
+        "model": 6,
+        "none": 2,
+        "evidence": 6
+      },
+      "uncoveredFinal": [
+        {
+          "key": "c2",
+          "text": "Extract patient identifiers (MRN, encounter ID) from FHIR Observation resource",
+          "quote": "We’ll extract these from the FHIR Observation resource in Epic using the `identifier` and `valueString` fields.",
+          "kind": "feature",
+          "stage": "never recorded"
+        },
+        {
+          "key": "c14",
+          "text": "Azure Monitor with audit trails for data flows (version 1: 90-day retention)",
+          "quote": "For version one, we’ll implement audit trails only for the core data flow—specifically, successful note sends to CareTrack—and store those logs in Azure Monitor with a retention of 90 days.",
+          "kind": "feature",
+          "stage": "never recorded"
+        }
+      ],
+      "loss": {
+        "neverRecorded": ["c2", "c14"],
+        "lostAfterCapture": [],
+        "gainedAfterCapture": []
+      },
+      "unsupportedRequirements": []
+    }
+  ],
+  "unreadable": []
+}

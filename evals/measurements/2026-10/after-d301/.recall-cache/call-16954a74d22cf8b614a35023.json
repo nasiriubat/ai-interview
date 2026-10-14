@@ -1,0 +1,24 @@
+{
+  "capabilities": [
+    {
+      "text": "Run on Azure App Service with a dedicated virtual network",
+      "kind": "constraint",
+      "quote": "The application will run on Azure App Service with a dedicated virtual network"
+    },
+    {
+      "text": "Use Azure Cosmos DB for ward notes data",
+      "kind": "constraint",
+      "quote": "we'll use Azure Cosmos DB for the ward notes data"
+    },
+    {
+      "text": "Integrate with FHIR-compliant electronic health record (EHR) system",
+      "kind": "feature",
+      "quote": "I need to integrate with two existing systems: the hospital’s FHIR-compliant electronic health record (EHR) system"
+    },
+    {
+      "text": "Integrate with legacy spreadsheet-based event log system",
+      "kind": "feature",
+      "quote": "and the legacy spreadsheet-based event log system that nurses currently use for shift handovers."
+    }
+  ]
+}

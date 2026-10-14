@@ -1,0 +1,124 @@
+{
+  "capabilities": [
+    {
+      "text": "Strict access controls for viewing/editing notes",
+      "kind": "feature",
+      "quote": "Yes, we’ll need strict access controls—only nurses on the same ward and their team leaders can view or edit notes."
+    },
+    {
+      "text": "Encrypt data at rest and in transit",
+      "kind": "constraint",
+      "quote": "All data must be encrypted at rest and in transit"
+    },
+    {
+      "text": "Comply with HIPAA",
+      "kind": "constraint",
+      "quote": "and we’ll comply with HIPAA and the hospital group’s data governance policy."
+    },
+    {
+      "text": "Comply with hospital group's data governance policy",
+      "kind": "constraint",
+      "quote": "and we’ll comply with HIPAA and the hospital group’s data governance policy."
+    },
+    {
+      "text": "Use AWS for hosting",
+      "kind": "constraint",
+      "quote": "but I’ll go with AWS since it’s the one our IT team already uses for other systems."
+    },
+    {
+      "text": "Connect to Electronic Patient Record (EPR) system",
+      "kind": "feature",
+      "quote": "The tool needs to connect to our current electronic patient record (EPR) system, called Epic"
+    },
+    {
+      "text": "Pull patient name, MRN, and current bed number from Epic",
+      "kind": "feature",
+      "quote": "We’ll need to pull the patient’s name, MRN, and current bed number from Epic"
+    },
+    {
+      "text": "Connect to ward's daily handover spreadsheet on SharePoint",
+      "kind": "feature",
+      "quote": "and the ward’s daily handover spreadsheet, which is stored in a shared SharePoint folder."
+    },
+    {
+      "text": "Push final note into SharePoint file once a day",
+      "kind": "feature",
+      "quote": "and push the final note into the SharePoint file once a day."
+    },
+    {
+      "text": "Use low-code tools for development",
+      "kind": "constraint",
+      "quote": "I’ll ask them to use low-code tools if possible to speed up delivery."
+    },
+    {
+      "text": "Add new rows to SharePoint handover file daily",
+      "kind": "feature",
+      "quote": "Got it, new rows will be added each day."
+    },
+    {
+      "text": "Use Power Apps as main development platform",
+      "kind": "constraint",
+      "quote": "I’d prefer to go with that as the main development platform—it’ll let us build the note entry form quickly"
+    },
+    {
+      "text": "Use Power Automate for connections",
+      "kind": "constraint",
+      "quote": "Power Apps for the form, Power Automate for the connections to Epic and SharePoint"
+    },
+    {
+      "text": "Structured fields for vitals, medications, and key observations",
+      "kind": "feature",
+      "quote": "I’d prefer structured fields—nurses already enter vitals, medications, and key observations in the handover sheet, so we should capture those consistently."
+    },
+    {
+      "text": "Form includes fields for blood pressure, heart rate, temperature, pain score, and new medications",
+      "kind": "feature",
+      "quote": "The form will include fields for blood pressure, heart rate, temperature, pain score, and any new medications, with dropdowns or numeric inputs where possible."
+    },
+    {
+      "text": "Allow free text at the end of the note",
+      "kind": "feature",
+      "quote": "Nurses can still add free text at the end for context"
+    },
+    {
+      "text": "Version one in use by end of next quarter (September 30)",
+      "kind": "constraint",
+      "quote": "We need version one on a pilot ward by the end of next quarter—around September 30."
+    },
+    {
+      "text": "Budget under £20,000",
+      "kind": "constraint",
+      "quote": "but I’ll aim for under £20,000 to keep it within the innovation unit’s annual allocation."
+    },
+    {
+      "text": "Track hours spent and additional costs",
+      "kind": "feature",
+      "quote": "I’ll make sure the team tracks every hour spent and any additional costs, like training materials or support time"
+    },
+    {
+      "text": "Flag budget at 80% of limit",
+      "kind": "feature",
+      "quote": "If we hit 80% of the limit, I’ll flag it immediately and review what’s essential for the pilot."
+    },
+    {
+      "text": "Log every note creation or edit",
+      "kind": "feature",
+      "quote": "But I do want to make sure the tool logs every time a note is created or edited, and who did it"
+    },
+    {
+      "text": "Store audit logs separately from note data",
+      "kind": "feature",
+      "quote": "I’ll also make sure the audit logs are stored separately from the note data"
+    },
+    {
+      "text": "Retain audit logs for at least seven years",
+      "kind": "constraint",
+      "quote": "The logs will include the nurse’s ID, timestamp, and action type—like “created” or “edited”—and will be retained for at least seven years"
+    },
+    {
+      "text": "Confirm Epic connection method before build",
+      "kind": "constraint",
+      "quote": "my IT team will confirm the connection method before we start building."
+    }
+  ]
+}

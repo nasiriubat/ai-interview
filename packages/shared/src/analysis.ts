@@ -106,11 +106,18 @@ export const ClusterMergeResultSchema = z.object({
 export type ClusterMergeResult = z.infer<typeof ClusterMergeResultSchema>;
 
 /** Output of the opportunity pass for one cluster. */
+export const OPPORTUNITY_TEXT_MAX = 1200;
+/**
+ * What the model may write is wider than what is stored: a rationale of 1,300 characters failed the
+ * whole cluster's opportunity in a live run (D-304). The pipeline clamps to OPPORTUNITY_TEXT_MAX at
+ * a word boundary instead of losing the cluster.
+ */
+const OPPORTUNITY_TEXT_ACCEPTED = 4000;
 export const OpportunityDraftSchema = z.object({
   title: z.string().min(1).max(160),
-  summary: z.string().min(1).max(1200),
+  summary: z.string().min(1).max(OPPORTUNITY_TEXT_ACCEPTED),
   solutionClass: SolutionClassSchema,
-  rationale: z.string().min(1).max(1200),
+  rationale: z.string().min(1).max(OPPORTUNITY_TEXT_ACCEPTED),
   factors: FactorsSchema,
   dataNeeded: z.array(z.string()).default([]),
   risks: z.array(z.string()).default([]),

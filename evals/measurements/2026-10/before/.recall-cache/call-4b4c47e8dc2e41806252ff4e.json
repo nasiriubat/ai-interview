@@ -1,0 +1,124 @@
+{
+  "capabilities": [
+    {
+      "text": "Enter notes into the bedside clinical system (CareVue)",
+      "kind": "feature",
+      "quote": "On a typical shift, a nurse starts by opening CareVue on the bedside terminal, logs in with their badge, and selects the patient’s chart."
+    },
+    {
+      "text": "Review and confirm notes before sending to Epic",
+      "kind": "feature",
+      "quote": "Got it: the nurse reviews and confirms before anything reaches Epic."
+    },
+    {
+      "text": "Send notes to the hospital's central EHR (Epic)",
+      "kind": "feature",
+      "quote": "must also appear in the hospital’s main EHR, which is called Epic."
+    },
+    {
+      "text": "Grant access to charge nurses, clinical leads, and ward managers",
+      "kind": "feature",
+      "quote": "So access should be granted to charge nurses, clinical leads, and ward managers—not just the original nurse."
+    },
+    {
+      "text": "Use a low-code integration platform",
+      "kind": "constraint",
+      "quote": "let’s go with a solution that uses a low-code integration platform"
+    },
+    {
+      "text": "Use pre-built connectors for CareVue and Epic",
+      "kind": "constraint",
+      "quote": "with pre-built connectors for CareVue and Epic, so the team can focus on workflow logic"
+    },
+    {
+      "text": "Run a test version in a sandbox before going live",
+      "kind": "feature",
+      "quote": "I’d want to see a test version running in a sandbox first, so we can check the flow"
+    },
+    {
+      "text": "Go live by the end of next quarter (around September 30)",
+      "kind": "constraint",
+      "quote": "We need version one live by the end of next quarter—around September 30"
+    },
+    {
+      "text": "Focus version one on the core workflow (enter, review, send to Epic)",
+      "kind": "constraint",
+      "quote": "we’ll focus version one on just the core workflow: entering a note in CareVue, reviewing it, and sending it to Epic"
+    },
+    {
+      "text": "Stay within a budget of approximately $25,000 for workflow improvements",
+      "kind": "constraint",
+      "quote": "we’ve allocated about $25,000 for workflow improvements this quarter, and this project is part of that."
+    },
+    {
+      "text": "Provide a clear breakdown of costs (licensing, integration, training) if near budget limit",
+      "kind": "feature",
+      "quote": "I’d want a clear breakdown of where every dollar goes—especially for licensing, integration, and training"
+    },
+    {
+      "text": "Support approximately 100 users at launch (80 nurses, charge nurses, clinical leads)",
+      "kind": "constraint",
+      "quote": "it will be used by about 80 nurses across the three main wards, plus the charge nurses and clinical leads—around 100 total users"
+    },
+    {
+      "text": "Test with at least 20 nurses in the sandbox before going live",
+      "kind": "feature",
+      "quote": "I’d still want to test with at least 20 nurses in the sandbox before going live"
+    },
+    {
+      "text": "Include at least one nurse tester from each of the three wards",
+      "kind": "feature",
+      "quote": "I’d want those 20 testers to include at least one nurse from each of the three wards"
+    },
+    {
+      "text": "Time new process during sandbox testing for comparison",
+      "kind": "feature",
+      "quote": "We’ll also ask them to time how long the new process takes so we can compare it to the old double-entry method."
+    },
+    {
+      "text": "Comply with HIPAA regulations",
+      "kind": "constraint",
+      "quote": "they’re definitely subject to HIPAA, since we’re in the U.S. and this is protected health information."
+    },
+    {
+      "text": "Log every access and change",
+      "kind": "feature",
+      "quote": "I’d want the system to log every access and change"
+    },
+    {
+      "text": "Encrypt data in transit and at rest",
+      "kind": "feature",
+      "quote": "and ensure data is encrypted both in transit and at rest."
+    },
+    {
+      "text": "Retain logs for at least six years",
+      "kind": "constraint",
+      "quote": "I’d want the logs to be retained for at least six years, in line with our hospital’s recordkeeping policy."
+    },
+    {
+      "text": "Inbound data flow from CareVue",
+      "kind": "constraint",
+      "quote": "notes flow inbound from CareVue"
+    },
+    {
+      "text": "Use CareVue vendor's standard secure login for connection",
+      "kind": "constraint",
+      "quote": "the connection uses the vendor’s standard secure login."
+    },
+    {
+      "text": "Rotate login credentials every 90 days",
+      "kind": "constraint",
+      "quote": "I’d just want to confirm that the login credentials are rotated every 90 days, as per hospital policy."
+    },
+    {
+      "text": "See a clear success message after confirming a note",
+      "kind": "feature",
+      "quote": "the nurse needs to be able to see a clear success message, know the note is now in Epic"
+    },
+    {
+      "text": "See a clear error message if Epic fails to save the note",
+      "kind": "feature",
+      "quote": "If Epic fails to save the note, the nurse needs to see a clear error message that says what went wrong"
+    }
+  ]
+}
