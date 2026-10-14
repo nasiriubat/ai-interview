@@ -1,5 +1,6 @@
 import type { Server } from "node:http";
 import { encode } from "@auth/core/jwt";
+import { shippedTemplates } from "@aidp/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fakeModelServer, TEST_AUTH_SECRET, testWorld, type TestWorld } from "./helpers.js";
 
@@ -39,12 +40,23 @@ suite("security probes", () => {
     const bEmail = `probe-b-${suffix}@test.io`;
     await world.db.user.create({ data: { companyId: b.id, email: bEmail, role: "admin" } });
     bAdminToken = await jwt(bEmail);
-    // Tenant B needs a template to make a campaign of its own.
-    const tpl = await world.db.interviewTemplate.findUniqueOrThrow({ where: { id: world.templateId } });
-    const { id: _id, companyId: _c, createdAt: _ca, updatedAt: _ua, ...rest } = tpl;
-    const bTemplate = await world.db.interviewTemplate.create({
-      data: { ...(rest as never), companyId: b.id, key: `probe-${suffix}`, status: "published" } as never,
+    // Tenant B needs a published template to make a campaign of its own: the shipped one, as its own.
+    const { version: _version, ...templateBody } = shippedTemplates()[0]!;
+    const copy = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/templates",
+      headers: as(bAdminToken),
+      payload: templateBody,
     });
+    expect(copy.statusCode, copy.body).toBeLessThan(300);
+    const bTemplateId = copy.json<{ id: string }>().id;
+    const published = await world.app.inject({
+      method: "POST",
+      url: `/api/v1/templates/${bTemplateId}/publish`,
+      headers: as(bAdminToken),
+      payload: {},
+    });
+    expect(published.statusCode, published.body).toBeLessThan(300);
     const mk = async (token: string, templateId: string, name: string) => {
       const res = await world.app.inject({
         method: "POST",
@@ -63,7 +75,7 @@ suite("security probes", () => {
       url: `/api/v1/campaigns/${aCampaign}/open`,
       headers: as(world.adminToken),
     });
-    const bc = await mk(bAdminToken, bTemplate.id, "Probe B");
+    const bc = await mk(bAdminToken, bTemplateId, "Probe B");
     bCampaign = bc.campaign.id;
     const inv = await world.app.inject({
       method: "POST",
