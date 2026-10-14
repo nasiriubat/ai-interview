@@ -5,7 +5,7 @@ import { UNTRUSTED_RULES } from "../../util/untrusted.js";
  * v3 (D-301): narrower groups. v2 read "adds a message, a field or a step to the other" as a licence
  * and, on live interviews, put under one title a patient list, a login and a "View History" button;
  * a pending badge, a manual check and an audit-log entry; a confirmation and an error retry. The
- * measurement of what survived (`evals/src/recall.ts`, `mergedAway`) found those titles gone from the
+ * measurement of what survived (`tools/evals/src/recall.ts`, `mergedAway`) found those titles gone from the
  * document. v3 asks for the opposite default: a requirement with a behavior of its own stays apart,
  * and only a restatement is grouped.
  */

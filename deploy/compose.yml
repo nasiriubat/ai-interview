@@ -1,0 +1,648 @@
+# Production stack for a single EU VPS. Read docs/DEPLOY.md before running this.
+#
+#   deploy/upgrade.sh          # build, back up, migrate, switch, check (the first deploy too)
+#   deploy/dc ps               # `docker compose` with this file, the root .env and deploy/versions.env
+#
+# Run through those two and never `docker compose up` by hand: they supply deploy/versions.env,
+# which names the image tag (the git SHA the images were built from), and upgrade.sh takes the
+# backup and runs the post-switch checks that a bare `up` skips.
+#
+# This is a separate file, not an overlay on docker-compose.yml, because the two differ by
+# subtraction as much as by addition: development publishes Postgres on 5432 and runs Mailpit,
+# and a compose overlay can neither unpublish a port nor remove a service. Keeping them apart
+# means the production file can be read top to bottom and believed.
+#
+# The values come from the repository-root .env, the one env file development reads too (D-450),
+# which deploy/dc passes with --env-file. No service has an env_file: every value is named here, so a
+# variable that is missing stops the stack instead of silently defaulting.
+
+# Pinned, so the volume names (aidp_pgdata ...) do not depend on the name of the directory the
+# repository happens to be cloned into. An install made before this line existed has volumes called
+# deploy_pgdata; it sets COMPOSE_PROJECT_NAME=deploy in .env (generate-env.sh does not, and
+# upgrade.sh refuses to continue if it finds those volumes without it). See D-96.
+name: aidp
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# One server image for migrate, api and worker (D-74). Only `migrate` builds it; the other two
+# reuse it by name, so `build` produces one image rather than three identical copies. The tag is
+# the git SHA (D-96): a rollback is `up` with the previous tag, and needs no build.
+x-app-image: &app-image
+  image: "aidp-server:${AIDP_VERSION:?AIDP_VERSION is not set, run deploy/upgrade.sh or use deploy/dc}"
+  pull_policy: never
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    # No `ports:`. The database is reachable only from this compose network. If you need psql,
+    # go through `docker compose exec postgres psql`, not through a hole in the firewall.
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ai_discovery
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-512MB}
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-100}
+      - -c
+      - log_min_duration_statement=2000
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d ai_discovery"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: ${POSTGRES_MEMORY_LIMIT:-1536M}
+
+  # One-shot. Runs as the owner role, which is the only role allowed to change the schema, and
+  # hands bootstrap APP_DB_PASSWORD so it gives `app_api` a login (packages/db/seeds/bootstrap.ts).
+  migrate:
+    image: aidp-server:${AIDP_VERSION:?}
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    restart: "no"
+    healthcheck: { disable: true }
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://app:${POSTGRES_PASSWORD:?}@postgres:5432/ai_discovery
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD in .env}
+      PLATFORM_ENCRYPTION_KEY: ${PLATFORM_ENCRYPTION_KEY:?set PLATFORM_ENCRYPTION_KEY in .env}
+      PLATFORM_ENCRYPTION_KEY_PREVIOUS: ${PLATFORM_ENCRYPTION_KEY_PREVIOUS:-}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
+      BOOTSTRAP_OPERATOR_EMAIL: ${BOOTSTRAP_OPERATOR_EMAIL:?set BOOTSTRAP_OPERATOR_EMAIL in .env}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:?set BOOTSTRAP_ADMIN_EMAIL in .env}
+      BOOTSTRAP_TENANT_NAME: ${BOOTSTRAP_TENANT_NAME:-First tenant}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # The only one of the three that can transcribe, speak and embed, so it is what turns on
+      # voice and semantic clustering. See docs/DEPLOY.md, "Model configuration".
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    command:
+      - sh
+      - -c
+      - pnpm --filter @aidp/db exec prisma migrate deploy && pnpm --filter @aidp/db bootstrap:prod
+    depends_on:
+      postgres: { condition: service_healthy }
+    logging: *logging
+
+  # One-shot. Repairs job-queue ownership after a restore; see deploy/lib/grants.sql. Idempotent,
+  # owner role, runs on every boot, no-op on a healthy system. The schema-level privileges this
+  # used to carry are migration 0010_app_role_runtime_grants and no longer need a deployment step.
+  db-grants:
+    image: pgvector/pgvector:pg16
+    restart: "no"
+    environment:
+      PGURL: postgresql://app:${POSTGRES_PASSWORD:?}@postgres:5432/ai_discovery
+    volumes:
+      - ./lib/grants.sql:/grants.sql:ro
+    entrypoint: ["sh", "-c", 'psql -v ON_ERROR_STOP=1 -f /grants.sql "$$PGURL"']
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    logging: *logging
+
+  # One-shot gate. Connects exactly as the API will and refuses to let the stack start unless
+  # row-level security is genuinely in force. See deploy/lib/preflight.sh for what it asserts.
+  preflight:
+    image: pgvector/pgvector:pg16
+    restart: "no"
+    environment:
+      APP_DATABASE_URL: postgresql://app_api:${APP_DB_PASSWORD:?}@postgres:5432/ai_discovery
+      # A failure is also written here for ops-notify to deliver: when this gate refuses, the
+      # application is not running and cannot tell anyone (D-94).
+      OPS_STATE_DIR: /ops-state
+      RLS_EXEMPT_FILE: /etc/aidp/rls-exempt.txt
+    volumes:
+      - ./lib/preflight.sh:/usr/local/bin/preflight.sh:ro
+      # The reviewed list of tables that are outside row-level security; everything else must be in.
+      - ./lib/rls-exempt.txt:/etc/aidp/rls-exempt.txt:ro
+      - ops_state:/ops-state
+    entrypoint: ["/usr/local/bin/preflight.sh"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      db-grants: { condition: service_completed_successfully }
+      ops-state-init: { condition: service_completed_successfully }
+    logging: *logging
+
+  # One-shot, and the only service of this file told to run as root. Creates
+  # the directories of the shared ops_state volume with the permissions its writers
+  # need: preflight runs as the postgres user (999), the worker as uid 1000, the backup as 999 with
+  # group 1000 and ops-notify as 10001 (D-312), and a named volume starts out root-owned, so nobody
+  # but root could create their own.
+  # Sticky world-writable: anyone may write a file, only its owner (or the directory's owner, which
+  # is ops-notify for alerts and the watchdog) may delete it. Files a previous release's root
+  # processes left behind are handed to the user that now writes them, and the backups volume to
+  # the backup's user, so an upgrade from a root-running release needs no manual step.
+  ops-state-init:
+    image: aidp-ops-notify:${AIDP_VERSION:?}
+    pull_policy: never
+    restart: "no"
+    user: "0:0"
+    entrypoint:
+      - sh
+      - -c
+      - |
+        mkdir -p /ops-state/alerts/sent /ops-state/status /ops-state/heartbeat /ops-state/watchdog
+        chmod 1777 /ops-state /ops-state/alerts /ops-state/alerts/sent /ops-state/status /ops-state/heartbeat /ops-state/watchdog
+        chown 10001:10001 /ops-state/alerts /ops-state/alerts/sent /ops-state/watchdog
+        find /ops-state/alerts /ops-state/watchdog -user 0 -exec chown 10001:10001 {} +
+        find /ops-state/status /ops-state/heartbeat -user 0 -type f -exec chown 999:999 {} +
+        chown -R 999:999 /backups
+        chmod 0700 /backups
+    volumes:
+      - ops_state:/ops-state
+      - backups:/backups
+    logging: *logging
+
+  api:
+    <<: *app-image
+    restart: unless-stopped
+    # Longer than the API's own drain (API_SHUTDOWN_DRAIN_SECONDS, 20 s): Docker's default of 10 s
+    # kills a turn that is still streaming before the server can tell the client to retry.
+    stop_grace_period: 40s
+    # No `ports:`. Caddy reaches it over the compose network; the browser never does. `diagrams`
+    # is the internal network the renderer lives on; listing it means `default` must be listed too.
+    networks: [default, diagrams]
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4000"
+      # The role is written into the file, not passed in, so there is no variable an operator
+      # can point back at the owner. Only the password comes from the environment.
+      DATABASE_URL: postgresql://app_api:${APP_DB_PASSWORD:?}@postgres:5432/ai_discovery
+      PLATFORM_ENCRYPTION_KEY: ${PLATFORM_ENCRYPTION_KEY:?}
+      PLATFORM_ENCRYPTION_KEY_PREVIOUS: ${PLATFORM_ENCRYPTION_KEY_PREVIOUS:-}
+      AUTH_SECRET: ${AUTH_SECRET:?}
+      WEB_ORIGIN: https://${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in .env}${HTTPS_PORT:+:}${HTTPS_PORT:-}
+      PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}${HTTPS_PORT:+:}${HTTPS_PORT:-}
+      # The mail relay (D-445): the same fields as the admin form. compose cannot say "one of
+      # SMTP_HOST or EMAIL_SMTP_URL", so the process says it: api, worker and web refuse to start in
+      # production with neither (D-448). EMAIL_SMTP_URL is the deprecated one-URL form (D-446).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_SMTP_URL: ${EMAIL_SMTP_URL:-}
+      EMAIL_FROM: ${EMAIL_FROM:?set EMAIL_FROM in .env}
+      # Recorded audio and uploaded documents (FR-30, FR-31). Always set: with no directory the
+      # store falls back to memory, which loses every upload on the next deploy and says nothing.
+      UPLOAD_DIR: /uploads
+      # Recorded answers are transcribed here by Whisper on this server (D-75). The model is
+      # downloaded into the `models` volume on first use, about 250 MB, and kept across deploys.
+      MODEL_CACHE_DIR: /models
+      # Minutes the model stays in memory after the last recording (about 700 MB while loaded);
+      # reloading from the volume takes about a second. 0 keeps it loaded.
+      SPEECH_MODEL_IDLE_MINUTES: ${SPEECH_MODEL_IDLE_MINUTES:-10}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      # The Prometheus scrape endpoint (D-222): on the compose network only, in no Caddy route.
+      # Nothing scrapes it unless the observability profile is up (deploy/observability).
+      METRICS_PORT: "9464"
+      # Shown on the operator health page, so "which release is this" is a fact and not a memory.
+      AIDP_VERSION: ${AIDP_VERSION:?}
+      # Read-only: the operator health page reads the backup status and the worker heartbeat.
+      OPS_STATE_DIR: /ops-state
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Proxies between the internet and this process that write X-Forwarded-For, counted from
+      # here: Caddy is one, for the web app's calls (which forward the address Caddy wrote) and for
+      # the live-voice socket alike. Any other number makes per-address rate limits spoofable.
+      TRUST_PROXY_HOPS: "1"
+      # People a minute per client address on the link routes (D-310). The default is the right one
+      # for an office behind one address; lower it only against a flood from a few addresses.
+      RATE_LIMIT_PUBLIC_MAX: ${RATE_LIMIT_PUBLIC_MAX:-120}
+      # Hostnames a platform provider may reach on a private address: here the diagram renderer
+      # (D-213), plus whatever the operator adds, such as a model server inside this network.
+      # Tenants never can. The renderer's own host is always allowed when KROKI_URL names it.
+      EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-kroki}
+      # The diagram renderer for PDF export and the diagram editor (D-210). Set it to the empty
+      # string to turn rendering off: diagrams are then printed as their source.
+      KROKI_URL: ${KROKI_URL-http://kroki:8000}
+      # Where operator alerts go before anyone has opened the settings screen (D-90); the catalog
+      # keys ops.alertEmail and ops.alertWebhookUrl win when set. Empty falls back to the bootstrap
+      # operator's address, and to no webhook.
+      ALERT_EMAIL: ${ALERT_EMAIL:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_WEBHOOK_FORMAT: ${ALERT_WEBHOOK_FORMAT:-}
+      # Outbound model-call limits (D-93). Empty means the built-in defaults: 120 s per call,
+      # 20 s to the first token, 30 s of silence mid-stream, two retries.
+      PROVIDER_TIMEOUT_MS: ${PROVIDER_TIMEOUT_MS:-}
+      PROVIDER_FIRST_TOKEN_TIMEOUT_MS: ${PROVIDER_FIRST_TOKEN_TIMEOUT_MS:-}
+      PROVIDER_IDLE_TIMEOUT_MS: ${PROVIDER_IDLE_TIMEOUT_MS:-}
+      PROVIDER_MAX_RETRIES: ${PROVIDER_MAX_RETRIES:-}
+    volumes:
+      - uploads:/uploads
+      - models:/models
+      - ops_state:/ops-state:ro
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:4000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      postgres: { condition: service_healthy }
+      preflight: { condition: service_completed_successfully }
+      ops-state-init: { condition: service_completed_successfully }
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          # whisper-small (8-bit) holds about 0.9 GB once loaded and peaks near 2 GB while it
+          # transcribes, on top of the API itself. With OpenAI doing transcription 1024M is enough.
+          memory: ${API_MEMORY_LIMIT:-2560M}
+
+  worker:
+    <<: *app-image
+    command: ["node", "apps/worker/dist/main.js"]
+    restart: unless-stopped
+    # Longer than WORKER_SHUTDOWN_GRACE_SECONDS (25 s), so the worker exits on its own terms and
+    # logs what it abandoned instead of being killed mid-job.
+    stop_grace_period: 40s
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://app_api:${APP_DB_PASSWORD:?}@postgres:5432/ai_discovery
+      PLATFORM_ENCRYPTION_KEY: ${PLATFORM_ENCRYPTION_KEY:?}
+      PLATFORM_ENCRYPTION_KEY_PREVIOUS: ${PLATFORM_ENCRYPTION_KEY_PREVIOUS:-}
+      AUTH_SECRET: ${AUTH_SECRET:?}
+      WEB_ORIGIN: https://${PUBLIC_HOSTNAME:?}${HTTPS_PORT:+:}${HTTPS_PORT:-}
+      PUBLIC_WEB_URL: https://${PUBLIC_HOSTNAME:?}${HTTPS_PORT:+:}${HTTPS_PORT:-}
+      # The mail relay (D-445): the same fields as the admin form. compose cannot say "one of
+      # SMTP_HOST or EMAIL_SMTP_URL", so the process says it: api, worker and web refuse to start in
+      # production with neither (D-448). EMAIL_SMTP_URL is the deprecated one-URL form (D-446).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_SMTP_URL: ${EMAIL_SMTP_URL:-}
+      EMAIL_FROM: ${EMAIL_FROM:?}
+      # The same volume the API writes to: the API stores the upload, the worker reads it back to
+      # extract, transcribe and chunk it. Two containers, one directory, one copy of the bytes.
+      UPLOAD_DIR: /uploads
+      # The worker traces too (D-222): a job joins the trace of the request that queued it, through
+      # the `traceparent` in its payload. Empty leaves tracing off and costs nothing.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      METRICS_PORT: "9465"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-}
+      ALERT_EMAIL: ${ALERT_EMAIL:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_WEBHOOK_FORMAT: ${ALERT_WEBHOOK_FORMAT:-}
+      PROVIDER_TIMEOUT_MS: ${PROVIDER_TIMEOUT_MS:-}
+      PROVIDER_FIRST_TOKEN_TIMEOUT_MS: ${PROVIDER_FIRST_TOKEN_TIMEOUT_MS:-}
+      PROVIDER_IDLE_TIMEOUT_MS: ${PROVIDER_IDLE_TIMEOUT_MS:-}
+      PROVIDER_MAX_RETRIES: ${PROVIDER_MAX_RETRIES:-}
+      # The shared status volume: the worker writes heartbeat/worker here and reads the backup's
+      # status/backup.json for its health sweep (D-92).
+      OPS_STATE_DIR: /ops-state
+    volumes:
+      - uploads:/uploads
+      - ops_state:/ops-state
+    # The worker has no HTTP surface. It used to be `kill -0 1`, which is true of a worker that has
+    # lost its database and is doing nothing. The heartbeat file is refreshed only while pg-boss
+    # answers (apps/worker/src/heartbeat.ts), so a stale file is a worker that cannot work. The
+    # worker also exits for restart after three misses: Docker never restarts an unhealthy
+    # container by itself, so the exit is what turns this check into a repair. Written in node:
+    # the slim image carries no tooling worth depending on, and node is the one thing certain to
+    # be there.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - process.exit(Date.now()-require('fs').statSync('/ops-state/heartbeat/worker').mtimeMs<90000?0:1)
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres: { condition: service_healthy }
+      preflight: { condition: service_completed_successfully }
+      ops-state-init: { condition: service_completed_successfully }
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: ${WORKER_MEMORY_LIMIT:-1024M}
+
+  web:
+    image: aidp-web:${AIDP_VERSION:?}
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    # No `ports:`. Caddy is the only thing that talks to it.
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:4000
+      AUTH_URL: https://${PUBLIC_HOSTNAME:?}${HTTPS_PORT:+:}${HTTPS_PORT:-}
+      AUTH_TRUST_HOST: "true"
+      AUTH_SECRET: ${AUTH_SECRET:?}
+      # The Content-Security-Policy blocks, it does not just report (D-264). `report` is the
+      # escape hatch for a deployment that finds a violation the Playwright pass did not.
+      CSP_MODE: ${CSP_MODE:-enforce}
+      # The mail relay (D-445): the same fields as the admin form. compose cannot say "one of
+      # SMTP_HOST or EMAIL_SMTP_URL", so the process says it: api, worker and web refuse to start in
+      # production with neither (D-448). EMAIL_SMTP_URL is the deprecated one-URL form (D-446).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_SMTP_URL: ${EMAIL_SMTP_URL:-}
+      EMAIL_FROM: ${EMAIL_FROM:?}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      api: { condition: service_healthy }
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: ${WEB_MEMORY_LIMIT:-768M}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    # The only service on this host that publishes anything.
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+      CADDY_LOCAL_CERTS: ${CADDY_LOCAL_CERTS:-}
+    # The Caddyfile substitutes CADDY_LOCAL_CERTS straight into its global options block, where the
+    # only value Caddy accepts is the literal directive `local_certs`. Setting it to `1`, which is
+    # what anyone would try, makes Caddy reject its own config and restart forever with
+    # "unrecognized global option: 1" — a message that names neither the variable nor the file the
+    # operator edited. This normalizes the obvious spellings and refuses the rest by name.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        case "$${CADDY_LOCAL_CERTS:-}" in
+          ''|0|false|no|off) CADDY_LOCAL_CERTS='' ;;
+          1|true|yes|on|local_certs) CADDY_LOCAL_CERTS='local_certs' ;;
+          *) echo "caddy: CADDY_LOCAL_CERTS in .env is '$$CADDY_LOCAL_CERTS'." >&2
+             echo "Leave it empty for a real certificate from Let's Encrypt, or set it to 1 to use" >&2
+             echo "Caddy's own CA when testing without a public domain. See docs/DEPLOY.md." >&2
+             exit 1 ;;
+        esac
+        export CADDY_LOCAL_CERTS
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      # The maintenance flag: while /maintenance/on exists Caddy answers 503 with a page instead of
+      # a proxy error. upgrade.sh creates it before the switch and removes it after the checks
+      # pass (D-96). Mounted read-write only so that `exec` into this container can toggle it.
+      - caddy_maint:/maintenance
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2020/healthz >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      web: { condition: service_healthy }
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: ${CADDY_MEMORY_LIMIT:-256M}
+
+  # Nightly encrypted backup into the `backups` volume, verified, reported in
+  # /ops-state/status/backup.json, and copied offsite when RCLONE_REMOTE is set (D-95). Its own
+  # image (deploy/backup/backup.Dockerfile): the server's Postgres major, so pg_dump matches, plus age,
+  # rclone and jq. It is unhealthy when the LAST BACKUP failed or is old, not merely when the
+  # loop has stopped (deploy/backup/backup-health.sh).
+  backup:
+    image: aidp-backup:${AIDP_VERSION:?}
+    pull_policy: never
+    build:
+      context: ./backup
+      dockerfile: backup.Dockerfile
+    restart: unless-stopped
+    # The image runs as postgres (999); the uploaded files are 0640 owned by the application's uid
+    # and gid 1000, so the archive can be read by joining that group and no wider (D-312).
+    group_add: ["1000"]
+    environment:
+      PGURL: postgresql://app:${POSTGRES_PASSWORD:?}@postgres:5432/ai_discovery
+      BACKUP_AT: ${BACKUP_AT:-03:20}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_DIR: /backups
+      # Read-only, and read for a reason: a database-only backup restores Attachment rows whose
+      # bytes are gone, and nothing says so until somebody presses play.
+      UPLOAD_DIR: /uploads
+      # Written by deploy/backup/ensure-backup-key.sh. There is no unencrypted mode: a backup that leaves
+      # this host in the clear is the thing the offsite copy would otherwise be.
+      BACKUP_AGE_RECIPIENT: "${BACKUP_AGE_RECIPIENT:?no backup encryption key, run deploy/upgrade.sh or deploy/backup/ensure-backup-key.sh}"
+      BACKUP_AGE_IDENTITY: ${BACKUP_AGE_IDENTITY:-}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-26}
+      OPS_STATE_DIR: /ops-state
+      # The weekly restore drill (D-227): newest dump restored into a scratch database and checked
+      # against its manifest. `off` disables it.
+      BACKUP_DRILL: ${BACKUP_DRILL:-on}
+      BACKUP_DRILL_DAY: ${BACKUP_DRILL_DAY:-7}
+      BACKUP_DRILL_AT: ${BACKUP_DRILL_AT:-04:40}
+      # Offsite copy. Unset means "not configured", which /operator and OPERATIONS.md call out as
+      # an accepted risk, not a silent one. rclone reads the remote's settings from RCLONE_CONFIG_*.
+      RCLONE_REMOTE: ${RCLONE_REMOTE:-}
+      RCLONE_CONFIG_OFFSITE_TYPE: ${RCLONE_CONFIG_OFFSITE_TYPE:-}
+      RCLONE_CONFIG_OFFSITE_PROVIDER: ${RCLONE_CONFIG_OFFSITE_PROVIDER:-}
+      RCLONE_CONFIG_OFFSITE_ENDPOINT: ${RCLONE_CONFIG_OFFSITE_ENDPOINT:-}
+      RCLONE_CONFIG_OFFSITE_REGION: ${RCLONE_CONFIG_OFFSITE_REGION:-}
+      RCLONE_CONFIG_OFFSITE_ACCESS_KEY_ID: ${RCLONE_CONFIG_OFFSITE_ACCESS_KEY_ID:-}
+      RCLONE_CONFIG_OFFSITE_SECRET_ACCESS_KEY: ${RCLONE_CONFIG_OFFSITE_SECRET_ACCESS_KEY:-}
+      RCLONE_CONFIG_OFFSITE_ACCOUNT: ${RCLONE_CONFIG_OFFSITE_ACCOUNT:-}
+      RCLONE_CONFIG_OFFSITE_KEY: ${RCLONE_CONFIG_OFFSITE_KEY:-}
+    volumes:
+      - backups:/backups
+      - uploads:/uploads:ro
+      - ops_state:/ops-state
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/backup-health.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      postgres: { condition: service_healthy }
+      ops-state-init: { condition: service_completed_successfully }
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: ${BACKUP_MEMORY_LIMIT:-512M}
+
+  # Diagram rendering (D-210, D-212): PDF export draws Mermaid fences through this pair, and the
+  # specification's diagram editor validates and previews with it. The core image only parses the
+  # request; it forwards Mermaid to the companion, a Node service driving headless Chromium, through
+  # KROKI_MERMAID_HOST. Both are pinned: `latest` would change what a diagram looks like, and what
+  # it accepts, on the next pull.
+  #
+  # Memory, measured on this stack with one diagram rendered: kroki about 85 MB resident, the
+  # companion about 295 MB (Chromium is most of it, and it grows by roughly 50 MB for each diagram
+  # drawn at once; the API asks for at most three at a time). The limits are the ceilings that keep a
+  # runaway render from taking the host with it: kroki's JVM is capped at 192 MB heap inside 320 MB,
+  # the companion has 512 MB. If the host is short of memory, set KROKI_URL= (empty) in .env
+  # and stop both services; exports then print diagrams as source and nothing else changes.
+  kroki:
+    image: yuzutech/kroki:0.26.0
+    restart: unless-stopped
+    networks: [diagrams]
+    environment:
+      KROKI_MERMAID_HOST: kroki-mermaid
+      # A diagram source is capped at 20 KB by the API; this is the renderer's own ceiling.
+      KROKI_MAX_BODY_SIZE: "65536"
+      JAVA_OPTS: "-Xms64m -Xmx192m"
+    # No `ports:`. Only the API, on the `diagrams` network, can reach it.
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      kroki-mermaid: { condition: service_healthy }
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: ${KROKI_MEMORY_LIMIT:-320M}
+
+  kroki-mermaid:
+    image: yuzutech/kroki-mermaid:0.26.0
+    restart: unless-stopped
+    networks: [diagrams]
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: ${KROKI_MERMAID_MEMORY_LIMIT:-512M}
+
+  # The alerting path that does not need the application (D-94): delivers the alert files shell
+  # producers drop in /ops-state/alerts (the RLS preflight, a failed offsite copy), and watches
+  # what the application cannot watch about itself: the worker's heartbeat, the API's readiness,
+  # the certificate, and, while the worker is down, the backup and the disk. Posts to
+  # ALERT_WEBHOOK_URL and mails ALERT_EMAIL through the SMTP_* relay, from its own image
+  # (deploy/images/ops-notify.Dockerfile) so that it shares nothing with what is broken.
+  ops-notify:
+    image: aidp-ops-notify:${AIDP_VERSION:?}
+    pull_policy: never
+    build:
+      # The context is the one script it bakes in, so nothing else in deploy/ reaches the daemon.
+      context: ./ops
+      dockerfile: ../images/ops-notify.Dockerfile
+    restart: unless-stopped
+    environment:
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?}
+      ALERT_EMAIL: ${ALERT_EMAIL:-}
+      BOOTSTRAP_OPERATOR_EMAIL: ${BOOTSTRAP_OPERATOR_EMAIL:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_WEBHOOK_FORMAT: ${ALERT_WEBHOOK_FORMAT:-ntfy}
+      # The same relay variables and the same rule as the application (D-447).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_SMTP_URL: ${EMAIL_SMTP_URL:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-26}
+      API_READY_URL: http://api:4000/api/v1/health/ready
+      TLS_CONNECT: caddy:443
+      DISK_PATH: /watch/uploads
+      OPS_STATE_DIR: /ops-state
+    volumes:
+      - ops_state:/ops-state
+      # Only to read the size of the filesystem it is on: the uploads, the database and the
+      # backups all share the host's one disk.
+      - uploads:/watch/uploads:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - test $$(( $$(date +%s) - $$(cat /ops-state/watchdog/alive 2>/dev/null || echo 0) )) -lt 180
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      ops-state-init: { condition: service_completed_successfully }
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 32M
+
+networks:
+  # The diagram renderer's own network. `internal` means no route to the internet or to the host,
+  # and only the services that list it can reach each other: kroki and its Chromium companion draw
+  # diagrams from text a participant influenced, so they are kept away from Postgres, the API's
+  # other neighbours and every outbound address (D-212). The API joins it to ask for a picture.
+  diagrams:
+    internal: true
+
+volumes:
+  pgdata:
+  uploads:
+  models:
+  backups:
+  caddy_data:
+  caddy_config:
+  caddy_maint:
+  # Shared status and alert files between the containers that cannot talk to each other (D-92):
+  # heartbeat/worker, status/backup.json, alerts/*.json, watchdog/ state.
+  ops_state:

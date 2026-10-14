@@ -1,7 +1,7 @@
 # The whole platform on one machine, for development: Postgres is published on 5432, a mail
 # catcher stands in for a relay, and there is no TLS. Do not point a domain at this.
 #
-# Production is a separate file, deploy/compose.prod.yml, with the runbook in docs/DEPLOY.md.
+# Production is a separate file, deploy/compose.yml, with the runbook in docs/DEPLOY.md.
 #
 #   pnpm stack:up        # build and start: postgres, mail catcher, migrations + bootstrap, api, worker, web
 #   pnpm stack:down      # stop, keeping the database

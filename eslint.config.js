@@ -3,7 +3,7 @@ import js from "@eslint/js";
 import prettier from "eslint-config-prettier";
 import importX from "eslint-plugin-import-x";
 import tseslint from "typescript-eslint";
-import { architectureBlocks } from "./eslint-rules/architecture.mjs";
+import { architectureBlocks } from "./tools/eslint-rules/architecture.mjs";
 
 export default tseslint.config(
   {

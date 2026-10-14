@@ -4,7 +4,7 @@
 //
 //   pnpm env:migrate                      # merge, split, keep a .env.bak, report key names
 //   pnpm env:migrate --dry-run            # report only
-//   pnpm env:migrate --file deploy/.env   # only the EMAIL_SMTP_URL split, on that file
+//   pnpm env:migrate --file other.env     # only the EMAIL_SMTP_URL split, on that file
 //
 // A key already set in the root file is never overwritten. An empty root value (`KEY=`) is filled.
 // Where both files set different values the root one is kept and the key is listed as a conflict,
@@ -24,7 +24,7 @@ const dry = args.includes("--dry-run");
 const fileAt = args.indexOf("--file");
 const only = fileAt === -1 ? undefined : args[fileAt + 1];
 if (fileAt !== -1 && !only) {
-  console.error("--file needs a path, e.g. --file deploy/.env");
+  console.error("--file needs a path, e.g. --file other.env");
   process.exit(2);
 }
 const rootFile = only ? resolve(only) : (process.env.AIDP_ENV_ROOT_FILE ?? ROOT_ENV);

@@ -51,7 +51,7 @@ const steps: [string, string[]][] = [
   ["build", ["pnpm", "-r", "build"]],
   ["typecheck", ["pnpm", "-r", "typecheck"]],
   ["lint", ["pnpm", "lint"]],
-  // The fences in eslint-rules/ are only worth something if they are shown to fire (AGENTS.md rules 2 and 4).
+  // The fences in tools/eslint-rules/ are only worth something if they are shown to fire (AGENTS.md rules 2 and 4).
   ["architecture lint rules", ["node", "--test", "scripts/architecture-lint.test.mjs"]],
   // Forward-fix and additive only (docs/MIGRATIONS.md, D-178): the gate over the migrations, and
   // proof that it fires.

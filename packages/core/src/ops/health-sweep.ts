@@ -3,7 +3,7 @@ import type { DeadJob, QueueSummary, StuckJobs } from "../jobs/admin.js";
 import { JOBS, type JobName } from "../jobs/definitions.js";
 import type { Metrics } from "../telemetry/metrics.js";
 
-/** What `deploy/backup.sh` writes to `<ops_state>/status/backup.json` after every run. */
+/** What `deploy/backup/backup.sh` writes to `<ops_state>/status/backup.json` after every run. */
 export interface BackupStatus {
   /** When the scheduler started; the clock a fresh install is measured from before its first run. */
   startedAt?: string;
@@ -18,7 +18,7 @@ export interface BackupStatus {
   offsiteLastSuccessAt?: string;
   counts?: Record<string, number>;
   /**
-   * The weekly restore drill (D-227): `deploy/restore-drill.sh` restores the latest dump into a
+   * The weekly restore drill (D-227): `deploy/backup/restore-drill.sh` restores the latest dump into a
    * scratch database, compares the row counts to the manifest above, and writes what it found.
    */
   drill?: {
@@ -253,7 +253,7 @@ export class HealthSweep {
         kind: "backup.drill_failed",
         key: "backup.drill_failed",
         title: "Restore drill failed",
-        message: `The restore drill at ${d.at ?? "an unknown time"} failed${d.error ? `: ${d.error}` : ""}. The newest backup may not restore; run deploy/restore-drill.sh by hand and read its output.`,
+        message: `The restore drill at ${d.at ?? "an unknown time"} failed${d.error ? `: ${d.error}` : ""}. The newest backup may not restore; run deploy/backup/restore-drill.sh by hand and read its output.`,
         context: { ...(d.dump ? { dump: d.dump } : {}), lastSuccessAt: d.lastSuccessAt ?? "none" },
       });
     } else {

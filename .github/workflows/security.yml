@@ -18,7 +18,7 @@ permissions:
 jobs:
   # Full history, not just the tip: a key that was committed and then deleted is still a leaked key.
   # Run from the pinned image rather than the gitleaks action, which wants a licence for an
-  # organisation; the configuration is .gitleaks.toml.
+  # organisation; the configuration is .github/security/.gitleaks.toml.
   gitleaks:
     runs-on: ubuntu-latest
     steps:
@@ -29,7 +29,7 @@ jobs:
         run: >-
           docker run --rm -v "$PWD:/repo"
           zricethezav/gitleaks:v8.28.0@sha256:cdbb7c955abce02001a9f6c9f602fb195b7fadc1e812065883f695d1eeaba854
-          detect --source /repo --config /repo/.gitleaks.toml --log-opts="--all" --redact --no-banner
+          detect --source /repo --config /repo/.github/security/.gitleaks.toml --log-opts="--all" --redact --no-banner
 
   # The ignore file and the pins are checked first: they are what the rest of this workflow
   # trusts. The same checks run in `pnpm check`.
@@ -47,7 +47,7 @@ jobs:
 
   # Dependencies as locked, and the two Dockerfiles as written. Fixable HIGH and CRITICAL fail the
   # job; an advisory with no fix yet does not (--ignore-unfixed), and one that must be carried
-  # with a fix available goes in .trivyignore.yaml with a statement and an expiry.
+  # with a fix available goes in .github/security/.trivyignore.yaml with a statement and an expiry.
   trivy-fs:
     runs-on: ubuntu-latest
     steps:
@@ -61,7 +61,7 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-          trivyignores: .trivyignore.yaml
+          trivyignores: .github/security/.trivyignore.yaml
           version: v0.67.2
       - name: Dockerfiles
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -70,7 +70,7 @@ jobs:
           scan-ref: apps
           severity: HIGH,CRITICAL
           exit-code: "1"
-          trivyignores: .trivyignore.yaml
+          trivyignores: .github/security/.trivyignore.yaml
           version: v0.67.2
 
   # What actually ships: each image is built the way compose builds it and scanned, OS packages
@@ -98,5 +98,5 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-          trivyignores: .trivyignore.yaml
+          trivyignores: .github/security/.trivyignore.yaml
           version: v0.67.2

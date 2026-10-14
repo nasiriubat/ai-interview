@@ -67,16 +67,16 @@ FAKE
 	unset RCLONE_REMOTE
 	date +%s >"$SB/heartbeat"
 	# A real run of backup.sh writes the dump, the uploads archive and the manifest the drill reads.
-	"$DEPLOY_DIR/backup.sh" once >/dev/null 2>&1
+	"$DEPLOY_DIR/backup/backup.sh" once >/dev/null 2>&1
 }
 teardown() { rm -rf "$SB"; }
 
 drill() {
-	OUT=$("$DEPLOY_DIR/restore-drill.sh" 2>&1)
+	OUT=$("$DEPLOY_DIR/backup/restore-drill.sh" 2>&1)
 	STATUS=$?
 }
 health() {
-	HOUT=$("$DEPLOY_DIR/backup-health.sh" 2>&1)
+	HOUT=$("$DEPLOY_DIR/backup/backup-health.sh" 2>&1)
 	HSTATUS=$?
 }
 status_json() { cat "$SB/ops/status/backup.json" 2>/dev/null; }
@@ -205,7 +205,7 @@ teardown
 
 echo "the same drill, through backup.sh"
 setup
-OUT=$("$DEPLOY_DIR/backup.sh" drill 2>&1)
+OUT=$("$DEPLOY_DIR/backup/backup.sh" drill 2>&1)
 assert_status "backup.sh drill exits with the drill's result" 0 $?
 assert_eq "and the drill ran" ok "$(jqs .drill.result)"
 teardown

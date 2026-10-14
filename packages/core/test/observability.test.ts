@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { PromMetrics } from "../src/telemetry/index.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const obs = join(root, "infra", "observability");
+const obs = join(root, "deploy", "observability");
 const dashboardsDir = join(obs, "grafana", "dashboards");
 
 interface Panel {
@@ -32,7 +32,7 @@ const base = (name: string): string => name.replace(/_(bucket|sum|count)$/, "");
 /** The metric names the application registers, once each. */
 const exported = new Set(new PromMetrics().registry.names());
 
-describe("infra/observability (D-222)", () => {
+describe("deploy/observability (D-222)", () => {
   const built = generator.buildDashboards();
 
   it("checks in exactly the dashboards the generator builds", async () => {
@@ -97,7 +97,7 @@ describe("infra/observability (D-222)", () => {
 
   it("scrapes the two ports the application serves metrics on", () => {
     const prom = readFileSync(join(obs, "prometheus", "prometheus.yml"), "utf8");
-    const compose = readFileSync(join(root, "deploy", "compose.prod.yml"), "utf8");
+    const compose = readFileSync(join(root, "deploy", "compose.yml"), "utf8");
     expect(prom).toContain("api:9464");
     expect(prom).toContain("worker:9465");
     expect(compose).toMatch(/METRICS_PORT: "9464"/);
