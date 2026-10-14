@@ -23,6 +23,9 @@ export const authConfig = {
     authorized: ({ auth }) => Boolean(auth?.user),
     jwt: ({ token, user }) => {
       if (user?.email) token.email = user.email;
+      // Sign-in time, in seconds, set once. Auth.js re-issues the token as it ages and `iat` moves
+      // with it; the API compares this instead, so "sign out everywhere" survives a refresh (D-344).
+      if (user && typeof token.authAt !== "number") token.authAt = Math.floor(Date.now() / 1000);
       return token;
     },
     session: ({ session, token }) => {

@@ -65,6 +65,8 @@ export default defineConfig({
         // The pass runs the policy the way production does: blocking. A page that would be broken
         // by it fails here, and the axe spec fails on any violation event (D-264).
         CSP_MODE: "enforce",
+        // The UI kit gallery (/dev/ui) is served by this build only (D-348).
+        UI_GALLERY: "1",
       },
       reuseExistingServer: !process.env.CI,
       timeout: 300_000,

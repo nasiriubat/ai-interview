@@ -1,11 +1,10 @@
 "use client";
 
 import { LanguagesIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 import * as React from "react";
+import { useLocaleSwitch } from "@/components/common/useLocaleSwitch";
 import { t } from "@/i18n";
-import { LANG_COOKIE, LANG_COOKIE_MAX_AGE, LOCALES, type Locale } from "@/i18n/locale";
-import { useLocale } from "@/i18n/LocaleProvider";
+import { LOCALES, type Locale } from "@/i18n/locale";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,24 +12,7 @@ import { cn } from "@/lib/utils";
  * locale up from the root layout and every component re-renders with it.
  */
 export function LanguageSwitch({ className }: { className?: string }): React.JSX.Element {
-  const router = useRouter();
-  const locale = useLocale();
-  const [pending, startTransition] = React.useTransition();
-  const [optimistic, setOptimistic] = React.useState<Locale | null>(null);
-  const shown = optimistic ?? locale;
-
-  React.useEffect(() => {
-    setOptimistic(null);
-  }, [locale]);
-
-  const change = (next: Locale): void => {
-    if (next === shown) return;
-    document.cookie = `${LANG_COOKIE}=${next}; path=/; max-age=${LANG_COOKIE_MAX_AGE}; samesite=lax`;
-    setOptimistic(next);
-    startTransition(() => {
-      router.refresh();
-    });
-  };
+  const { shown, pending, change } = useLocaleSwitch();
 
   return (
     <div className={cn("flex items-center gap-1 print:hidden", className)}>

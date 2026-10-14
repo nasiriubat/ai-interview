@@ -1,6 +1,8 @@
+import { cookies } from "next/headers";
 import * as React from "react";
 import { signOutAction } from "./actions";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { parseSidebar, SIDEBAR_COOKIE } from "@/components/admin/shell/sidebar-state";
 import { CurrencyProvider } from "@/components/common/CurrencyProvider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { t } from "@/i18n";
@@ -17,9 +19,10 @@ export default async function AdminLayout({
   await requestLocale();
   const r = await getMe();
   const me = r.ok ? r.me : null;
+  const collapsed = parseSidebar((await cookies()).get(SIDEBAR_COOKIE)?.value);
   return (
     <CurrencyProvider currency={me?.company?.currency}>
-      <AdminShell me={me} signOutAction={signOutAction}>
+      <AdminShell me={me} signOutAction={signOutAction} initialCollapsed={collapsed}>
         {!r.ok && r.reason === "forbidden" ? (
           <Alert variant="destructive" className="mb-4">
             <AlertTitle>{t.auth.forbiddenTitle}</AlertTitle>
