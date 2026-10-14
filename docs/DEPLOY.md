@@ -725,9 +725,13 @@ and the build is not run on top of it.
 **A launch is counted in sessions the moment the link is opened.** Each open creates a session, and
 `ceiling.maxSessionsPerMonth` (default 1000) counts it whether or not the person ever answers. The
 rehearsal's own load runs (about 300 interviews each) used a tenant's month up in four runs, and the
-product answered every further open with `403 limit_reached`, as designed; `configure.mjs` sets the
-rehearsal platform's ceiling to none. For a real campaign it means a link posted somewhere public
-spends the tenant's allowance on visits (the limiter is 30 opens a minute per address).
+product answered every further open with `403 limit_reached`, as designed. The abuse limits on open
+links (D-261: 120 interviews an hour per campaign, 500 per tenant, 2000 per campaign in all) sit in
+front of that and were merged after the load runs recorded here, so they were **not** in play for
+those numbers: `configure.mjs` raises the rehearsal platform's ceilings and abuse limits to their
+maximum, because a full run starts about 290 interviews in five minutes, and the single-address
+control (`load/k6/single-ip.js`) is what shows the per-address limiter. A real launch of more than
+120 people in an hour on one campaign needs `abuse.campaignSessionsPerHour` raised first.
 
 **What the numbers do not say**: they are one tenant, a fake provider, a 40 MB database and a
 machine with plenty of CPU. A pilot's own data (transcripts of real length, a real model's
