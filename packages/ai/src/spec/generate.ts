@@ -36,7 +36,6 @@ import { renderSpecMarkdown } from "./markdown.js";
 import { judgeCandidatePairs } from "./merge.js";
 import {
   curateRequirements,
-  DEFAULT_DUPLICATE_THRESHOLDS,
   reqViewOf,
   requirementSimilarity,
   type CurationReport,
@@ -109,6 +108,13 @@ export interface SpecGenerationResult {
   failure?: string;
 }
 
+/**
+ * How alike a model-added requirement and a recorded one must be for the first to be folded into
+ * the second. Higher than the merge pass's candidate threshold: a model-added item has no model
+ * verdict behind it, and "Edit a note" is not a restatement of "Enter a note once".
+ */
+const RESTATEMENT_THRESHOLD = 0.6;
+
 const reqView = (r: SpecDocument["requirements"][number]): ReqView => ({
   id: r.id,
   title: r.title,
@@ -154,9 +160,7 @@ export function mergeRequirements(
   // confirm (D-243).
   for (const m of fromModel) {
     if (seen.has(m.id.toUpperCase())) continue;
-    const twin = out.findIndex(
-      (r) => requirementSimilarity(reqView(r), reqView(m)) >= DEFAULT_DUPLICATE_THRESHOLDS.candidate,
-    );
+    const twin = out.findIndex((r) => requirementSimilarity(reqView(r), reqView(m)) >= RESTATEMENT_THRESHOLD);
     const into = twin >= 0 ? out[twin] : undefined;
     if (into) {
       const have = new Set(into.acceptance.map((a) => a.trim().toLowerCase()));
