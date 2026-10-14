@@ -1,7 +1,15 @@
 "use client";
 
-import { AlertCircleIcon, MicIcon, PaperclipIcon, SendHorizontalIcon, SquareIcon, XIcon } from "lucide-react";
+import {
+  AlertCircleIcon,
+  AudioLinesIcon,
+  MicIcon,
+  PaperclipIcon,
+  SendHorizontalIcon,
+  XIcon,
+} from "lucide-react";
 import * as React from "react";
+import { LevelMeter } from "./LiveVoiceCall";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useCoarsePointer } from "@/hooks/useMediaQuery";
@@ -37,8 +45,17 @@ export function Composer({
   accept,
   voiceFirst = false,
   focusToken = 0,
+  sending = false,
+  onTalk,
 }: {
   disabled: boolean;
+  /**
+   * A turn is in flight. The box stays editable (so focus and the keyboard stay where they are and
+   * the next answer can be drafted) but nothing more is sent until the interviewer has replied.
+   */
+  sending?: boolean;
+  /** Starts the live spoken call. Absent hides Talk, as it is when the tenant has no live voice. */
+  onTalk?: (() => void) | undefined;
   /**
    * Resolves `false` when the answer was not delivered; the text is then put back, so a failed
    * send never costs the person what they wrote.
@@ -70,7 +87,7 @@ export function Composer({
   React.useEffect(() => {
     if (focusToken > 0) textRef.current?.focus();
   }, [focusToken]);
-  const canSend = !disabled && text.trim().length > 0;
+  const canSend = !disabled && !sending && text.trim().length > 0;
 
   const recorder = useRecorder((audio, durationMs) => {
     setAnnouncement(s.recordingSending);
@@ -92,6 +109,8 @@ export function Composer({
     const sent = text.trim();
     const result: unknown = onSend(sent);
     setText("");
+    // Focus stays in the box, so on a phone the keyboard stays up for the next answer.
+    textRef.current?.focus();
     if (result instanceof Promise) {
       void result.then((delivered: unknown) => {
         // Only when nothing new was typed meanwhile: never overwrite what the person wrote next.
@@ -133,21 +152,7 @@ export function Composer({
   return (
     <div className="grid gap-1.5">
       {recording ? (
-        <div className="flex items-center gap-2">
-          <div className="bg-destructive-soft text-destructive-soft-foreground flex min-h-11 flex-1 items-center gap-2 rounded-xl px-3">
-            <span
-              aria-hidden="true"
-              className="bg-destructive size-2.5 shrink-0 rounded-full motion-safe:animate-pulse"
-            />
-            <span className="text-sm font-medium">{s.recordingNow}</span>
-            <span
-              role="timer"
-              aria-label={s.recordingElapsed(clock)}
-              className="text-muted-foreground text-sm tabular-nums"
-            >
-              {clock}
-            </span>
-          </div>
+        <div className="flex items-center gap-2" data-recorder="">
           <Button
             type="button"
             variant="outline"
@@ -158,6 +163,23 @@ export function Composer({
           >
             <XIcon className="size-5" />
           </Button>
+          <div className="bg-destructive-soft text-destructive-soft-foreground flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-xl px-3">
+            <span
+              aria-hidden="true"
+              className="bg-destructive size-2.5 shrink-0 rounded-full motion-safe:animate-pulse"
+            />
+            <span className="hidden text-sm font-medium sm:inline">{s.recordingNow}</span>
+            <span
+              role="timer"
+              aria-label={s.recordingElapsed(clock)}
+              className="text-sm font-medium tabular-nums"
+            >
+              {clock}
+            </span>
+            <span className="ml-auto">
+              <LevelMeter level={recorder.level} />
+            </span>
+          </div>
           <Button
             ref={stopRef}
             type="button"
@@ -166,12 +188,12 @@ export function Composer({
             aria-label={s.recordStop}
             onClick={recorder.stop}
           >
-            <SquareIcon className="size-5" />
+            <SendHorizontalIcon className="size-5" />
           </Button>
         </div>
       ) : (
         <form
-          className="flex items-end gap-2"
+          className="flex items-end gap-1.5"
           onSubmit={(e) => {
             e.preventDefault();
             submit();
@@ -234,10 +256,10 @@ export function Composer({
             <Button
               ref={micRef}
               type="button"
-              variant={voiceFirst ? "default" : "outline"}
+              variant={voiceFirst && !onTalk ? "default" : "outline"}
               size="icon"
               className="size-11 shrink-0"
-              autoFocus={autoFocus && voiceFirst}
+              autoFocus={autoFocus && voiceFirst && !onTalk}
               disabled={disabled || recorder.status === "starting"}
               aria-label={s.recordStart}
               onClick={record}
@@ -245,10 +267,27 @@ export function Composer({
               <MicIcon className="size-5" />
             </Button>
           ) : null}
+          {onTalk ? (
+            <Button
+              type="button"
+              data-talk-button=""
+              variant={voiceFirst ? "default" : "outline"}
+              className="h-11 shrink-0 px-3"
+              aria-label={s.talk}
+              title={s.talkHint}
+              disabled={disabled || recorder.status === "starting"}
+              onClick={onTalk}
+            >
+              <AudioLinesIcon className="size-5" aria-hidden="true" />
+              <span aria-hidden="true" className="hidden sm:inline">
+                {s.talk}
+              </span>
+            </Button>
+          ) : null}
           <Button
             type="submit"
             size="icon"
-            variant={voiceFirst ? "outline" : "default"}
+            variant={voiceFirst && (onVoice || onTalk) ? "outline" : "default"}
             className="size-11 shrink-0"
             disabled={!canSend}
             aria-label={s.send}

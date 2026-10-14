@@ -206,6 +206,8 @@ export const AttachmentSchema = z.looseObject({
   summary: z.string().nullish(),
   error: z.string().nullish(),
   durationMs: z.number().nullish(),
+  /** The message a spoken answer's audio belongs to, when the server says. */
+  messageId: z.string().nullish(),
   createdAt: iso.default(""),
 });
 export type Attachment = z.infer<typeof AttachmentSchema>;
@@ -248,6 +250,14 @@ export const ParticipantSessionSchema = z.looseObject({
   capabilities: SessionCapabilitiesSchema.prefault({}),
   /** The session's attachments, so the first render needs no second request. */
   attachments: z.array(AttachmentSchema).default([]),
+  /** What the interview is, for the side panel. Absent from an API that predates it. */
+  about: z
+    .looseObject({
+      name: z.string().default(""),
+      purpose: z.string().default(""),
+      productName: z.string().default(""),
+    })
+    .nullish(),
   summary: z.string().nullish(),
   /**
    * Two sentences on where the participant left off, written by the API when they have been away

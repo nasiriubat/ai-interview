@@ -15,7 +15,7 @@ const ICONS: Record<ProgressArea["status"], typeof CheckIcon> = {
   skipped: SkipForwardIcon,
 };
 
-/** A small progress indicator by area. Tap an area to skip it or come back to it. */
+/** The topics as a checklist. Tap a topic to skip it or come back to it. */
 export function ProgressAreas({
   areas,
   disabled,
@@ -34,23 +34,12 @@ export function ProgressAreas({
   return (
     <nav aria-label={t.participant.session.progressLabel} className="w-full">
       <span className="sr-only">{t.admin.campaigns.areasCovered(done, areas.length)}</span>
-      <div aria-hidden="true" className="flex items-center gap-2 pb-1.5">
-        <div className="bg-muted h-1 flex-1 overflow-hidden rounded-full">
-          <div
-            className="bg-primary h-full rounded-full transition-[width] duration-500"
-            style={{ width: `${String(Math.round((done / areas.length) * 100))}%` }}
-          />
-        </div>
-        <span className="text-foreground text-xs font-medium tabular-nums">
-          {done}/{areas.length}
-        </span>
-      </div>
-      <ol className="flex gap-1.5 overflow-x-auto py-1 [scrollbar-width:none]">
+      <ol className="grid gap-1">
         {areas.map((a) => {
           const Icon = ICONS[a.status];
           const statusLabel = t.participant.session.progressStatus[a.status];
           return (
-            <li key={a.key} className="shrink-0">
+            <li key={a.key}>
               <Popover
                 open={openKey === a.key}
                 onOpenChange={(o) => {
@@ -62,14 +51,24 @@ export function ProgressAreas({
                     type="button"
                     aria-label={`${a.name}: ${statusLabel}. ${t.participant.session.areaActions(a.name)}`}
                     className={cn(
-                      "shadow-control inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs whitespace-nowrap transition-colors pointer-coarse:h-11",
-                      a.status === "covered" && "bg-primary/10",
-                      a.status === "partial" && "bg-accent",
-                      a.status === "skipped" && "text-muted-foreground line-through",
+                      "hover:bg-muted flex min-h-11 w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors",
+                      a.status === "partial" && "bg-accent/60",
+                      a.status === "skipped" && "text-muted-foreground",
                     )}
                   >
-                    <Icon className="size-3.5" aria-hidden="true" />
-                    {a.name}
+                    <Icon
+                      className={cn(
+                        "size-4 shrink-0",
+                        a.status === "covered" ? "text-success" : "text-muted-foreground",
+                      )}
+                      aria-hidden="true"
+                    />
+                    <span className={cn("min-w-0 flex-1", a.status === "skipped" && "line-through")}>
+                      {a.name}
+                    </span>
+                    {a.status !== "untouched" ? (
+                      <span className="text-muted-foreground shrink-0 text-xs">{statusLabel}</span>
+                    ) : null}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-56 p-2">
@@ -79,7 +78,7 @@ export function ProgressAreas({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="justify-start"
+                        className="h-10 justify-start"
                         disabled={disabled}
                         onClick={() => {
                           setOpenKey(null);
@@ -92,7 +91,7 @@ export function ProgressAreas({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="justify-start"
+                      className="h-10 justify-start"
                       disabled={disabled}
                       onClick={() => {
                         setOpenKey(null);

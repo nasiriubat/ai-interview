@@ -240,8 +240,23 @@ export function useInterview(
             case "transcript": {
               // The participant never typed this, so it is shown as their turn before the reply.
               const heard = heardMessage(ev.text);
-              localId = heard.id;
-              setState((s) => ({ ...s, messages: [...s.messages, heard] }));
+              const placeholder = localId;
+              localId = placeholder ?? heard.id;
+              // A recording already has its bubble (made when it was sent), so what was heard
+              // fills that one instead of adding a second.
+              setState((s) => {
+                const idx =
+                  placeholder === undefined ? -1 : s.messages.findIndex((m) => m.id === placeholder);
+                return {
+                  ...s,
+                  messages:
+                    idx >= 0
+                      ? s.messages.map((m, i) =>
+                          i === idx ? { ...heard, id: m.id, attachmentId: ev.attachmentId } : m,
+                        )
+                      : [...s.messages, { ...heard, attachmentId: ev.attachmentId }],
+                };
+              });
               break;
             }
             case "turn":
@@ -251,7 +266,10 @@ export function useInterview(
                 if (msg.role === "user") {
                   // The server echoes the persisted user message: replace the optimistic one.
                   const idx = localId === undefined ? -1 : messages.findIndex((m) => m.id === localId);
-                  messages = idx >= 0 ? messages.map((m, i) => (i === idx ? msg : m)) : [...messages, msg];
+                  // The recording's id came with the transcript; the persisted message does not carry it.
+                  const kept = idx >= 0 ? messages[idx]?.attachmentId : undefined;
+                  const merged = typeof kept === "string" ? { ...msg, attachmentId: kept } : msg;
+                  messages = idx >= 0 ? messages.map((m, i) => (i === idx ? merged : m)) : [...messages, msg];
                   return { ...s, messages };
                 }
                 return {
@@ -338,7 +356,8 @@ export function useInterview(
         audio,
         ...(durationMs === undefined ? {} : { durationMs }),
       };
-      return run((signal) => api.sendVoice(audio, durationMs, signal), undefined);
+      // The bubble exists at once, empty: it says "sending" and is filled with what was heard.
+      return run((signal) => api.sendVoice(audio, durationMs, signal), heardMessage(""));
     },
     [api, run],
   );

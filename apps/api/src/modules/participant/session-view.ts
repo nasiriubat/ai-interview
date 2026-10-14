@@ -17,6 +17,8 @@ export interface ParticipantSessionPayload {
     progress: { areas: { key: string; name: string; status: string }[] };
     messages: ReturnType<typeof toStored>[];
     attachments: AttachmentView[];
+    /** What this interview is, for the side panel: the campaign's name and the template's objective. */
+    about: { name: string; purpose: string; productName: string };
     /**
      * Two sentences on where the participant left off, for a banner above the conversation
      * (spec 06). Never a message: it is not in `messages`, the transcript or the model's context.
@@ -103,9 +105,27 @@ export class ParticipantSessionReader {
     const attachments =
       session.status === "deleted" ? [] : await this.attachments.list(companyId, session.id);
 
+    const campaign = session.campaignId
+      ? await this.db.campaign.findFirst({
+          where: { id: session.campaignId, companyId },
+          select: { name: true },
+        })
+      : null;
+    const branding = await this.settings.resolveMany(
+      ["branding.productName"],
+      [
+        ...(session.campaignId ? [{ scope: "campaign" as const, scopeId: session.campaignId }] : []),
+        { scope: "tenant" as const, scopeId: companyId },
+      ],
+    );
     return {
       session: {
         ...this.participant.sessionView(session, session.participant),
+        about: {
+          name: campaign?.name ?? session.title,
+          purpose: session.template.objective,
+          productName: (branding["branding.productName"] as string | undefined) ?? "",
+        },
         progress: { areas },
         messages: messages.map(toStored),
         attachments,
