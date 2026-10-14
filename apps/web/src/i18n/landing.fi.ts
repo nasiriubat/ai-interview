@@ -15,11 +15,18 @@ export const landingFi: LandingStrings = {
     label: "Tällä sivulla",
     paths: "Kaksi haastattelua",
     how: "Näin se toimii",
+    results: "Tulokset",
     chatbot: "Miksei chatbotti",
     trust: "Luottamus",
     faq: "Kysymyksiä",
   },
-  header: { signIn: "Kirjaudu", dashboard: "Siirry yleiskatsaukseen" },
+  header: {
+    signIn: "Kirjaudu",
+    dashboard: "Siirry yleiskatsaukseen",
+    menu: "Valikko",
+    closeMenu: "Sulje valikko",
+    menuTitle: "Valikko",
+  },
   hero: {
     eyebrow: "Organisaatioille, jotka haluavat tietää ennen kuin rakentavat",
     title: "Ymmärrä ongelma ennen kuin päätät, mitä rakennat.",
@@ -28,6 +35,9 @@ export const landingFi: LandingStrings = {
     signIn: "Kirjaudu",
     dashboard: "Siirry yleiskatsaukseen",
     noContact: "Työtilat luo tämän palvelun ylläpitäjä. Kysy heiltä tai kirjaudu, jos sinulla on jo työtila.",
+    visualAlt:
+      "Kampanjan tulossivu: haastattelujen, poimittujen kohtien ja ryhmien määrät sekä pisteytetyt mahdollisuudet ja niiden vieressä pisteytyksen painot.",
+    phoneAlt: "Haastattelu puhelimella: aihechipit ylhäällä, osallistujan vastaus ja seuraava kysymys alla.",
     small: [
       "Osallistujat eivät tarvitse tiliä",
       "Tehty toimimaan yhdellä omalla palvelimella",
@@ -77,6 +87,7 @@ export const landingFi: LandingStrings = {
     heading: "Näin se toimii",
     discovery: {
       title: "Kartoitushaastattelut",
+      visualAlt: "Haastattelu puhelimella: aihechipit, osallistujan vastaus ja seuraava kysymys.",
       steps: [
         {
           title: "Luo kampanja mallipohjasta",
@@ -98,6 +109,7 @@ export const landingFi: LandingStrings = {
     },
     requirements: {
       title: "Vaatimushaastattelut",
+      visualAlt: "Vaatimushaastattelu: keskustelu vasemmalla ja syntyvä määrittely oikealla.",
       steps: [
         {
           title: "Kuvaa idea",
@@ -117,6 +129,32 @@ export const landingFi: LandingStrings = {
         },
       ],
     },
+  },
+  gallery: {
+    heading: "Mitä saat",
+    intro: "Kuvakaappauksia palvelusta, otettu ajosta keksityillä työtovereilla.",
+    items: [
+      {
+        title: "Mahdollisuudet pisteytettyinä ja luokiteltuina",
+        body: "Jokainen mahdollisuus pisteytetään seitsemällä tekijällä ja luokitellaan tekoälyksi, automaatioksi, ohjelmistoksi, toimintatavan muutokseksi tai ei muutosta suositella. Muuta tekijöiden painoja, niin lista järjestyy heti uudelleen.",
+        alt: "Mahdollisuuslista ratkaisuluokittain, jokaisella pistepalkki, seitsemän tekijäpalkkia ja toiminnot.",
+      },
+      {
+        title: "Jokaisen pisteen takana on näyttö",
+        body: "Avaa mahdollisuus nähdäksesi kunkin tekijän perustelun ja sitä tukevan näytön. Lainaus näkyy vain, kun riittävän moni sanoi jotain samankaltaista.",
+        alt: "Avattu mahdollisuus: seitsemän tekijää perusteluineen ja anonymisoidut näyttölainaukset alla.",
+      },
+      {
+        title: "Versioitu määrittely",
+        body: "Numeroidut vaatimukset, jotka on merkitty ensimmäiseen versioon tai myöhemmäksi, vaiheet ja avoimet havainnot. Ladattavissa Markdownina, JSONina ja koodausagentille tarkoitettuna pakettina. Jokainen versio säilyy ja niitä voi verrata.",
+        alt: "Määrittelyversio: osioiden, vaatimusten, ensimmäisen version kohtien ja vaiheiden määrät sekä latauspainikkeet.",
+      },
+      {
+        title: "Kaaviot määrittelyssä",
+        body: "Sekvenssikaaviot ovat osa määrittelyä, ja niitä voi muokata.",
+        alt: "Vierailijan sisäänkirjautumisen sekvenssikaavio vierailijan, verkkosovelluksen, taulukon ja vastaanoton välillä.",
+      },
+    ],
   },
   chatbot: {
     heading: "Miksei vain chatbotti?",
@@ -260,6 +298,14 @@ export const landingFi: LandingStrings = {
       "Teetkö kartoitusta asiakkaille? Jokainen asiakas voi olla oma organisaationsa omine mallipohjineen, mallintarjoajineen, budjetteineen ja raportteineen. Kysy ylläpitäjän käyttöoikeuksista.",
   },
   footer: {
+    navLabel: "Alatunniste",
+    product: "Palvelu",
+    access: "Käyttö",
+    trust: "Luottamus ja yhteys",
+    privacy: "Yksityisyys ja anonymiteetti",
+    contact: "Yhteystiedot",
+    security: "Ilmoita haavoittuvuudesta (security.txt)",
+    language: "Kieli",
     note: "Tällä sivulla ei ole seurantaa, eikä se tee pyyntöjä muille sivustoille. Kieli- ja ulkoasuvalintasi pysyvät selaimessasi.",
     signIn: "Kirjaudu",
   },

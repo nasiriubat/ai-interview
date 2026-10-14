@@ -89,10 +89,12 @@ describe.each(["en", "fi"] as const)("landing page structure (%s)", (locale) => 
     expect(d.querySelectorAll("script")).toHaveLength(0);
   });
 
-  it("makes no request to another host and loads no script, image, font or frame", () => {
+  it("makes no request to another host and loads no script, font or frame", () => {
     // An SVG namespace is an identifier, not a request.
     expect(html.replace(/xmlns="[^"]*"/g, "")).not.toMatch(/https?:\/\//i);
-    expect(html).not.toMatch(/<(script|img|iframe|link|object|embed|video|audio|source)\b/i);
+    // The one allowed <link> is the preload of the first screenshot, from this origin.
+    const rest = html.replace(/<link rel="preload" as="image" href="\/landing\/[^"]+"\/>/g, "");
+    expect(rest).not.toMatch(/<(script|iframe|link|object|embed|video|audio|source)\b/i);
     expect(html).not.toMatch(/\burl\(/i);
     for (const a of d.querySelectorAll("a[href]")) {
       const href = a.getAttribute("href")!;
@@ -100,7 +102,32 @@ describe.each(["en", "fi"] as const)("landing page structure (%s)", (locale) => 
     }
   });
 
-  it("links only to routes that exist and to anchors on the page", () => {
+  it("shows only same-origin screenshots, each with its size and a description", () => {
+    const imgs = [...d.querySelectorAll("img")];
+    expect(imgs.length).toBeGreaterThanOrEqual(8);
+    for (const img of imgs) {
+      const src = img.getAttribute("src")!;
+      expect(src.startsWith("/landing/"), src).toBe(true);
+      expect(existsSync(path.resolve(import.meta.dirname, "../public", src.slice(1))), src).toBe(true);
+      expect(Number(img.getAttribute("width")), src).toBeGreaterThan(0);
+      expect(Number(img.getAttribute("height")), src).toBeGreaterThan(0);
+      expect(img.getAttribute("alt")?.length ?? 0, src).toBeGreaterThan(10);
+    }
+    // Only the first screenshot is eager; the rest wait until they are near the screen.
+    const eager = imgs.filter((i) => i.getAttribute("loading") !== "lazy");
+    expect(eager.length).toBeLessThanOrEqual(1);
+  });
+
+  it("has a header menu button with a name, and a footer with the security contact and a language switch", () => {
+    const menu = d.querySelector('header button[aria-haspopup="dialog"]');
+    expect(menu?.getAttribute("aria-label")?.length ?? 0).toBeGreaterThan(0);
+    expect(d.querySelector('footer a[href="/.well-known/security.txt"]')).not.toBeNull();
+    expect(d.querySelectorAll("footer select")).toHaveLength(1);
+    const ids = [...d.querySelectorAll("[id]")].map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("links only to routes and files that exist and to anchors on the page", () => {
     const app = path.resolve(import.meta.dirname, "../src/app");
     const hrefs = [...d.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")!);
     expect(hrefs.length).toBeGreaterThan(5);
@@ -111,7 +138,8 @@ describe.each(["en", "fi"] as const)("landing page structure (%s)", (locale) => 
         continue;
       }
       const dir = path.join(app, ...href.split("/").filter(Boolean));
-      expect(existsSync(path.join(dir, "page.tsx")), href).toBe(true);
+      const publicFile = path.resolve(import.meta.dirname, "../public", href.slice(1));
+      expect(existsSync(path.join(dir, "page.tsx")) || existsSync(publicFile), href).toBe(true);
     }
   });
 

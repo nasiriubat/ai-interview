@@ -1,0 +1,181 @@
+/*
+ * The landing page's own styles (D-350 to D-359). Everything is built from the product's tokens in
+ * `app/globals.css`, so both themes follow without a second set of colours. The two theme blocks
+ * for the screenshots say the same thing, as in globals.css: CSS cannot share a selector list
+ * between `data-theme` and a media query.
+ */
+
+/* A screenshot comes in a light and a dark file; only the one for the current theme is shown, and a
+   hidden `loading="lazy"` image is never fetched. */
+.lp-shot-dark {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .lp-shot-light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .lp-shot-dark {
+    display: block;
+  }
+}
+:root[data-theme="dark"] .lp-shot-light {
+  display: none;
+}
+:root[data-theme="dark"] .lp-shot-dark {
+  display: block;
+}
+
+/* Hero backdrop: two soft brand glows and a faint grid that fades out downwards. */
+.lp-hero-bg {
+  background-image:
+    radial-gradient(60% 55% at 50% 0%, color-mix(in srgb, var(--brand-1) 20%, transparent), transparent 72%),
+    radial-gradient(38% 42% at 92% 8%, color-mix(in srgb, var(--brand-2) 18%, transparent), transparent 72%),
+    radial-gradient(34% 40% at 6% 18%, color-mix(in srgb, var(--brand-1) 12%, transparent), transparent 72%);
+}
+.lp-grid {
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 0%, transparent 72%);
+  opacity: 0.55;
+}
+
+/* The product window: a rounded frame with a quiet title bar around a screenshot. */
+.lp-window {
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 30px 60px -20px color-mix(in srgb, var(--foreground) 28%, transparent),
+    0 18px 36px -18px color-mix(in srgb, var(--foreground) 22%, transparent);
+  overflow: hidden;
+}
+.lp-window-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.lp-window-bar i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--border);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+/* The phone that overlaps the hero window. */
+.lp-phone {
+  background: var(--card);
+  border-radius: 28px;
+  padding: 6px;
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 26px 50px -16px color-mix(in srgb, var(--foreground) 40%, transparent);
+}
+.lp-phone img {
+  border-radius: 22px;
+}
+
+/* Cards that lift a little on hover; pointer devices only. */
+@media (hover: hover) {
+  .lp-lift {
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .lp-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-raised);
+  }
+}
+
+/* Motion is transform-only (no opacity, no layout) and only for people who have not asked for less. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes lp-rise {
+    from {
+      transform: translateY(14px);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes lp-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  .lp-rise {
+    animation: lp-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .lp-rise-2 {
+    animation: lp-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.12s both;
+  }
+  .lp-float {
+    animation: lp-float 7s ease-in-out infinite;
+  }
+}
+
+/* The closing call to action: a fixed dark panel in both themes, so its text contrast does not
+   depend on the theme (white on #0a2540 is 15:1; the lead is #c9d5e6, 11:1). */
+.lp-cta {
+  background-color: #0a2540;
+  background-image:
+    radial-gradient(60% 90% at 100% 0%, rgb(99 91 255 / 0.55), transparent 70%),
+    radial-gradient(50% 80% at 0% 100%, rgb(0 184 217 / 0.28), transparent 70%);
+  color: #ffffff;
+}
+.lp-cta-lead {
+  color: #c9d5e6;
+}
+
+/* FAQ disclosure marker: the native one is hidden, the plus is drawn. */
+.lp-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Section anchors sit below the sticky header. */
+.lp-anchor {
+  scroll-margin-top: 5rem;
+}
+
+.lp-cta h2 {
+  color: #ffffff;
+}
+
+.lp-cta-btn,
+.lp-cta-btn-ghost {
+  display: inline-flex;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  padding: 0 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background-color 0.15s;
+}
+.lp-cta-btn {
+  background: #ffffff;
+  color: #0a2540;
+}
+.lp-cta-btn:hover {
+  background: #e6ebf2;
+}
+.lp-cta-btn-ghost {
+  background: rgb(255 255 255 / 0.1);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.4);
+}
+.lp-cta-btn-ghost:hover {
+  background: rgb(255 255 255 / 0.2);
+}
