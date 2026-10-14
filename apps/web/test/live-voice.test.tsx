@@ -435,8 +435,8 @@ describe("the interview screen in a live call", () => {
 
   async function enterVoice(initial: unknown = session()): Promise<SocketStub> {
     render(<InterviewScreen initial={initial as never} api={api} />);
-    // Choosing voice opens the call itself; there is no second button to press.
-    fireEvent.click(screen.getByRole("radio", { name: "Voice" }));
+    // Talk opens the call itself; there is no second button to press.
+    fireEvent.click(screen.getByRole("button", { name: "Talk" }));
     await settle();
     return newestSocket();
   }
@@ -504,8 +504,7 @@ describe("the interview screen in a live call", () => {
     expect(screen.queryByRole("button", { name: "Record your answer" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "End the call" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start a voice call" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: "Voice" })).not.toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Text" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByRole("button", { name: "Talk" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Your answer")).toBeInTheDocument();
   });
 
@@ -516,7 +515,7 @@ describe("the interview screen in a live call", () => {
     expect(mic.stopped()).toBe(0);
     expect(SocketStub.instances).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "Start a voice call" }));
+    fireEvent.click(screen.getByRole("button", { name: "Talk" }));
     await settle();
     expect(SocketStub.instances).toHaveLength(1);
     newestSocket().emit({ type: "ready", captions: false, bargeIn: true });
@@ -524,7 +523,7 @@ describe("the interview screen in a live call", () => {
     expect(screen.getByText(/What you say is not shown here/)).toBeInTheDocument();
   });
 
-  it("keeps the voice mode out of reach when the tenant has both kinds of voice off", () => {
+  it("keeps Talk out of reach when the tenant has both kinds of voice off", () => {
     render(
       <InterviewScreen
         initial={
@@ -543,7 +542,6 @@ describe("the interview screen in a live call", () => {
         api={api}
       />,
     );
-    expect(screen.queryByRole("radio", { name: "Voice" })).not.toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Text" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByRole("button", { name: "Talk" })).not.toBeInTheDocument();
   });
 });
