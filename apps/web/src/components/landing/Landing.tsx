@@ -31,6 +31,7 @@ import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
 import { LandingHeader } from "./LandingHeader";
+import { ProductMark } from "@/components/common/Branding";
 import { LanguageMenu } from "@/components/common/PreferenceMenus";
 import { Button } from "@/components/ui/button";
 import type { LandingStrings } from "@/i18n/landing.en";
@@ -51,8 +52,10 @@ import "./landing.css";
  */
 export interface LandingProps {
   strings: LandingStrings;
-  /** `app.name`: the one place the product's name comes from. */
+  /** The platform's name from the admin, or `app.name` when the API cannot say (D-430). */
   appName: string;
+  /** The uploaded logo's URL, which replaces the name in the header and footer; `null` for none. */
+  logoUrl?: string | null | undefined;
   /** A staff session cookie exists: show the way to the overview instead of asking to sign in. */
   signedIn: boolean;
   /** Where "Request a workspace" writes to. `null` renders no mail link. */
@@ -80,7 +83,14 @@ const IMG = {
   ],
 } as const;
 
-export function Landing({ strings: s, appName, signedIn, contact }: LandingProps): React.JSX.Element {
+export function Landing({
+  strings: s,
+  appName,
+  logoUrl = null,
+  signedIn,
+  contact,
+}: LandingProps): React.JSX.Element {
+  const branding = { productName: appName, logoUrl };
   const request = contact ? mailtoHref(contact, s.mailto.subject, s.mailto.body) : null;
   const signInHref = signedIn ? "/admin" : "/auth/signin";
   const signInLabel = signedIn ? s.header.dashboard : s.header.signIn;
@@ -96,7 +106,7 @@ export function Landing({ strings: s, appName, signedIn, contact }: LandingProps
   return (
     <div className="bg-background text-foreground min-h-dvh">
       <LandingHeader
-        appName={appName}
+        branding={branding}
         navLabel={s.nav.label}
         nav={nav}
         labels={{ menu: s.header.menu, closeMenu: s.header.closeMenu }}
@@ -541,15 +551,7 @@ export function Landing({ strings: s, appName, signedIn, contact }: LandingProps
         <div className={cn(container, "py-12")}>
           <div className="grid gap-10 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
             <div>
-              <p className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
-                <span
-                  aria-hidden="true"
-                  className="bg-brand-gradient text-brand-text grid size-8 place-items-center rounded-lg text-sm font-bold"
-                >
-                  {appName.slice(0, 1).toUpperCase()}
-                </span>
-                <span>{appName}</span>
-              </p>
+              <ProductMark branding={branding} />
               <p className="text-muted-foreground mt-4 max-w-sm text-sm leading-relaxed">{s.footer.note}</p>
             </div>
             <nav aria-label={s.footer.navLabel} className="grid gap-8 sm:grid-cols-3">

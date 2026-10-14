@@ -1,29 +1,49 @@
 "use client";
 
+import { PanelLeftOpenIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
+import { IconButton } from "@/components/admin/IconButton";
 import { isActive, type NavGroup, type NavItem } from "@/components/admin/shell/nav";
+import { ProductMark, useBranding } from "@/components/common/Branding";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
 
-export function Brand({ collapsed = false }: { collapsed?: boolean }): React.JSX.Element {
+/**
+ * The top of the sidebar (D-430): the platform's logo, or its name in type, linking to the
+ * overview. There is no letter tile. Icon-only, a logo shrinks to the rail's width; without one
+ * there is nothing to show but a mark nobody chose, so the slot becomes the expand button.
+ */
+export function Brand({
+  collapsed = false,
+  onExpand,
+}: {
+  collapsed?: boolean;
+  onExpand?: (() => void) | undefined;
+}): React.JSX.Element {
+  const branding = useBranding();
+  if (collapsed && !branding.logoUrl && onExpand) {
+    return (
+      <div className="flex h-10 items-center justify-center" data-sidebar-toggle="">
+        <IconButton label={t.kit.shell.expand} icon={<PanelLeftOpenIcon />} size="icon" onClick={onExpand} />
+      </div>
+    );
+  }
   return (
     <Link
       href="/admin"
-      aria-label={t.app.name}
-      className={cn(
-        "flex h-10 items-center gap-2.5 rounded-md text-[15px] font-semibold tracking-tight",
-        collapsed ? "justify-center" : "px-2.5",
-      )}
+      className={cn("flex h-10 min-w-0 items-center rounded-md", collapsed ? "justify-center" : "px-2.5")}
     >
-      <span
-        aria-hidden="true"
-        className="bg-brand-gradient text-brand-text grid size-8 shrink-0 place-items-center rounded-lg text-sm font-bold shadow-sm"
-      >
-        D
-      </span>
-      {collapsed ? null : <span className="text-foreground truncate">{t.app.name}</span>}
+      {collapsed && branding.logoUrl ? (
+        <img
+          src={branding.logoUrl}
+          alt={branding.productName}
+          className="block max-h-8 w-auto max-w-10 object-contain"
+        />
+      ) : (
+        <ProductMark branding={branding} />
+      )}
     </Link>
   );
 }

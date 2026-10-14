@@ -152,6 +152,8 @@ import {
   type TenantExport,
   type OffboardResult,
   type Tenant,
+  type PublicBranding,
+  PublicBrandingSchema,
   UserPageSchema,
   type User,
   type VoiceReadiness,
@@ -518,6 +520,25 @@ export function staffApi(transport: Transport): StaffApi {
             schema: OkSchema,
           }),
         ),
+    },
+
+    branding: {
+      uploadLogo: (file) => {
+        const form = new FormData();
+        form.append("file", file, file.name);
+        return request(transport, {
+          method: "PUT",
+          path: "/operator/branding/logo",
+          body: form,
+          schema: PublicBrandingSchema,
+        });
+      },
+      removeLogo: () =>
+        request(transport, {
+          method: "DELETE",
+          path: "/operator/branding/logo",
+          schema: PublicBrandingSchema,
+        }),
     },
 
     prompts: {
@@ -1023,6 +1044,11 @@ export interface StaffApi {
       limit?: number;
       before?: string;
     }): Promise<SettingsHistory>;
+  };
+  /** The platform's logo, written by the platform operator only (D-434). */
+  branding: {
+    uploadLogo(file: File): Promise<PublicBranding>;
+    removeLogo(): Promise<PublicBranding>;
   };
   /** Prompt administration: tenant versions, canaries and the built-in prompts they replace (D-230). */
   prompts: {

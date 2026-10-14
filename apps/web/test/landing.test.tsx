@@ -38,7 +38,7 @@ vi.mock("next/navigation", () => ({
 
 const render = (
   locale: Locale,
-  over: { signedIn?: boolean; contact?: string | null; appName?: string } = {},
+  over: { signedIn?: boolean; contact?: string | null; appName?: string; logoUrl?: string | null } = {},
 ): string => {
   setClientLocale(locale);
   const s = stringsFor(locale);
@@ -46,6 +46,7 @@ const render = (
     <Landing
       strings={s.landing}
       appName={over.appName ?? s.app.name}
+      logoUrl={over.logoUrl ?? null}
       signedIn={over.signedIn ?? false}
       contact={over.contact === undefined ? "hello@example.com" : over.contact}
     />,
@@ -181,9 +182,20 @@ describe("the product name", () => {
     const d = doc(render("en", { appName: "Askel" }));
     expect(d.querySelector("header a")?.textContent).toContain("Askel");
     expect(d.querySelector("footer")?.textContent).toContain("Askel");
-    // The brand mark is the first letter of the name, not a hard-coded one.
-    expect(d.querySelector("header a [aria-hidden]")?.textContent).toBe("A");
+    // No letter tile beside the name (D-430): the name alone is the mark.
+    expect(d.querySelector("header a")?.textContent).toBe("Askel");
+    expect(d.querySelector("header a [aria-hidden]")).toBeNull();
     expect(d.body.textContent).not.toContain("Discovery:");
+  });
+
+  it("shows the uploaded logo instead of the name, with the name as its text alternative", () => {
+    const d = doc(render("en", { appName: "Askel", logoUrl: "/api/branding/logo?v=abc" }));
+    for (const where of ["header a", "footer"]) {
+      const img = d.querySelector(`${where} img`);
+      expect(img?.getAttribute("src")).toBe("/api/branding/logo?v=abc");
+      expect(img?.getAttribute("alt")).toBe("Askel");
+    }
+    expect(d.querySelector("header a")?.textContent).toBe("");
   });
 });
 
