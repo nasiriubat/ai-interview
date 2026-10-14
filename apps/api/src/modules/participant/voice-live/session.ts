@@ -180,7 +180,7 @@ export class LiveVoiceSession implements LiveHost {
     SessionOpts & { enabled: boolean; endOfSpeechMs: number; language: string | undefined }
   > {
     const chain = [{ scope: "tenant" as const, scopeId: this.scope.companyId }];
-    const [values, language] = await Promise.all([
+    const [values, language, voiceOk] = await Promise.all([
       this.ctx.settings.resolveMany(
         [
           "features.realtimeVoice",
@@ -193,9 +193,11 @@ export class LiveVoiceSession implements LiveHost {
         chain,
       ),
       this.ctx.services.turns.templateLanguage(this.scope.companyId, this.scope.sessionId),
+      // The tenant's live-voice flag and the template's `voice.enabled`, ANDed (D-186).
+      this.ctx.services.participant.voiceAllowed(this.scope.companyId, this.scope.sessionId, "live"),
     ]);
     return {
-      enabled: values["features.realtimeVoice"] as boolean,
+      enabled: voiceOk,
       captions: values["voice.captions"] as boolean,
       bargeIn: values["voice.bargeIn"] as boolean,
       voice: values["voice.voiceName"] as string,

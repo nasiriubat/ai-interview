@@ -13,6 +13,9 @@ import {
   type Alert,
   type RenderedAlert,
   type SettingsService,
+  TenantNotices,
+  ceilingAlert,
+  formatCeilingAmount,
 } from "../src/index.js";
 
 /** A settings service over a plain map: `platform` values, and per-tenant overrides. */
@@ -116,12 +119,21 @@ describe("the alert catalog", () => {
     expect(runbookRef("disk.high")).toBe("docs/OPERATIONS.md#diskhigh");
   });
 
-  it("keeps tenant mail to the two budget kinds", () => {
+  it("keeps tenant mail to the budget kinds, the three event notices, the ceilings and the session flag", () => {
     const tenantFacing = Object.entries(ALERT_KINDS)
       .filter(([, spec]) => (spec.audience as readonly string[]).includes("tenant_admins"))
       .map(([kind]) => kind)
       .sort();
-    expect(tenantFacing).toEqual(["budget.exceeded", "budget.warning"]);
+    expect(tenantFacing).toEqual([
+      "analysis.ready",
+      "budget.exceeded",
+      "budget.warning",
+      "campaign.threshold",
+      "ceiling.reached",
+      "ceiling.warning",
+      "session.flagged",
+      "spec.ready",
+    ]);
   });
 });
 
@@ -322,6 +334,26 @@ describe("AlertRouter", () => {
       expect(r.email.sent.map((m) => m.to)).toEqual(["ops@example.com"]);
     });
 
+    it("tells only the tenant's admins about a flagged interview, never the operator, once a day", async () => {
+      const r = rig();
+      r.admins.t1 = ["admin@t1.example"];
+      r.admins.t2 = ["admin@t2.example"];
+      const flagged: Alert = {
+        kind: "session.flagged",
+        key: "session.flagged:s1",
+        companyId: "t1",
+        title: "An interview needs a person to look at it",
+        message: "The interviewer flagged an interview. Filter the campaign's interviews on flagged.",
+        context: { sessionId: "s1", campaignId: "c1" },
+      };
+      await r.router.raise(flagged);
+      await r.router.raise(flagged);
+      expect(r.email.sent.map((m) => m.to)).toEqual(["admin@t1.example"]);
+      expect(r.email.sent[0]?.companyId).toBe("t1");
+      // Not on the operator's webhook either: a tenant's interview is not the platform's incident.
+      expect(r.posts).toHaveLength(0);
+    });
+
     it("sends no tenant mail for a tenant alert that names no tenant", async () => {
       const r = rig();
       r.admins.t1 = ["admin@t1.example"];
@@ -403,5 +435,137 @@ describe("scrubText", () => {
   it("flattens whitespace, hides addresses and bounds the length", () => {
     expect(scrubText("a\n  b  carol@example.com", 100)).toBe("a b [email]");
     expect(scrubText("x".repeat(50), 10)).toHaveLength(10);
+  });
+});
+
+describe("tenant notices (D-181)", () => {
+  const threshold = {
+    companyId: "t1",
+    campaignId: "c1",
+    campaignName: "Finance interviews",
+    completed: 5,
+    needed: 5,
+  };
+
+  function noticeRig(): Rig & { notices: TenantNotices } {
+    const r = rig({ operatorEmail: "ops@example.com" });
+    r.admins.t1 = ["admin@t1.example.com"];
+    const notices = new TenantNotices({ alerts: r.router, publicWebUrl: "https://pilot.example.com" });
+    return { ...r, notices };
+  }
+
+  it("mails a tenant's admins, in English by default, and never the operator", async () => {
+    const r = noticeRig();
+    await r.notices.campaignThreshold(threshold);
+    expect(r.email.sent.map((m) => m.to)).toEqual(["admin@t1.example.com"]);
+    expect(r.email.sent[0]?.subject).toContain("Enough interviews are in: Finance interviews");
+    expect(r.email.sent[0]?.text).toContain("https://pilot.example.com/admin/campaigns/c1");
+    expect(r.email.sent[0]?.companyId).toBe("t1");
+  });
+
+  it("writes the body in Finnish when the tenant's language is Finnish", async () => {
+    const r = noticeRig();
+    r.settings.setTenant("t1", "branding.language", "fi");
+    await r.notices.analysisReady({
+      companyId: "t1",
+      campaignId: "c1",
+      campaignName: "Talous",
+      analysisId: "a1",
+      version: 2,
+      preliminary: false,
+    });
+    const mail = r.email.sent[0];
+    expect(mail?.subject).toContain("Analyysi valmis: Talous");
+    expect(mail?.text).toContain("analyysi 2 on valmis");
+    expect(mail?.text).toContain("Tulokset: https://pilot.example.com/admin/campaigns/c1/results");
+    expect(mail?.text).toContain("Saat tämän viestin");
+    expect(mail?.text).not.toContain("You receive this");
+  });
+
+  it("is one mail per event, however often the source checks again", async () => {
+    const r = noticeRig();
+    for (let i = 0; i < 3; i++) await r.notices.campaignThreshold(threshold);
+    expect(r.email.sent).toHaveLength(1);
+    // A different event is a different mail.
+    await r.notices.campaignThreshold({ ...threshold, campaignId: "c2" });
+    expect(r.email.sent).toHaveLength(2);
+    // Even a month later the same event is not sent again: the window is years, not days.
+    r.clock.now = new Date("2026-11-20T10:00:00Z");
+    await r.notices.campaignThreshold(threshold);
+    expect(r.email.sent).toHaveLength(2);
+  });
+
+  it("is silent when the tenant has switched that notice off, and still sends the others", async () => {
+    const r = noticeRig();
+    r.settings.setTenant("t1", "notifications.specReady", false);
+    await r.notices.specReady({
+      companyId: "t1",
+      sessionId: "s1",
+      title: "Invoice tool",
+      versionId: "v1",
+      version: 1,
+    });
+    expect(r.email.sent).toHaveLength(0);
+    await r.notices.analysisReady({
+      companyId: "t1",
+      campaignId: "c1",
+      campaignName: "Finance",
+      analysisId: "a1",
+      version: 1,
+      preliminary: true,
+    });
+    expect(r.email.sent).toHaveLength(1);
+    expect(r.email.sent[0]?.text).toContain("preliminary");
+  });
+
+  it("goes to notifications.recipients when set", async () => {
+    const r = noticeRig();
+    r.settings.setTenant("t1", "notifications.recipients", ["lead@t1.example.com"]);
+    await r.notices.specReady({
+      companyId: "t1",
+      sessionId: "s1",
+      title: "Invoice tool",
+      versionId: "v9",
+      version: 3,
+    });
+    expect(r.email.sent.map((m) => m.to)).toEqual(["lead@t1.example.com"]);
+    expect(r.email.sent[0]?.text).toContain("/admin/requirements/s1/versions/3");
+  });
+
+  it("tells the tenant and the operator when a ceiling is reached, once per month for a monthly one", async () => {
+    const r = noticeRig();
+    const args = { companyId: "t1", metric: "maxSessionsPerMonth" as const, used: 1000, max: 1000 };
+    await r.notices.ceiling({ ...args, month: "2026-10", reached: true });
+    await r.notices.ceiling({ ...args, month: "2026-10", reached: true });
+    const to = r.email.sent.map((m) => m.to).sort();
+    expect(to).toEqual(["admin@t1.example.com", "ops@example.com"]);
+    r.clock.now = new Date("2026-11-02T10:00:00Z");
+    await r.notices.ceiling({ ...args, month: "2026-11", reached: true });
+    expect(r.email.sent).toHaveLength(4);
+  });
+
+  it("builds the 80 percent warning with the figure and the unit in both languages", () => {
+    const a = ceilingAlert({
+      companyId: "t1",
+      metric: "storageBytes",
+      used: 4 * 1024 * 1024 * 1024,
+      max: 5 * 1024 * 1024 * 1024,
+      reached: false,
+      publicWebUrl: "https://x.example.com/",
+    });
+    expect(a.kind).toBe("ceiling.warning");
+    expect(a.key).toBe("ceiling.warning:t1:storageBytes");
+    expect(a.title).toBe("Limit at 80%: stored files and recordings");
+    expect(a.localized?.fi?.title).toBe("Raja 80 % täynnä: tallennettuja tiedostoja ja äänitteitä");
+    expect(a.message).toContain("4.0 GB of 5.0 GB");
+    expect(formatCeilingAmount("voiceMinutes", 59.6)).toBe("60");
+  });
+
+  it("never lets a failing channel fail the work it reports", async () => {
+    const r = noticeRig();
+    r.router.raise = async () => {
+      throw new Error("boom");
+    };
+    await expect(r.notices.campaignThreshold(threshold)).resolves.toBeUndefined();
   });
 });

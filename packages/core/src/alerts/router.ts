@@ -230,10 +230,20 @@ export class AlertRouter implements AlertPort {
       const enabled = await this.deps.settings.get(spec.tenantSetting, chain);
       if (!enabled) return;
     }
-    const [configured, productName] = await Promise.all([
+    const [configured, productName, language] = await Promise.all([
       this.deps.settings.get("notifications.recipients", chain),
       this.deps.settings.get("branding.productName", chain),
+      this.deps.settings.get("branding.language", chain),
     ]);
+    const words = alert.localized?.[language];
+    const localized: RenderedAlert = words
+      ? {
+          ...rendered,
+          title: scrubText(words.title, MAX_TITLE),
+          message: scrubText(words.message, MAX_MESSAGE),
+          links: rendered.links.map((l, i) => ({ ...l, label: words.linkLabels?.[i] ?? l.label })),
+        }
+      : rendered;
     const recipients =
       configured.length > 0
         ? configured
@@ -246,10 +256,14 @@ export class AlertRouter implements AlertPort {
             ).map((u) => u.email),
           );
     const prefix = `[${scrubText(productName, 60)}]`;
-    const footer = `You receive this because you are an admin of this workspace. Who is notified is set under Settings, Notifications: ${this.deps.publicWebUrl.replace(/\/+$/, "")}/admin/settings?category=notifications`;
+    const settingsUrl = `${this.deps.publicWebUrl.replace(/\/+$/, "")}/admin/settings?category=notifications`;
+    const footer =
+      language === "fi"
+        ? `Saat tämän viestin, koska olet tämän työtilan ylläpitäjä. Viestien vastaanottajat määritetään asetuksissa, Ilmoitukset: ${settingsUrl}`
+        : `You receive this because you are an admin of this workspace. Who is notified is set under Settings, Notifications: ${settingsUrl}`;
     for (const to of [...new Set(recipients)]) {
       await this.attempt(sent, "tenant_email", () =>
-        this.email.send({ to, subjectPrefix: prefix, alert: rendered, companyId, footer }),
+        this.email.send({ to, subjectPrefix: prefix, alert: localized, companyId, footer }),
       );
     }
   }

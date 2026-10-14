@@ -58,6 +58,28 @@ describe("settings catalog", () => {
   });
 });
 
+describe("the legacy completion sentinel", () => {
+  it("is migrated to finishRequested and no longer counts as a turn count (D-170)", async () => {
+    const { COMPLETION_REQUESTED_TURN_COUNT, SessionStateSchema } = await import("../src/index.js");
+    const parsed = SessionStateSchema.parse({
+      turnCount: COMPLETION_REQUESTED_TURN_COUNT,
+      lastWidgetTurn: 4,
+    });
+    expect(parsed.finishRequested).toBe(true);
+    expect(parsed.turnCount).toBe(4);
+    const fresh = SessionStateSchema.parse({ turnCount: 7 });
+    expect(fresh.finishRequested).toBe(false);
+    expect(fresh.turnCount).toBe(7);
+  });
+  it("parses a turn control and rejects an unknown one or a missing area", async () => {
+    const { TurnControlSchema } = await import("../src/index.js");
+    expect(TurnControlSchema.safeParse({ type: "finish" }).success).toBe(true);
+    expect(TurnControlSchema.safeParse({ type: "skip_area", areaKey: "tools" }).success).toBe(true);
+    expect(TurnControlSchema.safeParse({ type: "skip_area" }).success).toBe(false);
+    expect(TurnControlSchema.safeParse({ type: "explode" }).success).toBe(false);
+  });
+});
+
 describe("the completion sentinel", () => {
   it("is a valid turn count, not the -1 a 32-bit shift of MAX_SAFE_INTEGER produces", async () => {
     const { COMPLETION_REQUESTED_TURN_COUNT, SessionStateSchema } = await import("../src/index.js");

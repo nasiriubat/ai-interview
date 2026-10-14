@@ -17,7 +17,23 @@ export interface SettingDef<T extends z.ZodType = z.ZodType> {
   description: string;
   /** Encrypted at rest and never returned in plain text; the API answers with SECRET_SENTINEL. */
   secret?: boolean;
+  /**
+   * The release in which the key first shipped (`RELEASES`). The "what changed" panel lists keys
+   * newer than the one an admin last saw, and a test refuses a key that is neither in the
+   * baseline nor carries this (D-180).
+   */
+  since?: string;
+  /**
+   * Written only by the platform operator, at any scope. A tenant admin sees the value read-only.
+   * Used for the tenant ceilings, which are a promise the operator makes about the platform.
+   */
+  operatorOnly?: boolean;
 }
+
+/** Release ids a `since` may name, newest last. The panel offers "new since" from this list. */
+export const RELEASES = ["2026.10"] as const;
+export type ReleaseId = (typeof RELEASES)[number];
+export const CURRENT_RELEASE: ReleaseId = "2026.10";
 
 /**
  * Placeholder the API returns instead of a secret value, and accepts back on a write to mean
@@ -64,6 +80,23 @@ export function isHttpUrl(value: string): boolean {
   return (url.protocol === "http:" || url.protocol === "https:") && url.hostname !== "";
 }
 
+/**
+ * The consent shown when no one has written their own, by interview language. The wording is
+ * `docs/team/plan/consent-default.md`, checked against what deletion does today: it removes the
+ * answers, recordings and files, and no deletion email is promised (D-119). Changing a word here
+ * changes the hash recorded at consent, so people who agreed earlier keep the hash of the words
+ * they agreed to (D-185).
+ */
+export const DEFAULT_CONSENT_TEXT = {
+  en: "This interview is a conversation with an AI interviewer, run on behalf of your organization. Your answers, any files you attach and any voice recordings are kept so that your organization can understand how work is actually done. They are processed by the AI services your organization has chosen. You can pause, stop or delete your answers at any time from the interview menu; deleting removes your answers, recordings and files right away, while totals already combined with other people's answers remain and cannot be traced to you. Your data is deleted automatically after your organization's retention period.",
+  fi: "Tämä haastattelu on keskustelu tekoälyhaastattelijan kanssa, ja se tehdään organisaatiosi toimeksiannosta. Vastauksesi, liittämäsi tiedostot ja mahdolliset äänitallenteet säilytetään, jotta organisaatiosi ymmärtää, miten työ oikeasti tehdään. Niitä käsittelevät organisaatiosi valitsemat tekoälypalvelut. Voit keskeyttää, lopettaa tai poistaa vastauksesi milloin tahansa haastattelun valikosta. Poisto hävittää vastauksesi, tallenteesi ja tiedostosi heti; muiden vastauksiin jo yhdistetyt lukumäärät säilyvät, mutta niitä ei voi yhdistää sinuun. Tietosi poistetaan automaattisesti organisaatiosi säilytysajan jälkeen.",
+} as const;
+
+/** The default consent for an interview language; any language but Finnish gets English. */
+export function defaultConsentText(language: string | null | undefined): string {
+  return language?.toLowerCase().startsWith("fi") ? DEFAULT_CONSENT_TEXT.fi : DEFAULT_CONSENT_TEXT.en;
+}
+
 export const SETTINGS = {
   // Engine
   "engine.recentWindowTurns": def({
@@ -101,6 +134,22 @@ export const SETTINGS = {
     category: "engine",
     description: "Hard cap on interviewer turns",
   }),
+  "engine.resumeRecap": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["platform", "tenant", "template"],
+    category: "engine",
+    description: "Show a short recap when a participant comes back to an interview",
+    since: "2026.10",
+  }),
+  "engine.recapAfterMinutes": def({
+    schema: z.number().int().min(0).max(1440),
+    default: 5,
+    scopes: ["platform", "tenant", "template"],
+    category: "engine",
+    description: "Minutes away before the recap is shown (0 shows it whenever the interview is reopened)",
+    since: "2026.10",
+  }),
   // Campaign
   "campaign.completionThreshold": def({
     schema: z.number().int().min(1).max(10000),
@@ -137,10 +186,12 @@ export const SETTINGS = {
     category: "campaign",
     description: "Restrict share links to these email domains; empty allows all",
   }),
+  // The stored default is the English text; `defaultConsentText(language)` is what the participant
+  // flow shows when nothing was set at any scope, so a Finnish template gets the Finnish words
+  // (D-185). An explicit value, at any scope, is always shown as typed.
   "campaign.consentText": def({
     schema: z.string().min(1),
-    default:
-      "This interview is recorded to help your organization understand how work is done. You can pause, stop, or delete your answers at any time.",
+    default: DEFAULT_CONSENT_TEXT.en,
     scopes: ["platform", "tenant", "campaign"],
     category: "campaign",
     description: "Consent text shown before the first turn",
@@ -325,13 +376,6 @@ export const SETTINGS = {
     category: "features",
     description: "Start one template from another's outputs",
   }),
-  "features.collaboration": def({
-    schema: z.boolean(),
-    default: false,
-    scopes: ["platform", "tenant"],
-    category: "features",
-    description: "Second person in a requirements session",
-  }),
   // Branding
   "branding.productName": def({
     schema: z.string().min(1),
@@ -339,13 +383,6 @@ export const SETTINGS = {
     scopes: ["platform", "tenant"],
     category: "branding",
     description: "Name shown to participants",
-  }),
-  "branding.primaryColor": def({
-    schema: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-    default: "#1f5eff",
-    scopes: ["platform", "tenant"],
-    category: "branding",
-    description: "Primary color",
   }),
   "branding.emailSender": def({
     schema: z.string(),
@@ -638,6 +675,96 @@ export const SETTINGS = {
     category: "exports",
     description: "Agent bundle flavor",
   }),
+  // Added in 2026.10: notifications to the tenant's admins, the voice switch per template, the
+  // tenant ceilings, and the onboarding card. Each carries `since` so the "what changed" panel
+  // can say so (D-180).
+  "notifications.campaignThreshold": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["platform", "tenant"],
+    category: "notifications",
+    description: "Email the tenant's admins when a campaign reaches its completion threshold",
+    since: "2026.10",
+  }),
+  "notifications.analysisReady": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["platform", "tenant"],
+    category: "notifications",
+    description: "Email the tenant's admins when an analysis has finished",
+    since: "2026.10",
+  }),
+  "notifications.specReady": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["platform", "tenant"],
+    category: "notifications",
+    description: "Email the tenant's admins when a specification version has been generated",
+    since: "2026.10",
+  }),
+  "branding.language": def({
+    schema: z.enum(["en", "fi"]),
+    default: "en",
+    scopes: ["platform", "tenant"],
+    category: "branding",
+    description: "Language of the emails sent to the tenant's admins",
+    since: "2026.10",
+  }),
+  "voice.enabled": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["tenant", "template"],
+    category: "voice",
+    description: "Voice answers for this template; a template cannot turn on what the tenant has turned off",
+    since: "2026.10",
+  }),
+  "ui.onboardingDismissed": def({
+    schema: z.boolean(),
+    default: false,
+    scopes: ["tenant"],
+    category: "ui",
+    description: "The getting-started card on the dashboard was dismissed",
+    since: "2026.10",
+  }),
+  // Tenant ceilings (D-188). The operator sets them; 0 means no ceiling. Campaign and session
+  // creation enforce the first two; all four feed the utilisation view and the 80 and 100 percent
+  // alerts.
+  "ceiling.maxActiveCampaigns": def({
+    schema: z.number().int().min(0).max(100000),
+    default: 20,
+    scopes: ["platform", "tenant"],
+    category: "ceiling",
+    description: "Most campaigns a tenant may have open or in draft at once; 0 is no ceiling",
+    operatorOnly: true,
+    since: "2026.10",
+  }),
+  "ceiling.maxSessionsPerMonth": def({
+    schema: z.number().int().min(0).max(10000000),
+    default: 1000,
+    scopes: ["platform", "tenant"],
+    category: "ceiling",
+    description: "Most interviews a tenant may start in a calendar month; 0 is no ceiling",
+    operatorOnly: true,
+    since: "2026.10",
+  }),
+  "ceiling.storageBytes": def({
+    schema: z.number().int().min(0),
+    default: 5 * 1024 * 1024 * 1024,
+    scopes: ["platform", "tenant"],
+    category: "ceiling",
+    description: "Bytes of files and recordings a tenant may keep; 0 is no ceiling",
+    operatorOnly: true,
+    since: "2026.10",
+  }),
+  "ceiling.voiceMinutes": def({
+    schema: z.number().int().min(0).max(10000000),
+    default: 600,
+    scopes: ["platform", "tenant"],
+    category: "ceiling",
+    description: "Minutes of voice a tenant may use in a calendar month; 0 is no ceiling",
+    operatorOnly: true,
+    since: "2026.10",
+  }),
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS;
@@ -657,6 +784,10 @@ export function settingKeysForScope(scope: SettingScope): SettingKey[] {
 
 export function isSecretSetting(key: SettingKey): boolean {
   return SETTINGS[key].secret === true;
+}
+
+export function isOperatorOnlySetting(key: SettingKey): boolean {
+  return (SETTINGS[key] as SettingDef).operatorOnly === true;
 }
 
 export function secretSettingKeys(): SettingKey[] {

@@ -1,6 +1,13 @@
 import { EgressBlockedError, SettingsService, type EgressGuard, type EmailPort } from "@aidp/core";
 import { withSystemTenant } from "@aidp/db";
-import { isSmtpUrl, maskSecretSettings, SECRET_SENTINEL, type SettingKey } from "@aidp/shared";
+import {
+  isOperatorOnlySetting,
+  isSmtpUrl,
+  maskSecretSettings,
+  SECRET_SENTINEL,
+  SETTINGS,
+  type SettingKey,
+} from "@aidp/shared";
 import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
@@ -14,6 +21,33 @@ export type SettingsScopeQuery = z.output<typeof SettingsScopeQuery>;
 
 export const TargetScopeQuery = z.object({ scope: z.enum(["template", "campaign", "tenant"]) });
 export type TargetScopeQuery = z.output<typeof TargetScopeQuery>;
+
+/** `GET /settings/history`: newest first, paged by the time of the last row seen. */
+export const SettingsHistoryQuery = z.object({
+  scope: z.enum(["platform", "tenant", "template", "campaign"]).optional(),
+  scopeId: z.string().optional(),
+  key: z
+    .string()
+    .regex(/^[a-zA-Z][a-zA-Z0-9.]*$/)
+    .max(80)
+    .optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  before: z.iso.datetime({ offset: true }).optional(),
+});
+export type SettingsHistoryQuery = z.output<typeof SettingsHistoryQuery>;
+
+export interface SettingsHistoryItem {
+  id: string;
+  at: string;
+  scope: string;
+  scopeId: string;
+  /** The template's or campaign's name, when the scope names one that still exists. */
+  scopeName: string | null;
+  actor: { id: string; name: string | null; email: string } | null;
+  /** Keys written in this save, and the subset that was reset to the inherited value. */
+  keys: string[];
+  cleared: string[];
+}
 
 export const EmailTestBody = z.object({ scope: z.enum(["tenant", "platform"]).default("tenant") });
 export type EmailTestBody = z.output<typeof EmailTestBody>;
@@ -186,6 +220,13 @@ export class SettingsAdminService {
     secrets: Described["secrets"];
   }> {
     const r = await this.resolveScope(caller, q, "write");
+    // A ceiling is a promise the operator makes about the platform: no tenant writes one, at any
+    // scope, whatever the form sends (D-188).
+    const operatorOnly = Object.keys(values).filter(
+      (k) => k in SETTINGS && isOperatorOnlySetting(k as SettingKey),
+    );
+    if (operatorOnly.length > 0 && !caller.operator)
+      throw forbidden(`Set by your platform operator: ${operatorOnly.join(", ")}`);
     await this.assertRelayAllowed(r.scope, values["email.smtpUrl"]);
     const written = await this.settings.set(r, values, caller.userId);
     const at = await this.settings.describeAt(r);
@@ -198,6 +239,91 @@ export class SettingsAdminService {
       diff: { keys: Object.keys(values), written, cleared: clearedKeys(values) },
     });
     return { ok: true as const, written, values: at.values, secrets: at.secrets };
+  }
+
+  /**
+   * Who changed which settings and when, from the audit log (D-182). The log records the keys
+   * and never a value, so this answers "what changed" and not "from what to what"; a secret's
+   * value cannot leak through it by construction. Platform changes are the operator's to see.
+   */
+  history(
+    caller: SettingsCaller,
+    q: SettingsHistoryQuery,
+  ): Promise<{ items: SettingsHistoryItem[]; next: string | null }> {
+    return this.asCaller(caller, () => this.historyAs(caller, q));
+  }
+
+  private async historyAs(
+    caller: SettingsCaller,
+    q: SettingsHistoryQuery,
+  ): Promise<{ items: SettingsHistoryItem[]; next: string | null }> {
+    const { companyId, operator } = caller;
+    if (q.scope === "platform" && !operator)
+      throw forbidden("Platform settings history requires the platform operator");
+    const rows = await this.db.auditLog.findMany({
+      where: {
+        companyId,
+        action: "settings.update",
+        ...(q.scope
+          ? { targetType: `settings:${q.scope}` }
+          : operator
+            ? {}
+            : { targetType: { not: "settings:platform" } }),
+        ...(q.scopeId ? { targetId: q.scopeId } : {}),
+        ...(q.key ? { diff: { path: ["keys"], array_contains: q.key } } : {}),
+        ...(q.before ? { createdAt: { lt: new Date(q.before) } } : {}),
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: q.limit + 1,
+    });
+    const page = rows.slice(0, q.limit);
+    const actorIds = [...new Set(page.map((r) => r.actorId).filter((id): id is string => id !== null))];
+    const templateIds = page.filter((r) => r.targetType === "settings:template").map((r) => r.targetId);
+    const campaignIds = page.filter((r) => r.targetType === "settings:campaign").map((r) => r.targetId);
+    const [actors, templates, campaigns] = await Promise.all([
+      actorIds.length
+        ? this.db.user.findMany({
+            where: { id: { in: actorIds }, companyId },
+            select: { id: true, name: true, email: true },
+          })
+        : [],
+      templateIds.length
+        ? this.db.interviewTemplate.findMany({
+            where: { id: { in: templateIds }, OR: [{ companyId }, { companyId: null }] },
+            select: { id: true, name: true, version: true },
+          })
+        : [],
+      campaignIds.length
+        ? this.db.campaign.findMany({
+            where: { id: { in: campaignIds }, companyId },
+            select: { id: true, name: true },
+          })
+        : [],
+    ]);
+    const actorOf = new Map(actors.map((a) => [a.id, a]));
+    const names = new Map<string, string>([
+      ...templates.map((t) => [t.id, `${t.name} v${t.version}`] as const),
+      ...campaigns.map((c) => [c.id, c.name] as const),
+    ]);
+    const strings = (v: unknown): string[] =>
+      Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+    const items = page.map((r): SettingsHistoryItem => {
+      const diff = (r.diff ?? {}) as { keys?: unknown; cleared?: unknown };
+      const a = r.actorId ? actorOf.get(r.actorId) : undefined;
+      const scope = r.targetType.replace(/^settings:/, "");
+      return {
+        id: r.id,
+        at: r.createdAt.toISOString(),
+        scope,
+        scopeId: r.targetId === "platform" ? "" : r.targetId,
+        scopeName: names.get(r.targetId) ?? null,
+        actor: a ? { id: a.id, name: a.name, email: a.email } : null,
+        keys: strings(diff.keys),
+        cleared: strings(diff.cleared),
+      };
+    });
+    const last = page[page.length - 1];
+    return { items, next: rows.length > q.limit && last ? last.createdAt.toISOString() : null };
   }
 
   /** Names for the scope pickers, so nobody types an id by hand (contract 19). */

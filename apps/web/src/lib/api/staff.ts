@@ -6,6 +6,7 @@ import type {
   PageInput,
   Path,
   Route,
+  TurnControl,
 } from "@aidp/shared";
 import { type z } from "zod";
 import { request, requestStream, type Transport } from "./http";
@@ -98,8 +99,17 @@ import {
   type TemplateDiff,
   type TemplateListItem,
   type TemplateRecord,
+  TenantCreatedSchema,
   TenantEnvelopeSchema,
   TenantPageSchema,
+  OnboardingSchema,
+  SettingsHistorySchema,
+  TemplateVersionsSchema,
+  type CeilingMetric,
+  type Onboarding,
+  type SettingsHistory,
+  type TemplateVersion,
+  type TenantCreated,
   type Tenant,
   UserPageSchema,
   type User,
@@ -165,7 +175,12 @@ export interface UserInput {
 export interface TenantInput {
   name: string;
   region?: string;
-  defaultBudgetCents?: number;
+  /** The first admin, who is invited by email (D-189). Required to create, never sent to update. */
+  adminEmail?: string;
+  monthlyBudgetCents?: number;
+  /** The language of the invitation and of the notices the tenant's admins receive. */
+  language?: "en" | "fi";
+  ceilings?: Partial<Record<CeilingMetric, number>>;
   status?: string;
 }
 
@@ -231,6 +246,17 @@ export function staffApi(transport: Transport): StaffApi {
         }),
       page: (q) => request(transport, { path: "/templates", query: { ...q }, schema: TemplatePageSchema }),
       get: (id) => request(transport, { path: `/templates/${id}`, schema: envelope(TemplateEnvelopeSchema) }),
+      versions: (id) =>
+        request(transport, { path: `/templates/${id}/versions`, schema: TemplateVersionsSchema }).then(
+          (r) => r.versions,
+        ),
+      restore: (id) =>
+        request(transport, {
+          method: "POST",
+          path: `/templates/${id}/restore`,
+          body: {},
+          schema: envelope(TemplateEnvelopeSchema),
+        }),
       create: (input, copyFromId) =>
         request(transport, {
           method: "POST",
@@ -297,6 +323,14 @@ export function staffApi(transport: Transport): StaffApi {
       get: (id) =>
         request(transport, { path: `/sessions/${id}`, schema: envelope(StaffSessionEnvelopeSchema) }),
       events: (id) => request(transport, { path: `/sessions/${id}/events`, schema: SessionEventListSchema }),
+      acknowledgeFlag: (id, note) =>
+        ok(
+          request(transport, {
+            method: "POST",
+            path: `/sessions/${id}/flag/ack`,
+            body: note ? { note } : {},
+          }),
+        ),
     },
 
     analyses: {
@@ -355,6 +389,8 @@ export function staffApi(transport: Transport): StaffApi {
           body: { scope: q.scope === "platform" ? "platform" : "tenant" },
           schema: EmailTestSchema,
         }),
+      history: (q = {}) =>
+        request(transport, { path: "/settings/history", query: { ...q }, schema: SettingsHistorySchema }),
       put: (q, values) =>
         ok(
           request(transport, {
@@ -365,6 +401,17 @@ export function staffApi(transport: Transport): StaffApi {
             schema: OkSchema,
           }),
         ),
+    },
+
+    onboarding: {
+      get: () => request(transport, { path: "/onboarding", schema: OnboardingSchema }),
+      dismiss: () =>
+        request(transport, {
+          method: "POST",
+          path: "/onboarding/dismiss",
+          body: {},
+          schema: OnboardingSchema,
+        }),
     },
 
     voice: {
@@ -462,6 +509,13 @@ export function staffApi(transport: Transport): StaffApi {
           ...(input ? { body: input } : {}),
           signal,
         }),
+      sendControl: (id, control, signal) =>
+        requestStream(transport, {
+          method: "POST",
+          path: `/requirements/${id}/turns`,
+          body: { control },
+          signal,
+        }),
       versions: {
         create: (id, label) =>
           request(transport, {
@@ -510,7 +564,7 @@ export function staffApi(transport: Transport): StaffApi {
             method: "POST",
             path: "/operator/tenants",
             body: input,
-            schema: envelope(TenantEnvelopeSchema),
+            schema: TenantCreatedSchema,
           }),
         update: (id, input) =>
           request(transport, {
@@ -624,6 +678,8 @@ export interface RequirementsApi {
   settleFinding(id: string, findingId: string, outcome: FindingOutcome, note?: string): Promise<LiveSpec>;
   /** Same SSE stream as the participant turn, plus `event: spec` after each turn. */
   sendTurn(id: string, input: TurnInput | undefined, signal?: AbortSignal): Promise<Response>;
+  /** "I'm done" and the other participant controls, as a state operation rather than a message (D-170). */
+  sendControl(id: string, control: TurnControl, signal?: AbortSignal): Promise<Response>;
   versions: {
     create(id: string, label?: string): Promise<SpecVersionSummary>;
     list(id: string): Promise<SpecVersionSummary[]>;
@@ -658,6 +714,10 @@ export interface StaffApi {
     archive(id: string): Promise<void>;
     diffShipped(id: string): Promise<TemplateDiff>;
     preview(id: string): Promise<{ participantToken: string; sessionId: string }>;
+    /** Every version of the template's key, newest first (FR-62). */
+    versions(id: string): Promise<TemplateVersion[]>;
+    /** A new version with the content of version `id`; history is never rewritten (D-183). */
+    restore(id: string): Promise<TemplateRecord>;
   };
   campaigns: {
     list(q?: CampaignListQuery): Promise<Paged<Campaign>>;
@@ -675,6 +735,8 @@ export interface StaffApi {
   sessions: {
     get(id: string): Promise<StaffSession>;
     events(id: string): Promise<SessionEvent[]>;
+    /** A person has looked at a flagged interview; audited, and idempotent. */
+    acknowledgeFlag(id: string, note?: string): Promise<void>;
   };
   /** Contract 17: analysis runs are versioned per campaign. */
   analyses: {
@@ -695,6 +757,19 @@ export interface StaffApi {
     scopes(scope: ScopeKind): Promise<ScopeTarget[]>;
     /** Sends a test message with the configuration in effect for the scope. */
     emailTest(q: SettingsQuery): Promise<EmailTest>;
+    /** Who changed which keys and when, newest first (D-182). */
+    history(q?: {
+      scope?: string;
+      scopeId?: string;
+      key?: string;
+      limit?: number;
+      before?: string;
+    }): Promise<SettingsHistory>;
+  };
+  /** The getting-started checklist (D-189). */
+  onboarding: {
+    get(): Promise<Onboarding>;
+    dismiss(): Promise<Onboarding>;
   };
   providers: ProvidersApi;
   routes: RoutesApi;
@@ -719,7 +794,7 @@ export interface StaffApi {
   operator: {
     tenants: {
       list(q?: TenantListQuery): Promise<Paged<Tenant>>;
-      create(input: TenantInput): Promise<Tenant>;
+      create(input: TenantInput): Promise<TenantCreated>;
       update(id: string, input: Partial<TenantInput>): Promise<Tenant>;
     };
     providers: ProvidersApi;

@@ -61,11 +61,17 @@ unresolved alert is sent again, the hourly ceiling, and the disk, provider and b
 
 ### What a tenant is sent
 
-Only budget notices, and only to that tenant's own admins (or the list in
-`notifications.recipients`): at 80 and 90 percent of a budget, and when it is used up. A tenant can
-switch its warnings off (`notifications.budgetWarnings`) and cannot switch off the exhaustion
-notice. Nothing else is ever mailed to a tenant admin, and an alert for one tenant is never sent to
-another's: the router resolves recipients from the alert's own `companyId`, and a kind the catalog
+Budget notices (at 80 and 90 percent of a budget, and when it is used up), three notices about
+the tenant's own work (a campaign reached its completion threshold, an analysis is ready, a
+specification version was generated), and the ceiling notices (a limit the operator set is at 80
+percent or reached), and the notice that an interview was flagged for hostility or distress
+(`session.flagged`, ids only). They go to that tenant's own admins, or the list in `notifications.recipients`,
+in the language `branding.language` names (English or Finnish). A tenant can switch off the budget
+warning and each of the three work notices (`notifications.budgetWarnings`,
+`notifications.campaignThreshold`, `notifications.analysisReady`, `notifications.specReady`) and
+cannot switch off the exhaustion or ceiling notices. The three work notices are one mail per event:
+their key is the id of the campaign, analysis or version. Nothing else is ever mailed to a tenant
+admin, and an alert for one tenant is never sent to another's: the router resolves recipients from the alert's own `companyId`, and a kind the catalog
 does not list for tenants cannot be addressed to them (`packages/core/test/alerts.test.ts`).
 
 An alert never carries a transcript, an answer, a participant's address or an error message: ids,
@@ -105,6 +111,86 @@ deliberately no "fall back to a cheaper model" (D-91): the money is the tenant's
 
 **Fixed when** The participant's next turn succeeds. The alert resolves itself when a new month
 starts a new key.
+
+### campaign.threshold
+
+**Symptom** A tenant's campaign has enough completed interviews (`campaign.completionThreshold`
+or the percentage rule) and its analysis was queued. Tenant admins only; you are not told.
+
+**Look at** Nothing, unless the tenant says the mail did not arrive: Operator → Jobs for
+`analysis.run`, and Settings → Notifications for the tenant's recipients.
+
+**Do** Nothing. A tenant that sees none of these mails has switched
+`notifications.campaignThreshold` off or has no admin with an address.
+
+**Fixed when** There is nothing to fix; one campaign sends one of these, ever.
+
+### analysis.ready
+
+**Symptom** An analysis finished. Tenant admins only.
+
+**Look at** The campaign's results page (the link in the mail). If a tenant says an analysis
+finished and no mail came: the `analysis.run` job's log line "analysis done", then the tenant's
+`notifications.analysisReady` and `notifications.recipients`.
+
+**Do** Nothing.
+
+**Fixed when** One mail per analysis id; a re-run is a new analysis and a new mail.
+
+### spec.ready
+
+**Symptom** A specification version was generated (`spec.generate`). Tenant admins only.
+
+**Look at** The version's page (the link in the mail), and Operator → Jobs for `spec.generate`.
+
+**Do** Nothing.
+
+**Fixed when** One mail per version id.
+
+### ceiling.warning
+
+**Symptom** A tenant is at 80 percent of one of its ceilings (`ceiling.maxActiveCampaigns`,
+`ceiling.maxSessionsPerMonth`, `ceiling.storageBytes`, `ceiling.voiceMinutes`). Interviews and
+campaigns are still accepted. You and the tenant's admins are told.
+
+**Look at** Operator → Tenants, the utilisation column for that tenant.
+
+**Do** Nothing is required. If the tenant is growing as planned, raise the ceiling (Settings, the
+tenant scope, category Ceiling; only the platform operator can write these keys).
+
+**Fixed when** Usage falls under the line or the ceiling is raised; the next crossing is a new
+alert. Monthly ceilings start a new key each month.
+
+### ceiling.reached
+
+**Symptom** A tenant used up a ceiling. Creating a campaign (`maxActiveCampaigns`) or starting an
+interview (`maxSessionsPerMonth`) is refused with `limit_reached` until the ceiling is raised or the
+month ends. Storage and voice minutes are reported but not yet refused. You and the tenant's admins
+are told.
+
+**Look at** Operator → Tenants, the utilisation column; the tenant's campaigns if the ceiling is
+the active campaign count (a closed or archived campaign frees a place).
+
+**Do** Raise the ceiling for the tenant, or tell them to close finished campaigns.
+
+**Fixed when** The ceiling is raised or usage falls under it.
+
+### session.flagged
+
+**Symptom** The interviewer flagged an interview for hostility or distress. Sent only to the
+tenant's own admins (or `notifications.recipients`), never to the operator and never with what was
+said: the notice carries a session id and a campaign id. The interview itself carries on gently.
+
+**Look at** The campaign's interviews list, filtered on flagged (Admin, Campaigns, the campaign,
+Interviews). The reason is on the interview page and is shown only to someone who may read
+transcripts (`privacy.rawTranscriptsVisibleTo`).
+
+**Do** Nothing on the platform side. The tenant's admin reads it, decides whether anyone needs a
+call, and presses Acknowledge, which is audited (`session.flag.ack`). If a tenant says they never
+got one, check that the address is an admin of that tenant or listed in `notifications.recipients`.
+
+**Fixed when** An admin acknowledges the interview. The notice repeats at most once a day per
+interview.
 
 ### job.dead_lettered
 
@@ -481,8 +567,10 @@ meant.
 
 Migrations here only add (a nullable column, a table, an index); a drop or rename ships one release
 after the code stopped reading the old shape. That is what lets the previous code run against the
-newer schema, so rolling back is a tag switch. A migration that does not follow this says so in its
-header, and that release needs the dump.
+newer schema, so rolling back is a tag switch. A migration that does not follow this carries a
+`-- migration-policy: allow-destructive <reason>` line, and that release needs the dump. The policy
+and the gate that enforces it (`scripts/check-migrations.mjs`, in `pnpm check`) are in
+[`MIGRATIONS.md`](MIGRATIONS.md).
 
 ## Provider timeouts and retries
 

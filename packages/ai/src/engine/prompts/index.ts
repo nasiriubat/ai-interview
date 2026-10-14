@@ -7,6 +7,7 @@ import { issuesPromptV3 } from "../../spec/prompts/issues.v3.js";
 import { specPromptV2 } from "../../spec/prompts/spec.v2.js";
 import { extractionPromptV2 } from "./extraction.v2.js";
 import { interviewerPromptV5 } from "./interviewer.v5.js";
+import { recapPromptV1 } from "./recap.v1.js";
 import { summaryPromptV2 } from "./summary.v2.js";
 import { turnMetaRepairPromptV1 } from "./turn-meta-repair.v1.js";
 
@@ -20,6 +21,7 @@ export interface PromptDefinition {
 export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
   interviewer: interviewerPromptV5,
   summary: summaryPromptV2,
+  recap: recapPromptV1,
   turn_meta_repair: turnMetaRepairPromptV1,
   extraction: extractionPromptV2,
   clustering: clusteringPromptV2,

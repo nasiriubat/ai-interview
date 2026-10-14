@@ -31,10 +31,13 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
   const sp = await searchParams;
   const requested = typeof sp.version === "string" ? sp.version : undefined;
   const api = await staffServer();
-  const [campaignR, analysesR, settingsR] = await Promise.allSettled([
+  const [campaignR, analysesR, settingsR, tenantR] = await Promise.allSettled([
     api.campaigns.get(id),
     api.analyses.list(id),
     api.settings.get({ scope: "campaign", scopeId: id }),
+    // `features.chaining` lives at the organization level; a member who cannot read settings
+    // sees the action, and the API's refusal explains it.
+    api.settings.get({ scope: "tenant" }),
   ]);
   if (campaignR.status === "rejected") {
     if (isApiError(campaignR.reason) && campaignR.reason.isNotFound) notFound();
@@ -90,6 +93,7 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
         detail={detail}
         initialPreset={isWeightsPreset(rawPreset) ? rawPreset : "balanced"}
         initialWeights={parseWeights(values["analysis.weights"])}
+        canPromote={settled(tenantR).data?.effective?.["features.chaining"] !== false}
       />
     </>
   );

@@ -218,6 +218,11 @@ export const SessionCapabilitiesSchema = z.looseObject({
   /** Whether the live cascade sends `caption` frames. Without them nothing the participant says reaches this client. */
   captions: z.boolean().default(true),
   fileUpload: z.boolean().default(true),
+  /**
+   * Off hides the "options" answer mode (`features.optionsView`, D-187). Optional rather than
+   * defaulted so existing fixtures and an older API read as "on" without every caller listing it.
+   */
+  optionsView: z.boolean().optional(),
   maxSizeMb: z.number().positive().default(DEFAULT_MAX_SIZE_MB),
   allowedTypes: z.array(z.string()).default([...DEFAULT_ALLOWED_TYPES]),
 });
@@ -235,9 +240,23 @@ export const ParticipantSessionSchema = z.looseObject({
   /** The session's attachments, so the first render needs no second request. */
   attachments: z.array(AttachmentSchema).default([]),
   summary: z.string().nullish(),
+  /**
+   * Two sentences on where the participant left off, written by the API when they have been away
+   * (spec 06). Not a message: it is shown in a banner and never enters the transcript.
+   */
+  recap: z
+    .looseObject({ text: z.string().min(1), source: z.enum(["model", "fallback"]).catch("fallback") })
+    .nullish(),
 });
 export type ParticipantSession = z.infer<typeof ParticipantSessionSchema>;
 export const ParticipantSessionEnvelopeSchema = z.looseObject({ session: ParticipantSessionSchema });
+
+/** `DELETE /p/session`: whether a confirmation email was queued (only identified participants have one). */
+export const DeleteResultSchema = z.looseObject({
+  ok: z.literal(true),
+  emailSent: z.boolean().default(false),
+});
+export type DeleteResult = z.infer<typeof DeleteResultSchema>;
 
 export const SummarySchema = z.looseObject({
   summary: z.string().default(""),
@@ -299,6 +318,22 @@ export const TemplateEnvelopeSchema = z.preprocess(
   (raw) => (raw && typeof raw === "object" && "template" in raw ? raw.template : raw),
   TemplateRecordSchema,
 );
+
+/** One version of a template key (FR-62, D-183). */
+export const TemplateVersionSchema = z.looseObject({
+  id: z.string(),
+  version: z.number().int(),
+  status: TemplateStatusSchema.catch("draft"),
+  createdAt: iso.nullish(),
+  createdBy: z.looseObject({ id: z.string(), name: z.string().nullish(), email: z.string() }).nullish(),
+  changedFields: z.array(z.string()).default([]),
+  campaigns: z.number().int().default(0),
+  latest: z.boolean().default(false),
+});
+export type TemplateVersion = z.infer<typeof TemplateVersionSchema>;
+export const TemplateVersionsSchema = z.looseObject({
+  versions: z.array(TemplateVersionSchema).default([]),
+});
 
 export const TemplateDiffSchema = z.looseObject({
   shipped: z.unknown().nullish(),
@@ -372,6 +407,9 @@ export const SessionListItemSchema = z.looseObject({
   updatedAt: iso.nullish(),
   /** The last write to the session; the `lastActivity` sort. */
   lastActivityAt: iso.nullish(),
+  /** The engine flagged the interview for hostility or distress (D-173). The reason is only on the detail. */
+  flagged: z.boolean().default(false),
+  flagAckedAt: iso.nullish(),
 });
 export type SessionListItem = z.infer<typeof SessionListItemSchema>;
 export const SessionPageSchema = pagedOf(SessionListItemSchema, "sessions");
@@ -388,6 +426,11 @@ export const StaffSessionSchema = z.looseObject({
   state: z.unknown().nullish(),
   createdAt: iso.nullish(),
   updatedAt: iso.nullish(),
+  flagged: z.boolean().default(false),
+  flaggedAt: iso.nullish(),
+  flagAckedAt: iso.nullish(),
+  /** Null unless the viewer may read the transcript the reason was written from. */
+  flagReason: z.string().nullish(),
 });
 export type StaffSession = z.infer<typeof StaffSessionSchema>;
 export const StaffSessionEnvelopeSchema = z.preprocess(
@@ -413,6 +456,10 @@ export const SettingsCatalogEntrySchema = z.looseObject({
   scopes: z.array(z.string()).default([]),
   /** Contract 19: a secret never leaves the API in plain text. */
   secret: z.boolean().nullish(),
+  /** The release the key first shipped in (D-180); null for a key from before tracking. */
+  since: z.string().nullish(),
+  /** Written only by the platform operator; a tenant admin sees it read-only (D-188). */
+  operatorOnly: z.boolean().nullish(),
 });
 export type SettingsCatalogEntry = z.infer<typeof SettingsCatalogEntrySchema>;
 export const SettingsResponseSchema = z.looseObject({
@@ -426,6 +473,24 @@ export const SettingsResponseSchema = z.looseObject({
   sources: z.record(z.string(), z.string()).nullish(),
 });
 export type SettingsResponse = z.infer<typeof SettingsResponseSchema>;
+
+/** One saved batch of settings, from the audit log: keys only, never a value (D-182). */
+export const SettingsHistoryItemSchema = z.looseObject({
+  id: z.string(),
+  at: iso,
+  scope: z.string(),
+  scopeId: z.string().default(""),
+  scopeName: z.string().nullish(),
+  actor: z.looseObject({ id: z.string(), name: z.string().nullish(), email: z.string() }).nullish(),
+  keys: z.array(z.string()).default([]),
+  cleared: z.array(z.string()).default([]),
+});
+export type SettingsHistoryItem = z.infer<typeof SettingsHistoryItemSchema>;
+export const SettingsHistorySchema = z.looseObject({
+  items: z.array(SettingsHistoryItemSchema).default([]),
+  next: z.string().nullish(),
+});
+export type SettingsHistory = z.infer<typeof SettingsHistorySchema>;
 
 /** The sentinel `PUT /settings` reads as "leave this secret as it is" (contract 19). */
 export const SECRET_UNCHANGED = "__unchanged__";
@@ -607,15 +672,63 @@ export const AuditEntrySchema = z.looseObject({
 export type AuditEntry = z.infer<typeof AuditEntrySchema>;
 export const AuditPageSchema = pagedOf(AuditEntrySchema, "audit");
 
+export const CEILING_METRICS = [
+  "maxActiveCampaigns",
+  "maxSessionsPerMonth",
+  "storageBytes",
+  "voiceMinutes",
+] as const;
+export type CeilingMetric = (typeof CEILING_METRICS)[number];
+
+/** What one ceiling allows and how much of it is used (D-188). `max` 0 is no ceiling. */
+export const CeilingUtilisationSchema = z.looseObject({
+  metric: z.string(),
+  used: z.number().default(0),
+  max: z.number().default(0),
+  percent: z.number().nullish(),
+});
+export type CeilingUtilisation = z.infer<typeof CeilingUtilisationSchema>;
+
+/** The getting-started checklist, derived by the API from what the tenant has (D-189). */
+export const ONBOARDING_STEP_KEYS = ["provider", "template", "campaign", "invite"] as const;
+export type OnboardingStepKey = (typeof ONBOARDING_STEP_KEYS)[number];
+export const OnboardingSchema = z.looseObject({
+  steps: z
+    .array(
+      z.looseObject({
+        key: z.string(),
+        done: z.boolean().default(false),
+        source: z.string().nullish(),
+      }),
+    )
+    .default([]),
+  done: z.number().default(0),
+  total: z.number().default(0),
+  complete: z.boolean().default(false),
+  dismissed: z.boolean().default(false),
+  next: z.string().nullish(),
+});
+export type Onboarding = z.infer<typeof OnboardingSchema>;
+
 export const TenantSchema = z.looseObject({
   id: z.string(),
   name: z.string(),
   status: z.string().nullish(),
   region: z.string().nullish(),
+  /** The API's field; `defaultBudgetCents` is what an older client read and is kept as a fallback. */
+  monthlyBudgetCents: z.number().nullish(),
   defaultBudgetCents: z.number().nullish(),
   createdAt: iso.nullish(),
+  utilisation: z.array(CeilingUtilisationSchema).default([]),
+  onboarding: OnboardingSchema.nullish(),
 });
 export type Tenant = z.infer<typeof TenantSchema>;
+/** `POST /operator/tenants`: the tenant, and who was invited with it. */
+export const TenantCreatedSchema = z.looseObject({
+  tenant: TenantSchema,
+  invitation: z.looseObject({ to: z.string(), language: z.string() }).nullish(),
+});
+export type TenantCreated = z.infer<typeof TenantCreatedSchema>;
 export const TenantPageSchema = pagedOf(TenantSchema, "tenants");
 export const TenantEnvelopeSchema = z.preprocess(
   (raw) => (raw && typeof raw === "object" && "tenant" in raw ? raw.tenant : raw),

@@ -71,7 +71,7 @@ describe("requirementsSessionApi", () => {
     expect(session.progress.areas[0]?.status).toBe("partial");
 
     await api.setPath("nontechnical");
-    await api.complete();
+    await api.sendControl({ type: "finish" });
     await api.pause();
     await api.setMode("options");
     const res = await api.sendTurn({ content: "Hi", modality: "text" });
@@ -81,11 +81,13 @@ describe("requirementsSessionApi", () => {
     expect(calls.map((c) => [c.method, c.path])).toEqual([
       ["GET", "/requirements/s1"],
       ["POST", "/requirements/s1/path"],
-      ["POST", "/requirements/s1/complete"],
+      ["POST", "/requirements/s1/turns"],
       ["POST", "/requirements/s1/turns"],
       ["POST", "/requirements/s1/turns"],
     ]);
     expect(calls[1]?.body).toEqual({ path: "nontechnical" });
+    // "I'm done" is a control on the turn request, not a message and not a second endpoint.
+    expect(calls[2]?.body).toEqual({ control: { type: "finish" } });
     expect(calls[3]?.body).toEqual({ content: "Hi", modality: "text" });
     expect(calls[4]?.body).toBeUndefined();
   });

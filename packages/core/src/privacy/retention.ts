@@ -297,6 +297,12 @@ export async function eraseSession(
           invitations: [],
           participantId: null,
           turnLockedAt: null,
+          // The flag's reason is model prose about a person; it goes with what it was written from.
+          flagged: false,
+          flagReason: null,
+          flaggedAt: null,
+          flagAckedAt: null,
+          flagAckedBy: null,
           // The sweep leaves `endedAt` alone: it is what the expiry is measured from.
           ...(options.markEnded ? { endedAt: new Date() } : {}),
         },

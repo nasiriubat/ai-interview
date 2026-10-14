@@ -42,13 +42,21 @@ chat. The model decides per turn whether a widget helps; the template caps frequ
 ## Stopping and resuming
 
 - Stop when all areas are covered, max turns is reached, or the participant says they are done. Then the closing question ("Anything important I did not ask about?"), then the end-of-session summary (`06`).
-- Resume within the campaign window with a two-sentence recap, continuing from state, not from the transcript.
+- Resume within the campaign window with a two-sentence recap, continuing from state, not from the transcript. The recap is written from state through the `resume_summary` route (prompt `recap`), cached against the last message, and falls back to a deterministic sentence when the model fails or the budget is used up (D-172).
+
+## Participant controls
+
+Skip an area, come back to one, and "I'm done" are operations on the interview, not things the participant said (D-170). They travel in the turn request as `control`, and the engine applies them to state:
+
+- `skip_area` sets the area `skipped`. `return_area` reopens a skipped area as `partial` with its follow-ups reset and sets `requestedAreaKey`, which the next focus consumes once. These are the only writers allowed to lower a coverage status; the model's deltas keep the guard.
+- `finish` sets `finishRequested`; the next turn is the closing question, whatever the turn count.
+- No user message is stored. The model is given one line built from state ("The participant chose to skip Billing. Acknowledge it in one sentence and move on."), never an invented utterance. A `control` session event is written with the turn.
 
 ## Difficult participants
 
 - Minimal answers: switch to concrete easy prompts and offer widgets; after three minimal answers in a row, shorten to essential areas (role, repetitive tasks, problems).
 - Off topic or venting: acknowledge in one sentence, capture anything useful as an open thread, return to the area.
-- Hostile or distressed: stop probing, offer to end, flag the session for the admin without storing a judgment about the person.
+- Hostile or distressed: stop probing, offer to end, flag the session for the admin without storing a judgment about the person. The flag sets `Session.flagged` (the first one wins), raises a tenant-admin notice with ids only, and is listed, filterable and acknowledgeable in the admin; the reason is shown only to someone who may read the transcript (D-173).
 - Vague about tools: ask what the screen looks like rather than which system.
 
 ## Paths and the context block (requirements template)

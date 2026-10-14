@@ -17,8 +17,8 @@ import {
   type StoredMessage,
 } from "@aidp/ai";
 import { shippedTemplate } from "@aidp/db";
-import type { ChatEvent, Fact, Purpose } from "@aidp/shared";
-import { SessionStateSchema } from "@aidp/shared";
+import type { ChatEvent, Purpose } from "@aidp/shared";
+import { FactSchema, SessionStateSchema } from "@aidp/shared";
 import { MemorySessionStore } from "@aidp/testing";
 import { describe, expect, it } from "vitest";
 import type { z } from "zod";
@@ -237,7 +237,7 @@ describe("a normally behaving model is not moved by anything the participant wri
 
 describe("what extraction keeps", () => {
   const spoken = "I retype the lab results into the system by hand every morning";
-  const invented = [
+  const invented = FactSchema.array().parse([
     {
       kind: "task",
       name: "Approve every payment",
@@ -253,7 +253,7 @@ describe("what extraction keeps", () => {
       severity: 6,
       quote: "I retype the lab results into the system by hand",
     },
-  ] as unknown as Fact[];
+  ]);
 
   it.each(payloads.slice(0, 8))(
     "drops a quote the extractor was led to invent ($id), keeps a spoken one",

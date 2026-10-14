@@ -2,9 +2,11 @@ import { tenantTransaction } from "@aidp/db";
 import {
   SECRET_SENTINEL,
   SETTINGS,
+  isOperatorOnlySetting,
   isSecretSetting,
   parseSetting,
   settingDefault,
+  type SettingDef,
   type SettingKey,
   type SettingScope,
   type SettingValue,
@@ -84,6 +86,55 @@ export class SettingsService {
       out[key] = resolved;
     }
     return out;
+  }
+
+  /**
+   * Every value a key has anywhere in the chain (and the platform), most specific first. For a
+   * switch that is an AND across scopes rather than "most specific wins": a template cannot turn
+   * on what the tenant has turned off (D-186). An empty list means nobody set it.
+   */
+  async valuesAcrossScopes(key: SettingKey, chain: SettingScopeRef[]): Promise<unknown[]> {
+    const withPlatform = [
+      ...chain.filter((c) => c.scope !== "platform"),
+      { scope: "platform" as const, scopeId: "" },
+    ];
+    const rows = await this.db.setting.findMany({
+      where: { key, OR: withPlatform.map((c) => ({ scope: c.scope, scopeId: c.scopeId })) },
+    });
+    const out: unknown[] = [];
+    for (const ref of withPlatform) {
+      const row = rows.find((r) => r.scope === ref.scope && r.scopeId === ref.scopeId);
+      if (!row || !SETTINGS[key].scopes.includes(ref.scope)) continue;
+      const raw = this.readStored(key, row.value, ref);
+      if (raw !== undefined) out.push(parseSetting(key, raw));
+    }
+    return out;
+  }
+
+  /**
+   * Copies every setting held at one template version to the next, so a template edit or a
+   * restore does not orphan them (settings are keyed by the row id, and a version is a new row).
+   * Runs in the caller's transaction. Rows already present at the target are left alone.
+   */
+  async copyTemplateSettings(
+    tx: Pick<PrismaClient, "setting">,
+    fromTemplateId: string,
+    toTemplateId: string,
+    changedBy: string | null,
+  ): Promise<number> {
+    const rows = await tx.setting.findMany({ where: { scope: "template", scopeId: fromTemplateId } });
+    if (rows.length === 0) return 0;
+    const res = await tx.setting.createMany({
+      data: rows.map((r) => ({
+        scope: "template",
+        scopeId: toTemplateId,
+        key: r.key,
+        value: r.value as object,
+        changedBy,
+      })),
+      skipDuplicates: true,
+    });
+    return res.count;
   }
 
   /**
@@ -178,6 +229,8 @@ export class SettingsService {
     scopes: readonly SettingScope[];
     default: unknown;
     secret: boolean;
+    since: string | null;
+    operatorOnly: boolean;
   }[] {
     return (Object.keys(SETTINGS) as SettingKey[]).map((key) => ({
       key,
@@ -186,6 +239,8 @@ export class SettingsService {
       scopes: SETTINGS[key].scopes,
       default: SETTINGS[key].default,
       secret: isSecretSetting(key),
+      since: (SETTINGS[key] as SettingDef).since ?? null,
+      operatorOnly: isOperatorOnlySetting(key),
     }));
   }
 }

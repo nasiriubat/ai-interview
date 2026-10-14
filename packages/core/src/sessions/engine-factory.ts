@@ -43,6 +43,7 @@ export class EngineFactory {
         "requirements.aggressivenessTechnical",
         "requirements.aggressivenessNontechnical",
         "requirements.mvpChallenge",
+        "features.optionsView",
       ],
       chain,
     );
@@ -62,7 +63,9 @@ export class EngineFactory {
         mvpChallenge: values["requirements.mvpChallenge"] as RequirementsSettings["mvpChallenge"],
       },
     };
-    const store = new PrismaSessionStore(this.db);
+    const store = new PrismaSessionStore(this.db, {
+      widgets: values["features.optionsView"] !== false,
+    });
     const caller = await this.callers.forCompany(companyId);
     // One recall source over two corpora: the participant's own earlier words, and whatever they
     // attached. The engine asks for passages relevant to the current topic and does not need to

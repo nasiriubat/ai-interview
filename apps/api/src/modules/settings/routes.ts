@@ -3,7 +3,13 @@ import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
-import { EmailTestBody, SettingsScopeQuery, TargetScopeQuery, type SettingsCaller } from "./service.js";
+import {
+  EmailTestBody,
+  SettingsHistoryQuery,
+  SettingsScopeQuery,
+  TargetScopeQuery,
+  type SettingsCaller,
+} from "./service.js";
 
 export async function settingsRoutes(app: App, ctx: RouteContext): Promise<void> {
   const settings = ctx.services.settingsAdmin;
@@ -33,6 +39,13 @@ export async function settingsRoutes(app: App, ctx: RouteContext): Promise<void>
       },
     },
     async (req) => settings.write(callerOf(req), req.query, req.body.values),
+  );
+
+  /** Who changed which keys, when (D-182). Keys only: the audit log never holds a value. */
+  app.get(
+    "/settings/history",
+    { ...guard.admin(), schema: { querystring: SettingsHistoryQuery } },
+    async (req) => settings.history(callerOf(req), req.query),
   );
 
   /** Names for the scope pickers, so nobody types an id by hand (contract 19). */

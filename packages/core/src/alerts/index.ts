@@ -6,3 +6,4 @@ export * from "./email-alerts.js";
 export * from "./webhook-alerts.js";
 export * from "./router.js";
 export * from "./budget-alerts.js";
+export * from "./tenant-notices.js";
