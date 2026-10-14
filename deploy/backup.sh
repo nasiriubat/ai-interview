@@ -77,7 +77,19 @@ verify_dump() {
 	local file=$1 id
 	[ -n "$BACKUP_AGE_IDENTITY" ] || { log "no BACKUP_AGE_IDENTITY: written but not verified"; return 0; }
 	id=$(identity_file)
-	if age -d -i "$id" <"$file" | pg_restore --list >/dev/null 2>&1; then
+	# `pg_restore --list` reads a pipe up to the end of the table of contents and exits. Left like
+	# that, `age` is killed by SIGPIPE (status 141) the moment it has more to write than a pipe
+	# holds, about 64 KB, and under pipefail that reads as "did not decrypt": every backup past the
+	# first few days of a real database failed its own verification (found by the full-stack drill,
+	# at a 400 KB dump). The rest of the stream is drained, which also makes this check stronger:
+	# age authenticates the whole file, so a truncated or corrupted tail is now caught here too.
+	if age -d -i "$id" <"$file" |
+		{
+			pg_restore --list >/dev/null 2>&1
+			listed=$?
+			cat >/dev/null
+			exit "$listed"
+		}; then
 		rm -f "$id"
 		return 0
 	fi
