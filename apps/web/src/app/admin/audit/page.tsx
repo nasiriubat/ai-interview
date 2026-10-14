@@ -13,7 +13,7 @@ import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { isFiltered } from "@/lib/admin/toolbar";
-import { LISTS } from "@/lib/api/lists";
+import { LISTS, sortOf } from "@/lib/api/lists";
 import type { AuditEntry } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
 import { formatDate } from "@/lib/utils";
@@ -68,7 +68,7 @@ export default async function AuditPage({ searchParams }: Props): Promise<React.
       <PageHeader title={s.title} subtitle={s.subtitle} />
       <ListToolbar
         searchLabel={t.admin.list.searchAudit}
-        sort={{ list: LISTS.audit, labels: t.admin.list.fields }}
+        sort={{ list: sortOf(LISTS.audit), labels: t.admin.list.fields }}
       />
       <form className="mb-6 flex flex-wrap items-end gap-3" method="get">
         {/* A GET form sends only its own fields; carry the search and sort across a date change. */}

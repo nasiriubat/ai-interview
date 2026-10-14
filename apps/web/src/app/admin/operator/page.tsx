@@ -10,7 +10,7 @@ import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { statusFilter } from "@/lib/admin/toolbar";
-import { LISTS } from "@/lib/api/lists";
+import { LISTS, sortOf } from "@/lib/api/lists";
 import { staffServer } from "@/lib/api/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,7 +35,7 @@ export default async function TenantsPage({ searchParams }: Props): Promise<Reac
       <ListToolbar
         searchLabel={t.admin.list.searchTenants}
         filters={[statusFilter(LISTS.tenants)]}
-        sort={{ list: LISTS.tenants, labels: t.admin.list.fields }}
+        sort={{ list: sortOf(LISTS.tenants), labels: t.admin.list.fields }}
       />
       {tenants.data ? (
         <>

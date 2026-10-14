@@ -75,7 +75,7 @@ Each boundary lists the threats considered (STRIDE), the control, and the test o
 | Threat                                               | Control                                                                                                                                                                                                                  | Evidence                                                                       |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
 | Script injection (XSS), including from model output  | A per-request nonce CSP with `strict-dynamic`, no `unsafe-inline` for scripts, no remote image or connect host, **enforced** in production (`CSP_MODE`, D-264); report Markdown drops images and non-https links (D-165) | `csp.test.ts`; Playwright `axe.spec.ts` fails on any `securitypolicyviolation` |
-| Cookie theft, fixation, planting from a sibling host | Participant credential is `HttpOnly`, `SameSite=Lax`, `Secure`, and `__Host-` prefixed in production (D-263); staff sessions are Auth.js JWTs, 8-hour sessions are an open item (see verification)                       | `participant-cookie.test.ts` (web and API)                                     |
+| Cookie theft, fixation, planting from a sibling host | Participant credential is `HttpOnly`, `SameSite=Lax`, `Secure`, and `__Host-` prefixed in production (D-263); staff sessions are Auth.js JWTs that last eight hours (D-265)                                              | `participant-cookie.test.ts` (web and API)                                     |
 | Cross-site request forgery on the proxy              | Same-site check on state-changing proxy calls; Lax cookies                                                                                                                                                               | `proxy.test.ts`                                                                |
 | Header injection through the proxy                   | Only an allow-list of request headers is forwarded; hop-by-hop headers are dropped                                                                                                                                       | `proxy.test.ts`; verification probe                                            |
 
@@ -148,7 +148,7 @@ State these to a customer plainly.
   stop a script, not a botnet.
 - **Phishing and mailbox compromise of staff.** Sign-in is a magic link or Google. There is no
   platform-enforced second factor; a staff member whose mailbox is taken is a staff member who is
-  signed in. The 30-day session lifetime is an open item in the verification report.
+  signed in. A copied session cookie works until it expires (eight hours), or until an admin disables the user, which is immediate.
 - **Anonymity against a very small group.** k-anonymity hides quotes, roles and departments below a
   threshold, but a campaign of three people about one ward is identifiable by its content. The
   consent text says so.
