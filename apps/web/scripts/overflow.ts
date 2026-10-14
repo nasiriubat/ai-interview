@@ -13,7 +13,7 @@ const out = await page.evaluate(() => {
     .filter((e) => !bad.includes(e.parentElement as Element))
     .map(
       (e) =>
-        `${e.tagName.toLowerCase()}#${e.id}.${String(e.className).slice(0, 80)} w=${String(Math.round(e.getBoundingClientRect().width))} parent=${e.parentElement?.tagName.toLowerCase() ?? ""}.${String(e.parentElement?.className).slice(0, 60)} pw=${String(Math.round(e.parentElement?.getBoundingClientRect().width ?? 0))}`,
+        `${e.tagName.toLowerCase()}#${e.id}.${e.className.slice(0, 80)} w=${String(Math.round(e.getBoundingClientRect().width))} parent=${e.parentElement?.tagName.toLowerCase() ?? ""}.${(e.parentElement?.className ?? "").slice(0, 60)} pw=${String(Math.round(e.parentElement?.getBoundingClientRect().width ?? 0))}`,
     );
 });
 console.warn(

@@ -94,7 +94,7 @@ export function UiGallery(): React.JSX.Element {
   const [confirm, setConfirm] = React.useState<"plain" | "typed" | null>(null);
   const form = useForm({
     id: "gallery",
-    initial: { name: "Ward round", days: 30, notes: "" } as { name: string; days: number | ""; notes: string },
+    initial: { name: "Ward round", days: 30, notes: "" },
     schema,
     labels: { name: "Name", days: "Retention", notes: "Notes" },
     onSubmit: async () => {

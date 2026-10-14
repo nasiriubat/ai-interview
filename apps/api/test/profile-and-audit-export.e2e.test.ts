@@ -114,7 +114,6 @@ describeDb("own profile, session revocation and audit export", () => {
     });
     expect(revoke.statusCode).toBe(200);
 
-
     // The old session is gone, even though its own token was re-issued a moment ago (`iat` is now):
     // the sign-in time is what counts.
     const refreshed = await mint(before, Math.floor(Date.now() / 1000));
@@ -156,9 +155,11 @@ describeDb("own profile, session revocation and audit export", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-type"]).toContain("text/csv");
-    expect(res.headers["content-disposition"]).toMatch(/^attachment; filename="audit-log-\d{4}-\d{2}-\d{2}\.csv"$/);
+    expect(res.headers["content-disposition"]).toMatch(
+      /^attachment; filename="audit-log-\d{4}-\d{2}-\d{2}\.csv"$/,
+    );
     expect(res.headers["cache-control"]).toBe("private, no-store");
-    const lines = res.body.replace(/^﻿/, "").trimEnd().split("\r\n");
+    const lines = res.body.replace(/^ /, "").trimEnd().split("\r\n");
     expect(lines[0]).toBe("created_at,actor,action,target_type,target_id,details");
     expect(lines.length).toBeGreaterThan(1);
     expect(lines.slice(1).every((l) => l.includes("user.update"))).toBe(true);

@@ -198,12 +198,17 @@ suite("audit rows: every administrative mutation writes one", () => {
       salt: "authjs.session-token",
     });
     try {
-      await audited("POST /me/sessions/revoke", "/me/sessions/revoke", { confirm: true }, {
-        action: "user.sessions_revoke",
-        targetType: "user",
-        targetId: user.id,
-        actor: "member",
-      });
+      await audited(
+        "POST /me/sessions/revoke",
+        "/me/sessions/revoke",
+        { confirm: true },
+        {
+          action: "user.sessions_revoke",
+          targetType: "user",
+          targetId: user.id,
+          actor: "member",
+        },
+      );
     } finally {
       userIds.member = saved.id;
       tokens.member = saved.token;

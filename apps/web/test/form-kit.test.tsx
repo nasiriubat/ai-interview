@@ -35,7 +35,7 @@ function Demo({
 }): React.JSX.Element {
   const form = useForm({
     id: "demo",
-    initial: { name: "Ward", days: 30 } as { name: string; days: number | "" },
+    initial: { name: "Ward", days: 30 },
     schema,
     labels: { name: "Name", days: "Days" },
     onSubmit,
