@@ -237,7 +237,7 @@ export function handlers(deps: HandlerDeps): Handlers {
         if (bytesFailed > 0) throw new Error(`could not delete the stored files of session ${sessionId}`);
         // After the bytes: the entry says the session is gone, which is true only now. A restore
         // from an older backup finds it in the file and queues this job again (D-226).
-        await deps.erasures?.record({ kind: "session", targetId: sessionId, tenantRef: companyId });
+        await deps.erasures?.record({ kind: "session", targetId: sessionId, companyId: companyId });
         deps.log.info("session data deleted", { sessionId });
       },
     ),

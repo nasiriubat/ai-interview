@@ -140,7 +140,7 @@ export class TenantPurger {
     await this.deps.ledger.record({
       kind: "tenant",
       targetId: companyId,
-      tenantRef: companyId,
+      companyId: companyId,
       requestedBy,
       ...(this.deps.now ? { erasedAt: this.deps.now().toISOString() } : {}),
     });

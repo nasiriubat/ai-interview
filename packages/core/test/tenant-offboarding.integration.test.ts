@@ -383,7 +383,7 @@ describeDb("tenant export and offboarding", () => {
       "kind",
       "requestedBy",
       "targetId",
-      "tenantRef",
+      "companyId",
     ]);
     expect(alerts.raised.some((a) => a.kind === "tenant.offboarded")).toBe(true);
 
@@ -435,7 +435,7 @@ describeDb("tenant export and offboarding", () => {
     const file = join(dir, "restore.jsonl");
     const ledger = new ErasureLedger({ db, filePath: file });
     // The erasure happened after the backup: the file says so, the restored database does not.
-    await ledger.record({ kind: "tenant", targetId: t.companyId, tenantRef: t.companyId });
+    await ledger.record({ kind: "tenant", targetId: t.companyId, companyId: t.companyId });
     await db.erasureLedger.deleteMany({ where: { targetId: t.companyId } });
 
     const jobs = new MemoryJobPublisher();

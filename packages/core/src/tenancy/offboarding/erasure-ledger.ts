@@ -22,7 +22,7 @@ export interface ErasureEntry {
   kind: ErasureKind;
   targetId: string;
   /** The tenant the target belonged to. For a tenant erasure, the tenant itself. */
-  tenantRef: string;
+  companyId: string;
   erasedAt: string;
   requestedBy?: string | undefined;
 }
@@ -51,7 +51,7 @@ export class ErasureLedger {
         create: {
           kind: full.kind,
           targetId: full.targetId,
-          tenantRef: full.tenantRef,
+          companyId: full.companyId,
           erasedAt: new Date(full.erasedAt),
           requestedBy: full.requestedBy ?? null,
         },
@@ -84,7 +84,7 @@ export class ErasureLedger {
       if (!line.trim()) continue;
       try {
         const e = JSON.parse(line) as ErasureEntry;
-        if (e.targetId && e.tenantRef) out.push(e);
+        if (e.targetId && e.companyId) out.push(e);
       } catch {
         // A torn last line from a crash: the entries before it are still good.
       }
