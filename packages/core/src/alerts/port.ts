@@ -23,6 +23,12 @@ export interface Alert {
   /** Plain-text body, no PII. */
   message: string;
   context?: AlertContext;
+  /**
+   * A tenant notice in other languages, keyed by language code. The router picks the one the
+   * tenant's `branding.language` names and falls back to `title` and `message` (English). Link
+   * labels are by position.
+   */
+  localized?: Partial<Record<string, { title: string; message: string; linkLabels?: string[] }>>;
   links?: { label: string; url: string }[];
   occurredAt?: Date;
 }
