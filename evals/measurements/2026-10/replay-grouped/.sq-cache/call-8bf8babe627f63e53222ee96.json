@@ -1,0 +1,67 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-28",
+      "grounded": "yes",
+      "quote": "as a care coordinator, I want to see a clear indicator of which notes are urgent or require immediate action — like a red tag for new assessments, medication changes, or falls",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-29",
+      "grounded": "yes",
+      "quote": "if a note is missing, I want it to be obvious — not just a blank row, but a red highlight with the patient’s name and the time it was due",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-31",
+      "grounded": "yes",
+      "quote": "when a nurse saves a ward note in InHealth, the system must immediately confirm the note was sent to ShareSheet, with a clear message on screen. If the send fails, the system must retry automatically every 5 minutes for 30 minutes...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-33",
+      "grounded": "yes",
+      "quote": "The system should keep both copies — but only if they’re entered at different times. It should show both in ShareSheet, but with timestamps and a note that says “Duplicate entry — check for accuracy.”",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-34",
+      "grounded": "yes",
+      "quote": "the status line must update in real time, without needing a refresh. If the connection comes back after 12 minutes, the nurse should see “Sent” appear automatically on the same screen, right after the “Retrying” message.",
+      "granularity": "too_fine",
+      "kind": "detail",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-36",
+      "grounded": "yes",
+      "quote": "The alert stays visible on the screen, but now with a “Marked as resolved” button if they click it after entering the note. If the note is already entered, the system shows it as “Note re-entered — check for accuracy”",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-37",
+      "grounded": "yes",
+      "quote": "At 10:15 a.m., the team leader should see a clear alert in their dashboard with the nurse’s name, the patient’s full name, the note type, the time it was due — all in one line, easy to read... Alert stays visible with 'Marked as resolved' button until sync confirmed... If sync fails after 5 minutes post resolution, alert reverts to red and IT is notified",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

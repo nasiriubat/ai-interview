@@ -1,0 +1,67 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "Yes, the note must send automatically when the nurse clicks “Save and Close” in Epic Cogito—no additional action, no button press, no confirmation step. The system must trigger the FHIR event, process the payload via Azure Function, and send the note to CareTrack via the authenticated webhook.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "She needs to see a clear indicator that the note from the day shift has been received—specifically, the note text, the nurse’s name, and a timestamp ... We’ll add a “Received” badge in green if the note was successfully ingested via the bridge, with the timestamp synchronized to within 30 seconds of Epic’s save time.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "She should see a grey \"Pending\" badge with a clock icon—indicating the note is expected but not yet received. This prevents her from assuming a gap in documentation ... The badge will update to green within 30 seconds of successful receipt. If it remains pending after 5 minutes, the system will trigger a silent alert to the bridge’s monitoring dashboard, not to the nurse.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "If a note remains pending past 5 minutes, the night nurse will still proceed with the manual check ... the system will log the failure in Azure Monitor and notify the nurse’s supervisor via a dedicated Teams alert, not the nurse herself.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-15",
+      "grounded": "yes",
+      "quote": "Yes to the retry rule being in version one ... When the first send fails, exactly one retry is attempted. A failure is logged; the nurse sees no interruption or prompt. When a note fails both sends, an Azure Monitor entry records the failure reason and a Teams alert is posted to the IT incident channel. The day nurse sees no pop-up, notification or UI change.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-19",
+      "grounded": "yes",
+      "quote": "The note is not kept in a queue—it’s discarded after two failed attempts. IT or a care coordinator resends it through a manual endpoint. This avoids data duplication and aligns with CareTrack’s design.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-20",
+      "grounded": "partial",
+      "quote": "Testers will simulate a note save in Epic by triggering a FHIR Observation resource creation via the Epic FHIR API with a known MRN, timestamp, and text. They’ll then check CareTrack’s Shift Handover view within 30 seconds for the green \"Received\" badge ... The test passes if at least 48 out of 50 notes show the green “Received” badge within 30 seconds—maximum 2 failures allowed.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

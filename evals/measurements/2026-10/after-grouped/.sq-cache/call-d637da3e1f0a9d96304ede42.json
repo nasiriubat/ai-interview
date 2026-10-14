@@ -1,0 +1,85 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "With the new tool, we want them to start a single note at the bedside, use a simple template with dropdowns for pain level, mobility, and other key data points, and hit “Send” once—then it goes to both systems instantly.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "I do want a simple summary dashboard in the app for the ward manager, just to see how many notes were sent each shift and if any failed to sync... The dashboard doesn’t need more than counts and failure alerts... The app will show a red “Failed” badge next to any note that didn’t go through, with a simple “Retry” button right there... If it fails a second time, it logs the error and alerts the ward manager",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "The fields are mostly the same across both templates... the “Post-Procedure Observation” template also adds two extra fields: “surgical site appearance” and “drain output”... The app shows the template name at the top in bold, with a small “Change” button next to it... If she taps it, a dropdown appears with all available templates... Once she selects a different one, the form updates instantly... After the second retry fails, the app should automatically save the note locally on the tablet... The red Failed badge stays visible on the note until it’s sent... The nurse can’t move on until she either succeeds or sees the “contact IT” message.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "When a nurse opens the app at the bedside, tap the patient’s name from a list that pulls from Epic... The list must update in real time if a patient is moved or discharged... The nurse selects the patient, and the app auto-fills their details... After a patient is moved from bed 3B to bed 3C, the nurse should see the change in the patient list within 15 seconds... If the patient is discharged, the name should disappear from the list within 10 seconds... The list must also never show a patient on the wrong ward... After a successful Send, the badge for that patient increases by one without a page refresh... After a failed Send, the badge does not increase and stays at the last successful count... That count is crucial for avoiding double work or missing someone. I want that badge to be visible at a glance, even from across the ward.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "move_removal_timing",
+      "grounded": "yes",
+      "quote": "The entry should disappear from her list immediately—no waiting for a refresh—once the move is recorded in Epic... The app should remove them from view within five seconds, without her having to do anything.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "failed_send_hold",
+      "grounded": "yes",
+      "quote": "The tester starts a note on a patient, then deliberately disconnects the tablet from the internet right after hitting Send... The app shows the red “Failed – Retry Now?” badge... The tester taps Retry, but the internet is still down—so it fails again... After that, the app shows a persistent red badge with “Still not sent—contact IT,” and the note remains on the screen with no option to close it... The tester then reconnects to the internet and taps Retry—this time it goes through, and the badge changes to green.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "move_removal",
+      "grounded": "yes",
+      "quote": "The entry should disappear from her list immediately—no waiting for a refresh—once the move is recorded in Epic... The app must reflect the current ward status in real time, even if she’s mid-task.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "template_selection",
+      "grounded": "yes",
+      "quote": "If a nurse opens a patient at 7 a.m., the app should suggest “Daily Vital Check”... The screen will show the template name at the top in bold, with a small “Change” button next to it... If she taps it, a dropdown appears with all available templates... Once she selects a different one, the form updates instantly... The original suggestion stays visible so she knows what was auto-selected.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "count_badge",
+      "grounded": "yes",
+      "quote": "The patient list should show a small number badge next to each patient’s name... It updates in real time after every Send... If a note fails, the badge doesn’t increase—it stays at the last successful count... That count is crucial for avoiding double work or missing someone. I want that badge to be visible at a glance, even from across the ward.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "covered": [
+    { "key": "c1", "by": "FR-1" },
+    { "key": "c2", "by": "FR-20" },
+    { "key": "c3", "by": "FR-3" },
+    { "key": "c4", "by": "FR-4" },
+    { "key": "c5", "by": "FR-6" },
+    { "key": "c6", "by": "FR-15" },
+    { "key": "c7", "by": "FR-15" },
+    { "key": "c8", "by": "FR-19" },
+    { "key": "c9", "by": null },
+    { "key": "c10", "by": null },
+    { "key": "c11", "by": null },
+    { "key": "c12", "by": null },
+    { "key": "c13", "by": null },
+    { "key": "c14", "by": "FR-20" },
+    { "key": "c15", "by": "FR-4" },
+    { "key": "c16", "by": "FR-6" },
+    { "key": "c17", "by": "FR-1" },
+    { "key": "c18", "by": "FR-20" }
+  ]
+}

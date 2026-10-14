@@ -1,0 +1,1566 @@
+{
+  "persona": "nontechnical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Before we get into the details of the note-taking problem, one question about where this would run. Hosting changes the architecture, the cost, and the compliance defaults, so it's worth settling early. If you're not sure yet, that's a fine answer too; we'll leave it open."
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks, that's clear enough to record. You already have a cloud account, so I'll note that hosting is settled and we won't need to revisit it. Next, let's pin down the problem itself: when a nurse finishes a note, roughly how long does the double entry take them, and how often does it happen during a shift?"
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "On average, it takes about 10 minutes per note to enter the same information into both the bedside system and the hospital’s central electronic health record. Nurses typically write about 5 to 7 notes per shift, so that’s roughly 50 to 70 minutes of double entry across a shift—time that could be spent directly caring for patients."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "That's a clear picture: roughly 50 to 70 minutes of double entry per nurse each shift. Next, which systems would this need to connect to? Integrations shape the data work and the effort, so this matters now. If you're not sure, the default is none."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "I’m not sure which exact systems are involved, but I know the note starts in the bedside clinical system—called CareVue—and must also appear in the hospital’s main EHR, which is called Epic. So we need to connect to both, even if I don’t know the technical details of how."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "Thanks, that answers it. The note starts in CareVue and must also reach Epic, so both are involved. Next, who uses this beyond the nurses writing the notes? Other roles, such as charge nurses or administrators, may need access to the same information."
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "Yes, charge nurses check the notes during shift handovers, and clinical leads pull them weekly for quality reviews. Also, the ward manager needs to see all notes at the end of each day to verify care completion and support staffing decisions. So access should be granted to charge nurses, clinical leads, and ward managers—not just the original nurse."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "Thanks for the detail on who needs access. Next, who will build this? It decides how I phrase the specification and plan. If you're unsure, we'll default to a coding agent."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": "I’m not sure who will build it, but I know we have a small internal IT team that handles hospital system integrations, and they’ve worked with both CareVue and Epic before. If we go with a coding agent, I’d want them to work closely with that team to make sure the solution fits our existing processes and security standards."
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "The participant has effectively answered the builder question: a small internal IT team with CareVue and Epic experience, possibly with a coding agent working alongside them. I'll record that and move on.\n\nNext, the core workflow. When a nurse finishes a note in CareVue, what should happen to it in Epic: should it be sent automatically, or should the nurse review and confirm it first?"
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "Got it: the nurse reviews and confirms before anything reaches Epic. Next, what does your technical team usually work with? A stack they already know is worth more than a slightly better one they'd have to learn, so this shapes my recommendations. If you're not sure, we'll record it as unknown."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "I’m not sure what specific tools or languages the team uses, but I know they’ve used low-code platforms before for hospital workflows, and they’re comfortable with standard web interfaces and secure API connections. If you recommend something like a pre-built integration tool, I’d want to make sure it doesn’t require them to learn a new system from scratch."
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "Thanks, that tells me enough. The team has worked with low-code platforms, standard web interfaces, and secure APIs, so I'll recommend options that build on those rather than a new stack."
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "Understood—let’s go with a solution that uses a low-code integration platform with pre-built connectors for CareVue and Epic, so the team can focus on workflow logic, not custom coding. I’d want to see a test version running in a sandbox first, so we can check the flow and confirm it works before going live."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "A low-code integration platform with pre-built connectors fits your team well, and a sandbox test before go-live is a sensible step. I'll record that as the proposed approach, to be confirmed later.\n\nNext, when does version one need to be in use? A fixed date shapes how much we include in the first release. If there's no fixed date, we'll plan without one."
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": "We need version one live by the end of next quarter—around September 30—because that’s when the hospital’s annual safety audit will review documentation practices, and we want to show we’ve reduced double entry. That gives us about eight weeks to test, train, and roll out."
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Thanks, that's a firm deadline: version one live by about September 30, roughly eight weeks from now, with the hospital's safety audit as the reason. I've recorded it, so we can plan scope around it."
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "Yes, and because of the audit deadline, we’ll focus version one on just the core workflow: entering a note in CareVue, reviewing it, and sending it to Epic—nothing extra. We’ll leave things like automated reminders or audit logs for later updates, so we can meet the deadline without rushing."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "Thanks for narrowing version one to the core workflow; that keeps the audit deadline realistic. One more question, because it shapes whether we recommend buying connectors or building them: is there a budget range for this work, even a rough one? If you don't know yet, we'll leave it undecided."
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": "I don’t know the exact budget yet, but I do know we’ve allocated about $25,000 for workflow improvements this quarter, and this project is part of that. If the low-code platform and connectors cost more than that, I’d want to discuss with finance first, but I’d prefer to stay within the range to avoid delays."
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "Thanks, that's enough to plan with. The budget is about $25,000 for workflow improvements this quarter, with this project inside that amount, and you'd like to stay within it to avoid delays. I'll record that now."
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "Yes, and if the total cost comes close to the limit, I’d want a clear breakdown of where every dollar goes—especially for licensing, integration, and training—so we can make smart choices and stay on track."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "Thanks for the budget breakdown request; I'll keep licensing, integration, and training costs visible as we plan. Next, roughly how many people will use this at launch? It decides how much capacity we plan for. If you're not sure, we'll assume under 100."
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "I’m confident it will be used by about 80 nurses across the three main wards, plus the charge nurses and clinical leads—around 100 total users at launch. That’s well under 100, so we’re safe on the capacity side, but I’d still want to test with at least 20 nurses in the sandbox before going live to catch any workflow hiccups."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "Thanks, that's clear: about 100 users at launch, around 80 nurses plus charge nurses and clinical leads, with a sandbox test of at least 20 nurses before go-live."
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "Yes, and I’d want those 20 testers to include at least one nurse from each of the three wards, so we catch any ward-specific issues early. We’ll also ask them to time how long the new process takes so we can compare it to the old double-entry method."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "Noted: at least one tester per ward, with timing to compare against the old double entry. Next, which compliance rules apply to this data? It changes hosting, security, and access requirements. If you're unsure, we'll assume personal data under GDPR."
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": "I’m not sure about the specific compliance rules, but I know the notes contain patient identifiers, clinical observations, and treatment details—so they’re definitely subject to HIPAA, since we’re in the U.S. and this is protected health information. I’d want the system to log every access and change, and ensure data is encrypted both in transit and at rest."
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Thanks, that settles the compliance question: HIPAA applies, since these are protected health records. I'll note that you want every access and change logged, with encryption in transit and at rest."
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": "Yes, and I’d want the logs to be retained for at least six years, in line with our hospital’s recordkeeping policy. If the system can’t do that automatically, I’d need to know how we’d manage it manually, because compliance isn’t something we can cut corners on."
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "Noted on six-year log retention. I'll confirm how the platform handles that once we select it.\n\nOne gap to close on CareVue: we don't yet know which way the data should flow or how the connection should prove its identity. Default: notes flow inbound from CareVue into the new workflow, and the connection uses the CareVue vendor's standard secure login. That means the nurse's note starts in CareVue and the platform reads it from there. Should we keep that default?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": "Yes, keep the default—notes flow inbound from CareVue, and the connection uses the vendor’s standard secure login. That’s how we’ve done it before, and it’s already approved by IT security. I’d just want to confirm that the login credentials are rotated every 90 days, as per hospital policy."
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "Thanks, I've recorded the CareVue connection as inbound with the vendor's standard secure login, and the 90-day credential rotation as a requirement.\n\nNow let's turn to people. Which role matters most to you at launch: the nurse entering the note, or the charge nurse who oversees the ward? Pick whichever comes to mind first."
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "Got it, the nurse entering notes is the primary user. What does that nurse need to do on a typical shift, from the moment they start a note to the moment it's done? Walk me through one recent example, including which screens or steps they go through and roughly how long each takes."
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "On a typical shift, a nurse starts by opening CareVue on the bedside terminal, logs in with their badge, and selects the patient’s chart. They then click “Add Note,” type up the observation—say, a patient’s pain level and response to medication—taking about 3 minutes. After finishing, they hit “Review,” which opens a confirmation screen showing the note content and a checkbox to send it to Epic. They review it, confirm it’s accurate, and click “Send.” That takes another 2 minutes. Once sent, they see a green checkmark and can move on. So the whole process—from start to finish—takes about 5 minutes per note, and they do 5 to 7 notes per shift."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "Thanks for walking through that. One thing to check: you described about 5 minutes per note, but earlier the team estimated 10 minutes of double entry per note. Which is closer to the real effort for a nurse, including the time spent in Epic?"
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "That’s a good catch—I think the 10 minutes was the total time spent across both systems, including the extra steps like logging into Epic, finding the right patient tab, copying the text, and double-checking it. On the new system, they’ll still do a review, but only once and in one place, so the 5 minutes is closer to the real time saved. The 10-minute figure included all the extra steps they now won’t have to repeat."
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Thanks, that clears up the timing: the 10 minutes covered Epic logins, finding the patient tab, copying, and double-checking, and the new flow should save most of that. Next, what does a charge nurse need from these notes during a shift? Describe one situation where they'd look at them."
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": "A charge nurse checks the notes during shift handover to make sure all patients have been assessed and documented for the past shift—especially if someone was flagged for increased pain or a change in condition. For example, last week, a patient had two notes in the morning showing escalating pain, but the nurse didn’t escalate it to the doctor. The charge nurse noticed the pattern in the notes and called the team to review, which led to a faster intervention. So they rely on the notes to catch gaps in care."
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "Thanks for the handover example; it shows charge nurses need to see each patient's notes in one place.\n\nWe still need to settle the Epic side. Default: notes flow outbound from the new workflow into Epic, using Epic's standard secure login, the same pattern as CareVue. That means approved notes get written into the patient's Epic record. Should we keep that default?"
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": "Yes, keep the default—notes flow outbound from the new workflow into Epic using Epic’s standard secure login. That’s what we’ve used before for other integrations, and the IT team has the credentials set up already. I’d just want to make sure the system confirms each note was successfully saved in Epic, with a clear message if it fails."
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Thanks, I've recorded Epic as outbound with Epic's standard secure login, and the team will need to confirm each note saved, with a clear error message if it fails.\n\nNext, let's capture what the nurse does with the product. In one sentence, what does a nurse need to be able to do once they've confirmed a note?"
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": "Once they’ve confirmed a note, the nurse needs to be able to see a clear success message, know the note is now in Epic, and move on to the next patient without having to log into another system or check anything manually."
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "Clear success message, note confirmed in Epic, and straight to the next patient: that's a solid user story. Before we write it down, is there anything the nurse needs to see or do if Epic fails to save the note, or should the success message and the error message be the only two outcomes?"
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "If Epic fails to save the note, the nurse needs to see a clear error message that says what went wrong—like “Connection to Epic failed”—and be given a simple option to retry or flag it for IT. They shouldn’t be left guessing or stuck in the middle of the process. I’d also want a log of the failed attempt so we can track it later, but the nurse shouldn’t have to access that themselves."
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "Thanks, that gives us the failure path: a clear error message naming the problem, a retry or flag-for-IT option, and a log the nurse doesn't have to open. Before we finalize the story, what should happen to a note the nurse has typed but not yet confirmed if they walk away from the screen mid-entry? Keep it saved as a draft, or discard it?"
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "Got it, unconfirmed notes stay saved as drafts. Can you walk me through the moment a nurse returns to a draft: do they pick up exactly where they left off, and how long should a draft be kept before it's cleared?"
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": "Yes, when a nurse returns, they should see the draft exactly as they left it—same patient, same text, same place in the note—so they don’t lose their work. Drafts should be kept for 72 hours, so if they’re busy or take a break, they can come back without starting over, but not so long that outdated or incomplete notes clutter the system."
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "Thanks, the 72-hour draft window is recorded. One open point on the Epic failure path: we haven't said which failures are permanent, such as a patient not found, versus temporary ones, such as a connection drop that a retry could fix. Default: we don't decide that now, and the IT team sets the rule during build. That means nurses see the retry option for every failure until then. Should we keep that default?"
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": "Yes, keep the default—nurses get a retry option for every failure until the IT team defines which errors are permanent. That gives us flexibility during testing, and we can refine the logic later based on real-world issues. I just want to make sure the retry mechanism doesn’t keep trying forever—maybe max three attempts with a timeout."
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "Thanks, I've noted the retry limit: a maximum of three attempts, each with a timeout, so nurses aren't left waiting on a loop that never ends.\n\nNext, let's pin down the first thing a nurse does at the bedside. When they open CareVue and select a patient, should the note start blank every time, or should the system prefill anything from the chart?"
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "Got it, notes start blank. I'll record that as a requirement.\n\nNext, when the nurse finishes typing and clicks Review, what exactly appears on the confirmation screen: only the note text, or also the patient's name and ID so they can check they're writing to the right chart?"
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": "Yes, the confirmation screen should show the note text, the patient’s name, and their unique ID—like their medical record number—so the nurse can double-check they’re documenting for the right person. That’s critical, especially during busy shifts when multiple patients are being cared for."
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "Thanks, the review screen will show the note text, patient name, and medical record number. Should the nurse be able to edit the note from that screen, or do they go back to the note to make changes?"
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "Going back to the note to edit makes sense, and it keeps the review screen simple. I'll record that the nurse returns to the note from review.\n\nNow let's check the workflow for a nurse with several notes to enter in a row. After confirming one note and seeing the success message, should the system take them straight to the next patient's blank note, or back to a patient list they choose from?"
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": "After confirming a note and seeing the success message, the system should take them straight to the next patient’s blank note—assuming they’re working through a list in order. That keeps the flow fast and reduces clicks, especially during a busy shift. But if they want to skip ahead or go back, they should still be able to return to the patient list with one tap."
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "One thing I need to flag: two of the requirements we recorded conflict. One says nurses edit a note by going back to it, and another says they can edit from the review screen. Default: remove the review-screen edit requirement and keep going back to the note as the only way to edit. That means the review screen stays simple, with confirm and go-back as its only actions. Should we keep that default?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "Thanks, the review-screen edit requirement is removed and editing stays on the note screen.\n\nNext, let's cover the rules that limit how the business operates. Are there any limits on how many notes a nurse can enter for one patient in a single shift, or can they add as many as they need?"
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": "There’s no hard limit—nurses can add as many notes as needed for one patient in a shift, especially if the patient’s condition changes frequently. But we do require that each note has a timestamp and the nurse’s name so we can track who wrote what and when. That’s already built into CareVue, so the new system should preserve that."
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "Thanks, no limit on notes per patient, and each note keeps its timestamp and the nurse's name, as CareVue already does. Let's make sure the new system keeps that link intact: when a note reaches Epic, should it carry the original timestamp from CareVue and the nurse's name, or the time it was sent to Epic?"
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "Yes, the note should carry the original timestamp from CareVue and the nurse’s name—exactly as it was created—because that’s when the care event actually happened. If we use the send time instead, it could misrepresent when the observation was made, especially if there’s a delay between writing and sending. That could cause confusion during audits or handovers."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "Thanks, the note will keep the original CareVue timestamp and the nurse's name, so the record shows when the care happened. Let's test that with a case: a nurse writes a note at 2:00 p.m., the connection drops, and the send succeeds at 2:20 p.m. after a retry. Should Epic show 2:00 p.m. as the note time, with 2:20 p.m. recorded separately as the send time?"
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Confirmed: Epic will show 2:00 p.m. as the note time, with the 2:20 p.m. send time kept separately.\n\nNext, the rules still need an approval rule. Do notes need a charge nurse or clinical lead to sign off before they go to Epic, or does the nurse's own confirmation count as final?"
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": "The nurse’s own confirmation counts as final—no second approval is needed. That’s because nurses are trained to document accurately and in real time, and adding a second sign-off would slow down care delivery. But if a note is flagged later during a review, it can still be questioned or corrected."
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "Thanks, the nurse's own confirmation is final, with later correction still possible through review. I'll record that.\n\nNow let's move to how we'll check the system works. For the core flow, a nurse enters a note in CareVue, confirms it, and it appears in Epic: what's the one thing you'd need to see on the screen to believe that worked?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": "I’d need to see a clear success message that says the note was sent and appears in Epic, along with the patient’s name and medical record number, so I know it’s the right one. I’d also want to see the timestamp and nurse name match what was entered in CareVue—just to be sure nothing got changed."
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Thanks. The success screen will show the patient's name, medical record number, the note timestamp, the nurse's name, and a confirmation that the note appears in Epic.\n\nLet's test that with one failure case: Epic is down after the nurse confirms. What should the nurse see on the screen, and does the note stay in draft until the retry succeeds?"
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": "The nurse should see a message saying “Failed to send to Epic. Connection lost. Retry in a few minutes.” The note should stay saved as a draft with the original timestamp and nurse info, so they don’t lose their work. Once Epic is back, they can retry it right from the draft, and the system should remember the previous attempt."
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "Thanks, the failed note stays as a draft with its original timestamp and nurse name, and the retry picks up from there. Let's check the retry: after three failed attempts, does the nurse see a different message, and what should they do next?"
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": "After three failed attempts, the nurse sees a message that says, “Failed to send after three tries. The note is still saved as a draft. Please contact IT support for help.” They can then tap a button to send a help request directly from the app, which includes the note content, patient info, and timestamp—so IT can act fast without the nurse having to retype anything."
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "Thanks. The help request will include the note content, patient info, and timestamp, so IT can act without retyping. Let's make that testable: during the sandbox run, a tester forces three failed sends and taps the help button. What should they see to confirm the help request arrived, and where does it go?"
+    },
+    {
+      "seq": 80,
+      "role": "user",
+      "content": "They should see a confirmation message that says, “Help request sent successfully. IT will contact you within 15 minutes.” The request should appear in a dedicated IT queue that’s monitored in real time, and the nurse should not need to check another system to confirm it was received."
+    },
+    {
+      "seq": 81,
+      "role": "assistant",
+      "content": "Thanks, the help request will show a confirmation and land in a monitored IT queue, so the nurse doesn't have to check anywhere else.\n\nNext, let's look at the technical side. Based on what you've told me, I'd recommend a low-code integration platform with pre-built CareVue and Epic connectors, since your team already works that way and it keeps the focus on workflow rather than custom code. Does that sound right to you?"
+    },
+    {
+      "seq": 82,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 83,
+      "role": "assistant",
+      "content": "Thanks, the platform choice is recorded.\n\nI also found a mismatch: two requirements describe the review screen in slightly different wording, so the team could build it two ways. Default: align them so both use the same wording and checks. That means one review screen behavior, with no ambiguity for the developers. Should we keep that default?"
+    },
+    {
+      "seq": 84,
+      "role": "user",
+      "content": "Yes, keep the default—let’s align the wording so there’s no ambiguity. The review screen should clearly show the note text, patient name, medical record number, and timestamp, with a “Confirm” button and a “Go Back” button. That’s the only option, and it’s simple and consistent across all use cases."
+    },
+    {
+      "seq": 85,
+      "role": "assistant",
+      "content": "Thanks, the review screen wording is now settled: note text, patient name, medical record number, and timestamp, with Confirm and Go Back buttons.\n\nNext, on the technical side: authentication decides how nurses and staff sign in to the new system. Default: sign-in through the hospital's existing single sign-on with badge login, so nobody manages a separate password. Should we keep that default?"
+    },
+    {
+      "seq": 86,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 87,
+      "role": "assistant",
+      "content": "Thanks, single sign-on with badge login is recorded for staff access.\n\nNext, the platform will also need a home for the audit trail: every access and change logged and kept for at least six years. Default: the low-code platform's built-in logging, exported to the hospital's existing log store for retention. Should we keep that default?"
+    },
+    {
+      "seq": 88,
+      "role": "user",
+      "content": "Yes, keep the default—the platform’s built-in logging should export directly to the hospital’s existing log store, so we don’t need a separate system. I’d just want to confirm that the export happens in real time and includes the user, timestamp, action, and patient ID, so we can audit it later."
+    },
+    {
+      "seq": 89,
+      "role": "assistant",
+      "content": "Thanks, I'll record that the export must run in real time and include the user, timestamp, action, and patient ID.\n\nNext, let's check how this would look during an audit. If an auditor asks who changed a note that was sent to Epic, the log should show the nurse, the time of the change, and the patient. Does the platform's log entry also need to record which version of the note was sent, or is the action and time enough?"
+    },
+    {
+      "seq": 90,
+      "role": "user",
+      "content": "The log entry should include the full version of the note that was sent—meaning the exact text—as well as the action, time, nurse name, and patient ID. That way, auditors can see not just who changed it, but what was actually recorded in Epic, which is critical for compliance. Just the action and time aren’t enough if the content changed."
+    },
+    {
+      "seq": 91,
+      "role": "assistant",
+      "content": "Thanks, the audit log will store the exact note text sent to Epic, along with the action, time, nurse name, and patient ID.\n\nNext, let's cover the information the system stores. Which details about each note need to be kept beyond the text itself, such as the nurse, the patient, the timestamps, and the send status?"
+    },
+    {
+      "seq": 92,
+      "role": "user",
+      "content": "Beyond the note text, we need to keep the nurse’s name, the patient’s medical record number, the original timestamp from CareVue, the time it was confirmed, the send status (success, failed, retrying), and the retry count. That covers everything needed for audit, error tracking, and care continuity. No other data, like location or device ID, is required."
+    },
+    {
+      "seq": 93,
+      "role": "assistant",
+      "content": "Thanks, the note record will hold the nurse's name, medical record number, original CareVue timestamp, confirmation time, send status, and retry count, with no location or device data.\n\nNext, let's check how long those records are kept. Default: draft notes are kept for 72 hours, and sent notes and their audit entries are kept for at least six years, per hospital policy. Should we keep that default?"
+    },
+    {
+      "seq": 94,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 95,
+      "role": "assistant",
+      "content": "Thanks, retention is set: 72 hours for drafts, and at least six years for sent notes and audit entries.\n\nNext, the data model. A draft and a sent note look similar, but they may be stored differently. Default: one note record that moves from draft to sent, so a retried note keeps its history in one place. Should we keep that default?"
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "Cloud account",
+        "reason": "Participant already has a cloud account.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem",
+      "value": "Nurses enter each note twice, into the bedside system and the central EHR. This takes about 10 minutes per note, 5 to 7 notes per shift, roughly 50 to 70 minutes per shift that could go to patient care.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "systems",
+      "value": "Notes start in CareVue and must also appear in Epic.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "CareVue",
+      "value": {
+        "direction": "inbound",
+        "data": "clinical notes",
+        "auth": "vendor standard secure login, rotated every 90 days; already approved by IT security"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "Epic",
+      "value": {
+        "direction": "outbound",
+        "data": "approved nurse notes",
+        "auth": "Epic standard secure login",
+        "requirement": "confirm each note saved in Epic; clear error message on failure"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "nurse",
+      "value": {
+        "role": "Nurse entering notes",
+        "needs": "Log in with badge, open chart in CareVue, add note (about 3 min), review and confirm, send to Epic (about 2 min); about 5 min per note, 5 to 7 per shift"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "charge_nurse",
+      "value": {
+        "role": "Charge nurse",
+        "needs": "Checks all notes at shift handover to confirm assessments are complete and to spot patterns such as escalating pain."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "clinical_lead",
+      "value": {
+        "role": "Clinical lead",
+        "needs": "Pull notes weekly for quality reviews."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_manager",
+      "value": {
+        "role": "Ward manager",
+        "needs": "Reviews all notes daily to verify care completion and support staffing decisions"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "builder",
+      "value": {
+        "choice": "Small internal IT team, possibly with a coding agent",
+        "reason": "Team has CareVue and Epic integration experience; security standards must be met.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "Confirm note before Epic",
+        "scope": "mvp",
+        "acceptance": [
+          "A note is not sent to Epic until the nurse confirms it",
+          "Confirmed note appears in Epic with the same content"
+        ],
+        "description": "A nurse reviews a note captured in CareVue and confirms it before it is sent to Epic."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "note_flow",
+      "value": "Nurse reviews and confirms each note before it is sent to Epic.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "Nurse review and confirmation of notes before sending to Epic",
+        "scope": "mvp",
+        "acceptance": ["Notes are not automatically sent to Epic without nurse review and confirmation"],
+        "description": "Nurses should review and confirm their notes in CareVue before they are sent to Epic.",
+        "reason": "to ensure accuracy and quality of the notes before they are integrated into the Epic system"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "team_skills",
+      "value": {
+        "choice": "Low-code platforms, standard web interfaces, secure API connections",
+        "reason": "Team has used these for hospital workflows; avoid learning a new system from scratch.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "integration_approach",
+      "value": {
+        "choice": "Low-code integration platform with pre-built CareVue and Epic connectors, tested in a sandbox first",
+        "alternatives": [],
+        "reason": "Team has used low-code platforms and standard APIs before; avoids custom coding.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "deadline",
+      "value": "Version one live by about September 30, roughly eight weeks out, driven by the annual safety audit",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": "Low-code integration platform with pre-built CareVue and Epic connectors",
+        "alternatives": ["Custom-coded integration"],
+        "reason": "Matches team skills and keeps effort on workflow logic.",
+        "status": "recommended"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "sandbox",
+      "value": {
+        "choice": "test version in a sandbox before go-live",
+        "reason": "confirm flow and functionality",
+        "status": "recommended"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "core_workflow",
+      "value": {
+        "scope": "mvp",
+        "reason": "Needed for the safety audit deadline around September 30"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "future",
+      "path": "reminders_and_audit_logs",
+      "value": {
+        "scope": "future",
+        "reason": "Deferred to keep version one within the audit deadline"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "budget",
+      "value": "About $25,000 for workflow improvements this quarter; this project included; cost breakdown requested for licensing, integration, and training",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "users_at_launch",
+      "value": "About 100 users at launch; sandbox test with at least 20 nurses before go-live",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "sandbox_testers",
+      "value": "At least 20 nurses, including at least one from each of the three wards; timed against the old double-entry process",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": "HIPAA applies. Log every access and change. Encrypt data in transit and at rest.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "sandbox_testers",
+      "value": 20,
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "access_logging",
+      "value": "log every access and change",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "encryption",
+      "value": "encrypted both in transit and at rest",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "log_retention",
+      "value": "Audit logs retained at least six years per hospital recordkeeping policy; if the platform cannot do this automatically, a manual process is required.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "credential_rotation",
+      "value": "CareVue login credentials rotated every 90 days per hospital policy",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a nurse entering notes, I want to confirm a note and see a clear success message showing it is saved in Epic, so that I can move on to the next patient without checking another system.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "Confirm note saved in Epic",
+        "scope": "mvp",
+        "acceptance": [
+          "A saved note shows a success confirmation",
+          "A failed save shows a clear error message"
+        ],
+        "description": "After a note is sent, the system confirms it was saved in Epic."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "Show success confirmation after note saved in Epic",
+        "scope": "mvp",
+        "acceptance": [
+          "A success message appears after Epic confirms the note was saved",
+          "The nurse does not need to check Epic manually"
+        ],
+        "description": "After a nurse confirms a note, the system shows a clear success message once the note is saved in Epic.",
+        "reason": "Nurses need confidence the note reached Epic before moving on."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1-failure",
+      "value": "If Epic fails to save, the nurse sees a clear error naming the problem, can retry or flag for IT, and the failed attempt is logged for IT without the nurse accessing the log.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "Confirm note success",
+        "scope": "mvp",
+        "acceptance": [
+          "System shows clear success message",
+          "System confirms note is in Epic",
+          "Nurse can move to next patient without further action"
+        ],
+        "description": "Nurse confirms note is saved in Epic and can move to next patient",
+        "reason": "Nurse needs to know note is successfully saved and can proceed without manual checks"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "Handle Epic save failure",
+        "scope": "mvp",
+        "acceptance": [
+          "Error message names the failure, e.g. 'Connection to Epic failed'",
+          "Nurse can choose retry or flag for IT",
+          "Failed attempt is logged and not visible to the nurse"
+        ],
+        "description": "Show a clear error naming the problem and offer retry or flag-for-IT; log the failed attempt for IT tracking."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "Handle unfinished note",
+        "scope": "mvp",
+        "acceptance": ["System either saves note as draft or discards it"],
+        "description": "System saves note as draft or discards it if nurse walks away mid-entry",
+        "reason": "Nurse may walk away mid-entry, system needs to handle unfinished notes"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-8",
+      "value": {
+        "title": "Save unconfirmed notes as drafts",
+        "scope": "mvp",
+        "acceptance": [
+          "A note left unconfirmed is still available to the nurse after leaving and returning to the chart.",
+          "A draft is not sent to Epic until the nurse confirms it."
+        ],
+        "description": "A note typed but not yet confirmed is kept as a draft if the nurse leaves the screen."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1-draft",
+      "value": "As a nurse, I want unconfirmed notes kept as drafts so that I can finish them later without retyping.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "draft_retention",
+      "value": "Unconfirmed notes are kept as drafts for 72 hours and reopen exactly as left (same patient, text, and position).",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "Retry failed Epic save",
+        "scope": "mvp",
+        "acceptance": [
+          "Nurse sees a retry option after an Epic save failure",
+          "No more than three attempts are made",
+          "After the third failed attempt or timeout, the nurse sees a clear message and the flag-for-IT option"
+        ],
+        "description": "Offer retry on every Epic save failure until IT defines permanent errors; stop after three attempts with a timeout."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "epic_retry_limit",
+      "value": "Maximum three retry attempts per note, each with a timeout",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-10",
+      "value": {
+        "title": "Blank note start",
+        "scope": "mvp",
+        "acceptance": [
+          "Opening Add Note on a patient chart shows an empty note field.",
+          "No text is prefilled from prior notes or the chart."
+        ],
+        "description": "When a nurse opens a patient chart in CareVue and clicks Add Note, the note starts blank."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-11",
+      "value": {
+        "title": "Review screen shows patient identity",
+        "scope": "mvp",
+        "acceptance": [
+          "Review screen displays note text, patient name, and medical record number before confirmation."
+        ],
+        "description": "The confirmation screen shows the note text, the patient's name, and their medical record number."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-12",
+      "value": {
+        "title": "Review screen shows patient identity and note details",
+        "scope": "mvp",
+        "acceptance": [
+          "Review screen displays note text, patient name, medical record number, and timestamp",
+          "Review screen offers only Confirm and Go Back buttons"
+        ],
+        "description": "Review screen shows note text, patient name, medical record number, and timestamp, with Confirm and Go Back buttons."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-13",
+      "value": {
+        "title": "Edit note from note screen",
+        "scope": "mvp",
+        "acceptance": [
+          "Review screen has confirm and go-back actions only",
+          "Going back opens the note with its text intact for editing"
+        ],
+        "description": "Nurse returns to the note to edit it; the review screen has no edit action."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-14",
+      "value": {
+        "title": "Blank note start",
+        "scope": "mvp",
+        "acceptance": ["A newly opened note contains no text"],
+        "description": "Each new note opens blank with no prefilled chart content."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-15",
+      "value": {
+        "title": "Review screen shows note text, patient name, and medical record number",
+        "scope": "mvp",
+        "acceptance": [
+          "Review screen displays note text, patient name, medical record number, and timestamp"
+        ],
+        "description": "Same requirement as FR-12, wording aligned."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-16",
+      "value": {
+        "title": "Edit note from note screen only",
+        "scope": "mvp",
+        "acceptance": ["No edit control appears on the review screen"],
+        "description": "Editing happens on the note screen, not the review screen."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-17",
+      "value": {
+        "title": "Navigate to next patient after confirmation",
+        "scope": "mvp",
+        "acceptance": [
+          "After confirmation, the next patient's blank note opens in the list order.",
+          "One tap from the note screen returns to the patient list."
+        ],
+        "description": "After a note is confirmed and the success message is shown, the system opens the next patient's blank note when working through the list in order. A single tap returns the nurse to the patient list."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note_limit",
+      "value": "No hard limit on notes per patient per shift",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note_metadata",
+      "value": "Each note carries the original CareVue timestamp and the nurse's name as created, not the send time.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-18",
+      "value": {
+        "title": "Navigate to next patient's note after confirmation",
+        "scope": "mvp",
+        "acceptance": [
+          "The system navigates to the next patient's note after confirmation",
+          "The system allows skipping ahead or going back to the patient list with one tap"
+        ],
+        "description": "After confirming a note, the system should automatically take the nurse to the next patient's blank note in the list, assuming they are working in order. Nurses should also be able to skip ahead or go back to the patient list with one tap."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note_time_vs_send_time",
+      "value": "Epic shows the original CareVue note time; the send time is recorded separately.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note_approval",
+      "value": "Nurse's own confirmation is final; no second approval; flagged notes may be questioned or corrected later.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-19",
+      "value": {
+        "title": "Success confirmation details",
+        "scope": "mvp",
+        "acceptance": [
+          "Success screen shows patient name, medical record number, note timestamp, and nurse name matching CareVue",
+          "Success screen confirms the note is saved in Epic"
+        ],
+        "description": "After a note is saved in Epic, show a success message with patient name, medical record number, note timestamp, nurse name, and confirmation the note appears in Epic."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-20",
+      "value": {
+        "title": "Keep failed note as draft",
+        "scope": "mvp",
+        "acceptance": [
+          "After a failed send, the note appears in drafts with original CareVue timestamp and nurse name unchanged",
+          "Failure message reads: Failed to send to Epic. Connection lost. Retry in a few minutes.",
+          "Retry from the draft reuses the previous attempt record"
+        ],
+        "description": "When an Epic send fails, the note stays saved as a draft with its original timestamp and nurse name, and the retry is available from the draft."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "failure_path",
+      "value": "Failed Epic send shows the retry message and keeps the note as a draft with original timestamp and nurse name; retry from the draft remembers prior attempts.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "epic_failure_after_three_attempts",
+      "value": "After the third failed Epic send, the nurse sees 'Failed to send after three tries. The note is still saved as a draft. Please contact IT support for help.' and can tap a button to send a help request containing note content, patient info, and timestamp.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-21",
+      "value": {
+        "title": "One-tap IT help request after three failed Epic sends",
+        "scope": "mvp",
+        "acceptance": [
+          "After three failed Epic sends, the help button is shown on the draft.",
+          "Tapping it sends a request containing note content, patient name, MRN, and timestamp without retyping."
+        ],
+        "description": "Nurse can send a help request directly from the app containing the note content, patient info, and timestamp."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-22",
+      "value": {
+        "title": "Show success message with note details",
+        "scope": "mvp",
+        "acceptance": [
+          "The success screen shows the patient's name, medical record number, note timestamp, nurse's name, and a confirmation that the note appears in Epic."
+        ],
+        "description": "After a note is successfully sent to Epic, show a success message with the patient's name, medical record number, note timestamp, nurse's name, and confirmation that the note appears in Epic."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-23",
+      "value": {
+        "title": "Handle Epic failure and retry",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse sees a message saying 'Failed to send to Epic. Connection lost. Retry in a few minutes.'",
+          "The note stays saved as a draft with the original timestamp and nurse info.",
+          "The nurse can retry sending the note from the draft."
+        ],
+        "description": "If sending a note to Epic fails, show a failure message and keep the note as a draft with the original timestamp and nurse info. Allow the nurse to retry sending the note from the draft."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-24",
+      "value": {
+        "title": "Handle three failed attempts and request IT support",
+        "scope": "mvp",
+        "acceptance": [
+          "After three failed attempts, the nurse sees a message saying 'Failed to send after three tries. The note is still saved as a draft. Please contact IT support for help.'",
+          "The nurse can tap a button to send a help request directly from the app.",
+          "The help request includes the note content, patient info, and timestamp."
+        ],
+        "description": "After three failed attempts to send a note to Epic, show a message indicating the failure and provide an option to contact IT support. The help request should include the note content, patient info, and timestamp."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-25",
+      "value": {
+        "title": "Confirm help request arrival during sandbox testing",
+        "scope": "mvp",
+        "acceptance": [
+          "The tester sees confirmation that the help request arrived.",
+          "The help request goes to the appropriate IT support channel."
+        ],
+        "description": "During sandbox testing, a tester forces three failed sends and taps the help button. The tester should see confirmation that the help request arrived, and the request should go to the appropriate IT support channel."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-26",
+      "value": {
+        "title": "Confirm help request was received",
+        "scope": "mvp",
+        "acceptance": [
+          "Confirmation message 'Help request sent successfully. IT will contact you within 15 minutes.' appears",
+          "Request appears in the IT queue in real time",
+          "Sandbox tester can verify arrival without another system"
+        ],
+        "description": "After tapping help, the nurse sees a confirmation and the request appears in a monitored IT queue."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "integration_platform",
+      "value": {
+        "choice": "Low-code integration platform with pre-built CareVue and Epic connectors",
+        "reason": "Matches team skills and keeps focus on workflow logic rather than custom code.",
+        "status": "specified"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-27",
+      "value": {
+        "title": "Help request confirmation",
+        "scope": "mvp",
+        "acceptance": [
+          "The nurse sees a confirmation message that says, \"Help request sent successfully. IT will contact you within 15 minutes.\"",
+          "The request appears in a dedicated IT queue that’s monitored in real time",
+          "The nurse does not need to check another system to confirm it was received"
+        ],
+        "description": "Show a confirmation message and log the request in a monitored IT queue"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-28",
+      "value": {
+        "title": "Review screen",
+        "scope": "mvp",
+        "acceptance": [
+          "The review screen shows the note text, patient name, medical record number, and timestamp",
+          "The review screen has a “Confirm” button and a “Go Back” button"
+        ],
+        "description": "Show the note text, patient name, medical record number, and timestamp, with a “Confirm” button and a “Go Back” button"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "authentication",
+      "value": {
+        "choice": "Hospital single sign-on with badge login",
+        "reason": "No separate password to manage for nurses and staff",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "audit_logging",
+      "value": {
+        "choice": "Platform built-in logging exported in real time to the hospital log store",
+        "alternatives": ["Separate audit system"],
+        "reason": "Keeps logs in the existing store for six-year retention and audit, with no separate system to maintain.",
+        "status": "specified"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "audit_log_contents",
+      "value": "Full exact note text sent to Epic, plus action, time, nurse name, and patient ID.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "note_record",
+      "value": {
+        "fields": [
+          "note_text",
+          "nurse_name",
+          "medical_record_number",
+          "carevue_timestamp",
+          "confirmation_time",
+          "send_status",
+          "retry_count"
+        ],
+        "relations": ["patient (MRN)", "nurse", "audit_log_entries"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "audit_log_entry",
+      "value": {
+        "fields": ["exact_note_text_sent", "action", "time", "nurse_name", "patient_id"],
+        "relations": ["note_record"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "retention",
+      "value": "Drafts kept 72 hours; sent notes and audit entries kept at least six years",
+      "source": "user"
+    }
+  ],
+  "summary": "The participant has a cloud account for hosting. The problem is double entry of notes by nurses, taking 10 minutes per note (including Epic logins, finding the patient tab, copying, and double-checking), 5 to 7 times per shift, totaling 50 to 70 minutes of double entry per shift. The systems involved are CareVue (bedside clinical system) and Epic (hospital’s main EHR). Beyond the nurses, charge nurses, clinical leads, and ward managers need access to the notes. The internal IT team, which has experience with CareVue and Epic, will likely build this, possibly with a coding agent. The team has worked with low-code platforms, standard web interfaces, and secure APIs, and prefers a solution that uses a low-code integration platform with pre-built connectors for CareVue and Epic, so the team can focus on workflow logic, not custom coding. The team wants to see a test version running in a sandbox first, so they can check the flow and confirm it works before going live. Version one needs to be live by about September 30, roughly eight weeks from now, with the hospital's safety audit as the reason. Version one will focus on the core workflow: entering a note in CareVue, reviewing it, and sending it to Epic. The budget is about $25,000 for workflow improvements this quarter, with this project inside that amount, and the participant would like to stay within it to avoid delays. If the total cost comes close to the limit, the participant wants a clear breakdown of where every dollar goes—especially for licensing, integration, and training. The participant expects about 100 users at launch, including 80 nurses across three main wards, plus charge nurses and clinical leads. They want to test with at least 20 nurses in the sandbox, including at least one from each ward, and have them time the new process to compare against the old double-entry method.\n\nThe notes contain patient identifiers, clinical observations, and treatment details, so they are subject to HIPAA. The participant wants every access and change logged, with encryption in transit and at rest, and log retention for at least six years. The CareVue connection should be inbound with the vendor's standard secure login, with credentials rotated every 90 days. The nurse entering notes is the primary user.\n\nAfter confirming a note and seeing the success message, the system should take the nurse straight to the next patient’s blank note, assuming they’re working through a list in order. However, they should still be able to return to the patient list with one tap if they need to skip ahead or go back. There is no hard limit on the number of notes a nurse can enter for one patient in a single shift, but each note must have a timestamp and the nurse’s name to track who wrote what and when. The note should carry the original timestamp from CareVue and the nurse’s name, exactly as it was created, to accurately represent when the care event happened. The nurse’s own confirmation counts as final for sending notes to Epic, with no second approval needed, but notes can still be questioned or corrected later through review.\n\nThe Epic connection should be outbound from the new workflow into Epic, using Epic's standard secure login, the same pattern as CareVue. That means approved notes get written into the patient's Epic record. The system should confirm each note was successfully saved in Epic, with a clear message if it fails. The default for Epic failure paths is that nurses see the retry option for every failure until the IT team defines which errors are permanent. The retry mechanism should have a maximum of three attempts, each with a timeout, so nurses aren't left waiting on a loop that never ends.",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "Nurse can confirm note before sending to Epic",
+      "scope": "mvp",
+      "acceptance": [
+        "A note is not sent to Epic until the nurse confirms it",
+        "Confirmed note appears in Epic with the same content",
+        "Notes are not automatically sent to Epic without nurse review and confirmation"
+      ],
+      "reason": "to ensure accuracy and quality of the notes before they are integrated into the Epic system",
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-2"]
+    },
+    {
+      "id": "FR-5",
+      "title": "Nurse can confirm note success to proceed",
+      "scope": "mvp",
+      "acceptance": [
+        "System shows clear success message",
+        "System confirms note is in Epic",
+        "Nurse can move to next patient without further action",
+        "A saved note shows a success confirmation",
+        "A failed save shows a clear error message",
+        "A success message appears after Epic confirms the note was saved",
+        "The nurse does not need to check Epic manually",
+        "Success screen shows patient name, medical record number, note timestamp, and nurse name matching CareVue",
+        "Success screen confirms the note is saved in Epic"
+      ],
+      "reason": "Nurse needs to know note is successfully saved and can proceed without manual checks",
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-3", "FR-4", "FR-19"]
+    },
+    {
+      "id": "FR-6",
+      "title": "System handles Epic save failure gracefully",
+      "scope": "mvp",
+      "acceptance": [
+        "Error message names the failure, e.g. 'Connection to Epic failed'",
+        "Nurse can choose retry or flag for IT",
+        "Failed attempt is logged and not visible to the nurse",
+        "Nurse sees a retry option after an Epic save failure",
+        "No more than three attempts are made",
+        "After the third failed attempt or timeout, the nurse sees a clear message and the flag-for-IT option"
+      ],
+      "reason": "To support recovery and proper escalation if Epic saving fails",
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-9"]
+    },
+    {
+      "id": "FR-7",
+      "title": "System handles unfinished notes mid-entry",
+      "scope": "mvp",
+      "acceptance": ["System either saves note as draft or discards it if nurse walks away mid-entry"],
+      "reason": "Nurse may walk away mid-entry, system needs to handle unfinished notes"
+    },
+    {
+      "id": "FR-8",
+      "title": "System saves unconfirmed notes as drafts",
+      "scope": "mvp",
+      "acceptance": [
+        "A note left unconfirmed is still available to the nurse after leaving and returning to the chart",
+        "A draft is not sent to Epic until the nurse confirms it"
+      ]
+    },
+    {
+      "id": "FR-10",
+      "title": "New notes start blank",
+      "scope": "mvp",
+      "acceptance": [
+        "Opening Add Note on a patient chart shows an empty note field",
+        "No text is prefilled from prior notes or the chart",
+        "A newly opened note contains no text"
+      ],
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-14"]
+    },
+    {
+      "id": "FR-12",
+      "title": "Review screen shows patient identity and note details",
+      "scope": "mvp",
+      "acceptance": [
+        "Review screen displays note text, patient name, medical record number, and timestamp",
+        "Review screen offers only Confirm and Go Back buttons",
+        "Review screen displays note text, patient name, and medical record number before confirmation"
+      ],
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-11", "FR-15"]
+    },
+    {
+      "id": "FR-13",
+      "title": "Nurse can edit note from note screen, not review screen",
+      "scope": "mvp",
+      "acceptance": [
+        "Review screen has confirm and go-back actions only",
+        "Going back opens the note with its text intact for editing",
+        "No edit control appears on the review screen"
+      ],
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-16"]
+    },
+    {
+      "id": "FR-17",
+      "title": "System navigates to next patient after confirmation",
+      "scope": "mvp",
+      "acceptance": [
+        "After confirmation, the next patient's blank note opens in the list order",
+        "One tap from the note screen returns to the patient list",
+        "System allows skipping ahead or going back to the patient list with one tap"
+      ],
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-18"]
+    },
+    {
+      "id": "FR-20",
+      "title": "Failed note remains as draft after Epic send failure",
+      "scope": "mvp",
+      "acceptance": [
+        "After a failed send, the note appears in drafts with original CareVue timestamp and nurse name unchanged",
+        "Failure message reads: Failed to send to Epic. Connection lost. Retry in a few minutes.",
+        "Retry from the draft reuses the previous attempt record",
+        "After three failed attempts, the nurse sees a message saying 'Failed to send after three tries. The note is still saved as a draft. Please contact IT support for help.'",
+        "The nurse can tap a button to send a help request directly from the app",
+        "The help request includes the note content, patient info, and timestamp"
+      ],
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-24"]
+    },
+    {
+      "id": "FR-22",
+      "title": "Show success message with note details after successful send",
+      "scope": "mvp",
+      "acceptance": [
+        "Success screen shows patient's name, medical record number, note timestamp, nurse name, and confirmation that the note appears in Epic"
+      ]
+    },
+    {
+      "id": "FR-23",
+      "title": "Handle Epic failure and allow retry from draft",
+      "scope": "mvp",
+      "acceptance": [
+        "The nurse sees a message saying 'Failed to send to Epic. Connection lost. Retry in a few minutes.'",
+        "Note stays saved as draft with original timestamp and nurse info",
+        "Nurse can retry sending the note from the draft"
+      ]
+    },
+    {
+      "id": "FR-26",
+      "title": "Confirm help request was received after tap",
+      "scope": "mvp",
+      "acceptance": [
+        "Confirmation message 'Help request sent successfully. IT will contact you within 15 minutes.' appears",
+        "Request appears in the IT queue in real time",
+        "Sandbox tester can verify arrival without another system",
+        "Help request is sent after three failed Epic sends and help button is shown on draft",
+        "Tapping help sends request with note content, patient name, MRN, and timestamp without retyping",
+        "Tester sees confirmation that help request arrived",
+        "Help request routed to appropriate IT support channel"
+      ],
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-21", "FR-25", "FR-27"]
+    },
+    {
+      "id": "FR-28",
+      "title": "Review screen shows note and patient details with Confirm and Go Back buttons",
+      "scope": "mvp",
+      "acceptance": [
+        "Review screen shows note text, patient name, medical record number, and timestamp",
+        "Review screen has Confirm and Go Back buttons"
+      ]
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: nontechnical · Generated: 2026-10-14T10:11:59.856Z\n\n## Product overview and problem\n\n### Product overview and problem\n\nNurses on the hospital wards currently type every clinical note twice: once into the bedside system CareVue and once into the central electronic health record system Epic. This results in about 10 minutes of duplicate work per note, with 5 to 7 notes per shift, totaling roughly 50 to 70 minutes lost per shift that could be used for patient care. The goal of this product is to streamline the capture of ward notes by enabling nurses to type them once in CareVue and then confirm and send them directly to Epic, reducing duplicate entry and saving time.\n\n### Systems\n\n- Notes originate in CareVue (bedside system).\n- Confirmed notes must appear in Epic (central EHR).\n- Nurses review and confirm notes before they are sent to Epic.\n\n### Deadline\n\n- Version one needs to be live by about September 30 to meet the annual safety audit.\n\n## Target users and roles\n\n### Target users and roles\n\n- **Nurse:** Enters clinical notes in CareVue, confirms them, and sends to Epic. Logs in with badge.\n- **Charge nurse:** Checks notes at shift handover for completeness and to identify patient care patterns.\n- **Clinical lead:** Pulls notes weekly for quality review.\n- **Ward manager:** Reviews all notes daily to verify care completion and support staffing decisions.\n- **Sandbox testers:** At least 20 nurses including representation from three wards, testing timing against current double-entry process.\n\n## User stories\n\n### User stories\n\n- As a nurse entering notes, I want to confirm a note and see a clear success message showing it is saved in Epic, so I can move on to the next patient without checking another system.\n- If Epic fails to save the note, I want to see a clear error naming the problem, be able to retry or flag for IT, and have the failure logged behind the scenes.\n- As a nurse, I want unconfirmed notes saved as drafts so I can finish them later without retyping.\n\n## Functional requirements\n\nThis section lists the functional requirements for the ward notes system. Each requirement includes acceptance criteria to test against.\n\n### MVP\n\n- **FR-1** Nurse can confirm note before sending to Epic\n  - Acceptance: A note is not sent to Epic until the nurse confirms it\n  - Acceptance: Confirmed note appears in Epic with the same content\n  - Acceptance: Notes are not automatically sent to Epic without nurse review and confirmation\n  - Reason: to ensure accuracy and quality of the notes before they are integrated into the Epic system\n- **FR-5** Nurse can confirm note success to proceed\n  - Acceptance: System shows clear success message\n  - Acceptance: System confirms note is in Epic\n  - Acceptance: Nurse can move to next patient without further action\n  - Acceptance: A saved note shows a success confirmation\n  - Acceptance: A failed save shows a clear error message\n  - Acceptance: A success message appears after Epic confirms the note was saved\n  - Acceptance: The nurse does not need to check Epic manually\n  - Acceptance: Success screen shows patient name, medical record number, note timestamp, and nurse name matching CareVue\n  - Acceptance: Success screen confirms the note is saved in Epic\n  - Reason: Nurse needs to know note is successfully saved and can proceed without manual checks\n- **FR-6** System handles Epic save failure gracefully\n  - Acceptance: Error message names the failure, e.g. 'Connection to Epic failed'\n  - Acceptance: Nurse can choose retry or flag for IT\n  - Acceptance: Failed attempt is logged and not visible to the nurse\n  - Acceptance: Nurse sees a retry option after an Epic save failure\n  - Acceptance: No more than three attempts are made\n  - Acceptance: After the third failed attempt or timeout, the nurse sees a clear message and the flag-for-IT option\n  - Reason: To support recovery and proper escalation if Epic saving fails\n- **FR-7** System handles unfinished notes mid-entry\n  - Acceptance: System either saves note as draft or discards it if nurse walks away mid-entry\n  - Reason: Nurse may walk away mid-entry, system needs to handle unfinished notes\n- **FR-8** System saves unconfirmed notes as drafts\n  - Acceptance: A note left unconfirmed is still available to the nurse after leaving and returning to the chart\n  - Acceptance: A draft is not sent to Epic until the nurse confirms it\n- **FR-10** New notes start blank\n  - Acceptance: Opening Add Note on a patient chart shows an empty note field\n  - Acceptance: No text is prefilled from prior notes or the chart\n  - Acceptance: A newly opened note contains no text\n- **FR-12** Review screen shows patient identity and note details\n  - Acceptance: Review screen displays note text, patient name, medical record number, and timestamp\n  - Acceptance: Review screen offers only Confirm and Go Back buttons\n  - Acceptance: Review screen displays note text, patient name, and medical record number before confirmation\n- **FR-13** Nurse can edit note from note screen, not review screen\n  - Acceptance: Review screen has confirm and go-back actions only\n  - Acceptance: Going back opens the note with its text intact for editing\n  - Acceptance: No edit control appears on the review screen\n- **FR-17** System navigates to next patient after confirmation\n  - Acceptance: After confirmation, the next patient's blank note opens in the list order\n  - Acceptance: One tap from the note screen returns to the patient list\n  - Acceptance: System allows skipping ahead or going back to the patient list with one tap\n- **FR-20** Failed note remains as draft after Epic send failure\n  - Acceptance: After a failed send, the note appears in drafts with original CareVue timestamp and nurse name unchanged\n  - Acceptance: Failure message reads: Failed to send to Epic. Connection lost. Retry in a few minutes.\n  - Acceptance: Retry from the draft reuses the previous attempt record\n  - Acceptance: After three failed attempts, the nurse sees a message saying 'Failed to send after three tries. The note is still saved as a draft. Please contact IT support for help.'\n  - Acceptance: The nurse can tap a button to send a help request directly from the app\n  - Acceptance: The help request includes the note content, patient info, and timestamp\n- **FR-22** Show success message with note details after successful send\n  - Acceptance: Success screen shows patient's name, medical record number, note timestamp, nurse name, and confirmation that the note appears in Epic\n- **FR-23** Handle Epic failure and allow retry from draft\n  - Acceptance: The nurse sees a message saying 'Failed to send to Epic. Connection lost. Retry in a few minutes.'\n  - Acceptance: Note stays saved as draft with original timestamp and nurse info\n  - Acceptance: Nurse can retry sending the note from the draft\n- **FR-26** Confirm help request was received after tap\n  - Acceptance: Confirmation message 'Help request sent successfully. IT will contact you within 15 minutes.' appears\n  - Acceptance: Request appears in the IT queue in real time\n  - Acceptance: Sandbox tester can verify arrival without another system\n  - Acceptance: Help request is sent after three failed Epic sends and help button is shown on draft\n  - Acceptance: Tapping help sends request with note content, patient name, MRN, and timestamp without retyping\n  - Acceptance: Tester sees confirmation that help request arrived\n  - Acceptance: Help request routed to appropriate IT support channel\n- **FR-28** Review screen shows note and patient details with Confirm and Go Back buttons\n  - Acceptance: Review screen shows note text, patient name, medical record number, and timestamp\n  - Acceptance: Review screen has Confirm and Go Back buttons\n\n## Business rules\n\n### Business rules\n\n1. Unconfirmed notes are kept as drafts for 72 hours and must reopen exactly as left, preserving patient, text, and cursor position.\n2. A maximum of three retry attempts are allowed per note when sending to Epic, each with a timeout.\n3. There is no hard limit on the number of notes per patient per shift.\n4. Each note records the original CareVue timestamp and nurse's name at creation, not the send time.\n5. Epic displays the original CareVue note time; the send time is recorded separately internally.\n6. The nurse's own confirmation is the final approval step; no second approval is required though notes can be reviewed or corrected later if flagged.\n\n## Technical requirements\n\n### Technical requirements and choices\n\n- **Hosting:** Cloud account was specified, matching existing hospital cloud resources.\n- **Builder:** Small internal IT team with CareVue and Epic integration experience, possibly assisted by a coding agent.\n- **Team skills:** Existing skills with low-code platforms, standard web interfaces, and secure API connections to avoid learning new systems from scratch.\n- **Integration approach:** Use a low-code integration platform with pre-built CareVue and Epic connectors, to reduce custom coding and focus on workflow logic. This approach is also tested in a sandbox before live deployment.\n- **Authentication:** Hospital single sign-on using badge login is specified to simplify credential management.\n- **Audit logging:** Use platform built-in logging exported in real time to hospital log store for six years retention and audit compliance.\n\nThese choices are based on the team's experience and hospital security policies.\n\n## Data requirements\n\n### Data requirements\n\n- **Note record** entity with fields: note_text, nurse_name, medical_record_number, carevue_timestamp, confirmation_time, send_status, retry_count.\n- Relations: Each note relates to patient (via MRN), nurse, and multiple audit_log_entries.\n\n- **Audit log entry** entity with fields: exact_note_text_sent, action, time, nurse_name, patient_id.\n- Used to track note sending and changes.\n\n- **Data retention:** Drafts retained for 72 hours. Sent notes and audit entries kept at least six years per hospital record-keeping policy.\n\n## Integrations\n\n### Integrations\n\n- **CareVue:** Data flows inbound (feeding note content). Uses vendor standard secure login rotated every 90 days. Integration already approved by hospital IT security.\n\n- **Epic:** Data flows outbound (approved nurse notes sent). Uses Epic's standard secure login. Requires confirmation that each note is saved. Clear error message on failure to save notes.\n\nIntegration is designed to adhere strictly to these protocols for security and reliability.\n\n## Security and privacy\n\n### Security and privacy\n\n- Complies with HIPAA.\n- Logs every data access and change.\n- Data encrypted in transit and at rest.\n- Audit logs retained for at least six years, aligned with hospital policies.\n- CareVue login credentials are rotated every 90 days.\n- Audit logs include full exact note text sent to Epic, action taken, timestamp, nurse name, and patient ID.\n- IT team monitors failure logs and help requests in real time.\n\n## Non-functional requirements\n\n### Non-functional requirements\n\n- Total budget about $25,000 for all workflow improvements this quarter including this project.\n- Around 100 users expected at launch, mostly nurses plus charge nurses and clinical leads.\n- Sandbox testing with at least 20 nurses, including representation from each ward, to time the new workflow against the old one.\n- Cost breakdown to be provided for licensing, integration, and training if near budget limit.\n\n## Administrative surface\n\n### Administrative surface\n\n- No specific screens or settings are requested beyond nurse logins and note workflows.\n- IT support queue monitors help requests triggered from the nurse app.\n- Logs and audit data are stored and accessed by hospital compliance teams as needed.\n\n## MVP scope\n\nThe MVP scope includes the core workflow: entering a note in CareVue, reviewing and confirming it, and sending it to Epic with confirmation. This scope addresses the hospital's urgent need for the safety audit deadline around September 30.\n\nIn version one:\n- FR-1\n- FR-5\n- FR-6\n- FR-7\n- FR-8\n- FR-10\n- FR-12\n- FR-13\n- FR-17\n- FR-20\n- FR-22\n- FR-23\n- FR-26\n- FR-28\n\nMoved to future scope:\n- reminders_and_audit_logs: Deferred to keep version one within the audit deadline\n\n## Future scope\n\nItems deferred to future scope include reminders and detailed audit log review interfaces, to keep version one deliverable within the audit review timeline.\n\n## Implementation phases\n\nImplementation will proceed in phases delivering incremental functionality. Phase one delivers the smallest end-to-end slice of the MVP including note entry, review, confirmation, and sending to Epic with success confirmation.\n\n### Phase 1: Core MVP workflow\n\nGoals:\n- Implement note entry in CareVue\n- Enable review and confirmation of notes\n- Send confirmed notes to Epic with success and failure handling\n- Support saving drafts of unconfirmed notes\n- Provide success confirmation and navigation to next patient\n\nTasks:\n- Develop note entry UI with blank note start\n  - Acceptance: Opening Add Note shows empty note\n  - Acceptance: No prefilled text appears\n- Implement note review screen with Confirm and Go Back\n  - Acceptance: Review screen shows note text, patient name, MRN, timestamp\n  - Acceptance: Buttons Confirm and Go Back only\n- Add workflow to confirm note before sending to Epic\n  - Acceptance: Notes sent to Epic only after nurse confirmation\n  - Acceptance: Confirmed note matches content sent\n- Handle Epic save success with success screen showing comprehensive details\n  - Acceptance: Shows patient name, MRN, note timestamp, nurse name\n  - Acceptance: Clear confirmation that note saved in Epic\n  - Acceptance: Allows moving to next patient\n- Handle Epic save failures with retry and flag for IT\n  - Acceptance: Error messages name failure problem\n  - Acceptance: Retry offered up to three times\n  - Acceptance: Flag-for-IT option displayed after retries exhausted\n  - Acceptance: Failed attempts logged unseen by nurse\n- Implement draft saving for unconfirmed and failed notes\n  - Acceptance: Unconfirmed and failed notes saved as drafts\n  - Acceptance: Drafts reopen exactly as left\n  - Acceptance: Drafts retain original timestamp and nurse name\n\nPhase acceptance:\n- Full end-to-end flow from note creation to Epic confirmation working\n- Draft saving and failure handling functioning\n- Success and error messages clear and accurate\n- Navigation to next patient note implemented\n\n## Open questions\n\nNo open questions identified. Defaults taken from the specification state.\n\n- The participant did not review the requirement list: the interview ended before it was read back and confirmed. Is anything on it wrong or missing? _Default taken: The list is built as recorded._\n",
+  "curation": {
+    "merged": [
+      {
+        "into": "FR-10",
+        "from": ["FR-14"],
+        "via": "exact"
+      },
+      {
+        "into": "FR-17",
+        "from": ["FR-18"],
+        "via": "exact"
+      },
+      {
+        "into": "FR-1",
+        "from": ["FR-2"],
+        "via": "model"
+      },
+      {
+        "into": "FR-5",
+        "from": ["FR-3", "FR-4", "FR-19"],
+        "via": "model"
+      },
+      {
+        "into": "FR-6",
+        "from": ["FR-9"],
+        "via": "model"
+      },
+      {
+        "into": "FR-12",
+        "from": ["FR-11", "FR-15"],
+        "via": "model"
+      },
+      {
+        "into": "FR-13",
+        "from": ["FR-16"],
+        "via": "model"
+      },
+      {
+        "into": "FR-20",
+        "from": ["FR-24"],
+        "via": "model"
+      },
+      {
+        "into": "FR-26",
+        "from": ["FR-21", "FR-25", "FR-27"],
+        "via": "model"
+      }
+    ],
+    "rerouted": [],
+    "withdrawn": [],
+    "renumbered": [],
+    "folded": [],
+    "candidates": [
+      {
+        "a": "FR-12",
+        "b": "FR-28",
+        "score": 0.75,
+        "kind": "candidate"
+      },
+      {
+        "a": "FR-6",
+        "b": "FR-23",
+        "score": 0.6,
+        "kind": "candidate"
+      },
+      {
+        "a": "FR-5",
+        "b": "FR-22",
+        "score": 0.5,
+        "kind": "candidate"
+      },
+      {
+        "a": "FR-12",
+        "b": "FR-22",
+        "score": 0.44999999999999996,
+        "kind": "candidate"
+      },
+      {
+        "a": "FR-8",
+        "b": "FR-20",
+        "score": 0.375,
+        "kind": "candidate"
+      },
+      {
+        "a": "FR-13",
+        "b": "FR-28",
+        "score": 0.25,
+        "kind": "candidate"
+      }
+    ]
+  }
+}

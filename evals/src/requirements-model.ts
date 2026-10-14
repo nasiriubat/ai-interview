@@ -15,7 +15,11 @@ export class RequirementsScriptedModel implements ModelCallerPort {
   readonly issueScans: string[] = [];
   private lastFocus: { mode: string; key?: string; text?: string } = { mode: "none" };
 
-  constructor(private readonly template: InterviewTemplate) {}
+  constructor(
+    private readonly template: InterviewTemplate,
+    /** Facts the owner answers the requirements read-back with (D-244): edits, withdrawals, additions. */
+    private readonly readBackCorrections: unknown[] = [],
+  ) {}
 
   async *chat(purpose: Purpose, _ctx: CallContext, req: CallRequest): AsyncIterable<ChatEvent> {
     this.requests.push({ purpose, req });
@@ -44,6 +48,12 @@ export class RequirementsScriptedModel implements ModelCallerPort {
         },
         source: "user",
       });
+    if (
+      prev.mode === "finding" &&
+      (prev.text ?? "").includes("Requirements confirmation.") &&
+      this.readBackCorrections.length
+    )
+      facts.push(...this.readBackCorrections);
     if (prev.mode === "mvp_challenge" && prev.key) {
       facts.push({
         kind: "spec_field",

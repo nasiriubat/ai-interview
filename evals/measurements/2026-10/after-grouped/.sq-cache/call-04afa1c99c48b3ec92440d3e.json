@@ -1,0 +1,103 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "Nurses would enter the note once in the new tool, and it must appear in both systems—EpicCare within 30 seconds and Sensus within 60 seconds. ... If one system is down, the tool should show a red warning ... The note stays in the tool ... silent retry every 10 seconds for the first 2 minutes, then stop.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "The tool will pull the MRN and patient name automatically from a live list of patients on the ward, which syncs every two minutes from Sensus. The nurse only needs to select the patient from a dropdown—no typing the MRN.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "The time field will auto-populate with the current time when they start typing, but they can edit it if the event happened earlier.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "The note must be saved instantly, even if the nurse hasn’t finished typing, so they don’t lose their work if the system glitches. We’ve had one incident where a nurse lost a full shift’s notes after a browser crash, so that’s a must.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "partly",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "The tool should show a small green tick when the note has successfully synced to both systems—the nurses want that visual confirmation. ... The green tick should appear only after both systems confirm receipt ... A note still retrying shows a yellow icon ... tooltip that appears when they hover over the yellow icon: 'Note is saving—still trying to reach both systems.' ... A note that has stopped retrying shows a red warning, not the yellow icon.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "If one system is down, the tool should show a red warning with a clear message: “Note saved locally but not sent to EpicCare—check again later.” The note stays in the tool, and the nurse can see it’s pending. I’d also recommend a silent retry every 10 seconds for the first 2 minutes, then stop.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "The list updates every two minutes, so she’ll see all the patients on her ward, including those who’ve just been admitted or moved.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "The night nurse opened Mr. James Carter’s notes at 6:55 PM and saw all the entries from the day shift appear in a single timeline—typed by both the nurse and two healthcare assistants. She scanned the observations ... She called the day nurse and asked ...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "partly",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "yes",
+      "quote": "When the nurse finishes typing, she just clicks “Save and Send”—the tool does the rest. ... She should not count the note as sent until she sees the green tick. The tick confirms it’s in both systems—EpicCare and Sensus.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-10",
+      "grounded": "yes",
+      "quote": "If she realises a mistake after the note has been sent, she can’t edit it directly in the tool, but she can write a new note with a correction—like “Correction: BP was 138/86, not 148/92”—and tag it as “Correction” so the night nurse knows. The original note stays in place.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "If the patient has left the ward and is no longer on the live list, the tool should still allow the note to be saved—but show a clear yellow warning: “This patient is no longer on your ward. Note will be sent, but confirm this is correct.” ... She confirms with one click ... The note will still go to both systems with the correct MRN.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

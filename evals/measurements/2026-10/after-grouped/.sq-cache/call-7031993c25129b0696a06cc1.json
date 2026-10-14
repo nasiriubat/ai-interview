@@ -1,0 +1,76 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "Once launched, the tool automatically populates the note text from the most recently saved clinical note in Epic via the FHIR API ... displays it in a clean, editable field, and allows her to review or edit it.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "After clicking “Save to SharePoint,” the tool writes the note to the designated worksheet in the shared SharePoint Online file ... including metadata like timestamp, nurse ID (from Azure AD), and patient ID.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "On day one, a nurse should be able to open the tool directly from the Epic care environment via a custom button in the EHR’s navigation menu ... the tool automatically populates the note text from the most recently saved clinical note in Epic ... displays it in a clean, editable field ...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-11",
+      "grounded": "yes",
+      "quote": "If the failure persists, she can copy the text manually from the editor and paste it into the worksheet as a fallback.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "We’ll log all failures in Azure Monitor with the nurse’s ID, timestamp, and error details.",
+      "granularity": "too_fine",
+      "kind": "constraint",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-13",
+      "grounded": "yes",
+      "quote": "The tool will include a “Cancel” button in the UI that closes the window and returns her to Epic without any changes to the note or the SharePoint worksheet. Any edits she made will be discarded ...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-15",
+      "grounded": "yes",
+      "quote": "The tool is intentionally minimal—no history, no versioning, no export options—because the current workflow only requires a single final clinical note to be shared at shift end. All such features will be deferred to a future release based on user feedback.",
+      "granularity": "too_coarse",
+      "kind": "decision",
+      "testable": "no",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-17",
+      "grounded": "yes",
+      "quote": "If the retry also times out, the tester will see a red error message at 90 seconds: “Failed to save to SharePoint. Please try again.” The edited text will remain in the editor, the Retry button will be enabled, and no further automatic retries will occur. The error will be logged in Azure Monitor ...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

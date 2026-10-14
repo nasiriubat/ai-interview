@@ -1,0 +1,14 @@
+{
+  "pairs": [
+    { "a": "FR-3", "b": "FR-10", "same": true },
+    { "a": "pilot-pass-test", "b": "pass-test", "same": false },
+    { "a": "pilot-pass-test", "b": "major-error-definition", "same": false },
+    { "a": "FR-1", "b": "FR-12", "same": false },
+    { "a": "FR-13", "b": "FR-18", "same": false },
+    { "a": "FR-11", "b": "FR-12", "same": false },
+    { "a": "FR-12", "b": "FR-15", "same": false },
+    { "a": "FR-13", "b": "FR-14", "same": false },
+    { "a": "FR-11", "b": "pilot-pass-test", "same": false },
+    { "a": "FR-18", "b": "FR-19", "same": false }
+  ]
+}

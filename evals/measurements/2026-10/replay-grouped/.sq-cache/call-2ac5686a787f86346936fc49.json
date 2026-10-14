@@ -1,0 +1,175 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "Hospital IT administrators need access to the tool’s health monitoring dashboard—available via Azure Monitor and Application Insights—to track API latency, error rates, and authentication failures.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "The primary user is the ward nurse, who needs to log in via Azure AD SSO, select a patient from their assigned shift roster (pulled from the ward scheduling API), and enter a free-text clinical note using a clean, mobile-responsive form that auto-saves every 30 seconds.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "If Epic is unreachable during submission, the note is immediately persisted to our Azure SQL Database with a status of “Pending” and a retry queue is triggered via Azure Service Bus. The system automatically retries the FHIR POST every 30 seconds for up to 15 minutes...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "yes",
+      "quote": "Additionally, a pharmacy liaison may need read-only access to the note feed for specific alerts (e.g., “patient refusing medication”) to initiate interventions, but only with explicit approval and audit logging.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-13",
+      "grounded": "yes",
+      "quote": "Only the pharmacy liaison and the charge nurse can open an alert-flagged note, and each access is logged in Azure Monitor with the user ID, timestamp, IP address, and the note’s MRN. When the liaison opens the note, they must select a reason from a dropdown...",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-14",
+      "grounded": "yes",
+      "quote": "When a nurse submits a note with the alert type “Patient refusing medication,” ... The liaison can click to open it, which triggers an automated workflow: a Microsoft Teams message is sent to the pharmacy team channel with a link to the note, and a ticket is created in our incident tracking system (ServiceNow) with priority level 2.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-16",
+      "grounded": "yes",
+      "quote": "At the end of their shift, the ward nurse can access a “Shift Summary” view that shows all notes they submitted during the shift, with color-coded status: green for “Synced to Epic,” yellow for “Pending retry,” and red for “Failed after 15 minutes.” They can tap any failed note to see the error message and retry it manually if desired.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-17",
+      "grounded": "yes",
+      "quote": "At the start of their shift, the charge nurse opens the dashboard and sees a real-time summary of all ward notes from the prior shift: a list of patients with active notes, color-coded by status—green for “synced,” yellow for “pending,” and red for “failed.” They immediately see any alert-flagged notes ... The system auto-refreshes every 2 minutes during the shift.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-20",
+      "grounded": "yes",
+      "quote": "While waiting to retry, the nurse sees a persistent notification at the top of the screen: “Your note is pending sync—will retry automatically. Status: Retry attempt #2 (30 seconds ago).” The retry status updates every 30 seconds with a progress graphic.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-22",
+      "grounded": "yes",
+      "quote": "The charge nurse dashboard displays a real-time summary of all ward notes from the prior shift. The dashboard shows a list of patients with active notes color-coded by status. The dashboard displays alert-flagged notes in a dedicated section with a red badge. The dashboard shows a count of unresolved issues. The dashboard auto-refreshes every 2 minutes during the shift. The charge nurse can view the full note history per patient. The charge nurse can export the overview to PDF for handoff.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-23",
+      "grounded": "yes",
+      "quote": "The PDF handoff is shared with the incoming charge nurse and the unit manager, who receive it via secure email through Azure Logic Apps, with encryption and a 7-day expiration link. The export is logged in the audit trail with the user ID, timestamp, patient count, and recipient email, and stored in Azure Blob Storage with a 7-year retention policy—exactly like alert-note access.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-25",
+      "grounded": "yes",
+      "quote": "If the note fails after 15 minutes, the system triggers a push notification (via Azure Notification Hub) and displays a modal: “Note saved locally—sync failed due to Epic outage. Contact IT if issue persists.” The message remains visible until acknowledged, ensuring no note is silently lost—this is logged as a failed write event in Azure Monitor, visible to the IT team.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-26",
+      "grounded": "yes",
+      "quote": "When a nurse opens the app, they must be able to authenticate via Azure AD SSO and immediately see their assigned shift roster—displayed as a list of patient cards—with real-time status indicators ... This data must load within 3 seconds, and the nurse must be able to click any patient card to begin note entry—even if the network is slow, with all patient data cached locally for up to 5 minutes.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-27",
+      "grounded": "yes",
+      "quote": "The nurse sees the status from the ward shift system—the bed is empty—so the card shows “Bed Empty” and is dimmed, with a small tooltip: “Patient transferred per ward system; note may not be relevant.” The card does not display the Epic admission status of “Transfer” in this case, because the shift system’s real-time bed state takes precedence.",
+      "granularity": "ok",
+      "kind": "business_rule",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-28",
+      "grounded": "yes",
+      "quote": "If the nurse attempts to enter a note for that patient, a modal appears: “Patient not assigned to this ward—note will not sync to Epic. Confirm continue?” This prevents invalid data entry and maintains data integrity.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-31",
+      "grounded": "yes",
+      "quote": "The test must verify that the roster drops the patient within 60 seconds of the ward shift system updating their status—specifically, the system must detect the change via the REST API polling interval (set to 30 seconds) and refresh the roster within 90 seconds of the update.",
+      "granularity": "ok",
+      "kind": "constraint",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-35",
+      "grounded": "yes",
+      "quote": "The patient card is removed within 90 seconds of the shift system update.",
+      "granularity": "ok",
+      "kind": "constraint",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-36",
+      "grounded": "yes",
+      "quote": "Yes, version one must support full offline note creation and editing—nurses must be able to start typing a note, save it locally, and edit it later even if the device loses network connectivity. The app uses IndexedDB for local persistence, a service worker to cache assets and handle offline state, and a conflict resolution strategy that prioritizes the latest version based on timestamp when sync succeeds.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "roster_membership",
+      "grounded": "yes",
+      "quote": "Only patients assigned to the nurse's current ward per the ward shift system appear; Epic-only admissions do not appear. Discrepancies between systems are logged with timestamps from both sources.",
+      "granularity": "ok",
+      "kind": "business_rule",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

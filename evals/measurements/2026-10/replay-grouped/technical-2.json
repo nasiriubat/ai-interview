@@ -1,0 +1,1255 @@
+{
+  "persona": "technical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Where will this run? The choice affects architecture, cost and compliance defaults, so it shapes most of what follows. If you're not sure, we can leave it open for now."
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks, that settles where it runs. A cloud account means we can use managed databases and hosting, which affects cost and compliance defaults."
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "The tool will run in Azure, specifically in the UK South region to meet data residency requirements for NHS patient data. I’ll use Azure App Services for the web frontend and Azure SQL Database with Transparent Data Encryption for the backend, both compliant with NHS Digital’s security standards. Authentication will be enforced via Azure AD, requiring nurses to sign in with their existing NHS credentials. All data will be retained for 7 years in accordance with NHS data retention policies."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "You've described a clear hosting plan in Azure UK South. Before we go further, which existing systems must this work with? The patient system and the spreadsheet you mentioned are the obvious ones, and knowing them shapes the data and integration work. If you're unsure, the default is none."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "The tool must integrate with the hospital’s electronic patient record (EPR) system, which uses FHIR-based APIs hosted on a HL7 v2.5 gateway, and with the ward-level spreadsheet system, which is a SharePoint Online list synchronized via Power Automate. I’ll use the FHIR API to read patient demographics and admission status, and write ward notes using the FHIR Observation resource with a custom code system. The SharePoint list will be updated via a secure, scheduled sync job using Azure Logic Apps with OAuth 2.0 through Azure AD."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "Thanks for the integration detail. One more setup question before we go deeper: who will build this? It decides how the specification and plan are written. If you're not sure, the default is a coding agent."
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "I’m assigning this to a dedicated developer team within the hospital group’s IT department—specifically, a two-person squad consisting of a full-stack .NET engineer and a frontend developer with experience in NHS digital systems. They’ll be supported by a technical lead (me) and an integration specialist from the EPR vendor’s partner team. The specification will be written using IEEE 830 standards and supplemented with FHIR implementation guides, ensuring traceability and compliance."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "You've described the builder: a two-person in-house squad, supported by you and an integration specialist from the EPR vendor's partner team. I'll record that rather than ask again."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": "Understood. The team structure is now documented: two in-house developers, a technical lead (me), and external support from the EPR vendor’s integration partner. This ensures alignment with both internal development practices and the EPR system’s technical constraints."
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "What does the team know best? A stack the team already knows will usually beat a marginally better one, so this shapes the technology choices. If you're not sure, I'll record it as unknown."
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": "The team’s strengths are in .NET Core, Azure App Services, Azure SQL Database, FHIR APIs, and Azure AD integration. They have extensive experience with HL7 v2 and Power Automate, but limited exposure to React or modern frontend frameworks. Given this, I’ll design the frontend using Blazor Server to leverage their existing .NET skills and minimize learning curve, avoiding any dependency on external JavaScript libraries."
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "The team's strengths are clear now: .NET Core, Azure App Services, Azure SQL, FHIR, Azure AD, plus HL7 v2 and Power Automate. Blazor Server fits that well, so I'll record it as the frontend choice."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "Confirmed. The frontend will be built using Blazor Server, leveraging the team’s expertise in .NET and minimizing the need for external frontend frameworks. This choice ensures faster development, easier debugging, and tighter integration with Azure AD and FHIR APIs. All UI components will be developed in C# with minimal reliance on JavaScript, aligning with the team’s skill set."
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "Blazor Server is confirmed for the frontend. Next, when does version one need to be live? The date decides how much goes into the first release. If there's no fixed date, we'll plan without one."
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "Version one must be live by 15 October 2024—this is aligned with the hospital group’s annual digital transformation milestone and the upcoming rollout of the new EPR system. This timeline requires a minimal viable product (MVP) with core functionality: nurse login via Azure AD, patient lookup via FHIR, ward note creation as a FHIR Observation resource, and sync to SharePoint via Power Automate. All non-essential features, such as audit trails or note versioning, will be deferred to v1.1."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "Your 15 October 2024 date is recorded, and it sets the MVP scope you described: Azure AD login, FHIR patient lookup, ward note creation as an Observation, and the SharePoint sync."
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": "Confirmed. The MVP scope is locked to the four core features: Azure AD authentication, FHIR-based patient lookup, creation of ward notes as FHIR Observation resources, and bidirectional sync to SharePoint via Power Automate. All other features, including audit logging, note templates, or multi-ward support, are deferred to v1.1. The team will begin development immediately with a sprint plan aligned to the 15 October deadline."
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Your MVP scope is locked, so the next question is budget. Is there a budget range for this build? It decides whether we default to building or buying components. If you're not sure, we'll record it as not decided."
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "The budget is capped at £45,000 for the full MVP delivery, including development, testing, and deployment. This allows us to build the core components in-house using existing Azure subscriptions and team capacity, but requires us to avoid third-party licensing costs. We’ll use Azure App Services and Azure SQL at standard rates, and leverage Power Automate and SharePoint without additional add-ons. Any cost overruns will require a change request to the digital transformation steering group."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "The participant has answered the budget question: a £45,000 cap for the full MVP, built in-house on existing Azure subscriptions. I'll record that and move on."
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": "Confirmed. The project is scoped within a £45,000 budget, fully aligned with in-house development using existing Azure resources and team capacity. No third-party licenses or commercial off-the-shelf components will be used. All costs will be tracked against Azure cost centers and reported biweekly to the digital transformation office."
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "Budget is confirmed at £45,000 for the in-house build. Next, roughly how many nurses will use the tool at launch? This sets the scale and hosting defaults. If you're not sure, we'll assume under 100."
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "At launch, approximately 85 nurses across three acute wards will use the tool—each ward has about 25–30 nurses, with around 30% expected to be active daily. This scale means the Azure App Service will run on a Standard S1 tier (1 core, 1.75 GB RAM) with auto-scaling enabled to handle peak load during shift changes. Database performance will be monitored via Azure Monitor, with alerts triggered if CPU exceeds 75% for more than 5 minutes."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "Thanks for the scale figures; 85 nurses across three wards sets the hosting and monitoring plan. Next, what compliance regimes apply? This changes data handling, hosting and security requirements, and it's a patient-data system, so UK GDPR and NHS standards are likely. If you're unsure, the default is personal data under UK GDPR."
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "The system must comply with UK GDPR, the NHS Digital Information Governance Code of Practice, and the Health and Social Care Act 2008 (Regulated Activities) Regulations. All patient data will be processed under NHS Data Security and Protection Toolkit (DSPT) controls, with encryption at rest (Azure SQL TDE) and in transit (TLS 1.3). Access logs will be retained for 12 months, and all FHIR interactions will be audited via Azure Monitor with alerts on unauthorized access attempts. The system will undergo a DSPT self-assessment prior to go-live."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "Compliance is covered: UK GDPR, the NHS Digital Information Governance Code of Practice, the 2008 Regulated Activities Regulations, DSPT controls, TDE and TLS 1.3, 12-month access logs, and a DSPT self-assessment before go-live. I'll record that and move on."
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "Confirmed. All compliance requirements are documented and mapped to technical controls: UK GDPR and NHS Digital standards are enforced via data encryption, access logging, and DSPT-aligned governance. The system will be classified as a \"High-Risk\" system under the NHS Digital Risk Framework, requiring formal sign-off from the trust’s Information Governance Officer before deployment."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "The EPR integration has no authentication mechanism specified yet. Default: Azure AD, using a service principal or managed identity for the FHIR read/write calls. That means the EPR interface authenticates with the same identity platform as the nurses, with no separate credentials to manage. Should we keep Azure AD for the EPR integration?"
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Azure AD is confirmed for the EPR integration, so that finding is closed.\n\nNow the problem itself. Nurses currently type each note into the patient system and a spreadsheet. Who is most affected by that double entry, and roughly how often does it happen during a shift?"
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": "The most affected users are senior ward nurses and clinical leads, who average 6–8 ward notes per shift, each requiring entry into both the EPR and the SharePoint spreadsheet. This double entry occurs during every shift change and at least twice per shift for monitoring, particularly during morning and evening rounds. Repeated manual input increases the risk of data inconsistency and adds 15–20 minutes of administrative burden per nurse per shift."
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "Thanks, that gives a clear picture of the burden. Can you walk me through one recent example: a single ward note, from the moment it's written to when it appears in the spreadsheet? Which fields are retyped, and where does the time go?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": "Sure—last Tuesday, a senior nurse documented a patient’s fall risk assessment during evening rounds. She first entered the note into the EPR using the FHIR Observation resource: fields included patient ID, timestamp, author (her NHS ID), category (clinical assessment), code (‘fall-risk’), and text (‘moderate risk, ambulates with staff’). Then, she opened the SharePoint list and manually retyped the same fields—patient ID, timestamp, author, and assessment text—into the spreadsheet. The timestamp was entered twice, with a 45-second delay between entries due to context switching. The nurse spent 1.5 minutes total on this single note: 30 seconds in the EPR, 45 seconds in SharePoint, and 15 seconds verifying both entries. The risk of typo was high—she later noticed the author’s name was misspelled in the spreadsheet."
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "That example is useful. Per note, the retyping took about 1.5 minutes, and the misspelled author name shows the risk. Which of those retyped fields would you say is most often wrong or missing in the spreadsheet, the timestamp, the author, or the note text?"
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": "The author field is most often wrong or missing—12% of notes in a recent audit had either the wrong NHS ID or were blank in the spreadsheet. The timestamp is usually correct but inconsistently formatted (some used local time, others UTC), and the note text is nearly always copied correctly but occasionally truncated due to column width limits in SharePoint. The author field error is the highest risk, as it compromises auditability and accountability."
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "The author field is the riskiest one, and 12% of notes are affected. Do you know what happens today when a spreadsheet entry has the wrong or blank author ID, for example whether anyone reconciles the spreadsheet against the EPR?"
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "No, there is no formal reconciliation process today. The spreadsheet is used for operational reporting by ward managers, but no one regularly compares it against the EPR. When discrepancies are noticed—usually during audits or incident reviews—they are manually corrected by the nurse who entered the data, but this happens only after the fact. This creates a compliance gap: the spreadsheet lacks audit trail integrity, and the EPR is the only authoritative source, but the spreadsheet is treated as a de facto record."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "The SharePoint sync currently has no defined retry behaviour when a sync attempt fails. Default: exponential backoff, retrying a failed sync several times with increasing gaps, then flagging the note for manual review. That means a transient outage won't silently lose a ward note, and a note that keeps failing gets surfaced instead of dropped. Should we keep exponential backoff as the retry behaviour?"
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"yes_no\",\"value\":true})"
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Exponential backoff is confirmed as the SharePoint retry behaviour, so that finding is closed. Next, the users. Who will use this tool day to day, and what role does each person play on the ward? Senior nurses and clinical leads seem central, so tell me whether there are other roles too."
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": "The primary users are senior ward nurses and clinical leads, who will enter and manage ward notes. Band 5 nurses also use the system occasionally, particularly for routine observations, though they typically delegate note creation to seniors. Ward clerks will have read-only access to view notes in the SharePoint list for reporting purposes, but they cannot edit or create entries. All users must be assigned a valid NHS number and be members of the appropriate Azure AD security group to access the tool."
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "Thanks, that clarifies the roles. Band 5 nurses and ward clerks both appear here, so I want to be sure of their access. On a typical shift, what does a Band 5 nurse do in the tool, and can they see notes written by others?"
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": "On a typical shift, a Band 5 nurse uses the tool to view and acknowledge notes created by senior nurses, particularly those related to care plans or patient risks. They can view all notes for patients on their assigned ward but cannot create or edit them—only senior nurses and clinical leads have write access. The tool displays a “Last Updated” timestamp and author name for each note, so they can see who wrote it. All read access is logged in Azure Monitor for audit purposes."
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Clear, thanks. Band 5 nurses view and acknowledge notes but can't create or edit them. The \"acknowledge\" action is new to me, so I'll check it: when a Band 5 nurse acknowledges a note, what should the system record, and who should be able to see that acknowledgement?"
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": "When a Band 5 nurse acknowledges a note, the system records the NHS ID of the nurse, the timestamp (UTC), and the action type (\"acknowledged\") as a FHIR Annotation resource linked to the original Observation. This annotation is visible to all senior nurses, clinical leads, and ward clerks with read access. The acknowledgment is not editable or deletable, and it is included in audit logs retained for 12 months. This ensures traceability without altering the original clinical note."
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "That covers the acknowledgement record well. Next, each role's goal and first action: when a senior nurse opens the tool at the start of a shift, what is the first thing they need to do?"
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "At the start of a shift, the first action for a senior nurse is to select the ward they’re working on from a dropdown populated from the EPR’s Ward Resource list via FHIR. This filters the patient list to only those on their assigned ward and sets the context for all subsequent note entries. The system auto-populates the current shift start time, and the nurse can then begin reviewing or creating notes—no manual ward selection or patient lookup is required beyond this initial filter."
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "Thanks for the ward-selection detail. One gap remains on the hosting side: the App Service S1 tier has no auto-scaling rules yet, and shift-change peaks are exactly when they matter. Default: scale out by adding instances when CPU stays above 70% for 10 minutes, and scale back in when it drops below 30%. That means the app adds capacity during busy rounds and releases it afterwards. Should we keep this scale-out configuration?"
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "Auto-scaling is settled: scale out above 70% CPU for 10 minutes, scale back in below 30%.\n\nNext, user stories. Thinking about a senior nurse at the start of a shift, which single action would matter most to her? Describe it in her words, and we'll shape it into a story."
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": "Right now, I have to log into two systems just to start my shift—first the EPR to see my patients, then the spreadsheet to check if any notes are missing. I wish I could just open one tool, pick my ward, and see all the notes that need my attention—no double login, no searching.\"  \n\nThat’s the core user story: As a senior nurse, I want to log in once and see all pending ward notes for my assigned ward, so I can start my shift without switching between systems or re-entering data."
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "That's a strong core story, and \"see all pending ward notes\" is worth pinning down. Pending for you means what, exactly: notes you haven't yet acknowledged as a Band 5 nurse, notes that failed to sync to SharePoint, or notes missing an author? Pick the one that matches your shift."
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": "Pending means notes that have been created in the EPR but not yet acknowledged by a senior nurse or clinical lead—specifically, any FHIR Observation with a “note status” of “pending review” and a non-blank author ID. These are the notes that require clinical validation or follow-up, and they appear in the senior nurse’s dashboard. Notes missing an author ID or failed sync attempts are flagged separately in an admin view, not in the nurse’s main workflow."
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "Thanks, that definition of pending is clear. There's an inconsistency to resolve, though: earlier you said Band 5 nurses acknowledge notes, but here \"pending\" means notes awaiting a senior nurse or clinical lead. Who clears a note from the pending list: the senior nurse who reviews it, or a Band 5 nurse who acknowledges it? Pick one."
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": "The senior nurse or clinical lead clears a note from the pending list by marking it as \"reviewed and actioned\" in the tool, which updates the FHIR Observation’s status and removes it from the pending queue. Band 5 nurses can only acknowledge notes for awareness—they do not have the authority to clear them from pending. This ensures clinical accountability and aligns with the ward’s hierarchy of responsibility."
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "Clear: senior nurses and clinical leads clear notes from pending by marking them \"reviewed and actioned\", and Band 5 nurses only acknowledge for awareness.\n\nNext, the Band 5 nurse's story. Walk me through one recent shift: a Band 5 nurse opens the tool, sees a note a senior wrote about a patient's fall risk, and acknowledges it. What exactly does she see on screen, and what does she click?"
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": "On screen, she sees a dashboard listing all notes assigned to patients on her ward, with columns for patient name, note type (e.g., \"fall risk assessment\"), timestamp, author (NHS ID), and status (\"pending review\"). The note in question shows: \"Fall risk: moderate, ambulates with staff\" from a senior nurse at 18:12, with a status of \"pending review\". She clicks the \"Acknowledge\" button next to the note, which triggers a confirmation dialog: \"Acknowledge receipt of this note? This action cannot be undone.\" After confirming, the system logs her NHS ID, the timestamp (UTC), and the action as a FHIR Annotation, and the note’s status updates to \"acknowledged\". She sees a green checkmark and a confirmation toast."
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "That Band 5 walkthrough is clear, and it confirms the acknowledgement flow. One open point on the SharePoint sync (finding f29-1): the spec doesn't yet say how often notes are pushed from the EPR to the SharePoint list. Default: an hourly scheduled sync via Logic Apps. That means a note reaches the spreadsheet within an hour of being written, and shift-change bursts are batched rather than triggering a sync per note. Should we keep the hourly schedule?"
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"yes_no\",\"value\":true})"
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "Hourly sync is confirmed, which closes that finding. Now we move to the functional requirements. The first one I'd like to capture is the one you described at the start of the shift: the ward selection step, where the nurse picks her ward from the EPR's Ward Resource list before seeing patients. Is that a must-have for version one, or could it wait?"
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "Ward selection stays in version one, so I've recorded it as a requirement. Before I write its acceptance checks, one clarification: when a nurse changes wards mid-shift, for example after a cover arrangement, should she re-select the ward and see the new ward's notes straight away, or does the selection only apply at shift start?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": "The ward selection is dynamic and can be changed mid-shift. When a nurse switches wards, she selects the new ward from the same dropdown, and the system immediately reloads the patient list and pending notes for that ward. The change is reflected instantly, with no need to log out or restart. However, the system logs the ward switch in the audit trail with the NHS ID and timestamp, and retains the old ward context for 30 minutes to support reconciliation, in case of discrepancies."
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "Mid-shift switching is clear: the ward changes instantly and the switch is logged. Before we move on, I need to check one thing. The \"retain the old ward context for 30 minutes\" rule: should it apply only to the audit record, or should the nurse also be able to view the previous ward's notes during that window?"
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": "Only the audit record retains the old ward context for 30 minutes—no, the nurse cannot view the previous ward’s notes after switching. The system purges the old patient list and pending note view immediately upon ward change to prevent data confusion and ensure data integrity. The audit log entry captures the switch event, including the old and new ward codes, for compliance and incident review, but no historical note access is allowed. This aligns with NHS Data Security and Protection Toolkit requirements for access control."
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "Thanks, that's clear: the old ward's view is cleared immediately, and only the audit entry (old and new ward codes, NHS ID, timestamp) is kept for 30 minutes.\n\nNext, the audit trail. Who needs to be able to search it, and what question would they ask of it: \"who switched wards on a given shift,\" or something else?"
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "The audit trail must be searchable by the trust’s Information Governance Officer, IT security lead, and ward manager. Common queries include: “Show all acknowledgements by nurse X on 5 April 2024,” “List all ward switches between 17:00 and 18:00 on 4 April,” and “Find all notes with missing author IDs in the last 7 days.” The system will expose a search interface with filters for NHS ID, timestamp range, action type, and ward code. All searches are logged and restricted to users with audit role permissions in Azure AD."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "Thanks for the audit search detail; I've recorded the three queries and the filters, and the search will be restricted to audit-role users in Azure AD.\n\nI also need to flag a duplication. FR-6 (ward selection at shift start) and FR-8 (ward selection at shift start, again) describe the same capability, so keeping both would give the build two tickets for one feature. Default: merge them into a single requirement covering ward selection at shift start and mid-shift switching. That means one implementation path and one set of acceptance checks. Should we merge them?"
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Merged: FR-6 and FR-8 become a single ward-selection requirement covering shift start and mid-shift switching.\n\nNow the business rules. Here's an easy one to start: when a nurse's shift ends and she logs out, should any notes she has half-finished be saved as drafts, or discarded?"
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": "All unsaved notes are automatically saved as drafts in Azure SQL Database under the nurse’s NHS ID, with a timestamp and a “draft” status. They remain accessible for 48 hours after logout, allowing the nurse to resume editing on the next shift. After 48 hours, drafts are purged unless explicitly saved as a full note. This ensures no work is lost during shift handover while preventing accumulation of stale data."
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "Drafts are clear: unsaved notes persist for 48 hours under the nurse's NHS ID, then purge unless saved in full.\n\nOne thing to pin down: a draft is still a clinical record in progress, so if a nurse is half-way through a note about a patient's deteriorating condition at the end of her shift, could a colleague see it on the ward while it's still a draft, or is it visible only to its author?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": "A draft is visible only to its author until it is saved as a complete note. Even during shift handover, no other nurse—regardless of role—can see a draft in progress. The system enforces this via Azure AD role-based access: only the NHS ID associated with the draft can access it, and this access is revoked upon logout or draft expiration. This prevents premature visibility of incomplete or potentially inaccurate clinical data, aligning with NHS Digital’s guidance on data integrity and patient safety."
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Drafts stay visible only to their author, which is clear. Next, a concrete edge case: a nurse saves a note and then realises she recorded the wrong patient. Can she edit or withdraw a saved note, and if so, who sees the change?"
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": "A nurse can edit a saved note within 15 minutes of submission—after that, the note becomes immutable. When edited, the system creates a new FHIR Observation resource with the corrected data, marks the original as “replaced,” and adds a FHIR Annotation stating “Version 2: corrected patient ID.” All changes are logged in the audit trail with the NHS ID, timestamp, and action. The updated note appears in the SharePoint list immediately; the original is retained only for audit purposes, and both versions are visible to senior nurses and clinical leads, but not to Band 5 nurses or ward clerks unless explicitly granted. This balances accuracy with traceability."
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "The 15-minute edit window and the replace-and-annotate approach are clear. One thing to confirm: the answer says both versions are visible to senior nurses and clinical leads, but also that the original is kept only for audit. Should the original version stay visible in the note's history to senior staff, or be available only through the audit search?"
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "Recorded: senior staff see the original version in note history, while the audit search remains the only route for everyone else.\n\nFinding f39-1 is still open. The FHIR Observation structure that FR-1 depends on hasn't been defined yet. Default: pending, meaning we leave the resource shape unspecified until the EPR integrator confirms which codes and value fields the trust's Observation profile uses. That means the note-creation build can't finalise its payload mapping until it's settled. Do you want to keep it pending for now, or define the structure in this session?"
+    },
+    {
+      "seq": 80,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"yes_no\",\"value\":false})"
+    },
+    {
+      "seq": 81,
+      "role": "assistant",
+      "content": "The participant chose \"no\" to defining the structure in this session, so finding f39-1 stays open and deferred to the EPR integrator. Before we move on, I need one thing from you: which FHIR Observation profile does the trust's EPR use for ward notes (the standard base profile, or a local profile the integrator can share)? Knowing that lets us lock FR-1's payload mapping."
+    },
+    {
+      "seq": 82,
+      "role": "user",
+      "content": "The trust’s EPR uses a local FHIR Observation profile based on the HL7 UK Core Observation profile, with a custom code system for “ward-note” observations. The integrator will share the official FHIR Implementation Guide (IG) and profile definition via the NHS Digital API Portal within five business days. Until then, FR-1’s payload mapping remains provisional, using standard FHIR fields (status, category, code, subject, effectiveDateTime, performer, valueString) with placeholder values. The final mapping will be validated against the IG before go-live."
+    },
+    {
+      "seq": 83,
+      "role": "assistant",
+      "content": "Thanks, that gives FR-1 a provisional payload mapping, and the IG arriving within five business days closes the gap. The backend is still unspecified, though. Given your team's .NET Core and Azure SQL skills, should the API be a single ASP.NET Core Web API serving both the Blazor frontend and the EPR/SharePoint integrations, or should the integrations run as separate Azure Functions or Logic Apps workers? Default: a single ASP.NET Core Web API, with the scheduled SharePoint sync as a Logic App. That means one deployable service to maintain, with only the sync outside it."
+    },
+    {
+      "seq": 84,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 85,
+      "role": "assistant",
+      "content": "Confirmed: a single ASP.NET Core Web API serves the Blazor frontend and the EPR and SharePoint integrations, with the hourly sync as a Logic App.\n\nNext, the API surface. The Band 5 acknowledgement writes a FHIR Annotation against a note, so does the API expose the EPR-facing calls (read patients, read and write Observations) as pass-through endpoints, or does it keep its own domain model and translate to FHIR internally?"
+    },
+    {
+      "seq": 86,
+      "role": "user",
+      "content": "The API maintains its own domain model—specifically, a `WardNote` entity with properties like `PatientId`, `AuthorNhsId`, `Text`, `Status`, and `CreatedAt`—and translates to and from FHIR Observation and Annotation resources at the API boundary. This ensures the internal data model is consistent, testable, and independent of EPR schema changes. The API does not expose raw FHIR endpoints; instead, it provides a secure, versioned REST API (e.g., `POST /api/notes/acknowledge`) that validates input, logs actions, and then calls the EPR via its FHIR API with proper authentication. This reduces coupling and improves auditability."
+    },
+    {
+      "seq": 87,
+      "role": "assistant",
+      "content": "Clear: the API keeps its own WardNote model and translates to FHIR at the boundary, with no raw FHIR endpoints exposed. One thing remains open on the API: how a failed EPR write is reported back to the nurse, since the sync failure notification is still unspecified. Default: the API returns an error to the nurse immediately and the note stays in draft, so nothing is silently lost. That means no note is recorded as saved until the EPR confirms the write. Do you accept that default?"
+    },
+    {
+      "seq": 88,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 89,
+      "role": "assistant",
+      "content": "Accepted: a failed EPR write returns an error to the nurse, and the note stays in draft.\n\nNow acceptance criteria. Let's start with the simplest one: when a nurse saves a note, how will we know it worked? What should she see on screen as proof that it saved?"
+    },
+    {
+      "seq": 90,
+      "role": "user",
+      "content": "When a nurse successfully saves a note, the UI displays a green confirmation toast with the message “Note saved and synced to EPR,” followed by a timestamp in UTC. The note immediately appears in the patient’s note list with the author’s name and the “saved” status, and the “Save” button changes to “Saved” with a checkmark icon. Additionally, the audit log captures the event with the action type “created,” NHS ID, and timestamp—this is verified through a test query in Azure Monitor."
+    },
+    {
+      "seq": 91,
+      "role": "assistant",
+      "content": "That's a clear success signal. One gap to close: the toast says \"synced to EPR\", but the SharePoint sync runs hourly, so the spreadsheet may not show the note yet. Should the confirmation mean the note is saved to the EPR only, or should the toast wait until the SharePoint sync has also completed?"
+    },
+    {
+      "seq": 92,
+      "role": "user",
+      "content": "The toast should only confirm that the note is saved in the EPR—“Note saved to EPR” is the correct message. The hourly SharePoint sync is asynchronous and does not block the save operation. The nurse is not expected to wait for the spreadsheet update, as this could delay the workflow by up to 60 minutes. Instead, the system logs the sync status separately, and any sync failures are flagged in the admin dashboard. This ensures responsiveness while maintaining auditability."
+    },
+    {
+      "seq": 93,
+      "role": "assistant",
+      "content": "Understood: the toast will read \"Note saved to EPR\", and the SharePoint sync stays asynchronous with failures flagged on the admin dashboard.\n\nNext, the acceptance check for the sync: if the hourly SharePoint sync fails for one note, what should the admin dashboard show, and how quickly should an admin see it? Default: the failed note is flagged for manual review after the retries are exhausted, and it appears on the dashboard within the same hour."
+    },
+    {
+      "seq": 94,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 95,
+      "role": "assistant",
+      "content": "Accepted: a failed SharePoint sync is retried with exponential backoff, then flagged for manual review and shown on the admin dashboard within the hour.\n\nLet's make that testable. Take a note that fails all its retries at 14:05. What should the admin dashboard display for it (which fields, and what action does the admin take), and by what time must it appear there?"
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "Azure UK South, App Services frontend, Azure SQL Database with Transparent Data Encryption",
+        "reason": "UK data residency for NHS patient data and NHS Digital security standards",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "auth",
+      "value": {
+        "choice": "Azure AD sign-in using existing NHS credentials",
+        "reason": "Reuse existing nurse credentials",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "retention",
+      "value": "Retain all data for 7 years per NHS data retention policy",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "existing_systems_pending",
+      "value": "Patient system and a spreadsheet are used today; integration scope not yet confirmed",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epr",
+      "value": {
+        "authentication": "pending",
+        "proposed_default": "Azure AD service principal or managed identity"
+      },
+      "source": "recommended"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sharepoint_sync",
+      "value": {
+        "system": "Ward-level spreadsheet, a SharePoint Online list",
+        "direction": "write (sync job)",
+        "data": "Ward notes",
+        "mechanism": "Scheduled sync via Azure Logic Apps, with Power Automate noted as the existing sync",
+        "auth": "OAuth 2.0 through Azure AD"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "builder",
+      "value": {
+        "choice": "In-house team",
+        "reason": "Two-person hospital IT squad with vendor integration support",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "specification_standard",
+      "value": {
+        "choice": "IEEE 830 with FHIR implementation guides",
+        "reason": "Traceability and compliance",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "frontend",
+      "value": {
+        "choice": "Blazor Server",
+        "alternatives": ["React", "other JavaScript framework"],
+        "reason": "Team's strengths are in .NET; minimises learning curve and JavaScript dependency",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": ".NET Core, Azure App Services, Azure SQL Database, FHIR APIs, Azure AD integration, HL7 v2, Power Automate",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "core_scope",
+      "value": "Nurse login via Azure AD, patient lookup via FHIR, ward note creation as a FHIR Observation, sync to SharePoint via Power Automate",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "future",
+      "path": "v1.1_deferred",
+      "value": "Audit trails and note versioning deferred to v1.1",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "phases",
+      "path": "v1.0",
+      "value": {
+        "date": "2024-10-15",
+        "scope": "mvp",
+        "features": [
+          "Azure AD authentication",
+          "FHIR-based patient lookup",
+          "creation of ward notes as FHIR Observation resources",
+          "bidirectional sync to SharePoint via Power Automate"
+        ]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "phases",
+      "path": "v1.1",
+      "value": {
+        "scope": "future",
+        "features": ["audit logging", "note templates", "multi-ward support"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "budget",
+      "value": "Budget capped at £45,000 for full MVP; overruns need change request to digital transformation steering group",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "scale",
+      "value": "About 85 nurses across three wards, around 30% active daily at launch",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting_tier",
+      "value": {
+        "choice": "Azure App Service Standard S1 with auto-scaling: scale out above 70% CPU for 10 minutes, scale in below 30%",
+        "reason": "Handles shift-change peaks while releasing capacity afterwards",
+        "status": "specified"
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "monitoring",
+      "value": "Azure Monitor; alert when database CPU exceeds 75% for 5 minutes",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": "UK GDPR, NHS DSPT, NHS Digital Information Governance Code of Practice, Health and Social Care Act 2008 (Regulated Activities) Regulations",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "encryption",
+      "value": {
+        "at_rest": "Azure SQL TDE",
+        "in_transit": "TLS 1.3"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "audit",
+      "value": "All FHIR interactions audited via Azure Monitor; access logs retained 12 months; alerts on unauthorized access",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epr_auth",
+      "value": {
+        "choice": "Azure AD service principal or managed identity",
+        "reason": "Same identity platform as nurse sign-in; no separate credentials to manage.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem",
+      "value": "Nurses on three acute wards double-type each ward note into the EPR (FHIR Observation) and a SharePoint spreadsheet. Senior nurses and clinical leads average 6-8 notes per shift, costing 15-20 minutes per nurse per shift. The author field is wrong or blank in 12% of notes, undermining auditability and accountability.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "Create ward note as FHIR Observation",
+        "scope": "mvp",
+        "acceptance": [
+          "A note saved in the tool appears as a FHIR Observation in the EPR",
+          "Author is the signed-in nurse's NHS ID"
+        ],
+        "description": "A nurse creates a ward note once in the tool, which is written to the EPR as a FHIR Observation resource."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "FHIR-based patient lookup",
+        "scope": "mvp",
+        "acceptance": ["Patient search returns demographics and admission status from the EPR"],
+        "description": "A nurse finds a patient through the EPR's FHIR API before recording a note."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "Sync ward notes to SharePoint",
+        "scope": "mvp",
+        "acceptance": [
+          "A saved note appears in the SharePoint list with the same author, timestamp and text",
+          "Author field is populated from the authenticated user, not typed"
+        ],
+        "description": "Notes are synchronized to the ward SharePoint list via Power Automate, removing manual retyping."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "sharepoint_retry",
+      "value": "Resolved: exponential backoff confirmed",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sharepoint_sync_retry",
+      "value": "Exponential backoff on failed sync; notes that keep failing are flagged for manual review",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "senior_nurse",
+      "value": {
+        "role": "Senior ward nurse and clinical lead",
+        "needs": "Create and edit ward notes for patients on their ward."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "band5_nurse",
+      "value": {
+        "role": "Band 5 nurse",
+        "needs": "View notes for patients on their assigned ward and acknowledge care plan and risk notes; cannot create or edit."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_clerk",
+      "value": {
+        "role": "Ward clerk",
+        "needs": "Read-only view of ward notes for reporting."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "access_requirement",
+      "value": "Valid NHS number and membership of the appropriate Azure AD security group required for access",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "band5_acknowledgement",
+      "value": {
+        "role": "Band 5 nurse",
+        "needs": "View and acknowledge notes for awareness; acknowledgement stored as FHIR Annotation with NHS ID, UTC timestamp and action type; not editable or deletable; retained 12 months."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "Annotation",
+      "value": {
+        "fields": ["nhs_id", "timestamp_utc", "action_type"],
+        "relations": ["linked to Observation"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a senior nurse, I want to log in once and see all pending ward notes for my assigned ward, so I can start my shift without switching between systems or re-entering data.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "pending_definition",
+      "value": "A note is pending when it is a FHIR Observation with note status 'pending review' and a non-blank author ID.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "Pending notes dashboard",
+        "scope": "mvp",
+        "acceptance": [
+          "After login, the senior nurse sees only pending notes for the selected ward",
+          "Notes with blank author IDs or failed syncs do not appear in the nurse dashboard"
+        ],
+        "description": "Senior nurses see pending ward notes for their assigned ward after logging in once."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-2",
+      "value": "As a senior nurse, I want to log in once and see all pending ward notes for my assigned ward, so I can start my shift without switching between systems or re-entering data.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "Senior nurse dashboard",
+        "scope": "mvp",
+        "acceptance": [
+          "The dashboard shows only FHIR Observations with a 'note status' of 'pending review' and a non-blank author ID"
+        ],
+        "description": "Show pending notes for the nurse's assigned ward",
+        "reason": "To allow senior nurses to start their shift without switching between systems or re-entering data"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-3",
+      "value": "As a senior nurse or clinical lead, I want to mark a pending note as 'reviewed and actioned' so that it leaves my pending queue and the clinical accountability is recorded.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "pending_clearance",
+      "value": "Pending means a FHIR Observation with note status 'pending review' and a non-blank author ID; senior nurse or clinical lead clears it by marking 'reviewed and actioned'.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "Ward selection at shift start and mid-shift switching",
+        "scope": "mvp",
+        "acceptance": [
+          "Dropdown is populated from the EPR Ward Resource list via FHIR",
+          "Selecting a ward filters the patient list and pending notes to that ward",
+          "Switching wards reloads the view instantly without logout, and the old view is purged"
+        ],
+        "description": "Nurse selects her ward from the EPR Ward Resource list at shift start; can switch wards mid-shift from the same dropdown, with instant reload and audit logging.",
+        "reason": "Duplicate FR-8 merged in."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sharepoint_sync_interval",
+      "value": "Hourly scheduled sync via Logic Apps",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "Band 5 nurse acknowledges a note",
+        "scope": "mvp",
+        "acceptance": ["The note's status updates to 'acknowledged'"],
+        "description": "Band 5 nurse acknowledges a note for awareness, updating its status to 'acknowledged' and logging the action as a FHIR Annotation.",
+        "reason": "Ensures clinical accountability and aligns with the ward’s hierarchy of responsibility."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-8",
+      "value": {
+        "title": "Merged into FR-6",
+        "scope": "mvp",
+        "acceptance": [],
+        "reason": "Duplicate of FR-6, merged per finding f34-1."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "Mid-shift ward change",
+        "scope": "mvp",
+        "acceptance": [
+          "Selecting a new ward reloads the patient list and pending notes for that ward without logout",
+          "The ward switch is written to the audit trail with NHS ID and UTC timestamp",
+          "The previous ward context is retained for 30 minutes"
+        ],
+        "description": "Nurse switches ward from the same dropdown; patient list and pending notes reload immediately; switch logged in audit trail with NHS ID and timestamp; old ward context retained 30 minutes for reconciliation."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "ward_switch_retention",
+      "value": "Old ward view purged immediately on switch; audit entry (old and new ward codes, NHS ID, timestamp) retained 30 minutes",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "ward_switch_view",
+      "value": "The system purges the old patient list and pending note view immediately upon ward change to prevent data confusion and ensure data integrity. The audit log entry captures the switch event, including the old and new ward codes, for compliance and incident review, but no historical note access is allowed.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "audit_search",
+      "value": "Searchable by IG Officer, IT security lead and ward manager via filters for NHS ID, timestamp range, action type, ward code; all searches logged; restricted to audit-role users in Azure AD",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6.audit",
+      "value": "Each ward switch is logged with NHS ID, timestamp, old and new ward codes; old ward context is held for 30 minutes in the audit record only.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "draft_retention",
+      "value": "Unsaved notes auto-saved as drafts under the nurse's NHS ID with timestamp and draft status; accessible for 48 hours after logout; purged after 48 hours unless saved as a full note.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "draft_visibility",
+      "value": "Drafts are visible only to the author under their NHS ID until saved in full; access is revoked on logout or expiry.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "note_edit_window",
+      "value": "Saved notes editable for 15 minutes after submission, then immutable. An edit creates a new FHIR Observation, marks the original as replaced, and adds a version annotation. All changes are audit logged with NHS ID, timestamp and action.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "replaced_version_visibility",
+      "value": "Original version visible in note history to senior nurses and clinical leads; otherwise available only through audit search",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-10",
+      "value": {
+        "title": "Edit saved note within 15 minutes",
+        "scope": "mvp",
+        "acceptance": [
+          "An edit made within 15 minutes creates a new Observation and marks the original as replaced",
+          "An edit attempted after 15 minutes is rejected",
+          "Every edit is recorded in the audit trail with NHS ID, timestamp and action"
+        ],
+        "description": "Author can correct a saved note within 15 minutes of submission; the correction is versioned and audit logged."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "open_questions",
+      "path": "fhir_observation_structure",
+      "value": "FHIR Observation resource structure for FR-1 pending the EPR integrator's trust profile",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "fhir_observation_profile",
+      "value": {
+        "choice": "Local profile based on HL7 UK Core Observation with a custom ward-note code system",
+        "alternatives": ["Standard HL7 UK Core Observation profile only"],
+        "reason": "Matches the trust's EPR; FR-1 mapping stays provisional until the IG is validated",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "backend",
+      "value": {
+        "choice": "Single ASP.NET Core Web API serving Blazor frontend and EPR/SharePoint integrations; SharePoint sync as Logic App",
+        "alternatives": ["Separate Azure Functions or Logic Apps workers"],
+        "reason": "One deployable service for the team's .NET Core skills, with only the scheduled sync outside it",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "api",
+      "value": {
+        "choice": "Single ASP.NET Core Web API with its own WardNote domain model; FHIR translated at the boundary; versioned REST endpoints (e.g. POST /api/notes/acknowledge)",
+        "alternatives": ["Raw FHIR pass-through endpoints"],
+        "reason": "Keeps the internal model testable and independent of EPR schema changes, and centralises audit logging.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "domain_model",
+      "value": {
+        "choice": "WardNote entity with PatientId, AuthorNhsId, Text, Status, CreatedAt",
+        "reason": "Internal consistency and testability, independent of EPR schema.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "epr_write_failure",
+      "value": "On EPR write failure the API returns an error to the nurse and the note remains a draft; nothing is recorded as saved until the EPR confirms the write.",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "save_success",
+      "value": "Green toast 'Note saved and synced to EPR' with UTC timestamp; note appears in patient note list with author name and 'saved' status; Save button changes to 'Saved' with checkmark; audit entry with action 'created', NHS ID and timestamp verifiable via Azure Monitor test query.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-11",
+      "value": {
+        "title": "Save confirmation",
+        "scope": "mvp",
+        "acceptance": [
+          "Toast reads 'Note saved to EPR' with a UTC timestamp",
+          "Note appears in the list with 'saved' status",
+          "Save button shows a checkmark",
+          "Audit entry with action 'created', NHS ID and timestamp is verifiable in Azure Monitor"
+        ],
+        "description": "On successful EPR save, the UI shows a green toast 'Note saved to EPR' with a UTC timestamp, the note appears in the list with 'saved' status, and the Save button shows a checkmark."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-12",
+      "value": {
+        "title": "Failed EPR write handling",
+        "scope": "mvp",
+        "acceptance": [
+          "The API returns an error to the nurse immediately.",
+          "The note stays in draft and is not recorded as saved until the EPR confirms the write."
+        ],
+        "description": "When a note write to the EPR fails, the API returns an error to the nurse and the note stays in draft.",
+        "reason": "To ensure that the nurse is aware of the failure and that no note is silently lost."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "sharepoint_sync_failure",
+      "value": "Retry with exponential backoff; after retries exhausted, flag the note for manual review and show it on the admin dashboard within one hour",
+      "source": "default_accepted"
+    }
+  ],
+  "summary": "The tool will run in Azure (UK South region) to meet NHS data residency requirements, using Azure App Services for the frontend and Azure SQL Database with Transparent Data Encryption for the backend. Authentication is enforced via Azure AD, requiring NHS credentials. Data is retained for 7 years. Compliance includes UK GDPR, NHS Digital Information Governance Code of Practice, Health and Social Care Act 2008, and DSPT controls, with encryption at rest and in transit, 12-month access logs, and a DSPT self-assessment before go-live. The system is classified as \"High-Risk\" under the NHS Digital Risk Framework, requiring sign-off from the trust’s Information Governance Officer.\n\nThe tool integrates with the hospital’s EPR system via FHIR-based APIs (hosted on a HL7 v2.5 gateway) and with a ward-level SharePoint Online list synchronized via Power Automate. Azure AD is used for EPR integration. The FHIR API reads patient demographics and admission status, and writes ward notes using the FHIR Observation resource. The SharePoint list is updated via a secure, scheduled sync job using Azure Logic Apps with OAuth 2.0 through Azure AD, with exponential backoff for retry behavior. There is no formal reconciliation process between the SharePoint spreadsheet and the EPR; discrepancies are manually corrected after the fact, creating a compliance gap.\n\nThe team consists of a full-stack .NET engineer, a frontend developer, a technical lead, and an integration specialist from the EPR vendor’s partner team. The frontend is built using Blazor Server to leverage existing .NET skills. Version one must be live by 15 October 2024, with an MVP scope locked to four core features: Azure AD authentication, FHIR-based patient lookup, creation of ward notes, and bidirectional sync to SharePoint. The budget is capped at £45,000.\n\nAt launch, 85 nurses across three acute wards will use the tool, with each ward having 25–30 nurses and around 30% expected to be active daily. The Azure App Service runs on a Standard S1 tier with auto-scaling rules to scale out when CPU stays above 70% for 10 minutes and scale back in when it drops below 30%. Database performance is monitored via Azure Monitor.\n\nSenior ward nurses and clinical leads are most affected by double entry, averaging 6–8 ward notes per shift. Each note requires entry into both the EPR and the SharePoint spreadsheet, taking 1.5 minutes per note (30 seconds in the EPR, 45 seconds in SharePoint, and 15 seconds verifying). The author field is most often wrong or missing (12% of notes), compromising auditability and accountability. Band 5 nurses use the tool to view and acknowledge notes created by senior nurses, particularly those related to care plans or patient risks. They can view all notes for patients on their assigned ward but cannot create or edit them. Ward clerks have read-only access to view notes in the SharePoint list for reporting purposes. All users must be assigned a valid NHS number and be members of the appropriate Azure AD security group to access the tool.\n\nWhen a Band 5 nurse acknowledges a note, the system records the NHS ID of the nurse, the timestamp (UTC), and the action type (\"acknowledged\") as a FHIR Annotation resource linked to the original Observation. This annotation is visible to all senior nurses, clinical leads, and ward clerks with read access. The acknowledgment is not editable or deletable, and it is included in audit logs retained for 12 months. At the start of a shift, the first action for a senior nurse is to select the ward they’re working on from a dropdown populated from the EPR’s Ward Resource list via FHIR. This filters the patient list to only those on their assigned ward and sets the context for all subsequent note entries. The ward selection is dynamic and can be changed mid-shift. When a nurse switches wards, she selects the new ward from the same dropdown, and the system immediately reloads the patient list and pending notes for that ward. The change is reflected instantly, with no need to log out or restart. However, the system logs the ward switch in the audit trail with the NHS ID and timestamp, and retains the old ward context for 30 minutes to support reconciliation, in case of discrepancies. Only the audit record retains the old ward context for 30 minutes—no, the nurse cannot view the previous ward’s notes after switching. The system purges the old patient list and pending note view immediately upon ward change to prevent data confusion and ensure data integrity. The audit log entry captures the switch event, including the old and new ward codes, for compliance and incident review, but no historical note access is allowed. This aligns with NHS Data Security and Protection Toolkit requirements for access control.\n\nThe audit trail must be searchable by the trust’s Information Governance Officer, IT security lead, and ward manager. Common queries include: “Show all acknowledgements by nurse X on 5 April 2024,” “List all ward switches between 17:00 and 18:00 on 4 April,” and “Find all notes with missing author IDs in the last 7 days.” The system will expose a search interface with filters for NHS ID, timestamp range, action type, and ward code. All searches are logged and restricted to users with audit role permissions in Azure AD.\n\nThe core user story is: \"As a senior nurse, I want to log in once and see all pending ward notes for my assigned ward, so I can start my shift without switching between systems or re-entering data.\" Pending notes are defined as FHIR Observations with a \"note status\" of \"pending review\" and a non-blank author ID. Senior nurses and clinical leads clear notes from the pending list by marking them as \"reviewed and actioned,\" which updates the FHIR Observation’s status and removes it from the pending queue. Band 5 nurses can only acknowledge notes for awareness.\n\nThe Band 5 nurse's workflow involves seeing a dashboard with columns for patient name, note type, timestamp, author (NHS ID), and status (\"pending review\"). After clicking \"Acknowledge\" and confirming, the system logs the NHS ID, timestamp (UTC), and action as a FHIR Annotation, updating the note’s status to \"acknowledged.\" The SharePoint list is synchronized hourly via Logic Apps.\n\nAll unsaved notes are automatically saved as drafts in Azure SQL Database under the nurse’s NHS ID, with a timestamp and a “draft” status. They remain accessible for 48 hours after logout, allowing the nurse to resume editing on the next shift. After 48 hours, drafts are purged unless explicitly saved as a full note. This ensures no work is lost during shift handover while preventing accumulation of stale data. A draft is still a clinical record in progress, so if a nurse is half-way through a note about a patient's deteriorating condition at the end of her shift, could a colleague see it on the ward while it's still a draft, or is it visible only to its author?",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "Nurse can create ward note as FHIR Observation",
+      "scope": "mvp",
+      "acceptance": [
+        "A note saved in the tool appears as a FHIR Observation in the EPR",
+        "Author is the signed-in nurse's NHS ID"
+      ]
+    },
+    {
+      "id": "FR-2",
+      "title": "Nurse can lookup patient via FHIR API before recording note",
+      "scope": "mvp",
+      "acceptance": ["Patient search returns demographics and admission status from the EPR"]
+    },
+    {
+      "id": "FR-3",
+      "title": "Ward notes sync to SharePoint list",
+      "scope": "mvp",
+      "acceptance": [
+        "A saved note appears in the SharePoint list with the same author, timestamp and text",
+        "Author field is populated from authenticated user, not typed"
+      ]
+    },
+    {
+      "id": "FR-4",
+      "title": "Senior nurse sees pending ward notes for assigned ward after login",
+      "scope": "mvp",
+      "acceptance": [
+        "After login, senior nurse sees only pending notes for selected ward",
+        "Notes with blank author IDs or failed syncs do not appear in nurse dashboard"
+      ]
+    },
+    {
+      "id": "FR-5",
+      "title": "Senior nurse dashboard shows only pending notes with non-blank author",
+      "scope": "mvp",
+      "acceptance": [
+        "Dashboard shows only FHIR Observations with note status 'pending review' and non-blank author ID"
+      ],
+      "reason": "To allow senior nurses to start their shift without switching between systems or re-entering data"
+    },
+    {
+      "id": "FR-6",
+      "title": "Nurse can select and switch ward mid-shift with instant reload and audit logging",
+      "scope": "mvp",
+      "acceptance": [
+        "Dropdown populated from EPR Ward Resource list via FHIR",
+        "Selecting ward filters patient list and pending notes to that ward",
+        "Switching wards reloads view instantly without logout, and old view is purged",
+        "Ward switch written to audit trail with NHS ID and UTC timestamp",
+        "Previous ward context retained in audit log for 30 minutes"
+      ],
+      "reason": "Duplicate FR-8 merged in.",
+      "needsConfirmation": true,
+      "mergedFrom": ["FR-9"]
+    },
+    {
+      "id": "FR-7",
+      "title": "Band 5 nurse can acknowledge a note",
+      "scope": "mvp",
+      "acceptance": [
+        "Note's status updates to 'acknowledged'",
+        "Acknowledgement stored as FHIR Annotation with NHS ID, timestamp, and action, immutable"
+      ],
+      "reason": "Ensures clinical accountability and aligns with the ward’s hierarchy of responsibility."
+    },
+    {
+      "id": "FR-10",
+      "title": "Author can edit saved note within 15 minutes",
+      "scope": "mvp",
+      "acceptance": [
+        "Edit within 15 minutes creates new Observation, marks original as replaced",
+        "Edit attempted after 15 minutes is rejected",
+        "All edits recorded in audit trail with NHS ID, timestamp and action"
+      ]
+    },
+    {
+      "id": "FR-11",
+      "title": "UI confirms successful save to EPR",
+      "scope": "mvp",
+      "acceptance": [
+        "Green toast 'Note saved to EPR' with UTC timestamp shown",
+        "Note appears in list with 'saved' status",
+        "Save button shows checkmark",
+        "Audit entry with action 'created', NHS ID, and timestamp verifiable in Azure Monitor"
+      ]
+    },
+    {
+      "id": "FR-12",
+      "title": "API handles failed EPR write properly",
+      "scope": "mvp",
+      "acceptance": [
+        "API returns immediate error to nurse on failure",
+        "Note remains in draft status until EPR confirms write"
+      ],
+      "reason": "To ensure that the nurse is aware of the failure and that no note is silently lost."
+    },
+    {
+      "id": "FR-6.audit",
+      "title": "Audit log records each ward switch with detailed info",
+      "scope": "mvp",
+      "acceptance": [
+        "Audit log contains NHS ID, timestamp, old and new ward codes",
+        "Old ward context held for 30 minutes in audit record only"
+      ],
+      "needsConfirmation": true
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: technical · Generated: 2026-10-14T10:13:33.363Z\n\n## Product overview and problem\n\n### Product overview and problem\n\nNurses currently enter each ward note twice: once into the patient EPR system as a FHIR Observation, and again into a SharePoint spreadsheet. This causes inefficiency and errors, such as wrong or missing authors in 12% of notes, undermining auditability. The product aims to eliminate double entry by enabling nurses to create a ward note once, synchronizing automatically to both the EPR and SharePoint. This will save time (about 15–20 minutes per nurse per shift) and improve data quality.\n\n## Target users and roles\n\n### Target users and roles\n\n- **Senior nurse and clinical lead:** Creates and edits ward notes for patients on their assigned ward.\n- **Band 5 nurse:** Views ward notes for their assigned ward and acknowledges care plan and risk notes; cannot create or edit notes.\n- **Ward clerk:** Read-only access to ward notes for reporting.\n- **Band 5 acknowledgement role:** Views and acknowledges notes for awareness. Acknowledgements are recorded as immutable FHIR Annotations including NHS ID, UTC timestamp, and action type; retained for 12 months.\n\n## User stories\n\n### User stories\n\n- As a senior nurse, I want to log in once and see all pending ward notes for my ward so that I can start my shift without switching systems or re-entering data.\n- As a senior nurse or clinical lead, I want to mark a pending note as 'reviewed and actioned' so it leaves my pending queue and accountability is recorded.\n- As a band 5 nurse, I want to view and acknowledge notes for awareness, with the acknowledgement logged immutably.\n\n## Functional requirements\n\n### Functional requirements\n\nThe following functional requirements define the MVP capabilities to deliver a unified ward notes tool that integrates with the EPR and SharePoint.\n\n### MVP\n\n- **FR-1** Nurse can create ward note as FHIR Observation\n  - Acceptance: A note saved in the tool appears as a FHIR Observation in the EPR\n  - Acceptance: Author is the signed-in nurse's NHS ID\n- **FR-2** Nurse can lookup patient via FHIR API before recording note\n  - Acceptance: Patient search returns demographics and admission status from the EPR\n- **FR-3** Ward notes sync to SharePoint list\n  - Acceptance: A saved note appears in the SharePoint list with the same author, timestamp and text\n  - Acceptance: Author field is populated from authenticated user, not typed\n- **FR-4** Senior nurse sees pending ward notes for assigned ward after login\n  - Acceptance: After login, senior nurse sees only pending notes for selected ward\n  - Acceptance: Notes with blank author IDs or failed syncs do not appear in nurse dashboard\n- **FR-5** Senior nurse dashboard shows only pending notes with non-blank author\n  - Acceptance: Dashboard shows only FHIR Observations with note status 'pending review' and non-blank author ID\n  - Reason: To allow senior nurses to start their shift without switching between systems or re-entering data\n- **FR-6** Nurse can select and switch ward mid-shift with instant reload and audit logging\n  - Acceptance: Dropdown populated from EPR Ward Resource list via FHIR\n  - Acceptance: Selecting ward filters patient list and pending notes to that ward\n  - Acceptance: Switching wards reloads view instantly without logout, and old view is purged\n  - Acceptance: Ward switch written to audit trail with NHS ID and UTC timestamp\n  - Acceptance: Previous ward context retained in audit log for 30 minutes\n  - Reason: Duplicate FR-8 merged in.\n- **FR-7** Band 5 nurse can acknowledge a note\n  - Acceptance: Note's status updates to 'acknowledged'\n  - Acceptance: Acknowledgement stored as FHIR Annotation with NHS ID, timestamp, and action, immutable\n  - Reason: Ensures clinical accountability and aligns with the ward’s hierarchy of responsibility.\n- **FR-10** Author can edit saved note within 15 minutes\n  - Acceptance: Edit within 15 minutes creates new Observation, marks original as replaced\n  - Acceptance: Edit attempted after 15 minutes is rejected\n  - Acceptance: All edits recorded in audit trail with NHS ID, timestamp and action\n- **FR-11** UI confirms successful save to EPR\n  - Acceptance: Green toast 'Note saved to EPR' with UTC timestamp shown\n  - Acceptance: Note appears in list with 'saved' status\n  - Acceptance: Save button shows checkmark\n  - Acceptance: Audit entry with action 'created', NHS ID, and timestamp verifiable in Azure Monitor\n- **FR-12** API handles failed EPR write properly\n  - Acceptance: API returns immediate error to nurse on failure\n  - Acceptance: Note remains in draft status until EPR confirms write\n  - Reason: To ensure that the nurse is aware of the failure and that no note is silently lost.\n- **FR-6.audit** Audit log records each ward switch with detailed info\n  - Acceptance: Audit log contains NHS ID, timestamp, old and new ward codes\n  - Acceptance: Old ward context held for 30 minutes in audit record only\n\n## Business rules\n\n### Business rules\n\n1. **Pending notes:** Defined as FHIR Observations with note status 'pending review' and a non-blank author ID.\n2. **Clearing pending notes:** Senior nurse or clinical lead clears a pending note by marking it 'reviewed and actioned'.\n3. **Ward switching:** Old ward view is purged immediately upon switching; the audit trail logs old and new ward codes, NHS ID, and timestamp, retained for 30 minutes.\n4. **Draft retention:** Unsaved notes auto-saved as drafts under author's NHS ID with timestamp and draft status; visible only to the author; purged after 48 hours unless saved.\n5. **Note edit window:** Saved notes editable within 15 minutes; edits create new versioned Observation marking the original replaced; all edits audit logged.\n6. **Version visibility:** Original replaced versions visible in note history to senior nurses and clinical leads; otherwise only via audit search.\n7. **EPR write failure:** If EPR write fails, API returns error to nurse and note remains draft, no save recorded until confirmation.\n\n## Technical requirements\n\n### Technical requirements\n\nThe technical architecture and technology choices include:\n\n- Hosting in Azure UK South with App Services frontend and Azure SQL Database with Transparent Data Encryption, to meet NHS data residency and security policies.\n- Authentication via Azure AD using existing NHS credentials, simplifying access control.\n- Frontend built with Blazor Server using .NET Core, aligned with the team's strengths and minimizing JavaScript dependencies.\n- Integration with EPR via FHIR APIs, writing ward notes as Observations with a local HL7 UK Core profile extension.\n- SharePoint synchronization done hourly via Azure Logic Apps and Power Automate with OAuth 2.0 authentication.\n- The backend is a single ASP.NET Core Web API serving both frontend and integrations, with an internal WardNote domain model translated at the API boundary.\n- Azure App Service tier Standard S1 with auto-scaling rules handles load variability.\n\nThese choices reflect NHS Digital standards, security compliance, and developer expertise.\n\n## Data requirements\n\n### Data requirements\n\n- All ward note data, including Observations and Annotations, must be retained for 7 years in compliance with NHS policy.\n- Annotation entities record NHS ID, UTC timestamp, and action type, linked to the associated Observation.\n- Draft notes are stored with author NHS ID, timestamp, and draft status.\n- Author identity is critical to ensure accountability and auditability.\n\n## Integrations\n\n### Integrations\n\n- Integration with hospital EPR via FHIR APIs for patient lookup and ward note posting.\n- EPR integration authentication uses Azure AD service principal or managed identity.\n- SharePoint synchronization is one-way write from ward notes to SharePoint Online list via hourly scheduled Azure Logic Apps trigger.\n- OAuth 2.0 through Azure AD secures SharePoint sync.\n- Exponential backoff retry applied for failed syncs; persistent failures flagged on admin dashboard within one hour for manual review.\n- No formal reconciliation process; manual correction of discrepancies outside the system.\n\n## Security and privacy\n\n### Security and privacy\n\n- The system complies with UK GDPR, NHS DSPT, NHS Digital Information Governance Code of Practice, and Health and Social Care Act 2008 Regulations.\n- Data encryption is applied at rest (Azure SQL TDE) and in transit (TLS 1.3).\n- Access requires valid NHS number and membership in the appropriate Azure AD security group.\n- All FHIR interactions are audited via Azure Monitor with 12-month retention of logs.\n- Audit log monitoring triggers alerts on unauthorized access.\n- Audit search functionality is restricted to authorized roles (IG Officer, IT security lead, ward manager), with all searches logged.\n\n## Non-functional requirements\n\n### Non-functional requirements\n\n- The system supports approximately 85 nurses across three wards, with about 30% active daily at launch.\n- Azure Monitor is used to watch system health; alerts trigger if database CPU exceeds 75% for 5 minutes.\n- Azure App Service auto-scales based on CPU usage to handle shift-change load peaks.\n\n## Administrative surface\n\n### Administrative surface\n\n- User login screen using Azure AD credentials.\n- Ward selection dropdown populated from EPR Ward Resource list.\n- Senior nurse dashboard showing pending ward notes filtered by ward.\n- Audit search interface restricted to authorized roles with filters for NHS ID, timestamp range, action type, and ward code.\n- Admin dashboard showing flagged notes failing SharePoint sync for manual review.\n\n## MVP scope\n\n### MVP scope\n\nThe MVP includes user login via Azure AD, patient lookup using FHIR API, creation and editing of ward notes saved as FHIR Observations, and synchronization to SharePoint list via Power Automate. Pending notes dashboards and ward switching are included along with edit window enforcement and write failure handling.\n\nIn version one:\n- FR-1\n- FR-2\n- FR-3\n- FR-4\n- FR-5\n- FR-6\n- FR-6.audit\n- FR-7\n- FR-10\n- FR-11\n- FR-12\n\nNext:\n- Audit trails and note versioning features\n\n## Future scope\n\n### Future scope\n\nAudit trails and note versioning tools are deferred to v1.1 release. Multi-ward simultaneous support and note templates are planned enhancements.\n\n## Implementation phases\n\n### Implementation phases\n\nThe project will be delivered in two phases. Phase v1.0 includes MVP features: Azure AD authentication, FHIR-based patient lookup, ward note creation as FHIR Observations, and SharePoint synchronization. Phase v1.1 (future scope) adds audit logging, note templates, and multi-ward support.\n\n### Phase 1: MVP Delivery\n\nGoals:\n- Enable nurse login via Azure AD\n- Provide FHIR-based patient lookup\n- Allow creation and editing of ward notes as FHIR Observations\n- Sync ward notes to SharePoint automatically\n\nTasks:\n- Implement Azure AD authentication for nurses\n  - Acceptance: Nurses can log in using NHS credentials via Azure AD\n- Implement patient lookup using EPR FHIR API\n  - Acceptance: Patient search returns demographics and admission status\n- Implement ward note creation saved as FHIR Observation\n  - Acceptance: Note saved in tool appears as FHIR Observation in EPR\n  - Acceptance: Author is signed-in nurse's NHS ID\n- Implement SharePoint synchronization of ward notes\n  - Acceptance: Saved note appears in SharePoint list with correct author and timestamp\n- Implement pending notes dashboard for senior nurses\n  - Acceptance: Senior nurses see only pending notes with valid author for selected ward\n- Implement ward selection dropdown and mid-shift switching\n  - Acceptance: Ward dropdown populated from EPR\n  - Acceptance: Selecting ward filters patients and notes\n  - Acceptance: Switching wards reloads view instantly with audit logging\n- Implement note acknowledgement by Band 5 nurses\n  - Acceptance: Band 5 nurses can acknowledge notes, updating status and logging FHIR Annotation\n- Implement edit window enforcement with audit logging\n  - Acceptance: Edits within 15 minutes create new Observation, old marked replaced\n  - Acceptance: Edits after 15 minutes rejected\n  - Acceptance: All edits audit logged\n- Implement save confirmation UI feedback and audit trail entry\n  - Acceptance: UI shows green toast with UTC timestamp and checkmark on save\n  - Acceptance: Audit entry created and verifiable\n- Implement error handling for failed EPR writes\n  - Acceptance: API returns error immediately; note remains draft until save succeeds\n\nPhase acceptance:\n- All core MVP functionality operates end-to-end\n- System aligns with security and data retention policies\n- Performance monitoring and alerts configured\n\n### Phase 2: Enhancements and audit features\n\nGoals:\n- Add audit logging search and filtering interface\n- Implement note version history with templates\n- Support multi-ward simultaneous assignment and handling\n\nDepends on: v1.0\n\n## Open questions\n\n### Open questions\n\n- What is the final budget limit and how will overruns be managed? (Default taken: capped at £45,000 with change request for overruns)\n- How will exponential backoff retry interact with SharePoint sync failures? (Default taken: exponential backoff confirmed)\n- What exact FHIR Observation resource profile will be used for note creation? (Default taken: pending validation of trust's EPR profile)\n\n- What is the final budget limit and how will overruns be managed? _Default taken: Budget capped at £45,000; overruns require change request to digital transformation steering group_\n- How will exponential backoff retry interact with SharePoint sync failures? _Default taken: Exponential backoff confirmed_\n- What exact FHIR Observation resource profile will be used for note creation? _Default taken: Pending validation of trust's EPR profile_\n- The participant did not review the requirement list: the interview ended before it was read back and confirmed. Is anything on it wrong or missing? _Default taken: The list is built as recorded._\n",
+  "curation": {
+    "merged": [
+      {
+        "into": "FR-6",
+        "from": ["FR-9"],
+        "via": "model"
+      }
+    ],
+    "rerouted": [],
+    "withdrawn": ["FR-8"],
+    "renumbered": [],
+    "folded": [],
+    "candidates": []
+  }
+}

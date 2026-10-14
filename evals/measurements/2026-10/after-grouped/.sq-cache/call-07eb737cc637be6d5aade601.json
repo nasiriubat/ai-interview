@@ -1,0 +1,58 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "the nurse picks the patient from a ward list",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "FHIR R4 calls through the Care Everywhere gateway, using the app's Azure AD service identity, with OperationOutcome errors... 10-second delivery timeout",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "After signing in and selecting a patient, the tester would enter a note, click Submit, and see a green confirmation message: “Note submitted successfully. Transaction ID: ...",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "The ward manager's address will come from configuration, read from each ward's Azure AD group attribute... If the attribute is missing, the app will log an error and skip the summary email",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "there must be a way to cancel a note in progress without submitting it. If a nurse starts typing a note but decides not to proceed, she can click a “Discard” button, which clears the editor and removes the note from local cache",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-6",
+      "grounded": "yes",
+      "quote": "The app will retry automatically in the background without prompting the nurse... After three retries, persistent banner... pending note survives app restart and is retried on relaunch, kept for 24 hours",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

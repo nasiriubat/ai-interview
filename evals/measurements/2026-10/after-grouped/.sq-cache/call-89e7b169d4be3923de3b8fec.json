@@ -1,0 +1,49 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "After save, the nurse sees a confirmation that the note was successfully written to both the EHR and the spreadsheet, with a unique note ID and a 10-second sync status indicator that turns green when complete.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "When a charge nurse flags a discrepancy, they cannot edit the original note—only annotate it with a status label like \"Review Pending\" or \"Discrepancy Identified\"—and assign it to the originating nurse via a workflow in the app.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "The unit manager reviews the EHR entry and approves an override to show the note as \"Validated\" in the spreadsheet, with an audit trail noting \"override applied due to 15-minute EHR-to-spreadsheet delay during network failure.\"",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "yes",
+      "quote": "At the start of a shift, a nurse logs in via Azure AD SSO, which redirects them to the ward note dashboard showing their assigned patients and any pending notes from the previous shift.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-5",
+      "grounded": "yes",
+      "quote": "Charge nurses will use the tool to review all ward notes for their unit daily, filtering by patient, nurse, or time range to verify completeness and flag discrepancies.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "verdicts": [
+    {
+      "id": "FR-1",
+      "grounded": "yes",
+      "quote": "The spreadsheet step is automatically triggered when the nurse saves the ward note in the system — no extra action needed.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-2",
+      "grounded": "yes",
+      "quote": "The ward manager gets an email alert every morning at 7:30 a.m. with a list of patients who have new notes since the previous day, including a link to view the note and download the updated spreadsheet.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-3",
+      "grounded": "yes",
+      "quote": "If a nurse forgets to enter a note, the system sends a reminder to them and their team leader at 10 a.m. the next day.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-4",
+      "grounded": "partial",
+      "quote": "The spreadsheet step is automatically triggered when the nurse saves the ward note in the system — no extra action needed.",
+      "granularity": "too_fine",
+      "kind": "detail",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-7",
+      "grounded": "yes",
+      "quote": "If a nurse enters a note after 8 a.m., the spreadsheet still gets updated, but the quality team logs it as a delay.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-8",
+      "grounded": "yes",
+      "quote": "If a note isn’t entered by 10 a.m. the next day, it stays in the system as a pending task for the nurse, but the team leader gets an alert at 10:15 a.m. with the nurse’s name and patient full name.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-9",
+      "grounded": "yes",
+      "quote": "The finance supervisor also uses it once a month to match nurse hours with documented patient interactions.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-11",
+      "grounded": "yes",
+      "quote": "the same note must appear in ShareSheet by 8 a.m. the next day.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-12",
+      "grounded": "yes",
+      "quote": "the team leader's 10:15 a.m. alert includes the nurse's name, the missing patient, and the time, and FR-12 gets updated to match.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-13",
+      "grounded": "yes",
+      "quote": "We can add the quality team’s weekly logging in version two, as long as the core workflow works and the nurses can use it without extra steps.",
+      "granularity": "too_coarse",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-14",
+      "grounded": "yes",
+      "quote": "If it doesn’t, the system must show a clear error message than silently fail. And if it does fail, the nurse must know exactly what to do — like retry or contact IT.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-15",
+      "grounded": "yes",
+      "quote": "when the first note is saved and ShareSheet is unreachable, the nurse should see a clear message on screen... The note stays in the system on their device, and the system automatically retries every 5 minutes for up to 30 minutes.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-18",
+      "grounded": "yes",
+      "quote": "the system must also prevent nurses from editing a note after 48 hours — once it’s been synced, it’s final, unless a supervisor approves a correction. ... The system should flag any edit after 48 hours and send it to the team leader for review.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-20",
+      "grounded": "partial",
+      "quote": "No direct quote about team leader dashboard flags before 8 a.m., but participant said: 'If there had been a simple alert — like a red flag in the team leader’s daily dashboard showing “1 note pending by 8 a.m.” — they could have acted at 7:45 a.m.'",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-21",
+      "grounded": "yes",
+      "quote": "When the ward manager opens the system each morning, the first thing they see is a summary dashboard with three key items: the number of notes entered so far today, how many are overdue (more than 10 a.m.), and a list of nurses who haven’t entered a note yet.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-22",
+      "grounded": "yes",
+      "quote": "The manager then sends a quick message through the system to the nurse — no phone calls needed — saying “Hi, just checking in on your notes for Mr. Smith. Thanks!”",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-23",
+      "grounded": "yes",
+      "quote": "If a nurse has missed two notes in a row, the manager gets a yellow alert and can schedule a quick 5-minute huddle to check in.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-24",
+      "grounded": "yes",
+      "quote": "If they’re new to the system, they get a short video pop-up the first time, but only once.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-25",
+      "grounded": "yes",
+      "quote": "the team leader gets an alert at 10:15 a.m. with the nurse’s name and patient full name. The alert includes a direct link to the note entry page.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    },
+    {
+      "id": "FR-27",
+      "grounded": "yes",
+      "quote": "If a note is missing by 9:30 a.m., the system escalates it to the ward manager automatically.",
+      "granularity": "ok",
+      "kind": "capability",
+      "testable": "yes",
+      "scope": "correct"
+    }
+  ]
+}

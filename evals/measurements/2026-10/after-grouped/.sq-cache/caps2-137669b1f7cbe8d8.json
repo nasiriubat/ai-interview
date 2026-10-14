@@ -1,0 +1,82 @@
+[
+  {
+    "key": "c1",
+    "text": "Nurses log in using existing hospital single sign-on credentials without creating new accounts"
+  },
+  {
+    "key": "c2",
+    "text": "Display patient name and ID from OmniCare within two seconds of patient selection, with clear error message if OmniCare is unreachable"
+  },
+  {
+    "key": "c3",
+    "text": "Allow nurses to enter a ward note once and save it simultaneously to OmniCare and queue it for the ward spreadsheet"
+  },
+  {
+    "key": "c4",
+    "text": "Show nurses a confirmation message indicating note saved in OmniCare and pending spreadsheet update until both are confirmed"
+  },
+  {
+    "key": "c5",
+    "text": "Automatically push all final notes to the ward spreadsheet at 7:30 AM daily without manual intervention"
+  },
+  {
+    "key": "c6",
+    "text": "Format the ward spreadsheet so each note is clearly labeled with patient name, time of entry, and nurse’s name"
+  },
+  {
+    "key": "c7",
+    "text": "Ensure the ward spreadsheet is saved and shared automatically by 7:30 AM each day for ward managers to view"
+  },
+  {
+    "key": "c8",
+    "text": "Allow finance team to import a consistent CSV version of the weekly ward spreadsheet with all notes present, dated, and without duplicates or blanks"
+  },
+  {
+    "key": "c9",
+    "text": "Retry failed spreadsheet writes at the next scheduled run and keep notes marked as pending until successful"
+  },
+  {
+    "key": "c10",
+    "text": "Alert IT immediately on any failed write to OmniCare or the spreadsheet and show nurses clear messages about save status"
+  },
+  {
+    "key": "c11",
+    "text": "Prevent nurses from retrying failed saves themselves; they only see warnings and report issues to IT"
+  },
+  {
+    "key": "c12",
+    "text": "Replace corrected notes in the ward spreadsheet at the next scheduled run to maintain data accuracy"
+  },
+  {
+    "key": "c13",
+    "text": "Maintain audit logs of all access and changes to patient notes in compliance with NHS DSPT standards"
+  },
+  {
+    "key": "c14",
+    "text": "Encrypt all patient data both in transit and at rest, hosted on UK-based AWS UK South cloud servers"
+  },
+  {
+    "key": "c15",
+    "text": "Support up to 24 nurses across three wards with capacity for around 10 simultaneous users without performance degradation"
+  },
+  {
+    "key": "c16",
+    "text": "Operate exclusively on hospital Windows 10 desktop kiosks with Internet Explorer 11 compatibility, disallowing personal device access"
+  },
+  {
+    "key": "c17",
+    "text": "Provide a clear count of total notes expected per shift at the top of the ward spreadsheet for ward manager verification"
+  },
+  {
+    "key": "c18",
+    "text": "Show nurses a green confirmation message within two seconds after saving a note, including patient name, time, and nurse name"
+  },
+  {
+    "key": "c19",
+    "text": "If OmniCare save fails, show nurses a clear failure message, do not queue note for spreadsheet, and alert IT"
+  },
+  {
+    "key": "c20",
+    "text": "Automatically handle login to the shared Excel file on SharePoint using a hospital service account with read/write access"
+  }
+]

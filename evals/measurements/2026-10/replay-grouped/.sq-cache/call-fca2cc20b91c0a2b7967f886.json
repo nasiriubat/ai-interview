@@ -1,0 +1,17 @@
+{
+  "pairs": [
+    { "a": "FR-11", "b": "FR-28", "same": false },
+    { "a": "FR-11", "b": "FR-29", "same": false },
+    { "a": "FR-28", "b": "FR-29", "same": false },
+    { "a": "FR-12", "b": "FR-20", "same": false },
+    { "a": "FR-20", "b": "FR-36", "same": false },
+    { "a": "FR-21", "b": "FR-27", "same": false },
+    { "a": "FR-23", "b": "FR-29", "same": false },
+    { "a": "FR-23", "b": "FR-37", "same": false },
+    { "a": "FR-25", "b": "FR-29", "same": false },
+    { "a": "FR-25", "b": "FR-37", "same": true },
+    { "a": "FR-19", "b": "FR-20", "same": false },
+    { "a": "FR-20", "b": "FR-38", "same": false },
+    { "a": "FR-22", "b": "FR-24", "same": false }
+  ]
+}
