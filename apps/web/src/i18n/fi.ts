@@ -1,4 +1,4 @@
-import { DEFAULT_WELCOME_TEXT } from "@aidp/shared";
+import { DEFAULT_WELCOME_TEXT } from "@aidp/shared/welcome";
 import type { Strings } from "./en";
 import { kitFi } from "./kit.fi";
 import { landingFi } from "./landing.fi";
