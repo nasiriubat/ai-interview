@@ -28,7 +28,7 @@ function word(t: number, slot: number): string {
   let n = ((t * 8 + slot + 1) * 7919) % 26 ** 6;
   let w = "";
   for (let i = 0; i < 6; i++) {
-    w += LETTERS[n % 26];
+    w += LETTERS.charAt(n % 26);
     n = Math.floor(n / 26);
   }
   return `${w}${slot}`;
@@ -94,7 +94,7 @@ class Counting {
         ...content.matchAll(
           /<untrusted-[0-9a-f]+ kind="draft_cluster" id="(\w+)">\n([^\n]*)\n([\s\S]*?)\n<\/untrusted-/g,
         ),
-      ].map((m) => ({ id: m[1] as string, text: m[3] as string }));
+      ].map((m) => ({ id: m[1]!, text: m[3]! }));
       if (drafts.length > this.failMergesAbove) throw new Error("output cut off");
       const byTopic = new Map<string, string[]>();
       for (const d of drafts) {
@@ -177,9 +177,9 @@ describe("runAnalysis at pilot scale (live run bug 5)", () => {
 
     // Bounded calls: one merge call per batch of 40 drafts, at most 40 opportunities, one narrative.
     const total = Object.values(model.calls).reduce((a, b) => a + b, 0);
-    expect(model.calls["opportunity"]).toBe(40);
-    expect(model.calls["narrative"]).toBe(1);
-    expect(model.calls["cluster_merges"]).toBeLessThanOrEqual(3 * Math.ceil(r.clusters.length / 40) + 10);
+    expect(model.calls.opportunity).toBe(40);
+    expect(model.calls.narrative).toBe(1);
+    expect(model.calls.cluster_merges).toBeLessThanOrEqual(3 * Math.ceil(r.clusters.length / 40) + 10);
     expect(total).toBeLessThan(80);
 
     expect(r.opportunities).toHaveLength(40);
@@ -207,7 +207,7 @@ describe("runAnalysis at pilot scale (live run bug 5)", () => {
     expect(covered).toHaveLength(facts.length);
     // Bounded: no more than three calls per batch of drafts.
     const batches = Math.ceil(r.clusters.length / 40) + 6;
-    expect(model.calls["cluster_merges"]).toBeLessThanOrEqual(3 * batches);
+    expect(model.calls.cluster_merges).toBeLessThanOrEqual(3 * batches);
   });
 
   it("leaves a cluster out, not the run, when its opportunity cannot be generated", async () => {
@@ -359,7 +359,7 @@ describe("agglomerate at scale", () => {
     const rand = rng(11);
     const centers = Array.from({ length: 30 }, () => Array.from({ length: 16 }, () => rand() - 0.5));
     const vectors = Array.from({ length: 1500 }, (_, i) =>
-      (centers[i % 30] as number[]).map((x) => x + (rand() - 0.5) * 0.1),
+      centers[i % 30]!.map((x) => x + (rand() - 0.5) * 0.1),
     );
     const t = Date.now();
     const out = agglomerate(vectors, 0.9);

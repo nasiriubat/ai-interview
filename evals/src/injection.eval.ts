@@ -89,9 +89,7 @@ function snapshotWith(text: string): SessionSnapshot {
   };
 }
 
-const interviewer = (await new ShippedPromptSource().get("c1", "interviewer")) as Parameters<
-  typeof assembleContext
->[0]["prompt"];
+const interviewer = await new ShippedPromptSource().get("c1", "interviewer");
 
 function assembled(text: string) {
   const recent = [
@@ -125,8 +123,14 @@ describe.each(payloads)("injection $id ($category)", ({ text }) => {
     const clean = neutralize(text);
     expect(clean).not.toMatch(/<\s*\/?\s*(untrusted|engine)/i);
     expect(clean).not.toMatch(/<<<\s*TURN_META/i);
-    // eslint-disable-next-line no-control-regex
-    expect(clean).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F​-‏‪-‮]/);
+
+    const hidden = Array.from({ length: clean.length }, (_, i) => clean.charAt(i)).filter((ch) => {
+      const c = ch.charCodeAt(0);
+      const control = c <= 0x08 || c === 0x0b || c === 0x0c || (c >= 0x0e && c <= 0x1f) || c === 0x7f;
+      const invisible = (c >= 0x200b && c <= 0x200f) || (c >= 0x202a && c <= 0x202e);
+      return control || invisible;
+    });
+    expect(hidden).toEqual([]);
   });
 
   it("reaches the model only inside delimited blocks that it cannot close or imitate", () => {
@@ -156,7 +160,7 @@ describe.each(payloads)("injection $id ($category)", ({ text }) => {
   it("leaves the trusted system prompt untouched", () => {
     const ctx = assembled(text);
     expect(ctx.system).toBe(baseline.system);
-    expect(ctx.system).toBe(renderSystemPrompt(interviewer, template!));
+    expect(ctx.system).toBe(renderSystemPrompt(interviewer, template));
   });
 });
 
@@ -203,7 +207,7 @@ describe("a normally behaving model is not moved by anything the participant wri
     const session: SessionSnapshot = {
       id: "s",
       companyId: "c",
-      template: template!,
+      template: template,
       state: store.state,
       summary: "",
     };
@@ -276,7 +280,7 @@ describe("what extraction keeps", () => {
       } satisfies ModelCallerPort;
       const r = await extractFacts(
         { caller, store, prompts: new ShippedPromptSource() },
-        { id: "s", companyId: "c", template: template!, state: SessionStateSchema.parse({}), summary: "" },
+        { id: "s", companyId: "c", template: template, state: SessionStateSchema.parse({}), summary: "" },
       );
       const quotes = r.facts.map((f) => ("quote" in f ? f.quote : undefined));
       expect(r.facts).toHaveLength(2); // the facts themselves stay
@@ -302,7 +306,7 @@ describe("what a report can carry", () => {
           description: "Retyping",
           severity: 5,
           quote: i === 1 ? text : "I retype it",
-        } as Fact,
+        },
       }));
       const stats = clusterStats(facts, 3);
       for (const q of stats.quotes) {

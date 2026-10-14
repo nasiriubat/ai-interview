@@ -43,7 +43,7 @@ export function verifyQuotes(
     if (quoteIsVerbatim(f.quote, participantTexts)) return f;
     dropped++;
     const { quote: _quote, ...rest } = f;
-    return rest as Fact;
+    return rest;
   });
   return { facts: out, dropped };
 }

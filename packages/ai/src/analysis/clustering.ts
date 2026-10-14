@@ -1,5 +1,5 @@
-import type { OpportunityOverride } from "@aidp/shared";
 import { createHash } from "node:crypto";
+import type { OpportunityOverride } from "@aidp/shared";
 import { cosine } from "./embeddings.js";
 
 /** A group of facts the similarity pass put together, before the model has looked at it. */

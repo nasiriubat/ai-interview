@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   SpecDocumentSchema,
   SpecDiagramSchema,
@@ -14,7 +15,6 @@ import {
   type SpecEdits,
   type SpecVersionStats,
 } from "@aidp/shared";
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { ModelCallerPort } from "../callModel.js";
 import type { Logger } from "../engine/ports.js";

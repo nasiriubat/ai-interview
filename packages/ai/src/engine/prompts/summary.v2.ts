@@ -1,6 +1,6 @@
 import { UNTRUSTED_RULES } from "../../util/untrusted.js";
-import type { PromptDefinition } from "./index.js";
 import { summaryPromptV1 } from "./summary.v1.js";
+import type { PromptDefinition } from "./index.js";
 
 /**
  * v2: the new turns arrive as delimited participant blocks. The summary is read back on every later

@@ -225,7 +225,7 @@ export class RequirementsSessions {
     if (row.status !== "completed") return;
     const state = SessionStateSchema.parse(row.state);
     const turns = await this.deps.db.message.count({ where: { sessionId: row.id, role: "assistant" } });
-    const maxTurns = (await this.deps.settings.get("engine.maxTurns", this.cx.chain(row))) as number;
+    const maxTurns = await this.deps.settings.get("engine.maxTurns", this.cx.chain(row));
     const next: SessionState = reopenedState(state, turns, maxTurns);
     await this.deps.db.session.update({
       where: { id: row.id },
