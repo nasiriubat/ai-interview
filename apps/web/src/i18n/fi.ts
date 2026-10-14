@@ -1760,6 +1760,30 @@ export const fi: Strings = {
         setPlaceholder: "Syötä arvo",
         clear: "Tyhjennä tallennettu arvo",
       },
+      logo: {
+        title: "Sivuston logo",
+        description:
+          "Korvaa tuotenimen yläpalkissa, sivupalkissa ja kirjautumissivulla. Nimi säilyy logon tekstivastineena.",
+        rules:
+          "PNG, JPEG tai WebP, enintään 256 kt. Leveä, noin 28 px korkea nimilogo toimii parhaiten. SVG-tiedostoja ei hyväksytä.",
+        none: "Ei logoa. Sen paikalla näytetään tuotenimi.",
+        current: "Nykyinen logo",
+        onLight: "Vaalealla taustalla",
+        onDark: "Tummalla taustalla",
+        upload: "Lataa logo",
+        replace: "Vaihda",
+        remove: "Poista",
+        uploading: "Ladataan…",
+        uploaded: "Logo tallennettu",
+        removed: "Logo poistettu",
+        confirmTitle: "Poistetaanko sivuston logo?",
+        confirmBody:
+          "Sen paikalla näytetään kaikkialla tuotenimi. Voit ladata logon uudelleen milloin tahansa.",
+        errors: {
+          type: "Valitse PNG-, JPEG- tai WebP-kuva. SVG-tiedostoja ei hyväksytä.",
+          size: "Logon on oltava enintään 256 kt.",
+        },
+      },
       email: {
         test: "Lähetä testiviesti",
         sending: "Lähetetään…",
@@ -2947,8 +2971,9 @@ export const fi: Strings = {
         description: "Mallipohja voi käynnistää toisen sen oppimien tietojen pohjalta.",
       },
       "branding.productName": {
-        label: "Osallistujille näytettävä tuotenimi",
-        description: "Näkyy saapumissivulla ja sähköposteissa.",
+        label: "Sivustolla ja osallistujille näytettävä tuotenimi",
+        description:
+          "Alustatasolla se on sivuston nimi: etusivu, kirjautuminen, hallinta ja selaimen välilehti. Organisaation oma arvo korvaa sen vain sen osallistujille ja sähköposteissa.",
       },
       "branding.emailSender": {
         label: "Lähettäjän osoite (vanhentunut)",

@@ -2,12 +2,14 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import * as React from "react";
+import { BrandingProvider } from "@/components/common/Branding";
 import { NavigationProgress } from "@/components/common/NavigationProgress";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { ToasterHost } from "@/components/common/ToasterHost";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { getStrings, requestLocale } from "@/i18n/server";
+import { getBranding } from "@/lib/branding";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -17,8 +19,10 @@ const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap", variable
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getStrings();
+  // The platform's name from the admin (D-430), or the bundled one when the API cannot say.
+  const { productName } = await getBranding();
   return {
-    title: { default: t.app.name, template: `%s · ${t.app.name}` },
+    title: { default: productName, template: `%s · ${productName}` },
     description: t.app.description,
   };
 }
@@ -36,6 +40,7 @@ export default async function RootLayout({
 }): Promise<React.JSX.Element> {
   const locale = await requestLocale();
   const t = await getStrings();
+  const branding = await getBranding();
   // Set by proxy.ts for this request (D-165). Read by MermaidDiagram, whose SVG carries a <style>
   // element that a nonce-only style-src would otherwise refuse.
   const nonce = (await headers()).get("x-nonce") ?? "";
@@ -67,7 +72,9 @@ export default async function RootLayout({
           >
             {t.app.skipToContent}
           </a>
-          <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+          <BrandingProvider value={branding}>
+            <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+          </BrandingProvider>
           <ToasterHost />
           <OfflineBanner />
         </LocaleProvider>

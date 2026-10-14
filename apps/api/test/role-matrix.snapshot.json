@@ -23,6 +23,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "DELETE /operator/branding/logo": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
   "DELETE /operator/providers/:id": {
     "access": "operator",
     "isolation": true,
@@ -690,6 +702,30 @@
       "anonymous": 401,
       "participant": 401,
       "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /public/branding": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /public/branding/logo": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 404,
+      "participant": 404,
+      "member": 404,
       "admin": 404,
       "operator": 404,
       "crossTenantAdmin": 404
@@ -1602,6 +1638,30 @@
       "anonymous": 401,
       "participant": 401,
       "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /public/branding": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /public/branding/logo": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 404,
+      "participant": 404,
+      "member": 404,
       "admin": 404,
       "operator": 404,
       "crossTenantAdmin": 404
@@ -2829,6 +2889,18 @@
       "admin": 400,
       "operator": 400,
       "crossTenantAdmin": 400
+    }
+  },
+  "PUT /operator/branding/logo": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 400,
+      "crossTenantAdmin": 403
     }
   },
   "PUT /operator/providers/:id/prices": {

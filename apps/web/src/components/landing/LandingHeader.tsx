@@ -4,11 +4,14 @@ import { MenuIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { Dialog } from "radix-ui";
 import * as React from "react";
+import { ProductMark } from "@/components/common/Branding";
 import { LanguageMenu, ThemeMenu } from "@/components/common/PreferenceMenus";
 import { Button } from "@/components/ui/button";
+import type { Branding } from "@/lib/branding-shared";
 
 export interface LandingHeaderProps {
-  appName: string;
+  /** The platform's name and logo (D-430): the logo when there is one, else the name. */
+  branding: Branding;
   navLabel: string;
   nav: readonly { id: string; label: string }[];
   labels: { menu: string; closeMenu: string };
@@ -26,7 +29,7 @@ export interface LandingHeaderProps {
  * because each width has its own set of items rather than one set that shrinks.
  */
 export function LandingHeader({
-  appName,
+  branding,
   navLabel,
   nav,
   labels,
@@ -53,17 +56,8 @@ export function LandingHeader({
   return (
     <header className="border-border bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-40 border-b backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2.5 rounded-md text-base font-semibold tracking-tight"
-        >
-          <span
-            aria-hidden="true"
-            className="bg-brand-gradient text-brand-text grid size-8 place-items-center rounded-lg text-sm font-bold shadow-sm"
-          >
-            {appName.slice(0, 1).toUpperCase()}
-          </span>
-          <span>{appName}</span>
+        <Link href="/" className="flex min-w-0 shrink items-center rounded-md">
+          <ProductMark branding={branding} />
         </Link>
 
         <nav aria-label={navLabel} className="mx-auto hidden items-center gap-1 text-sm xl:flex">

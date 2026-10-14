@@ -118,6 +118,14 @@ export function pagedOf<T extends z.ZodType>(item: T, key?: string): z.ZodType<P
 
 export const OkSchema = z.looseObject({ ok: z.literal(true) });
 
+/** `GET /public/branding` and the answer of the logo writes (D-430 to D-434). */
+export const PublicBrandingSchema = z.object({
+  productName: z.string(),
+  hasLogo: z.boolean(),
+  logoVersion: z.string().nullable(),
+});
+export type PublicBranding = z.infer<typeof PublicBrandingSchema>;
+
 // Participant flow
 
 export const VerificationSchema = z.enum(["invitation", "email_code", "open"]);

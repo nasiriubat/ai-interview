@@ -1759,6 +1759,31 @@ export const en = {
         setPlaceholder: "Enter a value",
         clear: "Clear the stored value",
       },
+      /** The platform logo (D-430 to D-434), under Branding at platform level. */
+      logo: {
+        title: "Site logo",
+        description:
+          "Replaces the product name in the header, the sidebar and the sign-in page. The name stays as its text alternative.",
+        rules:
+          "PNG, JPEG or WebP, up to 256 KB. A wide wordmark about 28 px high reads best. SVG is not accepted.",
+        none: "No logo. The product name is shown in its place.",
+        current: "Current logo",
+        onLight: "On a light background",
+        onDark: "On a dark background",
+        upload: "Upload a logo",
+        replace: "Replace",
+        remove: "Remove",
+        uploading: "Uploading…",
+        uploaded: "Logo saved",
+        removed: "Logo removed",
+        confirmTitle: "Remove the site logo?",
+        confirmBody:
+          "The product name is shown in its place everywhere. You can upload a logo again at any time.",
+        errors: {
+          type: "Choose a PNG, JPEG or WebP image. SVG is not accepted.",
+          size: "The logo must be 256 KB or smaller.",
+        },
+      },
       email: {
         test: "Send test email",
         sending: "Sending…",
@@ -2943,8 +2968,9 @@ export const en = {
         description: "A template can start another one from what it learned.",
       },
       "branding.productName": {
-        label: "Product name shown to participants",
-        description: "Appears on the arrival page and in emails.",
+        label: "Product name shown on the site and to participants",
+        description:
+          "At platform scope it names the site: the landing page, sign-in, the admin and the browser tab. An organization's own value replaces it for its participants and emails only.",
       },
       "branding.emailSender": {
         label: "Sender address (deprecated)",
