@@ -14,6 +14,7 @@ import {
 } from "@aidp/core";
 import { shippedTemplates, withTenantScope } from "@aidp/db";
 import { deriveInternalSecret } from "@aidp/shared/internal-secret";
+import { APP_ROLE_TEST_PASSWORD, APP_ROLE_TEST_USER, setAppRolePassword } from "@aidp/testing";
 import { encode } from "@auth/core/jwt";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
@@ -266,16 +267,16 @@ export interface TestWorld {
   close: () => Promise<void>;
 }
 
-const APP_ROLE_PASSWORD = "test-app-role";
+const APP_ROLE_PASSWORD = APP_ROLE_TEST_PASSWORD;
 
 /** A client connected as the unprivileged `app_api` role, with the tenant scope applied. */
 async function appRoleClient(owner: PrismaClient): Promise<PrismaClient> {
   const url = process.env.DATABASE_URL;
   if (!url) return owner;
   try {
-    await owner.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD '${APP_ROLE_PASSWORD}'`);
+    await setAppRolePassword(owner);
     const asApp = new URL(url);
-    asApp.username = "app_api";
+    asApp.username = APP_ROLE_TEST_USER;
     asApp.password = APP_ROLE_PASSWORD;
     const client = new PrismaClient({ datasources: { db: { url: asApp.toString() } } });
     await client.$queryRawUnsafe("SELECT 1");

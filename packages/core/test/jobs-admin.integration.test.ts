@@ -1,4 +1,5 @@
 import { withSystemTenant, withTenant, withTenantScope } from "@aidp/db";
+import { APP_ROLE_TEST_PASSWORD, APP_ROLE_TEST_USER, setAppRolePassword } from "@aidp/testing";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BossJobs, JOBS, PgBossJobAdmin, type JobFailure } from "../src/index.js";
@@ -118,10 +119,10 @@ suite("job administration against a real pg-boss", () => {
   });
 
   it("answers the same through the unprivileged runtime role and the tenant scope, which is how the API and worker run it", async () => {
-    await db.$executeRawUnsafe(`ALTER ROLE app_api WITH LOGIN PASSWORD 'test-app-role'`);
+    await setAppRolePassword(db);
     const u = new URL(url ?? "");
-    u.username = "app_api";
-    u.password = "test-app-role";
+    u.username = APP_ROLE_TEST_USER;
+    u.password = APP_ROLE_TEST_PASSWORD;
     const api = new PrismaClient({ datasources: { db: { url: u.toString() } } });
     try {
       const scoped = withTenantScope(api);

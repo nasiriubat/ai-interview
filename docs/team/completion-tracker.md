@@ -64,15 +64,15 @@ Nothing running; follow-up wave being launched (see Left).
 ## Left, in order
 
 1. **Full-stack follow-ups:** full k6 run under default abuse limits, Playwright journeys against the stack. Done (D-280 to D-283): voice first sentence before metadata (p95 1.79 s to 1.04 s at 250 chars/s), orphaned active jobs reclaimed by the next worker, turn-lock TTL 10 s, disk-full upload answers `storage_full`.
-2. **Requirement quality:** judge duplicates 11% fresh (about 2 real of 44 by hand) vs <5% target, not re-judged after merge v3; recall measured at 85-87% fresh (earlier lists were padded, not lost); technical persona on 3 interviews only; scope-tag corrections in read-back untested.
-3. **M4 remainder:** scheduled model-backed evals, Lighthouse budgets, tenant-scoped sweeps in retention tests, re-run `pnpm live:run` on the merged tip. Done: requirements/version pages in the axe inventory, the two drifted e2e fixtures, `scripts/live-run/README.md`, cold-build ordering (D-284).
+2. **Requirement quality:** re-judged through merge v3 on the six fresh interviews: duplicates 24% by judge, 12% by hand (6 of 51, five in one interview) vs <5% target, so still open (D-335); recall measured at 85-87% fresh (earlier lists were padded, not lost); scope-tag and ordering corrections in the read-back now tested, one defect found and fixed (D-334).
+3. **M4 remainder:** scheduled model-backed evals, Lighthouse budgets, re-run `pnpm live:run` on the merged tip (concurrent runs are now isolated by `LIVE_RUN_ID`, D-331). Done: tenant-scoped sweeps in retention tests (D-332), a role of their own for tests (D-333). Done: requirements/version pages in the axe inventory, the two drifted e2e fixtures, `scripts/live-run/README.md`, cold-build ordering (D-284).
 4. **Owner-only:** pen test budget, counsel review of DPA and consent, security contact, product name, usability tests with real people, restore and chaos drills, live voice on a phone, rotation drill on staging, make security workflow a required check.
 5. **M5 close:** phase plan marked Done with evidence links, release notes.
 
 ## Known risks and open items
 
 - Full compose stack run end to end with the fake provider (11/11 healthy, load 0 errors, chaos 7/7); never with a real provider, Let's Encrypt or offsite restore.
-- Requirement lists still contain ~18% duplicates; grounded 86% verified.
+- Requirement lists still contain duplicates: 12% by hand and 24% by judge on the final code (D-335); grounded 88% verified.
 - CSP is enforced but has no week of production data and no Observatory scan.
 - Finnish interview quality never run live; GitHub push only tested against a fake.
 - Realtime voice sockets have no deadlines or retries.
@@ -128,3 +128,5 @@ contact address, live voice in the first pilot (default: behind its flag).
 - 2026-10-14 — Demo run merged (marketing/demo-2026-10: 58 screenshots, EN voice-over scripts) and recall measurement merged (D-300..305): requirements not lost, earlier lists padded; live re-run found and fixed duplicated FR ids after stale extraction write-back (D-302) and a silent cluster failure on a 1,300-char rationale (D-304). Demo scripts broke the web image build/lint; excluded from web tsconfig and eslint. Fix wave for demo-exposed defects (diagrams illegible, department panel clipping, MVP challenge state, currency, analysis versions, end screen, voice screen) running. Gate green.
 
 - 2026-10-14 — Demo-defect fixes merged (D-320..326): diagrams illegible was prefers-reduced-motion CSS forcing .01ms transitions during mermaid measuring (fixed, PDF diagrams verified with real Kroki); layout clipping; MVP challenge state truthful; branding.currency; analysis auto-run debounce; summary endpoint returns status and never the last reply; voice screen in axe. e2e 408/408, axe clean. Merge also tripped the double-cast ratchet (49 vs 45), fixed by typing the tests. Gate green. All agent waves done; remaining items are owner-only or measured follow-ups.
+
+- 2026-10-14 — Follow-up closure (D-330..D-335): `upgrade.sh` waits for a healthy backup container and fails on a crash loop (D-330); `live:run` isolated by `LIVE_RUN_ID` with a lock for the default names (D-331); retention tests sweep only their own tenants, so the gate no longer depends on leftover test tenants (D-332); tests log in as their own role instead of re-passwording `app_api`, which ends the P1000 cross-process flake (D-333); scope tags `"Future"`, `"later"` and the like were read as MVP, fixed with four read-back eval cases (D-334); duplicates re-judged on the final merge code: 24% judge, 12% hand, still over 5% (D-335).

@@ -61,9 +61,33 @@ export function nextMvpItem(state: SessionState): MvpItem | undefined {
   return mvpItems(state).find((i) => !asked.has(i.path));
 }
 
+/** Words a model uses for "not in the first version" when it does not use the schema's `future`. */
+const FUTURE_SCOPE_WORDS = new Set([
+  "future",
+  "later",
+  "later phase",
+  "next",
+  "v2",
+  "post-mvp",
+  "post mvp",
+  "post_mvp",
+  "not mvp",
+  "out of scope",
+  "nice to have",
+  "nice-to-have",
+  "backlog",
+  "phase 2",
+]);
+
+/**
+ * The scope tag of a requirement value. The owner's correction at the read-back arrives as the
+ * model wrote it, so "Future", "later" or `mvp: false` all mean future; anything else, including a
+ * missing tag, is the MVP (the default the schema documents).
+ */
 export function scopeOf(value: unknown): "mvp" | "future" {
   const v = asObject(value);
-  if (v.scope === "future" || v.mvp === false || v.future === true) return "future";
+  if (typeof v.scope === "string" && FUTURE_SCOPE_WORDS.has(v.scope.trim().toLowerCase())) return "future";
+  if (v.mvp === false || v.future === true) return "future";
   return "mvp";
 }
 

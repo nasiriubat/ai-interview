@@ -62,7 +62,14 @@ describeDb("retention sweep storage GC", () => {
   let templateId = "";
 
   const sweep = async (storage: StoragePort, over: { now?: () => Date } = {}): Promise<TenantSweep> => {
-    const all = await runRetentionSweep({ db, settings, log, storage, ...over });
+    const all = await runRetentionSweep({
+      db,
+      settings,
+      log,
+      storage,
+      companyIds: [companyId, otherCompanyId],
+      ...over,
+    });
     const mine = all.find((s) => s.companyId === companyId);
     if (!mine) throw new Error("no sweep for the test tenant");
     return mine;

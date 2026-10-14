@@ -195,4 +195,89 @@ describe("the read-back with an owner who disagrees (D-290)", () => {
     expect(result.document.openQuestions.map((q) => q.question)).toContain(UNREVIEWED_LIST_QUESTION);
     expect(result.markdown).toContain("did not review the requirement list");
   });
+
+  /** Runs the interview with the given corrections and generates the specification from its state. */
+  async function specAfter(corrections: unknown[]) {
+    const { store } = await interview({ stopAtReadBack: false, corrections });
+    const result = await generateSpec(
+      { caller: specCaller as never, prompts: new ShippedPromptSource(), logger },
+      {
+        companyId: "c",
+        sessionId: "eval",
+        title: "Charting",
+        language: "en",
+        path: fixture.path as Path,
+        state: store.state,
+        summary: "",
+        edits: {},
+        sections: ["overview", "functional", "open_questions"],
+        diagramTypes: [],
+        bundleFormat: "claude_code",
+      } as never,
+    );
+    return { store, result };
+  }
+  const scopes = (r: Awaited<ReturnType<typeof specAfter>>["result"]) =>
+    Object.fromEntries(r.document.requirements.map((x) => [x.id, x.scope]));
+  const idNumber = (id: string) => Number(/(\d+)$/.exec(id)?.[1]);
+
+  it("moves an item between MVP and future whichever way the model words the correction (scope tags)", async () => {
+    // The owner: "the export is a must for the first version", "offline mode can wait". The model
+    // may write the tag in any of the shapes the schema tolerates; none may be read as MVP by default.
+    const { result } = await specAfter([
+      fr("FR-2", { title: "Excel export", scope: "mvp", acceptance: ["csv"] }),
+      fr("FR-3", { title: "Offline mode", scope: "Future", acceptance: ["works without wifi"] }),
+      fr("FR-1", { title: "One-tap charting", mvp: false, acceptance: ["one tap"] }),
+    ]);
+    const s = scopes(result);
+    expect(s["FR-2"]).toBe("mvp");
+    expect(s["FR-3"]).toBe("future");
+    expect(s["FR-1"]).toBe("future");
+    expect(result.markdown.indexOf("Excel export")).toBeLessThan(result.markdown.indexOf("### Future"));
+    expect(result.markdown.indexOf("### Future")).toBeLessThan(result.markdown.indexOf("Offline mode"));
+  });
+
+  it("reads later-style scope words as future, not as the MVP default", async () => {
+    const { result } = await specAfter([
+      fr("FR-3", { title: "Offline mode", scope: "later", acceptance: ["x"] }),
+      fr("FR-2", { title: "Excel export", scope: "post-mvp", acceptance: ["csv"] }),
+      fr("FR-1", { title: "One-tap charting", scope: "MVP", acceptance: ["x"] }),
+    ]);
+    const s = scopes(result);
+    expect(s["FR-3"]).toBe("future");
+    expect(s["FR-2"]).toBe("future");
+    expect(s["FR-1"]).toBe("mvp");
+  });
+
+  it("a correction filed under another spelling of the section replaces the item and keeps its place (ordering)", async () => {
+    const corrected = {
+      ...fr("FR-2", { title: "Excel export", scope: "future", acceptance: ["csv"] }),
+      section: "Functional",
+    };
+    const alt = {
+      ...fr("FR-1", { title: "One-tap charting", scope: "mvp", acceptance: ["x"] }),
+      section: "functional_requirements",
+    };
+    const { store, result } = await specAfter([alt, corrected]);
+    const ids = result.document.requirements.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length); // no id twice
+    expect(store.state.facts.filter((f) => f.kind === "spec_field" && f.path === "FR-2")).toHaveLength(1);
+    // Items keep the order they were first recorded in; the corrected one does not jump to the end.
+    expect([...ids].sort((a, b) => idNumber(a) - idNumber(b))).toEqual(ids);
+  });
+
+  it("lists requirements in id order within each scope block, FR-10 after FR-9", async () => {
+    const extra = Array.from({ length: 8 }, (_, i) =>
+      fr(`FR-${i + 5}`, {
+        title: `Extra capability number ${i + 5} zebra${i}`,
+        scope: i % 2 ? "future" : "mvp",
+        acceptance: ["a"],
+      }),
+    );
+    const { result } = await specAfter(extra);
+    for (const scope of ["mvp", "future"] as const) {
+      const nums = result.document.requirements.filter((r) => r.scope === scope).map((r) => idNumber(r.id));
+      expect(nums).toEqual([...nums].sort((a, b) => a - b));
+    }
+  });
 });

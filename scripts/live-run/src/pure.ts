@@ -263,3 +263,53 @@ export function extractJson(text: string): unknown {
     return null;
   }
 }
+
+// ---- run isolation ----------------------------------------------------------------------------
+
+export interface RunConfig {
+  /** `default` for the historical fixed names, otherwise the sanitised LIVE_RUN_ID. */
+  runId: string;
+  dbName: string;
+  apiPort: number;
+  scratchDir: string;
+  /** Subdirectory of out/ ("" for the default run). */
+  outSubdir: string;
+}
+
+const RUN_ID = /^[a-z0-9][a-z0-9_]{0,23}$/;
+
+/** A stable port in 4101..4199 for a run id, so two ids rarely collide and a rerun is predictable. */
+export function portForRunId(runId: string): number {
+  let h = 0;
+  for (const ch of runId) h = (h * 31 + ch.charCodeAt(0)) % 99;
+  return 4101 + h;
+}
+
+/**
+ * Derives the database name, API port, scratch directory and output folder of one run. With no
+ * LIVE_RUN_ID the historical names are kept (and the run lock stops a second run). With one, every
+ * name carries the id, so concurrent runs cannot drop each other's database. The individual
+ * LIVE_DB_NAME, LIVE_API_PORT and LIVE_RUN_SCRATCH still win when set.
+ */
+export function resolveRunConfig(env: Record<string, string | undefined>, tmp: string): RunConfig {
+  const raw = env.LIVE_RUN_ID?.trim().toLowerCase();
+  if (raw !== undefined && raw !== "" && !RUN_ID.test(raw)) {
+    throw new Error(`LIVE_RUN_ID must match ${RUN_ID} (lowercase letters, digits, underscore; max 24)`);
+  }
+  const runId = raw === undefined || raw === "" ? "default" : raw;
+  const isDefault = runId === "default";
+  const sep = tmp.endsWith("/") ? "" : "/";
+  return {
+    runId,
+    dbName: env.LIVE_DB_NAME ?? (isDefault ? "ai_discovery_live" : `ai_discovery_live_${runId}`),
+    apiPort: Number(env.LIVE_API_PORT ?? (isDefault ? 4100 : portForRunId(runId))),
+    scratchDir: env.LIVE_RUN_SCRATCH ?? `${tmp}${sep}ai-discovery-live${isDefault ? "" : `-${runId}`}`,
+    outSubdir: isDefault ? "" : runId,
+  };
+}
+
+/** Decides whether an existing lock file's content names a live process. Pure for testing. */
+export function lockIsHeld(content: string, isAlive: (pid: number) => boolean): boolean {
+  const pid = Number(content.trim().split(/\s+/)[0]);
+  return Number.isInteger(pid) && pid > 0 && isAlive(pid);
+}

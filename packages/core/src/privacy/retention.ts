@@ -98,6 +98,12 @@ export interface RetentionSweepDeps {
   now?: () => Date;
   batchSize?: number;
   maxBatches?: number;
+  /**
+   * Sweep only these tenants. Production leaves it out (every tenant, nightly). Tests pass their
+   * own tenants so a run costs what its own data costs and does not depend on how many tenants
+   * earlier or crashed suites left in the database.
+   */
+  companyIds?: readonly string[];
 }
 
 /**
@@ -500,8 +506,13 @@ export async function runRetentionSweep(deps: RetentionSweepDeps): Promise<Tenan
   // The only cross-tenant read in the sweep: which tenants exist. Everything after it runs fenced
   // into one tenant. The Company policy shows a tenant context nobody but itself (D-141), so the
   // listing steps into the system context and back out.
+  const only = deps.companyIds;
   const companies = await withSystemTenant(() =>
-    db.company.findMany({ select: { id: true }, orderBy: { id: "asc" } }),
+    db.company.findMany({
+      ...(only ? { where: { id: { in: [...only] } } } : {}),
+      select: { id: true },
+      orderBy: { id: "asc" },
+    }),
   );
   const sweeps: TenantSweep[] = [];
   for (const company of companies) {

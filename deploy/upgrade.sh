@@ -25,7 +25,8 @@
 #      smoke-tests through Caddy. If the switch fails before migrations ran the old containers
 #      are still serving and the old tag is restored; if it fails after, it rolls the code back
 #      and tells you what the schema is now.
-#   6. Takes the maintenance page down and keeps the last three image generations.
+#   6. Waits for the backup container to be healthy; a crash-looping backup fails the upgrade (D-316).
+#   7. Keeps the last three image generations.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -44,7 +45,7 @@ while [ $# -gt 0 ]; do
 	--skip-backup) skip_backup=1 ;;
 	--yes) assume_yes=1 ;;
 	--dry-run) DRY_RUN=1 ;;
-	-h | --help) sed -n '2,32p' "$0"; exit 0 ;;
+	-h | --help) sed -n '2,33p' "$0"; exit 0 ;;
 	*) die "unknown argument $1" ;;
 	esac
 	shift
@@ -236,6 +237,16 @@ say "smoke test through caddy"
 if ! smoke; then
 	maintenance on
 	rollback_after_failure "the post-switch smoke test failed"
+fi
+
+# The backup container is replaced by the switch too. Its healthcheck is "the last backup worked and
+# is recent", so waiting for it is how a crash-looping or failing backup shows up now and not at the
+# next upgrade (D-316). The application is serving at this point, so this does not roll back; it
+# fails the upgrade loudly and says where to look.
+say "waiting for the backup container to be healthy"
+if ! wait_backup_healthy "${AIDP_BACKUP_WAIT_SECONDS:-180}"; then
+	warn "the stack is serving $version but BACKUPS ARE NOT WORKING. Do not leave it: docs/OPERATIONS.md#backupfailed"
+	exit 1
 fi
 
 # ---- 6. housekeeping -------------------------------------------------------------------------
