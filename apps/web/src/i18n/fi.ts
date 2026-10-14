@@ -1,7 +1,7 @@
 import type { Strings } from "./en";
 import { kitFi } from "./kit.fi";
-import { wsFi } from "./ws.fi";
 import { landingFi } from "./landing.fi";
+import { wsFi } from "./ws.fi";
 
 /**
  * Finnish. Declared as `Strings` so every key of `en.ts` must exist here with the same

@@ -4,8 +4,8 @@
  */
 import type { BudgetScope, CallStatus, Effort, ProviderKind, Purpose, SettingKey } from "@aidp/shared";
 import { kitEn } from "./kit.en";
-import { wsEn } from "./ws.en";
 import { landingEn } from "./landing.en";
+import { wsEn } from "./ws.en";
 
 export const en = {
   app: {

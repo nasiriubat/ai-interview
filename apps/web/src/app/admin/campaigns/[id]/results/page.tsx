@@ -5,11 +5,11 @@ import { notFound } from "next/navigation";
 import * as React from "react";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { LoadError, settled } from "@/components/admin/LoadError";
-import { AnalysisStatusBadge } from "@/components/admin/results/AnalysisHeader";
-import { DataTable } from "@/components/data/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { RefreshButton } from "@/components/admin/RefreshButton";
+import { AnalysisStatusBadge } from "@/components/admin/results/AnalysisHeader";
 import { ResultsView } from "@/components/admin/results/ResultsView";
+import { DataTable } from "@/components/data/DataTable";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
@@ -18,8 +18,8 @@ import { isWeightsPreset, parseWeights } from "@/lib/analysis/rank";
 import { RESULTS_TABS } from "@/lib/analysis/tabs";
 import { isApiError } from "@/lib/api/errors";
 import type { AnalysisDetail } from "@/lib/api/schemas";
-import { formatDate } from "@/lib/utils";
 import { staffServer } from "@/lib/api/server";
+import { formatDate } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).admin.results.title };

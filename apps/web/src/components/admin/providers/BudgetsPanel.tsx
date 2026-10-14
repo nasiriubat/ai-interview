@@ -7,11 +7,11 @@ import * as React from "react";
 import { Flash, useAction } from "@/components/admin/Flash";
 import { ComboboxField, NumberField, SelectField, TextField } from "@/components/admin/forms";
 import { IconButton, RowActions } from "@/components/admin/IconButton";
+import { MeterBar } from "@/components/admin/MeterBar";
 import { Panel } from "@/components/admin/Panel";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useDirty } from "@/components/common/DirtyGuard";
 import { DataTable, type FilterDef, type SortSpec } from "@/components/data/DataTable";
-import { MeterBar } from "@/components/admin/MeterBar";
 import { Button } from "@/components/ui/button";
 import type { ComboboxOption } from "@/components/ui/combobox";
 import { t } from "@/i18n";
@@ -228,7 +228,7 @@ export function BudgetsPanel({
                       tone="spend"
                       value={spent}
                       max={b.limitCents}
-                      label={`${nameOf(b)}`}
+                      label={nameOf(b)}
                       valueText={s.spentSoFar(formatCents(spent), formatCents(b.limitCents))}
                     />
                   </div>
