@@ -20,6 +20,7 @@
   "dependencies": {
     "@aidp/ai": "workspace:*",
     "@aidp/shared": "workspace:*",
+    "pdfjs-dist": "^6.4.299",
     "vitest": "^3.2.0",
     "zod": "^4.0.0"
   },
