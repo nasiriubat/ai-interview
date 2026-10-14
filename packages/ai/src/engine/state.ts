@@ -130,7 +130,7 @@ export function applyDelta(
   return {
     ...state,
     coverage,
-    contextAnswers: { ...state.contextAnswers, ...delta.contextAnswers },
+    contextAnswers: { ...state.contextAnswers, ...labelContextAnswers(delta.contextAnswers, template) },
     contextAsks,
     profile: mergeDefined(state.profile, delta.profile),
     openThreads,
@@ -141,6 +141,24 @@ export function applyDelta(
     ...(delta.flagForAdmin ? { flaggedForAdmin: delta.flagForAdmin } : {}),
     lastAreaKey: focusArea ?? state.lastAreaKey,
   };
+}
+
+/**
+ * A context answer the model recorded as an option key ("onprem") is stored as the option's label
+ * ("Company servers"): the workspace and the generated specification show it to people, and the
+ * 2026-10-15 simulation showed "Hosting: onprem" and "Who builds it: team". Free text is kept.
+ */
+export function labelContextAnswers(
+  answers: Record<string, string>,
+  template: Pick<InterviewTemplate, "contextBlock">,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(answers)) {
+    const options = template.contextBlock.find((q) => q.key === key)?.options ?? [];
+    const hit = options.find((o) => o.key === value.trim());
+    out[key] = hit ? hit.label : value;
+  }
+  return out;
 }
 
 /** Appends facts; a spec_field with the same section and path replaces the earlier one (the spec is state, not a log). */
