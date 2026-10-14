@@ -1,5 +1,4 @@
 import type { BudgetCheck, CallContext } from "@aidp/ai";
-import type { PrismaClient } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import { BudgetAlerts, formatCents } from "../src/alerts/budget-alerts.js";
 import type { Alert } from "../src/alerts/port.js";
@@ -16,7 +15,7 @@ function rig(currencyOf?: (companyId: string) => Promise<string>): {
   const raised: Alert[] = [];
   const alerts = new BudgetAlerts({
     // describe() reaches for the database inside a try; a failure there falls back to a plain label.
-    db: {} as PrismaClient,
+    db: {} as never,
     alerts: {
       raise: (a: Alert) => {
         raised.push(a);
@@ -30,7 +29,7 @@ function rig(currencyOf?: (companyId: string) => Promise<string>): {
   return { alerts, raised };
 }
 
-const exhausted = {
+const exhausted: BudgetCheck = {
   allowed: false,
   warnings: [],
   blockedBy: {
@@ -40,7 +39,7 @@ const exhausted = {
     spentCents: 16_600,
     limitCents: 16_600,
   },
-} as unknown as BudgetCheck;
+};
 const ctx = { companyId: "t1" } as CallContext;
 
 describe("budget notices name the currency of the figures", () => {

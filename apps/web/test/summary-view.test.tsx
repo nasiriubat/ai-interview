@@ -14,7 +14,7 @@ import type { Summary } from "@/lib/api/schemas";
 const apiWith = (...answers: Summary[]): { api: ParticipantApi; calls: () => number } => {
   let n = 0;
   const getSummary = vi.fn(() => Promise.resolve(answers[Math.min(n++, answers.length - 1)]!));
-  return { api: { getSummary, putSummary: vi.fn() } as unknown as ParticipantApi, calls: () => n };
+  return { api: { getSummary, putSummary: vi.fn() } as never, calls: () => n };
 };
 
 beforeEach(() => {
@@ -65,7 +65,7 @@ describe("SummaryView", () => {
     const api = {
       getSummary: vi.fn(() => Promise.reject(new Error("down"))),
       putSummary: vi.fn(),
-    } as unknown as ParticipantApi;
+    } as never;
     render(<SummaryView api={api} available onDelete={vi.fn()} />);
     expect(await screen.findByText(/could not be loaded/)).toBeInTheDocument();
   });

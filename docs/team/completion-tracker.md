@@ -3,14 +3,14 @@
 The one file to read to see where the program stands. Updated at every merge. The plan behind it
 is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026-10-13.md`.
 
-**Last updated:** 2026-10-14, spec quality, landing page (M5) and security M3 merged; full-stack drill merged; follow-up wave next.
+**Last updated:** 2026-10-14, all agent waves merged (spec quality, landing, security M3, full stack, reliability, recall, demo, demo-defect fixes); nothing running.
 
 ## Headline numbers
 
 | Measure                                                        | Now      | How it is computed                                                                                                                                              |
 | -------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Program to "A+ production-ready handover" (phases 0 to 5)      | **~68%** | About 42 of about 210 deduplicated engineer-days merged and verified                                                                                            |
-| Safe to run a first pilot tenant (owner operating, one tenant) | **~96%** | All seven pilot blockers closed; remaining: full compose stack run end to end (agent running), duplicates still 18% in requirement lists, owner actions O1..O10 |
+| Safe to run a first pilot tenant (owner operating, one tenant) | **~97%** | All seven pilot blockers closed; remaining: full compose stack run end to end (agent running), duplicates still 18% in requirement lists, owner actions O1..O10 |
 | Spec coverage, phases 0 to 4                                   | ~87%     | Was ~85%; resume recap, flags, PDF, cluster edits and prompt admin still open                                                                                   |
 | Automated tests (all merged, zero skipped)                     | 2,770+   | `pnpm check` with a database, last run after security M3                                                                                                        |
 
@@ -22,8 +22,8 @@ is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026
 | M1 Pilot-safe           | ~35  | **Done, merged, gate green** | Security, operations, engineering correctness, web truth copy and accessibility |
 | M2 Trustworthy          | ~55  | **Done, merged, gate green** | Copy, architecture, tenancy, privacy, security part 2, pipeline, configuration  |
 | M3 Complete the spec    | ~60  | **Done, merged, gate green** | Product blueprint features, redesign, observability                             |
-| M4 Evidence and A grade | ~50  | **In progress (~75%)**       | Evals, Playwright, load and chaos, pen test, usability tests, drills            |
-| M5 Launch               | ~10  | **Mostly done (~70%)**       | Landing page, proof points, name, phase plan says Done                          |
+| M4 Evidence and A grade | ~50  | **In progress (~90%)**       | Evals, Playwright, load and chaos, pen test, usability tests, drills            |
+| M5 Launch               | ~10  | **Done in scope (~90%)**     | Landing page, proof points, name, phase plan says Done                          |
 
 ## Grades against the starting point
 
@@ -126,3 +126,5 @@ contact address, live voice in the first pilot (default: behind its flag).
 - 2026-10-14 — Stack re-verification merged (D-310..317): chaos 7/7 and journey on the merged tip; found the merged tip could not build (Dockerfile missing with-lock.mjs); abuse defaults raised after load showed an office of 90 behind one address was 2/3 turned away; backup and ops-notify now non-root; S3 quota classifier; phase plan re-marked with evidence; docs/RELEASE-NOTES.md written. Gate green.
 
 - 2026-10-14 — Demo run merged (marketing/demo-2026-10: 58 screenshots, EN voice-over scripts) and recall measurement merged (D-300..305): requirements not lost, earlier lists padded; live re-run found and fixed duplicated FR ids after stale extraction write-back (D-302) and a silent cluster failure on a 1,300-char rationale (D-304). Demo scripts broke the web image build/lint; excluded from web tsconfig and eslint. Fix wave for demo-exposed defects (diagrams illegible, department panel clipping, MVP challenge state, currency, analysis versions, end screen, voice screen) running. Gate green.
+
+- 2026-10-14 — Demo-defect fixes merged (D-320..326): diagrams illegible was prefers-reduced-motion CSS forcing .01ms transitions during mermaid measuring (fixed, PDF diagrams verified with real Kroki); layout clipping; MVP challenge state truthful; branding.currency; analysis auto-run debounce; summary endpoint returns status and never the last reply; voice screen in axe. e2e 408/408, axe clean. Merge also tripped the double-cast ratchet (49 vs 45), fixed by typing the tests. Gate green. All agent waves done; remaining items are owner-only or measured follow-ups.
