@@ -76,7 +76,7 @@ import {
   type EmailTest,
   EmailTestSchema,
   HealthSchema,
-  InvitationListSchema,
+  InvitationPageSchema,
   InvitationResultSchema,
   type Invitation,
   MeSchema,
@@ -189,6 +189,7 @@ export type PageQuery = PageInput;
 
 /** D-79: each list's search, sort and filters on top of the window (see `LISTS`). */
 export type CampaignListQuery = ListQueryOf<(typeof LISTS)["campaigns"]>;
+export type CampaignInvitationListQuery = ListQueryOf<(typeof LISTS)["invitations"]>;
 export type CampaignSessionListQuery = ListQueryOf<(typeof LISTS)["campaignSessions"]>;
 export type AnalysisListQuery = ListQueryOf<(typeof LISTS)["analyses"]>;
 export type RequirementsListQuery = ListQueryOf<(typeof LISTS)["requirements"]>;
@@ -368,8 +369,12 @@ export function staffApi(transport: Transport): StaffApi {
           body: { emails },
           schema: InvitationResultSchema,
         }),
-      invitations: (id) =>
-        request(transport, { path: `/campaigns/${id}/invitations`, schema: InvitationListSchema }),
+      invitations: (id, q) =>
+        request(transport, {
+          path: `/campaigns/${id}/invitations`,
+          query: { ...q },
+          schema: InvitationPageSchema,
+        }),
       remind: (id, invId) =>
         ok(request(transport, { method: "POST", path: `/campaigns/${id}/invitations/${invId}/remind` })),
       revoke: (id, invId) =>
@@ -911,7 +916,7 @@ export interface StaffApi {
     open(id: string): Promise<void>;
     close(id: string): Promise<void>;
     invite(id: string, emails: string[]): Promise<{ created: number; skipped: number }>;
-    invitations(id: string): Promise<Invitation[]>;
+    invitations(id: string, q?: CampaignInvitationListQuery): Promise<Paged<Invitation>>;
     remind(id: string, invId: string): Promise<void>;
     revoke(id: string, invId: string): Promise<void>;
     sessions(id: string, q?: CampaignSessionListQuery): Promise<Paged<SessionListItem>>;

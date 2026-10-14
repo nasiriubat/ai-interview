@@ -54,6 +54,12 @@ export const LISTS = {
       flagged: ["true", "false"],
     },
   },
+  invitations: {
+    sort: { createdAt: "asc", email: "asc", status: "asc", sentAt: "desc", openedAt: "desc" },
+    defaultSort: "createdAt",
+    search: true,
+    filters: { status: ["pending", "sent", "opened", "bound", "revoked", "expired"] },
+  },
   analyses: {
     sort: { version: "desc", createdAt: "desc" },
     defaultSort: "version",

@@ -52,7 +52,7 @@ export function CampaignLink({
   return (
     <Panel title={s.shareTitle} description={url ? hint : undefined}>
       {url ? (
-        <div className="grid gap-5 px-5 py-4 md:grid-cols-[1fr_auto] md:items-start">
+        <div className="grid gap-5 px-5 py-4">
           <div className="grid gap-1.5">
             <Label htmlFor="campaign-link">{s.linkTitle}</Label>
             <div className="flex gap-2">
@@ -60,7 +60,7 @@ export function CampaignLink({
                 id="campaign-link"
                 readOnly
                 value={url}
-                className="font-mono text-xs"
+                className="min-w-0 font-mono text-xs"
                 onFocus={(e) => {
                   e.currentTarget.select();
                 }}
@@ -74,12 +74,12 @@ export function CampaignLink({
               {copied ? s.linkCopied : ""}
             </p>
           </div>
-          <div className="flex items-start gap-4 md:flex-col md:items-center">
-            <div className="shadow-control size-36 shrink-0 rounded-md bg-white p-1">
+          <div className="bg-muted/50 flex flex-wrap items-center gap-4 rounded-lg p-3">
+            <div className="shadow-control size-28 shrink-0 rounded-md bg-white p-1">
               <QrCode value={url} label={s.qrLabel(name)} className="size-full" />
             </div>
-            <div className="grid max-w-48 gap-2">
-              <p className="text-muted-foreground text-xs">{s.qrHint}</p>
+            <div className="grid min-w-0 flex-1 basis-56 justify-items-start gap-2">
+              <p className="text-muted-foreground text-sm">{s.qrHint}</p>
               <Button asChild variant="outline" size="sm">
                 <a
                   href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(qrSvgDocument(url))}`}
