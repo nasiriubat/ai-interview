@@ -50,7 +50,14 @@ export function templateFromRow(t: TemplateRow): InterviewTemplate {
 
 /** SessionStore on Prisma. Message sequence numbers are assigned in a transaction. */
 export class PrismaSessionStore implements SessionStore {
-  constructor(private readonly db: PrismaClient) {}
+  /**
+   * `widgets: false` is `features.optionsView` off (D-187): the template the engine sees allows no
+   * widget, so the prompt says none and `admitWidget` drops any the model sends anyway.
+   */
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly options: { widgets?: boolean } = {},
+  ) {}
 
   async appendMessage(sessionId: string, m: NewMessage): Promise<StoredMessage> {
     return tenantTransaction(this.db, async (tx) => {
@@ -187,7 +194,11 @@ export class PrismaSessionStore implements SessionStore {
         },
       },
     });
-    const template = templateFromRow(row.template);
+    const parsed = templateFromRow(row.template);
+    const template =
+      this.options.widgets === false
+        ? { ...parsed, widgetPolicy: { ...parsed.widgetPolicy, allowedTypes: [], maxPerTurns: 0 } }
+        : parsed;
     const handoff = row.handoff ? HandoffSchema.safeParse(row.handoff) : undefined;
     return {
       id: row.id,

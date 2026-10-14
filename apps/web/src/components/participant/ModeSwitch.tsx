@@ -22,10 +22,13 @@ export function ModeSwitch({
   mode,
   onChange,
   voiceEnabled,
+  optionsEnabled = true,
 }: {
   mode: ModePreference;
   onChange: (mode: ModePreference) => void;
   voiceEnabled: boolean;
+  /** `features.optionsView` (D-187): off removes the options mode, since no widget is ever sent. */
+  optionsEnabled?: boolean;
 }): React.JSX.Element {
   const s = t.participant.session;
   const item = (value: ModePreference, label: string, Icon: typeof MicIcon): React.JSX.Element => (
@@ -65,7 +68,9 @@ export function ModeSwitch({
       loop
       className="bg-muted inline-flex rounded-lg p-0.5"
     >
-      {MODES.filter((m) => m !== "voice" || voiceEnabled).map((m) => item(m, ...labels[m]))}
+      {MODES.filter((m) => (m !== "voice" || voiceEnabled) && (m !== "options" || optionsEnabled)).map((m) =>
+        item(m, ...labels[m]),
+      )}
     </ToggleGroup.Root>
   );
 }

@@ -33,6 +33,8 @@ export interface CategoryFormProps {
   sources: Record<string, string>;
   scope: string;
   scopeId: string | undefined;
+  /** The platform operator may write the operator-only keys (the ceilings, D-188); nobody else. */
+  operator?: boolean;
 }
 
 /**
@@ -50,6 +52,7 @@ export function CategoryForm({
   sources,
   scope,
   scopeId,
+  operator = false,
 }: CategoryFormProps): React.JSX.Element {
   const router = useRouter();
   const action = useAction();
@@ -97,6 +100,8 @@ export function CategoryForm({
     const out: Record<string, unknown> = {};
     for (const entry of entries) {
       const key = entry.key;
+      // Sending a key the API will refuse would fail the whole save, so a read-only key is not sent.
+      if (entry.operatorOnly && !operator) continue;
       if (entry.secret) {
         if (key in secretCleared) out[key] = null;
         else if (key in secretEdits) out[key] = secretEdits[key];
@@ -142,6 +147,7 @@ export function CategoryForm({
             value={valueOf(entry)}
             setHere={isSetHere(entry)}
             source={sources[entry.key]}
+            locked={Boolean(entry.operatorOnly) && !operator}
             secretSet={Boolean(secrets[entry.key]) && !(entry.key in secretCleared)}
             secretValue={secretEdits[entry.key] ?? ""}
             onChange={(v) => {
@@ -232,6 +238,7 @@ function SettingRow({
   value,
   setHere,
   source,
+  locked,
   secretSet,
   secretValue,
   onChange,
@@ -243,6 +250,8 @@ function SettingRow({
   value: unknown;
   setHere: boolean;
   source: string | undefined;
+  /** Written only by the platform operator, and the viewer is not: shown, not editable. */
+  locked: boolean;
   secretSet: boolean;
   secretValue: string;
   onChange: (v: unknown) => void;
@@ -430,7 +439,9 @@ function SettingRow({
         );
   }
 
-  const originBadge = entry.secret ? (
+  const originBadge = locked ? (
+    <Badge variant="outline">{s.operatorOnly}</Badge>
+  ) : entry.secret ? (
     <Badge variant={secretSet ? "success" : "outline"}>{secretSet ? s.secret.set : s.secret.notSet}</Badge>
   ) : setHere ? (
     <Badge variant="secondary">{s.setHere}</Badge>
@@ -465,8 +476,15 @@ function SettingRow({
         ) : null}
       </div>
       <div className="grid gap-2">
-        {control}
-        {!entry.secret && setHere ? (
+        {locked ? (
+          <p id={id} tabIndex={-1} className="text-sm tabular-nums">
+            {displaySettingValue(value) || t.app.none}
+            <span className="text-muted-foreground block text-xs">{s.operatorOnlyHint}</span>
+          </p>
+        ) : (
+          control
+        )}
+        {!entry.secret && setHere && !locked ? (
           <div>
             <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onReset}>
               {s.reset}

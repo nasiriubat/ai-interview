@@ -255,6 +255,7 @@ suite("requirements interview end to end", () => {
       crypto: world.crypto,
       storage: world.storage,
       tenants: world.ctx.tenants,
+      alerts: world.alerts,
       publicWebUrl: "http://web.test",
       log: {
         info: (m, meta) => {
@@ -266,6 +267,10 @@ suite("requirements interview end to end", () => {
       },
     });
     await h2["spec.generate"]({ versionId: version.id, companyId: world.companyId });
+    // The tenant's admins are told, once per version, and the notice carries no spec text (D-181).
+    const ready = world.alerts.ofKind("spec.ready").filter((a) => a.key === `spec.ready:${version.id}`);
+    expect(ready).toHaveLength(1);
+    expect(ready[0]).toMatchObject({ companyId: world.companyId, context: { versionId: version.id } });
 
     const got = await app.inject({ method: "GET", url: `/api/v1/requirements/${id}/versions/1`, headers: h });
     expect(got.statusCode).toBe(200);

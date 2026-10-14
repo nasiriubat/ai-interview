@@ -20,9 +20,16 @@ const CATEGORY_ORDER = [
   "exports",
   "email",
   "notifications",
+  "ceiling",
   "ops",
   "other",
 ];
+
+/**
+ * Categories that hold state rather than configuration: `ui.*` remembers that a card was
+ * dismissed. It is in the catalog so it has a scope and a history, and it stays off this screen.
+ */
+const HIDDEN_CATEGORIES = new Set(["ui"]);
 
 function categoryLabel(key: string): string {
   const labels: Record<string, string> = t.admin.settings.categories;
@@ -39,14 +46,18 @@ export function SettingsCategories({
   scope,
   scopeId,
   category,
+  operator = false,
 }: {
   data: SettingsResponse;
   scope: string;
   scopeId: string | undefined;
   category: string | undefined;
+  operator?: boolean;
 }): React.JSX.Element {
   const s = t.admin.settings;
-  const catalog = data.catalog.filter((c) => c.scopes.length === 0 || c.scopes.includes(scope));
+  const catalog = data.catalog.filter(
+    (c) => !HIDDEN_CATEGORIES.has(c.category) && (c.scopes.length === 0 || c.scopes.includes(scope)),
+  );
   const grouped = new Map<string, SettingsCatalogEntry[]>();
   for (const entry of catalog) {
     const list = grouped.get(entry.category) ?? [];
@@ -105,6 +116,7 @@ export function SettingsCategories({
           sources={data.sources ?? {}}
           scope={scope}
           scopeId={scopeId}
+          operator={operator}
         />
       </div>
     </div>
