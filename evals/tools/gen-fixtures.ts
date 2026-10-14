@@ -832,4 +832,23 @@ personas.forEach((p, i) => {
 personas.forEach((p, i) => {
   write(discoveryFixture(p, i % 2 === 0 ? NURSE : ADMIN));
 });
-console.log(`wrote ${personas.length * 2} fixtures under ${ROOT}`);
+
+// The over-capture fixture (D-246): the cooperative interview, with a model that files each
+// capability twice, files a button label as a requirement and a decision as FR-n. The gold
+// requirements are the cooperative ones; what the gate measures is the list left after curation.
+{
+  const base = requirementsFixture("cooperative", "charting");
+  const flaws: Fixture["modelBehavior"]["flaws"] = { "6": "marker_missing" };
+  const kinds = ["duplicate_capture", "detail_as_fr", "decision_as_fr"] as const;
+  base.goldRequirements.forEach((g, i) => {
+    flaws[String(g.introducedAtTurn)] = kinds[i % kinds.length] as never;
+  });
+  const over: Fixture = FixtureSchema.parse({
+    ...base,
+    id: "requirements_discovery/over_capture",
+    modelBehavior: { ...base.modelBehavior, flaws },
+  });
+  const dir = join(ROOT, over.templateKey);
+  writeFileSync(join(dir, "over_capture.json"), `${JSON.stringify(over, null, 2)}\n`);
+}
+console.log(`wrote ${personas.length * 2 + 1} fixtures under ${ROOT}`);

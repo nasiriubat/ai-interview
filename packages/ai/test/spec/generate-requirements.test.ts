@@ -7,11 +7,20 @@ import { ScriptedCaller } from "../engine/helpers.js";
 const logger = { warn: () => undefined, info: () => undefined };
 const now = () => new Date("2026-10-14T10:00:00Z");
 
+// Distinct words, so the quality pass finds nothing to merge and the scripted responses stay in order.
+const NAMES = [
+  "Export a report",
+  "Search the notes",
+  "Send a reminder",
+  "Print the summary",
+  "Sync the records",
+];
+
 const fr = (n: number, extra: object = {}) => ({
   kind: "spec_field" as const,
   section: "functional",
   path: `FR-${n}`,
-  value: { title: `Capability ${n}`, scope: "mvp", acceptance: [`works ${n}`], ...extra },
+  value: { title: NAMES[n - 1] ?? `Unrelated item ${n}`, scope: "mvp", acceptance: [`works ${n}`], ...extra },
   source: "user" as const,
 });
 

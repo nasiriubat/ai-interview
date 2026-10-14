@@ -49,4 +49,23 @@ run cost. See the header of the file for the environment variables. The key is r
 `OPENROUTER_API_KEY` or the first `.env` above the repository and is never printed. Results are
 recorded in `docs/team/live-run-2026-10-14.md`.
 
+`LIVE_SAVE_DIR=<dir>` keeps every interview's transcript, recorded facts and generated requirements
+(`<persona>-<n>.json`); `LIVE_PERSONA=technical` runs the engineer owner; `LIVE_FINISH_AT=<turn>`
+has the owner press "I'm done" at that turn, as in the product, so the requirements confirmation
+runs.
+
+## Specification quality (`live/spec-quality.live.ts`, `live/spec-replay.live.ts`)
+
+Counting requirements cannot see whether they are right. `spec-quality.live.ts` takes a directory
+of saved interviews and has a cheap model judge each requirement against the participant's own
+words: grounded (with a quote that code verifies is verbatim), atomic or a detail, a capability or
+a decision, testable, scope not contradicted, and which ones repeat another (one grouping call per
+specification). It also lists the features the participant asked for and which of them no
+requirement covers. The deterministic half, the verification of the judge's output and the
+aggregation into rates, is `src/spec-quality.ts` and is unit tested; `SQ_LABELS` compares the judge
+with a hand-labelled file and prints agreement and Cohen's kappa. `spec-replay.live.ts` runs the
+current generation code over the recorded facts of saved interviews, so before and after are
+measured on the same transcripts. Both have cost caps; see `docs/team/spec-quality-2026-10.md`
+for the measurement and the judge's validation.
+
 `live/scale.live.ts` checks clustering at 500 facts (see its header).

@@ -12,3 +12,6 @@ export { issuesPromptV2 } from "./prompts/issues.v2.js";
 export { specPromptV1 } from "./prompts/spec.v1.js";
 export * from "./delta-validation.js";
 export * from "./completeness.js";
+export * from "./quality.js";
+export * from "./merge.js";
+export * from "./confirmation.js";
