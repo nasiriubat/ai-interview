@@ -353,7 +353,7 @@ describe("OpenAICompatibleProvider deadlines and retries", () => {
       return undefined;
     })();
     expect(failure).toMatchObject({ code: "timeout", retryable: true });
-    expect(String((failure as Error).message)).toContain("first output");
+    expect((failure as Error).message).toContain("first output");
     expect(Date.now() - started).toBeLessThan(1000);
     // Not run again inside the same request: that would be three deadlines in a row.
     expect(calls).toBe(1);
