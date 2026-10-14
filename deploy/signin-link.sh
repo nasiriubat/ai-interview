@@ -5,7 +5,7 @@
 #
 # For the day the mail relay is wrong or down and nobody can get a sign-in email: a fresh install
 # with a mistyped EMAIL_SMTP_URL, or the only admin signed out while the relay is broken. Shell
-# access to this server already means full control (deploy/.env holds AUTH_SECRET), so this adds no
+# access to this server already means full control (.env holds AUTH_SECRET), so this adds no
 # privilege. It runs `node apps/api/dist/cli/signin-link.js <email>` inside the running api
 # container, which:
 #   - refuses an address that is not an existing, enabled staff user (operator, admin or member),

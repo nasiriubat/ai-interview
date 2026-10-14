@@ -22,7 +22,7 @@ import {
  * This is the default for a single-host deployment, and the reason is subtraction: object storage
  * would mean another container to run, another credential to rotate, another service to watch and
  * another thing to back up separately. A directory is none of those. It is backed up by the same
- * nightly job as the database (see deploy/backup.sh) and restored by the same script.
+ * nightly job as the database (see deploy/backup/backup.sh) and restored by the same script.
  *
  * The trade is that it does not survive the host and does not scale past it. {@link S3Storage} is
  * there for when that stops being true; nothing above this layer changes.

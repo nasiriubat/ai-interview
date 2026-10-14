@@ -25,7 +25,7 @@ export const CSP_REPORT_PATH = "/api/csp-report";
  *
  * Unset means `enforce` in production and `report` anywhere else, so a production deployment
  * that forgot the variable is protected and a developer's dev server never breaks on a policy
- * written for the built app. `deploy/compose.prod.yml` sets it explicitly, so the mode of a
+ * written for the built app. `deploy/compose.yml` sets it explicitly, so the mode of a
  * production stack is a line a reviewer can read. Anything that is not exactly `enforce` or
  * `report` is a misconfiguration and falls back to the safe answer for the environment.
  */

@@ -19,7 +19,7 @@ function testFiles(dir: string, out: string[] = []): string[] {
 describe("the app_api test password", () => {
   it("is never logged in or re-passworded by a suite: tests connect as their own role", () => {
     const offenders: string[] = [];
-    for (const top of ["apps", "packages", "evals", "scripts", "tools"]) {
+    for (const top of ["apps", "packages", "scripts", "tools"]) {
       let files: string[] = [];
       try {
         files = testFiles(join(root, top));

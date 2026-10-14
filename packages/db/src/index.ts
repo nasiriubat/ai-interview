@@ -56,7 +56,7 @@ function buildScoped(base: PrismaClient, companyId: string) {
  * Deliberately absent: `Setting` and `ModelPrice`, whose NULL `companyId` means "platform" and has
  * to stay visible (like Provider and Route, but those are listed for historical reasons); the
  * settings service names its scopes explicitly and the database derives the owner (migration 0017).
- * `Company` is keyed by `id`, and `VerificationToken` is exempt (deploy/rls-exempt.txt).
+ * `Company` is keyed by `id`, and `VerificationToken` is exempt (deploy/lib/rls-exempt.txt).
  */
 export const SCOPED_MODELS: ReadonlySet<string> = new Set([
   "User",

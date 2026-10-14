@@ -11,8 +11,12 @@ setup() {
 	# Each case starts from the real PATH; path_for_test narrows it again where a case needs that.
 	export PATH=$ORIG_PATH
 	SB=$(mktemp -d "${TMPDIR:-/tmp}/aidp-env-test.XXXXXX")
-	mkdir -p "$SB/bin" "$SB/deploy"
-	cp "$DEPLOY_DIR/generate-env.sh" "$DEPLOY_DIR/ensure-backup-key.sh" "$SB/deploy/"
+	# The repository layout the scripts expect: <repo>/deploy/{generate-env.sh,lib,backup}, and the
+	# env file at <repo>/.env (D-450). $SB is the repository root.
+	mkdir -p "$SB/bin" "$SB/deploy/lib" "$SB/deploy/backup"
+	cp "$DEPLOY_DIR/generate-env.sh" "$SB/deploy/"
+	cp "$DEPLOY_DIR/lib/lib.sh" "$SB/deploy/lib/"
+	cp "$DEPLOY_DIR/backup/ensure-backup-key.sh" "$SB/deploy/backup/"
 	cat >"$SB/age-keygen.out" <<'EOF'
 # created: 2026-10-13T10:00:00Z
 # public key: age1abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvw
@@ -57,7 +61,7 @@ setup
 path_for_test
 with_local_age
 OUT=$("$SB/deploy/generate-env.sh" pilot.example.com ops@example.com 2>&1)
-env="$SB/deploy/.env"
+env="$SB/.env"
 assert_eq "writes the file" 1 "$([ -f "$env" ] && echo 1 || echo 0)"
 perm=$(stat -c %a "$env" 2>/dev/null || stat -f %Lp "$env")
 assert_eq "with mode 600" 600 "$perm"
@@ -76,12 +80,47 @@ assert_not_contains "and not the deprecated one-URL relay" "$content" "EMAIL_SMT
 assert_not_contains "nor tells anyone to write a URL with credentials" "$content" "smtp://"
 assert_contains "the next steps name the split variables" "$OUT" "set SMTP_HOST"
 assert_contains "tells the operator to copy the file off the host" "$OUT" "copy"
-OUT=$("$SB/deploy/generate-env.sh" pilot.example.com ops@example.com 2>&1)
-assert_contains "refuses to overwrite an existing file" "$OUT" "already exists"
+assert_contains "writes the repository-root .env, the one env file (D-450)" "$OUT" "wrote $(cd "$SB" && pwd)/.env (mode 600)"
+assert_contains "lists the key names it wrote" "$OUT" "keys: COMPOSE_PROJECT_NAME PUBLIC_HOSTNAME"
+secret=$(grep '^PLATFORM_ENCRYPTION_KEY=' "$env" | cut -d= -f2-)
+assert_not_contains "and prints no secret value" "$OUT" "$secret"
+assert_eq "nothing is written under deploy/" 0 "$(ls -A "$SB/deploy" | grep -c '^\.env' || true)"
 before=$(cksum <"$env")
-OUT=$(ENV_FILE_PATH="$env" "$SB/deploy/ensure-backup-key.sh" 2>&1)
+OUT=$("$SB/deploy/generate-env.sh" pilot.example.com ops@example.com 2>&1)
+assert_status "refuses to overwrite an existing file" 1 "$?"
+assert_contains "and says so" "$OUT" "already exists"
+assert_contains "and names the way out" "$OUT" "--force"
+assert_eq "the file is untouched" "$before" "$(cksum <"$env")"
+OUT=$(ENV_FILE_PATH="$env" "$SB/deploy/backup/ensure-backup-key.sh" 2>&1)
 assert_contains "ensure-backup-key leaves an existing key alone" "$OUT" "left as it is"
 assert_eq "byte for byte" "$before" "$(cksum <"$env")"
+rm -rf "$SB"
+
+echo "--force replaces the file and keeps the old one"
+setup
+path_for_test
+with_local_age
+"$SB/deploy/generate-env.sh" pilot.example.com ops@example.com >/dev/null 2>&1
+before=$(cksum <"$SB/.env")
+OUT=$("$SB/deploy/generate-env.sh" other.example.com ops@example.com --force 2>&1)
+assert_status "--force succeeds" 0 "$?"
+assert_contains "the new file is written" "$(cat "$SB/.env")" "PUBLIC_HOSTNAME=other.example.com"
+kept=$(ls "$SB"/.env.replaced-* 2>/dev/null | head -n1)
+assert_eq "the old file is kept beside it" "$before" "$(cksum <"${kept:-/dev/null}")"
+perm=$(stat -c %a "$kept" 2>/dev/null || stat -f %Lp "$kept")
+assert_eq "with mode 600" 600 "$perm"
+assert_contains "and the operator is told where" "$OUT" ".env.replaced-"
+rm -rf "$SB"
+
+echo "a legacy deploy/.env stops generate-env (D-450)"
+setup
+path_for_test
+with_local_age
+echo "AUTH_SECRET=legacy" >"$SB/deploy/.env"
+OUT=$("$SB/deploy/generate-env.sh" pilot.example.com ops@example.com 2>&1)
+assert_status "refused" 1 "$?"
+assert_contains "with the move to make" "$OUT" "mv deploy/.env .env"
+assert_eq "and no root .env was written" 0 "$([ -f "$SB/.env" ] && echo 1 || echo 0)"
 rm -rf "$SB"
 
 echo "no age-keygen and no image"
@@ -90,9 +129,9 @@ path_for_test
 OUT=$("$SB/deploy/generate-env.sh" pilot.example.com ops@example.com 2>&1)
 STATUS=$?
 assert_status "generate-env still succeeds" 0 "$STATUS"
-assert_not_contains "and writes no empty key lines" "$(cat "$SB/deploy/.env")" "BACKUP_AGE_RECIPIENT="
+assert_not_contains "and writes no empty key lines" "$(cat "$SB/.env")" "BACKUP_AGE_RECIPIENT="
 assert_contains "and says upgrade.sh will make the key" "$OUT" "created by deploy/upgrade.sh"
-OUT=$(ENV_FILE_PATH="$SB/deploy/.env" "$SB/deploy/ensure-backup-key.sh" 2>&1)
+OUT=$(ENV_FILE_PATH="$SB/.env" "$SB/deploy/backup/ensure-backup-key.sh" 2>&1)
 assert_status "ensure-backup-key exits 2" 2 "$?"
 rm -rf "$SB"
 
@@ -101,11 +140,11 @@ setup
 path_for_test
 with_image_age
 "$SB/deploy/generate-env.sh" pilot.example.com ops@example.com >/dev/null 2>&1
-OUT=$(ENV_FILE_PATH="$SB/deploy/.env" "$SB/deploy/ensure-backup-key.sh" --image aidp-backup:abc 2>&1)
+OUT=$(ENV_FILE_PATH="$SB/.env" "$SB/deploy/backup/ensure-backup-key.sh" --image aidp-backup:abc 2>&1)
 assert_status "succeeds" 0 "$?"
 assert_contains "ran age-keygen in the image" "$(cat "$SB/docker.log")" "--entrypoint age-keygen aidp-backup:abc"
-assert_contains "appended the recipient" "$(cat "$SB/deploy/.env")" "BACKUP_AGE_RECIPIENT=age1abcdefghijklmnopqrstuvwxyz"
-perm=$(stat -c %a "$SB/deploy/.env" 2>/dev/null || stat -f %Lp "$SB/deploy/.env")
+assert_contains "appended the recipient" "$(cat "$SB/.env")" "BACKUP_AGE_RECIPIENT=age1abcdefghijklmnopqrstuvwxyz"
+perm=$(stat -c %a "$SB/.env" 2>/dev/null || stat -f %Lp "$SB/.env")
 assert_eq "and kept mode 600" 600 "$perm"
 assert_contains "and warned to copy the file off the host" "$OUT" "copy"
 rm -rf "$SB"
@@ -117,7 +156,7 @@ cp -R "$DEPLOY_DIR/sizes" "$SB/deploy/sizes"
 OUT=$(ENV_FILE_PATH="$SB/elsewhere.env" "$SB/deploy/generate-env.sh" pilot.example.com ops@example.com --size 4gb 2>&1)
 STATUS=$?
 assert_status "--size 4gb succeeds" 0 "$STATUS"
-assert_eq "ENV_FILE_PATH is honoured: nothing is written beside the script" 0 "$([ -f "$SB/deploy/.env" ] && echo 1 || echo 0)"
+assert_eq "ENV_FILE_PATH is honoured: nothing is written at the root .env" 0 "$([ -f "$SB/.env" ] && echo 1 || echo 0)"
 content=$(cat "$SB/elsewhere.env")
 assert_contains "the 4 GB limits are appended" "$content" "API_MEMORY_LIMIT=1024M"
 assert_contains "including the database buffers" "$content" "POSTGRES_SHARED_BUFFERS=192MB"
@@ -127,7 +166,7 @@ OUT=$("$SB/deploy/generate-env.sh" pilot.example.com ops@example.com --size 2gb 
 assert_status "an unknown size is refused" 64 "$?"
 assert_contains "and the presets are named" "$OUT" "4gb"
 # Every limit variable the production file reads has a value in the 8 GB preset, so the two cannot drift.
-for var in $(grep -oE '\$\{[A-Z_]+_(MEMORY_LIMIT|SHARED_BUFFERS|MAX_CONNECTIONS):-' "$DEPLOY_DIR/compose.prod.yml" | sed -E 's/\$\{([A-Z_]+):-/\1/'); do
+for var in $(grep -oE '\$\{[A-Z_]+_(MEMORY_LIMIT|SHARED_BUFFERS|MAX_CONNECTIONS):-' "$DEPLOY_DIR/compose.yml" | sed -E 's/\$\{([A-Z_]+):-/\1/'); do
 	assert_contains "8gb.env sets $var" "$(cat "$DEPLOY_DIR/sizes/8gb.env")" "$var="
 	assert_contains "4gb.env sets $var" "$(cat "$DEPLOY_DIR/sizes/4gb.env")" "$var="
 done

@@ -1,0 +1,11 @@
+# CHAOS ONLY (tools/rehearsal/chaos/disk-full.mjs): the uploads volume becomes a 3 MB tmpfs, so a disk that
+# is nearly full can be had on a machine with hundreds of gigabytes free. A new volume name, so the
+# real `uploads` volume and its contents are untouched and come back when this file is dropped.
+volumes:
+  uploads:
+    name: ${COMPOSE_PROJECT_NAME:-aidpfull}_uploads_small
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=3m,uid=1000,gid=1000,mode=0775"

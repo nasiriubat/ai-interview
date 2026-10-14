@@ -76,11 +76,11 @@ FAKE
 teardown() { rm -rf "$SB"; }
 
 backup() {
-	OUT=$("$DEPLOY_DIR/backup.sh" once 2>&1)
+	OUT=$("$DEPLOY_DIR/backup/backup.sh" once 2>&1)
 	STATUS=$?
 }
 health() {
-	HOUT=$("$DEPLOY_DIR/backup-health.sh" 2>&1)
+	HOUT=$("$DEPLOY_DIR/backup/backup-health.sh" 2>&1)
 	HSTATUS=$?
 }
 nfiles() { find "$SB/backups" -name "$1" | wc -l | tr -d ' '; }

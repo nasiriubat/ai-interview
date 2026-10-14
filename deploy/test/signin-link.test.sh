@@ -29,7 +29,7 @@ assert_contains "--help explains the 15-minute single-use link" "$out" "valid"
 "$script" 'admin@example.com' >/dev/null 2>&1
 assert_status "an address runs the CLI" 0 $?
 log=$(cat "$SB/docker.log")
-assert_contains "runs through compose with the production file" "$log" "compose.prod.yml"
+assert_contains "runs through compose with the production file" "$log" "compose.yml"
 assert_contains "runs the CLI in the api container without a terminal" "$log" \
 	"exec -T api node apps/api/dist/cli/signin-link.js admin@example.com"
 

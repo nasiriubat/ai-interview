@@ -185,7 +185,7 @@ upgrade
 assert_status "an install made before the project was named is refused" 1 "$STATUS"
 assert_contains "with the one sentence that says what to do" "$OUT" "COMPOSE_PROJECT_NAME=deploy"
 assert_not_contains "and builds nothing" "$(events)" "compose-build"
-printf 'COMPOSE_PROJECT_NAME=deploy\nPUBLIC_HOSTNAME=pilot.example.com\nBACKUP_AGE_RECIPIENT=age1testtesttesttesttesttesttesttesttesttesttesttesttesttesttest\n' >"$SB/repo/deploy/.env"
+printf 'COMPOSE_PROJECT_NAME=deploy\nPUBLIC_HOSTNAME=pilot.example.com\nBACKUP_AGE_RECIPIENT=age1testtesttesttesttesttesttesttesttesttesttesttesttesttesttest\n' >"$SB/repo/.env"
 upgrade
 assert_status "and goes ahead once the name matches" 0 "$STATUS"
 cleanup_sandbox

@@ -2040,7 +2040,7 @@ export const en = {
       evalsYours:
         "Your versions are checked for structure only: the placeholders, the rules for quoted participant text and the output format. How well the interviewer follows your wording shows only in live use.",
       evalsDocPrefix: "The evaluations are described in",
-      evalsDoc: "evals/README.md",
+      evalsDoc: "tools/evals/README.md",
       evalsDocSuffix: "in the repository.",
       groups: {
         interview: "Interview",

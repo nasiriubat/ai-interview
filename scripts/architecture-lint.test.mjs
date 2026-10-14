@@ -3,7 +3,7 @@
  * a lint rule with a wrong glob passes silently. Each case lints a fixture under a pretend path
  * with only the architecture blocks loaded, so no tsconfig or type information is involved.
  *
- * The ratchet is checked here too. `eslint-rules/ratchet.json` may only shrink, and each entry
+ * The ratchet is checked here too. `tools/eslint-rules/ratchet.json` may only shrink, and each entry
  * must still be needed: an entry whose file no longer breaks its fence has to be deleted, which is
  * how the list gets shorter instead of rotting.
  */
@@ -15,10 +15,10 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { Linter } from "eslint";
 import tseslint from "typescript-eslint";
-import { architectureBlocks, matchesGlob, RATCHET } from "../eslint-rules/architecture.mjs";
+import { architectureBlocks, matchesGlob, RATCHET } from "../tools/eslint-rules/architecture.mjs";
 
 const ratchetFile = JSON.parse(
-  readFileSync(new URL("../eslint-rules/ratchet.json", import.meta.url), "utf8"),
+  readFileSync(new URL("../tools/eslint-rules/ratchet.json", import.meta.url), "utf8"),
 );
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -167,7 +167,7 @@ describe("the ratchet only shrinks", () => {
   it("never holds more entries than its ceiling", () => {
     assert.ok(
       RATCHET.length <= RATCHET_CEILING,
-      `eslint-rules/ratchet.json has ${RATCHET.length} entries; the ceiling is ${RATCHET_CEILING}. Fix the file instead of adding an entry.`,
+      `tools/eslint-rules/ratchet.json has ${RATCHET.length} entries; the ceiling is ${RATCHET_CEILING}. Fix the file instead of adding an entry.`,
     );
   });
 

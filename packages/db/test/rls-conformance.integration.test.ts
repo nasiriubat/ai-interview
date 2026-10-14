@@ -29,14 +29,14 @@ import { SCOPED_MODELS, withSystemTenant, withTenant, withTenantScope } from "..
  * them were missed.
  */
 
-/** Tables that are deliberately outside row-level security, and why. Mirrors deploy/rls-exempt.txt. */
+/** Tables that are deliberately outside row-level security, and why. Mirrors deploy/lib/rls-exempt.txt. */
 const RLS_EXEMPT: Record<string, string> = {
   VerificationToken: "Auth.js magic-link tokens are minted before any tenant is known",
   PlatformAsset: "The platform's public logo: no tenant owns it and anyone may read it (D-432)",
 };
 
 const here = dirname(fileURLToPath(import.meta.url));
-const EXEMPT_FILE = join(here, "../../../deploy/rls-exempt.txt");
+const EXEMPT_FILE = join(here, "../../../deploy/lib/rls-exempt.txt");
 
 const API_PASSWORD = APP_ROLE_TEST_PASSWORD;
 const apiUrl = (owner: string): string => {
@@ -474,7 +474,7 @@ describeDb("row-level security conformance (D-140)", () => {
       expect(
         missing,
         `Add a factory for ${missing.join(", ")} to rls-conformance.integration.test.ts, or, if it is ` +
-          "deliberately outside row-level security, to RLS_EXEMPT and deploy/rls-exempt.txt with a reason.",
+          "deliberately outside row-level security, to RLS_EXEMPT and deploy/lib/rls-exempt.txt with a reason.",
       ).toEqual([]);
     });
 
@@ -508,7 +508,7 @@ describeDb("row-level security conformance (D-140)", () => {
     });
 
     it("has row-level security and a real policy on every public table that is not exempt", async () => {
-      // The same rule deploy/preflight.sh enforces on boot, asked of the migrated database.
+      // The same rule deploy/lib/preflight.sh enforces on boot, asked of the migrated database.
       const rows = await owner.$queryRawUnsafe<{ relname: string }[]>(
         `SELECT c.relname FROM pg_class c
            JOIN pg_namespace n ON n.oid = c.relnamespace

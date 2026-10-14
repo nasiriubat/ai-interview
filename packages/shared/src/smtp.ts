@@ -233,7 +233,7 @@ export function resolveSmtpEnv(env: SmtpEnvInput): SmtpEnvRelay {
 /** The sentence a process prints when it refuses to start without a relay (D-448). */
 export const SMTP_ENV_REQUIRED_MESSAGE =
   "No mail relay: set SMTP_HOST (with SMTP_PORT, SMTP_SECURITY, SMTP_USER, SMTP_PASSWORD) in " +
-  "deploy/.env, or the deprecated EMAIL_SMTP_URL. Sign-in is by emailed link, so nobody can sign " +
+  "the root .env, or the deprecated EMAIL_SMTP_URL. Sign-in is by emailed link, so nobody can sign " +
   "in without one. See docs/DEPLOY.md, 'How the first admin signs in'.";
 
 /**
