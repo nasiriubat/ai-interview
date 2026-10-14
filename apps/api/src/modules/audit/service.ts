@@ -67,6 +67,37 @@ export class AuditService {
     await audit(this.db, companyId, entry);
   }
 
+  /**
+   * Appends a row unless the same actor already has one for the same action and target within
+   * `withinMs` (D-262): a read repeated in a burst is one fact. Returns whether a row was written.
+   * `requireTenant` skips the write when the tenant does not exist, for an operator header that
+   * names nothing; the request itself is answered as it always was.
+   */
+  async recordOnce(
+    companyId: string,
+    entry: AuditEntry,
+    withinMs: number,
+    options: { requireTenant?: boolean } = {},
+  ): Promise<boolean> {
+    if (options.requireTenant) {
+      const company = await this.db.company.findUnique({ where: { id: companyId }, select: { id: true } });
+      if (!company) return false;
+    }
+    const recent = await this.db.auditLog.findFirst({
+      where: {
+        companyId,
+        actorId: entry.actorId,
+        action: entry.action,
+        targetId: entry.targetId,
+        createdAt: { gte: new Date(Date.now() - withinMs) },
+      },
+      select: { id: true },
+    });
+    if (recent) return false;
+    await audit(this.db, companyId, entry);
+    return true;
+  }
+
   async list(companyId: string, query: AuditListQuery): Promise<ListEnvelope<"entries", AuditEntryView>> {
     const q = searchTerm(query.q);
     const action = query.action;

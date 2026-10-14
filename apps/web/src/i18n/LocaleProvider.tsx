@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import "@/lib/zod-jitless";
 import type { Locale } from "./locale";
 import { setClientLocale } from "./index";
 

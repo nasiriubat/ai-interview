@@ -39,6 +39,9 @@ Environment: `NEXT_PUBLIC_API_URL` (API origin, `/api/v1` is appended), `AUTH_SE
 `AUTH_GOOGLE_SECRET`, `EMAIL_SERVER`, `EMAIL_FROM`, and `NEXT_PUBLIC_VOICE_WS_URL`
 (optional; the live voice socket, which is the one call the browser makes itself — empty
 in production, where it is same-origin).
+`NEXT_PUBLIC_CONTACT_EMAIL` (optional; the address behind "Request a workspace" on the public
+landing page `/`. Unset or not a plain address: the page shows no mail link, only sign-in. It is
+read at runtime, so it can be set without a rebuild.)
 
 ## Structure
 
@@ -73,6 +76,9 @@ src/lib/report/sections.ts       maps report sections to Markdown chunks for the
 src/lib/admin/discoveryStats.ts  recognizes discovery tiles in `/stats` (by class, top by rank)
 src/lib/admin/pagination.ts      `?page=` -> limit/offset, the "x to y of n" range, next-page test
 src/lib/admin/settingInput.ts    which control renders a settings key (secret, weights, enum, …)
+src/app/page.tsx                  the public landing page (server component, no client JS of its own);
+                                 words in src/i18n/landing.{en,fi}.ts, claims in docs/team/claims-2026-10.md
+src/app/robots.txt, sitemap.xml  crawler files; only `/` may be indexed
 src/app/api/participant/[...path]   proxy: moves participant tokens into the `aidp_participant` cookie
 src/app/api/staff/[...path]         proxy: attaches the Auth.js JWT as `Authorization: Bearer`
 src/app/api/preview/[templateId]    admin template preview: cookie + redirect to /p/session

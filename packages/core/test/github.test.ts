@@ -156,6 +156,23 @@ describe("GitHubApi", () => {
     ).rejects.toBeInstanceOf(GitHubError);
   });
 
+  it("refuses a repository or branch that would climb out of /repos/ (D-266)", async () => {
+    const api = new GitHubApi(fake.url);
+    const before = fake.state.requests.length;
+    for (const repository of ["../..", "acme/..", "./app", "../acme"]) {
+      await expect(
+        api.pushFiles({ repository, token: "ghp_test", message: "m", files: [] }),
+      ).rejects.toBeInstanceOf(GitHubError);
+    }
+    for (const branch of ["../../../orgs/x", "a/../b", "x?y=1", "a b", "//x", "a#b"]) {
+      await expect(
+        api.pushFiles({ repository: "acme/app", branch, token: "ghp_test", message: "m", files: [] }),
+      ).rejects.toBeInstanceOf(GitHubError);
+    }
+    // Nothing was sent for any of them.
+    expect(fake.state.requests.length).toBe(before);
+  });
+
   it("MemoryGitHub records pushes without the token", async () => {
     const mem = new MemoryGitHub();
     const r = await mem.pushFiles({

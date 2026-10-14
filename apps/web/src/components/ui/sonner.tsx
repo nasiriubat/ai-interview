@@ -3,6 +3,9 @@
 import { CircleAlertIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon } from "lucide-react";
 import * as React from "react";
 import { Toaster as Sonner, toast } from "sonner";
+// The library injected this as a <style> element at runtime, which a nonce-only style-src blocks;
+// the package is patched not to (patches/sonner.patch) and the same CSS is served as a file (D-264).
+import "sonner/dist/styles.css";
 
 /**
  * Toasts confirm that something finished ("Saved", "Invitation sent") (D-78). They are the wrong

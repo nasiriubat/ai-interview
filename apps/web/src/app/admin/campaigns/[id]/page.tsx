@@ -26,7 +26,7 @@ import { requireMe } from "@/lib/admin/me";
 import { listParams } from "@/lib/admin/pagination";
 import { enumFilter, isFiltered, statusFilter } from "@/lib/admin/toolbar";
 import { isApiError } from "@/lib/api/errors";
-import { LISTS } from "@/lib/api/lists";
+import { LISTS, sortOf } from "@/lib/api/lists";
 import type { Campaign } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
 
@@ -198,7 +198,7 @@ async function Sessions({
                   v === "true" ? s.flagFilterOn : s.flagFilterOff,
                 ),
               ]}
-              sort={{ list: LISTS.campaignSessions, labels: t.admin.list.fields }}
+              sort={{ list: sortOf(LISTS.campaignSessions), labels: t.admin.list.fields }}
             />
             {sessions.data.items.length === 0 && isFiltered(lp.q, lp.filters) ? (
               <EmptyState text={t.admin.list.noMatches} />

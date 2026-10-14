@@ -78,6 +78,8 @@ export interface AnalysisInput {
   };
   /** `analysis.departmentComparison`: the comparison and its report section honour it (default on). */
   departmentComparison?: boolean;
+  /** Printed on the report cover with the prompt versions the run itself used. */
+  provenance?: { templateKey?: string; templateVersion?: number; weightsPreset?: string };
 }
 
 /** Defaults that keep a 500-fact campaign to a few dozen model calls and a few minutes. */
@@ -315,6 +317,7 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     k: input.k,
     language: input.language,
     departments,
+    provenance: { ...input.provenance, promptVersions: [...new Set(versions)] },
   });
 
   return {

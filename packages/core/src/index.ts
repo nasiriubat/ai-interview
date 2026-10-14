@@ -37,3 +37,4 @@ export * from "./net/egress.js";
 export * from "./tenancy/ceilings.js";
 export * from "./tenancy/onboarding.js";
 export * from "./email/tenant-invitation.js";
+export * from "./abuse/usage-counters.js";

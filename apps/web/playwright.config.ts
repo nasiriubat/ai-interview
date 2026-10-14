@@ -54,6 +54,9 @@ export default defineConfig({
         EMAIL_SERVER: "smtp://localhost:1025",
         EMAIL_FROM: "e2e@localhost",
         NEXTAUTH_URL: `http://localhost:${String(WEB_PORT)}`,
+        // The pass runs the policy the way production does: blocking. A page that would be broken
+        // by it fails here, and the axe spec fails on any violation event (D-264).
+        CSP_MODE: "enforce",
       },
       reuseExistingServer: !process.env.CI,
       timeout: 300_000,

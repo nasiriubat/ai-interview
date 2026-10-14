@@ -1,4 +1,5 @@
 import type { Strings } from "./en";
+import { landingFi } from "./landing.fi";
 
 /**
  * Finnish. Declared as `Strings` so every key of `en.ts` must exist here with the same
@@ -419,6 +420,7 @@ export const fi: Strings = {
       invalidBody: "Tarkista osoite tai pyydä kutsujalta uusi linkki.",
     },
   },
+  landing: landingFi,
   admin: {
     nav: {
       dashboard: "Yleiskatsaus",
@@ -1273,7 +1275,7 @@ export const fi: Strings = {
     },
     report: {
       title: "Raportti",
-      subtitle: "Analyysin tuottama organisaation raportti prosessikarttoineen.",
+      subtitle: "Mitä haastattelut paljastivat, analysoituna yhdessä. Mitään ei kohdisteta yhteen ihmiseen.",
       backToResults: "Takaisin tuloksiin",
       download: "Lataa Markdown",
       print: "Tulosta tai tallenna PDF:nä",
@@ -1295,7 +1297,8 @@ export const fi: Strings = {
       diagram: "Prosessikartta",
       diagramLoading: "Piirretään kaaviota…",
       diagramError: "Kaaviota ei voitu piirtää. Sen sijaan näytetään lähdekoodi.",
-      preliminaryNote: "Tämä raportti on alustava: se tuotettiin ennen valmistumisrajaa.",
+      preliminaryNote:
+        "Alustava: haastatteluja on vähemmän kuin valmistumisraja edellyttää. Määrät voivat muuttua, joten pidä järjestystä suuntaa antavana.",
     },
     sessions: {
       title: (id: string): string => `Haastattelu ${id}`,
@@ -2603,6 +2606,30 @@ export const fi: Strings = {
         label: "Väärien koodien määrä tunnissa",
         description:
           "Kuinka monta väärää koodia yksi sähköpostiosoite saa syöttää kampanjaa kohti tunnissa, ennen kuin se lukitaan.",
+      },
+      "abuse.campaignSessionsPerHour": {
+        label: "Uusia haastatteluja kampanjaa ja tuntia kohti",
+        description:
+          "Kuinka monta haastattelua yksi kampanja saa aloittaa tunnissa. Vuotanut tai skriptattu linkki pysähtyy tähän eikä täytä kampanjaa.",
+      },
+      "abuse.campaignSessionsTotal": {
+        label: "Haastatteluja kampanjaa kohti yhteensä",
+        description:
+          "Suurin määrä haastatteluja, jonka yksi kampanja voi koskaan saada. Nosta rajaa ennen kampanjaa, joka kutsuu tätä useampia ihmisiä.",
+      },
+      "abuse.tenantSessionsPerHour": {
+        label: "Uusia haastatteluja organisaatiota ja tuntia kohti",
+        description:
+          "Kuinka monta haastattelua organisaation kaikki kampanjat yhteensä saavat aloittaa tunnissa.",
+      },
+      "abuse.distinctEmailsPerAddressPerHour": {
+        label: "Eri sähköpostiosoitteita verkko-osoitetta ja tuntia kohti",
+        description:
+          "Kuinka monelle eri sähköpostiosoitteelle yksi verkko-osoite saa pyytää vahvistuskoodin kampanjaa kohti tunnissa. Raja estää linkin käytön vieraiden ihmisten postittamiseen.",
+      },
+      "notifications.abuseLimits": {
+        label: "Väärinkäytön raja täyttyi",
+        description: "Lähetä ylläpitäjille sähköposti, kun haastattelulinkki täyttää väärinkäytön rajan.",
       },
       "cost.warnFraction": {
         label: "Budjetin osuus, jolla varoitus annetaan",

@@ -48,6 +48,16 @@ export class GitHubApi implements GitHubPort {
   async pushFiles(input: GitHubPushInput): Promise<GitHubPushResult> {
     const repo = input.repository.trim().replace(/^\/+|\/+$/g, "");
     if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new GitHubError(400, "Repository must be owner/name");
+    // `..` satisfies the pattern above and would climb out of /repos/ once the URL is resolved
+    // (D-266). The host is fixed, so this is the caller's own token against another API path, but a
+    // path is what the caller was meant to choose less of.
+    if (repo.split("/").some((part) => /^\.+$/.test(part)))
+      throw new GitHubError(400, "Repository must be owner/name");
+    if (input.branch !== undefined && input.branch.trim() !== "") {
+      const b = input.branch.trim();
+      if (!/^[\w./-]{1,200}$/.test(b) || b.split("/").some((part) => part === "" || /^\.+$/.test(part)))
+        throw new GitHubError(400, "Branch name is not valid");
+    }
     const call = this.client(input.token);
     const dir = (input.directory ?? "").replace(/^\/+|\/+$/g, "");
 

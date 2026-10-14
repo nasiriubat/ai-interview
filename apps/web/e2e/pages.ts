@@ -52,6 +52,11 @@ const click = async (page: Page, name: RegExp | string): Promise<void> => {
 export const PAGES: Entry[] = [
   // Without any session
   publicPage("root", "/", "app/page.tsx"),
+  // The landing page with every answer of its FAQ open, so axe reads the text it hides by default.
+  publicPage("root-faq-open", "/", "app/page.tsx", async (page) => {
+    const summaries = page.locator("details > summary");
+    for (let i = 0; i < (await summaries.count()); i++) await summaries.nth(i).click();
+  }),
   publicPage("signin", "/auth/signin", "app/auth/signin/page.tsx"),
   publicPage("verify-request", "/auth/verify", "app/auth/verify/page.tsx"),
   publicPage("auth-error", "/auth/error?error=Configuration", "app/auth/error/page.tsx"),
@@ -88,6 +93,8 @@ export const PAGES: Entry[] = [
   },
 
   // Admin
+  // The same page for a signed-in visitor: "Go to the overview" instead of "Sign in", no redirect.
+  admin("root-signed-in", "/", "app/page.tsx"),
   admin("dashboard", "/admin", "app/admin/page.tsx"),
   admin("campaigns", "/admin/campaigns", "app/admin/campaigns/page.tsx"),
   admin("campaign-new", "/admin/campaigns/new", "app/admin/campaigns/new/page.tsx"),
@@ -146,6 +153,8 @@ export const NOT_DOCUMENTS = new Set([
   "app/api/participant/[...path]/route.ts",
   "app/api/preview/[templateId]/route.ts",
   "app/api/staff/[...path]/route.ts",
+  "app/robots.txt/route.ts",
+  "app/sitemap.xml/route.ts",
   "app/error.tsx",
   "app/p/error.tsx",
   "app/admin/error.tsx",
