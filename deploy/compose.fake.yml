@@ -10,7 +10,7 @@
 # Used by deploy/drill/stack.sh (the full-stack drill, load tests and chaos scripts). The overlay is
 # listed in COMPOSE_OVERRIDE_FILES, which deploy/dc, upgrade.sh and rollback.sh all honour.
 #
-# The scratch env file those scripts generate points EMAIL_SMTP_URL at mailpit, ALERT_WEBHOOK_URL at
+# The scratch env file those scripts generate points SMTP_HOST at mailpit, ALERT_WEBHOOK_URL at
 # the fake provider's sink and EGRESS_ALLOW_HOSTS at both, so no application code changes: the
 # platform reaches the fake the way it reaches any model gateway on a private network.
 networks:

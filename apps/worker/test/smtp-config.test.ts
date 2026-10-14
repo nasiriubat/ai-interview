@@ -16,11 +16,13 @@ describe("the deployment mail relay in the worker config (D-445..D-448)", () => 
     for (const env of envs) {
       const shared = resolveSmtpEnv(env);
       expect(shared.source).not.toBe("none");
-      expect(loadConfig({ ...base, ...env }).smtpRelayUrl).toBe(shared.source === "none" ? undefined : shared.url);
+      expect(loadConfig({ ...base, ...env }).smtpRelayUrl).toBe(
+        shared.source === "none" ? undefined : shared.url,
+      );
     }
-    expect(loadConfig({ ...base, SMTP_HOST: "mailpit", SMTP_PORT: "1025", SMTP_SECURITY: "none" }).smtpRelayUrl).toBe(
-      "smtp://mailpit:1025?ignoreTLS=true",
-    );
+    expect(
+      loadConfig({ ...base, SMTP_HOST: "mailpit", SMTP_PORT: "1025", SMTP_SECURITY: "none" }).smtpRelayUrl,
+    ).toBe("smtp://mailpit:1025?ignoreTLS=true");
     expect(loadConfig({ ...base }).smtpRelayUrl).toBeUndefined();
   });
 

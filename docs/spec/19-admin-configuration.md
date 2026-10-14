@@ -18,14 +18,15 @@ key (the same key that protects provider credentials) and never leaves the API i
 
 ## Email settings (new category `email`)
 
-| Key             | Type   | Scopes           | Secret | Meaning                                                |
-| --------------- | ------ | ---------------- | ------ | ------------------------------------------------------ |
-| `email.smtpUrl` | string | platform, tenant | yes    | `smtp://user:pass@host:587`; empty logs to the console |
-| `email.from`    | string | platform, tenant | no     | Envelope sender                                        |
-| `email.replyTo` | string | platform, tenant | no     | Optional reply-to                                      |
+| Key             | Type   | Scopes           | Secret | Meaning                                                                               |
+| --------------- | ------ | ---------------- | ------ | ------------------------------------------------------------------------------------- |
+| `email.smtpUrl` | string | platform, tenant | yes    | connection string composed by the mail server form (D-410); empty logs to the console |
+| `email.from`    | string | platform, tenant | no     | Envelope sender                                                                       |
+| `email.replyTo` | string | platform, tenant | no     | Optional reply-to                                                                     |
 
 The email port resolves its configuration per send, tenant first and platform second, falling
-back to `EMAIL_SMTP_URL` and `EMAIL_FROM` from the environment when neither is set. A tenant
+back to the deployment relay (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`,
+`SMTP_PASSWORD`, D-445) and `EMAIL_FROM` from the environment when neither is set. A tenant
 that sets its own SMTP sends its invitations from its own server. The API and the worker
 resolve identically, so a message sent from a job looks the same as one sent from a request.
 

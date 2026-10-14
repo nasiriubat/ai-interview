@@ -36,7 +36,8 @@ standalone image listening on port 3000.
 
 Environment: `NEXT_PUBLIC_API_URL` (API origin, `/api/v1` is appended), `AUTH_SECRET`
 (shared with the API so it can decode the Auth.js JWT), `AUTH_GOOGLE_ID`,
-`AUTH_GOOGLE_SECRET`, `EMAIL_SERVER`, `EMAIL_FROM`, and `NEXT_PUBLIC_VOICE_WS_URL`
+`AUTH_GOOGLE_SECRET`, the mail relay (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`,
+`SMTP_PASSWORD`, see the root `.env.example`), `EMAIL_FROM`, and `NEXT_PUBLIC_VOICE_WS_URL`
 (optional; the live voice socket, which is the one call the browser makes itself — empty
 in production, where it is same-origin).
 `NEXT_PUBLIC_CONTACT_EMAIL` (optional; the address behind "Request a workspace" on the public

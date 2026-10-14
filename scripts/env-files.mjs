@@ -101,3 +101,90 @@ export function mergeEnv(rootText, legacyText) {
   }
   return { text, added, filled, kept, conflicts };
 }
+
+/** The split relay variables (D-445), in the order they are written. */
+export const SMTP_KEYS = ["SMTP_HOST", "SMTP_PORT", "SMTP_SECURITY", "SMTP_USER", "SMTP_PASSWORD"];
+
+/**
+ * Takes a legacy `EMAIL_SMTP_URL` apart into SMTP_* values, with the semantics of `parseSmtpUrl`
+ * in packages/shared/src/smtp.ts (smtps is tls, `ignoreTLS=true` is none, anything else starttls).
+ * Returns null for anything that is not an SMTP URL.
+ */
+export function smtpVarsFromUrl(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if ((url.protocol !== "smtp:" && url.protocol !== "smtps:") || !url.hostname) return null;
+  const tls = url.protocol === "smtps:";
+  const security = tls ? "tls" : url.searchParams.get("ignoreTLS") === "true" ? "none" : "starttls";
+  const decode = (s) => {
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return s;
+    }
+  };
+  return {
+    SMTP_HOST: url.hostname,
+    SMTP_PORT: url.port || (tls ? "465" : "587"),
+    SMTP_SECURITY: security,
+    SMTP_USER: decode(url.username),
+    SMTP_PASSWORD: decode(url.password),
+  };
+}
+
+/**
+ * A dotenv value that compose and parseEnv both read back literally: bare when it is plain,
+ * single quoted otherwise (no `$` interpolation, no ` #` comment). Null when it holds a single
+ * quote or a line break, which no quoting reads back the same in both.
+ */
+export function dotenvValue(v) {
+  if (/^[A-Za-z0-9._@+:/,=-]*$/.test(v)) return v;
+  if (v.includes("'") || /[\r\n]/.test(v)) return null;
+  return `'${v}'`;
+}
+
+/**
+ * Plans splitting a legacy `EMAIL_SMTP_URL` in `text` into SMTP_* lines (D-449). The URL line is
+ * replaced by a note; SMTP_* lines that exist are filled in place, missing ones are added.
+ * `status`: `none` (no legacy URL), `kept` (SMTP_HOST already set, so the URL is ignored at
+ * runtime and left alone), `invalid` (not an SMTP URL), `unquotable` (a credential with a single
+ * quote: split by hand), `split`. Only key names are returned for display.
+ */
+export function splitLegacySmtp(text) {
+  const env = parseEnv(text);
+  const legacy = (env.EMAIL_SMTP_URL ?? "").trim();
+  if (legacy === "") return { status: "none", text, keys: [] };
+  if ((env.SMTP_HOST ?? "").trim() !== "") return { status: "kept", text, keys: [] };
+  const vars = smtpVarsFromUrl(legacy);
+  if (!vars) return { status: "invalid", text, keys: [] };
+  const rendered = {};
+  for (const k of SMTP_KEYS) {
+    const v = dotenvValue(vars[k]);
+    if (v === null) return { status: "unquotable", text, keys: [k] };
+    rendered[k] = v;
+  }
+  const pending = new Set(SMTP_KEYS);
+  const out = [];
+  for (const line of text.split(/\r?\n/)) {
+    const m = LINE.exec(line);
+    if (m && m[1] === "EMAIL_SMTP_URL") {
+      out.push("# EMAIL_SMTP_URL was split into the SMTP_* lines by scripts/migrate-env.mjs (D-449).");
+    } else if (m && pending.has(m[1])) {
+      out.push(`${m[1]}=${rendered[m[1]]}`);
+      pending.delete(m[1]);
+    } else {
+      out.push(line);
+    }
+  }
+  let result = out.join("\n");
+  if (pending.size) {
+    if (result.length && !result.endsWith("\n")) result += "\n";
+    result += "\n# The mail relay, split from EMAIL_SMTP_URL by scripts/migrate-env.mjs (D-449)\n";
+    for (const k of SMTP_KEYS) if (pending.has(k)) result += `${k}=${rendered[k]}\n`;
+  }
+  return { status: "split", text: result, keys: [...SMTP_KEYS] };
+}

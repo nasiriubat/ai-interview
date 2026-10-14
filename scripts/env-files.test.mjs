@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
-import { loadMerged, mergeEnv, parseEnv } from "./env-files.mjs";
+import { loadMerged, mergeEnv, parseEnv, splitLegacySmtp } from "./env-files.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -66,6 +66,62 @@ describe("compose files", () => {
     );
     assert.ok(!/env_file:\s*apps\/api\/\.env/.test(dev));
     assert.ok(!/^\s*env_file:/m.test(read("deploy/compose.prod.yml")));
+  });
+});
+
+describe("splitLegacySmtp (D-449)", () => {
+  const password = "p@ss:w/rd#1 %$x";
+  const legacy = `smtp://${encodeURIComponent("relay@x")}:${encodeURIComponent(password)}@smtp.example.com:587`;
+
+  it("splits the URL into SMTP_* with the credentials decoded and quoted so they read back literally", () => {
+    const r = splitLegacySmtp(`A=1\nEMAIL_SMTP_URL=${legacy}\nSMTP_HOST=\n`);
+    assert.equal(r.status, "split");
+    assert.deepEqual(r.keys, ["SMTP_HOST", "SMTP_PORT", "SMTP_SECURITY", "SMTP_USER", "SMTP_PASSWORD"]);
+    const out = parseEnv(r.text);
+    assert.equal(out.SMTP_HOST, "smtp.example.com");
+    assert.equal(out.SMTP_PORT, "587");
+    assert.equal(out.SMTP_SECURITY, "starttls");
+    assert.equal(out.SMTP_USER, "relay@x");
+    assert.equal(out.SMTP_PASSWORD, password);
+    assert.equal(out.A, "1");
+    assert.ok(!("EMAIL_SMTP_URL" in out));
+    assert.match(r.text, /SMTP_PASSWORD='p@ss:w\/rd#1 %\$x'/);
+  });
+
+  it("maps the security the way the admin form parses it", () => {
+    const sec = (u) => parseEnv(splitLegacySmtp(`EMAIL_SMTP_URL=${u}\n`).text);
+    assert.deepEqual(
+      [sec("smtps://h.example.com").SMTP_SECURITY, sec("smtps://h.example.com").SMTP_PORT],
+      ["tls", "465"],
+    );
+    assert.equal(sec("smtp://mailpit:1025?ignoreTLS=true").SMTP_SECURITY, "none");
+    assert.equal(sec("smtp://h.example.com:25").SMTP_SECURITY, "starttls");
+  });
+
+  it("leaves the file alone when there is nothing to split, SMTP_HOST is set, or it cannot be done safely", () => {
+    assert.equal(splitLegacySmtp("A=1\n").status, "none");
+    assert.equal(splitLegacySmtp("EMAIL_SMTP_URL=\n").status, "none");
+    assert.equal(splitLegacySmtp(`SMTP_HOST=new\nEMAIL_SMTP_URL=${legacy}\n`).status, "kept");
+    assert.equal(splitLegacySmtp("EMAIL_SMTP_URL=https://x\n").status, "invalid");
+    const quote = splitLegacySmtp(`EMAIL_SMTP_URL=smtp://u:${encodeURIComponent("it's")}@h.example.com\n`);
+    assert.deepEqual([quote.status, quote.keys], ["unquotable", ["SMTP_PASSWORD"]]);
+  });
+
+  it("migrate-env --file splits a production file and prints key names only", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aidp-env-"));
+    try {
+      const file = join(dir, "deploy.env");
+      writeFileSync(file, `PUBLIC_HOSTNAME=x\nEMAIL_SMTP_URL=${legacy}\n`);
+      const out = execFileSync("node", [join(here, "migrate-env.mjs"), "--file", file], { encoding: "utf8" });
+      assert.match(out, /EMAIL_SMTP_URL split into/);
+      for (const secret of [password, encodeURIComponent(password), "relay@x"])
+        assert.ok(!out.includes(secret));
+      assert.equal(parseEnv(readFileSync(file, "utf8")).SMTP_PASSWORD, password);
+      assert.equal(statSync(file).mode & 0o077, 0);
+      assert.equal(statSync(`${file}.bak`).mode & 0o077, 0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

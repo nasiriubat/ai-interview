@@ -31,7 +31,8 @@ export interface SmtpEnv extends SmtpEnvInput {
  *   does not need one — Next sets NEXT_PHASE to distinguish that from actually serving traffic.
  */
 export function resolveSmtpUrl(env: SmtpEnv): string {
-  const legacy = env.EMAIL_SMTP_URL || env.EMAIL_SERVER;
+  // An empty value is "not set" (compose passes unset variables as ""), so it falls through.
+  const legacy = [env.EMAIL_SMTP_URL, env.EMAIL_SERVER].find((v) => v !== undefined && v.trim() !== "");
   const relay = resolveSmtpEnv({ ...env, ...(legacy ? { EMAIL_SMTP_URL: legacy } : {}) });
   if (relay.source !== "none") return relay.url;
   if (env.NODE_ENV === "production" && env.NEXT_PHASE !== "phase-production-build") {
