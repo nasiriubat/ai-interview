@@ -8,7 +8,7 @@
 --    tenant policy.
 -- 2. ErasureLedger: what was erased on purpose (tenant offboarding, a participant's session), ids
 --    only, so a restore from an older backup can erase it again. The row outlives the tenant, so
---    it carries no foreign key; it is readable and writable only in the system context. The job
+--    it carries no foreign key (`companyId` is a plain column, so the row can name a tenant that is gone); a tenant sees only its own entries and the system context all of them. The job
 --    also appends each entry to a file outside the database, because a restore replaces this table
 --    with the backup's copy, which is exactly the copy that predates the erasure.
 -- 3. audit_purge_tenant(): the one way an AuditLog row is ever deleted (migration 0019 reserved
@@ -47,7 +47,7 @@ CREATE TABLE "ErasureLedger" (
     "id" TEXT NOT NULL,
     "kind" TEXT NOT NULL,
     "targetId" TEXT NOT NULL,
-    "tenantRef" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
     "erasedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "requestedBy" TEXT,
 
@@ -59,8 +59,10 @@ CREATE UNIQUE INDEX "ErasureLedger_kind_targetId_key" ON "ErasureLedger"("kind",
 ALTER TABLE "ErasureLedger" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON "ErasureLedger";
 CREATE POLICY tenant_isolation ON "ErasureLedger" TO app_api
-  USING (current_setting('app.company_id', true) = 'system')
-  WITH CHECK (current_setting('app.company_id', true) = 'system');
+  USING ("companyId" = current_setting('app.company_id', true)
+         OR current_setting('app.company_id', true) = 'system')
+  WITH CHECK ("companyId" = current_setting('app.company_id', true)
+              OR current_setting('app.company_id', true) = 'system');
 GRANT SELECT, INSERT, UPDATE, DELETE ON "ErasureLedger" TO app_api;
 
 CREATE OR REPLACE FUNCTION audit_purge_tenant(target TEXT) RETURNS INTEGER

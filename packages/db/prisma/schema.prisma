@@ -670,13 +670,12 @@ model TenantStatement {
 }
 
 /// What was erased on purpose, so that a restore from an older backup can erase it again (D-226).
-/// Ids only. Not tenant data: readable and writable only in the system context.
+/// Ids only. `companyId` is a plain column, not a relation: the row outlives the tenant.
 model ErasureLedger {
   id          String   @id @default(cuid())
   kind        String // tenant | session
   targetId    String
-  /// The tenant the target belonged to; a plain column, not a relation, because the row outlives it.
-  tenantRef   String
+  companyId   String
   erasedAt    DateTime @default(now())
   requestedBy String?
 
