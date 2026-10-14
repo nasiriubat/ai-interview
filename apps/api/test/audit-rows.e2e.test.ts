@@ -155,6 +155,18 @@ suite("audit rows: every administrative mutation writes one", () => {
       { name: "Renamed" },
       { action: "user.update", targetType: "user", targetId: id, actor: "admin" },
     );
+    await audited(
+      "PATCH /users/:id",
+      `/users/${id}`,
+      { disabled: true },
+      { action: "user.disable", targetType: "user", targetId: id, actor: "admin" },
+    );
+    await audited("DELETE /users/:id", `/users/${id}`, undefined, {
+      action: "user.delete",
+      targetType: "user",
+      targetId: id,
+      actor: "admin",
+    });
   });
 
   // ---------- templates ----------

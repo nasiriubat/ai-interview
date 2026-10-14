@@ -59,6 +59,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "DELETE /users/:id": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "GET /admin/voice/readiness": {
     "access": "admin",
     "isolation": false,

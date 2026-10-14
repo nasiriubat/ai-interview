@@ -44,6 +44,11 @@ model User {
   name      String?
   role      String // platform_operator | admin | member
   createdAt DateTime @default(now())
+  /// Set when staff access is withdrawn. A disabled user's tokens stop resolving at once (D-161).
+  disabledAt DateTime?
+  /// Tokens issued before this instant are refused, so disabling ends sessions already open and
+  /// re-enabling does not bring them back: the person signs in again.
+  tokensValidAfter DateTime?
 
   company      Company       @relation(fields: [companyId], references: [id])
   participants Participant[]
