@@ -47,10 +47,9 @@ export async function participantVoiceRoutes(app: App, ctx: RouteContext): Promi
     },
     async (req, reply) => {
       const p = participant(req);
-      const enabled = await ctx.settings.get("features.recordedVoice", [
-        { scope: "tenant", scopeId: p.companyId },
-      ]);
-      if (!enabled) throw new AppError("forbidden", "Voice answers are turned off");
+      // The tenant's switch and the template's own `voice.enabled`, ANDed (D-186).
+      const enabled = await ctx.services.participant.voiceAllowed(p.companyId, p.sessionId, "recorded");
+      if (!enabled) throw new AppError("feature_disabled", "Voice answers are turned off");
 
       const file = await readAudio(req);
       const bytes = await file.toBuffer();

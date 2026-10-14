@@ -1,5 +1,5 @@
 import { BudgetExceededError, ProviderError } from "@aidp/ai";
-import { SettingsError } from "@aidp/core";
+import { CeilingReachedError, SettingsError } from "@aidp/core";
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from "fastify-type-provider-zod";
 
@@ -14,6 +14,10 @@ export type ErrorCode =
   | "too_large"
   | "rate_limited"
   | "budget_exceeded"
+  /** A switch the tenant, the template or the platform turned off (`features.*`, `voice.enabled`). */
+  | "feature_disabled"
+  /** A tenant ceiling is used up: `details` is `{ limit, current, max }` (D-188). */
+  | "limit_reached"
   | "provider_error"
   /** An API key the provider itself refused when it was checked (D-77). */
   | "invalid_api_key"
@@ -35,6 +39,8 @@ const STATUS: Record<ErrorCode, number> = {
   too_large: 413,
   rate_limited: 429,
   budget_exceeded: 402,
+  feature_disabled: 403,
+  limit_reached: 403,
   provider_error: 502,
   invalid_api_key: 422,
   voice_not_ready: 409,
@@ -117,6 +123,14 @@ export function errorHandler(
       "provider_error",
       error.code === "refusal" ? "The model declined this request" : "The model provider failed",
     );
+    return;
+  }
+  if (error instanceof CeilingReachedError) {
+    respond(403, "limit_reached", error.message, {
+      limit: error.metric,
+      current: error.current,
+      max: error.max,
+    });
     return;
   }
   if (error instanceof SettingsError) {
