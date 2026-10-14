@@ -228,12 +228,53 @@ export const PAGES: Entry[] = [
   admin("campaign-sessions", "/admin/campaigns/camp1?tab=sessions", "app/admin/campaigns/[id]/page.tsx"),
   admin("campaign-analysis", "/admin/campaigns/camp1?tab=analysis", "app/admin/campaigns/[id]/page.tsx"),
   admin("campaign-settings", "/admin/campaigns/camp1?tab=settings", "app/admin/campaigns/[id]/page.tsx"),
+  // States a plain load does not reach (D-365): nothing yet, a list that failed, a very long name,
+  // a draft, the import dialog and the revoke confirmation.
+  admin(
+    "campaign-invitations-empty",
+    "/admin/campaigns/campEmpty?tab=invitations",
+    "app/admin/campaigns/[id]/page.tsx",
+  ),
+  {
+    ...admin(
+      "campaign-invitations-error",
+      "/admin/campaigns/campErr?tab=invitations",
+      "app/admin/campaigns/[id]/page.tsx",
+    ),
+    isErrorPage: true,
+  },
+  admin("campaign-long-name", "/admin/campaigns/campLong?tab=sessions", "app/admin/campaigns/[id]/page.tsx"),
+  admin("campaign-draft", "/admin/campaigns/campDraft", "app/admin/campaigns/[id]/page.tsx"),
+  admin(
+    "campaign-invitations-import",
+    "/admin/campaigns/camp1?tab=invitations",
+    "app/admin/campaigns/[id]/page.tsx",
+    async (page) => {
+      await page
+        .getByRole("button", { name: /^(Import addresses from a file|Tuo osoitteet tiedostosta)$/ })
+        .click();
+      await page.getByRole("dialog").waitFor();
+    },
+  ),
+  admin(
+    "campaign-invitations-revoke",
+    "/admin/campaigns/camp1?tab=invitations",
+    "app/admin/campaigns/[id]/page.tsx",
+    async (page) => {
+      await page.getByRole("button", { name: /^(Revoke|Peru): kim\.0@acme\.test$/ }).click();
+      await page.getByRole("alertdialog").waitFor();
+    },
+  ),
   admin("campaign-edit", "/admin/campaigns/camp1/edit", "app/admin/campaigns/[id]/edit/page.tsx"),
   admin("campaign-results", "/admin/campaigns/camp1/results", "app/admin/campaigns/[id]/results/page.tsx"),
   admin("campaign-report", "/admin/campaigns/camp1/report", "app/admin/campaigns/[id]/report/page.tsx"),
   admin("sessions-detail", "/admin/sessions/sess0001abcdef", "app/admin/sessions/[id]/page.tsx"),
   admin("templates", "/admin/templates", "app/admin/templates/page.tsx"),
   admin("template", "/admin/templates/tpl1", "app/admin/templates/[id]/page.tsx"),
+  admin("template-archive", "/admin/templates/tpl1", "app/admin/templates/[id]/page.tsx", async (page) => {
+    await page.getByRole("button", { name: /^(Archive|Arkistoi)$/ }).click();
+    await page.getByRole("alertdialog").waitFor();
+  }),
   admin("template-edit", "/admin/templates/tpl1/edit", "app/admin/templates/[id]/edit/page.tsx"),
   admin("template-new", "/admin/templates/new", "app/admin/templates/new/page.tsx"),
   admin("requirements", "/admin/requirements", "app/admin/requirements/page.tsx"),

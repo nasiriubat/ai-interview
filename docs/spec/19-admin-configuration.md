@@ -215,8 +215,10 @@ Notes for the screens:
 - **Campaign rows** carry `stats: { invited, started, completed }` for the page, where `invited`
   leaves out revoked invitations and `started` is every session past `created` that is not
   `deleted`.
-- **Not searchable:** `/providers` and `/routes` (bounded by the catalogue) and
-  `/campaigns/:id/invitations` (not paginated yet).
+- **Invitations** (`/campaigns/:id/invitations`, D-360). `q` matches the address, for an
+  administrator only; a member's search matches nothing and `sort=email` falls back to creation
+  order. Sorts: `createdAt`, `email`, `status`, `sentAt`, `openedAt`. Filter: `status`.
+- **Not searchable:** `/providers` and `/routes` (bounded by the catalogue).
 
 The web client mirrors this table in `apps/web/src/lib/api/lists.ts` (`LISTS`), and
 `listParams(searchParams, LISTS.x)` in `apps/web/src/lib/admin/pagination.ts` reads the page,

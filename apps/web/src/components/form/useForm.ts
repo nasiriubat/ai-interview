@@ -51,8 +51,8 @@ export interface UseFormOptions<T extends Record<string, unknown>> {
   labels: Record<string, string>;
   /** Saves. Resolve to confirm; throw (an `ApiError` is read for field errors) to report failure. */
   onSubmit: (values: T) => Promise<void>;
-  /** Toast text on success. */
-  savedText?: string;
+  /** Toast text on success; `null` when `onSubmit` raises a more specific toast itself. */
+  savedText?: string | null;
 }
 
 /**
@@ -131,7 +131,7 @@ export function useForm<T extends Record<string, unknown>>(options: UseFormOptio
         setSaved(values);
         setTouched(new Set());
         setAttempt(0);
-        notify.success(savedText ?? t.kit.form.saved);
+        if (savedText !== null) notify.success(savedText ?? t.kit.form.saved);
       })
       .catch((e: unknown) => {
         if (isApiError(e) && e.code === "validation" && Array.isArray(e.details)) {

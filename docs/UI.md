@@ -75,10 +75,13 @@ All of these take `limit` (1 to 200, default 50), `offset`, `q`, `sort`, `dir`, 
 `/campaigns/:id/sessions`, `/templates`, `/requirements`, `/budgets`, `/providers/:id/prices`,
 `/campaigns/:id/analyses`, `/operator/tenants`.
 
+Also paginated since D-360: `/campaigns/:id/invitations` (`status`, `q` on the address for administrators,
+sort by `createdAt`, `email`, `status`, `sentAt`, `openedAt`).
+
 Not paginated, and why: `/providers` and `/routes` (a handful per tenant), `/prompts` (a fixed set),
-`/settings/history` (takes `limit`), `/operator/jobs` (queues, not rows). **`/campaigns/:id/invitations`
-is unbounded** (one request may add 1000): it should get a `listSpec` before the invitations list is
-moved to `DataTable`.
+`/settings/history` (takes `limit`), `/operator/jobs` (queues, not rows). A fixed small list shown
+with the table (template versions, prompt groups) passes every row and `locked` columns, so there
+is no empty toolbar and no pager.
 
 ## Export and import
 
@@ -104,6 +107,10 @@ ComboField, FormSection, ErrorSummary, ValidatedForm) plus `components/form/`:
   Spread `{...form.field("name")}` into a field.
 - `<Form form>`: summary, focus on the first problem, and a floating **save bar** (unsaved or saved,
   Discard, Save). `SaveBarView` is the bar alone for forms that keep their own state (settings).
+- `useForm({ savedText: null })` when `onSubmit` raises its own toast; `<Form alwaysEnabled>` for a form that
+  creates something (Save is offered before any edit and validation says what is missing).
+- `SaveBarView` also takes `saveDisabled` (blocked by a check, not by "nothing changed") and `cleanText`
+  (what the bar says when nothing is edited; a prompt says its text is unchanged rather than "saved").
 - `ConfirmDialog`: pass `confirmPhrase` to make a person type it first, for what cannot be taken back.
 
 ## FileUpload (`components/upload/`)
@@ -121,6 +128,15 @@ attachment upload uses it and shows a progress bar with Cancel.
 `components/common/notify.ts`. Success 4 s, info 5 s, error 9 s (18 s with a Retry), three stacked,
 one live region. Errors that need fixing stay inline. Route loading: `app/admin/loading.tsx`; the
 top progress bar runs on in-app navigation and on `useUrlState` changes; buttons take `loading`.
+
+## Detail pages (D-361, D-363, D-364)
+
+A detail page is `PageHeader` with `meta` (status badges), **one** primary action in `actions` and
+icon-only `IconButton`s (`variant="outline" size="icon"`) in `secondaryActions`; a destructive one
+opens a `ConfirmDialog`. Sections that are lists are `DataTable`s; a small fixed list locks its
+columns. `DetailSkeleton` (`components/admin/DetailSkeleton.tsx`) is the route's `loading.tsx`.
+Wrap more than one panel or table in `grid grid-cols-[minmax(0,1fr)]` so nothing pushes the page sideways.
+The template editor shows a sticky jump bar over its eleven sections, with the number of problems in each.
 
 ## Motion
 

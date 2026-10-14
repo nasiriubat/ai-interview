@@ -27,7 +27,7 @@ export function CampaignTabs({
   const s = t.admin.campaigns;
   return (
     <nav aria-label={s.tabsLabel} className="-mx-1 overflow-x-auto px-1">
-      <ul className="flex min-w-max gap-5 border-b">
+      <ul className="flex min-w-max gap-3 border-b sm:gap-5">
         {CAMPAIGN_TABS.map((tab) => {
           const active = tab === current;
           return (
@@ -36,7 +36,7 @@ export function CampaignTabs({
                 href={`/admin/campaigns/${campaignId}${tab === "overview" ? "" : `?tab=${tab}`}`}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "-mb-px inline-flex h-10 items-center border-b-2 px-0.5 text-sm font-medium whitespace-nowrap transition-colors",
+                  "-mb-px inline-flex h-10 items-center border-b-2 px-0.5 text-[13px] font-medium whitespace-nowrap sm:text-sm transition-colors",
                   active
                     ? "border-primary text-primary"
                     : "text-muted-foreground hover:text-foreground border-transparent",

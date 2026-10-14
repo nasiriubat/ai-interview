@@ -7,15 +7,16 @@ import { CampaignLink } from "@/components/admin/campaigns/CampaignLink";
 import { CampaignOverview } from "@/components/admin/campaigns/CampaignOverview";
 import { CampaignSettingsTab, shortValue } from "@/components/admin/campaigns/CampaignSettingsTab";
 import { CampaignTabs, tabFrom } from "@/components/admin/campaigns/CampaignTabs";
-import { InvitationsPanel } from "@/components/admin/campaigns/InvitationsPanel";
+import { InvitationActions } from "@/components/admin/campaigns/InvitationActions";
+import { InviteComposer } from "@/components/admin/campaigns/InviteComposer";
 import { qrPath, qrSvgDocument } from "@/components/admin/campaigns/QrCode";
-import { SessionsTable } from "@/components/admin/campaigns/SessionsTable";
+import { sessionRowsOf } from "@/components/admin/campaigns/sessionRows";
 import { MeterBar } from "@/components/admin/MeterBar";
+import { DataTable } from "@/components/data/DataTable";
 import { setClientLocale } from "@/i18n";
 import {
   AnalysisSchema,
   CampaignSchema,
-  InvitationSchema,
   SessionListItemSchema,
   SettingsResponseSchema,
 } from "@/lib/api/schemas";
@@ -233,6 +234,22 @@ describe("overview", () => {
 describe("interviews table", () => {
   const row = (over: Record<string, unknown>) =>
     SessionListItemSchema.parse({ id: "abcdef123456", status: "active", ...over });
+  const SessionsTable = ({ sessions }: { sessions: ReturnType<typeof row>[] }) => (
+    <DataTable
+      id="sessions"
+      label="Interviews"
+      columns={[
+        { id: "participant", header: "Participant", primary: true, locked: true },
+        { id: "status", header: "Status" },
+        { id: "mode", header: "Mode" },
+        { id: "flag", header: "Attention" },
+        { id: "progress", header: "Progress" },
+      ]}
+      rows={sessionRowsOf(sessions)}
+      page={{ page: 1, limit: 50, count: sessions.length, total: sessions.length }}
+    />
+  );
+  const table = () => within(screen.getByRole("table"));
 
   it("names an identified participant and calls anyone else anonymous, with the short id", () => {
     render(
@@ -243,11 +260,24 @@ describe("interviews table", () => {
         ]}
       />,
     );
-    expect(screen.getByText("Aino Virtanen")).toBeInTheDocument();
-    expect(screen.getByText("aino@ward.test")).toBeInTheDocument();
-    const anon = screen.getByText("anon0002").closest("tr");
+    expect(table().getByText("Aino Virtanen")).toBeInTheDocument();
+    expect(table().getByText("aino@ward.test")).toBeInTheDocument();
+    const anon = table().getByText("anon0002").closest("tr");
     expect(anon).toHaveTextContent("Anonymous");
     expect(anon).not.toHaveTextContent("@");
+  });
+
+  it("names each interview in its action, so a screen reader hears whose it is", () => {
+    render(
+      <SessionsTable
+        sessions={[row({ id: "named0001xx", participantName: "Aino Virtanen" }), row({ id: "anon0002xxx" })]}
+      />,
+    );
+    expect(table().getByRole("link", { name: "View: Aino Virtanen" })).toHaveAttribute(
+      "href",
+      "/admin/sessions/named0001xx",
+    );
+    expect(table().getByRole("link", { name: "View: Anonymous anon0002" })).toBeInTheDocument();
   });
 
   it("shows the mode in words and the flag in its own column", () => {
@@ -259,26 +289,28 @@ describe("interviews table", () => {
         ]}
       />,
     );
-    const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
+    const headers = within(screen.getByRole("table"))
+      .getAllByRole("columnheader")
+      .map((h) => h.textContent);
     expect(headers).toEqual(expect.arrayContaining(["Participant", "Mode", "Attention"]));
-    const flagged = screen.getByText("voice000").closest("tr")!;
+    const flagged = table().getByText("voice000").closest("tr")!;
     expect(flagged).toHaveTextContent("Voice");
     expect(flagged).toHaveTextContent("Needs attention");
-    const plain = screen.getByText("chat0000").closest("tr")!;
+    const plain = table().getByText("chat0000").closest("tr")!;
     expect(plain).toHaveTextContent("Chat");
     expect(plain).not.toHaveTextContent("Needs attention");
   });
 
   it("falls back to a topic count when the list carries no area breakdown", () => {
     render(<SessionsTable sessions={[row({ areasCovered: 3 })]} />);
-    expect(screen.getByText("3 topics covered")).toBeInTheDocument();
+    expect(table().getByText("3 topics covered")).toBeInTheDocument();
   });
 });
 
 describe("invitations", () => {
-  it("offers the address import as a labelled button that opens the import dialog", async () => {
+  it("offers the address import as an icon button that opens the import dialog", async () => {
     const user = userEvent.setup();
-    render(<InvitationsPanel campaignId="c1" invitations={[]} />);
+    render(<InviteComposer campaignId="c1" />);
     await user.click(screen.getByRole("button", { name: "Import addresses from a file" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByRole("button", { name: "Choose a file" })).toBeInTheDocument();
@@ -286,31 +318,41 @@ describe("invitations", () => {
     expect(within(dialog).getByRole("button", { name: "Import 0 rows" })).toBeDisabled();
   });
 
-  it("marks who was reminded in this view and what cannot be reminded, and why", async () => {
+  it("counts the addresses it understood and refuses to send none", async () => {
+    const user = userEvent.setup();
+    render(<InviteComposer campaignId="c1" />);
+    expect(screen.getByRole("button", { name: "Send invitations" })).toBeDisabled();
+    await user.type(screen.getByLabelText(/Email addresses/), "a@x.test, b@x.test, not-an-address");
+    expect(screen.getByText("2 addresses recognised")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send 2 invitations" })).toBeEnabled();
+  });
+
+  it("disables what cannot be done to an invitation, and says why through its name", async () => {
     staff.campaigns.remind.mockResolvedValue(undefined);
     const user = userEvent.setup();
-    render(
-      <InvitationsPanel
-        campaignId="c1"
-        invitations={[
-          InvitationSchema.parse({ id: "i1", email: "a@x.test", status: "sent" }),
-          InvitationSchema.parse({ id: "i2", email: "b@x.test", status: "bound" }),
-          InvitationSchema.parse({ id: "i3", email: null, status: "sent" }),
-          InvitationSchema.parse({ id: "i4", email: "d@x.test", status: "expired" }),
-        ]}
-      />,
+    const one = (id: string, email: string | null, status: string) => (
+      <InvitationActions campaignId="c1" invitationId={id} email={email} status={status} />
     );
-    // The API names an answered invitation "bound"; it reads as Started and is neither reminded nor revoked.
-    expect(screen.getByText("Started")).toBeInTheDocument();
+    render(
+      <>
+        {one("i1", "a@x.test", "sent")}
+        {one("i2", "b@x.test", "bound")}
+        {one("i3", null, "sent")}
+        {one("i4", "d@x.test", "expired")}
+      </>,
+    );
+    // The API names an answered invitation "bound"; it is neither reminded nor revoked.
     expect(screen.getByRole("button", { name: "Remind: b@x.test" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Revoke: b@x.test" })).toBeDisabled();
     // No stored address, no reminder (the API refuses it too).
-    expect(screen.getByRole("button", { name: "Remind: i3" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remind: Hidden (anonymous)" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Remind: d@x.test" })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "Remind: a@x.test" }));
     expect(staff.campaigns.remind).toHaveBeenCalledWith("c1", "i1");
-    expect(await screen.findAllByText("Reminder sent")).not.toHaveLength(0);
+    await waitFor(() => {
+      expect(router.refresh).toHaveBeenCalled();
+    });
   });
 });
 
@@ -443,6 +485,9 @@ describe("edit campaign", () => {
     staff.campaigns.update.mockResolvedValue(campaign);
     const user = userEvent.setup();
     render(<CampaignEditForm campaign={campaign} consent={consent} />);
+    // Nothing is edited yet, so there is nothing to save.
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    await user.type(screen.getByRole("textbox", { name: /^Name/ }), "!");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => {
       expect(staff.campaigns.update).toHaveBeenCalled();

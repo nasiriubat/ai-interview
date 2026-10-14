@@ -102,6 +102,36 @@ const manyAudit = Array.from({ length: 120 }, (_v, i) => ({
   diff: i % 2 === 0 ? { name: `Change ${String(i)}`, status: "open" } : null,
 }));
 
+/**
+ * Page states a design review needs and a plain fixture would never show: a campaign id names the
+ * state (`campEmpty` has no rows anywhere, `campErr` fails its lists, `campLong` has very long names).
+ */
+const campaignIdOf = (u: URL): string => /\/campaigns\/([^/]+)/.exec(u.pathname)?.[1] ?? "camp1";
+const INVITE_STATUSES = ["sent", "opened", "bound", "pending", "revoked", "expired"] as const;
+const manyInvitations = Array.from({ length: 64 }, (_v, i) => ({
+  id: `inv${String(i + 1)}`,
+  email:
+    i % 11 === 10
+      ? null
+      : `${["kim", "lee", "aino", "mika", "sara", "olli", "jenni"][i % 7] ?? "x"}.${String(i)}@acme.test`,
+  status: INVITE_STATUSES[i % INVITE_STATUSES.length] ?? "sent",
+  sentAt: new Date(Date.UTC(2026, 9, 1 + (i % 12), 9)).toISOString(),
+  openedAt: i % 3 === 0 ? null : new Date(Date.UTC(2026, 9, 2 + (i % 12), 11)).toISOString(),
+  expiresAt: "2026-11-30T00:00:00.000Z",
+}));
+const manySessions = Array.from({ length: 41 }, (_v, i) => ({
+  ...f.sessions[i % 2],
+  id: `sess${String(i + 1).padStart(4, "0")}abcdef`,
+  status: (["completed", "active", "paused", "created"] as const)[i % 4],
+  flagged: i % 5 === 1,
+  participantName: i % 3 === 0 ? null : `Participant ${String(i)}`,
+  participantEmail: i % 3 === 0 ? null : `p${String(i)}@acme.test`,
+  costCents: 2 + i,
+  lastActivityAt: new Date(Date.UTC(2026, 9, 14 - (i % 20), 10)).toISOString(),
+}));
+const longName =
+  "Quarterly cross-functional discovery programme for the regional hospital district's inpatient ward rounds and discharge coordination 2026";
+
 const READS: [RegExp, Handler][] = [
   [/^\/me$/, (_u, req) => ({ body: f.me(roleOf(req)) })],
   [/^\/health\/ready$/, () => ({ body: { ok: true } })],
@@ -171,11 +201,58 @@ const READS: [RegExp, Handler][] = [
   ],
   [
     /^\/campaigns\/[^/]+$/,
-    () => ({ body: { campaign: f.campaign, link: f.campaign.link, stats: f.campaign.stats } }),
+    (u) => {
+      const id = campaignIdOf(u);
+      const campaign = {
+        ...f.campaign,
+        id,
+        ...(id === "campLong" ? { name: longName } : {}),
+        ...(id === "campDraft" ? { status: "draft" } : {}),
+      };
+      return { body: { campaign, link: campaign.link, stats: campaign.stats } };
+    },
   ],
-  [/^\/campaigns\/[^/]+\/invitations$/, () => ({ body: { invitations: f.invitations } })],
-  [/^\/campaigns\/[^/]+\/sessions$/, () => ({ body: page("sessions", f.sessions) })],
-  [/^\/campaigns\/[^/]+\/analyses$/, () => ({ body: page("analyses", [f.analysis]) })],
+  [
+    /^\/campaigns\/[^/]+\/invitations$/,
+    (u) => {
+      const id = campaignIdOf(u);
+      if (id === "campErr")
+        return {
+          status: 500,
+          body: { error: { code: "internal", message: "The invitations could not be read." } },
+        };
+      return {
+        body: listOf("invitations", id === "campEmpty" ? [] : manyInvitations, u, {
+          search: ["email"],
+          filters: { status: (r, v) => r.status === v },
+        }),
+      };
+    },
+  ],
+  [
+    /^\/campaigns\/[^/]+\/sessions$/,
+    (u) => {
+      const id = campaignIdOf(u);
+      if (id === "campErr")
+        return {
+          status: 500,
+          body: { error: { code: "internal", message: "The interviews could not be read." } },
+        };
+      return {
+        body: listOf("sessions", id === "campEmpty" ? [] : manySessions, u, {
+          search: ["id", "participantName", "participantEmail"],
+          filters: {
+            status: (r, v) => r.status === v,
+            flagged: (r, v) => String(r.flagged) === v,
+          },
+        }),
+      };
+    },
+  ],
+  [
+    /^\/campaigns\/[^/]+\/analyses$/,
+    (u) => ({ body: page("analyses", campaignIdOf(u) === "campEmpty" ? [] : [f.analysis]) }),
+  ],
   [
     /^\/analyses\/[^/]+$/,
     () => ({ body: { analysis: f.analysis, opportunities: f.analysisDetail.opportunities, report: null } }),

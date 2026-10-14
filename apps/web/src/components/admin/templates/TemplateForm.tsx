@@ -18,7 +18,6 @@ import {
   FormSection,
   NumberField,
   SelectField,
-  SubmitStatus,
   SwitchField,
   TextAreaField,
   TextField,
@@ -26,9 +25,9 @@ import {
   type FieldErrors,
 } from "@/components/admin/forms";
 import { useDirty, useDirtyGuard } from "@/components/common/DirtyGuard";
+import { SaveBarView } from "@/components/form/Form";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
 import { templateIssues } from "@/lib/admin/templateIssues";
@@ -81,6 +80,20 @@ export const emptyTemplate: InterviewTemplate = {
   maxTurns: 60,
   maxAssistantChars: 600,
 };
+
+const SECTION_IDS = [
+  "basics",
+  "participants",
+  "context",
+  "areas",
+  "ai",
+  "adaptivity",
+  "widgets",
+  "issues",
+  "outputs",
+  "chaining",
+  "closing",
+] as const;
 
 const ISSUE_TYPES = ["ambiguity", "contradiction", "missing_decision", "over_complexity"] as const;
 type IssueType = (typeof ISSUE_TYPES)[number];
@@ -147,7 +160,15 @@ export function TemplateForm({
       mappingToText(initial.chainMapping),
     ]),
   );
-  useDirty("template-form", JSON.stringify([d, optionsText, mappingText]) !== baseline.current);
+  const dirty = JSON.stringify([d, optionsText, mappingText]) !== baseline.current;
+  useDirty("template-form", dirty);
+  const discard = (): void => {
+    setD(initial);
+    setOptionsText(Object.fromEntries(initial.contextBlock.map((q, i) => [i, optionsToText(q.options)])));
+    setMappingText(mappingToText(initial.chainMapping));
+    setErrors({});
+    setIssues([]);
+  };
   const patch = (p: Partial<InterviewTemplate>): void => {
     setD((prev) => ({ ...prev, ...p }));
   };
@@ -177,23 +198,53 @@ export function TemplateForm({
     }
     setErrors({});
     setIssues([]);
-    void action.run(async () => {
-      const saved = templateId
-        ? await staffClient.templates.update(templateId, parsed.data)
-        : await staffClient.templates.create(parsed.data, copyFromId);
-      router.push(`/admin/templates/${saved.id}`);
-      router.refresh();
-    });
+    void action.run(
+      async () => {
+        const saved = templateId
+          ? await staffClient.templates.update(templateId, parsed.data)
+          : await staffClient.templates.create(parsed.data, copyFromId);
+        guard.setDirty("template-form", false);
+        router.push(`/admin/templates/${saved.id}`);
+        router.refresh();
+      },
+      templateId ? s.savedVersion : s.created,
+    );
   };
 
   const err = (path: string): string | undefined => errors[path];
 
   return (
     <ValidatedForm className="grid gap-6" onSubmit={submit} issues={issues} attempt={attempt}>
+      <nav
+        aria-label={s.sectionsNav}
+        className="bg-card shadow-card sticky top-14 z-10 -mb-2 flex gap-1 overflow-x-auto rounded-lg p-1.5 lg:top-16"
+      >
+        {SECTION_IDS.map((id) => (
+          <a
+            key={id}
+            href={`#section-${id}`}
+            onClick={(e) => {
+              // The hash alone scrolls; focus is what a keyboard or screen reader user follows.
+              e.preventDefault();
+              const el = document.getElementById(`section-${id}`);
+              el?.scrollIntoView({ block: "start" });
+              el?.focus({ preventScroll: true });
+            }}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium whitespace-nowrap"
+          >
+            {s.sections[id]}
+            {counts[id] ? (
+              <span className="bg-destructive-soft text-destructive-soft-foreground rounded-full px-1.5 text-xs">
+                {counts[id]}
+              </span>
+            ) : null}
+          </a>
+        ))}
+      </nav>
       <Flash flash={action.flash} />
 
       <FormSection id="basics" errorCount={counts.basics} title={s.sections.basics}>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
           <TextField
             id="key"
             label={f.key}
@@ -281,7 +332,7 @@ export function TemplateForm({
             addLabel={t.app.add}
             itemLabel={(it) => it.label || it.key || t.admin.common.unnamed}
             renderItem={(it, update, i) => (
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-3">
                 <TextField
                   id={`pf-${i}-key`}
                   label={f.fieldKey}
@@ -330,7 +381,7 @@ export function TemplateForm({
           itemLabel={(it) => it.question || it.key || t.admin.common.unnamed}
           renderItem={(it, update, i) => (
             <div className="grid gap-3">
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2">
                 <TextField
                   id={`cq-${i}-key`}
                   label={f.contextKey}
@@ -410,7 +461,7 @@ export function TemplateForm({
           itemLabel={(it) => it.name || it.key || t.admin.common.unnamed}
           renderItem={(it, update, i) => (
             <div className="grid gap-3">
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2">
                 <TextField
                   id={`ca-${i}-key`}
                   label={f.areaKey}
@@ -461,7 +512,7 @@ export function TemplateForm({
                   update({ instructions: v });
                 }}
               />
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-3">
                 <NumberField
                   id={`ca-${i}-fu`}
                   label={f.areaMaxFollowUps}
@@ -526,7 +577,7 @@ export function TemplateForm({
       </FormSection>
 
       <FormSection id="adaptivity" errorCount={counts.adaptivity} title={s.sections.adaptivity}>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
           <SelectField
             id="followUpPolicy"
             label={f.followUpPolicy}
@@ -593,7 +644,7 @@ export function TemplateForm({
             ))}
           </div>
         </fieldset>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
           <NumberField
             id="widgetMaxPerTurns"
             label={f.widgetMaxPerTurns}
@@ -628,7 +679,7 @@ export function TemplateForm({
             patch({ issueDetection: { ...d.issueDetection, enabled: v } });
           }}
         />
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
           <NumberField
             id="issueEveryTurns"
             label={f.issueEveryTurns}
@@ -765,7 +816,7 @@ export function TemplateForm({
             patch({ endSummary: v });
           }}
         />
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
           <NumberField
             id="maxTurns"
             label={f.maxTurns}
@@ -791,24 +842,31 @@ export function TemplateForm({
         </div>
       </FormSection>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" loading={action.busy}>
-          {action.busy ? t.app.saving : templateId ? s.saveVersion : t.app.create}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => {
-            guard.confirmLeave(() => {
-              router.back();
-            });
-          }}
-        >
-          {t.app.cancel}
-        </Button>
-        <Label className="text-muted-foreground text-xs font-normal">v{d.version}</Label>
-        <SubmitStatus count={issues.length} />
-      </div>
+      <SaveBarView
+        dirty={dirty}
+        submitting={action.busy}
+        problems={issues.length}
+        onDiscard={discard}
+        saveLabel={templateId ? s.saveVersion : t.app.create}
+        alwaysEnabled={!templateId}
+        cleanText={t.kit.form.noChanges}
+        extra={
+          <>
+            <span className="text-muted-foreground text-sm">v{d.version}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                guard.confirmLeave(() => {
+                  router.back();
+                });
+              }}
+            >
+              {t.app.cancel}
+            </Button>
+          </>
+        }
+      />
     </ValidatedForm>
   );
 }

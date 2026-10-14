@@ -499,7 +499,7 @@ export const InvitationSchema = z.looseObject({
   expiresAt: iso.nullish(),
 });
 export type Invitation = z.infer<typeof InvitationSchema>;
-export const InvitationListSchema = listOf(InvitationSchema, "invitations");
+export const InvitationPageSchema = pagedOf(InvitationSchema, "invitations");
 export const InvitationResultSchema = z.looseObject({
   created: z.number().default(0),
   skipped: z.number().default(0),
