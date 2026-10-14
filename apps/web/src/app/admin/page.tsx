@@ -1,4 +1,4 @@
-import { CheckCircle2Icon, EuroIcon, MegaphoneIcon, MessagesSquareIcon } from "lucide-react";
+import { CheckCircle2Icon, CoinsIcon, MegaphoneIcon, MessagesSquareIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import * as React from "react";
@@ -94,7 +94,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
         ) : null}
         <section aria-label={s.title} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatTile
-            icon={EuroIcon}
+            icon={CoinsIcon}
             label={s.spendTitle}
             value={formatCents(spent)}
             hint={
