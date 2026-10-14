@@ -719,6 +719,66 @@
       "crossTenantAdmin": 200
     }
   },
+  "GET /stats/ai": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /stats/discovery": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /stats/health": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /stats/participation": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "GET /stats/requirements": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
   "GET /templates": {
     "access": "staff",
     "isolation": false,
@@ -1392,6 +1452,66 @@
     }
   },
   "HEAD /stats": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats/ai": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats/discovery": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats/health": {
+    "access": "admin",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats/participation": {
+    "access": "staff",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
+  "HEAD /stats/requirements": {
     "access": "staff",
     "isolation": false,
     "statuses": {

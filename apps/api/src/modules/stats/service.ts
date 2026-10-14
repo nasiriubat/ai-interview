@@ -1,7 +1,18 @@
+import type {
+  StatsAi,
+  StatsDiscovery,
+  StatsHealth,
+  StatsParticipation,
+  StatsRange,
+  StatsRequirements,
+} from "@aidp/shared";
 import type { PrismaClient } from "@prisma/client";
+import * as segments from "./segments.js";
 
 export interface Dashboard {
   participation: { campaigns: Record<string, number>; sessions: Record<string, number>; invited: number };
+  /** Opportunities by class, where AI is not the answer, and the ten highest ranked (spec 07). */
+  discovery: StatsDiscovery;
   ai: {
     month: {
       costCents: number;
@@ -35,14 +46,51 @@ const count = (rows: { status: string; _count: { _all: number } }[]): Record<str
 
 /** Dashboard numbers for one tenant (spec 07). Cheap aggregates only. */
 export class StatsService {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly deps: Omit<segments.SegmentDeps, "db">,
+  ) {}
 
-  async dashboard(companyId: string): Promise<Dashboard> {
+  private get seg(): segments.SegmentDeps {
+    return { db: this.db, ...this.deps };
+  }
+
+  participation(companyId: string, range: StatsRange): Promise<StatsParticipation> {
+    return segments.participation(this.seg, companyId, range);
+  }
+
+  discovery(companyId: string, role: string, range: StatsRange): Promise<StatsDiscovery> {
+    return segments.discovery(this.seg, companyId, role, range);
+  }
+
+  requirements(
+    companyId: string,
+    who: { role: string; userId: string },
+    range: StatsRange,
+  ): Promise<StatsRequirements> {
+    return segments.requirements(this.seg, companyId, who, range);
+  }
+
+  ai(companyId: string, range: StatsRange): Promise<StatsAi> {
+    return segments.ai(this.seg, companyId, range);
+  }
+
+  health(companyId: string): Promise<StatsHealth> {
+    return segments.health(this.seg, companyId);
+  }
+
+  async dashboard(companyId: string, role = "admin"): Promise<Dashboard> {
     const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
     const [campaigns, sessionsByStatus, invited, spend, calls, budget] = await Promise.all([
       this.db.campaign.groupBy({ by: ["status"], where: { companyId }, _count: { _all: true } }),
-      this.db.session.groupBy({ by: ["status"], where: { companyId }, _count: { _all: true } }),
-      this.db.invitation.count({ where: { campaign: { companyId } } }),
+      // Interviews only: a requirements project is not a participant, and counting it here made the
+      // funnel's "started" larger than the people who were ever invited.
+      this.db.session.groupBy({
+        by: ["status"],
+        where: { companyId, sourceKind: "campaign" },
+        _count: { _all: true },
+      }),
+      this.db.invitation.count({ where: { campaign: { companyId }, status: { not: "revoked" } } }),
       this.db.llmCall.aggregate({
         where: { companyId, createdAt: { gte: monthStart } },
         _sum: { costCents: true, inputTokens: true, outputTokens: true, cacheReadTokens: true },
@@ -59,6 +107,7 @@ export class StatsService {
     const totalInput = (spend._sum.inputTokens ?? 0) + (spend._sum.cacheReadTokens ?? 0);
     return {
       participation: { campaigns: count(campaigns), sessions: count(sessionsByStatus), invited },
+      discovery: await this.discovery(companyId, role, {}),
       ai: {
         month: {
           costCents: spend._sum.costCents ?? 0,

@@ -12,3 +12,4 @@ export * from "./settings.js";
 export * from "./analysis.js";
 export * from "./requirements.js";
 export * from "./lists.js";
+export * from "./stats.js";
