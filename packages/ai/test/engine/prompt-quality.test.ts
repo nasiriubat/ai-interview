@@ -7,11 +7,11 @@ import { cleanHeadings, hasForeignScript } from "../../src/spec/generate.js";
 import { neutralize, newNonce, wrapUntrusted } from "../../src/util/untrusted.js";
 import { MemoryStore, ScriptedCaller, snapshot, template } from "./helpers.js";
 
-describe("interviewer prompt v5 (live run 2026-10-14 findings)", () => {
+describe("interviewer prompt v6 (v5 live run findings, plus requirements capture)", () => {
   const body = SHIPPED_PROMPTS.interviewer!.body;
 
-  it("is version 5 and keeps every placeholder the engine fills", () => {
-    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(5);
+  it("is version 6 and keeps every placeholder the engine fills", () => {
+    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(6);
     for (const p of [
       "{{objective}}",
       "{{language}}",
@@ -47,9 +47,10 @@ describe("interviewer prompt v5 (live run 2026-10-14 findings)", () => {
 });
 
 describe("the other prompts that changed", () => {
-  it("extraction v2 takes a list of known facts and a verbatim-quote rule", () => {
+  it("extraction v3 takes a list of known facts, a verbatim-quote rule and the spec capture rules", () => {
     const p = SHIPPED_PROMPTS.extraction!;
-    expect(p.version).toBe(2);
+    expect(p.version).toBe(3);
+    expect(p.body).toContain("{{specRules}}");
     expect(p.body).toMatch(/facts already known, one per line/i);
     expect(p.body).toMatch(/copied exactly from a participant block/i);
     expect(p.body).toContain("untrusted");

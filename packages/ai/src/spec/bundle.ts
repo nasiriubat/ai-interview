@@ -85,12 +85,28 @@ function phaseMd(doc: SpecDocument, index: number, p: SpecDocument["phases"][num
   return `${lines.join("\n").trim()}\n`;
 }
 
+function diagramFiles(doc: SpecDocument): AgentBundle["files"] {
+  const used = new Set<string>();
+  return doc.diagrams.map((d) => {
+    const base = d.key.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "diagram";
+    let name = base;
+    for (let n = 2; used.has(name); n++) name = `${base}-${n}`;
+    used.add(name);
+    const caption = d.description?.trim()
+      ? `%% ${d.title}: ${d.description.trim().replace(/\s+/g, " ")}\n`
+      : "";
+    return { path: `diagrams/${name}.mmd`, content: `${caption}${d.mermaid.trim()}\n` };
+  });
+}
+
 /** The agent bundle (FR-25): AGENTS.md, PLAN.md, one task file per phase, plus the spec itself. */
 export function renderBundle(doc: SpecDocument, format: BundleFormat, specMarkdown: string): AgentBundle {
   const files: AgentBundle["files"] = [
     { path: "AGENTS.md", content: agentsMd(doc, format) },
     { path: "PLAN.md", content: planMd(doc) },
     ...doc.phases.map((p, i) => ({ path: `tasks/phase-${i + 1}.md`, content: phaseMd(doc, i, p) })),
+    // One file per diagram, so a tool can read or render the source the owner settled on.
+    ...diagramFiles(doc),
     { path: "spec.md", content: specMarkdown },
     { path: "spec.json", content: `${JSON.stringify(doc, null, 2)}\n` },
   ];

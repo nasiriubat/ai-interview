@@ -109,8 +109,32 @@ export class RequirementsVersions {
           sections: values["requirements.specSections"] as string[],
           diagramTypes: values["requirements.diagramTypes"] as DiagramType[],
           bundleFormat: values["exports.bundleFormat"] as BundleFormat,
+          minRequirements: template.completeness.minRequirements,
         },
       );
+      if (result.failure) {
+        // Loud, not silent (D-191): the document is kept so the owner can see what was recorded,
+        // but the version is failed with the reason and nobody is told a specification is ready.
+        await db.specVersion.update({
+          where: { id: versionId },
+          data: {
+            spec: result.document,
+            specMd: result.markdown,
+            bundle: result.bundle,
+            issues: result.issues,
+            stats: result.stats,
+            status: "failed",
+            error: result.failure,
+            finishedAt: new Date(),
+          },
+        });
+        log.warn("spec version failed completeness", {
+          versionId,
+          sessionId: session.id,
+          requirements: result.stats.requirements,
+        });
+        return;
+      }
       await db.specVersion.update({
         where: { id: versionId },
         data: {

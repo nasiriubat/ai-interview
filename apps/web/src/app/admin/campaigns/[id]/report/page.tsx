@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import * as React from "react";
+import { ExportsPanel } from "@/components/admin/ExportsPanel";
 import { LoadError, settled } from "@/components/admin/LoadError";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { ReportView } from "@/components/report/ReportView";
@@ -13,6 +14,7 @@ import { requireMe } from "@/lib/admin/me";
 import { isApiError } from "@/lib/api/errors";
 import type { Report } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
+import { analysisReportPdfUrl } from "@/lib/api/staff";
 import { parseReportSections } from "@/lib/report/sections";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -72,6 +74,30 @@ export default async function ReportPage({ params, searchParams }: Props): Promi
       />
       {analyses.error ? <LoadError error={analyses.error} /> : null}
       {reportError ? <LoadError error={reportError} /> : null}
+      {selected && report ? (
+        <ExportsPanel
+          items={[
+            {
+              id: "pdf",
+              label: t.admin.exportsPanel.pdf,
+              what: "PDF",
+              url: analysisReportPdfUrl(selected.id),
+              fallbackName: `report-v${report.version}.pdf`,
+            },
+            {
+              id: "md",
+              label: t.admin.exportsPanel.markdown,
+              what: "Markdown",
+              fallbackName: `report-v${report.version}.md`,
+              text: {
+                content: report.markdown,
+                filename: `${slugOf(campaign.name)}-report-v${report.version}.md`,
+                mime: "text/markdown",
+              },
+            },
+          ]}
+        />
+      ) : null}
       <ReportView
         key={selected?.id ?? "none"}
         campaignId={campaign.id}
@@ -82,5 +108,15 @@ export default async function ReportPage({ params, searchParams }: Props): Promi
         initialSections={parseReportSections(values["analysis.reportSections"])}
       />
     </>
+  );
+}
+
+/** A file-name stem from a campaign name; the same rule the report view uses for its own download. */
+function slugOf(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "report"
   );
 }

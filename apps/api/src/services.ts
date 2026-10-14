@@ -6,6 +6,7 @@ import type {
   Crypto,
   EgressGuard,
   EmailPort,
+  PdfExporter,
   JobAdminPort,
   JobPublisher,
   SettingsService,
@@ -19,6 +20,7 @@ import type { Config } from "./config.js";
 import { AnalysisQueryService } from "./modules/analysis/service.js";
 import { AuditService } from "./modules/audit/service.js";
 import { CampaignService } from "./modules/campaigns/service.js";
+import { ExportsService } from "./modules/exports/service.js";
 import { HealthService } from "./modules/health/service.js";
 import { VerificationTokenService } from "./modules/internal-auth/service.js";
 import { CryptoAdminService } from "./modules/operator/crypto.js";
@@ -61,6 +63,8 @@ export interface Services {
   budgets: BudgetService;
   settingsAdmin: SettingsAdminService;
   analysisQueries: AnalysisQueryService;
+  /** Documents composed on request: the report PDF (D-211). */
+  exports: ExportsService;
   operator: OperatorService;
   cryptoAdmin: CryptoAdminService;
   voiceSetup: VoiceSetupService;
@@ -90,6 +94,7 @@ export interface ServiceDeps {
   jobs: JobPublisher;
   ceilings: TenantCeilings;
   onboarding: TenantOnboarding;
+  exporter: PdfExporter;
   /** Queue depth and dead letters, for the health tiles. */
   jobAdmin: JobAdminPort;
 }
@@ -97,6 +102,7 @@ export interface ServiceDeps {
 export function buildServices(d: ServiceDeps): Services {
   const audit = new AuditService(d.db);
   const providers = new ProviderService(d.db, d.crypto, d.callers, d.egress, d.speech);
+  const analysisQueries = new AnalysisQueryService(d.db, d.analysis, d.settings);
   const participant = new ParticipantService(
     d.db,
     d.crypto,
@@ -150,7 +156,8 @@ export function buildServices(d: ServiceDeps): Services {
         d.log.warn(meta, message);
       },
     }),
-    analysisQueries: new AnalysisQueryService(d.db, d.analysis, d.settings),
+    analysisQueries,
+    exports: new ExportsService(d.db, analysisQueries, d.exporter),
     cryptoAdmin: new CryptoAdminService(d.db, d.crypto, audit),
     operator: new OperatorService(d.db, d.settings, d.tenants, audit, {
       jobs: d.jobs,

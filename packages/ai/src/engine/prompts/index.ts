@@ -5,11 +5,11 @@ import { fileSummaryPromptV2 } from "../../ingest/prompts/file-summary.v2.js";
 import { imageDescribePromptV2 } from "../../ingest/prompts/image-describe.v2.js";
 import { issuesPromptV3 } from "../../spec/prompts/issues.v3.js";
 import { specPromptV2 } from "../../spec/prompts/spec.v2.js";
-import { extractionPromptV2 } from "./extraction.v2.js";
-import { interviewerPromptV5 } from "./interviewer.v5.js";
+import { extractionPromptV3 } from "./extraction.v3.js";
+import { interviewerPromptV6 } from "./interviewer.v6.js";
 import { recapPromptV1 } from "./recap.v1.js";
 import { summaryPromptV2 } from "./summary.v2.js";
-import { turnMetaRepairPromptV1 } from "./turn-meta-repair.v1.js";
+import { turnMetaRepairPromptV2 } from "./turn-meta-repair.v2.js";
 
 export interface PromptDefinition {
   key: string;
@@ -24,11 +24,11 @@ export interface PromptDefinition {
 
 /** Prompts shipped with the code (FR-50). Tenant overrides come through a PromptSource. */
 export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
-  interviewer: interviewerPromptV5,
+  interviewer: interviewerPromptV6,
   summary: summaryPromptV2,
   recap: recapPromptV1,
-  turn_meta_repair: turnMetaRepairPromptV1,
-  extraction: extractionPromptV2,
+  turn_meta_repair: turnMetaRepairPromptV2,
+  extraction: extractionPromptV3,
   clustering: clusteringPromptV2,
   opportunity: opportunityPromptV2,
   report: reportPromptV2,

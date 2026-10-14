@@ -456,6 +456,14 @@ export const SETTINGS = {
     category: "branding",
     description: "Name shown to participants",
   }),
+  "branding.primaryColor": def({
+    schema: z.string().regex(/^#[0-9a-fA-F]{6}$/, "A colour as #rrggbb"),
+    default: "#1f4e79",
+    scopes: ["platform", "tenant"],
+    category: "branding",
+    description: "Accent colour of PDF exports",
+    since: "2026.10",
+  }),
   "branding.emailSender": def({
     schema: z.string(),
     default: "",
@@ -748,6 +756,31 @@ export const SETTINGS = {
     scopes: ["platform", "tenant", "template"],
     category: "exports",
     description: "Agent bundle flavor",
+  }),
+  // PDF export (D-210): name and colour come from branding; there is no logo upload.
+  "exports.pdfPageSize": def({
+    schema: z.enum(["A4", "Letter"]),
+    default: "A4",
+    scopes: ["platform", "tenant"],
+    category: "exports",
+    description: "Page size of PDF exports",
+    since: "2026.10",
+  }),
+  "exports.pdfCoverPage": def({
+    schema: z.boolean(),
+    default: true,
+    scopes: ["platform", "tenant"],
+    category: "exports",
+    description: "Start PDF exports with a cover page",
+    since: "2026.10",
+  }),
+  "exports.pdfFooterText": def({
+    schema: z.string().max(120),
+    default: "",
+    scopes: ["platform", "tenant"],
+    category: "exports",
+    description: "Text added to the footer of every PDF page",
+    since: "2026.10",
   }),
   // Added in 2026.10: notifications to the tenant's admins, the voice switch per template, the
   // tenant ceilings, and the onboarding card. Each carries `since` so the "what changed" panel

@@ -28,6 +28,8 @@ import { request, requestStream, type Transport } from "./http";
 import type { LISTS, ListQueryOf } from "./lists";
 import type { TurnInput } from "./participant";
 import {
+  type DiagramSaveResult,
+  DiagramSaveResultSchema,
   type GitHubPushResult,
   GitHubPushResultSchema,
   type LiveSpec,
@@ -247,7 +249,20 @@ export interface GitHubPushInput {
   message?: string;
 }
 
-export type SpecExportFormat = "md" | "json" | "bundle";
+export type SpecExportFormat = "md" | "json" | "bundle" | "pdf";
+
+/** What the diagram editor sends (FR-23). The description is the caption and the alt text. */
+export interface DiagramInput {
+  mermaid: string;
+  description: string;
+  title?: string;
+  type?: "context" | "containers" | "sequence" | "state" | "entity";
+}
+
+/** Browser-side download URL of an analysis report as a PDF, through the `/api/staff` proxy. */
+export function analysisReportPdfUrl(analysisId: string): string {
+  return `/api/staff/analyses/${encodeURIComponent(analysisId)}/report.pdf`;
+}
 
 /** Version routes accept the version number (`/versions/:v`). */
 export type SpecVersionRef = number | string;
@@ -629,6 +644,24 @@ export function staffApi(transport: Transport): StaffApi {
           body: { markdown },
           schema: LiveSpecEnvelopeSchema,
         }).then((r) => r.spec),
+      diagrams: {
+        save: (id, key, input) =>
+          request(transport, {
+            method: key === null ? "POST" : "PUT",
+            path:
+              key === null
+                ? `/requirements/${id}/spec/diagrams`
+                : `/requirements/${id}/spec/diagrams/${encodeURIComponent(key)}`,
+            body: input,
+            schema: DiagramSaveResultSchema,
+          }),
+        reset: (id, key) =>
+          request(transport, {
+            method: "DELETE",
+            path: `/requirements/${id}/spec/diagrams/${encodeURIComponent(key)}`,
+            schema: LiveSpecEnvelopeSchema,
+          }).then((r) => r.spec),
+      },
       settleFinding: (id, findingId, outcome, note) =>
         request(transport, {
           method: "POST",
@@ -809,6 +842,12 @@ export interface RequirementsApi {
   reopen(id: string): Promise<void>;
   /** An empty string clears the owner's edit. Returns the refreshed live spec. */
   editSection(id: string, key: string, markdown: string): Promise<LiveSpec>;
+  diagrams: {
+    /** `null` adds a diagram; a key edits that one. A source the renderer refuses answers 400 with `details.issues`. */
+    save(id: string, key: string | null, input: DiagramInput): Promise<DiagramSaveResult>;
+    /** Puts a generated diagram back, or removes one the owner added. */
+    reset(id: string, key: string): Promise<LiveSpec>;
+  };
   settleFinding(id: string, findingId: string, outcome: FindingOutcome, note?: string): Promise<LiveSpec>;
   /** Same SSE stream as the participant turn, plus `event: spec` after each turn. */
   sendTurn(id: string, input: TurnInput | undefined, signal?: AbortSignal): Promise<Response>;

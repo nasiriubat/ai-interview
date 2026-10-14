@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { DiagramsPanel } from "./DiagramsPanel";
 import { SpecSectionCard } from "./SpecSectionCard";
 import { StatTile } from "@/components/admin/StatTile";
 import { EnumLabel } from "@/components/common/EnumLabel";
@@ -64,6 +65,8 @@ export function SpecSections({
           <SpecSectionCard key={section.key} sessionId={sessionId} section={section} onSpec={onSpec} />
         ))
       )}
+
+      <DiagramsPanel sessionId={sessionId} diagrams={spec.diagrams} onSpec={onSpec} />
     </div>
   );
 }

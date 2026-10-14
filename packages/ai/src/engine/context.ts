@@ -1,13 +1,18 @@
 import type { ChatMessage, InterviewTemplate, SessionState } from "@aidp/shared";
 import { widgetResponseToText } from "@aidp/shared";
 import { estimateTokens } from "../cost/pricing.js";
+import { nextRequirementNumber } from "../spec/delta-validation.js";
 import { mvpItems, specFacts } from "../spec/live.js";
 import { languageName } from "../util/language.js";
 import { newNonce, wrapUntrusted } from "../util/untrusted.js";
 import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js";
 import type { PromptDefinition } from "./prompts/index.js";
-import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v5.js";
+import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v6.js";
 import type { Focus } from "./selection.js";
+import { TURN_MARKER } from "./turn-parser.js";
+
+/** The last line of every interviewer request (see `assembleContext`). */
+export const FORMAT_REMINDER = `Reply format: your message to the participant, then a line containing exactly ${TURN_MARKER}, then the JSON metadata object. Earlier interviewer messages above are shown without their metadata; yours must include it.`;
 
 export interface AssembledContext {
   system: string;
@@ -110,6 +115,10 @@ export function renderState(
     const bySection = new Map<string, string[]>();
     for (const f of spec) bySection.set(f.sectionKey, [...(bySection.get(f.sectionKey) ?? []), f.path]);
     for (const [k, paths] of bySection) lines.push(`- ${k}: ${paths.slice(-12).join(", ")}`);
+    const requirements = specFacts(state).filter((f) => /^FR-\d+$/.test(f.path)).length;
+    lines.push(
+      `Functional requirements recorded: ${requirements}; the next one is FR-${nextRequirementNumber(state)}`,
+    );
     const mvp = mvpItems(state);
     if (mvp.length) lines.push(`MVP items: ${mvp.map((i) => `${i.path} ${i.title}`).join("; ")}`);
   }
@@ -257,7 +266,10 @@ export function assembleContext(input: {
     used = estimateTokens(system) + estimateTokens(contextText());
   }
 
-  const focusText = `<engine_focus>\n${renderFocus(focus, session.template, session.path, session.state)}\n</engine_focus>`;
+  // The interviewer's earlier messages are shown without their metadata block, so a model that
+  // imitates its history stops writing one (about half the replies of a cheap model in the live
+  // run of 2026-10-14). The reminder sits last, next to the question, where it is followed.
+  const focusText = `<engine_focus>\n${renderFocus(focus, session.template, session.path, session.state)}\n</engine_focus>\n\n${FORMAT_REMINDER}`;
   used += estimateTokens(focusText);
 
   // Recent window: newest first until the budget is spent, then restore order.
