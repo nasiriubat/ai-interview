@@ -3,14 +3,14 @@
 The one file to read to see where the program stands. Updated at every merge. The plan behind it
 is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026-10-13.md`.
 
-**Last updated:** 2026-10-14, spec quality, landing page (M5) and security M3 merged; full-stack run/load/chaos agent still running.
+**Last updated:** 2026-10-14, spec quality, landing page (M5) and security M3 merged; full-stack drill merged; follow-up wave next.
 
 ## Headline numbers
 
 | Measure                                                        | Now      | How it is computed                                                                                                                                              |
 | -------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Program to "A+ production-ready handover" (phases 0 to 5)      | **~68%** | About 42 of about 210 deduplicated engineer-days merged and verified                                                                                            |
-| Safe to run a first pilot tenant (owner operating, one tenant) | **~93%** | All seven pilot blockers closed; remaining: full compose stack run end to end (agent running), duplicates still 18% in requirement lists, owner actions O1..O10 |
+| Safe to run a first pilot tenant (owner operating, one tenant) | **~96%** | All seven pilot blockers closed; remaining: full compose stack run end to end (agent running), duplicates still 18% in requirement lists, owner actions O1..O10 |
 | Spec coverage, phases 0 to 4                                   | ~87%     | Was ~85%; resume recap, flags, PDF, cluster edits and prompt admin still open                                                                                   |
 | Automated tests (all merged, zero skipped)                     | 2,770+   | `pnpm check` with a database, last run after security M3                                                                                                        |
 
@@ -22,7 +22,7 @@ is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026
 | M1 Pilot-safe           | ~35  | **Done, merged, gate green** | Security, operations, engineering correctness, web truth copy and accessibility |
 | M2 Trustworthy          | ~55  | **Done, merged, gate green** | Copy, architecture, tenancy, privacy, security part 2, pipeline, configuration  |
 | M3 Complete the spec    | ~60  | **Done, merged, gate green** | Product blueprint features, redesign, observability                             |
-| M4 Evidence and A grade | ~50  | **In progress (~55%)**       | Evals, Playwright, load and chaos, pen test, usability tests, drills            |
+| M4 Evidence and A grade | ~50  | **In progress (~75%)**       | Evals, Playwright, load and chaos, pen test, usability tests, drills            |
 | M5 Launch               | ~10  | **Mostly done (~70%)**       | Landing page, proof points, name, phase plan says Done                          |
 
 ## Grades against the starting point
@@ -59,13 +59,11 @@ is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026
 
 ## In progress right now
 
-| Work                                                  | Where            | Expected result                                                    |
-| ----------------------------------------------------- | ---------------- | ------------------------------------------------------------------ |
-| Full compose stack run, fake provider, load and chaos | Full-stack agent | Evidence in `docs/team/drills/`, a deterministic fake model server |
+Nothing running; follow-up wave being launched (see Left).
 
 ## Left, in order
 
-1. **Merge the full-stack agent** (fake provider, load, chaos, compose end to end), then Playwright journeys against the real stack.
+1. **Full-stack follow-ups:** voice first sentence before metadata (p95 1.76 s at 60 tok/s vs 1.5 s target), fail orphaned active jobs at worker start, turn-lock TTL after API kill (82-90 s), disk-full upload message, full k6 run under default abuse limits, Playwright journeys against the stack.
 2. **Requirement quality follow-ups (D-249):** grouped merge pass, regenerate fresh interviews, read-back eval; duplicates 18% to under 5%.
 3. **M4 remainder:** requirements/version pages in axe inventory, two drifted e2e fixtures, scheduled model-backed evals, Lighthouse budgets, tenant-scoped sweeps in retention tests, re-run `pnpm live:run` on the merged tip, `scripts/live-run/README.md`, cold-build ordering fix.
 4. **Owner-only:** pen test budget, counsel review of DPA and consent, security contact, product name, usability tests with real people, restore and chaos drills, live voice on a phone, rotation drill on staging, make security workflow a required check.
@@ -73,7 +71,7 @@ is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026
 
 ## Known risks and open items
 
-- Full compose stack has not yet been run end to end (agent running).
+- Full compose stack run end to end with the fake provider (11/11 healthy, load 0 errors, chaos 7/7); never with a real provider, Let's Encrypt or offsite restore.
 - Requirement lists still contain ~18% duplicates; grounded 86% verified.
 - CSP is enforced but has no week of production data and no Observatory scan.
 - Finnish interview quality never run live; GitHub push only tested against a fake.
@@ -116,3 +114,5 @@ contact address, live voice in the first pilot (default: behind its flag).
 - 2026-10-14 — Security M3 merged (D-260..269, migration 0026): CSP enforced, abuse counters, audit reads, CI gitleaks/trivy, HKDF internal auth, 8h staff sessions, 12 probes (5 broke, fixed), 13 findings (11 fixed). Verification matrix 29/35 closed, 5 partial, 1 open (external pen test). Gate green, 2,773 tests. Owner actions O1..O10 in docs/team/security-verification-2026-10.md. Open: two e2e fixtures drifted (/p/r/<token>, /routes).
 
 - 2026-10-14 — Full-stack drill, load and chaos (D-250..259): the production stack run end to end for the first time after M1 to M3 and ten defects fixed that no harness could see (web image did not build, Caddyfile never loaded, session event seq race, every upgrade rolled itself back, every real-sized backup failed verification, restore left the stack down, failed migration took the site down, first-token deadline not enforced for silent providers, sign-in links without the port, limits that did not fit the stated 4 GB host). k6: 40 interviews + 5 voice + 100-open burst, 0 errors, first token p95 532 ms, voice first word p95 1.44 s; 4 GB preset run without a kill. Chaos: 7 of 7. Open: voice first word depends on reply length, killed worker leaves jobs active until expiry, turn lock 90 s after a kill. Records in docs/team/drills/
+
+- 2026-10-14 — Full-stack drill merged (D-250..259): fake provider, production compose run, k6 load (0 errors, first token p95 532 ms, voice 1.44 s), chaos 7/7, ten defects fixed (Caddyfile never loaded, upgrades rolled themselves back, backups >64 KB failed verification, session seq race, and more). Five open findings recorded in docs/team/drills/. Gate green.
