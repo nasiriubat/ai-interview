@@ -122,10 +122,14 @@ describe(`requirements replay: ${fixture.name}`, () => {
     // Then the deterministic completeness check (D-191): two requirements are fewer than the template's
     // minimum, so one more question is asked, and its answer is recorded as FR-3.
     const raised = focuses.filter((f) => f.startsWith("finding:"));
-    expect(raised).toHaveLength(2);
+    // And last, the list read back to the owner through the same flow (D-244).
+    expect(raised).toHaveLength(3);
     expect(raised[1]).toMatch(/^finding:c\d+-1$/);
-    expect(store.state.findings).toHaveLength(2);
-    expect(store.state.findings.map((f) => f.status)).toEqual(["resolved", "resolved"]);
+    expect(raised[2]).toMatch(/^finding:r\d+-1$/);
+    expect(store.state.findings).toHaveLength(3);
+    expect(store.state.findings.map((f) => f.status)).toEqual(["resolved", "resolved", "resolved"]);
+    expect(store.state.findings[2]?.description).toContain("Is anything on this list wrong or missing?");
+    expect(store.state.requirementsConfirmAsked).toBe(true);
     expect(store.state.findings[1]?.description).toMatch(/Only 2 functional requirements/);
     expect(store.state.completenessAsks).toBe(1);
     expect(

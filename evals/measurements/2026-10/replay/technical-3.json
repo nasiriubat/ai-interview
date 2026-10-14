@@ -1,0 +1,1807 @@
+{
+  "persona": "technical",
+  "messages": [
+    {
+      "seq": 1,
+      "role": "assistant",
+      "content": "Before we get into the build, where will this system run? Hosting shapes the architecture, the running cost, and the compliance defaults, so it's worth settling early. If you're not sure yet, pick \"Nothing yet\" and we'll leave it open."
+    },
+    {
+      "seq": 2,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 3,
+      "role": "assistant",
+      "content": "Thanks, cloud account noted. Next, since you're on a cloud account, the team's experience with that platform shapes which services we'd recommend. Which cloud provider do you use today?"
+    },
+    {
+      "seq": 4,
+      "role": "user",
+      "content": "I use Azure; we’re already fully integrated with Azure Active Directory for single sign-on across all hospital systems, and our current infrastructure—HL7 interfaces, FHIR APIs, and internal microservices—runs on Azure. That means we’ll build this new tool using Azure App Services, Azure SQL Database, and leverage Azure AD B2C for any potential external access, keeping identity management consistent."
+    },
+    {
+      "seq": 5,
+      "role": "assistant",
+      "content": "Azure with Azure AD for sign-on is a clear fit, and I'll note it as the cloud platform. Which existing systems must this tool work with? Knowing this matters because each system shapes the data we pull and push and how much integration work the build takes. If nothing else needs connecting, say \"none\" and we'll move on."
+    },
+    {
+      "seq": 6,
+      "role": "user",
+      "content": "The tool must integrate with two systems: our existing Electronic Medical Record (EMR) system, Epic, via its FHIR API (version STU3), and our ward-level nurse scheduling and shift management system, which uses a REST API hosted on Azure. The FHIR API will provide patient demographics and current admission status, and the nurse shift system will provide real-time ward staffing data to validate who’s authorized to enter notes. We’ll use Azure API Management to proxy and secure these integrations, ensuring compliance with HIPAA and our hospital’s data governance policies."
+    },
+    {
+      "seq": 7,
+      "role": "assistant",
+      "content": "Thanks for the integration detail. Two systems to connect: Epic via FHIR STU3, and the ward shift system via REST, both proxied through Azure API Management. I'll record both.\n\nNext, who will build this? It shapes how the specification and plan are phrased. If you're unsure, we'll assume a coding agent."
+    },
+    {
+      "seq": 8,
+      "role": "user",
+      "content": "I’ll be leading the build with a small team: two full-stack developers, one frontend specialist (React), and one DevOps engineer. We’re using Azure DevOps for CI/CD pipelines, with infrastructure-as-code via Terraform, and we’ll follow our hospital’s secure coding standards, including static analysis with SonarQube and dependency scanning with Snyk."
+    },
+    {
+      "seq": 9,
+      "role": "assistant",
+      "content": "Thanks for the team detail. Since you're building it with an in-house team, I'll record that and skip the builder question. Next, what problem does this solve, and for whom? Right now nurses type each note twice, once into the patient system and once into a spreadsheet, and we need to know who feels that pain most and what happens if it stays unsolved."
+    },
+    {
+      "seq": 10,
+      "role": "user",
+      "content": "The primary users are ward nurses, specifically those on medical-surgical and intensive care units who manage 12–15 patients per shift. They currently enter the same clinical note—like vital signs, medication changes, or patient behavior—into Epic’s FHIR-compliant note field and into a shared Excel-based ward log used by the charge nurse and clinical leads. This duplication causes delays (averaging 3–5 minutes per patient per shift), increases documentation errors by ~18% according to our last audit, and creates a compliance risk when notes don’t align across systems. If left unsolved, it leads to nurse burnout, inconsistent handoffs, and audit failures during regulatory reviews."
+    },
+    {
+      "seq": 11,
+      "role": "assistant",
+      "content": "That's a clear picture of the problem, with real numbers behind it. Before we pick any frameworks, what does your team know best? A stack the team already knows usually beats a slightly better one nobody has used, so this shapes our recommendations. If you're not sure, we'll record it as unknown."
+    },
+    {
+      "seq": 12,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 13,
+      "role": "assistant",
+      "content": "Noted: the team works in .NET and C#. That fits well with Azure App Services and Azure SQL, so I'll record it as the team's stack.\n\nNext, who uses this tool day to day? Please name the roles and what each one needs to do first, starting with the ward nurse, since they're the main users we've described."
+    },
+    {
+      "seq": 14,
+      "role": "user",
+      "content": "The primary user is the ward nurse, who needs to log in via Azure AD SSO, select a patient from their assigned shift roster (pulled from the ward scheduling API), and enter a free-text clinical note using a clean, mobile-responsive form that auto-saves every 30 seconds. The secondary user is the charge nurse, who needs to view a real-time dashboard of all entered notes per ward, filter by patient or nurse, and export a summary to PDF for shift handoff. The tertiary user is the clinical informatics lead, who occasionally audits note distribution and duplication rates via a secure admin portal with role-based access control."
+    },
+    {
+      "seq": 15,
+      "role": "assistant",
+      "content": "Thanks, those three roles give us a clear shape. Next, when does version one need to be in use? The date decides how much we can cut from the first release. If there's no fixed date, we'll plan without one."
+    },
+    {
+      "seq": 16,
+      "role": "user",
+      "content": "We need version one live by October 15, 2024, to align with the hospital’s annual compliance audit cycle and our scheduled EMR system upgrade in early November. That gives us 12 weeks from today to deliver a minimum viable product with core note entry, FHIR push to Epic, and basic dashboard visibility for charge nurses—no advanced analytics or export formats beyond PDF in v1."
+    },
+    {
+      "seq": 17,
+      "role": "assistant",
+      "content": "Thanks, the October 15 deadline is recorded, and it fits the audit cycle and the early-November EMR upgrade. Version one covers note entry, the FHIR push to Epic, and a basic charge nurse dashboard, with PDF as the only export.\n\nNext, who else touches this tool? Besides ward nurses, charge nurses and the informatics lead, does anyone else need access, such as a pharmacist or a hospital IT administrator?"
+    },
+    {
+      "seq": 18,
+      "role": "user",
+      "content": "Yes, hospital IT administrators need access to the tool’s health monitoring dashboard—available via Azure Monitor and Application Insights—to track API latency, error rates, and authentication failures. They’ll use it to detect issues before nurses report them, especially during high-traffic shift changes. Additionally, a pharmacy liaison may need read-only access to the note feed for specific alerts (e.g., “patient refusing medication”) to initiate interventions, but only with explicit approval and audit logging. All access is governed by Azure AD roles and requires MFA."
+    },
+    {
+      "seq": 19,
+      "role": "assistant",
+      "content": "Thanks for the IT administrator and pharmacy liaison details. Next, is there a budget range for this build? It affects whether we lean toward building or buying parts of the solution. If you're not sure, we'll leave it undecided."
+    },
+    {
+      "seq": 20,
+      "role": "user",
+      "content": "We have a budget of $85,000 for the full build and deployment of version one, covering dev time, Azure infrastructure, API management, and compliance testing. This allows us to build the core features in-house using our .NET stack and Azure services, but we’ll use a commercial FHIR client library (Hl7.FhirNetCore) to reduce integration effort and avoid re-inventing the HL7 standard. We won’t buy a full off-the-shelf solution, but we’ll license secure logging and monitoring tools from Azure Marketplace within this budget."
+    },
+    {
+      "seq": 21,
+      "role": "assistant",
+      "content": "Thanks, the $85,000 budget is recorded. It covers in-house development on the .NET and Azure stack, the commercial FHIR client library, and licensed logging and monitoring tools.\n\nNext, the product itself: what must the ward nurse be able to do on the first screen after signing in? Describe the action in your own words, for example entering a note for a patient on their roster."
+    },
+    {
+      "seq": 22,
+      "role": "user",
+      "content": "After signing in, the ward nurse sees a clean, responsive dashboard that lists all patients on their current shift, pulled from the ward scheduling API in real time. The first action is to click a patient card, which opens a pre-filled note form with that patient’s name, MRN, bed number, and admission date—auto-populated from the FHIR API. The nurse then types a free-text clinical note (with auto-save every 30 seconds), selects a note type from a predefined dropdown (e.g., “Vital Signs,” “Medication Change,” “Behavioral Concern”), and clicks “Submit.” On submission, the note is immediately sent to Epic via the FHIR API and appears in the ward log dashboard for charge nurses to review."
+    },
+    {
+      "seq": 23,
+      "role": "assistant",
+      "content": "That workflow is clear, and I'll capture it as the core nurse flow. One sizing question: roughly how many users will use this at launch? It decides how much capacity we plan for and the hosting defaults. If you're unsure, we'll assume under 100."
+    },
+    {
+      "seq": 24,
+      "role": "user",
+      "content": "We expect about 160 active ward nurses across the three medical-surgical and ICU units to use the tool at launch, mostly during two 12-hour shifts per day. This means we’ll design for peak concurrency of 60–80 users simultaneously entering or editing notes, with an expected average of 120 concurrent sessions during shift change hours (7–9 AM and 7–9 PM). We’ll provision Azure App Service with 4 vCPUs and scale up to 8 instances during peak times, using Azure autoscale rules based on CPU and request queue length."
+    },
+    {
+      "seq": 25,
+      "role": "assistant",
+      "content": "Thanks, that answers the sizing question. About 160 nurses, with peaks near 120 concurrent sessions at shift change, means the hosting plan has to handle far more than the under-100 default I was prepared to assume. I'll record it as your figure.\n\nNext, what happens to a note if Epic is unreachable when the nurse clicks Submit? Should it be held and retried automatically, or should the nurse be blocked until it goes through?"
+    },
+    {
+      "seq": 26,
+      "role": "user",
+      "content": "If Epic is unreachable during submission, the note is immediately persisted to our Azure SQL Database with a status of “Pending” and a retry queue is triggered via Azure Service Bus. The system automatically retries the FHIR POST every 30 seconds for up to 15 minutes, with exponential backoff. If it fails after 15 minutes, the nurse receives a notification in-app: “Note saved locally—sync failed. Contact IT if issue persists.” The charge nurse dashboard also flags pending notes by red icon, and the IT admin sees retry failures in Azure Monitor. This ensures no data loss and keeps nurses productive during transient outages."
+    },
+    {
+      "seq": 27,
+      "role": "assistant",
+      "content": "Thanks for the retry design. It covers Epic outages without losing notes.\n\nNext, which compliance regimes apply to this data? This changes hosting, access and audit requirements. This system will hold patient health information, so I'd default to HIPAA plus your hospital data governance policy. Should we keep that?"
+    },
+    {
+      "seq": 28,
+      "role": "user",
+      "content": "Yes, we’ll enforce HIPAA compliance and our hospital’s internal data governance policy, which includes mandatory encryption at rest and in transit (using Azure’s managed keys and TLS 1.3), audit logging for all access and modifications (retained for 7 years), and strict role-based access control via Azure AD. All FHIR data transfers are subject to our audit trail policy, and we’ll enable Microsoft Purview for data classification and discovery. We’ll also ensure that no data leaves the U.S. region (Azure East US) and that all backups are encrypted and stored in a separate region for disaster recovery."
+    },
+    {
+      "seq": 29,
+      "role": "assistant",
+      "content": "Thanks, that covers the compliance picture: HIPAA, your hospital data governance policy, encryption at rest and in transit, seven-year audit logs, Azure AD role-based access, U.S.-only data residency, and an encrypted backup region for disaster recovery.\n\nI'll record that as the compliance answer for this build, so we won't ask about it again."
+    },
+    {
+      "seq": 30,
+      "role": "user",
+      "content": "Understood. All compliance requirements are documented and will guide the architecture, data flows, and access controls throughout the build. I’ll ensure the team reviews them in the design phase and includes them in the system’s security baseline."
+    },
+    {
+      "seq": 31,
+      "role": "assistant",
+      "content": "Thanks, the compliance requirements are settled and will guide the design.\n\nNext, let's confirm the roles. Besides the ward nurse, charge nurse, clinical informatics lead, IT administrator and pharmacy liaison, is there anyone else who will use or manage this tool?"
+    },
+    {
+      "seq": 32,
+      "role": "user",
+      "content": "No other roles require direct access at launch. The pharmacy liaison will only have read-only access through a curated view in the charge nurse dashboard, and no other departments—like respiratory therapy or social work—need to enter or manage notes. We’ve excluded those roles to keep the first release focused and aligned with the October 15 deadline. Any future expansion will require a new feature request and formal risk assessment."
+    },
+    {
+      "seq": 33,
+      "role": "assistant",
+      "content": "Thanks for confirming the role list. One thing to pin down: the pharmacy liaison gets read-only access through a curated view in the charge nurse dashboard. Which notes should that view show, all notes for a unit, or only notes that carry an alert such as \"patient refusing medication\"?"
+    },
+    {
+      "seq": 34,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 35,
+      "role": "assistant",
+      "content": "Got it: the pharmacy liaison sees only alert-flagged notes. Can you walk me through one example? Take a note flagged as \"patient refusing medication\": what does the liaison see on screen, and what do they do next?"
+    },
+    {
+      "seq": 36,
+      "role": "user",
+      "content": "When a nurse submits a note with the alert type “Patient refusing medication,” the system tags it in Azure SQL with a `priority_flag = true` and sets `alert_type = \"refusal\"`. The pharmacy liaison, viewing the curated dashboard, sees a red banner notification highlighting the note, with the patient’s name, MRN, bed number, time of note, and the full text: “Patient refuses IV antibiotics; stated ‘I don’t want to get sicker.’” They can click to open it, which triggers an automated workflow: a Microsoft Teams message is sent to the pharmacy team channel with a link to the note, and a ticket is created in our incident tracking system (ServiceNow) with priority level 2. The liaison does not edit or delete the note—only reviews and escalates."
+    },
+    {
+      "seq": 37,
+      "role": "assistant",
+      "content": "The example makes the liaison's role clear: read-only review, with a Teams message and a ServiceNow ticket as the escalation path. One gap remains. Who is allowed to open an alert-flagged note, and does each open need a reason from the liaison that gets audit-logged?"
+    },
+    {
+      "seq": 38,
+      "role": "user",
+      "content": "Only the pharmacy liaison and the charge nurse can open an alert-flagged note, and each access is logged in Azure Monitor with the user ID, timestamp, IP address, and the note’s MRN. When the liaison opens the note, they must select a reason from a dropdown—“Initiate intervention,” “Review for clinical risk,” or “Confirm no action”—which is stored in the audit log and visible in the data governance portal. This ensures accountability and supports our 7-year audit retention policy. No other role may access alert notes directly."
+    },
+    {
+      "seq": 39,
+      "role": "assistant",
+      "content": "Thanks, the audit trail for alert-flagged notes is clear: only the liaison and charge nurse can open them, each open needs a reason, and every access is logged.\n\nNext, let's turn these workflows into user stories. Starting with the ward nurse: when they finish a shift, what should they be able to check before leaving, such as whether any notes are still pending?"
+    },
+    {
+      "seq": 40,
+      "role": "user",
+      "content": "At the end of their shift, the ward nurse can access a “Shift Summary” view that shows all notes they submitted during the shift, with color-coded status: green for “Synced to Epic,” yellow for “Pending retry,” and red for “Failed after 15 minutes.” They can tap any failed note to see the error message and retry it manually if desired. The system also highlights any notes they flagged as “urgent” or “alert” so they can confirm handoffs were properly escalated. This summary is auto-saved and available in the app for 24 hours after shift end, and can be exported to PDF for personal records."
+    },
+    {
+      "seq": 41,
+      "role": "assistant",
+      "content": "Thanks for the shift summary. Before we go further, I need to raise a gap in the Epic integration. It is named as FHIR STU3 for demographics and admission status, but we have not defined the contract: endpoint, payload shape, authentication, and error responses.\n\nDefault: we record the contract as FHIR STU3 with OAuth 2.0 client credentials through Azure API Management, and map each error to the retry rules you described. That means the developers will have a defined interface to build against before any integration work starts.\n\nDo you want to keep that default, or do you have a specific Epic endpoint and auth method to use instead?"
+    },
+    {
+      "seq": 42,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 43,
+      "role": "assistant",
+      "content": "Thanks, the Epic contract default is accepted: FHIR STU3 with OAuth 2.0 client credentials through Azure API Management, with errors mapped to your retry rules.\n\nBack to the stories. For the charge nurse, what is the first thing they do when they open their dashboard at the start of a shift?"
+    },
+    {
+      "seq": 44,
+      "role": "user",
+      "content": "At the start of their shift, the charge nurse opens the dashboard and sees a real-time summary of all ward notes from the prior shift: a list of patients with active notes, color-coded by status—green for “synced,” yellow for “pending,” and red for “failed.” They immediately see any alert-flagged notes (e.g., “refusing medication”) in a dedicated section at the top with a red badge, and a count of unresolved issues. They can click “View Full Log” to drill into the full note history per patient or export the overview to PDF for handoff. The system auto-refreshes every 2 minutes during the shift."
+    },
+    {
+      "seq": 45,
+      "role": "assistant",
+      "content": "Thanks, the charge nurse's start-of-shift view is clear: alert-flagged notes at the top, status colors, and a two-minute refresh.\n\nNext, the charge nurse can export the overview to PDF for handoff. Who is the recipient of that handoff, and does the export need to be logged like alert-note access?"
+    },
+    {
+      "seq": 46,
+      "role": "user",
+      "content": "The PDF handoff is shared with the incoming charge nurse and the unit manager, who receive it via secure email through Azure Logic Apps, with encryption and a 7-day expiration link. The export is logged in the audit trail with the user ID, timestamp, patient count, and recipient email, and stored in Azure Blob Storage with a 7-year retention policy—exactly like alert-note access. This ensures compliance with HIPAA and our internal data governance policy, and allows us to trace any data sharing during audits."
+    },
+    {
+      "seq": 47,
+      "role": "assistant",
+      "content": "Thanks, the PDF handoff is now clear: it goes to the incoming charge nurse and unit manager by encrypted email with a seven-day link, and every export is audit-logged.\n\nLet's go one level deeper on the ward nurse. When a nurse submits a note and Epic is down, what do they see on screen while the note waits to retry, and when does the system notify them?"
+    },
+    {
+      "seq": 48,
+      "role": "user",
+      "content": "While waiting to retry, the nurse sees a persistent notification at the top of the screen: “Your note is pending sync—will retry automatically. Status: Retry attempt #2 (30 seconds ago).” The retry status updates every 30 seconds with a progress graphic. If the note fails after 15 minutes, the system triggers a push notification (via Azure Notification Hub) and displays a modal: “Note saved locally—sync failed due to Epic outage. Contact IT if issue persists.” The message remains visible until acknowledged, ensuring no note is silently lost—this is logged as a failed write event in Azure Monitor, visible to the IT team."
+    },
+    {
+      "seq": 49,
+      "role": "assistant",
+      "content": "The retry experience is clear, and it gives us a concrete requirement to capture. Let's start the functional requirements with the most basic capability: when a nurse opens the app, what must they be able to do first, before any note is written?"
+    },
+    {
+      "seq": 50,
+      "role": "user",
+      "content": "When a nurse opens the app, they must be able to authenticate via Azure AD SSO and immediately see their assigned shift roster—displayed as a list of patient cards—with real-time status indicators (e.g., “Active,” “Discharged,” “Transfer”). Each card shows the patient’s name, MRN, bed number, and current admission status, pulled from the FHIR API. This data must load within 3 seconds, and the nurse must be able to click any patient card to begin note entry—even if the network is slow, with all patient data cached locally for up to 5 minutes."
+    },
+    {
+      "seq": 51,
+      "role": "assistant",
+      "content": "Thanks, the roster requirement is recorded: Azure AD sign-in, a patient-card roster loading within three seconds, and five-minute local caching.\n\nI also need to flag a gap. The ward shift system is named as a real-time staffing source, but we have no contract for it yet: no endpoint, payload shape, authentication method, or error format.\n\nDefault: REST on Azure behind Azure API Management, with OAuth 2.0 client credentials and the same error-mapping approach as Epic. That means the roster and staffing data follow one integration pattern.\n\nDo you accept this default for the ward shift system?"
+    },
+    {
+      "seq": 52,
+      "role": "user",
+      "content": "(I picked: {\"type\":\"yes_no\",\"value\":true})"
+    },
+    {
+      "seq": 53,
+      "role": "assistant",
+      "content": "Thanks, the ward shift system default is accepted: REST on Azure behind API Management, with OAuth 2.0 client credentials and the same error mapping as Epic.\n\nStaying on functional requirements: when a nurse opens the roster, the cards show admission status. If a patient is marked \"Transfer\" in Epic but the ward shift system shows the bed as empty, which status should the nurse see, and should the card warn them?"
+    },
+    {
+      "seq": 54,
+      "role": "user",
+      "content": "The nurse sees the status from the ward shift system—the bed is empty—so the card shows “Bed Empty” and is dimmed, with a small tooltip: “Patient transferred per ward system; note may not be relevant.” The card does not display the Epic admission status of “Transfer” in this case, because the shift system’s real-time bed state takes precedence. If the nurse attempts to enter a note for that patient, a modal appears: “Patient not assigned to this ward—note will not sync to Epic. Confirm continue?” This prevents invalid data entry and maintains data integrity."
+    },
+    {
+      "seq": 55,
+      "role": "assistant",
+      "content": "The bed-state precedence is clear. Next, the modal says a note \"will not sync to Epic\" if the patient isn't on the ward. Should the nurse be able to confirm and save the note locally anyway, or should the entry be blocked entirely?"
+    },
+    {
+      "seq": 56,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 57,
+      "role": "assistant",
+      "content": "\"Yes\" is ambiguous here: it could mean the nurse can confirm and save locally, or that entry should be blocked. Please tell me which: should the nurse be able to save the note locally, knowing it will not reach Epic?"
+    },
+    {
+      "seq": 58,
+      "role": "user",
+      "content": "Yes, the nurse can confirm and save the note locally—this is allowed only if the patient is marked as “Transferred” or “Discharged” in the ward shift system, and the note is tagged with a `local_only` flag. The system saves it to Azure SQL with status “Local Save” and includes a warning in the audit log: “Note saved locally—patient not on active ward.” The charge nurse dashboard shows a count of such notes, and they are purged after 7 days unless manually reviewed. This balances clinical need with data integrity and compliance."
+    },
+    {
+      "seq": 59,
+      "role": "assistant",
+      "content": "Thanks, local-only saves are clear: allowed only for transferred or discharged patients, tagged `local_only`, audit-logged, and purged after seven days unless reviewed.\n\nLet's move to business rules. Which of these notes can a ward nurse submit to Epic: only notes for patients currently assigned to their own ward, or notes for patients on any ward they are covering?"
+    },
+    {
+      "seq": 60,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 61,
+      "role": "assistant",
+      "content": "Got it: nurses can submit to Epic only for patients on their own ward. A nurse covering another ward will not be able to send notes for those patients.\n\nNext, a related case: a nurse on their own ward has a patient marked Transferred in the shift system, and they try to submit a note to Epic instead of saving it locally. Should the system block that submission, or allow it to sync since Epic may still show the patient on this ward?"
+    },
+    {
+      "seq": 62,
+      "role": "user",
+      "content": "The system should allow the submission to sync to Epic even if the ward shift system shows “Transferred,” but only if the note is tagged with a `transferred_patient` flag and includes a warning in the audit log: “Note submitted for transferred patient—Epic may reflect outdated status.” This is because Epic may still show the patient as admitted for up to 30 minutes after the transfer, and blocking the sync would force nurses to wait or use local save, which increases fragmentation. The charge nurse dashboard flags such notes for review, and IT can correlate discrepancies between systems during audits."
+    },
+    {
+      "seq": 63,
+      "role": "assistant",
+      "content": "Thanks, the transferred-patient submission rule is clear: sync to Epic is allowed, the note is tagged `transferred_patient`, an audit warning is written, and the charge nurse dashboard flags it.\n\nOne thing to confirm: a note can be a \"local save\" for a transferred patient, or a \"submit with transferred flag.\" Both apply to the same patient status, so the nurse's choice decides which path the note takes. Does the nurse choose between saving locally and submitting, or does the system choose automatically based on the Epic status?"
+    },
+    {
+      "seq": 64,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 65,
+      "role": "assistant",
+      "content": "Thanks, so the nurse decides each time. Let's close the gap on the local-save side: local notes are purged after seven days unless reviewed. Who is allowed to review a local-only note, and what does review do: release it to Epic, or simply mark it as reviewed and keep it?"
+    },
+    {
+      "seq": 66,
+      "role": "user",
+      "content": "Only the charge nurse or the clinical informatics lead can review a local-only note. When they open it, they see the full content and a status of “Local Save – Awaiting Review.” They can either: (1) click “Review and Release” to re-submit the note to Epic, with a new `released_local` timestamp and full audit trail, or (2) click “Mark as Reviewed – Keep Local” to confirm they’ve seen it and prevent it from being purged. If not reviewed within 7 days, the note is automatically purged from Azure SQL and moved to a secure archive in Azure Blob Storage for audit retrieval, but not accessible in the app."
+    },
+    {
+      "seq": 67,
+      "role": "assistant",
+      "content": "Thanks, the review rules for local-only notes are recorded: charge nurse or informatics lead can release to Epic or keep local, and unreviewed notes are archived after seven days.\n\nNow let's move to acceptance criteria, starting with the simplest check. When a ward nurse signs in, how would we confirm the roster is working correctly: should we verify that only patients assigned to that nurse's ward appear, or that the cards load within three seconds?"
+    },
+    {
+      "seq": 68,
+      "role": "user",
+      "content": "We’ll confirm the roster is working correctly by verifying two things: first, that only patients assigned to the nurse’s current ward (per the ward shift system) appear in the list, and second, that the roster loads within 3 seconds on a standard hospital tablet (Android 12, 4GB RAM) over the hospital Wi-Fi network. We’ll use Azure Application Insights to measure load time, and the frontend will log a `roster_load_time` metric. If either check fails—any patient outside the ward appears, or load time exceeds 3 seconds—the test fails."
+    },
+    {
+      "seq": 69,
+      "role": "assistant",
+      "content": "That's a testable roster check. Before we write it up, one detail: when the ward shift system and Epic disagree, which one decides whether a patient counts as \"on the ward\" for this test? Per the bed-state rule, we've been treating the ward shift system as authoritative."
+    },
+    {
+      "seq": 70,
+      "role": "user",
+      "content": "Yes, the ward shift system’s real-time bed assignment is authoritative for determining whether a patient appears in the nurse’s roster. If the shift system shows a bed as unassigned or the patient as transferred, they do not appear—even if Epic still lists the patient as admitted. This ensures the roster reflects current staffing reality, not outdated EMR state. The discrepancy is logged in the audit trail with timestamps from both systems, and flagged in the charge nurse dashboard if the patient was recently transferred."
+    },
+    {
+      "seq": 71,
+      "role": "assistant",
+      "content": "Thanks, the ward shift system is confirmed as authoritative for the roster, and Epic-only admissions stay hidden.\n\nNext, let's make the acceptance criteria concrete for the transfer case. Suppose a patient is transferred off the ward at 2:00 PM, Epic still shows them admitted, and the ward shift system updates at 2:01 PM. Should the test require the roster to drop that patient within a set time after the shift system updates, and if so, how many seconds?"
+    },
+    {
+      "seq": 72,
+      "role": "user",
+      "content": "Yes, the test must verify that the roster drops the patient within 60 seconds of the ward shift system updating their status—specifically, the system must detect the change via the REST API polling interval (set to 30 seconds) and refresh the roster within 90 seconds of the update. We’ll measure this with a test that simulates a shift system update at t=0 and checks for the absence of the patient card at t=60 seconds. If the patient remains visible beyond 90 seconds, the test fails. This ensures real-time alignment with staffing changes while accounting for network latency and polling cycles."
+    },
+    {
+      "seq": 73,
+      "role": "assistant",
+      "content": "The 90-second ceiling is clear. Your test checks absence at 60 seconds but fails only after 90, so a card still visible at 61 seconds would pass. Which should it be: the card must be gone by 60 seconds, or the 90-second limit is the only pass condition?"
+    },
+    {
+      "seq": 74,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 75,
+      "role": "assistant",
+      "content": "Thanks, the pass condition is now set: the patient card must be gone within 90 seconds of the shift system update, with the 60-second check removed.\n\nLet's move to the technical side. You've already chosen .NET and C#, so the next decision is the frontend. Do you want to use React, given that your team has a React specialist?"
+    },
+    {
+      "seq": 76,
+      "role": "user",
+      "content": "Yes, we’ll use React for the frontend—specifically, Create React App with TypeScript, leveraging Material UI for consistent styling and accessibility compliance (WCAG 2.1 AA). The React app will run in a container on Azure App Service, with a Content Security Policy (CSP) and strict XSS protections enabled, and all static assets served over HTTPS. We’ll use React Router for navigation, and the app will be built with PWA support for offline note entry during network failures."
+    },
+    {
+      "seq": 77,
+      "role": "assistant",
+      "content": "React with TypeScript is recorded. Your answer also includes Create React App, Material UI, React Router and PWA offline support, which are several separate decisions, so let's take them one at a time.\n\nOffline note entry is the one with the biggest build impact. Should version one support creating and editing notes while the device has no network connection, or should it only queue notes after a submission fails?"
+    },
+    {
+      "seq": 78,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 79,
+      "role": "assistant",
+      "content": "\"Yes\" could mean full offline note creation and editing, or only queuing a note after a failed submission. Those lead to very different builds: full offline editing needs local storage, conflict handling and a service worker, while queuing only needs the retry path we've already defined. Which one do you mean?"
+    },
+    {
+      "seq": 80,
+      "role": "user",
+      "content": "Yes, version one must support full offline note creation and editing—nurses must be able to start typing a note, save it locally, and edit it later even if the device loses network connectivity. The app uses IndexedDB for local persistence, a service worker to cache assets and handle offline state, and a conflict resolution strategy that prioritizes the latest version based on timestamp when sync succeeds. If a nurse edits a note offline and another version exists in Epic, the system logs a conflict and prompts the charge nurse to resolve it via the dashboard. This ensures no data loss and supports the 30-second auto-save requirement even without network."
+    },
+    {
+      "seq": 81,
+      "role": "assistant",
+      "content": "Offline full editing is recorded, along with IndexedDB, a service worker, and timestamp-based conflict handling.\n\nOne gap to close before we finish security. Your access rules name roles like ward nurse, charge nurse, pharmacy liaison and informatics lead, but the Azure AD roles that enforce them aren't defined yet. Default: one Azure AD app role per user role (WardNurse, ChargeNurse, PharmacyLiaison, ClinicalInformaticsLead, HospitalITAdministrator), assigned through Azure AD groups. That means access is granted by group membership and revoked when someone leaves a ward. Keep this default?"
+    },
+    {
+      "seq": 82,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 83,
+      "role": "assistant",
+      "content": "Thanks, the Azure AD role mapping is confirmed: one app role per user role, granted through Azure AD groups.\n\nStaying with the technical area, the open decision is how the React app and the .NET backend talk to each other. Default: the React app calls a .NET Web API, which is the only component that calls Epic and the ward shift system through Azure API Management, so no tokens or Epic credentials reach the browser. That means the browser never holds FHIR credentials. Keep this default?"
+    },
+    {
+      "seq": 84,
+      "role": "user",
+      "content": "Yes, we’ll keep the default: the React app communicates with the .NET backend via HTTPS, and the backend—running as a secure Azure App Service with managed identity—calls Epic and the ward shift system through Azure API Management using client credentials. The frontend never receives or stores FHIR tokens or API keys; all authentication is handled server-side. The API endpoints use JWT bearer tokens issued by Azure AD, validated by the backend, and all data is encrypted in transit using TLS 1.3. This ensures no credential exposure in the browser and meets our compliance requirements."
+    },
+    {
+      "seq": 85,
+      "role": "assistant",
+      "content": "Thanks, the backend-centred architecture is recorded: the browser never touches Epic credentials, and the .NET backend holds the calls to Epic and the ward shift system.\n\nNow the data side. Which records does the app need to store in Azure SQL: patient notes, the shift roster, audit entries, or something else? Default: notes, the local-only queue, and audit events, with the roster read live from the ward shift system rather than stored."
+    },
+    {
+      "seq": 86,
+      "role": "user",
+      "content": "Yes, we’ll store patient notes, the local-only note queue, and audit events in Azure SQL, but not the shift roster—its data is pulled live from the ward shift system every 30 seconds via the REST API. Notes and queued entries are stored with a `created_at`, `updated_at`, `patient_mrn`, `nurse_id`, `status` (e.g., \"Synced\", \"Pending\", \"Local Only\"), and `source_system` fields. Audit events include `action`, `user_id`, `timestamp`, `ip_address`, and `details`, and are retained for 7 years. All tables are encrypted at rest using Azure-managed keys, and we’ll use row-level security to restrict access by nurse and ward."
+    },
+    {
+      "seq": 87,
+      "role": "assistant",
+      "content": "Thanks, the stored entities and their fields are recorded. The shift roster stays out of the database, which keeps the 90-second roster drop tied to the ward shift system.\n\nRetention is the gap now. Patient notes need a retention period separate from the audit trail. Default: patient notes kept for 7 years, matching the audit retention, then archived under the hospital's records policy. Keep this default?"
+    },
+    {
+      "seq": 88,
+      "role": "user",
+      "content": "Yes, we’ll keep the default: patient notes are retained in Azure SQL for 7 years, aligned with our hospital’s medical records retention policy and HIPAA requirements. After 7 years, they are automatically archived to a secure, immutable blob container in Azure with a 10-year retention period, and the archive is tagged with a `retention_status = archived` flag. The system does not delete notes during the 7-year window, and the charge nurse dashboard shows a warning when a note approaches its retention end. This ensures compliance with both legal and clinical governance standards."
+    },
+    {
+      "seq": 89,
+      "role": "assistant",
+      "content": "Retention for patient notes is recorded as 7 years in Azure SQL, then archived to immutable blob storage for 10 more years.\n\nOne question on the data relationships. When a nurse edits a note offline and it conflicts with an Epic version, should the app keep every version as its own record linked to the note, or overwrite the local record with the latest one by timestamp? Default: keep every version linked to the note, so nothing is lost in an audit."
+    },
+    {
+      "seq": 90,
+      "role": "user",
+      "content": ""
+    },
+    {
+      "seq": 91,
+      "role": "assistant",
+      "content": "Version history is recorded: every version of an edited note is kept and linked to the note.\n\nFinding f45-1: the roster_load_time metric has no defined measurement method or threshold, so the 3-second roster load requirement can't be tested yet. Default: roster_load_time is the time from the roster request to the full roster being displayed, with a 3-second threshold. That means the metric is captured in Application Insights for every sign-in and a test fails if the median is above 3 seconds. Keep this default?"
+    },
+    {
+      "seq": 92,
+      "role": "user",
+      "content": "Yes, we’ll keep the default: `roster_load_time` is measured from the moment the nurse clicks “Load Roster” to the moment the last patient card is rendered on screen, captured via client-side JavaScript timing and logged in Azure Application Insights. The test fails if the 90th percentile of load times exceeds 3 seconds over a 5-minute rolling window. This ensures consistent performance across devices and network conditions, and aligns with our user experience SLA."
+    },
+    {
+      "seq": 93,
+      "role": "assistant",
+      "content": "Thanks, the roster_load_time definition is recorded: measured from \"Load Roster\" to the last card rendered, with a 90th-percentile threshold of 3 seconds over a 5-minute window.\n\nStaying on data: when a note is queued locally and later synced, how long should the app keep the local copy of the note on the device? Default: until the server confirms the sync, then remove it from the device so no patient data stays on the tablet."
+    },
+    {
+      "seq": 94,
+      "role": "user",
+      "content": "Yes, we’ll keep the default: the app retains the local copy of the note on the device only until the .NET backend confirms successful sync to Epic via the FHIR API. Once confirmed, the note is deleted from IndexedDB and the local cache. This ensures no patient data remains on the device after sync, minimizing risk if a tablet is lost or stolen. If sync fails after 15 minutes, the note stays in the local queue with a `failed` status, and the nurse can re-submit manually. This aligns with our data minimization and security policies."
+    },
+    {
+      "seq": 95,
+      "role": "assistant",
+      "content": "Thanks, the device-side retention rule is recorded: the local copy is deleted once the backend confirms the Epic sync, and failed notes stay queued for manual resubmission.\n\nMoving to integrations. The ward shift system is the source of truth for the roster, so I need its connection details. Default: it exposes a REST endpoint on Azure behind API Management, using OAuth 2.0 client credentials with the same error handling as the Epic connection. Does your ward shift system already work this way?"
+    }
+  ],
+  "facts": [
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "idea",
+      "value": "Nurses on our ward type every note twice, once into the patient system and once into a spreadsheet, and we want to type it once.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "hosting",
+      "value": {
+        "choice": "Azure cloud",
+        "alternatives": [],
+        "reason": "Existing infrastructure runs on Azure",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epic_fhir",
+      "value": "Epic EMR via FHIR STU3, read patient demographics and admission status; write clinical notes; proxied through Azure API Management",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "ward_shift_system",
+      "value": "Ward nurse scheduling and shift system via REST on Azure, read real-time ward staffing to validate note authors; proxied through Azure API Management",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "compliance",
+      "value": {
+        "regimes": ["HIPAA", "hospital data governance policy"],
+        "encryption": "at rest and in transit (Azure managed keys, TLS 1.3)",
+        "audit_retention": "7 years",
+        "data_residency": "Azure East US only",
+        "backups": "encrypted, separate DR region"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "problem",
+      "value": "Ward nurses (med-surg and ICU, 12-15 patients per shift) enter each clinical note twice: into Epic's FHIR note field and a shared Excel ward log. Duplication costs 3-5 minutes per patient per shift, causes ~18% documentation errors per the last audit, and creates cross-system compliance risk.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "ward_nurse",
+      "value": {
+        "role": "Ward nurse (med-surg and ICU)",
+        "needs": "Logs in via Azure AD SSO, selects patient from assigned shift roster, enters free-text note in mobile-responsive form that auto-saves every 30 seconds."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "stack",
+      "value": {
+        "choice": ".NET / C#",
+        "alternatives": [],
+        "reason": "Team's existing skill set; fits Azure App Services and Azure SQL.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "charge_nurse",
+      "value": {
+        "role": "Charge nurse",
+        "needs": "Real-time per-ward dashboard of notes, filter by patient or nurse, export shift summary to PDF."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "clinical_informatics_lead",
+      "value": {
+        "role": "Clinical informatics lead",
+        "needs": "Audits note distribution and duplication rates through a secure admin portal with role-based access control."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-1",
+      "value": "As a ward nurse, I want to log in with Azure AD SSO, pick a patient from my shift roster, and enter a note that auto-saves so that I document once without losing work.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "mvp",
+      "path": "v1_scope",
+      "value": "Core note entry, FHIR push to Epic, basic charge nurse dashboard; PDF export only.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "timeline",
+      "value": "Version one live by October 15, 2024.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "hospital_it_administrator",
+      "value": {
+        "role": "hospital_it_administrator",
+        "needs": "access to the tool’s health monitoring dashboard to track API latency, error rates, and authentication failures"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "pharmacy_liaison",
+      "value": {
+        "role": "Pharmacy liaison",
+        "needs": "Read-only review of alert-flagged notes. Opening a flagged note sends a Teams message to the pharmacy channel and creates a ServiceNow ticket at priority 2. The liaison cannot edit or delete notes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-1",
+      "value": {
+        "title": "Health monitoring dashboard",
+        "scope": "mvp",
+        "acceptance": ["Hospital IT administrators can access the health monitoring dashboard"],
+        "description": "Hospital IT administrators need access to a health monitoring dashboard to track API latency, error rates, and authentication failures.",
+        "reason": "To detect issues before nurses report them, especially during high-traffic shift changes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-2",
+      "value": {
+        "title": "Pharmacy liaison access",
+        "scope": "mvp",
+        "acceptance": [
+          "Pharmacy liaison can access the note feed for specific alerts with explicit approval and audit logging"
+        ],
+        "description": "Pharmacy liaison needs read-only access to the note feed for specific alerts to initiate interventions, but only with explicit approval and audit logging.",
+        "reason": "To initiate interventions for specific alerts such as 'patient refusing medication'."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "overview",
+      "path": "budget",
+      "value": "$85,000 for version one, build in-house with commercial FHIR library and licensed monitoring tools",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "fhir_library",
+      "value": {
+        "choice": "Hl7.FhirNetCore",
+        "alternatives": [],
+        "reason": "Commercial FHIR client reduces integration effort and avoids re-implementing the HL7 standard",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "ci_cd",
+      "value": {
+        "choice": "Azure DevOps pipelines with Terraform infrastructure-as-code",
+        "alternatives": [],
+        "reason": "Team standard for CI/CD and infrastructure",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "code_quality",
+      "value": {
+        "choice": "SonarQube static analysis and Snyk dependency scanning",
+        "alternatives": [],
+        "reason": "Hospital secure coding standards",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "access_control",
+      "value": "All access via Azure AD roles with MFA; pharmacy liaison access is read-only, explicitly approved, and audit logged",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-3",
+      "value": {
+        "title": "Ward nurse roster and note entry",
+        "scope": "mvp",
+        "acceptance": [
+          "Only patients on the nurse's current shift roster are listed",
+          "Autosave runs every 30 seconds while the form is open",
+          "A submitted note appears in Epic via FHIR and in the charge nurse dashboard"
+        ],
+        "description": "After sign-in via Azure AD SSO, the nurse sees a responsive dashboard of patients on their current shift, pulled in real time from the ward scheduling API. Selecting a patient opens a pre-filled note form (name, MRN, bed number, admission date from FHIR). The nurse enters free-text notes with autosave every 30 seconds, picks a note type from a dropdown (Vital Signs, Medication Change, Behavioral Concern, etc.) and submits. Submission sends the note to Epic via FHIR and to the ward log dashboard."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-2",
+      "value": "As a charge nurse, I want to view and filter all notes on my ward in real time and export a PDF summary so that I can run shift handoffs.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "nfr",
+      "path": "scale",
+      "value": "About 160 nurses at launch; 60-80 concurrent editors at peak; about 120 sessions at shift change",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "app_hosting_sizing",
+      "value": {
+        "choice": "Azure App Service, 4 vCPU, autoscale to 8 instances on CPU and request queue length",
+        "reason": "Participant's stated sizing for peak shift-change load.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-4",
+      "value": {
+        "title": "Ward nurse dashboard",
+        "scope": "mvp",
+        "acceptance": ["The dashboard displays all patients on the nurse's current shift."],
+        "description": "After signing in, the ward nurse sees a clean, responsive dashboard that lists all patients on their current shift, pulled from the ward scheduling API in real time."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-5",
+      "value": {
+        "title": "Patient note entry",
+        "scope": "mvp",
+        "acceptance": [
+          "The note form is pre-filled with patient details.",
+          "The note is auto-saved every 30 seconds.",
+          "The note is submitted with a selected note type."
+        ],
+        "description": "The nurse can click a patient card, which opens a pre-filled note form with that patient’s name, MRN, bed number, and admission date—auto-populated from the FHIR API. The nurse then types a free-text clinical note (with auto-save every 30 seconds), selects a note type from a predefined dropdown, and clicks “Submit.”"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-6",
+      "value": {
+        "title": "Note submission to Epic",
+        "scope": "mvp",
+        "acceptance": [
+          "The note is sent to Epic via the FHIR API.",
+          "The note appears in the ward log dashboard for charge nurses to review."
+        ],
+        "description": "On submission, the note is immediately sent to Epic via the FHIR API and appears in the ward log dashboard for charge nurses to review."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-7",
+      "value": {
+        "title": "Offline-tolerant note submission",
+        "scope": "mvp",
+        "acceptance": [
+          "Note is persisted with status Pending when the FHIR POST fails",
+          "Retries run every 30 seconds for up to 15 minutes with exponential backoff",
+          "Nurse sees an in-app message after 15 minutes of failure"
+        ],
+        "description": "If Epic is unreachable, the note is saved as Pending and retried."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-8",
+      "value": {
+        "title": "Retry failed Epic submissions",
+        "scope": "mvp",
+        "acceptance": [
+          "Notes are persisted locally when Epic is unreachable",
+          "System retries submission every 30 seconds for 15 minutes",
+          "Nurses and charge nurses are notified if submission fails after 15 minutes",
+          "IT admins see retry failures in Azure Monitor"
+        ],
+        "description": "When Epic is unreachable, notes are persisted locally and retries are made every 30 seconds for 15 minutes with exponential backoff. If it fails, nurses and charge nurses are notified, and IT admins see failures in Azure Monitor.",
+        "reason": "Ensures no data loss and keeps nurses productive during transient outages."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "users",
+      "path": "no_other_roles",
+      "value": "No other roles require direct access at launch; any expansion needs a feature request and risk assessment.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-9",
+      "value": {
+        "title": "Pharmacy liaison alert view",
+        "scope": "mvp",
+        "acceptance": [
+          "Liaison sees only notes carrying an alert flag",
+          "Access requires explicit approval and is audit logged",
+          "Liaison cannot edit or submit notes"
+        ],
+        "description": "Read-only curated view of alert-flagged notes (e.g., 'patient refusing medication') in the charge nurse dashboard, available to the pharmacy liaison only with explicit approval and audit logging."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-10",
+      "value": {
+        "title": "Pharmacy liaison alert-flagged notes view",
+        "scope": "mvp",
+        "acceptance": [
+          "The pharmacy liaison can see only notes with a priority_flag set to true in the curated view."
+        ],
+        "description": "The pharmacy liaison can view only alert-flagged notes in a curated view within the charge nurse dashboard."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-11",
+      "value": {
+        "title": "Alert-flagged note display",
+        "scope": "mvp",
+        "acceptance": [
+          "The pharmacy liaison sees a red banner notification with the specified details when a note is flagged with an alert type."
+        ],
+        "description": "When a note is flagged with an alert type, the pharmacy liaison sees a red banner notification with the patient’s name, MRN, bed number, time of note, and the full text of the note."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-12",
+      "value": {
+        "title": "Automated workflow for alert-flagged notes",
+        "scope": "mvp",
+        "acceptance": [
+          "An automated workflow is triggered when a pharmacy liaison clicks on an alert-flagged note, sending a Teams message and creating a ServiceNow ticket."
+        ],
+        "description": "When a pharmacy liaison clicks on an alert-flagged note, an automated workflow is triggered that sends a Microsoft Teams message to the pharmacy team channel with a link to the note and creates a ticket in the incident tracking system (ServiceNow) with priority level 2."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-13",
+      "value": {
+        "title": "Alert-flagged note access control",
+        "scope": "mvp",
+        "acceptance": [
+          "Only pharmacy liaison and charge nurse can open alert-flagged notes",
+          "Opening a note requires selecting one of three reasons",
+          "Each open is written to the audit log with user ID, timestamp, IP and MRN"
+        ],
+        "description": "Only the pharmacy liaison and charge nurse may open alert-flagged notes; each open requires selecting a reason (Initiate intervention, Review for clinical risk, Confirm no action) and is logged with user ID, timestamp, IP address and MRN."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-14",
+      "value": {
+        "title": "Pharmacy liaison escalation",
+        "scope": "mvp",
+        "acceptance": [
+          "Opening an alert note posts a Teams message with a note link",
+          "Opening an alert note creates a ServiceNow ticket at priority 2",
+          "Pharmacy liaison has no edit or delete capability"
+        ],
+        "description": "Opening an alert-flagged note sends a Teams message to the pharmacy channel with a link to the note and creates a priority-2 ServiceNow ticket. The liaison cannot edit or delete notes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-3",
+      "value": "As a pharmacy liaison, I want to review alert-flagged notes and escalate them so that patient refusals of medication are acted on quickly.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-4",
+      "value": "As a ward nurse, I want a shift summary showing my submitted notes by sync status (synced, pending retry, failed) with the ability to retry failed notes and see urgent or alert notes so that I can confirm handoffs and clear failures before leaving; the summary stays available for 24 hours and can be exported to PDF.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "integrations",
+      "path": "epic_fhir_contract",
+      "value": {
+        "choice": "FHIR STU3, OAuth 2.0 client credentials via Azure API Management",
+        "reason": "Gives developers a defined interface before integration work starts."
+      },
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-15",
+      "value": {
+        "title": "Shift summary view",
+        "scope": "mvp",
+        "acceptance": [
+          "Each note shows green, yellow or red status",
+          "Failed notes show error and allow manual retry",
+          "Summary is available for 24 hours after shift end and exports to PDF"
+        ],
+        "description": "Nurse sees notes submitted in the shift with status: synced, pending retry, or failed after 15 minutes; can retry failed notes and export a PDF."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-5",
+      "value": "As a ward nurse, I want a shift summary of my notes and their sync status so that I can confirm handoffs before leaving.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-16",
+      "value": {
+        "title": "Shift summary view",
+        "scope": "mvp",
+        "acceptance": [
+          "The ward nurse can access a “Shift Summary” view at the end of their shift.",
+          "The view shows all notes submitted during the shift with color-coded status.",
+          "The ward nurse can tap any failed note to see the error message and retry it manually.",
+          "The system highlights any notes flagged as “urgent” or “alert”."
+        ],
+        "description": "At the end of their shift, the ward nurse can access a “Shift Summary” view that shows all notes they submitted during the shift, with color-coded status: green for “Synced to Epic,” yellow for “Pending retry,” and red for “Failed after 15 minutes.” They can tap any failed note to see the error message and retry it manually if desired. The system also highlights any notes they flagged as “urgent” or “alert” so they can confirm handoffs were properly escalated. This summary is auto-saved and available in the app for 24 hours after shift end, and can be exported to PDF for personal records."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-6",
+      "value": "As a charge nurse, I want to see a real-time start-of-shift summary of ward notes with alert-flagged notes at the top so that I can prioritize handoffs.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-17",
+      "value": {
+        "title": "Charge nurse start-of-shift dashboard",
+        "scope": "mvp",
+        "acceptance": [
+          "Alert-flagged notes appear at the top with a red badge and an unresolved count",
+          "Status colors match green synced, yellow pending, red failed",
+          "Dashboard refreshes every 2 minutes"
+        ],
+        "description": "Real-time summary of prior-shift notes, color-coded by status, alert-flagged notes at top with unresolved count, drill-down per patient, auto-refresh every 2 minutes."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-18",
+      "value": {
+        "title": "Export charge nurse handoff overview to PDF",
+        "scope": "mvp",
+        "acceptance": [
+          "Export produces a PDF of the current overview",
+          "Export is audit-logged if the audit policy requires it"
+        ],
+        "description": "Charge nurse exports the ward overview to PDF for handoff."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-19",
+      "value": {
+        "title": "Charge nurse PDF handoff export",
+        "scope": "mvp",
+        "acceptance": [
+          "Export and recipient email are recorded in the audit trail with user ID, timestamp and patient count",
+          "Exported PDF is stored in Azure Blob Storage with 7-year retention",
+          "Recipient link expires after 7 days"
+        ],
+        "description": "Charge nurse exports the start-of-shift overview to PDF and sends it to the incoming charge nurse and unit manager by encrypted secure email with a 7-day expiring link."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "stories",
+      "path": "US-7",
+      "value": "As a charge nurse, I want to export the start-of-shift overview to PDF and send it to the incoming charge nurse and unit manager so that handoffs are documented and traceable.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-20",
+      "value": {
+        "title": "Persistent pending-sync notification",
+        "scope": "mvp",
+        "acceptance": [
+          "Notice shows retry attempt number and elapsed time",
+          "Notice refreshes every 30 seconds"
+        ],
+        "description": "While a note waits to retry, show a persistent top-of-screen notice with the retry attempt count and time since last attempt, refreshed every 30 seconds."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-21",
+      "value": {
+        "title": "Failed-sync notification and acknowledgement",
+        "scope": "mvp",
+        "acceptance": [
+          "Push notification sent at 15-minute failure",
+          "Modal persists until the nurse acknowledges it",
+          "Failed write is logged in Azure Monitor"
+        ],
+        "description": "After 15 minutes of failed retries, send a push notification and show a modal stating the note is saved locally and sync failed; the modal stays until acknowledged."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-22",
+      "value": {
+        "title": "Charge nurse dashboard",
+        "scope": "mvp",
+        "acceptance": [
+          "The charge nurse dashboard displays a real-time summary of all ward notes from the prior shift.",
+          "The dashboard shows a list of patients with active notes color-coded by status.",
+          "The dashboard displays alert-flagged notes in a dedicated section with a red badge.",
+          "The dashboard shows a count of unresolved issues.",
+          "The dashboard auto-refreshes every 2 minutes during the shift.",
+          "The charge nurse can view the full note history per patient.",
+          "The charge nurse can export the overview to PDF for handoff."
+        ],
+        "description": "The charge nurse dashboard must show a real-time summary of all ward notes from the prior shift, including a list of patients with active notes color-coded by status, alert-flagged notes in a dedicated section, and a count of unresolved issues. The dashboard must auto-refresh every 2 minutes during the shift and allow the charge nurse to view the full note history per patient or export the overview to PDF for handoff."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-23",
+      "value": {
+        "title": "PDF handoff for charge nurse",
+        "scope": "mvp",
+        "acceptance": [
+          "The charge nurse can export the dashboard overview to PDF.",
+          "The PDF is shared with the incoming charge nurse and unit manager via secure email through Azure Logic Apps.",
+          "The email contains an encrypted link that expires in 7 days.",
+          "The export is logged in the audit trail with the user ID, timestamp, patient count, and recipient email.",
+          "The export is stored in Azure Blob Storage with a 7-year retention policy."
+        ],
+        "description": "The system must allow the charge nurse to export the dashboard overview to PDF and share it with the incoming charge nurse and unit manager via secure email through Azure Logic Apps, with encryption and a 7-day expiration link. The export must be logged in the audit trail with the user ID, timestamp, patient count, and recipient email, and stored in Azure Blob Storage with a 7-year retention policy."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-24",
+      "value": {
+        "title": "Notification for pending note sync",
+        "scope": "mvp",
+        "acceptance": [
+          "The system displays a persistent notification when a note is pending sync due to Epic being down.",
+          "The notification updates every 30 seconds with the retry status and a progress graphic."
+        ],
+        "description": "When a nurse submits a note and Epic is down, the system must display a persistent notification at the top of the screen indicating that the note is pending sync and will retry automatically. The notification must update every 30 seconds with the retry status and a progress graphic."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-25",
+      "value": {
+        "title": "Notification for failed note sync",
+        "scope": "mvp",
+        "acceptance": [
+          "The system triggers a push notification and displays a modal if a note fails to sync after 15 minutes.",
+          "The modal indicates that the note has been saved locally but sync failed due to an Epic outage.",
+          "The modal remains visible until acknowledged by the nurse.",
+          "The system logs the failed write event in Azure Monitor, visible to the IT team."
+        ],
+        "description": "If a note fails to sync after 15 minutes, the system must trigger a push notification and display a modal indicating that the note has been saved locally but sync failed due to an Epic outage. The modal must remain visible until acknowledged by the nurse. The system must log the failed write event in Azure Monitor, visible to the IT team."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-26",
+      "value": {
+        "title": "Patient roster on sign-in",
+        "scope": "mvp",
+        "acceptance": [
+          "Roster loads within 3 seconds of sign-in",
+          "Each card shows name, MRN, bed number and admission status",
+          "Patient cards are cached locally for up to 5 minutes and remain tappable on slow networks"
+        ],
+        "description": "Nurse authenticates via Azure AD SSO and sees their assigned shift roster as patient cards with real-time admission status from the FHIR API."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-27",
+      "value": {
+        "title": "Roster status precedence",
+        "scope": "mvp",
+        "acceptance": [
+          "A patient with Epic status Transfer and an empty ward bed shows Bed Empty, dimmed, with the tooltip",
+          "The Epic status is not displayed in that case"
+        ],
+        "description": "When Epic admission status conflicts with the ward shift system bed state, the ward shift system wins. The card shows Bed Empty, is dimmed, and carries a tooltip that the note may not be relevant.",
+        "reason": "Prevents invalid data entry and keeps data integrity"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-28",
+      "value": {
+        "title": "Unassigned patient note warning",
+        "scope": "mvp",
+        "acceptance": [
+          "Opening note entry for an unassigned patient shows the warning modal",
+          "The nurse must confirm to proceed"
+        ],
+        "description": "If a nurse opens note entry for a patient not assigned to the ward, a modal warns that the note will not sync to Epic and asks to confirm continuing.",
+        "reason": "Prevents silent invalid submissions"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-29",
+      "value": {
+        "title": "Patient status precedence",
+        "scope": "mvp",
+        "acceptance": [
+          "The patient status from the ward shift system takes precedence over the Epic admission status."
+        ],
+        "description": "When a patient is marked 'Transfer' in Epic but the ward shift system shows the bed as empty, the nurse sees the status from the ward shift system—the bed is empty—so the card shows 'Bed Empty' and is dimmed, with a small tooltip: 'Patient transferred per ward system; note may not be relevant.' The card does not display the Epic admission status of 'Transfer' in this case, because the shift system's real-time bed state takes precedence. If the nurse attempts to enter a note for that patient, a modal appears: 'Patient not assigned to this ward—note will not sync to Epic. Confirm continue?' This prevents invalid data entry and maintains data integrity.",
+        "reason": "To prevent invalid data entry and maintain data integrity."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "local_only_save",
+      "value": {
+        "condition": "Patient marked Transferred or Discharged in ward shift system",
+        "tag": "local_only",
+        "status": "Local Save",
+        "audit": "Note saved locally—patient not on active ward",
+        "retention": "Purged after 7 days unless manually reviewed"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "submission_scope",
+      "value": "Ward nurses can submit to Epic only for patients on their own ward; cover-ward patients are not submittable.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "local_save_allowed",
+      "value": "The nurse can confirm and save the note locally only if the patient is marked as “Transferred” or “Discharged” in the ward shift system, and the note is tagged with a `local_only` flag. The system saves it to Azure SQL with status “Local Save” and includes a warning in the audit log: “Note saved locally—patient not on active ward.” The charge nurse dashboard shows a count of such notes, and they are purged after 7 days unless manually reviewed. This balances clinical need with data integrity and compliance.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "transferred_patient_submission",
+      "value": "Notes for transferred patients may sync to Epic, tagged transferred_patient, with audit warning 'Note submitted for transferred patient—Epic may reflect outdated status.' and flagged on the charge nurse dashboard.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "submission_choice",
+      "value": "For transferred patients, the nurse chooses between local save and submit to Epic.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "local_only_review",
+      "value": "Charge nurse or clinical informatics lead can release a local-only note to Epic (new released_local timestamp, audit trail) or mark it reviewed and keep it local; unreviewed notes archived to Azure Blob Storage after 7 days, not accessible in app",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-30",
+      "value": {
+        "title": "Ward nurse roster on sign-in",
+        "scope": "mvp",
+        "acceptance": [
+          "roster_load_time 90th percentile at or below 3 seconds over a 5-minute rolling window, captured in Application Insights"
+        ],
+        "description": "Roster loads on sign-in with roster_load_time measured from Load Roster click to last card rendered."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "roster_membership",
+      "value": "Only patients assigned to the nurse's current ward per the ward shift system appear; Epic-only admissions do not appear. Discrepancies logged with timestamps from both systems.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-31",
+      "value": {
+        "title": "Roster drops transferred patients",
+        "scope": "mvp",
+        "acceptance": [
+          "Roster refresh occurs within 90 seconds of a ward shift system status update, with a 30-second polling interval",
+          "Patients outside the nurse's ward never appear"
+        ],
+        "description": "Patient cards disappear from the nurse's roster after the ward shift system marks the patient transferred or unassigned."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-32",
+      "value": {
+        "title": "Roster load time",
+        "scope": "mvp",
+        "acceptance": [
+          "Roster loads within 3 seconds on Android 12, 4GB RAM, hospital Wi-Fi",
+          "roster_load_time metric is recorded in Application Insights"
+        ],
+        "description": "The nurse's roster loads on sign-in on the standard hospital tablet."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "roster_drop_timing",
+      "value": "Transferred patient card must be removed within 90 seconds of the ward shift system update; test passes only if absent by 90 seconds.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-33",
+      "value": {
+        "title": "Verify roster contents and load time",
+        "scope": "mvp",
+        "acceptance": [
+          "Only patients assigned to the nurse's current ward (per the ward shift system) appear in the list.",
+          "The roster loads within 3 seconds on a standard hospital tablet (Android 12, 4GB RAM) over the hospital Wi-Fi network."
+        ],
+        "description": "The roster must display only patients assigned to the nurse's current ward (per the ward shift system) and load within 3 seconds on a standard hospital tablet (Android 12, 4GB RAM) over the hospital Wi-Fi network. Azure Application Insights will measure load time, and the frontend will log a `roster_load_time` metric. If either check fails, the test fails."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "rules",
+      "path": "ward_shift_authoritative",
+      "value": "The ward shift system's real-time bed assignment is authoritative for determining whether a patient appears in the nurse's roster. If the shift system shows a bed as unassigned or the patient as transferred, they do not appear—even if Epic still lists the patient as admitted. This ensures the roster reflects current staffing reality, not outdated EMR state. The discrepancy is logged in the audit trail with timestamps from both systems, and flagged in the charge nurse dashboard if the patient was recently transferred.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-34",
+      "value": {
+        "title": "Verify roster update after patient transfer",
+        "scope": "mvp",
+        "acceptance": [
+          "The roster drops the patient within 60 seconds of the ward shift system updating their status to transferred.",
+          "The system detects the change via the REST API polling interval (set to 30 seconds) and refreshes the roster within 90 seconds of the update."
+        ],
+        "description": "The roster must drop a patient within 60 seconds of the ward shift system updating their status to transferred. The system must detect the change via the REST API polling interval (set to 30 seconds) and refresh the roster within 90 seconds of the update. A test will simulate a shift system update at t=0 and check for the absence of the patient card at t=60 seconds. If the patient remains visible beyond 90 seconds, the test fails."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "frontend_framework",
+      "value": {
+        "choice": "React with TypeScript (Create React App)",
+        "alternatives": [],
+        "reason": "Team has React specialist; WCAG 2.1 AA via Material UI",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "frontend_hosting",
+      "value": {
+        "choice": "Container on Azure App Service with CSP and XSS protections, all assets over HTTPS",
+        "alternatives": [],
+        "reason": "Matches hosting decision and HIPAA encryption in transit",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-35",
+      "value": {
+        "title": "Patient card removal",
+        "scope": "mvp",
+        "acceptance": ["The patient card is removed within 90 seconds of the shift system update."],
+        "description": "The patient card must be removed from the roster view after a shift system update."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "offline_entry",
+      "value": {
+        "choice": "Full offline note creation and editing via IndexedDB and a service worker",
+        "alternatives": ["Queue only after failed submission"],
+        "reason": "Nurses must keep working through network loss; conflicts resolved by latest timestamp and charge nurse review.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "security",
+      "path": "azure_ad_roles",
+      "value": {
+        "role": "One app role per user role (WardNurse, ChargeNurse, PharmacyLiaison, ClinicalInformaticsLead, HospitalITAdministrator), assigned through Azure AD groups",
+        "needs": "Access granted by group membership, revoked when staff leave a ward"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "technical",
+      "path": "api",
+      "value": {
+        "choice": "React app calls .NET backend over HTTPS; backend calls Epic and ward shift system through Azure API Management with OAuth 2.0 client credentials; backend validates Azure AD JWT bearer tokens",
+        "alternatives": ["Browser calls Epic and ward shift system directly"],
+        "reason": "Keeps FHIR credentials server-side and out of the browser.",
+        "status": "specified"
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-36",
+      "value": {
+        "title": "Offline note creation and editing",
+        "scope": "mvp",
+        "acceptance": [
+          "A note can be created and edited with the network disconnected",
+          "Auto-save runs every 30 seconds while offline",
+          "A conflicting offline edit is logged and surfaced to the charge nurse"
+        ],
+        "description": "Nurses create and edit notes without network, saved in IndexedDB with a service worker; timestamp-based conflict resolution, with conflicts logged and prompted to the charge nurse."
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "functional",
+      "path": "FR-37",
+      "value": {
+        "title": "Roster drops transferred patients within 90 seconds",
+        "scope": "mvp",
+        "acceptance": [
+          "After a ward shift system status update, the patient card is gone within 90 seconds",
+          "Roster load completes within 3 seconds on Android 12, 4GB RAM tablet over hospital Wi-Fi, measured by roster_load_time"
+        ]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "notes",
+      "value": {
+        "fields": ["created_at", "updated_at", "patient_mrn", "nurse_id", "status", "source_system"],
+        "relations": ["audit_events"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "audit_events",
+      "value": {
+        "fields": ["action", "user_id", "timestamp", "ip_address", "details"]
+      },
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "note_retention",
+      "value": "Patient notes retained 7 years in Azure SQL, then archived to immutable blob storage for 10 years",
+      "source": "default_accepted"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "note_versions",
+      "value": "Every version of an edited note is kept as its own record linked to the note, including offline edits that conflict with Epic.",
+      "source": "user"
+    },
+    {
+      "kind": "spec_field",
+      "section": "data",
+      "path": "device_note_retention",
+      "value": "Local copy deleted from IndexedDB once backend confirms Epic sync; failed after 15 minutes stays queued with status failed for manual resubmission",
+      "source": "user"
+    }
+  ],
+  "summary": "The system will run on Azure, integrating with Azure AD for SSO and Azure AD B2C for external access. It connects to Epic via FHIR API (STU3) for patient data and a ward-level nurse scheduling system via REST API for real-time staffing, all proxied through Azure API Management for HIPAA compliance. The in-house team consists of two full-stack developers, one React frontend specialist, and one DevOps engineer, using Azure DevOps, Terraform, SonarQube, and Snyk.\n\nThe tool addresses clinical note duplication, causing 3–5 minute delays per patient per shift and an 18% error rate. Primary users are ward nurses managing 12–15 patients per shift, with secondary users being charge nurses, tertiary users being clinical informatics leads, and pharmacy liaisons with read-only access for specific alerts. The stack is .NET and C#.\n\nVersion one must be live by October 15, 2024, to align with the hospital’s compliance audit and EMR upgrade. It will include core note entry, FHIR push to Epic, and a basic dashboard for charge nurses, with PDF as the only export format. The budget is $85,000, covering in-house development, Azure infrastructure, API management, and compliance testing, with a commercial FHIR client library (Hl7.FhirNetCore) and licensed logging/monitoring tools.\n\nAfter SSO login, ward nurses see a dashboard listing their shift patients. They click a patient card to open a pre-filled note form, type a free-text note with auto-save every 30 seconds, select a note type, and submit. The note is sent to Epic via FHIR API and appears in the charge nurse dashboard. Hospital IT administrators monitor the tool via Azure Monitor and Application Insights. If Epic is unreachable during submission, the note is immediately persisted to our Azure SQL Database with a status of “Pending” and a retry queue is triggered via Azure Service Bus. The system automatically retries the FHIR POST every 30 seconds for up to 15 minutes, with exponential backoff. If it fails after 15 minutes, the nurse receives a notification in-app: “Note saved locally—sync failed. Contact IT if issue persists.” The charge nurse dashboard also flags pending notes by red icon, and the IT admin sees retry failures in Azure Monitor. This ensures no data loss and keeps nurses productive during transient outages.\n\nAt launch, about 160 active ward nurses will use the tool, with peak concurrency of 60–80 users during shifts and up to 120 during shift changes. Azure App Service will be provisioned with 4 vCPUs, scaling to 8 instances during peak times.\n\nThe system enforces HIPAA compliance and the hospital’s internal data governance policy, including mandatory encryption at rest and in transit (using Azure’s managed keys and TLS 1.3), audit logging for all access and modifications (retained for 7 years), and strict role-based access control via Azure AD. All FHIR data transfers are subject to the audit trail policy, and Microsoft Purview is enabled for data classification and discovery. Data residency is limited to the U.S. region (Azure East US), with encrypted backups stored in a separate region for disaster recovery.\n\nThe pharmacy liaison sees only alert-flagged notes. When a nurse submits a note with the alert type “Patient refusing medication,” the system tags it in Azure SQL with a `priority_flag = true` and sets `alert_type = \"refusal\"`. The pharmacy liaison, viewing the curated dashboard, sees a red banner notification highlighting the note, with the patient’s name, MRN, bed number, time of note, and the full text. They can click to open it, which triggers an automated workflow: a Microsoft Teams message is sent to the pharmacy team channel with a link to the note, and a ticket is created in ServiceNow with priority level 2. The liaison does not edit or delete the note—only reviews and escalates. Only the pharmacy liaison and the charge nurse can open an alert-flagged note, and each access is logged in Azure Monitor with the user ID, timestamp, IP address, and the note’s MRN. When the liaison opens the note, they must select a reason from a dropdown—“Initiate intervention,” “Review for clinical risk,” or “Confirm no action”—which is stored in the audit log and visible in the data governance portal. This ensures accountability and supports the 7-year audit retention policy. No other role may access alert notes directly.\n\nAt the end of their shift, the ward nurse can access a “Shift Summary” view that shows all notes they submitted during the shift, with color-coded status: green for “Synced to Epic,” yellow for “Pending retry,” and red for “Failed after 15 minutes.” They can tap any failed note to see the error message and retry it manually if desired. The system also highlights any notes they flagged as “urgent” or “alert” so they can confirm handoffs were properly escalated. This summary is auto-saved and available in the app for 24 hours after shift end, and can be exported to PDF for personal records.\n\nThe Epic contract is FHIR STU3 with OAuth 2.0 client credentials through Azure API Management, with errors mapped to the retry rules.\n\nAt the start of their shift, the charge nurse opens the dashboard and sees a real-time summary of all ward notes from the prior shift: a list of patients with active notes, color-coded by status—green for “synced,” yellow for “pending,” and red for “failed.” They immediately see any alert-flagged notes (e.g., “refusing medication”) in a dedicated section at the top with a red badge, and a count of unresolved issues. They can click “View Full Log” to drill into the full note history per patient or export the overview to PDF for handoff. The system auto-refreshes every 2 minutes during the shift.\n\nThe PDF handoff is shared with the incoming charge nurse and the unit manager, who receive it via secure email through Azure Logic Apps, with encryption and a 7-day expiration link. The export is logged in the audit trail with the user ID, timestamp, patient count, and recipient email, and stored in Azure Blob Storage with a 7-year retention policy—exactly like alert-note access. This ensures compliance with HIPAA and the internal data governance policy, and allows tracing any data sharing during audits.\n\nWhile waiting to retry, the nurse sees a persistent notification at the top of the screen: “Your note is pending sync—will retry automatically. Status: Retry attempt #2 (30 seconds ago).” The retry status updates every 30 seconds with a progress graphic. If the note fails after 15 minutes, the system triggers a push notification (via Azure Notification Hub) and displays a modal: “Note saved locally—sync failed due to Epic outage. Contact IT if issue persists.” The message remains visible until acknowledged, ensuring no note is silently lost—this is logged as a failed write event in Azure Monitor, visible to the IT team.\n\nWhen a nurse opens the app, they must authenticate via Azure AD SSO and immediately see their assigned shift roster—displayed as a list of patient cards—with real-time status indicators (e.g., “Active,” “Discharged,” “Transfer”). Each card shows the patient’s name, MRN, bed number, and current admission status, pulled from the FHIR API. This data must load within 3 seconds, and the nurse must be able to click any patient card to begin note entry—even if the network is slow, with all patient data cached locally for up to 5 minutes. The ward shift system follows the same integration pattern as Epic: REST on Azure behind API Management, with OAuth 2.0 client credentials and the same error-mapping approach. If a patient is marked \"Transfer\" in Epic but the ward shift system shows the bed as empty, the nurse sees “Bed Empty” and a tooltip: “Patient transferred per ward system; note may not be relevant.” The card is dimmed, and the Epic admission status is not displayed. If the nurse attempts to enter a note for that patient, a modal appears: “Patient not assigned to this ward—note will not sync to Epic. Confirm continue?” The nurse can confirm and save the note locally, which is allowed only if the patient is marked as “Transferred” or “Discharged” in the ward shift system. The note is tagged with a `local_only` flag, saved to Azure SQL with status “Local Save,” and includes a warning in the audit log: “Note saved locally—patient not on active ward.” The charge nurse dashboard shows a count of such notes, and they are purged after 7 days unless manually reviewed. Nurses can submit to Epic only for patients on their own ward.\n\nThe system allows the submission to sync to Epic even if the ward shift system shows “Transferred,” but only if the note is tagged with a `transferred_patient` flag and includes a warning in the audit log: “Note submitted for transferred patient—Epic may reflect outdated status.” This is because Epic may still show the patient as admitted for up to 30 minutes after the transfer, and blocking the sync would force nurses to wait or use local save, which increases fragmentation. The charge nurse dashboard flags such notes for review, and IT can correlate discrepancies between systems during audits. The nurse chooses between local save and submit.\n\nOnly the charge nurse or the clinical informatics lead can review a local-only note. When they open it, they see the full content and a status of “Local Save – Awaiting Review.” They can either: (1) click “Review and",
+  "requirements": [
+    {
+      "id": "FR-1",
+      "title": "Hospital IT administrators can access health monitoring dashboard",
+      "scope": "mvp",
+      "acceptance": ["Hospital IT administrators can access the health monitoring dashboard"],
+      "reason": "To detect issues before nurses report them, especially during high-traffic shift changes."
+    },
+    {
+      "id": "FR-3",
+      "title": "Ward nurse can view roster and enter notes with autosave",
+      "scope": "mvp",
+      "acceptance": [
+        "Only patients on the nurse's current shift roster are listed",
+        "Autosave runs every 30 seconds while the form is open",
+        "A submitted note appears in Epic via FHIR and in the charge nurse dashboard",
+        "The note form is pre-filled with patient details",
+        "The note is auto-saved every 30 seconds",
+        "The note is submitted with a selected note type"
+      ]
+    },
+    {
+      "id": "FR-4",
+      "title": "Ward nurse sees current shift patient dashboard after sign-in",
+      "scope": "mvp",
+      "acceptance": ["The dashboard displays all patients on the nurse's current shift"]
+    },
+    {
+      "id": "FR-7",
+      "title": "Note submission is offline-tolerant with retries",
+      "scope": "mvp",
+      "acceptance": [
+        "Note is persisted with status Pending when the FHIR POST fails",
+        "Retries run every 30 seconds for up to 15 minutes with exponential backoff",
+        "Nurse sees an in-app message after 15 minutes of failure"
+      ]
+    },
+    {
+      "id": "FR-8",
+      "title": "Retry failed Epic submissions with notifications and IT monitoring",
+      "scope": "mvp",
+      "acceptance": [
+        "Notes are persisted locally when Epic is unreachable",
+        "System retries submission every 30 seconds for 15 minutes",
+        "Nurses and charge nurses are notified if submission fails after 15 minutes",
+        "IT admins see retry failures in Azure Monitor",
+        "The note is sent to Epic via the FHIR API",
+        "The note appears in the ward log dashboard for charge nurses to review"
+      ],
+      "reason": "Ensures no data loss and keeps nurses productive during transient outages."
+    },
+    {
+      "id": "FR-9",
+      "title": "Pharmacy liaison sees curated alert-flagged notes read-only",
+      "scope": "mvp",
+      "acceptance": [
+        "Liaison sees only notes carrying an alert flag",
+        "Access requires explicit approval and is audit logged",
+        "Liaison cannot edit or submit notes",
+        "Pharmacy liaison can access the note feed for specific alerts with explicit approval and audit logging",
+        "The pharmacy liaison can see only notes with a priority_flag set to true in the curated view"
+      ],
+      "reason": "To initiate interventions for specific alerts such as 'patient refusing medication'."
+    },
+    {
+      "id": "FR-11",
+      "title": "Pharmacy liaison sees red banner notification for alert notes",
+      "scope": "mvp",
+      "acceptance": [
+        "Pharmacy liaison sees a red banner notification with patient name, MRN, bed number, time, and note text when a note is flagged"
+      ]
+    },
+    {
+      "id": "FR-12",
+      "title": "Clicking alert-flagged note triggers Teams message and ServiceNow ticket",
+      "scope": "mvp",
+      "acceptance": [
+        "Automated workflow triggers on pharmacy liaison opening alert note",
+        "Teams message sent to pharmacy team channel with note link",
+        "ServiceNow priority-2 ticket created"
+      ]
+    },
+    {
+      "id": "FR-13",
+      "title": "Only pharmacy liaison and charge nurse may open alert-flagged notes with reason and audit",
+      "scope": "mvp",
+      "acceptance": [
+        "Only pharmacy liaison and charge nurse can open alert-flagged notes",
+        "Opening requires selecting one of three reasons",
+        "Each open is logged with user ID, timestamp, IP, and MRN"
+      ]
+    },
+    {
+      "id": "FR-14",
+      "title": "Pharmacy liaison escalation without edit or delete permission",
+      "scope": "mvp",
+      "acceptance": [
+        "Opening alert note posts Teams message with note link",
+        "Opening alert note creates a ServiceNow ticket at priority 2",
+        "Pharmacy liaison cannot edit or delete notes"
+      ]
+    },
+    {
+      "id": "FR-16",
+      "title": "Ward nurse can view shift summary with note statuses and retry failed notes",
+      "scope": "mvp",
+      "acceptance": [
+        "Ward nurse can access shift summary at shift end",
+        "Summary shows all notes with color-coded status",
+        "Ward nurse can tap failed note for error and manual retry",
+        "Urgent or alert notes are highlighted",
+        "Summary persists for 24 hours and can be exported to PDF"
+      ]
+    },
+    {
+      "id": "FR-17",
+      "title": "Charge nurse start-of-shift real-time dashboard with alert highlights",
+      "scope": "mvp",
+      "acceptance": [
+        "Alert-flagged notes appear at top with red badge and unresolved count",
+        "Status colors correspond to synced, pending, and failed",
+        "Dashboard refreshes every 2 minutes"
+      ]
+    },
+    {
+      "id": "FR-20",
+      "title": "Persistent retry notification during pending note sync",
+      "scope": "mvp",
+      "acceptance": [
+        "Notice shows retry attempt number and elapsed time",
+        "Notice refreshes every 30 seconds",
+        "Notification visible at top while note pending sync",
+        "Notification updates every 30 seconds with progress graphic"
+      ]
+    },
+    {
+      "id": "FR-22",
+      "title": "Charge nurse dashboard shows real-time prior-shift notes with filtering and export",
+      "scope": "mvp",
+      "acceptance": [
+        "Dashboard shows real-time prior shift notes summary",
+        "List of patients with active notes color-coded by status",
+        "Alert-flagged notes in dedicated section with red badge",
+        "Count of unresolved issues displayed",
+        "Auto-refresh every 2 minutes",
+        "Charge nurse can view full note history per patient",
+        "Charge nurse can export overview to PDF for handoff"
+      ]
+    },
+    {
+      "id": "FR-23",
+      "title": "Charge nurse can export dashboard overview PDF shared securely with logs",
+      "scope": "mvp",
+      "acceptance": [
+        "Charge nurse can export dashboard overview to PDF",
+        "PDF shared via secure email through Azure Logic Apps",
+        "Email contains encrypted link expiring after 7 days",
+        "Export logged in audit trail with user ID, timestamp, patient count, recipient email",
+        "Export stored in Azure Blob Storage with 7-year retention"
+      ]
+    },
+    {
+      "id": "FR-25",
+      "title": "Notification and modal shown if note fails to sync after 15 minutes",
+      "scope": "mvp",
+      "acceptance": [
+        "Push notification sent at 15-minute failure",
+        "Modal indicates note saved locally but sync failed",
+        "Modal persists until nurse acknowledges",
+        "Failed write event logged in Azure Monitor"
+      ]
+    },
+    {
+      "id": "FR-26",
+      "title": "Nurse sees assigned shift roster with patient cards on sign-in",
+      "scope": "mvp",
+      "acceptance": [
+        "Roster loads within 3 seconds of sign-in",
+        "Each card shows name, MRN, bed number, admission status",
+        "Patient cards cached locally for 5 minutes and remain tappable on slow networks",
+        "Roster load time 90th percentile at or below 3 seconds recorded"
+      ]
+    },
+    {
+      "id": "FR-27",
+      "title": "Ward shift system status overrides Epic admission status on roster cards",
+      "scope": "mvp",
+      "acceptance": [
+        "Patient with Epic transfer and empty ward bed shows 'Bed Empty', dimmed with tooltip",
+        "Epic status is not displayed in that case",
+        "Patient status from ward shift system takes precedence"
+      ],
+      "reason": "Prevents invalid data entry and keeps data integrity"
+    },
+    {
+      "id": "FR-28",
+      "title": "Warning modal shown when note entered for unassigned patient",
+      "scope": "mvp",
+      "acceptance": [
+        "Opening note for unassigned patient shows warning modal",
+        "Nurse must confirm to proceed"
+      ],
+      "reason": "Prevents silent invalid submissions"
+    },
+    {
+      "id": "FR-31",
+      "title": "Patient cards drop from roster after ward shift system marks transfer or unassigned",
+      "scope": "mvp",
+      "acceptance": [
+        "Roster refresh occurs within 90 seconds of ward shift system update",
+        "Patients outside nurse's ward never appear",
+        "Patient card gone within 90 seconds after ward shift system update",
+        "Roster load completes within 3 seconds on hospital tablet"
+      ]
+    },
+    {
+      "id": "FR-32",
+      "title": "Nurse roster loads within 3 seconds on hospital tablet",
+      "scope": "mvp",
+      "acceptance": [
+        "Roster loads within 3 seconds on Android 12, 4GB RAM hospital Wi-Fi tablet",
+        "Roster load time recorded in Application Insights",
+        "Only patients assigned to nurse's ward appear"
+      ]
+    },
+    {
+      "id": "FR-34",
+      "title": "Roster drops transferred patient within 60 seconds of ward shift update",
+      "scope": "mvp",
+      "acceptance": [
+        "Roster drops patient within 60 seconds of ward shift system status update",
+        "System detects change via REST API polling interval and refreshes roster within 90 seconds"
+      ]
+    },
+    {
+      "id": "FR-35",
+      "title": "Patient card removed from roster within 90 seconds of shift system update",
+      "scope": "mvp",
+      "acceptance": ["Patient card is removed within 90 seconds of shift system update"]
+    },
+    {
+      "id": "FR-36",
+      "title": "Nurses can create and edit notes offline with conflict resolution",
+      "scope": "mvp",
+      "acceptance": [
+        "Note can be created and edited while network disconnected",
+        "Autosave runs every 30 seconds while offline",
+        "Conflicting offline edit is logged and surfaced to charge nurse"
+      ]
+    },
+    {
+      "id": "roster_membership",
+      "title": "Only assigned ward patients appear on nurse roster, discrepancies logged",
+      "scope": "mvp",
+      "acceptance": [],
+      "needsConfirmation": true
+    }
+  ],
+  "markdown": "# Ward notes\n\nLanguage: en · Path: technical · Generated: 2026-10-14T07:20:35.533Z\n\n## Product overview and problem\n\n### Product overview and problem\n\nThe system replaces duplicate clinical note entry by ward nurses across Epic and a shared Excel ward log. Ward nurses (med-surg and ICU) currently take 3–5 minutes extra per patient per shift due to this duplication, with an 18% error rate and compliance risk. The product enables entering notes once, syncing them to Epic, and displaying them in a real-time ward dashboard for charge nurses. The live version one target is October 15, 2024, built in-house on Azure with a budget of $85,000.\n\n## Target users and roles\n\n### Target users and roles\n\n- **Ward nurse**: Logs in via Azure AD SSO, selects patients from their current shift roster, enters free-text notes in a mobile-responsive form with autosave.\n- **Charge nurse**: Views a real-time dashboard of notes, filters by patient or nurse, exports shift summaries to PDF.\n- **Clinical informatics lead**: Audits note duplication and distribution through a secure portal with role-based access.\n- **Hospital IT administrator**: Monitors health dashboard for API latency, errors, and authentication failures.\n- **Pharmacy liaison**: Read-only access to alert-flagged notes with escalation workflow, cannot edit or delete notes.\n\nNo other roles have direct access at launch; expansions require feature requests and risk assessment.\n\n## User stories\n\n### User stories\n\n- US-1: Ward nurse logs in with Azure AD SSO, picks a patient, enters and autosaves notes once.\n- US-2: Charge nurse views and filters ward notes in real time and exports PDF summaries.\n- US-3: Pharmacy liaison reviews alert-flagged notes and escalates medication refusals.\n- US-4 & US-5: Ward nurse views shift summary of submitted notes with sync status and retries failures.\n- US-6: Charge nurse views start-of-shift summary with alert-flagged notes prioritized.\n- US-7: Charge nurse exports and shares shift overview PDF with incoming staff for handoff documentation.\n\n## Functional requirements\n\n### Functional requirements\n\nThis version 1 includes core note entry, syncing notes to Epic, ward nurse and charge nurse dashboards, offline support with retries, alert flagging with escalation workflows, shift summaries with retry and export, and real-time data refresh. Detailed acceptance criteria ensure proper role access, audit logging, offline tolerance, notifications, and integration compliance.\n\n### MVP\n\n- **FR-1** Hospital IT administrators can access health monitoring dashboard\n  - Acceptance: Hospital IT administrators can access the health monitoring dashboard\n  - Reason: To detect issues before nurses report them, especially during high-traffic shift changes.\n- **FR-3** Ward nurse can view roster and enter notes with autosave\n  - Acceptance: Only patients on the nurse's current shift roster are listed\n  - Acceptance: Autosave runs every 30 seconds while the form is open\n  - Acceptance: A submitted note appears in Epic via FHIR and in the charge nurse dashboard\n  - Acceptance: The note form is pre-filled with patient details\n  - Acceptance: The note is auto-saved every 30 seconds\n  - Acceptance: The note is submitted with a selected note type\n- **FR-4** Ward nurse sees current shift patient dashboard after sign-in\n  - Acceptance: The dashboard displays all patients on the nurse's current shift\n- **FR-7** Note submission is offline-tolerant with retries\n  - Acceptance: Note is persisted with status Pending when the FHIR POST fails\n  - Acceptance: Retries run every 30 seconds for up to 15 minutes with exponential backoff\n  - Acceptance: Nurse sees an in-app message after 15 minutes of failure\n- **FR-8** Retry failed Epic submissions with notifications and IT monitoring\n  - Acceptance: Notes are persisted locally when Epic is unreachable\n  - Acceptance: System retries submission every 30 seconds for 15 minutes\n  - Acceptance: Nurses and charge nurses are notified if submission fails after 15 minutes\n  - Acceptance: IT admins see retry failures in Azure Monitor\n  - Acceptance: The note is sent to Epic via the FHIR API\n  - Acceptance: The note appears in the ward log dashboard for charge nurses to review\n  - Reason: Ensures no data loss and keeps nurses productive during transient outages.\n- **FR-9** Pharmacy liaison sees curated alert-flagged notes read-only\n  - Acceptance: Liaison sees only notes carrying an alert flag\n  - Acceptance: Access requires explicit approval and is audit logged\n  - Acceptance: Liaison cannot edit or submit notes\n  - Acceptance: Pharmacy liaison can access the note feed for specific alerts with explicit approval and audit logging\n  - Acceptance: The pharmacy liaison can see only notes with a priority_flag set to true in the curated view\n  - Reason: To initiate interventions for specific alerts such as 'patient refusing medication'.\n- **FR-11** Pharmacy liaison sees red banner notification for alert notes\n  - Acceptance: Pharmacy liaison sees a red banner notification with patient name, MRN, bed number, time, and note text when a note is flagged\n- **FR-12** Clicking alert-flagged note triggers Teams message and ServiceNow ticket\n  - Acceptance: Automated workflow triggers on pharmacy liaison opening alert note\n  - Acceptance: Teams message sent to pharmacy team channel with note link\n  - Acceptance: ServiceNow priority-2 ticket created\n- **FR-13** Only pharmacy liaison and charge nurse may open alert-flagged notes with reason and audit\n  - Acceptance: Only pharmacy liaison and charge nurse can open alert-flagged notes\n  - Acceptance: Opening requires selecting one of three reasons\n  - Acceptance: Each open is logged with user ID, timestamp, IP, and MRN\n- **FR-14** Pharmacy liaison escalation without edit or delete permission\n  - Acceptance: Opening alert note posts Teams message with note link\n  - Acceptance: Opening alert note creates a ServiceNow ticket at priority 2\n  - Acceptance: Pharmacy liaison cannot edit or delete notes\n- **FR-16** Ward nurse can view shift summary with note statuses and retry failed notes\n  - Acceptance: Ward nurse can access shift summary at shift end\n  - Acceptance: Summary shows all notes with color-coded status\n  - Acceptance: Ward nurse can tap failed note for error and manual retry\n  - Acceptance: Urgent or alert notes are highlighted\n  - Acceptance: Summary persists for 24 hours and can be exported to PDF\n- **FR-17** Charge nurse start-of-shift real-time dashboard with alert highlights\n  - Acceptance: Alert-flagged notes appear at top with red badge and unresolved count\n  - Acceptance: Status colors correspond to synced, pending, and failed\n  - Acceptance: Dashboard refreshes every 2 minutes\n- **FR-20** Persistent retry notification during pending note sync\n  - Acceptance: Notice shows retry attempt number and elapsed time\n  - Acceptance: Notice refreshes every 30 seconds\n  - Acceptance: Notification visible at top while note pending sync\n  - Acceptance: Notification updates every 30 seconds with progress graphic\n- **FR-22** Charge nurse dashboard shows real-time prior-shift notes with filtering and export\n  - Acceptance: Dashboard shows real-time prior shift notes summary\n  - Acceptance: List of patients with active notes color-coded by status\n  - Acceptance: Alert-flagged notes in dedicated section with red badge\n  - Acceptance: Count of unresolved issues displayed\n  - Acceptance: Auto-refresh every 2 minutes\n  - Acceptance: Charge nurse can view full note history per patient\n  - Acceptance: Charge nurse can export overview to PDF for handoff\n- **FR-23** Charge nurse can export dashboard overview PDF shared securely with logs\n  - Acceptance: Charge nurse can export dashboard overview to PDF\n  - Acceptance: PDF shared via secure email through Azure Logic Apps\n  - Acceptance: Email contains encrypted link expiring after 7 days\n  - Acceptance: Export logged in audit trail with user ID, timestamp, patient count, recipient email\n  - Acceptance: Export stored in Azure Blob Storage with 7-year retention\n- **FR-25** Notification and modal shown if note fails to sync after 15 minutes\n  - Acceptance: Push notification sent at 15-minute failure\n  - Acceptance: Modal indicates note saved locally but sync failed\n  - Acceptance: Modal persists until nurse acknowledges\n  - Acceptance: Failed write event logged in Azure Monitor\n- **FR-26** Nurse sees assigned shift roster with patient cards on sign-in\n  - Acceptance: Roster loads within 3 seconds of sign-in\n  - Acceptance: Each card shows name, MRN, bed number, admission status\n  - Acceptance: Patient cards cached locally for 5 minutes and remain tappable on slow networks\n  - Acceptance: Roster load time 90th percentile at or below 3 seconds recorded\n- **FR-27** Ward shift system status overrides Epic admission status on roster cards\n  - Acceptance: Patient with Epic transfer and empty ward bed shows 'Bed Empty', dimmed with tooltip\n  - Acceptance: Epic status is not displayed in that case\n  - Acceptance: Patient status from ward shift system takes precedence\n  - Reason: Prevents invalid data entry and keeps data integrity\n- **FR-28** Warning modal shown when note entered for unassigned patient\n  - Acceptance: Opening note for unassigned patient shows warning modal\n  - Acceptance: Nurse must confirm to proceed\n  - Reason: Prevents silent invalid submissions\n- **FR-31** Patient cards drop from roster after ward shift system marks transfer or unassigned\n  - Acceptance: Roster refresh occurs within 90 seconds of ward shift system update\n  - Acceptance: Patients outside nurse's ward never appear\n  - Acceptance: Patient card gone within 90 seconds after ward shift system update\n  - Acceptance: Roster load completes within 3 seconds on hospital tablet\n- **FR-32** Nurse roster loads within 3 seconds on hospital tablet\n  - Acceptance: Roster loads within 3 seconds on Android 12, 4GB RAM hospital Wi-Fi tablet\n  - Acceptance: Roster load time recorded in Application Insights\n  - Acceptance: Only patients assigned to nurse's ward appear\n- **FR-34** Roster drops transferred patient within 60 seconds of ward shift update\n  - Acceptance: Roster drops patient within 60 seconds of ward shift system status update\n  - Acceptance: System detects change via REST API polling interval and refreshes roster within 90 seconds\n- **FR-35** Patient card removed from roster within 90 seconds of shift system update\n  - Acceptance: Patient card is removed within 90 seconds of shift system update\n- **FR-36** Nurses can create and edit notes offline with conflict resolution\n  - Acceptance: Note can be created and edited while network disconnected\n  - Acceptance: Autosave runs every 30 seconds while offline\n  - Acceptance: Conflicting offline edit is logged and surfaced to charge nurse\n- **roster_membership** Only assigned ward patients appear on nurse roster, discrepancies logged\n\n## Business rules\n\n### Business rules\n\n- Notes can be saved locally only if patients are discharged or transferred according to the ward shift system.\n- Nurses may submit notes to Epic only for patients assigned to their ward.\n- Transferred patients' notes can sync to Epic but must be flagged and logged.\n- Nurse choice allowed between local save and Epic submit for transferred patients.\n- Charge nurse and clinical informatics lead review local-only notes and can release or archive them.\n- Roster reflects ward shift system authority, overriding Epic admission status.\n- Patient cards are removed from rosters within 90 seconds of transfer.\n- Notes saved locally due to unassigned patients are purged after 7 days unless reviewed.\n- Audit trails are maintained for all access and submissions.\n\n## Technical requirements\n\n### Technical requirements\n\n- Hosted on Azure cloud using Azure App Services with autoscale.\n- Backend in .NET / C# with Hl7.FhirNetCore commercial FHIR library.\n- Frontend using React with TypeScript and Material UI for accessibility.\n- CI/CD via Azure DevOps pipelines and Terraform.\n- Security enforced with Azure AD roles, OAuth 2.0 client credentials, and JWT validation.\n- Full offline note creation and editing supported by IndexedDB and service workers.\n- Integration through Azure API Management proxy for Epic FHIR and ward shift system REST APIs.\n- Static code analysis with SonarQube and dependency scanning with Snyk.\n- HTTPS with CSP, XSS protections, and TLS 1.3 enforced.\n\n## Data requirements\n\n### Data requirements\n\n- Notes include timestamps, patient MRN, nurse ID, status, and source system fields.\n- Audit events capture actions, users, timestamps, IP addresses, and details.\n- Notes retained 7 years in Azure SQL, archived for 10 years.\n- Every note edit version persisted, including offline conflict versions.\n- Local IndexedDB copies deleted upon Epic sync confirmation; failed notes retained for manual retry.\n- Alert flags recorded for specific clinical notes accessible only to pharmacy liaison and charge nurse.\n\n## Integrations\n\n### Integrations\n\n- Epic EMR accessed via FHIR STU3 with OAuth 2.0 client credentials through Azure API Management. Supports reading patient demographics, admission status, and writing clinical notes.\n- Ward shift system accessed via REST API on Azure behind API Management for real-time ward staffing and patient assignment validation.\n- Integration contract defined before development to ensure interface clarity.\n\n## Security and privacy\n\n### Security and privacy\n\n- HIPAA and hospital data governance compliance.\n- Encryption at rest and in transit using Azure managed keys, TLS 1.3.\n- Role-based access control via Azure AD with MFA. Pharmacy liaison access requires explicit approval and audit logging.\n- Access tightly controlled by Azure AD groups aligned with user roles.\n- Audit logs stored for 7 years and include note reading reasons for alert-flagged notes.\n- Data residency limited to Azure East US with encrypted backups in separate disaster recovery region.\n\n## Non-functional requirements\n\n### Non-functional requirements\n\n- Support approximately 160 active ward nurses, with 60-80 concurrent users at shifts and up to 120 during shift changes.\n- System latency and reliability designed for real-time note entry and dashboard updates.\n- Backend autoscaling to handle peak load with monitoring and alerting for degraded performance.\n- Responsive frontend works on hospital tablets with caching for intermittent network.\n- Retry mechanisms with exponential backoff for Epic submission failures ensure no data loss.\n\n## Administrative surface\n\n### Administrative surface\n\n- Hospital IT administrators access health monitoring dashboard showing API latency, error rates, and authentication failures.\n- Clinical informatics lead and charge nurses have portals to review and audit notes, including local-only notes pending review.\n- Audit trails and export logs accessible for compliance.\n- Export PDF handoff files stored with retention policies and managed via Azure Blob Storage.\n- Explicit approval management for pharmacy liaison role access.\n\n## MVP scope\n\n### MVP scope\n\nVersion one delivers core note entry with autosave and Azure AD SSO, FHIR push to Epic, real-time ward nurse and charge nurse dashboards with alert viewing and escalation workflows, offline note creation, retry logic for failed Epic submissions, shift summary views with manual retry, and PDF export for charge nurse handoff. Health monitoring dashboards for IT admins are included.\n\nIn version one:\n- FR-1\n- FR-3\n- FR-4\n- FR-7\n- FR-8\n- FR-9\n- FR-11\n- FR-12\n- FR-13\n- FR-14\n- FR-16\n- FR-17\n- FR-20\n- FR-22\n- FR-23\n- FR-25\n- FR-26\n- FR-27\n- FR-28\n- roster_membership\n- FR-31\n- FR-32\n- FR-34\n- FR-35\n- FR-36\n\n## Future scope\n\n## Implementation phases\n\n### Implementation phases\n\nThe development plan contains phases focusing on incrementally delivering a minimum viable product with full workflows, starting with core authentication, patient roster, note entry, and persistence, extending to offline support, retry mechanisms, dashboard views, and alert handling.\n\nEach phase includes specific goals, concrete tasks with acceptance criteria, dependencies on earlier phases, and phase-level acceptance criteria to ensure quality and completeness.\n\n### Phase 1: Core Note Entry and Authentication\n\nGoals:\n- Implement Azure AD SSO login\n- Load and display nurse's assigned shift roster\n- Basic note entry form with autosave and patient details pre-fill\n\nTasks:\n- Implement nurse authentication via Azure AD SSO\n  - Acceptance: Nurse can authenticate successfully using Azure AD SSO\n- Fetch and display patient roster from ward shift system\n  - Acceptance: Roster loads within 3 seconds\n  - Acceptance: Only assigned patients visible\n  - Acceptance: Patient cards show required details\n- Allow nurses to open note form prefilled with patient data\n  - Acceptance: Note form pre-filled with MRN, name, bed number, admission date\n- Implement autosave every 30 seconds\n  - Acceptance: Note saved locally every 30 seconds while form open\n\nPhase acceptance:\n- Nurse can log in, view roster, and enter notes with autosave\n\n### Phase 2: Note Submission and Retry Logic\n\nGoals:\n- Submit notes to Epic FHIR API\n- Implement retry for failed submissions with exponential backoff\n- Notify nurses and IT for sync failures\n- Persist notes with statuses (Pending, Failed, Synced)\n\nTasks:\n- Implement note submission to Epic via FHIR API\n  - Acceptance: Submitted notes appear in Epic and charge nurse dashboard\n- Implement offline persistence and retry every 30 seconds up to 15 minutes\n  - Acceptance: Notes pending on failure are retried with exponential backoff\n- Notify nurses after 15 minutes failure with modal and push notification\n  - Acceptance: Notification sent after 15 minutes retry failure\n  - Acceptance: Modal shown until nurse acknowledgement\n- Log retry failures to Azure Monitor visible to IT admins\n  - Acceptance: Retry failures logged and visible to IT admins\n\nDepends on: phase-1\n\nPhase acceptance:\n- Notes submitted reliably with retry and failure notification\n\n### Phase 3: Dashboard Views and Alert Workflow\n\nGoals:\n- Implement charge nurse real-time dashboard with patient notes status\n- Implement pharmacy liaison alert-flagged note view with escalation\n- Implement shift summaries for ward nurses\n- Implement export of dashboards and summaries to PDF\n\nTasks:\n- Charge nurse dashboard showing color-coded note statuses, alerts, and filtering\n  - Acceptance: Dashboard auto-refreshes every 2 minutes\n  - Acceptance: Alert flagged notes show red badge and unresolved count\n- Pharmacy liaison can view alert notes read-only with audit and escalate via Teams and ServiceNow\n  - Acceptance: Alert notes show red banner with details\n  - Acceptance: Opening alert triggers automated escalation workflow\n- Ward nurse shift summary of submitted notes with color-coded sync status and retry buttons\n  - Acceptance: Shift summary shows correct statuses and allows manual retries\n- Export PDF handoffs from charge nurse dashboard and ward nurse shift summary with secure email and audit log\n  - Acceptance: PDF exports send encrypted email with expiration\n  - Acceptance: Exports logged with user, timestamp, and recipient\n\nDepends on: phase-2\n\nPhase acceptance:\n- Real-time dashboards and alert workflows functional with export\n\n### Phase 4: Data Integrity, Audit, and Business Rules Enforcement\n\nGoals:\n- Enforce ward shift system as authoritative for rosters\n- Implement local-only saves for transferred/discharged patients\n- Audit logging of all accesses and actions\n- Charge nurse and clinical informatics lead review local-only notes\n\nTasks:\n- Ensure patient cards drop from roster within 90 seconds of transfer\n  - Acceptance: Patients disappear from roster as specified\n- Show warning modal and allow local save for unassigned patients\n  - Acceptance: Warning modal appears\n  - Acceptance: Local save allowed with flag and audit log\n- Implement audit logs for opening alert notes with reasons and metadata\n  - Acceptance: All audit details recorded\n- Purge local-only notes after 7 days unless reviewed\n  - Acceptance: Local-only notes managed and archived per rules\n\nDepends on: phase-3\n\nPhase acceptance:\n- Business rules and audit controls enforced\n\n## Open questions\n\n### Open questions\n\n- Must the system support multi-ward nurse assignments or cover-ward notes at launch? Default taken: No, only assigned ward patients.\n- What is the maximal note size limit or character count for note entry? Default taken: Limit to 4000 characters.\n- Are there specific languages or locales needed beyond English? Default taken: English only.\n- Should the system support integration with other EMRs beside Epic initially? Default taken: No, Epic only.\n\n- Must the system support multi-ward nurse assignments or cover-ward notes at launch? _Default taken: No, only assigned ward patients._\n- What is the maximal note size limit or character count for note entry? _Default taken: Limit to 4000 characters._\n- Are other languages or locales besides English required at launch? _Default taken: English only._\n- Should integration with EMRs other than Epic be supported initially? _Default taken: No, Epic only._\n",
+  "curation": {
+    "merged": [
+      {
+        "into": "FR-16",
+        "from": ["FR-15"],
+        "via": "exact"
+      },
+      {
+        "into": "FR-23",
+        "from": ["FR-18", "FR-19"],
+        "via": "exact"
+      },
+      {
+        "into": "FR-9",
+        "from": ["FR-2", "FR-10"],
+        "via": "model"
+      },
+      {
+        "into": "FR-3",
+        "from": ["FR-5"],
+        "via": "model"
+      },
+      {
+        "into": "FR-8",
+        "from": ["FR-6"],
+        "via": "model"
+      },
+      {
+        "into": "FR-20",
+        "from": ["FR-24"],
+        "via": "model"
+      },
+      {
+        "into": "FR-25",
+        "from": ["FR-21"],
+        "via": "model"
+      },
+      {
+        "into": "FR-26",
+        "from": ["FR-30"],
+        "via": "model"
+      },
+      {
+        "into": "FR-27",
+        "from": ["FR-29"],
+        "via": "model"
+      },
+      {
+        "into": "FR-31",
+        "from": ["FR-37"],
+        "via": "model"
+      },
+      {
+        "into": "FR-32",
+        "from": ["FR-33"],
+        "via": "model"
+      }
+    ],
+    "rerouted": [],
+    "withdrawn": [],
+    "renumbered": [],
+    "folded": [],
+    "candidates": []
+  }
+}

@@ -1,4 +1,6 @@
 import {
+  classifyRequirement,
+  curateRequirements,
   extractFacts,
   InterviewEngine,
   LexicalRecall,
@@ -15,6 +17,7 @@ import type { Fixture } from "./fixture.js";
 import {
   contractTally,
   coverageProgression,
+  curatedQuality,
   factRecall,
   frIdIntegrity,
   issueDetection,
@@ -116,6 +119,21 @@ export async function replayFixture(fixture: Fixture): Promise<ReplayOutcome> {
     f.kind === "spec_field" && f.section === "rules" ? [JSON.stringify(f.value)] : [],
   );
   const capture = requirementCapture(fixture.goldRequirements, requirements, rules);
+  // The list a reader gets once the quality pass has run (generation does the same, D-241).
+  const curated = curateRequirements({ facts: state.facts });
+  const curatedReqs = curated.facts.map(asReq).filter((r): r is RecordedRequirement => r !== undefined);
+  const quality = curatedQuality(fixture.goldRequirements, curatedReqs);
+  const ungrounded = state.facts.filter(
+    (f) =>
+      f.kind === "spec_field" &&
+      f.section === "functional" &&
+      typeof f.value === "object" &&
+      f.value !== null &&
+      (f.value as { needsConfirmation?: unknown }).needsConfirmation === true,
+  ).length;
+  const decisionsAsRequirements = requirements.filter(
+    (r) => classifyRequirement({ title: r.title }) !== "capability",
+  ).length;
   const integrity = frIdIntegrity(requirements.map((r) => r.path));
   const coverage = coverageProgression(coverageCurve, fixture.expect.coverage);
   const specFacts = state.facts.flatMap((f) => (f.kind === "spec_field" ? [f] : []));
@@ -151,7 +169,12 @@ export async function replayFixture(fixture: Fixture): Promise<ReplayOutcome> {
     summary: store.summary,
     window: recentWindow,
   });
-  const issues = issueDetection(state.findings, fixture.goldFindings);
+  // The requirements confirmation (D-244, id r<turn>-1) is the engine's own read-back of the list,
+  // not a detected issue: it is neither a true nor a false positive of issue detection.
+  const issues = issueDetection(
+    state.findings.filter((f) => !/^r\d+-\d+$/.test(f.id)),
+    fixture.goldFindings,
+  );
   const tally = contractTally(
     contracts.map((c) => ({ markerMissed: c.markerMissed, outcome: c.outcome, repairCalls: c.repairCalls })),
   );
@@ -172,6 +195,12 @@ export async function replayFixture(fixture: Fixture): Promise<ReplayOutcome> {
           requirementCapture: capture.rate,
           requirementsRecorded: capture.recorded,
           requirementsMisfiled: capture.misfiled,
+          requirementsAfterCuration: quality.requirements,
+          duplicatesAfterCuration: quality.duplicates,
+          unmatchedAfterCuration: quality.unmatched,
+          requirementPrecision: quality.precision,
+          ungroundedRequirements: ungrounded,
+          decisionsAsRequirements,
           scopeWrong: capture.scopeWrong.length,
           frIdIntegrity: integrity.ok,
           specCompleteness: completeness.score,
@@ -186,6 +215,16 @@ export async function replayFixture(fixture: Fixture): Promise<ReplayOutcome> {
     ended,
     state,
     metrics,
-    detail: { coverage, capture, integrity, completeness, recall, issues, tally },
+    detail: {
+      coverage,
+      capture,
+      quality,
+      integrity,
+      completeness,
+      recall,
+      issues,
+      tally,
+      curated: curated.report,
+    },
   };
 }
