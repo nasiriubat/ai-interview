@@ -317,7 +317,10 @@ function turnsFor(
   gold: Fixture["goldRequirements"];
   flaws: Record<string, Fixture["modelBehavior"]["flaws"][string]>;
 } {
-  interface Item { text: string; labels: Fixture["turns"][number]["labels"] }
+  interface Item {
+    text: string;
+    labels: Fixture["turns"][number]["labels"];
+  }
   const L = (
     labels: Partial<Fixture["turns"][number]["labels"]> = {},
   ): Fixture["turns"][number]["labels"] => ({
@@ -332,7 +335,7 @@ function turnsFor(
   const reqs = terse ? s.reqs.slice(0, 5) : s.reqs;
   const queue: Item[] = [];
   for (let i = 0; i < 8; i++)
-    queue.push({ text: terse ? (TERSE_CONTEXT[i]!) : (CONTEXT_ANSWERS[i]!), labels: L() });
+    queue.push({ text: terse ? TERSE_CONTEXT[i]! : CONTEXT_ANSWERS[i]!, labels: L() });
   queue.push({ text: terse ? "Double typing." : s.idea, labels: L({ sections: ["overview"] }) });
   queue.push({ text: terse ? "Staff." : s.users, labels: L({ sections: ["users"] }) });
   reqs.forEach((r, i) =>
@@ -366,15 +369,14 @@ function turnsFor(
     out.push(item);
     if (persona === "off_topic" && i >= 8 && out.length < 44) {
       out.push({ text: DRIFT[driftIndex++ % DRIFT.length]!, labels: L({ offTopic: true }) });
-      if (i % 2 === 0)
-        out.push({ text: DRIFT[driftIndex++ % DRIFT.length]!, labels: L({ offTopic: true }) });
+      if (i % 2 === 0) out.push({ text: DRIFT[driftIndex++ % DRIFT.length]!, labels: L({ offTopic: true }) });
     }
   }
   // Contradiction: a requirement introduced early is moved to future scope later.
   const turns: Fixture["turns"] = [];
   while (out.length < 60) {
     const k = out.length;
-    out.push({ text: terse ? "Yes." : (CONFIRM[k % CONFIRM.length]!), labels: L() });
+    out.push({ text: terse ? "Yes." : CONFIRM[k % CONFIRM.length]!, labels: L() });
   }
   out.slice(0, 60).forEach((item, i) => turns.push({ n: i + 1, text: item.text, labels: item.labels }));
 
@@ -710,7 +712,11 @@ const ADMIN: DiscoveryScenario = {
 
 function discoveryFixture(persona: Persona, scenario: DiscoveryScenario): Fixture {
   const terse = persona === "terse";
-  interface Item { text: string; facts: string[]; offTopic?: boolean }
+  interface Item {
+    text: string;
+    facts: string[];
+    offTopic?: boolean;
+  }
   const items: Item[] = [{ text: terse ? "Nurse, surgical ward." : scenario.role, facts: [] }];
   items.push({ text: terse ? "Rounds, charting." : scenario.daily, facts: [] });
   const goldFacts: Fixture["goldFacts"] = [];
@@ -774,7 +780,7 @@ function discoveryFixture(persona: Persona, scenario: DiscoveryScenario): Fixtur
     items.push(...mixed);
   }
   while (items.length < 60)
-    items.push({ text: terse ? "Yes." : (CONFIRM[items.length % CONFIRM.length]!), facts: [] });
+    items.push({ text: terse ? "Yes." : CONFIRM[items.length % CONFIRM.length]!, facts: [] });
   const turns: Fixture["turns"] = items.slice(0, 60).map((it, i) => ({
     n: i + 1,
     text: it.text,
@@ -820,6 +826,10 @@ const personas: Persona[] = [
   "nontechnical",
 ];
 const scenarioKeys = ["charting", "roster", "library", "charting", "roster", "library"];
-personas.forEach((p, i) => { write(requirementsFixture(p, scenarioKeys[i]!)); });
-personas.forEach((p, i) => { write(discoveryFixture(p, i % 2 === 0 ? NURSE : ADMIN)); });
+personas.forEach((p, i) => {
+  write(requirementsFixture(p, scenarioKeys[i]!));
+});
+personas.forEach((p, i) => {
+  write(discoveryFixture(p, i % 2 === 0 ? NURSE : ADMIN));
+});
 console.log(`wrote ${personas.length * 2} fixtures under ${ROOT}`);
