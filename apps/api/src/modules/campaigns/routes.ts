@@ -1,9 +1,10 @@
+import { toListResponse } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
-import { CampaignListQuery, CampaignSessionListQuery } from "./service.js";
+import { CampaignListQuery, CampaignSessionListQuery, InvitationListQuery } from "./service.js";
 
 const Id = z.object({ id: z.string() });
 
@@ -172,17 +173,28 @@ export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void>
     },
   );
 
-  app.get("/campaigns/:id/invitations", { ...guard.staff(), schema: { params: Id } }, async (req) => ({
-    invitations: (await svc.invitations(req.companyId, req.params.id)).map((i) => ({
-      id: i.id,
-      // Who was invited is an administrator's to know; a member sees the invitations' state (D-144).
-      email: mayManage(req) ? i.email : null,
-      status: i.status,
-      sentAt: i.sentAt,
-      openedAt: i.openedAt,
-      expiresAt: i.expiresAt,
-    })),
-  }));
+  app.get(
+    "/campaigns/:id/invitations",
+    { ...guard.staff(), schema: { params: Id, querystring: InvitationListQuery } },
+    async (req) => {
+      const manage = mayManage(req);
+      const result = await svc.invitationsPage(req.companyId, req.params.id, req.query, manage);
+      return toListResponse(
+        "invitations",
+        result.invitations.map((i) => ({
+          id: i.id,
+          // Who was invited is an administrator's to know; a member sees the invitations' state (D-144).
+          email: manage ? i.email : null,
+          status: i.status,
+          sentAt: i.sentAt,
+          openedAt: i.openedAt,
+          expiresAt: i.expiresAt,
+        })),
+        result.total,
+        req.query,
+      );
+    },
+  );
 
   app.post(
     "/campaigns/:id/invitations/:invId/remind",

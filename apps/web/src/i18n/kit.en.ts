@@ -80,6 +80,7 @@ export const kitEn = {
     show: "Show value",
     hide: "Hide value",
     saved: "Saved",
+    noChanges: "No changes yet",
     unsaved: "You have unsaved changes",
     save: "Save changes",
     saving: "Saving…",

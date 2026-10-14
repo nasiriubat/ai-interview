@@ -49,7 +49,7 @@ export function Field({
 }): React.JSX.Element {
   const quiet = React.useContext(QuietFieldErrors);
   return (
-    <div className={cn("grid gap-1.5", className)}>
+    <div className={cn("grid min-w-0 content-start gap-1.5", className)}>
       <Label htmlFor={id} className="leading-5">
         {label}
         {required ? (
@@ -407,7 +407,7 @@ export function FormSection({
     <section
       id={`section-${key}`}
       tabIndex={-1}
-      className="grid gap-4 bg-card shadow-card rounded-lg p-4 md:p-5"
+      className="grid grid-cols-[minmax(0,1fr)] gap-4 bg-card shadow-card rounded-lg p-4 md:p-5"
       aria-labelledby={`section-${key}-title`}
     >
       <h2 id={`section-${key}-title`} className="flex flex-wrap items-center gap-2 text-base font-semibold">

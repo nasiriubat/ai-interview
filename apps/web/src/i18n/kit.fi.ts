@@ -73,6 +73,7 @@ export const kitFi: KitStrings = {
     show: "Näytä arvo",
     hide: "Piilota arvo",
     saved: "Tallennettu",
+    noChanges: "Ei vielä muutoksia",
     unsaved: "Sinulla on tallentamattomia muutoksia",
     save: "Tallenna muutokset",
     saving: "Tallennetaan…",
