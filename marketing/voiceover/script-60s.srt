@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:08,000
+Before you decide what to automate, ask the people who do the work.
+
+2
+00:00:08,000 --> 00:00:09,613
+Share one link.
+
+3
+00:00:09,613 --> 00:00:18,000
+Your team answers an AI interviewer on a phone or a laptop, no account needed.
+
+4
+00:00:18,000 --> 00:00:28,000
+One question at a time, the same template for everyone, and it is instructed never to ask where AI should go.
+
+5
+00:00:28,000 --> 00:00:40,000
+The answers are grouped, counted and scored across the whole campaign, and a quote or a department shows only when, by default, at least three people are behind it.
+
+6
+00:00:40,000 --> 00:00:50,000
+A promising opportunity becomes a requirements interview, and then a versioned specification your developers, or your coding agent, can build from.
+
+7
+00:00:50,000 --> 00:00:55,620
+Built to run on a server you operate, with the providers you choose.
+
+8
+00:00:55,620 --> 00:01:00,000
+Understand the problem before deciding what to build.
