@@ -29,9 +29,23 @@ back to `EMAIL_SMTP_URL` and `EMAIL_FROM` from the environment when neither is s
 that sets its own SMTP sends its invitations from its own server. The API and the worker
 resolve identically, so a message sent from a job looks the same as one sent from a request.
 
-`POST /settings/email/test` (admin) sends a test message to the calling user's address using
-the configuration that is currently in effect for the scope, and returns
-`{ ok, usedScope: "tenant" | "platform" | "env", error? }`. A relay saved at tenant or platform
+`GET /settings` also returns, for the platform and tenant scopes, an additive `smtp` object:
+`{ set: { host, port, security, username, passwordSet } | null, effective: "tenant" | "platform" |
+"env" | "none", envConfigured }`. It is `email.smtpUrl` taken apart, without its password.
+`PUT /settings` accepts an optional `smtp` beside `values`:
+`{ host, port, security: "starttls" | "ssl" | "none", username, password }` where `password` is
+`"__unchanged__"` (keep), a string (replace) or `null` (remove). The API composes it into the one
+`email.smtpUrl` secret; sending `smtp` together with a literal `email.smtpUrl` is a 400.
+(`security: "none"` is for the platform scope only: a tenant's relay must encrypt.)
+
+`POST /settings/email/test` (admin, 10 requests a minute) sends a test message to the calling
+user's address and returns `{ ok, usedScope, errorClass?, error? }`. Without a body beyond
+`scope` it uses the configuration in effect; with `smtp` (and optionally `from`, `replyTo`) it
+exercises the unsaved form under the same egress policy, and never stores it. `errorClass` is one
+of `auth_failed`, `connection_refused`, `tls_failed`, `timeout`, `host_not_found`, `blocked`,
+`rejected`, `not_configured`, `unknown`; `error` is a fixed sentence for it, never the server's
+words or any part of the connection string. `not_configured` means no relay is set at any scope or
+in the environment, where the platform would only log the message. A relay saved at tenant or platform
 scope is checked against the egress policy when it is written (`422 blocked_address`) and on every
 send; the environment's relay is the deployment's own and is exempt.
 

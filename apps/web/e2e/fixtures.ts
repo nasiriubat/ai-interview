@@ -235,6 +235,30 @@ export const settingsCatalog = [
     scopes: ["platform", "tenant", "template"],
     secret: false,
   },
+  {
+    key: "email.smtpUrl",
+    category: "email",
+    description: "smtp://user:pass@host:587",
+    default: "",
+    scopes: ["platform", "tenant"],
+    secret: true,
+  },
+  {
+    key: "email.from",
+    category: "email",
+    description: "Envelope sender for outgoing mail",
+    default: "no-reply@example.com",
+    scopes: ["platform", "tenant"],
+    secret: false,
+  },
+  {
+    key: "email.replyTo",
+    category: "email",
+    description: "Optional reply-to address",
+    default: "",
+    scopes: ["platform", "tenant"],
+    secret: false,
+  },
 ];
 
 export const provider = {

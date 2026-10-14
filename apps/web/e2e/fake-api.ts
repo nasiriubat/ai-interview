@@ -331,11 +331,26 @@ const READS: [RegExp, Handler][] = [
     /^\/settings$/,
     () => ({
       body: {
-        values: { "campaign.consentText": "Our own consent words." },
+        values: {
+          "campaign.consentText": "Our own consent words.",
+          "email.smtpUrl": "__unchanged__",
+          "email.from": "hello@acme.test",
+        },
         catalog: f.settingsCatalog,
-        effective: { "engine.maxTurns": 40 },
-        secrets: {},
+        effective: { "engine.maxTurns": 40, "email.from": "hello@acme.test" },
+        secrets: { "email.smtpUrl": true },
         sources: {},
+        smtp: {
+          set: {
+            host: "smtp.postmarkapp.com",
+            port: 587,
+            security: "starttls",
+            username: "ada@acme.test",
+            passwordSet: true,
+          },
+          effective: "tenant",
+          envConfigured: true,
+        },
       },
     }),
   ],

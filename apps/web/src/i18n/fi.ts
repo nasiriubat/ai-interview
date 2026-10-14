@@ -1743,6 +1743,73 @@ export const fi: Strings = {
         sent: (scope: string): string => `Testiviesti lähetettiin asetuksilla tasolta ${scope}.`,
         failed: (error: string): string => `Testiviestin lähetys epäonnistui: ${error}`,
         usedScopes: { tenant: "organisaatio", platform: "alusta", env: "ympäristömuuttujat" },
+        form: {
+          serverTitle: "Postipalvelin",
+          serverBody: "Palvelin, joka lähettää kirjautumislinkit, kutsut ja raportit puolestasi.",
+          senderTitle: "Lähettäjä",
+          host: "Palvelimen osoite",
+          hostHint: "Postipalveluntarjoajan antama nimi, esimerkiksi smtp.example.com.",
+          port: "Portti",
+          security: "Suojaus",
+          securityOptions: {
+            starttls: "STARTTLS (yleensä portti 587)",
+            ssl: "SSL/TLS (yleensä portti 465)",
+            none: "Ei mitään, selkeää tekstiä (yleensä portti 25)",
+          },
+          securityHint:
+            "Valitse palveluntarjoajan ohjeen mukainen. Portti seuraa valintaa, kunnes muutat sitä itse.",
+          username: "Käyttäjätunnus",
+          usernameHint:
+            "Usein koko sähköpostiosoite tai API-avaimen nimi. Jätä tyhjäksi, jos palvelin ei vaadi sitä.",
+          password: "Salasana",
+          passwordSetHint:
+            "Salasana on tallennettu salattuna eikä sitä näytetä. Jätä tyhjäksi säilyttääksesi sen.",
+          passwordWillRemove: "Tallennettu salasana poistetaan, kun tallennat.",
+          passwordRemove: "Poista tallennettu salasana",
+          passwordUndo: "Säilytä se",
+          from: "Lähettäjän osoite",
+          fromHint:
+            "Osoite, josta viestit lähetetään. Palveluntarjoaja voi vaatia, että se on sen vahvistama osoite.",
+          replyTo: "Vastausosoite",
+          replyToHint: "Minne vastaukset menevät. Jätä tyhjäksi käyttääksesi lähettäjän osoitetta.",
+          errors: {
+            host: "Anna postipalvelimen osoite.",
+            hostFormat: "Anna vain palvelimen nimi ilman protokollaa, polkua tai välilyöntejä.",
+            port: "Anna portti väliltä 1–65535.",
+            email: "Anna kelvollinen sähköpostiosoite.",
+          },
+          source: {
+            tenantSet: "Tämä organisaatio käyttää omaa postipalvelinta.",
+            platform: "Käytössä on alustan postipalvelin. Aseta alle oma ohittaaksesi sen.",
+            platformSet: "Alustan postipalvelin määritetään tässä.",
+            env: "Käytössä on ympäristön oletus: asennuksen yhteydessä määritetty postipalvelin.",
+            none: "Postipalvelinta ei ole määritetty. Kirjautumislinkkejä ja kutsuja ei voi toimittaa, ennen kuin se asetetaan.",
+          },
+          sourceBadge: {
+            tenant: "Oma palvelin",
+            platform: "Alusta",
+            env: "Ympäristön oletus",
+            none: "Ei määritetty",
+          },
+          useInherited: "Lopeta oman palvelimen käyttö",
+          plainOperatorOnly: "Salaamattomat yhteydet ovat vain alustan ylläpitäjän käytössä.",
+          testIntro: "Lähettää yhden viestin omaan osoitteeseesi lomakkeen asetuksilla tallentamatta niitä.",
+          testing: "Lähetetään testiviestiä…",
+          testOk: "Testiviesti lähetetty. Tarkista saapuneet-kansiosi.",
+          testClass: {
+            auth_failed: "Postipalvelin hylkäsi käyttäjätunnuksen tai salasanan.",
+            connection_refused: "Postipalvelin kieltäytyi yhteydestä. Tarkista osoite ja portti.",
+            tls_failed:
+              "Suojattua yhteyttä ei saatu muodostettua. Tarkista, että suojausvalinta vastaa porttia.",
+            timeout: "Postipalvelin ei vastannut ajoissa. Tarkista osoite ja portti.",
+            host_not_found: "Postipalvelimen nimeä ei löytynyt. Tarkista osoitteen kirjoitusasu.",
+            blocked: "Tämä postipalvelimen osoite ei ole sallittu tällä alustalla.",
+            rejected: "Postipalvelin hylkäsi viestin. Tarkista, että lähettäjän osoite on sen sallima.",
+            not_configured:
+              "Postipalvelinta ei ole määritetty, joten mitään ei voi lähettää. Täytä ensin lomake.",
+            unknown: "Viestiä ei voitu lähettää näillä asetuksilla.",
+          },
+        },
       },
       liveVoice: {
         title: "Reaaliaikaiset puhelut",

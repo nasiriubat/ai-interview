@@ -1,3 +1,4 @@
+import { SmtpFormSchema } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
@@ -35,10 +36,11 @@ export async function settingsRoutes(app: App, ctx: RouteContext): Promise<void>
       ...guard.admin(),
       schema: {
         querystring: SettingsScopeQuery,
-        body: z.object({ values: z.record(z.string(), z.unknown()) }),
+        // `smtp` is the structured mail relay; it is composed into email.smtpUrl server side.
+        body: z.object({ values: z.record(z.string(), z.unknown()), smtp: SmtpFormSchema.optional() }),
       },
     },
-    async (req) => settings.write(callerOf(req), req.query, req.body.values),
+    async (req) => settings.write(callerOf(req), req.query, req.body.values, req.body.smtp),
   );
 
   /** Who changed which keys, when (D-182). Keys only: the audit log never holds a value. */
@@ -54,9 +56,14 @@ export async function settingsRoutes(app: App, ctx: RouteContext): Promise<void>
   );
 
   /** Sends one message to the caller with the configuration in effect, and says which scope won. */
-  app.post("/settings/email/test", { ...guard.admin() }, async (req) => {
-    // The body is optional, so it is parsed here rather than by the route schema.
-    const body = EmailTestBody.parse(req.body ?? {});
-    return settings.emailTest(callerOf(req), body);
-  });
+  app.post(
+    "/settings/email/test",
+    // Each call opens a connection to a host an admin typed, so it gets a short budget.
+    { ...guard.admin({ config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }) },
+    async (req) => {
+      // The body is optional, so it is parsed here rather than by the route schema.
+      const body = EmailTestBody.parse(req.body ?? {});
+      return settings.emailTest(callerOf(req), body);
+    },
+  );
 }

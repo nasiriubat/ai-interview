@@ -393,6 +393,8 @@ export interface SmtpTarget {
   port: number;
   secure: boolean;
   requireTls: boolean;
+  /** Plain text on purpose (`?ignoreTLS=true`): only ever honoured outside a tenant's relay. */
+  ignoreTls: boolean;
   user?: string;
   pass?: string;
 }
@@ -484,7 +486,11 @@ export class EgressGuard {
       port,
       secure,
       // A tenant's relay must encrypt: credentials and message bodies go over the open internet.
-      requireTls: !permissive && origin === "tenant",
+      requireTls: (!permissive && origin === "tenant") || url.searchParams.get("requireTLS") === "true",
+      ignoreTls:
+        !(!permissive && origin === "tenant") &&
+        url.searchParams.get("requireTLS") !== "true" &&
+        url.searchParams.get("ignoreTLS") === "true",
       ...(url.username ? { user: decodeURIComponent(url.username) } : {}),
       ...(url.password ? { pass: decodeURIComponent(url.password) } : {}),
     };
