@@ -21,7 +21,12 @@ import {
   type VoiceMode,
 } from "@aidp/core";
 import { tenantTransaction } from "@aidp/db";
-import { defaultConsentText, participantWelcome, type ModeSwitchReason } from "@aidp/shared";
+import {
+  defaultConsentText,
+  IDLE_CAP_SECONDS,
+  participantWelcome,
+  type ModeSwitchReason,
+} from "@aidp/shared";
 import type { Campaign, InterviewTemplate, Participant, PrismaClient, Session } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 
@@ -33,7 +38,6 @@ export interface LinkView {
   productName: string;
   /** The participant-facing welcome (D-460); never the template's objective, which is for the AI. */
   welcome: string;
-  expectedMinutes: number;
   participationMode: string;
   verification: string;
   consentText: string;
@@ -83,6 +87,9 @@ export interface AbuseControls {
 export function consentVersionOf(text: string): string {
   return `v${createHash("sha256").update(text).digest("hex").slice(0, 12)}`;
 }
+
+/** Completed interviews a campaign needs before the arrival screen states a duration. */
+export const MEASURED_MINUTES_MIN = 5;
 
 /** The public participant flow: link resolution, uniqueness, session binding (FR-04, FR-10, FR-11, 06). */
 export class ParticipantService {
@@ -143,7 +150,6 @@ export class ParticipantService {
           resolved["campaign.welcomeText"]?.scope != null ? resolved["campaign.welcomeText"].value : null,
           campaign.template,
         ),
-        expectedMinutes: Math.max(10, Math.round(campaign.maxTurns / 3)),
         participationMode: campaign.participationMode,
         verification: campaign.verification,
         consentText,
@@ -153,6 +159,33 @@ export class ParticipantService {
         status: expired ? "expired" : campaign.status === "open" && !suspended ? "open" : "closed",
       },
     };
+  }
+
+  /**
+   * How long this campaign's interviews take, as measured: the median active time of its completed
+   * interviews, in whole minutes, once at least `MEASURED_MINUTES_MIN` have finished. Null before
+   * that, and the arrival screen then states no duration at all (claims B9: minutes are never
+   * stated unmeasured). Gaps between messages are capped as on the dashboard, so a pause does not
+   * count as time spent.
+   */
+  async measuredMinutes(campaign: { id: string; companyId: string }): Promise<number | null> {
+    const rows = await this.db.$queryRaw<{ median: number | null; n: bigint }[]>`
+      WITH gaps AS (
+        SELECT m."sessionId",
+               CASE WHEN lag(m."createdAt") OVER w IS NULL THEN NULL
+                    ELSE LEAST(EXTRACT(EPOCH FROM (m."createdAt" - lag(m."createdAt") OVER w)), ${IDLE_CAP_SECONDS})
+               END AS g
+        FROM "Message" m
+        JOIN "Session" s ON s.id = m."sessionId" AND s."companyId" = m."companyId"
+        WHERE m."companyId" = ${campaign.companyId} AND s."campaignId" = ${campaign.id}
+          AND s.status = 'completed' AND s."sourceKind" = 'campaign'
+        WINDOW w AS (PARTITION BY m."sessionId" ORDER BY m.seq)
+      )
+      SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY t) AS median, count(*) AS n
+      FROM (SELECT sum(g) AS t FROM gaps WHERE g IS NOT NULL GROUP BY "sessionId") x`;
+    const row = rows[0];
+    if (!row || Number(row.n) < MEASURED_MINUTES_MIN || row.median == null) return null;
+    return Math.max(1, Math.round(row.median / 60));
   }
 
   /** Email-code verification, step 1. Always succeeds from the caller's point of view. */

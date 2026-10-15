@@ -154,5 +154,11 @@ it is done (D-450). Then `deploy/upgrade.sh` as always. Migration 0027 (platform
   its context, so row-level security could hide every row (local transcription route, retention
   sweep). Fixed at the source with a test.
 - **Repository layout:** apps, packages, deploy, docs, tools, scripts; see README.md.
+- **Before hand-over (D-470..474):** the arrival screen states a duration only once five
+  interviews of the campaign have finished, as their measured median; weekly hours are labelled
+  self-reported and "not a saving" in the results and the report; the hand-off brief tells the
+  interviewer it is not the requirements list (not yet re-measured live); the CSP console errors on
+  diagram pages are explained (Mermaid's off-screen layout, harmless) and left; pictures 19 to 22
+  retaken.
 - **Marketing:** `marketing/` holds 30 screenshots and the voice-over (full and 60-second cuts) from a
   simulated demo with fictional people; `tools/marketing/` retakes them against a running stack.

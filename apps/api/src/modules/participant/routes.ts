@@ -22,11 +22,12 @@ export async function participantRoutes(app: App, ctx: RouteContext): Promise<vo
 
   app.get("/p/:linkToken", { ...publicLimit, schema: { params: Link } }, async (req) => {
     const { view } = await svc.resolveLink(req.params.linkToken);
+    const expectedMinutes = await svc.measuredMinutes({ id: view.campaignId, companyId: view.companyId });
     const campaign = {
       name: view.name,
       productName: view.productName,
       welcome: view.welcome,
-      expectedMinutes: view.expectedMinutes,
+      expectedMinutes,
       participationMode: view.participationMode,
       verification: view.verification,
       consentText: view.consentText,

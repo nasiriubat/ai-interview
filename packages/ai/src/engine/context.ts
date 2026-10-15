@@ -87,6 +87,13 @@ export function renderState(
     if (handoff.tools.length) lines.push(`- tools: ${handoff.tools.join(", ")}`);
     if (handoff.constraints) lines.push(`- constraints: ${handoff.constraints}`);
     if (handoff.expectedBenefit) lines.push(`- expected benefit: ${handoff.expectedBenefit}`);
+    // The brief describes the problem, not the product: read as "already known", it made the
+    // interviewer skip capture, and one simulated hand-off ended with one requirement after 16
+    // turns where an idea interview had 22 (simulation 2026-10-15).
+    if (template.outputs.includes("spec_field"))
+      lines.push(
+        "This brief is background, not the requirements list: none of it is recorded yet. Ask what the product must do about it, and record each capability the owner states or confirms as its own functional requirement in that turn.",
+      );
   }
   if (Object.keys(state.contextAnswers).length) {
     lines.push("Context answers:");

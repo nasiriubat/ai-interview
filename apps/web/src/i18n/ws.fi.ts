@@ -31,8 +31,8 @@ export const wsFi: WsStrings = {
     finished: (when: string): string => `Valmistui ${when}`,
   },
   overview: {
-    hoursPerWeek: "Tuntia viikossa",
-    hoursHint: "Kuvattu alla olevissa mahdollisuuksissa",
+    hoursPerWeek: "Tuntia viikossa, kuvattuna",
+    hoursHint: "Osallistujien oma arvio; mahdollisuudet voivat mennä päällekkäin. Ei säästö.",
     classesTitle: "Mahdollisuudet ratkaisuluokittain",
     classesBody: "Kuinka monta mahdollisuutta kukin ratkaisutyyppi kattaisi.",
     count: "Mahdollisuuksia",

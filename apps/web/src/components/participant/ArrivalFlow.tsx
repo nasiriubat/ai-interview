@@ -273,7 +273,9 @@ export function ArrivalFlow({
               <div>
                 <dt className="font-medium">{t.participant.arrival.lengthHeading}</dt>
                 <dd className="text-muted-foreground">
-                  {t.participant.arrival.minutes(campaign.expectedMinutes)}
+                  {campaign.expectedMinutes == null
+                    ? t.participant.arrival.lengthOpen
+                    : t.participant.arrival.minutes(campaign.expectedMinutes)}
                 </dd>
               </div>
               <div>

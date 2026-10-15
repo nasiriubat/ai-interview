@@ -60,7 +60,6 @@ simulated run on low-cost models, not a price.
   with `ONLY=10 INTERVIEW=1 MIC_WAV=... MIC_SECONDS=<length of the WAV>`.
 - **Finnish voice-over** is not written; the Finnish screenshots (27 to 29) are for Finnish decks.
   The demo campaign's welcome text is English, so it is English on the Finnish arrival picture.
-- **Context answers "team" and "onprem"** in pictures 19 to 22 were recorded before the fix that
-  stores option labels; a fresh requirements interview shows "An in-house team", "Company servers".
-- **The arrival screen says "About 10 minutes"** (computed from the campaign's turn limit). Claims
-  B9 says not to state minutes in material, so do not quote it in the narration.
+- **Pictures 06 and 07 say "About 10 minutes"** on the arrival screen; they were taken before D-470.
+  The current build states no duration until five interviews of the campaign have finished, then
+  their measured median. Retake them with `ONLY=06,07` against an upgraded stack.

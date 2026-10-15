@@ -79,7 +79,8 @@ export const en = {
       /** Shown only if the API sent no welcome; the server normally resolves one (D-460). */
       welcomeFallback: DEFAULT_WELCOME_TEXT.discovery.en as string,
       lengthHeading: "How long",
-      minutes: (n: number): string => `About ${n} minutes`,
+      minutes: (n: number): string => `About ${n} minutes for most people so far`,
+      lengthOpen: "As long as you need. You can pause at any time and continue later from the same link.",
       storedHeading: "What we keep",
       storedIdentified:
         "Your answers, with your name and email. Your organization's admins can read them, and the AI services your organization uses process them to run the interview. They are deleted automatically after your organization's retention period.",

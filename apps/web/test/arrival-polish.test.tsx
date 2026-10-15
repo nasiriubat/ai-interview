@@ -288,3 +288,16 @@ describe("the Other field takes speech", () => {
     expect(screen.getByRole("button", { name: "Sano vastauksesi" })).toBeInTheDocument();
   });
 });
+
+describe("how long the interview takes (claims B9)", () => {
+  it("states minutes only when the campaign has measured them", () => {
+    const { unmount } = render(
+      <ArrivalFlow linkToken="t" campaign={{ ...campaign, expectedMinutes: null }} api={api()} />,
+    );
+    expect(screen.getByText(/As long as you need/)).toBeInTheDocument();
+    expect(screen.queryByText(/minutes/)).not.toBeInTheDocument();
+    unmount();
+    render(<ArrivalFlow linkToken="t" campaign={{ ...campaign, expectedMinutes: 12 }} api={api()} />);
+    expect(screen.getByText("About 12 minutes for most people so far")).toBeInTheDocument();
+  });
+});
