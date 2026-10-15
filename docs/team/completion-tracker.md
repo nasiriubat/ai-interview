@@ -3,7 +3,7 @@
 The one file to read to see where the program stands. Updated at every merge. The plan behind it
 is `docs/team/plan/README.md`; the starting assessment is `docs/team/status-2026-10-13.md`.
 
-**Last updated:** 2026-10-14, all agent waves merged (spec quality, landing, security M3, full stack, reliability, recall, demo, demo-defect fixes); nothing running.
+**Last updated:** 2026-10-15, all work merged and gated; nothing running. Remaining items are owner-only (see Decisions and the release notes).
 
 ## Headline numbers
 
@@ -144,3 +144,5 @@ contact address, live voice in the first pilot (default: behind its flag).
 - 2026-10-15 — Merged and gated: participant page redesign (D-420..425), break-glass sign-in link CLI (D-440..444), SMTP_* install variables matching the admin form (D-445..449), branding name/logo from settings (D-430..439, migration 0027), tenant-context fix for lazy queries (local speech route lookup and retention sweep could see no rows). Running: repository restructure (single root .env for production too, tools/, tidy deploy/) and the end-to-end real-life simulation with fixes and fresh marketing material.
 
 - 2026-10-15 — Restructure merged (D-450..459): one root .env for development and production (deploy scripts stop with a clear message if a legacy deploy/.env exists), root folders reduced to apps, packages, deploy, docs, tools, scripts; deploy/ holds only operator commands plus backup/, lib/, ops/, images/, sizes/, observability/, test/; tooling under tools/ (evals, load, live-run, fake-provider, rehearsal, patches, eslint-rules); security configs under .github/security. Gate, deploy tests, compose config and image builds green. Simulation and marketing pass running.
+
+- 2026-10-15 — Real-life simulation merged (D-460..469): admin, six participant interviews in private browser contexts (desktop and phone, one recorded voice answer), analysis, report PDF, two requirements interviews to three specification versions and exports; 27 issues fixed with tests (log in docs/team/simulation-2026-10-15.md). Fresh marketing/ (30 screenshots, voice-over full and 60 s) and tools/marketing/capture.ts. Diagram edge labels given a halo. Release notes updated. Final gate and deploy tests green. Demo at :3200 refreshed on the final code.
