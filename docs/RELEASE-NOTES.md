@@ -125,3 +125,34 @@ variable: `RATE_LIMIT_PUBLIC_MAX` (default 120). No migration.
   removes an authentication flake against other stacks on the same Postgres (D-333).
 - **Still true, and measured again:** duplicates in requirement lists are not under 5%. On the six
   fresh interviews through the final merge code, 24% by the judge and 12% by hand (D-335).
+
+## Changes after the owner's review (2026-10-14 to 2026-10-15)
+
+**Upgrading a server installed before this:** run `mv deploy/.env .env` from the repository root
+first. Production now reads the root `.env`; every deploy command stops with this instruction until
+it is done (D-450). Then `deploy/upgrade.sh` as always. Migration 0027 (platform logo) is additive.
+
+- **One configuration file.** Development and production both read the root `.env`, documented
+  section by section in `.env.example`; `deploy/generate-env.sh` writes it (D-400..407, D-450..459).
+- **Email relay in separate fields:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`,
+  `SMTP_PASSWORD`, `EMAIL_FROM`, the same as the admin form; the old `EMAIL_SMTP_URL` still works
+  (D-445..449). The admin form tests a relay with "Send test email" (D-410..416).
+- **First sign-in and lock-out:** `deploy/signin-link.sh <email>` prints a one-time, 15-minute
+  sign-in link for an existing staff user, audited (D-440..444). See DEPLOY.md, "How the first admin
+  signs in".
+- **Branding:** the site name and an optional logo (PNG, JPEG or WebP) are set in Settings → Branding;
+  no letter tile (D-430..439).
+- **Interface:** admin shell with top bar, breadcrumbs, search and account page; tables with server
+  pagination, filters and icon actions; redesigned landing page; participant interview as a
+  messenger with voice answers inside the bubbles, a laptop layout with a side panel, and no answer
+  mode switch; participant welcome text per campaign instead of the template's instructions to the
+  AI (D-340..399, D-420..425, D-460..469).
+- **Fixed in the end-to-end simulation (27 issues, `docs/team/simulation-2026-10-15.md`):** among
+  them invitations reporting an error after sending, colleagues behind one office address not getting
+  codes, duplicated facts inflating the analysis, requirements started from an opportunity failing.
+- **Tenant context:** a database query returned unawaited from a system-tenant callback ran outside
+  its context, so row-level security could hide every row (local transcription route, retention
+  sweep). Fixed at the source with a test.
+- **Repository layout:** apps, packages, deploy, docs, tools, scripts; see README.md.
+- **Marketing:** `marketing/` holds 30 screenshots and the voice-over (full and 60-second cuts) from a
+  simulated demo with fictional people; `tools/marketing/` retakes them against a running stack.

@@ -446,6 +446,18 @@
   min-width: min(var(--diagram-natural, 0px), max(40rem, calc(var(--diagram-natural, 0px) * 0.6)));
 }
 
+/* Edge labels are plain SVG text (htmlLabels off, D-320), which has no box of its own, so a label
+   sitting on its arrow was struck through by the line. A halo in the card colour keeps it legible. */
+.report-diagram .edgeLabel text,
+.report-diagram .edgeLabel tspan,
+.report-diagram .messageText,
+.report-diagram .labelText {
+  paint-order: stroke;
+  stroke: var(--card);
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+
 /* Print: a clean report for "save as PDF" (nav, toolbars and controls carry print:hidden). */
 @page {
   margin: 18mm 16mm;
