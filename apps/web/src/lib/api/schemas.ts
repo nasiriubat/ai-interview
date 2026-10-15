@@ -136,7 +136,8 @@ export const PublicCampaignSchema = z.looseObject({
   productName: z.string().default(""),
   /** The participant-facing welcome (D-460). The template objective is never sent. */
   welcome: z.string().default(""),
-  expectedMinutes: z.number().default(15),
+  /** Measured median of this campaign's finished interviews; null until enough have finished. */
+  expectedMinutes: z.number().nullable().default(null),
   participationMode: PrivacyModeSchema.default("identified"),
   verification: VerificationSchema.default("email_code"),
   consentText: z.string().default(""),

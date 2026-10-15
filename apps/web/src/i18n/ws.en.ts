@@ -33,8 +33,8 @@ export const wsEn = {
     finished: (when: string): string => `Finished ${when}`,
   },
   overview: {
-    hoursPerWeek: "Hours per week",
-    hoursHint: "Described across the opportunities below",
+    hoursPerWeek: "Hours per week, as described",
+    hoursHint: "Self-reported by participants; opportunities can overlap. Not a saving.",
     classesTitle: "Opportunities by solution class",
     classesBody: "How many opportunities each kind of solution would address.",
     count: "Opportunities",

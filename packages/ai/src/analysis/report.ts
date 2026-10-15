@@ -100,7 +100,7 @@ export function renderReport(input: ReportInput): string {
       out.push(
         `### ${o.title}`,
         "",
-        `${o.stats.participants} participant${o.stats.participants === 1 ? "" : "s"}${o.stats.minutesPerWeekTotal ? `, about ${Math.round(o.stats.minutesPerWeekTotal / 60)} hours per week in total` : ""}${o.stats.tools.length ? `, tools: ${o.stats.tools.join(", ")}` : ""}.${o.stats.participants < input.k ? ` Fewer than ${input.k} participants described this, so quotes, roles, tools and process maps are withheld.` : ""}`,
+        `${o.stats.participants} participant${o.stats.participants === 1 ? "" : "s"}${o.stats.minutesPerWeekTotal ? `, about ${Math.round(o.stats.minutesPerWeekTotal / 60)} hours per week in total as they described it` : ""}${o.stats.tools.length ? `, tools: ${o.stats.tools.join(", ")}` : ""}.${o.stats.participants < input.k ? ` Fewer than ${input.k} participants described this, so quotes, roles, tools and process maps are withheld.` : ""}`,
         "",
       );
       for (const proc of o.processes.slice(0, 2)) out.push(processMap(proc), "");
@@ -257,7 +257,7 @@ function departmentSection(d: DepartmentComparison | undefined, k: number): stri
   }
   const pct = (x: number | undefined): string => (x === undefined ? "withheld" : `${Math.round(x * 100)}%`);
   out.push(
-    `Each group below has at least ${k} participants. Shares are of the group's own participants.`,
+    `Each group below has at least ${k} participants. Shares are of the group's own participants; hours are self-reported, not measured.`,
     "",
     `| Group | Participants | Hours per week | ${COMPARED_CLASSES.map((c) => CLASS_LABEL[c]).join(" | ")} |`,
     `|---|---|---|${COMPARED_CLASSES.map(() => "---").join("|")}|`,

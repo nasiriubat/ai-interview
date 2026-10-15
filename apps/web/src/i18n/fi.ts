@@ -78,7 +78,9 @@ export const fi: Strings = {
       purposeHeading: "Miksi kysymme",
       welcomeFallback: DEFAULT_WELCOME_TEXT.discovery.fi,
       lengthHeading: "Kesto",
-      minutes: (n: number): string => `Noin ${n} minuuttia`,
+      minutes: (n: number): string => `Useimmilta tähän asti noin ${n} minuuttia`,
+      lengthOpen:
+        "Niin kauan kuin tarvitset. Voit pitää tauon milloin tahansa ja jatkaa myöhemmin samasta linkistä.",
       storedHeading: "Mitä säilytämme",
       storedIdentified:
         "Vastauksesi sekä nimesi ja sähköpostiosoitteesi. Organisaatiosi ylläpitäjät voivat lukea ne, ja organisaatiosi käyttämät tekoälypalvelut käsittelevät niitä haastattelun aikana. Tiedot poistetaan automaattisesti organisaatiosi säilytysajan jälkeen.",

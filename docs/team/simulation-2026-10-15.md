@@ -72,7 +72,8 @@ with a way through; **Low** polish.
 
 ## Seen and not fixed (still weak)
 
-- **Requirement capture on the opportunity interview.** After 16 owner turns the read-back listed
+- **Requirement capture on the opportunity interview** (D-472 changes the hand-off brief's wording;
+  not re-measured live). After 16 owner turns the read-back listed
   one requirement ("A nurse can log a patient's text confirmation"); the owner had to say what was
   missing, and the interviewer then recorded it. The idea interview captured 22 to 26. Claims C7
   already says not to quote counts; this run is one more reason. Worth a look at how the hand-off
