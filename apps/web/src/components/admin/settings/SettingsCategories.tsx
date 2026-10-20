@@ -97,7 +97,9 @@ export function SettingsCategories({
       </div>
       <div className="min-w-0">
         {/* Live voice is one switch with a readiness check (D-77), and it is always the tenant's own. */}
-        {selected === "voice" && scope === "tenant" && !scopeId ? <LiveVoicePanel /> : null}
+        {/* Live calls are switched by the platform operator only (D-476); a tenant admin sees the
+            catalog row read-only and no panel to connect a key for a feature they cannot turn on. */}
+        {selected === "voice" && scope === "tenant" && !scopeId && operator ? <LiveVoicePanel /> : null}
         <CategoryForm
           key={`${scope}:${scopeId ?? ""}:${selected}`}
           category={selected}

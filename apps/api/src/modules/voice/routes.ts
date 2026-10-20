@@ -3,6 +3,7 @@ import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
+import { forbidden } from "../../lib/errors.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
 
 /** An OpenAI key is a few hundred characters at most; the bound only stops garbage. */
@@ -38,6 +39,9 @@ export async function voiceAdminRoutes(app: App, ctx: RouteContext): Promise<voi
   );
 
   app.put("/admin/voice/live", { ...guard.admin(), schema: { body: LiveBody } }, async (req) => {
+    // `features.realtimeVoice` is operator-only (D-476): the same rule the settings write applies.
+    if (staff(req).role !== "platform_operator")
+      throw forbidden("Only the platform operator can turn live voice on or off");
     const actor = staff(req).userId;
     const readiness = await voice.setLive(req.companyId, req.body.enabled, actor);
     await ctx.services.audit.record(req.companyId, {

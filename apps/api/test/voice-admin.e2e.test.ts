@@ -64,7 +64,12 @@ suite("live voice setup (D-77)", () => {
 
   const readiness = (headers = admin) =>
     world.app.inject({ method: "GET", url: "/api/v1/admin/voice/readiness", headers });
-  const setLive = (enabled: boolean, headers = admin) =>
+  // Live voice is switched by the platform operator, acting on this tenant (D-476).
+  const operator = () => ({
+    authorization: `Bearer ${world.operatorToken}`,
+    "x-company-id": world.companyId,
+  });
+  const setLive = (enabled: boolean, headers: Record<string, string> = operator()) =>
     world.app.inject({ method: "PUT", url: "/api/v1/admin/voice/live", headers, payload: { enabled } });
   const connect = (apiKey: string, headers = admin) =>
     world.app.inject({ method: "POST", url: "/api/v1/admin/voice/openai", headers, payload: { apiKey } });
@@ -84,6 +89,20 @@ suite("live voice setup (D-77)", () => {
     expect(body.purposes.tts).toEqual({ ready: false, scope: null });
     expect(body.purposes.stt_stream).toEqual({ ready: false, scope: null });
     expect(body).toMatchObject({ liveVoiceEnabled: false, canEnableLive: false, missing: ["tts"] });
+  });
+
+  it("lets only the platform operator switch live voice, not the tenant's own admin", async () => {
+    const res = await setLive(true, admin);
+
+    expect(res.statusCode).toBe(403);
+    expect((await readiness()).json<Readiness>().liveVoiceEnabled).toBe(false);
+    const viaSettings = await world.app.inject({
+      method: "PUT",
+      url: "/api/v1/settings",
+      headers: { ...admin, "content-type": "application/json" },
+      payload: { scope: "tenant", values: { "features.realtimeVoice": true } },
+    });
+    expect(viaSettings.statusCode).toBe(403);
   });
 
   it("refuses to turn live voice on without the routes it needs, naming what is missing", async () => {
@@ -187,15 +206,15 @@ suite("live voice setup (D-77)", () => {
     const aimed = await readiness({ ...other.headers, "x-company-id": world.companyId });
     expect(aimed.json<Readiness>().liveVoiceEnabled).toBe(false);
 
-    // B's refusal and B's key touch only B.
-    expect((await setLive(true, other.headers)).statusCode).toBe(409);
+    // B's admin cannot switch live voice at all (D-476); B's key touches only B.
+    expect((await setLive(true, other.headers)).statusCode).toBe(403);
     expect((await connect(GOOD_KEY, other.headers)).statusCode).toBe(200);
     const bProvider = await world.db.provider.findFirstOrThrow({
       where: { companyId: other.companyId, kind: "openai" },
     });
     const aRoutes = await world.db.route.findMany({ where: { companyId: world.companyId } });
     expect(aRoutes.some((r) => r.providerId === bProvider.id)).toBe(false);
-    expect((await setLive(false, other.headers)).statusCode).toBe(200);
+    expect((await setLive(false, other.headers)).statusCode).toBe(403);
     expect((await readiness()).json<Readiness>().liveVoiceEnabled).toBe(true);
   });
 

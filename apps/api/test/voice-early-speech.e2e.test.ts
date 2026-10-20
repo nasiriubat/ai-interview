@@ -38,7 +38,11 @@ describeDb("voice: the first sentence is spoken while the metadata is written", 
     await world.app.inject({
       method: "PUT",
       url: "/api/v1/settings",
-      headers: { authorization: `Bearer ${world.adminToken}`, "content-type": "application/json" },
+      headers: {
+        authorization: `Bearer ${world.operatorToken}`,
+        "x-company-id": world.companyId,
+        "content-type": "application/json",
+      },
       payload: { scope: "tenant", values: { "features.realtimeVoice": true } },
     });
     await world.db.setting.create({
@@ -185,7 +189,11 @@ describeDb("voice: first word against the fake provider at 250 characters a seco
     await world.app.inject({
       method: "PUT",
       url: "/api/v1/settings",
-      headers: { authorization: `Bearer ${world.adminToken}`, "content-type": "application/json" },
+      headers: {
+        authorization: `Bearer ${world.operatorToken}`,
+        "x-company-id": world.companyId,
+        "content-type": "application/json",
+      },
       payload: { scope: "tenant", values: { "features.realtimeVoice": true } },
     });
     await world.db.setting.create({
