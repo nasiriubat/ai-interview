@@ -8,7 +8,7 @@
 #
 # Debian-slim rather than Alpine: the ONNX runtime behind local transcription (D-75) ships glibc
 # builds only, and Prisma's engines are happier there too.
-FROM node:22-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 # COREPACK_HOME is moved out of /root so the unprivileged runtime user can still resolve pnpm,
 # which the `migrate` command needs to run `prisma migrate deploy` and the bootstrap seed.
 ENV COREPACK_HOME=/opt/corepack npm_config_store_dir=/pnpm/store
