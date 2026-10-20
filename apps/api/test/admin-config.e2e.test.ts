@@ -228,6 +228,37 @@ suite("admin configuration surface (contract 19)", () => {
     expect(tested.statusCode).toBe(200);
     expect(tested.json()).toMatchObject({ ok: true, model: "fake-model" });
 
+    // The screen saves every row at once, audio and embedding ones with 0 tokens; those must not
+    // refuse the whole save, while a text task still needs room to answer (found on the live screen).
+    const mixed = await world.app.inject({
+      method: "PUT",
+      url: "/api/v1/operator/routes",
+      headers: operator,
+      payload: {
+        routes: [
+          { purpose: "interview_turn", providerId: provider.id, model: "fake-model", maxOutputTokens: 2048 },
+          { purpose: "transcription", providerId: provider.id, model: "whisper", maxOutputTokens: 0 },
+          { purpose: "embedding", providerId: provider.id, model: "embed", maxOutputTokens: 4096 },
+        ],
+      },
+    });
+    expect(mixed.statusCode).toBe(200);
+    const embedding = await world.db.route.findFirstOrThrow({
+      where: { companyId: null, purpose: "embedding" },
+    });
+    expect(embedding.maxOutputTokens).toBe(0);
+    const tooSmall = await world.app.inject({
+      method: "PUT",
+      url: "/api/v1/operator/routes",
+      headers: operator,
+      payload: {
+        routes: [
+          { purpose: "interview_turn", providerId: provider.id, model: "fake-model", maxOutputTokens: 0 },
+        ],
+      },
+    });
+    expect(tooSmall.statusCode).toBe(400);
+
     const patched = await world.app.inject({
       method: "PATCH",
       url: `/api/v1/operator/providers/${provider.id}`,
