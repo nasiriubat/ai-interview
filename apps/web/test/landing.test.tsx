@@ -55,12 +55,6 @@ const render = (
 
 const doc = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
 
-/*
- * Routes the page links to that are built on another branch at the same time. `/pilot` is the
- * pilot request form; remove it from this list once `app/pilot/page.tsx` is on the branch.
- */
-const ROUTES_IN_FLIGHT = new Set(["/pilot"]);
-
 beforeEach(() => {
   state.lang = "en";
   setClientLocale("en");
@@ -144,7 +138,6 @@ describe.each(["en", "fi"] as const)("landing page structure (%s)", (locale) => 
         expect(d.getElementById(href.slice(1)), href).not.toBeNull();
         continue;
       }
-      if (ROUTES_IN_FLIGHT.has(href)) continue;
       const dir = path.join(app, ...href.split("/").filter(Boolean));
       const publicFile = path.resolve(import.meta.dirname, "../public", href.slice(1));
       expect(existsSync(path.join(dir, "page.tsx")) || existsSync(publicFile), href).toBe(true);
