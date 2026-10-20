@@ -166,6 +166,38 @@ describe("model assignment", () => {
     expect(screen.getAllByRole("button", { name: /^Provider: / })[0]).toBeInTheDocument();
     expect(screen.getAllByRole("spinbutton", { name: /Max output tokens: / })[0]).toBeInTheDocument();
   });
+
+  // Transcription is stored with 0 output tokens; a `min={1}` on its field made the browser refuse
+  // the whole form, so no assignment on the page could be saved (found on the live operator screen).
+  it("keeps a page with an audio or embedding route saveable: those fields do not apply", () => {
+    const withAudio: RouteRecord[] = [
+      ...routes,
+      {
+        companyId: "c1",
+        purpose: "transcription",
+        providerId: "p1",
+        model: "whisper",
+        maxOutputTokens: 0,
+        batchAllowed: false,
+      },
+      {
+        companyId: "c1",
+        purpose: "embedding",
+        providerId: "p1",
+        model: "embed",
+        maxOutputTokens: 0,
+        batchAllowed: false,
+      },
+    ];
+    const { container } = render(
+      <RoutesForm routes={withAudio} providers={[provider()]} scope="tenant" companyId="c1" />,
+    );
+    const invalid = [...container.querySelectorAll("input")].filter((i) => !i.checkValidity());
+    expect(invalid.map((i) => i.getAttribute("aria-label"))).toEqual([]);
+    for (const task of [/Max output tokens: .*transcri/i, /Max output tokens: .*similarity/i])
+      expect(screen.getByRole("spinbutton", { name: task })).toBeDisabled();
+    expect(screen.getAllByRole("spinbutton", { name: /Max output tokens: / })[0]).toBeEnabled();
+  });
 });
 
 /* ---- the two rules that keep the pass from being undone ---- */
