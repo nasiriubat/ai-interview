@@ -162,7 +162,7 @@ if [ "$DRY_RUN" != 1 ]; then
 		docker image inspect "$image:$version" >/dev/null 2>&1 || die "the build did not produce $image:$version"
 	done
 	# Enough cache that an ordinary push rebuilds in a minute or two, and no more.
-	docker buildx prune --builder "$builder" -f --max-used-space "${AIDP_BUILD_CACHE_MAX:-6GB}" >/dev/null ||
+	docker buildx prune --builder "$builder" -f --max-used-space "${AIDP_BUILD_CACHE_MAX:-3GB}" >/dev/null ||
 		warn "could not trim the build cache of $builder"
 fi
 unset BUILDX_BUILDER
