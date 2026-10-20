@@ -311,7 +311,7 @@ single-host layout in this document and each is a stated number or list rather t
   so a client cannot choose its own rate-limit bucket. Put another proxy or a CDN in front and
   this number has to change with it; a wrong value either lumps every visitor into one bucket or
   lets one visitor pick theirs. IPv6 clients are limited by their /64.
-- **`EGRESS_ALLOW_HOSTS`** (API and worker; the compose default is `kroki`, the diagram renderer,
+- **`EGRESS_ALLOW_HOSTS`** (API and worker; the compose default is `kroki-mermaid`, the diagram renderer,
   whose host the API also adds by itself from `KROKI_URL`). The API connects out to model
   providers and mail relays that admins name. A **tenant** admin's address must be `https`, a
   public DNS name, port 443 or 8443, and may not resolve to a loopback, private, link-local or
@@ -389,39 +389,39 @@ is no logo upload. A document is composed in about half a second at 135 pages (m
 characters of Markdown, twelve diagrams over the cap shown as source), one at a time per API
 process; a second request waits and a fourth is turned away with a 429.
 
-**Diagrams are drawn by Kroki**, two containers in `deploy/compose.yml`:
+**Diagrams are drawn by Kroki's Mermaid renderer**, one container in `deploy/compose.yml`:
 
 | Service         | Image                           | Limit  | Resident, measured             | What it is                               |
 | --------------- | ------------------------------- | ------ | ------------------------------ | ---------------------------------------- |
-| `kroki`         | `yuzutech/kroki:0.26.0`         | 320 MB | about 85 MB idle               | A JVM service (heap capped at 192 MB)    |
 | `kroki-mermaid` | `yuzutech/kroki-mermaid:0.26.0` | 512 MB | about 115 MB idle, 295 MB busy | A Node service driving headless Chromium |
 
-`kroki` cannot draw Mermaid by itself: it forwards the request to `kroki-mermaid` through
-`KROKI_MERMAID_HOST`, which is why there are two. Together they add roughly 0.2 GB at rest and 0.4 GB
-while a document with several diagrams is drawn (the API asks for at most three at a time). On the
-4 GB host that is the headroom the Whisper model otherwise uses, so if you also run the on-server
-transcription model, watch `docker stats` after the first exports; the limits above are the
-ceilings that stop a runaway render taking the host with it.
+The API calls it directly. Kroki's Java gateway (`yuzutech/kroki`, a 3 GB image and a JVM) used to sit
+in front of it, but for Mermaid, the only diagram language this platform renders, it only forwarded
+the request, and the renderer answers the same `/mermaid/svg` and `/mermaid/png` paths itself; the
+pictures are the same. It adds roughly 0.1 GB at rest and 0.3 GB while a document with several
+diagrams is drawn (the API asks for at most three at a time). On the 4 GB host that is headroom the
+Whisper model otherwise uses, so if you also run on-server transcription, watch `docker stats` after
+the first exports.
 
-- **Isolation.** Both sit on the `diagrams` network, which is `internal`: no route to the
+- **Isolation.** It sits on the `diagrams` network, which is `internal`: no route to the
   internet or to the host, and only `api` is also attached to it. A diagram label cannot make the
   renderer's browser fetch a URL or reach Postgres. The images are pinned; `latest` would change
   what a diagram looks like on the next pull. No port is published.
-- **Wiring.** `KROKI_URL` (API only; compose sets `http://kroki:8000`) names the renderer. Its host
+- **Wiring.** `KROKI_URL` (API only; compose sets `http://kroki-mermaid:8002`) names the renderer. Its host
   is added to the egress allow-list for you, so `EGRESS_ALLOW_HOSTS` need not mention it, and a
-  tenant's setting can never name a renderer. The default in compose is `kroki`, the same name.
+  tenant's setting can never name a renderer. The default in compose is `kroki-mermaid`, the same name. A full Kroki also works here.
 - **When it is down.** Nothing fails. A PDF is still produced, each diagram that could not be
   drawn is printed as its Mermaid source under a note, and the download carries
   `x-export-warnings: diagram_unrendered:<n>`, which the exports panel shows. Saving a diagram in
   the editor still works and is marked "not verified".
 - **Turning it off** (a 2 GB host, or no use for diagrams): put `KROKI_URL=` (empty) in
-  the root `.env` and `deploy/dc stop kroki kroki-mermaid`. An upgrade starts them again, so
-  also remove the two services from a local copy of the compose file if you want them gone.
-- **Checking it.** `deploy/dc ps` shows both as `healthy`. To draw one by hand from the API's
-  network: `deploy/dc exec -T api node -e "fetch('http://kroki:8000/mermaid/svg',{method:'POST',body:'flowchart LR\n A-->B'}).then(r=>console.log(r.status))"`.
+  the root `.env` and `deploy/dc stop kroki-mermaid`. An upgrade starts it again, so also remove
+  the service from a local copy of the compose file if you want it gone.
+- **Checking it.** `deploy/dc ps` shows it as `healthy`. To draw one by hand from the API's
+  network: `deploy/dc exec -T api node -e "fetch('http://kroki-mermaid:8002/mermaid/svg',{method:'POST',body:'flowchart LR\n A-->B'}).then(r=>console.log(r.status))"`.
 
-The development stack runs the same pair under the `extras` profile
-(`docker compose --profile extras up -d`), with Kroki published on 8000.
+The development stack runs the same renderer under the `extras` profile
+(`docker compose --profile extras up -d`).
 
 ## Where the data lives
 
@@ -844,7 +844,7 @@ Peak use per container during that run (`docker stats` every 5 s) against the li
 | api           | 182 MiB                           | 2560M | 71 %                   |
 | web           | 128 MiB                           | 768M  | 19 %                   |
 | worker        | 121 MiB                           | 1024M | 39 %                   |
-| kroki         | 113 MiB                           | 320M  | 2 %                    |
+| kroki (gone)  | 113 MiB                           | 320M  | 2 %                    |
 | kroki-mermaid | 104 MiB (about 300 while drawing) | 512M  | 21 %                   |
 | caddy         | 45 MiB                            | 256M  | 3 %                    |
 | backup        | 1 MiB (a dump adds a few)         | 512M  | 9 %                    |
