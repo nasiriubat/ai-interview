@@ -25,6 +25,12 @@ const EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
 const INHERIT = "__inherit__";
 /** The API's own default when a route does not say (contract 19). */
 const DEFAULT_MAX_OUTPUT = 4096;
+/**
+ * Tasks that produce no text: audio in or out, or vectors. Output tokens, reasoning effort and
+ * batching do not apply, so their fields are off and the row is saved with 0 tokens. A required
+ * minimum of 1 here used to block every save on the page, because these rows are stored with 0.
+ */
+const NOT_TEXT: ReadonlySet<Purpose> = new Set(["transcription", "stt_stream", "tts", "embedding"]);
 
 interface Draft {
   providerId: string;
@@ -139,9 +145,13 @@ export function RoutesForm({
         purpose: p,
         providerId: d.providerId,
         model: d.model,
-        ...(d.effort ? { effort: d.effort } : {}),
-        maxOutputTokens: d.maxOutputTokens === "" ? DEFAULT_MAX_OUTPUT : d.maxOutputTokens,
-        batchAllowed: d.batchAllowed,
+        ...(d.effort && !NOT_TEXT.has(p) ? { effort: d.effort } : {}),
+        maxOutputTokens: NOT_TEXT.has(p)
+          ? 0
+          : d.maxOutputTokens === ""
+            ? DEFAULT_MAX_OUTPUT
+            : d.maxOutputTokens,
+        batchAllowed: d.batchAllowed && !NOT_TEXT.has(p),
       });
     }
     return out;
@@ -265,7 +275,7 @@ export function RoutesForm({
             aria-label={`${s.effort}: ${name}`}
             className="w-full"
             size="sm"
-            disabled={!d.providerId}
+            disabled={!d.providerId || NOT_TEXT.has(p)}
           >
             <SelectValue />
           </SelectTrigger>
@@ -283,10 +293,10 @@ export function RoutesForm({
         <Input
           aria-label={`${s.maxOutputTokens}: ${name}`}
           type="number"
-          min={1}
+          min={NOT_TEXT.has(p) ? 0 : 1}
           className="w-full"
-          value={d.maxOutputTokens}
-          disabled={!d.providerId}
+          value={NOT_TEXT.has(p) ? "" : d.maxOutputTokens}
+          disabled={!d.providerId || NOT_TEXT.has(p)}
           onChange={(e) => {
             update(p, { maxOutputTokens: e.target.value === "" ? "" : Number(e.target.value) });
           }}
@@ -296,7 +306,7 @@ export function RoutesForm({
         <Checkbox
           aria-label={`${s.batchAllowed}: ${name}`}
           checked={d.batchAllowed}
-          disabled={!d.providerId}
+          disabled={!d.providerId || NOT_TEXT.has(p)}
           onCheckedChange={(v) => {
             update(p, { batchAllowed: v === true });
           }}
