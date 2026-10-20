@@ -43,11 +43,10 @@ describe("settings `since` (D-180)", () => {
 });
 
 describe("operator-only settings (D-188)", () => {
-  it("marks exactly the ceilings", () => {
+  it("marks exactly the ceilings and the live-voice switch (D-476)", () => {
     const marked = keys.filter(isOperatorOnlySetting);
-    expect(marked.length).toBeGreaterThan(0);
-    for (const k of marked) expect(k.startsWith("ceiling.")).toBe(true);
-    expect(keys.filter((k) => k.startsWith("ceiling.")).sort()).toEqual([...marked].sort());
+    const expected = [...keys.filter((k) => k.startsWith("ceiling.")), "features.realtimeVoice"];
+    expect(marked.sort()).toEqual(expected.sort());
   });
 
   it("lets a ceiling be set at tenant scope but never at template or campaign scope", () => {

@@ -46,12 +46,16 @@ suite("live voice", () => {
     );
     world = await testWorld(model.url);
     // Live voice ships off (`features.realtimeVoice` defaults to false), because it costs money
-    // per second and needs two model routes a tenant may not have. Turning it on is the tenant's
-    // decision, so the suite makes it explicitly.
+    // per second and needs two model routes a tenant may not have. Turning it on is the
+    // operator's decision (D-476), so the suite makes it explicitly.
     await world.app.inject({
       method: "PUT",
       url: "/api/v1/settings",
-      headers: { authorization: `Bearer ${world.adminToken}`, "content-type": "application/json" },
+      headers: {
+        authorization: `Bearer ${world.operatorToken}`,
+        "x-company-id": world.companyId,
+        "content-type": "application/json",
+      },
       payload: { scope: "tenant", values: { "features.realtimeVoice": true } },
     });
     // Every call here opens its own campaign; the platform's default of twenty is for tenants,
@@ -405,11 +409,16 @@ suite("live voice", () => {
   });
 
   it("refuses the socket when the tenant has not turned live voice on", async () => {
-    const admin = { authorization: `Bearer ${world.adminToken}`, "content-type": "application/json" };
+    // Live voice is the operator's switch (D-476), so the operator flips it for this tenant.
+    const operator = {
+      authorization: `Bearer ${world.operatorToken}`,
+      "x-company-id": world.companyId,
+      "content-type": "application/json",
+    };
     await world.app.inject({
       method: "PUT",
       url: "/api/v1/settings",
-      headers: admin,
+      headers: operator,
       payload: { scope: "tenant", values: { "features.realtimeVoice": false } },
     });
     const token = await participantToken();
@@ -424,7 +433,7 @@ suite("live voice", () => {
     await world.app.inject({
       method: "PUT",
       url: "/api/v1/settings",
-      headers: admin,
+      headers: operator,
       payload: { scope: "tenant", values: { "features.realtimeVoice": true } },
     });
   });

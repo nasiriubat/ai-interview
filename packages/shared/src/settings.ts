@@ -503,6 +503,10 @@ export const SETTINGS = {
     scopes: ["platform", "tenant"],
     category: "features",
     description: "Live voice mode",
+    // Off for launch: typed answers, recorded voice and read-aloud cover the interview, and a live
+    // call needs speech and streaming transcription routes a tenant admin cannot see (D-476). The
+    // operator turns it on per tenant once those routes exist.
+    operatorOnly: true,
   }),
   "features.fileUpload": def({
     schema: z.boolean(),

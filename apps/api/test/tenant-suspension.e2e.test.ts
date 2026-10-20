@@ -25,7 +25,11 @@ suite("a suspended tenant", () => {
     await world.app.inject({
       method: "PUT",
       url: "/api/v1/settings",
-      headers: { authorization: `Bearer ${world.adminToken}`, "content-type": "application/json" },
+      headers: {
+        authorization: `Bearer ${world.operatorToken}`,
+        "x-company-id": world.companyId,
+        "content-type": "application/json",
+      },
       payload: { scope: "tenant", values: { "features.realtimeVoice": true } },
     });
     await world.app.listen({ port: 0, host: "127.0.0.1" });
