@@ -190,6 +190,10 @@ export const fi: Strings = {
         what: "Tätä ei voitu hyväksyä.",
         next: "Tarkista syöttämäsi tiedot ja yritä uudelleen.",
       },
+      notHeard: {
+        what: "Nauhoituksesta ei kuulunut mitään.",
+        next: "Tarkista, että mikrofoni on päällä, ja nauhoita vastauksesi uudelleen tai kirjoita se.",
+      },
       limit: {
         what: "Tähän haastattelukierrokseen ei mahdu juuri nyt lisää ihmisiä.",
         next: "Kerro asiasta kutsujalle; hän voi tehdä tilaa.",

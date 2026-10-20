@@ -132,12 +132,33 @@ export interface InterviewController {
   clearError: () => void;
 }
 
-/** What `retry` would send again. A recording is kept in memory so a failed upload can be redone. */
+/**
+ * What `retry` would send again. A recording is kept in memory so a failed upload can be redone.
+ *
+ * `live` is a turn the voice call took: the call itself carries on listening, so there is nothing
+ * to resend over HTTP, and resending "nothing" would take an empty turn that skips the question.
+ * `none` is an attempt that resending cannot fix (a recording with no speech in it).
+ */
 type Attempt =
   | { kind: "first" }
   | { kind: "turn"; input: TurnInput }
   | { kind: "control"; control: TurnControl }
-  | { kind: "voice"; audio: Blob; durationMs?: number | undefined };
+  | { kind: "voice"; audio: Blob; durationMs?: number | undefined }
+  | { kind: "live" }
+  | { kind: "none" };
+
+/**
+ * The code a failed recording is reported under when the server heard no speech in it (a 400 from
+ * `voice-turns`). Sending the same audio again cannot succeed, so it asks for a new recording.
+ */
+export const NOT_HEARD = "not_heard";
+
+/** The server's word for a recording that transcribed to nothing (`details.reason`). */
+function noSpeech(e: unknown): boolean {
+  if (!isApiError(e) || e.code !== "validation") return false;
+  const details = e.details as { reason?: unknown } | null | undefined;
+  return details?.reason === "no_speech";
+}
 
 const isCompleted = (status: string): boolean => status === "completed" || status === "deleted";
 
@@ -189,191 +210,249 @@ export function useInterview(
   const abortRef = React.useRef<AbortController | null>(null);
   const lastAttemptRef = React.useRef<Attempt>({ kind: "first" });
   const startedRef = React.useRef(false);
+  /** The turn in flight, which the next one waits for (see `run`). */
+  const inflightRef = React.useRef<Promise<unknown>>(Promise.resolve());
+  /**
+   * The optimistic bubble of the attempt that failed: the one message a new attempt or a retry may
+   * take away. Every answer given in this visit has a `local-` id (the server does not echo the
+   * participant's own message back), so removing by prefix would take all of them with it.
+   */
+  const failedLocalRef = React.useRef<string | null>(null);
+  /** Read after waiting for a turn in flight, which may have ended the interview. */
+  const endedRef = React.useRef(isCompleted(initial.status));
+  /** The screen is gone: nothing queued may start. */
+  const goneRef = React.useRef(false);
 
   /**
    * One turn, whatever opened it: typed, widget or recorded. Typed answers show their message
    * immediately; a recording has none until the `transcript` event says what was heard, so the
    * message the server's echo replaces is tracked as the stream runs rather than fixed up front.
+   *
+   * Turns are taken one after another, never on top of each other. The server allows one turn per
+   * session at a time, and a recording can be finished while the interviewer's reply is still
+   * streaming (the microphone stays usable while it does, so the next answer can be given at
+   * once). Aborting the reply to make room for the answer lost the reply on screen, and the server
+   * was usually still inside that turn, so the answer was refused as a conflict: the recording
+   * "could not be sent". So a new turn waits for the one in flight, and only then shows its bubble,
+   * which keeps the conversation in order.
    */
   const run = React.useCallback(
-    async (
+    (
       open: (signal: AbortSignal) => Promise<Response>,
       optimistic: Message | undefined,
+      retryAs: Attempt,
     ): Promise<boolean> => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+      const go = (): Promise<boolean> => attempt(open, optimistic, retryAs);
+      const mine = inflightRef.current.then(go, go);
+      inflightRef.current = mine.catch(() => undefined);
+      return mine;
+    },
+    // `attempt` only touches refs and the state setter, which are stable.
+    [],
+  );
 
-      let localId = optimistic?.id;
-      let failed = false;
-      setState((s) => ({
-        ...s,
-        error: null,
-        pending: true,
-        streaming: null,
-        // A new attempt after a failure replaces the failed one's optimistic copy instead of
-        // stacking beside it (the composer hands the text back, so the person may well resend it).
-        messages: optimistic
-          ? [...(s.error ? s.messages.filter((m) => !m.id.startsWith("local-")) : s.messages), optimistic]
-          : s.messages,
-      }));
+  async function attempt(
+    open: (signal: AbortSignal) => Promise<Response>,
+    optimistic: Message | undefined,
+    retryAs: Attempt,
+  ): Promise<boolean> {
+    // The turn waited for may have ended the interview; there is nothing left to answer.
+    if (endedRef.current || goneRef.current) return false;
+    const kind = retryAs.kind;
+    // What a retry resends: this attempt, now that it is the one running.
+    lastAttemptRef.current = retryAs;
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-      try {
-        const res = await open(controller.signal);
-        for await (const ev of readTurnStream(res)) {
-          if (controller.signal.aborted) return false;
-          switch (ev.type) {
-            case "text":
-              setState((s) => ({ ...s, streaming: (s.streaming ?? "") + ev.delta }));
-              break;
-            case "control": {
-              const area = ev.progress.areas.find((a) => a.key === ev.areaKey);
-              const chip = chipMessage({ kind: ev.kind, areaKey: ev.areaKey, areaName: area?.name }, ev.at);
-              // The chips move at once; the interviewer's turn follows.
-              setState((s) => ({
-                ...s,
-                progress: ev.progress.areas.length > 0 ? ev.progress : s.progress,
-                messages: s.messages.some((m) => m.id === chip.id) ? s.messages : [...s.messages, chip],
-              }));
-              break;
-            }
-            case "transcript": {
-              // The participant never typed this, so it is shown as their turn before the reply.
-              const heard = heardMessage(ev.text);
-              const placeholder = localId;
-              localId = placeholder ?? heard.id;
-              // A recording already has its bubble (made when it was sent), so what was heard
-              // fills that one instead of adding a second.
-              setState((s) => {
-                const idx =
-                  placeholder === undefined ? -1 : s.messages.findIndex((m) => m.id === placeholder);
-                return {
-                  ...s,
-                  messages:
-                    idx >= 0
-                      ? s.messages.map((m, i) =>
-                          i === idx ? { ...heard, id: m.id, attachmentId: ev.attachmentId } : m,
-                        )
-                      : [...s.messages, { ...heard, attachmentId: ev.attachmentId }],
-                };
-              });
-              break;
-            }
-            case "turn":
-              setState((s) => {
-                const msg = ev.message;
-                let messages = s.messages;
-                if (msg.role === "user") {
-                  // The server echoes the persisted user message: replace the optimistic one.
-                  const idx = localId === undefined ? -1 : messages.findIndex((m) => m.id === localId);
-                  // The recording's id came with the transcript; the persisted message does not carry it.
-                  const kept = idx >= 0 ? messages[idx]?.attachmentId : undefined;
-                  const merged = typeof kept === "string" ? { ...msg, attachmentId: kept } : msg;
-                  messages = idx >= 0 ? messages.map((m, i) => (i === idx ? merged : m)) : [...messages, msg];
-                  return { ...s, messages };
-                }
-                return {
-                  ...s,
-                  messages: [...messages.filter((m) => m.id !== msg.id), msg],
-                  streaming: null,
-                  progress: ev.progress.areas.length > 0 ? ev.progress : s.progress,
-                  ended: s.ended || ev.ended,
-                  lastAnnouncement: announce(s.lastAnnouncement, msg),
-                };
-              });
-              break;
-            case "ended":
-              setState((s) => ({
-                ...s,
-                ended: true,
-                summaryAvailable: ev.summaryAvailable,
-                streaming: null,
-              }));
-              break;
-            case "spec":
-              onSpecRef.current?.(ev.spec);
-              break;
-            case "error":
-              failed = true;
-              setState((s) => ({ ...s, error: { code: ev.code, message: ev.message }, streaming: null }));
-              break;
-          }
-        }
-        setState((s) => {
-          // A stream that ended with text but no `turn` event still shows what arrived.
-          if (s.streaming && s.streaming.length > 0) {
-            const partial: Message = {
-              id: `partial-${Date.now()}`,
-              seq: 0,
-              role: "assistant",
-              modality: "text",
-              content: s.streaming,
-              createdAt: new Date().toISOString(),
-            };
-            return {
-              ...s,
-              messages: [...s.messages, partial],
-              streaming: null,
-              pending: false,
-              lastAnnouncement: announce(s.lastAnnouncement, partial),
-            };
-          }
-          return { ...s, pending: false };
-        });
-        return !failed;
-      } catch (e) {
+    let localId = optimistic?.id;
+    let failed = false;
+    const failedBefore = failedLocalRef.current;
+    failedLocalRef.current = null;
+    setState((s) => ({
+      ...s,
+      error: null,
+      pending: true,
+      streaming: null,
+      // A new attempt after a failure replaces the failed one's optimistic copy instead of
+      // stacking beside it (the composer hands the text back, so the person may well resend it).
+      // Only that copy: the answers that did go through stay where they are.
+      messages: [
+        ...(failedBefore === null ? s.messages : s.messages.filter((m) => m.id !== failedBefore)),
+        ...(optimistic ? [optimistic] : []),
+      ],
+    }));
+
+    try {
+      const res = await open(controller.signal);
+      for await (const ev of readTurnStream(res)) {
         if (controller.signal.aborted) return false;
-        const code = isApiError(e) ? e.code : "network_error";
-        const message = e instanceof Error ? e.message : "";
+        switch (ev.type) {
+          case "text":
+            setState((s) => ({ ...s, streaming: (s.streaming ?? "") + ev.delta }));
+            break;
+          case "control": {
+            const area = ev.progress.areas.find((a) => a.key === ev.areaKey);
+            const chip = chipMessage({ kind: ev.kind, areaKey: ev.areaKey, areaName: area?.name }, ev.at);
+            // The chips move at once; the interviewer's turn follows.
+            setState((s) => ({
+              ...s,
+              progress: ev.progress.areas.length > 0 ? ev.progress : s.progress,
+              messages: s.messages.some((m) => m.id === chip.id) ? s.messages : [...s.messages, chip],
+            }));
+            break;
+          }
+          case "transcript": {
+            // The participant never typed this, so it is shown as their turn before the reply.
+            const heard = heardMessage(ev.text);
+            const placeholder = localId;
+            localId = placeholder ?? heard.id;
+            // A recording already has its bubble (made when it was sent), so what was heard
+            // fills that one instead of adding a second.
+            setState((s) => {
+              const idx = placeholder === undefined ? -1 : s.messages.findIndex((m) => m.id === placeholder);
+              return {
+                ...s,
+                messages:
+                  idx >= 0
+                    ? s.messages.map((m, i) =>
+                        i === idx ? { ...heard, id: m.id, attachmentId: ev.attachmentId } : m,
+                      )
+                    : [...s.messages, { ...heard, attachmentId: ev.attachmentId }],
+              };
+            });
+            break;
+          }
+          case "turn":
+            if (ev.message.role !== "user" && ev.ended) endedRef.current = true;
+            setState((s) => {
+              const msg = ev.message;
+              let messages = s.messages;
+              if (msg.role === "user") {
+                // The server echoes the persisted user message: replace the optimistic one.
+                const idx = localId === undefined ? -1 : messages.findIndex((m) => m.id === localId);
+                // The recording's id came with the transcript; the persisted message does not carry it.
+                const kept = idx >= 0 ? messages[idx]?.attachmentId : undefined;
+                const merged = typeof kept === "string" ? { ...msg, attachmentId: kept } : msg;
+                messages = idx >= 0 ? messages.map((m, i) => (i === idx ? merged : m)) : [...messages, msg];
+                return { ...s, messages };
+              }
+              return {
+                ...s,
+                messages: [...messages.filter((m) => m.id !== msg.id), msg],
+                streaming: null,
+                progress: ev.progress.areas.length > 0 ? ev.progress : s.progress,
+                ended: s.ended || ev.ended,
+                lastAnnouncement: announce(s.lastAnnouncement, msg),
+              };
+            });
+            break;
+          case "ended":
+            endedRef.current = true;
+            setState((s) => ({
+              ...s,
+              ended: true,
+              summaryAvailable: ev.summaryAvailable,
+              streaming: null,
+            }));
+            break;
+          case "spec":
+            onSpecRef.current?.(ev.spec);
+            break;
+          case "error":
+            failed = true;
+            failedLocalRef.current = localId ?? null;
+            setState((s) => ({ ...s, error: { code: ev.code, message: ev.message }, streaming: null }));
+            break;
+        }
+      }
+      setState((s) => {
+        // A stream that ended with text but no `turn` event still shows what arrived.
+        if (s.streaming && s.streaming.length > 0) {
+          const partial: Message = {
+            id: `partial-${Date.now()}`,
+            seq: 0,
+            role: "assistant",
+            modality: "text",
+            content: s.streaming,
+            createdAt: new Date().toISOString(),
+          };
+          return {
+            ...s,
+            messages: [...s.messages, partial],
+            streaming: null,
+            pending: false,
+            lastAnnouncement: announce(s.lastAnnouncement, partial),
+          };
+        }
+        return { ...s, pending: false };
+      });
+      return !failed;
+    } catch (e) {
+      if (controller.signal.aborted) return false;
+      const code = isApiError(e) ? e.code : "network_error";
+      const message = e instanceof Error ? e.message : "";
+      if (kind === "voice" && noSpeech(e)) {
+        // The recording reached the server and held no speech. Its bubble would only offer to
+        // send the same silence again, so it goes, and the participant is asked to record anew.
+        const placeholder = localId;
+        lastAttemptRef.current = { kind: "none" };
         setState((s) => ({
           ...s,
           pending: false,
           streaming: null,
-          error: { code, message },
-          // Keep the optimistic message so a retry can resend it.
+          error: { code: NOT_HEARD, message },
+          messages: s.messages.filter((m) => m.id !== placeholder),
         }));
         return false;
       }
-    },
-    [],
-  );
+      failedLocalRef.current = localId ?? null;
+      setState((s) => ({
+        ...s,
+        pending: false,
+        streaming: null,
+        error: { code, message },
+        // Keep the optimistic message so a retry can resend it.
+      }));
+      return false;
+    }
+  }
 
   const send = React.useCallback(
     (input: TurnInput | undefined): Promise<boolean> => {
-      lastAttemptRef.current = input ? { kind: "turn", input } : { kind: "first" };
       return run(
         (signal) => api.sendTurn(input, signal),
         input ? localMessage(input.content, input) : undefined,
+        input ? { kind: "turn", input } : { kind: "first" },
       );
     },
     [api, run],
   );
 
   const sendVoice = React.useCallback(
-    (audio: Blob, durationMs?: number): Promise<boolean> => {
-      lastAttemptRef.current = {
+    (audio: Blob, durationMs?: number): Promise<boolean> =>
+      // The bubble appears when the upload starts, empty: it says "sending" and is filled with
+      // what was heard.
+      run((signal) => api.sendVoice(audio, durationMs, signal), heardMessage(""), {
         kind: "voice",
         audio,
         ...(durationMs === undefined ? {} : { durationMs }),
-      };
-      // The bubble exists at once, empty: it says "sending" and is filled with what was heard.
-      return run((signal) => api.sendVoice(audio, durationMs, signal), heardMessage(""));
-    },
+      }),
     [api, run],
   );
 
   const sendControl = React.useCallback(
-    (control: TurnControl): Promise<boolean> => {
-      lastAttemptRef.current = { kind: "control", control };
-      return run((signal) => api.sendControl(control, signal), undefined);
-    },
+    (control: TurnControl): Promise<boolean> =>
+      run((signal) => api.sendControl(control, signal), undefined, { kind: "control", control }),
     [api, run],
   );
 
   // Abort an in-flight stream only when the component unmounts. The first-turn guard is
   // reset too, so React's development double-mount (StrictMode) restarts the aborted turn.
+  // A turn still queued behind it is not started either.
   React.useEffect(() => {
+    goneRef.current = false;
     return () => {
+      goneRef.current = true;
       abortRef.current?.abort();
     };
   }, []);
@@ -404,14 +483,26 @@ export function useInterview(
       send({ content: widgetResponseToText(widget, response), modality: "widget", widgetResponse: response }),
     [send],
   );
+  // The failed attempt's own bubble is replaced by the resend's (see `attempt`), so nothing is shown
+  // twice and nothing else is taken away.
   const retry = React.useCallback(async (): Promise<boolean> => {
     const last = lastAttemptRef.current;
-    if (last.kind === "first") return send(undefined);
-    // Drop the optimistic copy before re-sending so it is not shown twice.
-    setState((s) => ({ ...s, messages: s.messages.filter((m) => !m.id.startsWith("local-")) }));
-    if (last.kind === "voice") return sendVoice(last.audio, last.durationMs);
-    if (last.kind === "control") return sendControl(last.control);
-    return send(last.input);
+    switch (last.kind) {
+      case "first":
+        return send(undefined);
+      case "live":
+      case "none":
+        // A live call keeps listening after a failed turn, so the way to try again is to speak
+        // again; a silent recording has to be recorded again. Either way, nothing is resent.
+        setState((s) => ({ ...s, error: null }));
+        return true;
+      case "voice":
+        return sendVoice(last.audio, last.durationMs);
+      case "control":
+        return sendControl(last.control);
+      case "turn":
+        return send(last.input);
+    }
   }, [send, sendVoice, sendControl]);
   const clearError = React.useCallback(() => {
     setState((s) => ({ ...s, error: null }));
@@ -420,6 +511,7 @@ export function useInterview(
   const live = React.useMemo<LiveInterviewSink>(
     () => ({
       turn: (turn) => {
+        if (turn.ended) endedRef.current = true;
         setState((s) => ({
           ...s,
           error: null,
@@ -446,9 +538,11 @@ export function useInterview(
         }));
       },
       ended: (summaryAvailable) => {
+        endedRef.current = true;
         setState((s) => ({ ...s, ended: true, summaryAvailable, pending: false, streaming: null }));
       },
       failed: (code, message) => {
+        lastAttemptRef.current = { kind: "live" };
         setState((s) => ({ ...s, error: { code, message }, pending: false, streaming: null }));
       },
     }),

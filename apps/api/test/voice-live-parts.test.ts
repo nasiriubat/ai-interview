@@ -1,7 +1,8 @@
 import { ProviderError, UnsupportedAudioError } from "@aidp/ai";
 import { describe, expect, it } from "vitest";
+import { AppError } from "../src/lib/errors.js";
 import { AudioGate } from "../src/modules/participant/voice-live/audio-gate.js";
-import { degradation, fallbackFor } from "../src/modules/participant/voice-live/degrade.js";
+import { degradation, fallbackFor, refusal } from "../src/modules/participant/voice-live/degrade.js";
 import { VoiceMetrics } from "../src/modules/participant/voice-live/metrics.js";
 import { MAX_UTTERANCE_BYTES, parseClientFrame } from "../src/modules/participant/voice-live/protocol.js";
 import { LiveState } from "../src/modules/participant/voice-live/state.js";
@@ -150,6 +151,15 @@ describe("the fallback chain", () => {
       fallback: "recorded",
     });
     expect(d.level).toBe("info");
+  });
+
+  it("treats a refused turn as that turn failing, not as the interviewer's voice being gone", () => {
+    // An answer that arrives while a turn is still running is refused with a conflict. Dropping
+    // to captions for that silenced the interviewer for the rest of the call.
+    const busy = refusal(new AppError("conflict", "A turn is already in progress for this session"));
+    expect(busy).toEqual({ type: "error", code: "conflict", message: expect.any(String) as string });
+    expect(refusal(new Error("boom"))).toBeUndefined();
+    expect(refusal(new ProviderError("down", "server", true))).toBeUndefined();
   });
 
   it("names a missing route and a failed provider differently", () => {

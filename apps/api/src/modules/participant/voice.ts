@@ -86,7 +86,10 @@ export async function participantVoiceRoutes(app: App, ctx: RouteContext): Promi
         throw err;
       }
       const text = transcript.text.trim().slice(0, 2000);
-      if (text.length === 0) throw new AppError("validation", "I could not hear anything in that recording");
+      if (text.length === 0)
+        throw new AppError("validation", "I could not hear anything in that recording", {
+          reason: "no_speech",
+        });
       return { text };
     },
   );
@@ -171,7 +174,9 @@ export async function participantVoiceRoutes(app: App, ctx: RouteContext): Promi
       if (text.length === 0) {
         // Silence, or a microphone that recorded nothing. Saying so beats sending an empty answer
         // to the interviewer, which would produce a confused follow-up question.
-        throw new AppError("validation", "I could not hear anything in that recording");
+        throw new AppError("validation", "I could not hear anything in that recording", {
+          reason: "no_speech",
+        });
       }
 
       const spoken = text.slice(0, 8000);

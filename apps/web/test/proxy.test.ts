@@ -139,6 +139,19 @@ describe("forwardToApi", () => {
     expect(sentHeaders().get("cookie")).toBeNull();
   });
 
+  it("stops the API call when the browser goes away, so a turn it left does not hold the session", async () => {
+    // A participant who leaves a turn (or whose browser cancels it) must free the session's turn
+    // lock at once; otherwise their next answer is refused as "a turn is already in progress".
+    const left = new AbortController();
+    const req = Object.assign(request({}, "POST"), { signal: left.signal });
+    await forwardToApi(req, ["p", "session", "turns"], "jwt");
+    const signal = seen?.init.signal;
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(signal?.aborted).toBe(false);
+    left.abort();
+    expect(signal?.aborted).toBe(true);
+  });
+
   describe("client address", () => {
     it("forwards the one address the edge proxy wrote, as the rate-limit identity", async () => {
       await forwardToApi(request({ "x-forwarded-for": "203.0.113.9" }), ["p", "x"], undefined);

@@ -130,17 +130,24 @@ export async function forwardToApi(
   }
   const state = { exceeded: false };
   const sendsBody = hasBody && req.body !== null && declared !== "0";
+  // The browser leaving (a closed tab, a cancelled request) is passed on. Without it the API went
+  // on with a turn nobody was reading, holding the session's one-turn lock, and the participant's
+  // next answer was refused as "a turn is already in progress".
+  const left = (req as { signal?: AbortSignal }).signal;
   let upstream: Response;
   try {
     upstream = await fetch(url, {
       method: req.method,
       headers,
       ...(sendsBody ? { body: capped(req.body, max, state), duplex: "half" } : {}),
+      ...(left ? { signal: left } : {}),
       cache: "no-store",
       redirect: "manual",
     });
   } catch (err) {
     if (state.exceeded) return jsonError(413, "too_large", "The request is too large");
+    // Nobody is waiting for an answer; there is nothing to report.
+    if (left?.aborted) return new Response(null, { status: 499 });
     throw err;
   }
 

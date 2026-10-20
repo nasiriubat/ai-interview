@@ -194,6 +194,10 @@ export const en = {
         what: "That could not be accepted.",
         next: "Check what you entered and try again.",
       },
+      notHeard: {
+        what: "We could not hear anything in that recording.",
+        next: "Check that your microphone is on, then record your answer again, or type it.",
+      },
       limit: {
         what: "This interview round cannot take more people right now.",
         next: "Tell the person who invited you; they can make room.",
