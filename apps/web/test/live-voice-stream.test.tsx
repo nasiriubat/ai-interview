@@ -119,12 +119,15 @@ const callbacks = (over: Partial<LiveVoiceCallbacks> = {}): LiveVoiceCallbacks =
   ...over,
 });
 
+/** The recorder stub's last instance: set only when a call fell back to recording utterances. */
+const recorderSlot = (): { latest: unknown } => window.MediaRecorder as unknown as { latest: unknown };
+
 beforeEach(() => {
   rms = 0;
   SocketStub.instances = [];
   WorkletNodeStub.latest = null;
   AudioContextStub.withWorklet = true;
-  (window.MediaRecorder as unknown as { latest: unknown }).latest = null;
+  recorderSlot().latest = null;
   vi.useFakeTimers();
   vi.stubGlobal("WebSocket", SocketStub);
   vi.stubGlobal("AudioContext", AudioContextStub);
@@ -169,7 +172,7 @@ describe("useLiveVoice in stream mode", () => {
     act(() => {
       vi.advanceTimersByTime(2000);
     });
-    expect((window.MediaRecorder as unknown as { latest: unknown }).latest).toBeNull();
+    expect(recorderSlot().latest).toBeNull();
     expect(socket.frames()).toEqual([]);
   });
 
@@ -233,7 +236,7 @@ describe("useLiveVoice in stream mode", () => {
     act(() => {
       vi.advanceTimersByTime(200);
     });
-    expect((window.MediaRecorder as unknown as { latest: unknown }).latest).not.toBeNull();
+    expect(recorderSlot().latest).not.toBeNull();
   });
 
   it("asks for utterance mode itself in a browser without AudioWorklet", async () => {
