@@ -182,7 +182,7 @@ services:
   kroki:
     <<: *logging
     profiles: ["extras"]
-    image: yuzutech/kroki:0.26.0
+    image: yuzutech/kroki:0.33.0
     environment:
       KROKI_MERMAID_HOST: kroki-mermaid
       KROKI_MAX_BODY_SIZE: "65536"
