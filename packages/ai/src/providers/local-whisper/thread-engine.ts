@@ -33,7 +33,7 @@ export class WorkerThreadEngine implements SpeechToTextEngine {
   private seq = 0;
   private readonly pending = new Map<number, Pending>();
 
-  constructor(private readonly opts: { cacheDir: string }) {}
+  constructor(private readonly opts: { cacheDir: string; threads?: number }) {}
 
   load(model: string, dtype: string, onProgress: (fraction: number | undefined) => void): Promise<void> {
     const id = ++this.seq;
@@ -76,7 +76,9 @@ export class WorkerThreadEngine implements SpeechToTextEngine {
     // Built from a path rather than written as `new Worker(new URL(...))`, which bundlers recognise
     // and would follow into transformers.js; nothing outside the API process should ever load it.
     const file = fileURLToPath(new URL("./thread.js", import.meta.url));
-    const worker = new Worker(file, { workerData: { cacheDir: this.opts.cacheDir } });
+    const worker = new Worker(file, {
+      workerData: { cacheDir: this.opts.cacheDir, threads: this.opts.threads },
+    });
     worker.unref();
     worker.on("message", (reply: ThreadReply) => {
       this.onReply(reply);
