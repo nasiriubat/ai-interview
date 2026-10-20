@@ -41,7 +41,9 @@ export async function participantRoutes(app: App, ctx: RouteContext): Promise<vo
   app.post(
     "/p/:linkToken/verify/request",
     {
-      ...guard.public({ config: { rateLimit: { max: 5, timeWindow: "10 minutes" } } }),
+      // Per address, and an office of thirty shares one: the per-email cap in the service is what
+      // stops one inbox being flooded, and five per address turned colleagues away.
+      ...guard.public({ config: { rateLimit: { max: 30, timeWindow: "10 minutes" } } }),
       schema: { params: Link, body: z.object({ email: z.email() }) },
     },
     async (req) => {
@@ -53,7 +55,8 @@ export async function participantRoutes(app: App, ctx: RouteContext): Promise<vo
   app.post(
     "/p/:linkToken/verify/confirm",
     {
-      ...guard.public({ config: { rateLimit: { max: 10, timeWindow: "10 minutes" } } }),
+      // Guessing is bounded by the code itself (five attempts, then it is spent), not by this.
+      ...guard.public({ config: { rateLimit: { max: 60, timeWindow: "10 minutes" } } }),
       schema: { params: Link, body: z.object({ email: z.email(), code: z.string().regex(/^\d{6}$/) }) },
     },
     async (req) => svc.confirmCode(req.params.linkToken, req.body.email, req.body.code),

@@ -44,6 +44,14 @@ export async function participantVoiceLiveRoutes(app: App, ctx: RouteContext): P
       // guard hook because a refused socket has to be closed with a status code, and a thrown
       // AppError would try to write a JSON body to a connection the browser is expecting to
       // upgrade. The principal is anonymous for a deleted session and for a suspended tenant too.
+      // A browser always names the page that opened the socket. The participant cookie is
+      // SameSite=Lax, so any page on a sibling subdomain of the same site would carry it here and
+      // could speak as the participant: only this application's own pages may open a call.
+      const origin = req.headers.origin;
+      if (origin !== undefined && origin !== ctx.config.WEB_ORIGIN) {
+        socket.close(CLOSE_POLICY, "origin not allowed");
+        return;
+      }
       const principal = req.principal;
       if (principal.kind !== "participant") {
         socket.close(CLOSE_POLICY, "participant session required");
