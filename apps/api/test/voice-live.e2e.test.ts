@@ -125,10 +125,11 @@ suite("live voice", () => {
     close: () => void;
   }
 
-  async function connect(token?: string): Promise<Client> {
+  async function connect(token?: string, origin?: string): Promise<Client> {
     const { WebSocket } = await import("ws");
     const socket = new WebSocket(`ws://127.0.0.1:${port}/api/v1/p/session/live`, {
       headers: token ? { authorization: `Bearer pt.${token}` } : {},
+      ...(origin ? { origin } : {}),
     });
     const json: Record<string, unknown>[] = [];
     const binary: Buffer[] = [];
@@ -209,6 +210,13 @@ suite("live voice", () => {
     const client = await connect();
 
     // Either refused at the upgrade or closed immediately after; both are a refusal.
+    await new Promise((r) => setTimeout(r, 300));
+    expect(client.socket.readyState).not.toBe(client.socket.OPEN);
+  });
+
+  it("refuses a socket opened by a page of another origin, even with a valid session", async () => {
+    const client = await connect(await participantToken(), "https://other.example.com");
+
     await new Promise((r) => setTimeout(r, 300));
     expect(client.socket.readyState).not.toBe(client.socket.OPEN);
   });
