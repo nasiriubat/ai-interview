@@ -763,7 +763,12 @@ CADDY_LOCAL_CERTS=1               # Cloudflare -> origin uses Caddy's own certif
 In Cloudflare, for that hostname only: the DNS record **proxied** (orange cloud); a **Rules ->
 Origin Rule** "Hostname equals `<host>`" -> _Destination port_ `8000`; and a **Configuration Rule**
 for the same hostname -> _SSL_ `Full` (the origin certificate is Caddy's own, which `Full` accepts
-and `Full (strict)` does not). The firewall must let Cloudflare reach 8000.
+and `Full (strict)` does not). The cloud firewall must let Cloudflare reach 8000, and
+`deploy/firewall/install.sh` then makes the host refuse anyone else on that port (Docker-published
+ports bypass ufw): a chain of its own in `DOCKER-USER`, re-applied at boot, matching only
+connections from outside to that port. Also, for this hostname: Rocket Loader and Email Obfuscation
+off (they rewrite scripts and break the Content-Security-Policy nonce), Bot Fight Mode off (its
+challenges break the streamed interview), and no "Cache Everything" rule.
 
 Caddy believes `CF-Connecting-IP` only from Cloudflare's published ranges (the `trusted_proxies` list
 in `deploy/Caddyfile`), so per-address rate limits see the real visitor and a direct connection
