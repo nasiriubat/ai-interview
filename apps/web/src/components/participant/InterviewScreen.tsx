@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { WidgetRenderer } from "@/components/widgets";
 import { WidgetVoiceProvider, type WidgetVoice } from "@/components/widgets/voice-context";
 import { useAttachments } from "@/hooks/useAttachments";
-import { controlChipOf, useInterview } from "@/hooks/useInterview";
+import { controlChipOf, NOT_HEARD, useInterview } from "@/hooks/useInterview";
 import { useLiveVoice } from "@/hooks/useLiveVoice";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useOnline } from "@/hooks/useOnline";
@@ -34,6 +34,17 @@ import type { ParticipantApi } from "@/lib/api/participant";
 import type { Message, ModePreference, ParticipantSession, ProgressArea } from "@/lib/api/schemas";
 
 type Screen = "interview" | "paused" | "deleted";
+
+/**
+ * Why a live call gave up, when the next call may well work (the server's `unavailable` reasons
+ * and the hook's own). Anything else would fail every call the same way.
+ */
+const PASSING_FAILURES = new Set([
+  "connection_lost",
+  "socket_failed",
+  "transcription_failed",
+  "stt_stream_failed",
+]);
 
 /** The confirmation line is shown only when the API says a notice was queued (D-175). */
 interface Deleted {
@@ -127,12 +138,22 @@ export function InterviewScreen({
    * what "without losing the session" asks for.
    */
   const [gaveUp, setGaveUp] = React.useState<"recorded" | "text" | null>(null);
+  /**
+   * Whether the call that gave up may be tried again. A dropped connection or a transcription that
+   * failed once is a bad moment, not a verdict on the rest of the visit: Talk stays, and the next
+   * call asks for the microphone afresh. Only a reason that would fail every call the same way
+   * (this server cannot read a call's audio, the feature is off, the minutes are used up) takes it.
+   */
+  const [callAgain, setCallAgain] = React.useState(true);
   const live = useLiveVoice({
     onTurn: sink.turn,
     onHeard: sink.heard,
     onEnded: sink.ended,
     onError: sink.failed,
-    onUnavailable: setGaveUp,
+    onUnavailable: (fallback, reason) => {
+      setGaveUp(fallback);
+      setCallAgain(fallback !== "text" && PASSING_FAILURES.has(reason));
+    },
   });
   const spokenAnswers = gaveUp !== "text";
   // The "Other" field takes speech where recorded voice is on and no call holds the microphone.
@@ -143,7 +164,7 @@ export function InterviewScreen({
         : null,
     [can.recordedVoice, spokenAnswers, live.status, api],
   );
-  const liveOffered = can.liveVoice && gaveUp === null;
+  const liveOffered = can.liveVoice && (gaveUp === null || callAgain);
   const inCall = live.status !== "idle" && live.status !== "unavailable";
   // On a phone the call is a screen of its own (D-238); elsewhere it stays the panel above the composer.
   const phone = useMediaQuery("(max-width: 767px)");
@@ -167,6 +188,8 @@ export function InterviewScreen({
   // through an interview sounds like picking up a phone rather than like silence.
   const talk = (): void => {
     remember("voice");
+    // A new call starts clean: the notice about the last one would now be wrong.
+    setGaveUp(null);
     live.start();
   };
 
@@ -317,6 +340,7 @@ export function InterviewScreen({
   const isOffline = networkFailure;
   const isProvider = state.error?.code === "provider_error";
   const isExpired = state.error?.code === "unauthenticated" || state.error?.code === "not_found";
+  const isNotHeard = state.error?.code === NOT_HEARD;
 
   const lastMessage = state.messages[state.messages.length - 1];
   const voiceSendFailed =
@@ -443,16 +467,19 @@ export function InterviewScreen({
                   </p>
                   {!isBudget && !isExpired ? (
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isOffline && !online}
-                        onClick={() => {
-                          void retry();
-                        }}
-                      >
-                        {t.app.retry}
-                      </Button>
+                      {/* A silent recording is not resent: the way on is to record again. */}
+                      {!isNotHeard ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isOffline && !online}
+                          onClick={() => {
+                            void retry();
+                          }}
+                        >
+                          {t.app.retry}
+                        </Button>
+                      ) : null}
                       <Button size="sm" variant="ghost" onClick={clearError}>
                         {t.app.close}
                       </Button>

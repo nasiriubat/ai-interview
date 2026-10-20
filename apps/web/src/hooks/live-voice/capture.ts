@@ -155,6 +155,9 @@ export class Capture {
     onFrame: (frame: ArrayBuffer) => void,
     stillWanted: () => boolean,
   ): Promise<boolean> {
+    // A reconnected call is told `ready` again and streams again. The worklet of the connection
+    // before is let go first: two feeding the socket would send every frame twice.
+    this.stopStreaming();
     const { context, source } = this;
     if (!context || !source || typeof context.audioWorklet === "undefined") {
       this.stopStreaming();

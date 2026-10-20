@@ -99,14 +99,15 @@ function latestRecorder(): RecorderStub | null {
 }
 
 /** Replaces the microphone for one test and reports whether its tracks were released. */
-function microphone(): { stopped: () => number } {
+function microphone(): { stopped: () => number; asked: () => number } {
   const stop = vi.fn();
+  const getUserMedia = vi.fn(() => Promise.resolve({ getTracks: () => [{ stop }] }));
   Object.defineProperty(navigator, "mediaDevices", {
-    value: { getUserMedia: () => Promise.resolve({ getTracks: () => [{ stop }] }) },
+    value: { getUserMedia },
     writable: true,
     configurable: true,
   });
-  return { stopped: () => stop.mock.calls.length };
+  return { stopped: () => stop.mock.calls.length, asked: () => getUserMedia.mock.calls.length };
 }
 
 function newestSocket(): SocketStub {
@@ -487,6 +488,37 @@ describe("the interview screen in a live call", () => {
     expect(screen.getByText(/A live call is not possible right now/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Record your answer" })).toBeInTheDocument();
     expect(screen.getByLabelText("Your answer")).toBeInTheDocument();
+  });
+
+  it("lets the participant call again after a passing failure, with the microphone asked for afresh", async () => {
+    // The owner's report: after one failed answer the voice never worked again in that visit.
+    const mic = microphone();
+    const socket = await enterVoice();
+    socket.emit({ type: "ready", captions: true, bargeIn: true });
+    socket.emit({ type: "unavailable", reason: "transcription_failed", fallback: "recorded" });
+    await settle();
+    // The failed call let go of the device.
+    expect(mic.stopped()).toBe(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Talk" }));
+    await settle();
+    expect(SocketStub.instances).toHaveLength(2);
+    expect(mic.asked()).toBe(2);
+    newestSocket().emit({ type: "ready", captions: true, bargeIn: true });
+    await settle();
+    expect(screen.getByRole("button", { name: "End the call" })).toBeInTheDocument();
+    expect(screen.queryByText(/A live call is not possible right now/)).not.toBeInTheDocument();
+  });
+
+  it("does not offer the call again when this server cannot hear a call at all", async () => {
+    microphone();
+    const socket = await enterVoice();
+    socket.emit({ type: "ready", captions: true, bargeIn: true });
+    // The on-server Whisper reads WAV and a call sends WebM: every call would fail the same way.
+    socket.emit({ type: "unavailable", reason: "transcription_needs_wav", fallback: "recorded" });
+    await settle();
+    expect(screen.queryByRole("button", { name: "Talk" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Record your answer" })).toBeInTheDocument();
   });
 
   it("withdraws every microphone when there is no route that listens, and moves to typing", async () => {

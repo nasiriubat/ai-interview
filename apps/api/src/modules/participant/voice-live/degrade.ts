@@ -1,4 +1,5 @@
 import { ProviderError, UnsupportedAudioError } from "@aidp/ai";
+import { AppError } from "../../../lib/errors.js";
 import type { LiveHost } from "./host.js";
 
 export type Stage = "transcription" | "speech" | "turn";
@@ -45,12 +46,36 @@ export function degradation(
 }
 
 /**
+ * A turn the API refused (`AppError`: another turn still running, the session finished) is that
+ * turn failing, and nothing is wrong with the cascade. It goes to the browser as an `error` frame,
+ * which leaves the call listening with its voice, instead of `unavailable`, which for a turn would
+ * have dropped the call to captions and silenced the interviewer for the rest of it.
+ */
+export function refusal(err: unknown): { type: "error"; code: string; message: string } | undefined {
+  if (!(err instanceof AppError)) return undefined;
+  return {
+    type: "error",
+    code: err.code,
+    message:
+      err.code === "conflict"
+        ? "That answer arrived while the last one was still being answered. Please say it again."
+        : "That answer could not be taken. Please try again.",
+  };
+}
+
+/**
  * A provider that cannot do its half of the cascade drops the participant down the chain rather
  * than ending the interview.
  */
 export function onProviderFailure(host: LiveHost, err: unknown, stage: Stage): void {
-  const { frame, level } = degradation(err, stage);
   const sessionId = host.scope.sessionId;
+  const refused = refusal(err);
+  if (refused) {
+    host.ctx.log.info({ sessionId, stage, code: refused.code }, "live voice: turn refused");
+    host.send(refused);
+    return;
+  }
+  const { frame, level } = degradation(err, stage);
   if (level === "info") {
     host.ctx.log.info({ sessionId }, "live voice: route reads WAV only, using recorded");
   } else {

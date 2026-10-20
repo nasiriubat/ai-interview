@@ -118,6 +118,8 @@ export function participantErrorFor(code: string, context: ErrorContext): string
         return p.featureOff;
       case "validation":
         return p.validation;
+      case "not_heard":
+        return p.notHeard;
       default:
         return p.server;
     }

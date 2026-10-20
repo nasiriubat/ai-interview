@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useInterview } from "@/hooks/useInterview";
+import { ApiError } from "@/lib/api/errors";
 import type { ParticipantApi } from "@/lib/api/participant";
 import type { ParticipantSession } from "@/lib/api/schemas";
 
@@ -201,5 +202,191 @@ describe("useInterview", () => {
       "Next?",
     ]);
     expect(result.current.state.error).toBeNull();
+  });
+});
+
+/**
+ * The owner's voice report (2026-10-20): after a few spoken answers one failed, the participant's
+ * earlier answers vanished from the conversation, and recording again kept failing.
+ *
+ * These follow the real server, which never echoes the participant's own message back: every
+ * answer given in this visit keeps its client-side `local-` id until the page is reloaded.
+ */
+describe("useInterview: recovering from a failed answer", () => {
+  const question = (id: string, content: string): string =>
+    `event: turn\ndata: ${JSON.stringify({
+      message: { id, seq: 1, role: "assistant", content, createdAt: "" },
+      ended: false,
+      progress: { areas: [] },
+    })}\n\n`;
+  const opened: ParticipantSession = {
+    ...baseSession,
+    messages: [{ id: "q1", seq: 1, role: "assistant", modality: "text", content: "Q1", createdAt: "" }],
+  };
+
+  /** A stream the test finishes by hand, to hold a turn open. */
+  function heldStream(): { response: Response; finish: (chunks: string[]) => void } {
+    const enc = new TextEncoder();
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
+    let closed = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        controller = c;
+      },
+    });
+    return {
+      response: new Response(body, { headers: { "content-type": "text/event-stream" } }),
+      finish: (chunks) => {
+        if (closed) return;
+        closed = true;
+        for (const ch of chunks) controller.enqueue(enc.encode(ch));
+        controller.close();
+      },
+    };
+  }
+
+  it("keeps every earlier answer when a failed one is retried", async () => {
+    let n = 0;
+    const sendTurn = vi.fn((): Promise<Response> => {
+      n++;
+      if (n === 3) return Promise.reject(new ApiError(409, "conflict", "A turn is already in progress"));
+      return Promise.resolve(sse([question(`q${String(n + 1)}`, `Q${String(n + 1)}`)]));
+    });
+    const { result } = renderHook(() => useInterview(apiWith(sendTurn), opened));
+    await act(async () => {
+      await result.current.sendText("first answer");
+    });
+    await act(async () => {
+      await result.current.sendText("second answer");
+    });
+    await act(async () => {
+      await result.current.sendText("third answer");
+    });
+    expect(result.current.state.error?.code).toBe("conflict");
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(result.current.state.error).toBeNull();
+    expect(result.current.state.messages.map((m) => m.content)).toEqual([
+      "Q1",
+      "first answer",
+      "Q2",
+      "second answer",
+      "Q3",
+      "third answer",
+      "Q5",
+    ]);
+  });
+
+  it("keeps every earlier answer when the next one is sent after a failure", async () => {
+    let n = 0;
+    const sendTurn = vi.fn((): Promise<Response> => {
+      n++;
+      if (n === 2) return Promise.reject(new ApiError(500, "server_error", "boom"));
+      return Promise.resolve(sse([question(`q${String(n + 1)}`, `Q${String(n + 1)}`)]));
+    });
+    const { result } = renderHook(() => useInterview(apiWith(sendTurn), opened));
+    await act(async () => {
+      await result.current.sendText("first answer");
+    });
+    await act(async () => {
+      await result.current.sendText("lost answer");
+    });
+    await act(async () => {
+      await result.current.sendText("second try");
+    });
+    expect(result.current.state.messages.map((m) => m.content)).toEqual([
+      "Q1",
+      "first answer",
+      "Q2",
+      "second try",
+      "Q4",
+    ]);
+  });
+
+  it("does not cut off a turn in flight when a recording is sent: it waits for it", async () => {
+    const first = heldStream();
+    const sendTurn = vi.fn((_input: unknown, signal?: AbortSignal): Promise<Response> => {
+      signal?.addEventListener("abort", () => {
+        first.finish([]);
+      });
+      return Promise.resolve(first.response);
+    });
+    const sendVoice = vi.fn((): Promise<Response> =>
+      Promise.resolve(
+        sse([
+          'event: transcript\ndata: {"text":"spoken answer","attachmentId":"att1"}\n\n',
+          question("q3", "Q3"),
+        ]),
+      ),
+    );
+    const { result } = renderHook(() => useInterview(apiWith(sendTurn, { sendVoice }), opened));
+    let typed!: Promise<boolean>;
+    act(() => {
+      typed = result.current.sendText("typed answer");
+    });
+    await waitFor(() => {
+      expect(sendTurn).toHaveBeenCalledTimes(1);
+    });
+    // The interviewer is still replying when the participant records the next answer.
+    let spoken!: Promise<boolean>;
+    act(() => {
+      spoken = result.current.sendVoice(new Blob(["wav"], { type: "audio/wav" }), 1500);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    expect(sendVoice).not.toHaveBeenCalled();
+    await act(async () => {
+      first.finish([question("q2", "Q2")]);
+      await typed;
+      await spoken;
+    });
+    expect(sendVoice).toHaveBeenCalledTimes(1);
+    expect(result.current.state.error).toBeNull();
+    expect(result.current.state.messages.map((m) => m.content)).toEqual([
+      "Q1",
+      "typed answer",
+      "Q2",
+      "spoken answer",
+      "Q3",
+    ]);
+  });
+
+  it("asks for a new recording, not a resend of the same one, when nothing was heard", async () => {
+    const sendVoice = vi.fn((): Promise<Response> =>
+      Promise.reject(
+        new ApiError(400, "validation", "I could not hear anything in that recording", {
+          reason: "no_speech",
+        }),
+      ),
+    );
+    const { result } = renderHook(() => useInterview(apiWith(vi.fn(), { sendVoice }), opened));
+    await act(async () => {
+      await result.current.sendVoice(new Blob(["wav"], { type: "audio/wav" }), 900);
+    });
+    expect(result.current.state.error?.code).toBe("not_heard");
+    // No empty "could not be sent" bubble whose retry would only send the same silence again.
+    expect(result.current.state.messages.map((m) => m.content)).toEqual(["Q1"]);
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(sendVoice).toHaveBeenCalledTimes(1);
+    expect(result.current.state.error).toBeNull();
+  });
+
+  it("does not answer a failed live-call turn with an empty HTTP turn on retry", async () => {
+    const sendTurn = vi.fn((): Promise<Response> => Promise.resolve(sse([question("qx", "QX")])));
+    const { result } = renderHook(() => useInterview(apiWith(sendTurn), opened));
+    act(() => {
+      result.current.live.heard("spoken over the call");
+      result.current.live.failed("provider_error", "The assistant is temporarily unavailable.");
+    });
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(sendTurn).not.toHaveBeenCalled();
+    expect(result.current.state.error).toBeNull();
+    expect(result.current.state.messages.map((m) => m.content)).toEqual(["Q1", "spoken over the call"]);
   });
 });

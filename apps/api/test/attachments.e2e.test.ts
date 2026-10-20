@@ -304,6 +304,8 @@ suite("attachments and recorded voice", () => {
     transcript = previous;
     expect(res.statusCode).toBe(400);
     expect(res.json().error.message).toMatch(/could not hear/i);
+    // The browser asks for a new recording on this reason instead of resending the same silence.
+    expect(res.json().error.details).toEqual({ reason: "no_speech" });
   });
 
   it("keeps the recording when transcription fails, so the participant can retry", async () => {
@@ -387,6 +389,7 @@ suite("attachments and recorded voice", () => {
     transcript = previous;
     expect(empty.statusCode).toBe(400);
     expect(empty.json().error.message).toMatch(/could not hear/i);
+    expect(empty.json().error.details).toEqual({ reason: "no_speech" });
 
     const text = multipart({ name: "n.txt", type: "text/plain", body: Buffer.from("hello") });
     const bad = await world.app.inject({

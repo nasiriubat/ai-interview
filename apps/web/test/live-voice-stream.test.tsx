@@ -246,6 +246,30 @@ describe("useLiveVoice in stream mode", () => {
     expect(WorkletNodeStub.latest).toBeNull();
   });
 
+  it("captures once after a dropped socket reconnects, not once per connection", async () => {
+    microphone();
+    const { socket } = await streamingCall(callbacks());
+    const first = WorkletNodeStub.latest!;
+
+    // The socket drops; the call reconnects once and the server says `ready` again.
+    act(() => {
+      socket.onclose?.({});
+    });
+    await settle();
+    const again = SocketStub.instances.at(-1)!;
+    expect(again).not.toBe(socket);
+    again.emit({ type: "ready", captions: true, bargeIn: true, mode: "stream", sampleRate: 24000 });
+    await settle();
+    again.clear();
+
+    // The first connection's worklet must be gone: two would send every frame twice, and the
+    // provider would hear the participant's words doubled over each other.
+    expect(first.disconnected).toBe(true);
+    expect(first.port.onmessage).toBeNull();
+    WorkletNodeStub.latest?.frame();
+    expect(again.binary()).toHaveLength(1);
+  });
+
   it("releases the worklet and the microphone when the call ends", async () => {
     const mic = microphone();
     const { result } = await streamingCall(callbacks());
