@@ -143,9 +143,17 @@ fi
 
 say "building images tagged $version"
 export AIDP_VERSION="$version"
+# A builder of this project's own, so its cache can be capped below without touching anyone else's:
+# the host may run other products, and the default builder's cache is theirs too. Every deploy
+# otherwise leaves gigabytes of layers behind, and a push-to-deploy host fills its disk.
+builder="${AIDP_BUILDER:-aidp}"
+if [ "$DRY_RUN" != 1 ] && ! docker buildx inspect "$builder" >/dev/null 2>&1; then
+	docker buildx create --name "$builder" --driver docker-container >/dev/null || die "cannot create the build builder $builder"
+fi
+export BUILDX_BUILDER="$builder"
 # The backup image first, on its own: it carries age-keygen, and compose will not even parse the
-# stack until the key exists in the env file.
-act docker build -q -f "$here/backup/backup.Dockerfile" -t "aidp-backup:$version" "$here/backup" >/dev/null
+# stack until the key exists in the env file. --load: a container builder keeps images to itself.
+act docker build -q --load -f "$here/backup/backup.Dockerfile" -t "aidp-backup:$version" "$here/backup" >/dev/null
 act env ENV_FILE_PATH="$env_file" "$here/backup/ensure-backup-key.sh" --image "aidp-backup:$version"
 act dcx build
 if [ "$DRY_RUN" != 1 ]; then
@@ -153,7 +161,11 @@ if [ "$DRY_RUN" != 1 ]; then
 	for image in aidp-server aidp-web aidp-backup aidp-ops-notify; do
 		docker image inspect "$image:$version" >/dev/null 2>&1 || die "the build did not produce $image:$version"
 	done
+	# Enough cache that an ordinary push rebuilds in a minute or two, and no more.
+	docker buildx prune --builder "$builder" -f --max-used-space "${AIDP_BUILD_CACHE_MAX:-6GB}" >/dev/null ||
+		warn "could not trim the build cache of $builder"
 fi
+unset BUILDX_BUILDER
 
 # ---- 5. the switch ---------------------------------------------------------------------------
 
