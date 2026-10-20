@@ -225,6 +225,7 @@ export class PrismaSessionStore implements SessionStore {
           orderBy: { createdAt: "asc" },
           take: 20,
         },
+        participant: { select: { fields: true } },
       },
     });
     const parsed = templateFromRow(row.template);
@@ -238,7 +239,7 @@ export class PrismaSessionStore implements SessionStore {
       companyId: row.companyId,
       ...(row.campaignId ? { campaignId: row.campaignId } : {}),
       template,
-      state: SessionStateSchema.parse(row.state),
+      state: withFormProfile(SessionStateSchema.parse(row.state), row.participant?.fields),
       summary: row.summary,
       ...(row.path ? { path: row.path as Path } : {}),
       ...(handoff?.success ? { handoff: handoff.data } : {}),
@@ -355,5 +356,21 @@ export function toStored(row: {
     ...(response?.success ? { widgetResponse: response.data } : {}),
     ...(row.areaKey ? { areaKey: row.areaKey } : {}),
     createdAt: row.createdAt,
+  };
+}
+
+/**
+ * The role and department the participant typed on the details screen, until the interview has
+ * learned its own. Without them the first question asked for the role the person had just given.
+ */
+export function withFormProfile(state: SessionState, fields: unknown): SessionState {
+  const form = (fields ?? {}) as Record<string, unknown>;
+  const text = (v: unknown): string | undefined =>
+    typeof v === "string" && v.trim() ? v.trim().slice(0, 200) : undefined;
+  const role = state.profile.role ?? text(form.role);
+  const department = state.profile.department ?? text(form.department);
+  return {
+    ...state,
+    profile: { ...state.profile, ...(role ? { role } : {}), ...(department ? { department } : {}) },
   };
 }
