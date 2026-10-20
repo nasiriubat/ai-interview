@@ -4,10 +4,11 @@ name: ci
 permissions:
   contents: read
 
+# Manual only: hosted runner minutes are spent on demand, not on every push. The gate is
+# `pnpm check` on a developer machine before pushing (AGENTS.md, rule 7); a push to main deploys
+# through the server's own timer (deploy/autodeploy.sh), not through Actions.
 on:
-  push:
-    branches: ["**"]
-  pull_request:
+  workflow_dispatch:
 jobs:
   check:
     runs-on: ubuntu-latest

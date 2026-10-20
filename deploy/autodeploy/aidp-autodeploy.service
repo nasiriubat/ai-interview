@@ -1,0 +1,13 @@
+# Installed by deploy/autodeploy/install.sh. Runs deploy/autodeploy.sh once; the timer repeats it.
+[Unit]
+Description=AI Discovery Platform: deploy the newest commit on main
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=@USER@
+WorkingDirectory=@REPO@
+ExecStart=@REPO@/deploy/autodeploy.sh
+# A first build takes several minutes; an ordinary one, one or two.
+TimeoutStartSec=45min

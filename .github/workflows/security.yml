@@ -5,12 +5,9 @@ name: security
 # any code change, hence the weekly schedule) is a clearly labelled red mark rather than a reason
 # the test job looks broken. Every action is pinned by commit SHA (scripts/security-gates.mjs
 # workflows enforces it); Dependabot raises the update PRs.
+# Manual only, like ci.yml: run it from the Actions tab before a release.
 on:
-  push:
-    branches: ["**"]
-  pull_request:
-  schedule:
-    - cron: "23 4 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read

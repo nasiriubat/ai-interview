@@ -191,7 +191,10 @@ smoke() {
 	dcx exec -T web node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))" ||
 		{ warn "web health check failed"; return 1; }
 	host=$(kv_get "$env_file" PUBLIC_HOSTNAME)
-	port=$(kv_get "$env_file" HTTPS_PORT)
+	# The port Caddy is published on, which HTTPS_BIND moves away from the public one.
+	port=$(kv_get "$env_file" HTTPS_BIND)
+	port="${port##*:}"
+	[ -n "$port" ] || port=$(kv_get "$env_file" HTTPS_PORT)
 	port="${port:-443}"
 	scheme=https
 	# Caddy's own CA for a test install is not in anyone's trust store.

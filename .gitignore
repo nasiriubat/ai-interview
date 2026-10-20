@@ -24,3 +24,4 @@ tools/live-run/out/
 apps/web/e2e/results/
 apps/web/test-results/
 apps/web/playwright-report/
+deploy/.autodeploy-failed
