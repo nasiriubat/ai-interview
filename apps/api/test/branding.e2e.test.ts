@@ -158,7 +158,7 @@ describeDb("platform branding: the public name and logo (D-430 to D-434)", () =>
     const res = await world.app.inject({ method: "GET", url: "/api/v1/public/branding" });
     expect(res.statusCode).toBe(200);
     expect(res.headers["cache-control"]).toBe("public, max-age=60");
-    expect(res.json()).toEqual({ productName: "Discovery", hasLogo: false, logoVersion: null });
+    expect(res.json()).toEqual({ productName: "AIScope", hasLogo: false, logoVersion: null });
 
     await withSystemTenant(() =>
       world.ctx.settings.set({ scope: "platform", scopeId: "" }, { "branding.productName": "Askel" }, null),

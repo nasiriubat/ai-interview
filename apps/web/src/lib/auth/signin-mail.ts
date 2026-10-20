@@ -57,7 +57,7 @@ export function signInMessage(input: {
   hours?: number;
 }): SignInMail {
   const c = COPY[input.locale];
-  const product = input.productName.trim() || "Discovery";
+  const product = input.productName.trim() || "AIScope";
   const hours = input.hours ?? SIGN_IN_LINK_HOURS;
   const text = [c.intro(product), "", input.url, "", c.once(hours), c.ignore, ""].join("\n");
   const p = escapeHtml(product);

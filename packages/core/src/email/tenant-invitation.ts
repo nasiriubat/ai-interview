@@ -3,7 +3,7 @@ export type EmailLanguage = "en" | "fi";
 export interface TenantInvitationInput {
   language: EmailLanguage;
   companyName: string;
-  /** The product name the tenant sees; "Discovery" until they change it. */
+  /** The product name the tenant sees; "AIScope" until they change it. */
   productName: string;
   signInUrl: string;
 }

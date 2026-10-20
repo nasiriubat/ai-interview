@@ -14,7 +14,7 @@ export function userAddedMessage(input: {
   addedBy: string | null;
   webUrl: string;
 }): EmailMessage {
-  const product = input.productName.trim() || "Discovery";
+  const product = input.productName.trim() || "AIScope";
   const signIn = `${input.webUrl.replace(/\/+$/, "")}/auth/signin`;
   const who = input.addedBy ? `${input.addedBy} added you` : "You have been added";
   const role = input.role === "admin" ? "an administrator" : "a member";

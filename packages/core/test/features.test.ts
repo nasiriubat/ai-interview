@@ -47,7 +47,7 @@ describe("voiceAllowed", () => {
 describe("tenantInvitationEmail (D-189)", () => {
   const base = {
     companyName: "Acme Oy",
-    productName: "Discovery",
+    productName: "AIScope",
     signInUrl: "https://app.example.com/auth/signin?email=a%40b.fi",
   };
 

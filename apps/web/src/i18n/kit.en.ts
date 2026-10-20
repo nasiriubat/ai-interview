@@ -179,7 +179,7 @@ export const kitEn = {
     points: [
       "AI-led conversations with the people who do the work",
       "Findings ranked by value, effort and risk",
-      "Built to run on a server you operate, with the AI providers you choose",
+      "Hosted in Finland, with the AI provider for each task listed",
     ],
     footer: "One-time links, no passwords.",
   },
@@ -197,7 +197,7 @@ export const kitEn = {
     errorMailTitle: "The sign-in email could not be sent",
     errorMailBody:
       "This deployment's mail server did not accept the message. Try again in a minute. If it keeps happening, whoever runs this installation needs to check the mail relay (SMTP_HOST and the other SMTP_* settings in the root .env) or sign in with Google if it is set up.",
-    signOutTitle: "Sign out of Discovery?",
+    signOutTitle: "Sign out?",
     signOutBody: "You will need a new one-time link to come back.",
     signOutConfirm: "Sign out",
     signOutStay: "Stay signed in",
@@ -228,7 +228,7 @@ export const kitEn = {
     },
     maintenance: {
       title: "We are doing maintenance",
-      body: "Discovery is briefly unavailable while we update it. Nothing is lost, and interviews in progress resume when we are back.",
+      body: "The service is briefly unavailable while we update it. Nothing is lost, and interviews in progress resume when we are back.",
       hint: "This usually takes a few minutes.",
     },
     unavailable: {

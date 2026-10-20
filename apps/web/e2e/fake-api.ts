@@ -598,7 +598,7 @@ export function startFakeApi(port: number): Promise<FakeApi> {
     // review sets on a second fake API to shoot the same pages with one.
     if (path === "/public/branding") {
       const logo = process.env.FAKE_BRAND_LOGO === "1";
-      send(res, 200, { productName: "Discovery", hasLogo: logo, logoVersion: logo ? "e2e1" : null });
+      send(res, 200, { productName: "AIScope", hasLogo: logo, logoVersion: logo ? "e2e1" : null });
       return;
     }
     if (path === "/public/branding/logo") {

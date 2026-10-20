@@ -1,6 +1,6 @@
 # @aidp/web
 
-The Next.js web app of the AI Discovery Platform: the participant interview on the
+The Next.js web app of AIScope: the participant interview on the
 public side, the staff admin under `/admin`. It talks only to the API contracts
 (`docs/spec/16-api-contract-phase1.md` and `17-api-contract-phase2.md`); it never
 touches the model or the database.

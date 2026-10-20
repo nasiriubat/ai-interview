@@ -17,7 +17,7 @@ export interface LandingHeaderProps {
   labels: { menu: string; closeMenu: string };
   /** The visitor's way in: sign in, or the overview when a session exists. */
   signIn: { href: string; label: string };
-  /** "Request a workspace" as a mail link, or `null` when no address is configured. */
+  /** "Request a pilot", the primary action; `null` for a visitor who is already signed in. */
   request: { href: string; label: string } | null;
 }
 
@@ -27,6 +27,10 @@ export interface LandingHeaderProps {
  * closes on Escape, returns focus to the button and marks the page behind it inert. Language and
  * theme sit in the header from 768 px and in the drawer below that; nothing wraps at any width,
  * because each width has its own set of items rather than one set that shrinks.
+ *
+ * "Request a pilot" is the one primary button and shows at every width; "Sign in" beside it is the
+ * quiet one, from 768 px (below that it is in the drawer). A signed-in visitor gets "Go to the
+ * overview" as the primary button instead, at every width, and no pilot request.
  */
 export function LandingHeader({
   branding,
@@ -49,9 +53,6 @@ export function LandingHeader({
       mq.removeEventListener("change", close);
     };
   }, []);
-
-  const cta = request ?? signIn;
-  const ctaIsMail = request !== null;
 
   return (
     <header className="border-border bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-40 border-b backdrop-blur-md">
@@ -78,13 +79,19 @@ export function LandingHeader({
             <ThemeMenu />
           </div>
           {request ? (
-            <Button asChild variant="ghost" size="sm" className="hidden lg:inline-flex">
+            <>
+              <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
+                <Link href={signIn.href}>{signIn.label}</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href={request.href}>{request.label}</Link>
+              </Button>
+            </>
+          ) : (
+            <Button asChild size="sm">
               <Link href={signIn.href}>{signIn.label}</Link>
             </Button>
-          ) : null}
-          <Button asChild size="sm" className="hidden md:inline-flex">
-            {ctaIsMail ? <a href={cta.href}>{cta.label}</a> : <Link href={cta.href}>{cta.label}</Link>}
-          </Button>
+          )}
 
           <Dialog.Root open={open} onOpenChange={setOpen}>
             <Dialog.Trigger asChild>
@@ -140,7 +147,7 @@ export function LandingHeader({
                   </Button>
                   {request ? (
                     <Button asChild size="lg">
-                      <a href={request.href}>{request.label}</a>
+                      <Link href={request.href}>{request.label}</Link>
                     </Button>
                   ) : null}
                 </div>

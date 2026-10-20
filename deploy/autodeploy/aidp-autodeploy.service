@@ -1,6 +1,6 @@
 # Installed by deploy/autodeploy/install.sh. Runs deploy/autodeploy.sh once; the timer repeats it.
 [Unit]
-Description=AI Discovery Platform: deploy the newest commit on main
+Description=AIScope: deploy the newest commit on main
 After=docker.service network-online.target
 Wants=network-online.target
 

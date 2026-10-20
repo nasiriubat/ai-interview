@@ -29,6 +29,7 @@ export const landingEn = {
   },
   header: {
     signIn: "Sign in",
+    requestPilot: "Request a pilot",
     dashboard: "Go to the overview",
     menu: "Menu",
     closeMenu: "Close menu",
@@ -37,18 +38,17 @@ export const landingEn = {
   hero: {
     eyebrow: "For organizations that want to know before they build",
     title: "Understand the problem before deciding what to build.",
-    lead: "Structured interviews with your employees become a ranked map of where work gets stuck and what, if anything, should change. Any opportunity or idea then becomes a specification your developers or your coding agent can build from. It is built to run on a server you operate, under rules you set.",
-    requestWorkspace: "Request a workspace",
+    lead: "Structured interviews with your employees become a ranked map of where work gets stuck and what, if anything, should change. Any opportunity or idea then becomes a specification your developers or your coding agent can build from. We run it for you as a hosted service in Finland, under rules you set.",
+    requestPilot: "Request a pilot",
     signIn: "Sign in",
     dashboard: "Go to the overview",
-    noContact:
-      "Workspaces are created by the operator of this platform. Ask them, or sign in if you have one.",
+    pilotNote: "Your workspace is set up with you during a pilot. Existing customers sign in.",
     visualAlt:
       "The results page of a campaign: counts of interviews, extracted items and groups, then opportunities ranked by score with the scoring weights beside them.",
     phoneAlt: "The interview on a phone: topic chips above, a participant's answer, the next question below.",
     small: [
       "No account for participants",
-      "Built to run on one server you operate",
+      "Hosted in Finland, in the EU",
       "Every model call recorded with its cost",
     ],
   },
@@ -69,9 +69,9 @@ export const landingEn = {
       audience: "For HR, operations and transformation leads",
       title: "Find out how work is really done",
       paragraphs: [
-        "Invite your people by link. Each person has a conversation, by text, options or voice, about how their work is actually done: role, daily activities, repetitive tasks, tools, manual steps, hand-offs, bottlenecks and problems. The interviewer asks one question at a time, goes one level deeper when a process comes up, and is instructed never to ask where AI should be used.",
-        "When enough people have answered, the interviews are analyzed together. Similar tasks and problems are grouped, counted and scored on seven factors: impact, people affected, frequency, simplicity, data availability, risk and AI fit. Each opportunity is classified as AI, automation, software, process change or no change recommended.",
-        "You receive a report: executive summary, work map, department comparison, opportunities by solution class, quick wins and strategic bets, where AI is not the answer, and next steps.",
+        "Invite people by link. Each has a conversation, by text, options or voice, about how their work is really done, one question at a time.",
+        "The interviews are analyzed together: similar tasks and problems are grouped, counted and scored on seven factors.",
+        "You receive a report of ranked opportunities, including where AI is not the answer.",
       ],
     },
     bridge: {
@@ -84,9 +84,9 @@ export const landingEn = {
       audience: "For product owners, CTOs, founders and consultants",
       title: "Turn an idea into something a developer can build",
       paragraphs: [
-        "Start from a sentence or from a discovered opportunity, and attach documents as you go. Say whether you are technical or not. The interviewer first settles the context: hosting, existing systems, who builds, team skills, timeline, budget, users at launch and compliance. Then it works through users, stories, requirements, rules, data, integrations, security, the admin surface, MVP, future scope and phases, one decision per question, each with a reason and a default.",
-        "Every five turns a separate pass checks the specification for ambiguity, contradictions, missing decisions and unnecessary complexity, and raises one finding at a time. Before it finishes, it walks your MVP list and asks of each item what breaks if version one ships without it.",
-        "You receive a versioned specification: a readable document, a machine-readable file, and a bundle for Claude Code or Codex with context, a phase plan and a task file per phase with acceptance criteria. Reopen it later and see what changed between versions.",
+        "Start from a sentence or a discovered opportunity. The interviewer settles the context first, then asks for one decision at a time, each with a default.",
+        "A separate pass checks the specification for gaps and contradictions as you go, and challenges every MVP item before the end.",
+        "You receive a versioned specification, plus a bundle for Claude Code or Codex.",
       ],
     },
   },
@@ -193,7 +193,7 @@ export const landingEn = {
       },
       {
         chat: "Whatever the vendor's retention policy says",
-        here: "A server you operate, model providers you choose, a ledger of every call, an audit log of administrator actions, deletion on request and automatic retention limits",
+        here: "A service hosted in Finland, the model provider for each task listed, a ledger of every call, an audit log of administrator actions, deletion on request and automatic retention limits",
       },
     ],
     justAsWellHeading: "What a chatbot does just as well",
@@ -214,7 +214,7 @@ export const landingEn = {
       },
       {
         title: "Hosting and providers",
-        body: "The platform is built to run on a single server that you operate, in the region you choose, with the API kept off the public internet. Model calls go only to the providers your organization configures, for each task: a hosted service, or an OpenAI-compatible endpoint you run yourself. Recordings can be transcribed on the same server. Some hosted providers process data outside the EU, and the platform lists each provider and where it processes data.",
+        body: "The service runs on a single server in Finland, operated by our team, with the API kept off the public internet. Model calls go only to the providers configured for each task. Some of them process data outside the EU, and the platform lists each provider and where it processes data. Recordings can be transcribed on the same server.",
       },
       {
         title: "Your data",
@@ -239,7 +239,7 @@ export const landingEn = {
       },
       {
         title: "Consultancies",
-        body: "You run discovery for clients. Each client can be its own organization with its own templates, model providers, budgets and reports.",
+        body: "You run discovery for clients. Each client gets its own workspace with its own templates, budgets and reports, under your own product name.",
       },
       {
         title: "Product owners",
@@ -253,6 +253,8 @@ export const landingEn = {
   },
   faq: {
     heading: "Questions",
+    more: "Something not answered here?",
+    moreLink: "Ask us when you request a pilot",
     items: [
       {
         q: "Can't I just use ChatGPT for this?",
@@ -264,7 +266,7 @@ export const landingEn = {
       },
       {
         q: "Where is my data?",
-        a: "On the server of the organization that runs the platform; the reference deployment is a single EU server. Interview text goes only to the model providers that organization has configured, which can be hosted services or an endpoint it runs itself. Some hosted providers process data outside the EU, so the provider list matters. Recordings can be transcribed on the same server when local transcription is switched on.",
+        a: "On our server in Finland, in the EU. Interview text is sent only to the model providers configured for each task. Some of them process data outside the EU, which is why the platform lists each provider and where it processes data. Recordings can be transcribed on the same server when on-server transcription is switched on.",
       },
       {
         q: "Does the AI decide what we should build?",
@@ -276,7 +278,7 @@ export const landingEn = {
       },
       {
         q: "What does it cost?",
-        a: "Two parts: the platform, which you host or have hosted for you, and the model usage. Every call is recorded with its cost, and you set budgets for the organization, each campaign and each interview. In an internal test with eight simulated interviewees and low-cost models, an interview cost 1.4 to 2.2 cents in model usage. That is a test figure, not a quote; your models and your interviews will differ.",
+        a: "Two parts: the hosted service and the model usage. Every call is recorded with its cost, and you set budgets for the organization, each campaign and each interview. In an internal test with eight simulated interviewees and low-cost models, an interview cost 1.4 to 2.2 cents in model usage. That is a test figure, not a quote; your models and your interviews will differ.",
       },
       {
         q: "How long does an interview take?",
@@ -298,12 +300,12 @@ export const landingEn = {
   },
   cta: {
     heading: "Run a first campaign with a few colleagues",
-    body: "Ask for a workspace, start from the built-in discovery template, preview it on yourself and invite a handful of colleagues. The first report tells you whether a larger round is worth it.",
-    request: "Request a workspace",
+    body: "Request a pilot and we set up your workspace with you. Start from the built-in discovery template, preview it on yourself and invite a handful of colleagues. The first report tells you whether a larger round is worth it.",
+    request: "Request a pilot",
     signIn: "Sign in",
     dashboard: "Go to the overview",
     consultancy:
-      "Running discovery for clients? Each client can be its own organization with its own templates, model providers, budgets and reports. Ask about operator access.",
+      "Running discovery for clients? Each client gets its own workspace with its own templates, budgets and reports, under your own product name. Say so when you request a pilot.",
   },
   footer: {
     navLabel: "Footer",
@@ -316,10 +318,11 @@ export const landingEn = {
     language: "Language",
     note: "This page runs no tracking and makes no requests to other sites. Your language and appearance choices stay in your browser.",
     signIn: "Sign in",
+    requestPilot: "Request a pilot",
   },
   mailto: {
-    subject: "Workspace request",
-    body: "Hello,\n\nI would like to request a workspace.\n\nOrganization:\nWhat we want to find out:\n",
+    subject: "A question from the website",
+    body: "Hello,\n\n",
   },
 };
 

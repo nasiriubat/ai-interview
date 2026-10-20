@@ -49,8 +49,8 @@ describeDb("adding a user emails them where to sign in", () => {
       addedBy: null,
       webUrl: "http://localhost:3300/",
     });
-    expect(m.subject).toBe("You have been added to Discovery");
-    expect(m.text).toContain("You have been added to Discovery for Kestrel Health, as an administrator.");
+    expect(m.subject).toBe("You have been added to AIScope");
+    expect(m.text).toContain("You have been added to AIScope for Kestrel Health, as an administrator.");
     expect(m.text).toContain("http://localhost:3300/auth/signin");
   });
 });

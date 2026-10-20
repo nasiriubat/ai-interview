@@ -24,7 +24,7 @@ describe("the sign-in email", () => {
     expect(m.html).not.toContain("<b>Acme</b>");
     expect(m.html).toContain("&lt;b&gt;Acme&lt;/b&gt;");
     expect(signInMessage({ url: "https://x.example/a", productName: " ", locale: "en" }).subject).toMatch(
-      /Discovery$/,
+      /AIScope$/,
     );
   });
 

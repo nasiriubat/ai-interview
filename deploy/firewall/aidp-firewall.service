@@ -1,6 +1,6 @@
 # Installed by deploy/firewall/install.sh. Re-applies the Cloudflare-only rule after Docker starts.
 [Unit]
-Description=AI Discovery Platform: only Cloudflare may reach the published HTTPS port
+Description=AIScope: only Cloudflare may reach the published HTTPS port
 After=docker.service
 Requires=docker.service
 

@@ -119,7 +119,7 @@ export class OpenAICompatibleProvider implements Provider {
     this.headers = {
       "content-type": "application/json",
       authorization: `Bearer ${opts.apiKey}`,
-      ...(opts.kind === "openrouter" ? { "x-title": "AI Discovery Platform" } : {}),
+      ...(opts.kind === "openrouter" ? { "x-title": "AIScope" } : {}),
       ...(opts.headers ?? {}),
     };
     this.fetchImpl = opts.fetch ?? fetch;

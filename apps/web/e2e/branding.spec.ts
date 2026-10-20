@@ -9,12 +9,12 @@ import { expect, test } from "@playwright/test";
 test("the landing header and the sign-in page show the name alone", async ({ page }) => {
   await page.goto("/");
   const home = page.locator("header a").first();
-  await expect(home).toHaveText("Discovery");
+  await expect(home).toHaveText("AIScope");
   await expect(home.locator("[aria-hidden]")).toHaveCount(0);
-  await expect(page).toHaveTitle(/^Discovery: /);
+  await expect(page).toHaveTitle(/^AIScope: /);
 
   await page.goto("/auth/signin");
-  await expect(page.getByRole("link", { name: "Discovery" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "AIScope" }).first()).toBeVisible();
   await expect(page.locator(".bg-brand-gradient")).toHaveCount(0);
 });
 
