@@ -529,7 +529,7 @@ services:
   # the companion has 512 MB. If the host is short of memory, set KROKI_URL= (empty) in .env
   # and stop both services; exports then print diagrams as source and nothing else changes.
   kroki:
-    image: yuzutech/kroki:0.26.0
+    image: yuzutech/kroki:0.33.0
     restart: unless-stopped
     networks: [diagrams]
     environment:
