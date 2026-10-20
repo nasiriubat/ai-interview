@@ -49,4 +49,8 @@ export const PARTICIPANT_COOKIE =
   process.env.NODE_ENV === "production" ? `__Host-${PARTICIPANT_COOKIE_LEGACY}` : PARTICIPANT_COOKIE_LEGACY;
 
 /** Auth.js stores the session JWT in one of these cookies depending on the scheme. */
-export const AUTHJS_COOKIES = ["__Secure-authjs.session-token", "authjs.session-token"] as const;
+export const AUTHJS_COOKIES: readonly string[] = process.env.AUTH_URL?.startsWith("https://")
+  ? // Over https Auth.js writes only the `__Secure-` name, and the bare one could have been planted
+    // by a sibling subdomain (`Domain=.example.com`) to sign the visitor in as someone else.
+    ["__Secure-authjs.session-token"]
+  : ["__Secure-authjs.session-token", "authjs.session-token"];

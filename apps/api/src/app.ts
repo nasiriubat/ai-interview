@@ -144,6 +144,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   // dependency is real and reads better stated.
   await app.register(authPlugin, {
     resolver: new PrincipalResolver(ctx.db, ctx.crypto, ctx.config.AUTH_SECRET, ctx.tenants),
+    prefixedCookiesOnly: ctx.config.NODE_ENV === "production",
   });
   // Global by default (spec 11): before this, only the participant routes opted in and every
   // staff and operator route was unlimited, so one leaked admin token could hammer the

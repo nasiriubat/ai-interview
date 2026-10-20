@@ -113,12 +113,16 @@ export class PrincipalResolver {
 export function bearerFrom(
   header: string | undefined,
   cookies: Record<string, string | undefined>,
+  opts: { prefixedOnly?: boolean } = {},
 ): string | undefined {
   if (header?.toLowerCase().startsWith("bearer ")) return header.slice(7).trim();
   // The participant credential: the `__Host-` cookie the web app sets in production (D-263), or the
-  // bare name it set before that and still sets in development.
-  const participantCookie = cookies["__Host-aidp_participant"] ?? cookies.aidp_participant;
+  // bare name development sets over plain http. Production reads only the prefixed names: a sibling
+  // subdomain can plant a bare cookie for the whole site (`Domain=.example.com`) and fix a visitor
+  // into its own session, and it can set neither a `__Host-` nor, over http, a `__Secure-` one.
+  const bare = opts.prefixedOnly ? {} : cookies;
+  const participantCookie = cookies["__Host-aidp_participant"] ?? bare.aidp_participant;
   return participantCookie
     ? `pt.${participantCookie}`
-    : (cookies["__Secure-authjs.session-token"] ?? cookies["authjs.session-token"]);
+    : (cookies["__Secure-authjs.session-token"] ?? bare["authjs.session-token"]);
 }
