@@ -376,6 +376,19 @@ describe("HttpKroki: the adapter", () => {
     await expect(k.render("x", "svg")).rejects.toThrow(/Parse error on line 2/);
   });
 
+  it("reads the Mermaid renderer's JSON 400 as the parser's message, not as JSON", async () => {
+    const k = new HttpKroki({
+      baseUrl: "http://kroki-mermaid:8002",
+      fetch: fetchReturning(
+        400,
+        JSON.stringify({
+          error: { message: "Parse error on line 2:\n...A--B", name: "SyntaxError", stacktrace: "at x" },
+        }),
+      ),
+    });
+    await expect(k.render("x", "svg")).rejects.toThrow(/^Parse error on line 2: \.\.\.A--B$/);
+  });
+
   it("reads other failures, a refused connection and a wrong content type as unavailable", async () => {
     const down = new HttpKroki({ baseUrl: "http://kroki:8000", fetch: fetchReturning(503, "no") });
     await expect(down.render("x", "png")).rejects.toThrow(KrokiUnavailableError);

@@ -1,6 +1,7 @@
 /*
- * Diagram rendering port (D-210, FR-23): Mermaid source in, an image out, by way of a Kroki
- * service on the private network.
+ * Diagram rendering port (D-210, FR-23): Mermaid source in, an image out, by way of Kroki's Mermaid
+ * renderer on the private network (`kroki-mermaid`, called directly: it answers `<base>/mermaid/svg`
+ * as Kroki's gateway does, without the gateway's 3 GB Java image).
  *
  * The URL comes from the deployment's environment (`KROKI_URL`) and never from a tenant setting,
  * and the `fetch` it is given is the egress-guarded one (`EgressGuard.fetchFor("platform")`), so
@@ -33,7 +34,7 @@ export class KrokiUnavailableError extends Error {
 }
 
 export interface HttpKrokiOptions {
-  /** Base URL of the Kroki service, such as `http://kroki:8000`. */
+  /** Base URL of the renderer, such as `http://kroki-mermaid:8002` (or a full Kroki, `http://kroki:8000`). */
   baseUrl: string;
   /** The egress-guarded fetch. Required: there is no default, by design. */
   fetch: typeof fetch;
@@ -75,7 +76,7 @@ export class HttpKroki implements KrokiPort {
     }
     if (res.status === 400) {
       const text = (await readCapped(res, 4_000).catch(() => Buffer.alloc(0))).toString("utf8").trim();
-      throw new KrokiSyntaxError(firstLines(text) || "The diagram is not valid Mermaid");
+      throw new KrokiSyntaxError(firstLines(errorMessage(text)) || "The diagram is not valid Mermaid");
     }
     if (!res.ok) {
       await res.body?.cancel().catch(() => undefined);
@@ -113,6 +114,17 @@ async function readCapped(res: Response, max: number): Promise<Buffer> {
     chunks.push(Buffer.from(value));
   }
   return Buffer.concat(chunks);
+}
+
+/** The Mermaid renderer answers `{"error":{"message":…}}`; Kroki's gateway answers plain text. */
+function errorMessage(text: string): string {
+  if (!text.startsWith("{")) return text;
+  try {
+    const message = (JSON.parse(text) as { error?: { message?: unknown } }).error?.message;
+    return typeof message === "string" ? message : text;
+  } catch {
+    return text;
+  }
 }
 
 /** Kroki's 400 body repeats the parser's whole message; the first lines say what is wrong. */

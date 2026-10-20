@@ -232,10 +232,10 @@ services:
       # Hostnames a platform provider may reach on a private address: here the diagram renderer
       # (D-213), plus whatever the operator adds, such as a model server inside this network.
       # Tenants never can. The renderer's own host is always allowed when KROKI_URL names it.
-      EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-kroki}
+      EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-kroki-mermaid}
       # The diagram renderer for PDF export and the diagram editor (D-210). Set it to the empty
       # string to turn rendering off: diagrams are then printed as their source.
-      KROKI_URL: ${KROKI_URL-http://kroki:8000}
+      KROKI_URL: ${KROKI_URL-http://kroki-mermaid:8002}
       # Where operator alerts go before anyone has opened the settings screen (D-90); the catalog
       # keys ops.alertEmail and ops.alertWebhookUrl win when set. Empty falls back to the bootstrap
       # operator's address, and to no webhook.
@@ -520,49 +520,26 @@ services:
           cpus: "0.5"
           memory: ${BACKUP_MEMORY_LIMIT:-512M}
 
-  # Diagram rendering (D-210, D-212): PDF export draws Mermaid fences through this pair, and the
-  # specification's diagram editor validates and previews with it. The core image only parses the
-  # request; it forwards Mermaid to the companion, a Node service driving headless Chromium, through
-  # KROKI_MERMAID_HOST. Both are pinned: `latest` would change what a diagram looks like, and what
-  # it accepts, on the next pull.
+  # Diagram rendering (D-210, D-212): PDF export draws Mermaid fences through this service, and the
+  # specification's diagram editor validates and previews with it: a Node service driving headless
+  # Chromium, the same renderer Mermaid's own tooling uses. The API calls it directly. It used to sit
+  # behind Kroki's Java gateway, which only forwarded `/mermaid` here and cost 3 GB of image and a
+  # JVM; Mermaid is the only diagram language this platform renders. Pinned: `latest` would change
+  # what a diagram looks like, and what it accepts, on the next pull.
   #
-  # Memory, measured on this stack with one diagram rendered: kroki about 85 MB resident, the
-  # companion about 295 MB (Chromium is most of it, and it grows by roughly 50 MB for each diagram
-  # drawn at once; the API asks for at most three at a time). The limits are the ceilings that keep a
-  # runaway render from taking the host with it: kroki's JVM is capped at 192 MB heap inside 320 MB,
-  # the companion has 512 MB. If the host is short of memory, set KROKI_URL= (empty) in .env
-  # and stop both services; exports then print diagrams as source and nothing else changes.
-  kroki:
-    image: yuzutech/kroki:0.26.0
-    restart: unless-stopped
-    networks: [diagrams]
-    environment:
-      KROKI_MERMAID_HOST: kroki-mermaid
-      # A diagram source is capped at 20 KB by the API; this is the renderer's own ceiling.
-      KROKI_MAX_BODY_SIZE: "65536"
-      JAVA_OPTS: "-Xms64m -Xmx192m"
-    # No `ports:`. Only the API, on the `diagrams` network, can reach it.
-    healthcheck:
-      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    depends_on:
-      kroki-mermaid: { condition: service_healthy }
-    cap_drop: [ALL]
-    security_opt: ["no-new-privileges:true"]
-    logging: *logging
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: ${KROKI_MEMORY_LIMIT:-320M}
-
+  # Memory, measured on this stack with one diagram rendered: about 295 MB (Chromium is most of it,
+  # and it grows by roughly 50 MB for each diagram drawn at once; the API asks for at most three at
+  # a time). The limit keeps a runaway render from taking the host with it. If the host is short of
+  # memory, set KROKI_URL= (empty) in .env and stop this service; exports then print diagrams as
+  # source and nothing else changes.
   kroki-mermaid:
     image: yuzutech/kroki-mermaid:0.26.0
     restart: unless-stopped
+    # No `ports:`. Only the API, on the `diagrams` network, can reach it.
     networks: [diagrams]
+    environment:
+      # A diagram source is capped at 20 KB by the API; this is the renderer's own ceiling.
+      KROKI_MAX_BODY_SIZE: "65536"
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8002/health"]
       interval: 30s
@@ -635,7 +612,7 @@ services:
 
 networks:
   # The diagram renderer's own network. `internal` means no route to the internet or to the host,
-  # and only the services that list it can reach each other: kroki and its Chromium companion draw
+  # and only the services that list it can reach each other: the Mermaid renderer draws
   # diagrams from text a participant influenced, so they are kept away from Postgres, the API's
   # other neighbours and every outbound address (D-212). The API joins it to ask for a picture.
   diagrams:
