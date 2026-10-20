@@ -34,7 +34,7 @@
   ],
   "casts": {
     "$comment": "`as unknown as X` and `as PrismaClient` in application source. A double cast tells the compiler to stop checking, so each file here says why it has to. `testCeiling` counts them in tests and fakes and may only be lowered.",
-    "testCeiling": 45,
+    "testCeiling": 44,
     "exemptions": [
       {
         "file": "packages/db/src/tenancy.ts",
