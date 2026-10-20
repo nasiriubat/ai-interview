@@ -34,6 +34,8 @@ interface Expect {
   actor: Actor;
   /** Strings from the request that must not appear anywhere in the stored diff. */
   secrets?: string[];
+  /** The tenant an operator acts on, sent as X-Company-Id. */
+  actingOn?: string;
 }
 
 /** A request body sent as it is, for the routes that take an upload rather than JSON. */
@@ -121,6 +123,7 @@ suite("audit rows: every administrative mutation writes one", () => {
       url: `/api/v1${url}`,
       headers: {
         ...as(tokens[expected.actor]),
+        ...(expected.actingOn ? { "x-company-id": expected.actingOn } : {}),
         ...(raw
           ? { "content-type": raw.contentType }
           : payload === undefined
@@ -478,7 +481,10 @@ suite("audit rows: every administrative mutation writes one", () => {
         action: "voice.live_toggle",
         targetType: "settings:tenant",
         targetId: world.companyId,
-        actor: "admin",
+        // The operator's switch (D-476), acting on this tenant; the row is filed under the tenant.
+        actor: "operator",
+        actingOn: world.companyId,
+        companyId: world.companyId,
       },
     );
   });
