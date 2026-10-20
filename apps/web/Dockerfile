@@ -5,7 +5,7 @@
 # The same base as the server image (apps/api/Dockerfile), on purpose: Docker stores a layer once
 # however many images use it, so the Debian and Node.js layers under both are one copy on the VPS,
 # one download on deploy, and one base to keep patched. On Alpine they were two of each.
-FROM node:22-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 ENV npm_config_store_dir=/pnpm/store
 # pnpm 10.34.7: 10.33.0 carries advisories the Trivy image scan fails on (D-267).
 RUN corepack enable && corepack prepare pnpm@10.34.7 --activate
@@ -53,7 +53,7 @@ ARG NEXT_PUBLIC_VOICE_WS_URL=""
 ENV NEXT_PUBLIC_VOICE_WS_URL=$NEXT_PUBLIC_VOICE_WS_URL
 RUN pnpm --filter @aidp/shared build && pnpm --filter @aidp/web build
 
-FROM node:22-bookworm-slim AS runner
+FROM node:26-bookworm-slim AS runner
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 # Security patches published since the base image was built, and no npm: nothing here installs
 # packages at run time, and the npm that ships in the Node image carries its own advisories
