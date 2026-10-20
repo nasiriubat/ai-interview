@@ -1,4 +1,5 @@
-import { homedir } from "node:os";
+import { readFileSync } from "node:fs";
+import { availableParallelism, homedir } from "node:os";
 import { join } from "node:path";
 import { ProviderError } from "../types.js";
 import { localWhisperModel } from "./models.js";
@@ -282,6 +283,33 @@ export function modelCacheDir(env: NodeJS.ProcessEnv = process.env): string {
     : join(homedir(), ".cache", "aidp-models");
 }
 
+/**
+ * Threads for the ONNX runtime: `SPEECH_MODEL_THREADS`, or the CPUs this container may use (its
+ * cgroup quota, rounded up), or the cores Node sees when there is no quota. More threads than the
+ * CPUs a container may use only queue, throttled, for the same slice of time.
+ */
+export function speechThreads(
+  env: NodeJS.ProcessEnv = process.env,
+  cpuMax: () => string = readCpuMax,
+): number {
+  const configured = Number(env.SPEECH_MODEL_THREADS?.trim());
+  if (Number.isInteger(configured) && configured > 0) return configured;
+  const [quota, period] = cpuMax().trim().split(/\s+/);
+  const allowed = Number(quota) / Number(period);
+  return Number.isFinite(allowed) && allowed > 0
+    ? Math.max(1, Math.ceil(allowed))
+    : Math.max(1, availableParallelism());
+}
+
+/** cgroup v2's `cpu.max`: "<quota> <period>", or "max <period>" without a limit. */
+function readCpuMax(): string {
+  try {
+    return readFileSync("/sys/fs/cgroup/cpu.max", "utf8");
+  } catch {
+    return "max";
+  }
+}
+
 let shared: SpeechRunner | undefined;
 
 /**
@@ -289,9 +317,12 @@ let shared: SpeechRunner | undefined;
  * route to it. Created on first use, so a process that never transcribes never starts a thread.
  */
 export function localSpeechRunner(): SpeechRunner {
-  shared ??= new SpeechRunner(new WorkerThreadEngine({ cacheDir: modelCacheDir() }), {
-    idleUnloadMs: idleUnloadMs(),
-  });
+  shared ??= new SpeechRunner(
+    new WorkerThreadEngine({ cacheDir: modelCacheDir(), threads: speechThreads() }),
+    {
+      idleUnloadMs: idleUnloadMs(),
+    },
+  );
   return shared;
 }
 

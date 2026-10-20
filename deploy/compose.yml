@@ -211,6 +211,8 @@ services:
       # Minutes the model stays in memory after the last recording (about 700 MB while loaded);
       # reloading from the volume takes about a second. 0 keeps it loaded.
       SPEECH_MODEL_IDLE_MINUTES: ${SPEECH_MODEL_IDLE_MINUTES:-10}
+      # Transcription threads; empty follows API_CPU_LIMIT (packages/ai, local-whisper/runner.ts).
+      SPEECH_MODEL_THREADS: ${SPEECH_MODEL_THREADS:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # The Prometheus scrape endpoint (D-222): on the compose network only, in no Caddy route.
       # Nothing scrapes it unless the observability profile is up (deploy/observability).
@@ -268,7 +270,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.5"
+          # On-server transcription is the API's one CPU-bound job, and it runs as fast as the cores
+          # it may use: raise this on a host with idle cores before reaching for a smaller model.
+          cpus: "${API_CPU_LIMIT:-1.5}"
           # whisper-small (8-bit) holds about 0.9 GB once loaded and peaks near 2 GB while it
           # transcribes, on top of the API itself. With OpenAI doing transcription 1024M is enough.
           memory: ${API_MEMORY_LIMIT:-2560M}

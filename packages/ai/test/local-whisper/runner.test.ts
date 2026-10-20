@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   idleUnloadMs,
+  speechThreads,
   SpeechRunner,
   localSpeechStatus,
   modelCacheDir,
@@ -196,5 +197,23 @@ describe("SpeechRunner: releasing an idle model", () => {
     expect(idleUnloadMs({ SPEECH_MODEL_IDLE_MINUTES: "2.5" })).toBe(150_000);
     expect(idleUnloadMs({ SPEECH_MODEL_IDLE_MINUTES: "soon" })).toBe(600_000);
     expect(idleUnloadMs({ SPEECH_MODEL_IDLE_MINUTES: "-1" })).toBe(600_000);
+  });
+});
+
+describe("speechThreads: as many ONNX threads as the container may use", () => {
+  it("follows the cgroup quota, rounded up", () => {
+    expect(speechThreads({}, () => "150000 100000\n")).toBe(2);
+    expect(speechThreads({}, () => "400000 100000")).toBe(4);
+    expect(speechThreads({}, () => "50000 100000")).toBe(1);
+  });
+
+  it("lets SPEECH_MODEL_THREADS decide, and ignores a value that is not a positive whole number", () => {
+    expect(speechThreads({ SPEECH_MODEL_THREADS: "3" }, () => "150000 100000")).toBe(3);
+    expect(speechThreads({ SPEECH_MODEL_THREADS: "0" }, () => "150000 100000")).toBe(2);
+    expect(speechThreads({ SPEECH_MODEL_THREADS: "lots" }, () => "150000 100000")).toBe(2);
+  });
+
+  it("uses the cores Node sees when there is no quota", () => {
+    expect(speechThreads({}, () => "max 100000")).toBeGreaterThanOrEqual(1);
   });
 });

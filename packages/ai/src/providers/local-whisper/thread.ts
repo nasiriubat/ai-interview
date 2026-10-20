@@ -17,7 +17,12 @@ interface Transformers {
   pipeline(
     task: "automatic-speech-recognition",
     model: string,
-    options: { dtype: string; device: "cpu"; progress_callback: (p: ProgressInfo) => void },
+    options: {
+      dtype: string;
+      device: "cpu";
+      progress_callback: (p: ProgressInfo) => void;
+      session_options?: { intraOpNumThreads: number; interOpNumThreads: number };
+    },
   ): Promise<AsrPipeline>;
   Tensor: new (type: "int64", data: BigInt64Array, dims: number[]) => unknown;
 }
@@ -38,7 +43,7 @@ interface AsrPipeline {
   dispose(): Promise<void>;
 }
 
-const { cacheDir } = workerData as { cacheDir: string };
+const { cacheDir, threads } = workerData as { cacheDir: string; threads?: number };
 const port = parentPort;
 if (!port) throw new Error("thread.ts must run as a worker thread");
 
@@ -69,6 +74,9 @@ async function load(id: number, model: string, dtype: string): Promise<AsrPipeli
   const asr = await lib.pipeline("automatic-speech-recognition", model, {
     dtype,
     device: "cpu",
+    // ONNX otherwise starts a thread per host core. In a container allowed 1.5 of 8 cores those
+    // threads spend most of their time throttled: a 4-second answer took 28 seconds (2026-10-20).
+    ...(threads ? { session_options: { intraOpNumThreads: threads, interOpNumThreads: 1 } } : {}),
     progress_callback: (p) => {
       if (p.status !== "progress" || !p.file || !p.total) return;
       files.set(p.file, { loaded: p.loaded ?? 0, total: p.total });
