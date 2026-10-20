@@ -10,7 +10,7 @@ import type { SettingsCatalogEntry, SettingsResponse } from "@/lib/api/schemas";
 const GROUPS: { key: "interview" | "costs" | "workspace" | "insight" | "other"; categories: string[] }[] = [
   { key: "interview", categories: ["engine", "campaign", "privacy", "features", "voice"] },
   { key: "costs", categories: ["cost", "ceiling", "ops"] },
-  { key: "workspace", categories: ["branding", "email", "notifications", "files"] },
+  { key: "workspace", categories: ["branding", "email", "notifications", "files", "sales"] },
   { key: "insight", categories: ["analysis", "requirements", "exports"] },
   { key: "other", categories: ["other"] },
 ];

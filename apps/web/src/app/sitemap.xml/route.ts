@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { publicOrigin } from "@/lib/landing";
 
 /**
- * `/sitemap.xml`: one public page. The staff area, sign-in and participant links are not listed.
+ * `/sitemap.xml`: the public pages, the landing page and the pilot request form. The staff area, sign-in and participant links are not listed.
  * One URL serves both languages (the language follows the visitor's cookie or Accept-Language),
  * so there are no alternates to declare.
  */
@@ -15,6 +15,7 @@ export async function GET(): Promise<Response> {
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     `  <url><loc>${origin}/</loc></url>`,
+    `  <url><loc>${origin}/pilot</loc></url>`,
     "</urlset>",
     "",
   ].join("\n");

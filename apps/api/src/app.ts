@@ -42,6 +42,7 @@ import { participantExportRoutes } from "./modules/participant/export.js";
 import { participantRoutes } from "./modules/participant/routes.js";
 import { participantVoiceLiveRoutes } from "./modules/participant/voice-live/routes.js";
 import { participantVoiceRoutes } from "./modules/participant/voice.js";
+import { pilotRoutes } from "./modules/pilot/routes.js";
 import { privacyRoutes } from "./modules/privacy/routes.js";
 import { promptRoutes } from "./modules/prompts/routes.js";
 import { providerRoutes } from "./modules/providers/routes.js";
@@ -192,6 +193,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       const a = api as unknown as App;
       await healthRoutes(a, routes);
       await brandingRoutes(a, routes);
+      await pilotRoutes(a, routes);
       await internalAuthRoutes(a, routes);
       await userRoutes(a, routes);
       await templateRoutes(a, routes);

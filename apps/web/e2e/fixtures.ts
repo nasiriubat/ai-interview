@@ -220,6 +220,14 @@ export const settingsCatalog = [
     secret: false,
   },
   {
+    key: "sales.pilotRequestEmail",
+    category: "sales",
+    description: "Where pilot requests from the public form are emailed",
+    default: "",
+    scopes: ["platform"],
+    secret: false,
+  },
+  {
     key: "engine.maxTurns",
     category: "engine",
     description: "Turns at most",

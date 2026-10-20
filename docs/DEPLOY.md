@@ -190,6 +190,24 @@ refuse to start instead of falling back to a development relay.
 In Settings, Email, "Send test email" with no relay anywhere answers "No mail server is
 configured" rather than reporting a send that only went to the log.
 
+### Pilot requests
+
+The public page `/pilot` ("Request a pilot") emails each request through the deployment relay,
+with Reply-To set to the requester, so answering is pressing reply. It never sends anything to the
+requester's address. The recipient is, in order:
+
+1. the operator's setting **Settings, Sales, "Pilot requests are emailed to"**
+   (`sales.pilotRequestEmail`, platform scope, audit-logged like every setting change);
+2. `PILOT_REQUEST_EMAIL` in the root `.env`, for example `PILOT_REQUEST_EMAIL=sales@example.com`;
+3. the alert address (`ops.alertEmail`, then `ALERT_EMAIL`).
+
+With none of them set the form says "try again in a few minutes" and nothing is sent; a failed
+send says the same, so a request is never dropped silently. Nothing is stored in the database: the
+email is the record. The API logs one `pilot request` line per submission with its outcome
+(`sent`, `honeypot`, `too_fast`, `stale`, `not_configured`, `send_failed`), the requester's email
+domain and the chosen options, never the name, address or message. Each client address may send
+five requests an hour.
+
 ### Break glass: a sign-in link from the server's shell
 
 If the relay is wrong on a fresh install, or breaks later while every admin is signed out, nobody

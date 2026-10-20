@@ -30,6 +30,7 @@ import { OperatorService } from "./modules/operator/service.js";
 import { RecordingStore } from "./modules/participant/recordings.js";
 import { ParticipantService, type AbuseControls } from "./modules/participant/service.js";
 import { ParticipantSessionReader } from "./modules/participant/session-view.js";
+import { PilotRequestService } from "./modules/pilot/service.js";
 import { PrivacyService } from "./modules/privacy/service.js";
 import { PromptAdminService } from "./modules/prompts/service.js";
 import { BudgetService } from "./modules/providers/budgets.js";
@@ -80,6 +81,8 @@ export interface Services {
   verificationTokens: VerificationTokenService;
   /** The getting-started checklist, derived from what the tenant has (D-189). */
   onboarding: TenantOnboarding;
+  /** The public "Request a pilot" form: emails the operator, stores nothing. */
+  pilot: PilotRequestService;
 }
 
 export interface ServiceDeps {
@@ -224,5 +227,19 @@ export function buildServices(d: ServiceDeps): Services {
     turns: new TurnStore(d.db),
     verificationTokens: new VerificationTokenService(d.db),
     onboarding: d.onboarding,
+    pilot: new PilotRequestService({
+      settings: d.settings,
+      email: d.email,
+      authSecret: d.config.AUTH_SECRET,
+      env: { pilotRequestEmail: d.config.PILOT_REQUEST_EMAIL, alertEmail: d.config.ALERT_EMAIL },
+      log: {
+        info: (meta, message) => {
+          d.log.info(meta, message);
+        },
+        warn: (meta, message) => {
+          d.log.warn(meta, message);
+        },
+      },
+    }),
   };
 }

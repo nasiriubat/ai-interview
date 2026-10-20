@@ -123,6 +123,7 @@ export const PAGES: Entry[] = [
   publicPage("verify-request", "/auth/verify", "app/auth/verify/page.tsx"),
   publicPage("signout", "/auth/signout", "app/auth/signout/page.tsx"),
   publicPage("maintenance", "/maintenance", "app/maintenance/page.tsx"),
+  publicPage("pilot", "/pilot", "app/pilot/page.tsx"),
   { ...publicPage("states-gallery", "/dev/states", "app/dev/states/page.tsx"), isErrorPage: true },
   {
     ...publicPage("auth-error", "/auth/error?error=Configuration", "app/auth/error/page.tsx"),
@@ -411,6 +412,7 @@ export const NOT_DOCUMENTS = new Set([
   "app/api/branding/logo/route.ts",
   "app/api/csp-report/route.ts",
   "app/api/health/route.ts",
+  "app/api/pilot/route.ts",
   "app/api/participant/[...path]/route.ts",
   "app/api/preview/[templateId]/route.ts",
   "app/api/staff/[...path]/route.ts",

@@ -242,6 +242,9 @@ services:
       ALERT_EMAIL: ${ALERT_EMAIL:-}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
       ALERT_WEBHOOK_FORMAT: ${ALERT_WEBHOOK_FORMAT:-}
+      # Where the public "Request a pilot" form sends requests; the catalog key
+      # sales.pilotRequestEmail wins when set. Empty falls back to the alert address.
+      PILOT_REQUEST_EMAIL: ${PILOT_REQUEST_EMAIL:-}
       # Outbound model-call limits (D-93). Empty means the built-in defaults: 120 s per call,
       # 20 s to the first token, 30 s of silence mid-stream, two retries.
       PROVIDER_TIMEOUT_MS: ${PROVIDER_TIMEOUT_MS:-}

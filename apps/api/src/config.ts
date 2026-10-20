@@ -45,6 +45,15 @@ const Env = z.object({
   // because it has to work when the database does not.
   ALERT_EMAIL: z.string().optional(),
   ALERT_WEBHOOK_URL: z.string().optional(),
+  /**
+   * Where the public "Request a pilot" form sends its requests. The settings key
+   * `sales.pilotRequestEmail` wins when set; empty here falls back to the alert address. Compose
+   * passes an unset variable through as "", which is "not set".
+   */
+  PILOT_REQUEST_EMAIL: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().trim().optional(),
+  ),
   // Compose passes an unset variable through as the empty string, which is "not set" here.
   ALERT_WEBHOOK_FORMAT: z.preprocess(
     (v) => (v === "" ? undefined : v),
