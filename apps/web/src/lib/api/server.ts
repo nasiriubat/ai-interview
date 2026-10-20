@@ -4,7 +4,7 @@ import { clientAddressFrom } from "./client-address";
 import { createTransport, type Transport } from "./http";
 import { participantApi, type ParticipantApi } from "./participant";
 import { staffApi, type StaffApi } from "./staff";
-import { apiBaseUrl, AUTHJS_COOKIES, PARTICIPANT_COOKIE, PARTICIPANT_COOKIE_LEGACY } from "@/lib/env";
+import { apiBaseUrl, AUTHJS_COOKIES, PARTICIPANT_COOKIE } from "@/lib/env";
 
 /** Reads the Auth.js session JWT from the request cookies (server components and route handlers). */
 export async function staffTokenFromCookies(): Promise<string | undefined> {
@@ -19,7 +19,9 @@ export async function staffTokenFromCookies(): Promise<string | undefined> {
 /** The API distinguishes participant credentials from staff JWTs by the `pt.` prefix (contract 16). */
 export async function participantTokenFromCookies(): Promise<string | undefined> {
   const jar = await cookies();
-  const raw = (jar.get(PARTICIPANT_COOKIE) ?? jar.get(PARTICIPANT_COOKIE_LEGACY))?.value;
+  // Only the current name: in production that is the `__Host-` one, which a sibling subdomain
+  // cannot plant, where the bare legacy name it could would fix the visitor into its session.
+  const raw = jar.get(PARTICIPANT_COOKIE)?.value;
   return raw ? `pt.${decodeURIComponent(raw)}` : undefined;
 }
 

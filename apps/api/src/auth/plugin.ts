@@ -14,7 +14,10 @@ declare module "fastify" {
 }
 
 export const authPlugin = fp(
-  async (app: FastifyInstance, opts: { resolver: Pick<PrincipalResolver, "fromBearer"> }) => {
+  async (
+    app: FastifyInstance,
+    opts: { resolver: Pick<PrincipalResolver, "fromBearer">; prefixedCookiesOnly?: boolean },
+  ) => {
     app.decorateRequest<Principal | null>("principal", null);
     app.decorateRequest("companyId", "");
 
@@ -33,7 +36,11 @@ export const authPlugin = fp(
      */
     const resolve = async (request: FastifyRequest): Promise<string> => {
       request.principal = await withSystemTenant(() =>
-        opts.resolver.fromBearer(bearerFrom(request.headers.authorization, request.cookies)),
+        opts.resolver.fromBearer(
+          bearerFrom(request.headers.authorization, request.cookies, {
+            prefixedOnly: opts.prefixedCookiesOnly === true,
+          }),
+        ),
       );
       const p = request.principal;
       const override = request.headers["x-company-id"];

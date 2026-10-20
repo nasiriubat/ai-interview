@@ -14,6 +14,14 @@ describe("bearerFrom", () => {
     );
   });
 
+  it("reads only the prefixed cookies in production, which a sibling subdomain cannot plant", () => {
+    const prod = { prefixedOnly: true };
+    expect(bearerFrom(undefined, { aidp_participant: "planted" }, prod)).toBeUndefined();
+    expect(bearerFrom(undefined, { "authjs.session-token": "planted" }, prod)).toBeUndefined();
+    expect(bearerFrom(undefined, { "__Host-aidp_participant": "tok" }, prod)).toBe("pt.tok");
+    expect(bearerFrom(undefined, { "__Secure-authjs.session-token": "jwt" }, prod)).toBe("jwt");
+  });
+
   it("prefers an explicit Authorization header and falls through to the staff cookie", () => {
     expect(bearerFrom("Bearer abc", { "__Host-aidp_participant": "tok" })).toBe("abc");
     expect(bearerFrom(undefined, { "authjs.session-token": "jwt" })).toBe("jwt");

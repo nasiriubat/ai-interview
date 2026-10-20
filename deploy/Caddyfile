@@ -75,6 +75,7 @@
 			# explicitly, from the connection (or the Cloudflare edge that made it), so it holds whatever the client sent and
 			# whatever Caddy's defaults are in a later version (S1, D-82).
 			header_up X-Forwarded-For {client_ip}
+			header_up X-Forwarded-Host {host}
 		}
 	}
 
@@ -98,6 +99,9 @@
 		# One address, the client's, replacing anything the client sent. The web app forwards
 		# it to the API as the rate-limit identity of an anonymous caller (S1, D-82).
 		header_up X-Forwarded-For {client_ip}
+		# Once Cloudflare is a trusted proxy, Caddy would pass on whatever X-Forwarded-Host the client
+		# sent; the web app builds redirects from it. The host Caddy answered on is the only true one.
+		header_up X-Forwarded-Host {host}
 	}
 
 	header {
