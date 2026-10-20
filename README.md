@@ -1,4 +1,4 @@
-# AI Discovery Platform
+# AIScope
 
 An AI-powered discovery platform with two workflows:
 

@@ -13,9 +13,9 @@ async function productName(): Promise<string> {
   try {
     const res = await fetch(`${apiBaseUrl()}/public/branding`, { signal: AbortSignal.timeout(2000) });
     const body = (await res.json()) as { productName?: unknown };
-    return typeof body.productName === "string" && body.productName.trim() ? body.productName : "Discovery";
+    return typeof body.productName === "string" && body.productName.trim() ? body.productName : "AIScope";
   } catch {
-    return "Discovery";
+    return "AIScope";
   }
 }
 

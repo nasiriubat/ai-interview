@@ -310,7 +310,7 @@ export async function renderPdf(input: PdfInput): Promise<PdfResult> {
       title,
       author: productName || undefined,
       subject: input.versionLabel,
-      creator: productName || "AI Discovery Platform",
+      creator: productName || "AIScope",
       producer: "pdfmake",
     },
     language: lang,

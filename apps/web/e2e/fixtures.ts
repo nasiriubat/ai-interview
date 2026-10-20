@@ -215,7 +215,7 @@ export const settingsCatalog = [
     key: "branding.productName",
     category: "branding",
     description: "Product name shown on the site and to participants",
-    default: "Discovery",
+    default: "AIScope",
     scopes: ["platform", "tenant"],
     secret: false,
   },

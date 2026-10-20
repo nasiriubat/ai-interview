@@ -1,6 +1,6 @@
 # A oneshot is not started again while it is still running, so two deploys never overlap.
 [Unit]
-Description=AI Discovery Platform: check main for a new commit every minute
+Description=AIScope: check main for a new commit every minute
 
 [Timer]
 OnBootSec=2min

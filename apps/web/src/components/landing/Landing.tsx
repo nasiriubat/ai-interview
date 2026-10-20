@@ -58,13 +58,15 @@ export interface LandingProps {
   logoUrl?: string | null | undefined;
   /** A staff session cookie exists: show the way to the overview instead of asking to sign in. */
   signedIn: boolean;
-  /** Where "Request a workspace" writes to. `null` renders no mail link. */
+  /** The address behind the footer's "Contact" mail link. `null` renders no mail link. */
   contact: string | null;
 }
 
 const container = "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8";
 const bodyText = "text-body text-[15px] leading-relaxed";
 const SECURITY_TXT = "/.well-known/security.txt";
+/** Where a prospect asks for a pilot: the page and its form live in `app/pilot`. */
+const PILOT = "/pilot";
 
 const IMG = {
   results: { light: "/landing/results-light.webp", dark: "/landing/results-dark.webp", w: 1400, h: 875 },
@@ -91,7 +93,7 @@ export function Landing({
   contact,
 }: LandingProps): React.JSX.Element {
   const branding = { productName: appName, logoUrl };
-  const request = contact ? mailtoHref(contact, s.mailto.subject, s.mailto.body) : null;
+  const mail = contact ? mailtoHref(contact, s.mailto.subject, s.mailto.body) : null;
   const signInHref = signedIn ? "/admin" : "/auth/signin";
   const signInLabel = signedIn ? s.header.dashboard : s.header.signIn;
   const nav = [
@@ -111,7 +113,7 @@ export function Landing({
         nav={nav}
         labels={{ menu: s.header.menu, closeMenu: s.header.closeMenu }}
         signIn={{ href: signInHref, label: signInLabel }}
-        request={signedIn || !request ? null : { href: request, label: s.hero.requestWorkspace }}
+        request={signedIn ? null : { href: PILOT, label: s.header.requestPilot }}
       />
 
       <main id="main">
@@ -143,22 +145,22 @@ export function Landing({
                 </Button>
               ) : (
                 <>
-                  {request ? (
-                    <Button asChild size="lg">
-                      <a href={request}>
-                        {s.hero.requestWorkspace}
-                        <ArrowRightIcon aria-hidden="true" />
-                      </a>
-                    </Button>
-                  ) : null}
-                  <Button asChild size="lg" variant={request ? "outline" : "default"}>
+                  <Button asChild size="lg">
+                    <Link href={PILOT}>
+                      {s.hero.requestPilot}
+                      <ArrowRightIcon aria-hidden="true" />
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
                     <Link href="/auth/signin">{s.hero.signIn}</Link>
                   </Button>
                 </>
               )}
             </div>
-            {!signedIn && !request ? (
-              <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-sm">{s.hero.noContact}</p>
+            {!signedIn ? (
+              <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-sm text-balance">
+                {s.hero.pilotNote}
+              </p>
             ) : null}
             <ul className="text-body mx-auto mt-8 flex max-w-3xl flex-col items-center gap-x-6 gap-y-2.5 text-sm sm:flex-row sm:flex-wrap sm:justify-center">
               {s.hero.small.map((line) => (
@@ -481,16 +483,31 @@ export function Landing({
         {/* FAQ */}
         <section id="faq" aria-labelledby="faq-title" className={cn(container, "lp-anchor py-16 sm:py-24")}>
           <div className="grid gap-10 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] lg:gap-16">
-            <div className="lg:sticky lg:top-24 lg:self-start">
-              <p className="text-accent-foreground text-sm font-semibold tracking-wide uppercase">
-                {s.nav.faq}
-              </p>
+            {/* Aligned with the first question. It used to be sticky, which carried the heading down
+                to the bottom of the column as the list scrolled past and left it there, alone. The
+                eyebrow repeated the heading word for word, so an icon takes its place, as in the
+                other sections whose eyebrow and heading are the same. */}
+            <div className="lg:self-start">
+              <span className="bg-accent text-accent-foreground grid size-11 place-items-center rounded-xl">
+                <MessagesSquareIcon className="size-5" aria-hidden="true" />
+              </span>
               <h2
                 id="faq-title"
                 className="text-foreground mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
               >
                 {s.faq.heading}
               </h2>
+              {signedIn ? null : (
+                <p className={cn(bodyText, "mt-4 max-w-xs")}>
+                  {s.faq.more}{" "}
+                  <Link
+                    href={PILOT}
+                    className="text-accent-foreground font-medium underline underline-offset-4"
+                  >
+                    {s.faq.moreLink}
+                  </Link>
+                </p>
+              )}
             </div>
             <div className="lp-faq grid gap-3">
               {s.faq.items.map((item) => (
@@ -531,12 +548,10 @@ export function Landing({
                 </a>
               ) : (
                 <>
-                  {request ? (
-                    <a href={request} className="lp-cta-btn">
-                      {s.cta.request}
-                    </a>
-                  ) : null}
-                  <Link href="/auth/signin" className={cn(request ? "lp-cta-btn-ghost" : "lp-cta-btn")}>
+                  <Link href={PILOT} className="lp-cta-btn">
+                    {s.cta.request}
+                  </Link>
+                  <Link href="/auth/signin" className="lp-cta-btn-ghost">
                     {s.cta.signIn}
                   </Link>
                 </>
@@ -566,19 +581,19 @@ export function Landing({
                 <li>
                   <Link href={signInHref}>{signedIn ? s.header.dashboard : s.footer.signIn}</Link>
                 </li>
-                {request && !signedIn ? (
+                {signedIn ? null : (
                   <li>
-                    <a href={request}>{s.hero.requestWorkspace}</a>
+                    <Link href={PILOT}>{s.footer.requestPilot}</Link>
                   </li>
-                ) : null}
+                )}
               </FooterColumn>
               <FooterColumn title={s.footer.trust}>
                 <li>
                   <a href="#trust">{s.footer.privacy}</a>
                 </li>
-                {request && !signedIn ? (
+                {mail && !signedIn ? (
                   <li>
-                    <a href={request}>{s.footer.contact}</a>
+                    <a href={mail}>{s.footer.contact}</a>
                   </li>
                 ) : null}
                 <li>

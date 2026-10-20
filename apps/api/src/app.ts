@@ -177,7 +177,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   );
   await app.register(swagger, {
     openapi: {
-      info: { title: "AI Discovery Platform API", version: "1.0.0" },
+      info: { title: "AIScope API", version: "1.0.0" },
       servers: [{ url: API_PREFIX }],
     },
     transform: jsonSchemaTransform,

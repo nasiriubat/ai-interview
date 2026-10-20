@@ -521,7 +521,7 @@ export const SETTINGS = {
   // Branding
   "branding.productName": def({
     schema: z.string().min(1),
-    default: "Discovery",
+    default: "AIScope",
     scopes: ["platform", "tenant"],
     category: "branding",
     description: "Product name shown on the site and to participants",

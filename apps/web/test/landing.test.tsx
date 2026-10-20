@@ -55,6 +55,12 @@ const render = (
 
 const doc = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
 
+/*
+ * Routes the page links to that are built on another branch at the same time. `/pilot` is the
+ * pilot request form; remove it from this list once `app/pilot/page.tsx` is on the branch.
+ */
+const ROUTES_IN_FLIGHT = new Set(["/pilot"]);
+
 beforeEach(() => {
   state.lang = "en";
   setClientLocale("en");
@@ -138,16 +144,37 @@ describe.each(["en", "fi"] as const)("landing page structure (%s)", (locale) => 
         expect(d.getElementById(href.slice(1)), href).not.toBeNull();
         continue;
       }
+      if (ROUTES_IN_FLIGHT.has(href)) continue;
       const dir = path.join(app, ...href.split("/").filter(Boolean));
       const publicFile = path.resolve(import.meta.dirname, "../public", href.slice(1));
       expect(existsSync(path.join(dir, "page.tsx")) || existsSync(publicFile), href).toBe(true);
     }
   });
 
-  it("offers sign-in and, with an address configured, a prefilled mail to request a workspace", () => {
+  it("makes a pilot request the primary action in the header, the hero and the closing block", () => {
+    const pilot = stringsFor(locale).landing.hero.requestPilot;
+    const header = [...d.querySelectorAll('header a[href="/pilot"]')];
+    expect(header.map((a) => a.textContent)).toContain(pilot);
+    const hero = d.getElementById("hero-title")!.closest("section")!;
+    // In the hero, the pilot comes first and sign-in is the quieter second button.
+    const heroLinks = [...hero.querySelectorAll("a[href]")].map((a) => a.getAttribute("href"));
+    expect(heroLinks.slice(0, 2)).toEqual(["/pilot", "/auth/signin"]);
+    const cta = d.getElementById("cta-title")!.closest("section")!;
+    expect(cta.querySelector('a[href="/pilot"]')?.className).toContain("lp-cta-btn");
+    expect(cta.querySelector('a[href="/auth/signin"]')?.className).toContain("lp-cta-btn-ghost");
+    expect(d.body.textContent).toContain(stringsFor(locale).landing.hero.pilotNote);
+  });
+
+  it("offers sign-in and, with an address configured, a contact mail in the footer", () => {
     expect(d.querySelector('a[href="/auth/signin"]')).not.toBeNull();
-    const mail = d.querySelector('a[href^="mailto:"]')!;
+    const mail = d.querySelector('footer a[href^="mailto:"]')!;
     expect(mail.getAttribute("href")).toMatch(/^mailto:hello@example\.com\?subject=/);
+  });
+
+  it("puts the questions' heading at the top of its column, not in a sticky box", () => {
+    const heading = d.getElementById("faq-title")!.parentElement!;
+    expect(heading.className).not.toMatch(/\bsticky\b/);
+    expect(heading.className).toContain("self-start");
   });
 });
 
@@ -157,16 +184,19 @@ describe("the visitor", () => {
     expect(d.querySelectorAll('a[href="/admin"]').length).toBeGreaterThanOrEqual(2);
     expect(d.querySelector('a[href="/auth/signin"]')).toBeNull();
     expect(d.querySelector('a[href^="mailto:"]')).toBeNull();
+    // A customer is not asked to request a pilot.
+    expect(d.querySelector('a[href="/pilot"]')).toBeNull();
+    expect(d.body.textContent).not.toContain(stringsFor("en").landing.hero.pilotNote);
     expect(d.querySelector("h1")).not.toBeNull();
   });
 
-  it("with no contact address configured gets no mail link at all and a plain sentence instead", () => {
+  it("with no contact address configured gets no mail link, and can still request a pilot", () => {
     const html = render("en", { contact: null });
     const d = doc(html);
     expect(d.querySelector('a[href^="mailto:"]')).toBeNull();
     expect(html).not.toMatch(/mailto:/);
     expect(d.querySelector('a[href="/auth/signin"]')).not.toBeNull();
-    expect(d.body.textContent).toContain(stringsFor("en").landing.hero.noContact);
+    expect(d.querySelectorAll('a[href="/pilot"]').length).toBeGreaterThanOrEqual(3);
   });
 
   it("arriving by a link is told that the link is all they need", () => {
@@ -185,7 +215,7 @@ describe("the product name", () => {
     // No letter tile beside the name (D-430): the name alone is the mark.
     expect(d.querySelector("header a")?.textContent).toBe("Askel");
     expect(d.querySelector("header a [aria-hidden]")).toBeNull();
-    expect(d.body.textContent).not.toContain("Discovery:");
+    expect(d.body.textContent).not.toContain("AIScope:");
   });
 
   it("shows the uploaded logo instead of the name, with the name as its text alternative", () => {
@@ -248,6 +278,11 @@ describe("claims the page may not make (docs/team/claims-2026-10.md, rows that a
     /\bGDPR[- ]compliant\b|fully compliant/i,
     /\bguarantee/i,
     /nothing leaves|never leaves|never leave/i,
+    // A hosted service in Finland is not a promise about where model providers process data
+    // (claims E2), nor about training on it.
+    /data (stays|remains) in (the EU|Finland)|only in the EU|never used for training|not used for training/i,
+    // The service is hosted by us; customers do not operate a server (claims F13).
+    /server you operate|you operate|omalla palvelimellasi|jota itse ylläpidät/i,
     /\bGitHub\b/i,
   ];
   it.each(unbuilt.map((r) => [String(r), r] as const))("English and Finnish avoid %s", (_n, re) => {

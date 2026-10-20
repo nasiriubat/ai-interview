@@ -10,7 +10,7 @@ import { wsEn } from "./ws.en";
 
 export const en = {
   app: {
-    name: "Discovery",
+    name: "AIScope",
     description: "AI discovery interviews",
     skipToContent: "Skip to main content",
     theme: { label: "Appearance", system: "System", light: "Light", dark: "Dark" },

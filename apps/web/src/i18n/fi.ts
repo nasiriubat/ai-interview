@@ -10,7 +10,7 @@ import { wsFi } from "./ws.fi";
  */
 export const fi: Strings = {
   app: {
-    name: "Discovery",
+    name: "AIScope",
     description: "Tekoälyavusteiset kartoitushaastattelut",
     skipToContent: "Siirry sisältöön",
     theme: { label: "Ulkoasu", system: "Järjestelmä", light: "Vaalea", dark: "Tumma" },

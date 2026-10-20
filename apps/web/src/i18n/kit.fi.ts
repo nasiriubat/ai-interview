@@ -172,7 +172,7 @@ export const kitFi: KitStrings = {
     points: [
       "Tekoälyn vetämät keskustelut työn tekijöiden kanssa",
       "Löydökset arvon, työmäärän ja riskin mukaan järjestettynä",
-      "Tehty toimimaan omalla palvelimellasi valitsemiesi tekoälypalvelujen kanssa",
+      "Palvelin Suomessa, ja jokaisen tehtävän tekoälypalvelu on nähtävissä",
     ],
     footer: "Kertakäyttölinkit, ei salasanoja.",
   },
@@ -192,7 +192,7 @@ export const kitFi: KitStrings = {
     errorMailTitle: "Kirjautumissähköpostia ei voitu lähettää",
     errorMailBody:
       "Tämän asennuksen postipalvelin ei hyväksynyt viestiä. Yritä hetken kuluttua uudelleen. Jos ongelma toistuu, asennuksen ylläpitäjän on tarkistettava postireleen asetus (SMTP_HOST ja muut SMTP_*-asetukset tiedostossa .env) tai käytettävä Google-kirjautumista, jos se on otettu käyttöön.",
-    signOutTitle: "Kirjaudutaanko ulos Discoverysta?",
+    signOutTitle: "Kirjaudutaanko ulos?",
     signOutBody: "Tarvitset uuden kertakäyttölinkin palataksesi.",
     signOutConfirm: "Kirjaudu ulos",
     signOutStay: "Pysy kirjautuneena",
@@ -223,7 +223,7 @@ export const kitFi: KitStrings = {
     },
     maintenance: {
       title: "Huoltotyö käynnissä",
-      body: "Discovery ei ole hetkeen käytettävissä päivityksen vuoksi. Mitään ei häviä, ja keskeneräiset haastattelut jatkuvat, kun palaamme.",
+      body: "Palvelu ei ole hetkeen käytettävissä päivityksen vuoksi. Mitään ei häviä, ja keskeneräiset haastattelut jatkuvat, kun palaamme.",
       hint: "Tämä kestää yleensä muutaman minuutin.",
     },
     unavailable: {

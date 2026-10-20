@@ -78,7 +78,7 @@ describe("AdminShell", () => {
     expect(within(aside).queryByText("D")).toBeNull();
     await user.click(expand);
     expect(document.cookie).toContain("aidp-sidebar=expanded");
-    expect(within(aside).getByRole("link", { name: "Discovery" })).toHaveAttribute("href", "/admin");
+    expect(within(aside).getByRole("link", { name: "AIScope" })).toHaveAttribute("href", "/admin");
   });
 
   it("shows the platform's logo instead of the name, expanded and collapsed (D-430)", async () => {

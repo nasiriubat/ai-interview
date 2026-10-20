@@ -22,6 +22,7 @@ export const landingFi: LandingStrings = {
   },
   header: {
     signIn: "Kirjaudu",
+    requestPilot: "Pyydä pilotti",
     dashboard: "Siirry yleiskatsaukseen",
     menu: "Valikko",
     closeMenu: "Sulje valikko",
@@ -30,17 +31,18 @@ export const landingFi: LandingStrings = {
   hero: {
     eyebrow: "Organisaatioille, jotka haluavat tietää ennen kuin rakentavat",
     title: "Ymmärrä ongelma ennen kuin päätät, mitä rakennat.",
-    lead: "Työntekijöiden jäsennellyistä haastatteluista syntyy pisteytetty kartta siitä, missä työ takkuaa ja mitä pitäisi muuttaa, jos mitään. Mistä tahansa mahdollisuudesta tai ideasta tulee määrittely, jonka kehittäjäsi tai koodausagenttisi voi toteuttaa. Palvelu on tehty toimimaan omalla palvelimellasi ja sinun asettamillasi säännöillä.",
-    requestWorkspace: "Pyydä työtila",
+    lead: "Työntekijöiden jäsennellyistä haastatteluista syntyy pisteytetty kartta siitä, missä työ takkuaa ja mitä pitäisi muuttaa, jos mitään. Mistä tahansa mahdollisuudesta tai ideasta tulee määrittely, jonka kehittäjäsi tai koodausagenttisi voi toteuttaa. Me ylläpidämme palvelua puolestasi Suomessa, ja säännöt asetat sinä.",
+    requestPilot: "Pyydä pilotti",
     signIn: "Kirjaudu",
     dashboard: "Siirry yleiskatsaukseen",
-    noContact: "Työtilat luo tämän palvelun ylläpitäjä. Kysy heiltä tai kirjaudu, jos sinulla on jo työtila.",
+    pilotNote:
+      "Työtilasi perustetaan yhdessä kanssasi pilotin aikana. Nykyiset asiakkaat kirjautuvat sisään.",
     visualAlt:
       "Kampanjan tulossivu: haastattelujen, poimittujen kohtien ja ryhmien määrät sekä pisteytetyt mahdollisuudet ja niiden vieressä pisteytyksen painot.",
     phoneAlt: "Haastattelu puhelimella: aihechipit ylhäällä, osallistujan vastaus ja seuraava kysymys alla.",
     small: [
       "Osallistujat eivät tarvitse tiliä",
-      "Tehty toimimaan yhdellä omalla palvelimella",
+      "Palvelin Suomessa, EU:ssa",
       "Jokainen mallikutsu kirjataan hintoineen",
     ],
   },
@@ -62,9 +64,9 @@ export const landingFi: LandingStrings = {
       audience: "HR-, toiminta- ja muutosjohdolle",
       title: "Selvitä, miten työ oikeasti tehdään",
       paragraphs: [
-        "Kutsu ihmiset linkillä. Jokainen keskustelee tekstillä, vaihtoehdoilla tai puheella siitä, miten hänen työnsä oikeasti tehdään: rooli, päivittäiset tehtävät, toistuva työ, työkalut, käsityövaiheet, luovutukset, pullonkaulat ja ongelmat. Haastattelija kysyy yhden kysymyksen kerrallaan, menee yhden tason syvemmälle, kun jokin prosessi tulee esiin, ja sille on ohjeistettu, ettei se koskaan kysy, mihin tekoälyä pitäisi käyttää.",
-        "Kun tarpeeksi moni on vastannut, haastattelut analysoidaan yhdessä. Samankaltaiset tehtävät ja ongelmat ryhmitellään, lasketaan ja pisteytetään seitsemällä tekijällä: vaikutus, kuinka monta ihmistä koskee, toistuvuus, yksinkertaisuus, datan saatavuus, riski ja sopivuus tekoälylle. Jokainen mahdollisuus luokitellaan tekoälyksi, automaatioksi, ohjelmistoksi, toimintatavan muutokseksi tai ei muutosta suositella.",
-        "Saat raportin: tiivistelmä, työn kartta, osastovertailu, mahdollisuudet ratkaisuluokittain, nopeat voitot ja strategiset panostukset, missä tekoäly ei ole vastaus sekä seuraavat askeleet.",
+        "Kutsu ihmiset linkillä. Jokainen kertoo tekstillä, vaihtoehdoilla tai puheella, miten hänen työnsä oikeasti tehdään, yksi kysymys kerrallaan.",
+        "Haastattelut analysoidaan yhdessä: samankaltaiset tehtävät ja ongelmat ryhmitellään, lasketaan ja pisteytetään seitsemällä tekijällä.",
+        "Saat raportin, jossa mahdollisuudet ovat järjestyksessä, ja siinä kerrotaan myös, missä tekoäly ei ole vastaus.",
       ],
     },
     bridge: {
@@ -77,9 +79,9 @@ export const landingFi: LandingStrings = {
       audience: "Tuotteen omistajille, teknologiajohtajille, perustajille ja konsulteille",
       title: "Tee ideasta jotain, minkä kehittäjä voi rakentaa",
       paragraphs: [
-        "Aloita yhdestä lauseesta tai löydetystä mahdollisuudesta ja liitä asiakirjoja mukaan matkan varrella. Kerro, oletko tekninen vai et. Haastattelija selvittää ensin taustan: palvelinympäristö, nykyiset järjestelmät, kuka rakentaa, tiimin osaaminen, aikataulu, budjetti, käyttäjät julkaisussa ja vaatimustenmukaisuus. Sitten se käy läpi käyttäjät, tarinat, vaatimukset, säännöt, datan, integraatiot, tietoturvan, ylläpitonäkymän, ensimmäisen version, myöhemmän laajuuden ja vaiheet. Yksi päätös kysymystä kohden, ja jokaiselle perustelu ja oletus.",
-        "Viiden vuoron välein erillinen läpikäynti tarkistaa määrittelystä epäselvyydet, ristiriidat, puuttuvat päätökset ja tarpeettoman monimutkaisuuden ja nostaa esiin yhden havainnon kerrallaan. Ennen lopetusta se käy läpi ensimmäisen version listasi ja kysyy jokaisesta, mikä hajoaa, jos versio yksi julkaistaan ilman sitä.",
-        "Saat versioidun määrittelyn: luettavan asiakirjan, koneluettavan tiedoston ja Claude Codelle tai Codexille tehdyn paketin, jossa on tausta, vaihesuunnitelma ja tehtävätiedosto jokaiselle vaiheelle hyväksymiskriteereineen. Avaa se myöhemmin uudelleen ja näe, mikä versioiden välillä muuttui.",
+        "Aloita yhdestä lauseesta tai löydetystä mahdollisuudesta. Haastattelija selvittää ensin taustan ja pyytää sitten yhden päätöksen kerrallaan, aina oletuksen kera.",
+        "Erillinen läpikäynti etsii määrittelystä aukkoja ja ristiriitoja matkan varrella ja kyseenalaistaa lopuksi jokaisen ensimmäisen version kohdan.",
+        "Saat versioidun määrittelyn sekä paketin Claude Codelle tai Codexille.",
       ],
     },
   },
@@ -185,7 +187,7 @@ export const landingFi: LandingStrings = {
       },
       {
         chat: "Mitä toimittajan säilytyskäytäntö sattuu sanomaan",
-        here: "Oma palvelin, valitsemasi mallintarjoajat, kirjanpito jokaisesta kutsusta, auditointiloki ylläpitäjien toimista, poisto pyynnöstä ja automaattiset säilytysrajat",
+        here: "Suomessa ylläpidetty palvelu, jokaisen tehtävän mallintarjoaja näkyvissä, kirjanpito jokaisesta kutsusta, auditointiloki ylläpitäjien toimista, poisto pyynnöstä ja automaattiset säilytysrajat",
       },
     ],
     justAsWellHeading: "Mitä chatbotti tekee yhtä hyvin",
@@ -206,7 +208,7 @@ export const landingFi: LandingStrings = {
       },
       {
         title: "Palvelin ja palveluntarjoajat",
-        body: "Palvelu on tehty toimimaan yhdellä palvelimella, jota itse ylläpidät valitsemassasi maassa ja jonka rajapinta ei ole avoimessa internetissä. Mallikutsut menevät vain organisaatiosi määrittämille palveluntarjoajille, tehtävittäin: ulkoiselle palvelulle tai itse ylläpitämällesi OpenAI-yhteensopivalle päätepisteelle. Äänitteet voi litteroida samalla palvelimella. Jotkin ulkoiset palveluntarjoajat käsittelevät tietoa EU:n ulkopuolella, ja palvelu listaa jokaisen tarjoajan ja sen käsittelypaikan.",
+        body: "Palvelu toimii yhdellä tiimimme ylläpitämällä palvelimella Suomessa, eikä sen rajapinta ole avoimessa internetissä. Mallikutsut menevät vain kullekin tehtävälle määritetyille palveluntarjoajille. Osa niistä käsittelee tietoa EU:n ulkopuolella, ja palvelu listaa jokaisen tarjoajan ja sen käsittelypaikan. Äänitteet voi litteroida samalla palvelimella.",
       },
       {
         title: "Sinun tietosi",
@@ -231,7 +233,7 @@ export const landingFi: LandingStrings = {
       },
       {
         title: "Konsultit",
-        body: "Teet asiakkaille kartoitusta. Jokainen asiakas voi olla oma organisaationsa omine mallipohjineen, mallintarjoajineen, budjetteineen ja raportteineen.",
+        body: "Teet asiakkaille kartoitusta. Jokainen asiakas saa oman työtilan omine mallipohjineen, budjetteineen ja raportteineen, sinun tuotenimelläsi.",
       },
       {
         title: "Tuotteen omistajat",
@@ -245,6 +247,8 @@ export const landingFi: LandingStrings = {
   },
   faq: {
     heading: "Kysymyksiä",
+    more: "Jäikö jokin kysymys vastaamatta?",
+    moreLink: "Kysy meiltä, kun pyydät pilottia",
     items: [
       {
         q: "Enkö voi käyttää vain ChatGPT:tä?",
@@ -256,7 +260,7 @@ export const landingFi: LandingStrings = {
       },
       {
         q: "Missä tietoni ovat?",
-        a: "Palvelua ylläpitävän organisaation omalla palvelimella; vakiototeutus on yksi EU-palvelin. Haastatteluteksti menee vain niille mallintarjoajille, jotka organisaatio on määrittänyt: ulkoisille palveluille tai itse ylläpidetylle päätepisteelle. Jotkin ulkoiset tarjoajat käsittelevät tietoa EU:n ulkopuolella, joten tarjoajalistalla on väliä. Äänitteet voi litteroida samalla palvelimella, kun paikallinen litterointi on otettu käyttöön.",
+        a: "Palvelimellamme Suomessa, EU:ssa. Haastatteluteksti lähetetään vain kullekin tehtävälle määritetyille mallintarjoajille. Osa niistä käsittelee tietoa EU:n ulkopuolella, ja siksi palvelu listaa jokaisen tarjoajan ja sen käsittelypaikan. Äänitteet voi litteroida samalla palvelimella, kun paikallinen litterointi on otettu käyttöön.",
       },
       {
         q: "Päättääkö tekoäly, mitä meidän pitäisi rakentaa?",
@@ -268,7 +272,7 @@ export const landingFi: LandingStrings = {
       },
       {
         q: "Mitä se maksaa?",
-        a: "Kaksi osaa: palvelu, jota ylläpidät itse tai jonka ylläpidon ostat, sekä mallien käyttö. Jokainen kutsu kirjataan hintoineen, ja asetat budjetit organisaatiolle, kampanjalle ja yksittäiselle haastattelulle. Sisäisessä testissä kahdeksalla simuloidulla haastateltavalla ja edullisilla malleilla yhden haastattelun mallikäyttö maksoi 1,4–2,2 senttiä. Se on testiluku, ei tarjous; sinun mallisi ja haastattelusi voivat poiketa.",
+        a: "Kaksi osaa: palvelu, jonka ylläpidämme, sekä mallien käyttö. Jokainen kutsu kirjataan hintoineen, ja asetat budjetit organisaatiolle, kampanjalle ja yksittäiselle haastattelulle. Sisäisessä testissä kahdeksalla simuloidulla haastateltavalla ja edullisilla malleilla yhden haastattelun mallikäyttö maksoi 1,4–2,2 senttiä. Se on testiluku, ei tarjous; sinun mallisi ja haastattelusi voivat poiketa.",
       },
       {
         q: "Kuinka kauan haastattelu kestää?",
@@ -290,12 +294,12 @@ export const landingFi: LandingStrings = {
   },
   cta: {
     heading: "Aja ensimmäinen kampanja muutaman työtoverin kanssa",
-    body: "Pyydä työtila, aloita vakiona tulevasta kartoituspohjasta, esikatsele se itselläsi ja kutsu kourallinen työtovereita. Ensimmäinen raportti kertoo, kannattaako laajempi kierros.",
-    request: "Pyydä työtila",
+    body: "Pyydä pilotti, niin perustamme työtilasi yhdessä kanssasi. Aloita vakiona tulevasta kartoituspohjasta, esikatsele se itselläsi ja kutsu kourallinen työtovereita. Ensimmäinen raportti kertoo, kannattaako laajempi kierros.",
+    request: "Pyydä pilotti",
     signIn: "Kirjaudu",
     dashboard: "Siirry yleiskatsaukseen",
     consultancy:
-      "Teetkö kartoitusta asiakkaille? Jokainen asiakas voi olla oma organisaationsa omine mallipohjineen, mallintarjoajineen, budjetteineen ja raportteineen. Kysy ylläpitäjän käyttöoikeuksista.",
+      "Teetkö kartoitusta asiakkaille? Jokainen asiakas saa oman työtilan omine mallipohjineen, budjetteineen ja raportteineen, sinun tuotenimelläsi. Mainitse siitä, kun pyydät pilottia.",
   },
   footer: {
     navLabel: "Alatunniste",
@@ -308,9 +312,10 @@ export const landingFi: LandingStrings = {
     language: "Kieli",
     note: "Tällä sivulla ei ole seurantaa, eikä se tee pyyntöjä muille sivustoille. Kieli- ja ulkoasuvalintasi pysyvät selaimessasi.",
     signIn: "Kirjaudu",
+    requestPilot: "Pyydä pilotti",
   },
   mailto: {
-    subject: "Työtilapyyntö",
-    body: "Hei,\n\nHaluaisin pyytää työtilan.\n\nOrganisaatio:\nMitä haluamme selvittää:\n",
+    subject: "Kysymys verkkosivulta",
+    body: "Hei,\n\n",
   },
 };
