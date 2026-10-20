@@ -731,6 +731,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "GET /public/pilot-requests/ticket": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
+    }
+  },
   "GET /requirements": {
     "access": "staff",
     "isolation": false,
@@ -1665,6 +1677,18 @@
       "admin": 404,
       "operator": 404,
       "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /public/pilot-requests/ticket": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 200,
+      "participant": 200,
+      "member": 200,
+      "admin": 200,
+      "operator": 200,
+      "crossTenantAdmin": 200
     }
   },
   "HEAD /requirements": {
@@ -2649,6 +2673,18 @@
       "admin": 404,
       "operator": 404,
       "crossTenantAdmin": 404
+    }
+  },
+  "POST /public/pilot-requests": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 400,
+      "participant": 400,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
     }
   },
   "POST /requirements": {

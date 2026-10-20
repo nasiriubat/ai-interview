@@ -594,6 +594,15 @@ export function startFakeApi(port: number): Promise<FakeApi> {
       send(res, 200, { ok: true });
       return;
     }
+    // The "Request a pilot" form: a ticket on GET, and a request that is accepted without a mail.
+    if (path === "/public/pilot-requests/ticket") {
+      send(res, 200, { ticket: `${String(Date.now())}.e2e` });
+      return;
+    }
+    if (path === "/public/pilot-requests" && req.method === "POST") {
+      send(res, 200, { ok: true });
+      return;
+    }
     // The platform's name and logo (D-430). No logo unless FAKE_BRAND_LOGO=1, which the visual
     // review sets on a second fake API to shoot the same pages with one.
     if (path === "/public/branding") {

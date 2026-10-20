@@ -25,6 +25,8 @@ export type ErrorCode =
   | "voice_not_ready"
   /** The server has no room to keep an upload; nothing the sender did, and the answers so far are kept (D-283). */
   | "storage_full"
+  /** Something the server needs is not set up or not reachable (no recipient, no mail relay); retry later. */
+  | "unavailable"
   | "internal";
 
 const STATUS: Record<ErrorCode, number> = {
@@ -48,6 +50,7 @@ const STATUS: Record<ErrorCode, number> = {
   voice_not_ready: 409,
   // 507 Insufficient Storage: the request is fine, the server cannot hold it right now.
   storage_full: 507,
+  unavailable: 503,
   internal: 500,
 };
 

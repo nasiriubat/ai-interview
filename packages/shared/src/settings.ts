@@ -578,6 +578,17 @@ export const SETTINGS = {
     category: "email",
     description: "Optional reply-to address",
   }),
+  // Sales: the public "Request a pilot" form (`/pilot`). Platform only, because it names the
+  // operator's own inbox and no tenant is involved in a request from a stranger.
+  "sales.pilotRequestEmail": def({
+    schema: z.string().refine((v) => v === "" || isEmailAddress(v), { message: "Must be an email address" }),
+    default: "",
+    scopes: ["platform"],
+    category: "sales",
+    description:
+      "Where pilot requests from the public form are emailed; empty falls back to PILOT_REQUEST_EMAIL, then to the alert address (ops.alertEmail, ALERT_EMAIL)",
+    since: "2026.10",
+  }),
   // Operations (D-90). Platform only: these decide who the operator is told, how loudly, and how
   // often. `deploy/ops/notify.sh` cannot read this catalog (it has to work when the database does
   // not), so ALERT_EMAIL and ALERT_WEBHOOK_URL in .env are its copy and the fallback here.

@@ -72,6 +72,78 @@ export const en = {
     forbiddenTitle: "No access",
     forbiddenBody: "Your role does not include this page. Ask an admin in your organization if you need it.",
   },
+  pilot: {
+    meta: {
+      title: (product: string): string => `Request a pilot | ${product}`,
+      description:
+        "Tell us about your organization and what you would like to explore. We reply to every request.",
+    },
+    home: "Back to home",
+    eyebrow: "Pilot",
+    title: "Request a pilot",
+    lead: (product: string): string =>
+      `Tell us a little about your organization and what you would like to find out. We will reply to agree what a pilot of ${product} could look like for you.`,
+    stepsTitle: "What happens next",
+    steps: [
+      "We read your request and reply by email soon.",
+      "We agree the scope together: who takes part and what you want to learn.",
+      "You try it with real people in your organization and see the results.",
+    ],
+    required: "Fields marked * are required.",
+    fields: {
+      name: "Full name",
+      email: "Work email",
+      emailHint: "We reply to this address.",
+      company: "Company or organization",
+      role: "Role or title",
+      companySize: "Company size",
+      companySizeUnit: "employees",
+      interest: "What would you like to explore?",
+      participants: "How many people would you like to interview?",
+      message: "Anything else we should know?",
+      messageHint: (left: number): string => `${String(left)} characters left`,
+      choose: "Choose…",
+    },
+    interest: {
+      discovery: "Discovery interviews with employees",
+      requirements: "Requirements for something to build",
+      both: "Both",
+      unsure: "Not sure yet",
+    },
+    participants: {
+      "1-10": "1–10",
+      "11-30": "11–30",
+      "31-100": "31–100",
+      "100+": "More than 100",
+      unsure: "Not sure yet",
+    },
+    consent: "I agree to be contacted about this pilot.",
+    privacy: "We use these details only to reply to you. They are not shared with anyone else.",
+    honeypot: "Leave this field empty",
+    submit: "Send request",
+    sending: "Sending…",
+    errors: {
+      required: "This field is required.",
+      email: "Enter an email address, such as name@company.com.",
+      tooLong: (max: number): string => `Use at most ${String(max)} characters.`,
+      singleLine: "Use a single line.",
+      consent: "Tick the box so we may contact you about the pilot.",
+      summary: (n: number): string =>
+        n === 1 ? "1 field needs attention." : `${String(n)} fields need attention.`,
+    },
+    failed: {
+      title: "Your request was not sent",
+      generic: "Something went wrong on our side. Please try again in a few minutes.",
+      tooFast: "That was quick. Check your details and send the form again.",
+      stale: "This page was open for a long time. Send the form again.",
+      rateLimited: "Several requests have come from your network recently. Please try again later.",
+    },
+    success: {
+      title: "Thank you, your request is on its way",
+      body: (email: string): string => `We will reply to ${email} soon.`,
+      home: "Back to home",
+    },
+  },
   participant: {
     arrival: {
       eyebrow: "Interview",
@@ -1937,6 +2009,7 @@ export const en = {
         ceiling: "Limits",
         ui: "Interface",
         ops: "Operations alerts",
+        sales: "Sales",
         other: "Other",
       },
       empty: "The settings catalog is empty.",
@@ -3019,6 +3092,11 @@ export const en = {
       "email.replyTo": {
         label: "Reply-to address",
         description: "Optional. Where replies to outgoing emails go.",
+      },
+      "sales.pilotRequestEmail": {
+        label: "Pilot requests are emailed to",
+        description:
+          "Where requests from the public Request a pilot form (/pilot) are sent, with Reply-To set to the requester. Empty: falls back to PILOT_REQUEST_EMAIL on the server, then to the alert email address.",
       },
       "ops.alertEmail": {
         label: "Alert email address",

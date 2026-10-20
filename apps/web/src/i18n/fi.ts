@@ -72,6 +72,78 @@ export const fi: Strings = {
     forbiddenTitle: "Ei pääsyä",
     forbiddenBody: "Roolisi ei kata tätä sivua. Pyydä tarvittaessa pääsyä organisaatiosi ylläpitäjältä.",
   },
+  pilot: {
+    meta: {
+      title: (product: string): string => `Pyydä pilotti | ${product}`,
+      description:
+        "Kerro organisaatiostasi ja siitä, mitä haluaisit selvittää. Vastaamme jokaiseen pyyntöön.",
+    },
+    home: "Etusivulle",
+    eyebrow: "Pilotti",
+    title: "Pyydä pilotti",
+    lead: (product: string): string =>
+      `Kerro hieman organisaatiostasi ja siitä, mitä haluaisit selvittää. Vastaamme ja sovimme yhdessä, millainen ${product}-pilotti sopisi teille.`,
+    stepsTitle: "Mitä seuraavaksi tapahtuu",
+    steps: [
+      "Luemme pyyntösi ja vastaamme sähköpostilla pian.",
+      "Sovimme laajuuden yhdessä: ketkä osallistuvat ja mitä haluatte oppia.",
+      "Kokeilette palvelua organisaationne oikeiden ihmisten kanssa ja näette tulokset.",
+    ],
+    required: "Tähdellä * merkityt kentät ovat pakollisia.",
+    fields: {
+      name: "Koko nimi",
+      email: "Työsähköposti",
+      emailHint: "Vastaamme tähän osoitteeseen.",
+      company: "Yritys tai organisaatio",
+      role: "Rooli tai tehtävänimike",
+      companySize: "Yrityksen koko",
+      companySizeUnit: "työntekijää",
+      interest: "Mitä haluaisit selvittää?",
+      participants: "Kuinka monta ihmistä haluaisit haastatella?",
+      message: "Haluatko kertoa vielä jotain?",
+      messageHint: (left: number): string => `${String(left)} merkkiä jäljellä`,
+      choose: "Valitse…",
+    },
+    interest: {
+      discovery: "Työntekijöiden kartoitushaastattelut",
+      requirements: "Vaatimukset rakennettavalle ratkaisulle",
+      both: "Molemmat",
+      unsure: "En ole vielä varma",
+    },
+    participants: {
+      "1-10": "1–10",
+      "11-30": "11–30",
+      "31-100": "31–100",
+      "100+": "Yli 100",
+      unsure: "En ole vielä varma",
+    },
+    consent: "Suostun siihen, että minuun otetaan yhteyttä tästä pilotista.",
+    privacy: "Käytämme näitä tietoja vain vastataksemme sinulle. Niitä ei luovuteta kenellekään muulle.",
+    honeypot: "Jätä tämä kenttä tyhjäksi",
+    submit: "Lähetä pyyntö",
+    sending: "Lähetetään…",
+    errors: {
+      required: "Tämä kenttä on pakollinen.",
+      email: "Anna sähköpostiosoite, esimerkiksi nimi@yritys.fi.",
+      tooLong: (max: number): string => `Enintään ${String(max)} merkkiä.`,
+      singleLine: "Kirjoita yhdelle riville.",
+      consent: "Rastita ruutu, jotta voimme ottaa sinuun yhteyttä pilotista.",
+      summary: (n: number): string =>
+        n === 1 ? "1 kenttä vaatii huomiota." : `${String(n)} kenttää vaatii huomiota.`,
+    },
+    failed: {
+      title: "Pyyntöäsi ei lähetetty",
+      generic: "Jokin meni vikaan meidän päässämme. Yritä uudelleen muutaman minuutin kuluttua.",
+      tooFast: "Olipa nopeaa. Tarkista tiedot ja lähetä lomake uudelleen.",
+      stale: "Sivu oli auki pitkään. Lähetä lomake uudelleen.",
+      rateLimited: "Verkostasi on tullut useita pyyntöjä hetken sisällä. Yritä myöhemmin uudelleen.",
+    },
+    success: {
+      title: "Kiitos, pyyntösi on matkalla",
+      body: (email: string): string => `Vastaamme osoitteeseen ${email} pian.`,
+      home: "Etusivulle",
+    },
+  },
   participant: {
     arrival: {
       eyebrow: "Haastattelu",
@@ -1938,6 +2010,7 @@ export const fi: Strings = {
         ceiling: "Rajat",
         ui: "Käyttöliittymä",
         ops: "Käytön hälytykset",
+        sales: "Myynti",
         other: "Muut",
       },
       empty: "Asetusluettelo on tyhjä.",
@@ -3019,6 +3092,11 @@ export const fi: Strings = {
       "email.replyTo": {
         label: "Vastausosoite",
         description: "Valinnainen. Minne lähtevien sähköpostien vastaukset menevät.",
+      },
+      "sales.pilotRequestEmail": {
+        label: "Pilottipyynnöt lähetetään osoitteeseen",
+        description:
+          "Minne julkisen Pyydä pilotti -lomakkeen (/pilot) pyynnöt lähetetään; vastausosoitteena on pyytäjän osoite. Tyhjänä käytetään palvelimen PILOT_REQUEST_EMAIL-arvoa ja sen jälkeen hälytysten sähköpostiosoitetta.",
       },
       "ops.alertEmail": {
         label: "Hälytysten sähköpostiosoite",
