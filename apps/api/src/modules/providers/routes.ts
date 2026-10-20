@@ -1,4 +1,4 @@
-import { ProviderKindSchema, RoutablePurposeSchema } from "@aidp/shared";
+import { NON_TEXT_PURPOSES, ProviderKindSchema, RoutablePurposeSchema } from "@aidp/shared";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../../app.js";
@@ -31,22 +31,29 @@ const PricesBody = z.object({
 });
 const TestBody = z.object({ model: z.string().min(1).optional() });
 /** One row per purpose (contract 16). A row without provider or model clears the tenant override. */
-const RouteRow = z.object({
-  purpose: RoutablePurposeSchema,
-  providerId: z.string().nullable().optional(),
-  model: z.string().nullable().optional(),
-  effort: z.enum(["low", "medium", "high", "xhigh", "max"]).nullable().optional(),
-  maxOutputTokens: z.number().int().min(16).max(128000).nullable().optional(),
-  batchAllowed: z.boolean().nullable().optional(),
-  /**
-   * The route used when the primary's provider is down (D-228): omitted leaves it as it is, null
-   * clears it, an object sets it.
-   */
-  fallback: z
-    .object({ providerId: z.string().min(1), model: z.string().min(1) })
-    .nullable()
-    .optional(),
-});
+const RouteRow = z
+  .object({
+    purpose: RoutablePurposeSchema,
+    providerId: z.string().nullable().optional(),
+    model: z.string().nullable().optional(),
+    effort: z.enum(["low", "medium", "high", "xhigh", "max"]).nullable().optional(),
+    // At least 16 for a task that writes text; ignored, and stored as 0, for one that does not
+    // (transcription, captions, the voice, embeddings), which the screen sends as 0.
+    maxOutputTokens: z.number().int().min(0).max(128000).nullable().optional(),
+    batchAllowed: z.boolean().nullable().optional(),
+    /**
+     * The route used when the primary's provider is down (D-228): omitted leaves it as it is, null
+     * clears it, an object sets it.
+     */
+    fallback: z
+      .object({ providerId: z.string().min(1), model: z.string().min(1) })
+      .nullable()
+      .optional(),
+  })
+  .refine((r) => NON_TEXT_PURPOSES.has(r.purpose) || r.maxOutputTokens == null || r.maxOutputTokens >= 16, {
+    message: "maxOutputTokens must be at least 16 for a task that writes text",
+    path: ["maxOutputTokens"],
+  });
 
 type ScopeOf = (req: FastifyRequest) => string | null;
 
@@ -240,7 +247,7 @@ function mountProviderRoutes(
                 providerId: row.providerId,
                 model: row.model,
                 effort: row.effort ?? undefined,
-                maxOutputTokens: row.maxOutputTokens ?? 4096,
+                maxOutputTokens: NON_TEXT_PURPOSES.has(row.purpose) ? 0 : (row.maxOutputTokens ?? 4096),
                 batchAllowed: row.batchAllowed ?? false,
               }
             : null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { ROUTABLE_PURPOSES, type Effort, type Purpose, type Route } from "@aidp/shared";
+import { NON_TEXT_PURPOSES, ROUTABLE_PURPOSES, type Effort, type Purpose, type Route } from "@aidp/shared";
 import { RotateCcwIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -26,11 +26,11 @@ const INHERIT = "__inherit__";
 /** The API's own default when a route does not say (contract 19). */
 const DEFAULT_MAX_OUTPUT = 4096;
 /**
- * Tasks that produce no text: audio in or out, or vectors. Output tokens, reasoning effort and
- * batching do not apply, so their fields are off and the row is saved with 0 tokens. A required
- * minimum of 1 here used to block every save on the page, because these rows are stored with 0.
+ * Tasks that produce no text: their output-token, effort and batch fields are off, and the row is
+ * sent without a token count (the API stores 0). A required minimum here used to block every save
+ * on the page, because these rows are stored with 0.
  */
-const NOT_TEXT: ReadonlySet<Purpose> = new Set(["transcription", "stt_stream", "tts", "embedding"]);
+const NOT_TEXT = NON_TEXT_PURPOSES;
 
 interface Draft {
   providerId: string;

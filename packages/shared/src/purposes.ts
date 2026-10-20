@@ -41,4 +41,15 @@ export const ROUTABLE_PURPOSES = PURPOSES.filter(
   (p) => p !== "probe" && !(PLANNED_PURPOSES as readonly string[]).includes(p),
 );
 export const RoutablePurposeSchema = PurposeSchema.exclude(["probe", ...PLANNED_PURPOSES]);
+
+/**
+ * Purposes that produce no text: audio in or out, or vectors. Output tokens, reasoning effort and
+ * batching do not apply; their routes are stored with 0 output tokens.
+ */
+export const NON_TEXT_PURPOSES: ReadonlySet<Purpose> = new Set([
+  "transcription",
+  "stt_stream",
+  "tts",
+  "embedding",
+]);
 export type RoutablePurpose = z.infer<typeof RoutablePurposeSchema>;
