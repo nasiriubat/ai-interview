@@ -747,6 +747,38 @@ dig +short pilot.example.com            # must be this host's IP
 dc logs caddy | grep -i acme
 ```
 
+## Behind Cloudflare, on a shared host
+
+For a host whose ports 80 and 443 already belong to another service. Cloudflare terminates the
+public certificate and forwards to this stack's Caddy on another port; nothing else on the host is
+changed. The live install (`aiscope.scholarbro.com`) runs this way.
+
+```bash
+PUBLIC_HOSTNAME=aiscope.scholarbro.com
+HTTPS_BIND=8000                   # Caddy published here; the public URL stays https://<host>
+HTTP_BIND=127.0.0.1:18080         # port 80 only on loopback: nothing outside needs it
+CADDY_LOCAL_CERTS=1               # Cloudflare -> origin uses Caddy's own certificate
+```
+
+In Cloudflare, for that hostname only: the DNS record **proxied** (orange cloud); a **Rules ->
+Origin Rule** "Hostname equals `<host>`" -> _Destination port_ `8000`; and a **Configuration Rule**
+for the same hostname -> _SSL_ `Full` (the origin certificate is Caddy's own, which `Full` accepts
+and `Full (strict)` does not). The firewall must let Cloudflare reach 8000.
+
+Caddy believes `CF-Connecting-IP` only from Cloudflare's published ranges (the `trusted_proxies` list
+in `deploy/Caddyfile`), so per-address rate limits see the real visitor and a direct connection
+cannot forge the header. Cloudflare allows uploads up to 100 MB, above the 50 MB platform limit, and
+carries the live-voice WebSocket and the interview's server-sent events unbuffered.
+
+### Push to deploy
+
+`deploy/autodeploy/install.sh`, run once on the server, installs a systemd timer that fetches `main`
+every minute and runs `deploy/upgrade.sh` when it moved (`deploy/autodeploy.sh`). No CI runner and no
+inbound port: the server pulls with a read-only deploy key. A commit that fails to deploy is rolled
+back by `upgrade.sh`, recorded in `deploy/.autodeploy-failed` and not retried; the next push is.
+`journalctl -u aidp-autodeploy -f` shows each deploy. Run `pnpm check` before pushing to `main`: the
+GitHub workflows are manual-only.
+
 ## Rehearsing a deployment
 
 Everything above has also been run, end to end, on one machine with throwaway secrets, a scripted

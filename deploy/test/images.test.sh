@@ -81,6 +81,14 @@ ENV
 	assert_contains "a quoted password reaches the service byte for byte" \
 		"$(docker compose -f "$DEPLOY_DIR/compose.yml" --env-file "$envf.quoted" config 2>&1)" 'SMTP_PASSWORD: p@ss w#rd $$x %41:/'
 	rm -f "$envf.quoted"
+	# Behind a CDN: published on 8000 and loopback, the public URL untouched.
+	printf '%s\n' "HTTPS_BIND=8000" "HTTP_BIND=127.0.0.1:18080" >"$envf.bind"
+	cat "$envf" "$envf.bind" >"$envf.bound"
+	bound=$(docker compose -f "$DEPLOY_DIR/compose.yml" --env-file "$envf.bound" config 2>&1)
+	assert_contains "HTTPS_BIND: published on that port" "$bound" 'published: "8000"'
+	assert_contains "HTTP_BIND: on loopback" "$bound" "host_ip: 127.0.0.1"
+	assert_contains "HTTPS_BIND: the public URL keeps no port" "$bound" "WEB_ORIGIN: https://pilot.example.com"$'\n'
+	rm -f "$envf.bind" "$envf.bound"
 	echo "HTTPS_PORT=5543" >>"$envf"
 	ported=$(docker compose -f "$DEPLOY_DIR/compose.yml" --env-file "$envf" config 2>&1)
 	assert_contains "HTTPS_PORT: WEB_ORIGIN has it" "$ported" "WEB_ORIGIN: https://pilot.example.com:5543"
