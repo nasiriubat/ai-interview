@@ -113,6 +113,22 @@ describe("Composer recording", () => {
     expect(onSend).toHaveBeenCalledWith("I typed it instead");
   });
 
+  // On a phone the warning sat under the answer box for the rest of the interview (owner, 2026-10-21).
+  it("lets the microphone warning be closed, and clears it once the person types", async () => {
+    microphone(() => Promise.reject(named("NotAllowedError")));
+    render(<Composer disabled={false} onSend={vi.fn()} onVoice={vi.fn()} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Record your answer" }));
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Record your answer" }));
+    await screen.findByRole("alert");
+    await user.type(screen.getByLabelText("Your answer"), "x");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("explains a missing microphone differently from a refused one", async () => {
     microphone(() => Promise.reject(named("NotFoundError")));
     render(<Composer disabled={false} onSend={vi.fn()} onVoice={vi.fn()} />);

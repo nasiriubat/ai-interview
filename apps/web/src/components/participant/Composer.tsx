@@ -242,6 +242,8 @@ export function Composer({
             onFocus={showHint}
             onChange={(e) => {
               setText(e.target.value);
+              // Typing is the answer to "the microphone is blocked, or type your answer".
+              if (recorder.problem) recorder.dismissProblem();
             }}
             onKeyDown={(e) => {
               // Touch keyboards keep Enter as a line break; only the Send button sends there.
@@ -314,7 +316,15 @@ export function Composer({
           role="alert"
         >
           <AlertCircleIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>{recorderProblemMessage(recorder.problem)}</span>
+          <span className="flex-1">{recorderProblemMessage(recorder.problem)}</span>
+          <button
+            type="button"
+            onClick={recorder.dismissProblem}
+            aria-label={t.app.close}
+            className="-m-1 shrink-0 rounded-md p-1 opacity-80 hover:opacity-100"
+          >
+            <XIcon className="size-4" aria-hidden="true" />
+          </button>
         </p>
       ) : null}
       {recorder.maxedOut ? (
