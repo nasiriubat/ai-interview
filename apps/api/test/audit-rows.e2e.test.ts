@@ -949,6 +949,32 @@ suite("audit rows: every administrative mutation writes one", () => {
     });
   });
 
+  it("POST /operator/errors/:id/resolve and DELETE /operator/errors/:id: the error log (D-477)", async () => {
+    const group = await world.db.errorGroup.create({
+      data: {
+        groupKey: `audit-rows-${Date.now().toString(36)}`,
+        fingerprint: "audit-rows",
+        companyId: world.companyId,
+        source: "api",
+        severity: "error",
+        name: "Error",
+        message: "audit rows",
+      },
+    });
+    await audited("POST /operator/errors/:id/resolve", `/operator/errors/${group.id}/resolve`, undefined, {
+      action: "error_group.resolve",
+      targetType: "error_group",
+      targetId: group.id,
+      actor: "operator",
+    });
+    await audited("DELETE /operator/errors/:id", `/operator/errors/${group.id}`, undefined, {
+      action: "error_group.delete",
+      targetType: "error_group",
+      targetId: group.id,
+      actor: "operator",
+    });
+  });
+
   it("acknowledging a flagged interview is audited, and keeps the reason out of the diff", async () => {
     const flagged = await world.db.session.create({
       data: {

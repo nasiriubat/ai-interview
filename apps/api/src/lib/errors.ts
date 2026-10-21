@@ -2,6 +2,7 @@ import { BudgetExceededError, ProviderError } from "@aidp/ai";
 import { CeilingReachedError, SettingsError, StorageFull } from "@aidp/core";
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from "fastify-type-provider-zod";
+import { rememberError } from "./error-capture.js";
 
 export type ErrorCode =
   | "validation"
@@ -99,6 +100,8 @@ export function errorHandler(
   request: FastifyRequest,
   reply: FastifyReply,
 ): void {
+  // What was thrown, for the error log's response hook; only a 5xx answer is ever recorded (D-477).
+  rememberError(request, error);
   const respond = (status: number, code: string, message: string, details?: unknown): void => {
     void reply
       .status(status)

@@ -3,6 +3,8 @@ import {
   BossJobs,
   CallerFactory,
   createStorage,
+  describeThrown,
+  ErrorRecorder,
   Crypto,
   EgressGuard,
   egressConfigFromEnv,
@@ -14,6 +16,7 @@ import {
   pinoSerializers,
   PgBossJobAdmin,
   PrismaAlertState,
+  PrismaErrorStore,
   PrismaHealthInputs,
   PromMetrics,
   reapplyErasures,
@@ -34,7 +37,7 @@ import {
 import { withTenantScope } from "@aidp/db";
 import { PrismaClient } from "@prisma/client";
 import { pino } from "pino";
-import { deadLetterAlert } from "./alerts.js";
+import { deadLetterAlert, jobFailureEvent } from "./alerts.js";
 import { loadConfig } from "./config.js";
 import { handlers } from "./handlers.js";
 import { Heartbeat } from "./heartbeat.js";
@@ -76,6 +79,22 @@ async function main(): Promise<void> {
   // Every query goes through the tenant scope: it pairs the statement with the Postgres setting
   // the row-level security policies read (packages/db/src/tenancy.ts).
   const db = withTenantScope(new PrismaClient());
+  // The built-in error log (D-477): job failures are written in the background, never in the way
+  // of the job that failed; a write that fails is said once on stdout and dropped.
+  const errors = new ErrorRecorder({
+    store: new PrismaErrorStore(db),
+    warn: (message, meta) => {
+      log.warn(meta ?? {}, message);
+    },
+  });
+  const release = (): { release?: string } => (config.AIDP_VERSION ? { release: config.AIDP_VERSION } : {});
+  const crash = (kind: string) => (err: unknown) => {
+    log.error({ err }, kind);
+    errors.capture({ source: "worker", ...describeThrown(err), route: kind, ...release() });
+    void errors.close().finally(() => process.exit(1));
+  };
+  process.on("uncaughtException", crash("uncaughtException"));
+  process.on("unhandledRejection", crash("unhandledRejection"));
   const crypto = Crypto.fromEnv(config);
   const settings = new SettingsService(db, crypto, {
     warn: (message, meta) => {
@@ -221,6 +240,7 @@ async function main(): Promise<void> {
   });
   const failed = (name: JobName) => (jobId: string, err: unknown, failure: JobFailure) => {
     log.error({ err, job: name, jobId, attempt: failure.attempt, final: failure.final }, "job failed");
+    errors.capture(jobFailureEvent(name, err, failure, config.AIDP_VERSION));
     // The last attempt: after this the job sits in `<name>.dead` and nothing else reports it.
     if (failure.final) void alerts.raise(deadLetterAlert(name, jobId, failure, err));
   };
@@ -316,6 +336,7 @@ async function main(): Promise<void> {
       return jobs.stop({ timeoutMs }).finally(() => jobs.recovery.stop());
     },
     disconnect: async () => {
+      await errors.close();
       await db.$disconnect();
       await telemetry?.shutdown();
     },

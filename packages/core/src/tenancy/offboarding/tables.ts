@@ -31,6 +31,8 @@ export const EXPORT_OMIT_COLUMNS: Readonly<Record<string, readonly string[]>> = 
   CampaignEmailHash: ["emailHash", "resumeSeal", "ownerTag"],
   EmailCode: ["emailHash", "codeHash"],
   Invitation: ["emailHash", "tokenHash"],
+  // The platform's own source paths and frames: what failed is the tenant's, how the code is laid out is not (D-477).
+  ErrorOccurrence: ["stack"],
 };
 
 export interface TenantTables {

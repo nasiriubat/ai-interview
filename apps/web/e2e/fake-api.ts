@@ -454,6 +454,39 @@ const READS: [RegExp, Handler][] = [
       },
     }),
   ],
+  // The error log (D-477): the list, its numbers, one group with its occurrences.
+  [/^\/operator\/errors\/summary$/, () => ({ body: f.errorSummary })],
+  [
+    /^\/operator\/errors$/,
+    (url) => ({
+      // As the API: with no status, the open ones.
+      body: listOf(
+        "groups",
+        url.searchParams.has("status") ? f.errorGroups : f.errorGroups.filter((g) => g.status === "open"),
+        url,
+        {
+          search: ["message", "name", "route", "jobName"],
+          filters: {
+            source: (r, v) => r.source === v,
+            status: (r, v) => v === "all" || r.status === v,
+            tenant: (r, v) => (v === "platform" ? r.companyId === null : r.companyId === v),
+          },
+        },
+      ),
+    }),
+  ],
+  [
+    /^\/operator\/errors\/[^/]+$/,
+    (url) => {
+      const id = url.pathname.split("/").pop();
+      const group = f.errorGroups.find((g) => g.id === id);
+      if (!group)
+        return { status: 404, body: { error: { code: "not_found", message: "Error group not found" } } };
+      return {
+        body: { group, occurrences: id === "eg1" ? f.errorOccurrences : [], elsewhere: id === "eg1" ? 2 : 0 },
+      };
+    },
+  ],
   [/^\/operator\/jobs$/, () => ({ body: { queues: [] } })],
   [/^\/operator\/jobs\/dead$/, () => ({ body: { jobs: [] } })],
   // Participant

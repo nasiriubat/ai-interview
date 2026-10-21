@@ -22,6 +22,7 @@ import {
   runRetentionSweep,
   verifyAuditChain,
   sendOnce,
+  sweepErrorLog,
   type AlertPort,
   type CallerFactory,
   type Crypto,
@@ -368,6 +369,16 @@ export function handlers(deps: HandlerDeps): Handlers {
       if (!deps.health) throw new Error("ops.health-sweep ran without a HealthSweep configured");
       const r = await deps.health.run();
       deps.log.info("health sweep finished", { raised: r.raised.length, resolved: r.resolved.length });
+    }),
+
+    /**
+     * Keeps the error log bounded (D-477): what has not been seen for the retention period goes,
+     * and the ceiling on stored occurrences is enforced oldest first.
+     */
+    "ops.error-log-sweep": scoped(async (): Promise<void> => {
+      const retentionDays = await deps.settings.get("ops.errorLogRetentionDays", []);
+      const r = await sweepErrorLog(deps.db, { retentionDays });
+      deps.log.info("error log swept", { retentionDays, ...r });
     }),
 
     /**

@@ -19,6 +19,8 @@ export type FilterKind = readonly string[] | "date" | { pattern: RegExp; max: nu
 export const AUDIT_ACTION = { pattern: /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*\.?$/, max: 100 } as const;
 const IDENTIFIER = { pattern: /^[a-z][a-z0-9_]*$/, max: 50 } as const;
 const REGION = { pattern: /^[a-z0-9-]+$/, max: 20 } as const;
+/** A tenant id, or `platform` for the errors that belong to no tenant. */
+const TENANT = { pattern: /^[A-Za-z0-9_-]+$/, max: 64 } as const;
 
 /**
  * What a client component may be given of a list definition: the sorts, and nothing else. A
@@ -107,6 +109,18 @@ export const LISTS = {
     defaultSort: "createdAt",
     search: true,
     filters: { status: ["active", "suspended"], region: REGION },
+  },
+  /** The error log (D-477). With no `status` the API lists open groups, with no `period` the last 7 days. */
+  errors: {
+    sort: { lastSeenAt: "desc", firstSeenAt: "desc", count: "desc" },
+    defaultSort: "lastSeenAt",
+    search: true,
+    filters: {
+      source: ["api", "worker", "web", "browser"],
+      status: ["open", "resolved", "all"],
+      period: ["24h", "7d", "all"],
+      tenant: TENANT,
+    },
   },
 } as const satisfies Record<string, ListDef>;
 

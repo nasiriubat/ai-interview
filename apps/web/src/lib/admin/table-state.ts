@@ -16,6 +16,11 @@ export type FilterDef =
       key: string;
       label: string;
       options: readonly { value: string; label: string }[];
+      /**
+       * What the list shows with no value chosen, when that is not "any": the error log lists open
+       * errors of the last 7 days unless asked otherwise (D-477). Defaults to "Any".
+       */
+      defaultLabel?: string;
     }
   | {
       type: "date-range";

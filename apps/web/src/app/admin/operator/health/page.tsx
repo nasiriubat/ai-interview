@@ -16,14 +16,15 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * Every platform signal and each tenant's use of its limits on one page (D-222). The operator
  * opens it first thing: a row that is not green is the thing to look at, and each signal's key is
- * the anchor of its section in docs/OPERATIONS.md.
+ * the anchor of its section in docs/OPERATIONS.md. The error log's numbers sit with them (D-477).
  */
 export default async function PlatformHealthPage(): Promise<React.JSX.Element> {
   await requestLocale();
   await requireMe();
   const api = await staffServer();
-  const [healthR] = await Promise.allSettled([api.operator.health()]);
+  const [healthR, errorsR] = await Promise.allSettled([api.operator.health(), api.operator.errors.summary()]);
   const health = settled(healthR);
+  const errors = settled(errorsR);
   return (
     <>
       <PageHeader
@@ -31,7 +32,11 @@ export default async function PlatformHealthPage(): Promise<React.JSX.Element> {
         subtitle={t.admin.operator.health.subtitle}
         actions={<RefreshButton />}
       />
-      {health.data ? <HealthPanel health={health.data} /> : <LoadError error={health.error} />}
+      {health.data ? (
+        <HealthPanel health={health.data} errors={errors.data ?? undefined} />
+      ) : (
+        <LoadError error={health.error} />
+      )}
     </>
   );
 }

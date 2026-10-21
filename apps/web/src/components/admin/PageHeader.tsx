@@ -33,7 +33,7 @@ export function PageHeader({
     <header className={cn("mb-6 flex flex-wrap items-start justify-between gap-x-4 gap-y-3", className)}>
       <CrumbLabels labels={crumbLabels} />
       <div className="min-w-0 flex-1 basis-72">
-        <h1 className="text-foreground text-xl leading-tight font-semibold tracking-tight text-balance md:text-2xl">
+        <h1 className="text-foreground text-xl leading-tight font-semibold tracking-tight text-balance [overflow-wrap:anywhere] md:text-2xl">
           {title}
         </h1>
         {subtitle ? <p className="text-muted-foreground mt-1 max-w-prose text-sm">{subtitle}</p> : null}

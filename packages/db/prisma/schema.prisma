@@ -38,6 +38,8 @@ model Company {
   auditLogs    AuditLog[]
   opsAlerts    OpsAlert[]
   usageCounters UsageCounter[]
+  errorGroups  ErrorGroup[]
+  errorOccurrences ErrorOccurrence[]
 }
 
 model User {
@@ -848,4 +850,76 @@ model OpsAlert {
 
   @@index([kind, lastAt])
   @@index([companyId, lastAt])
+}
+
+/// The built-in error log (D-477): server and browser failures, grouped so a recurring fault is one
+/// row whose `count` grows instead of a pile of copies. `groupKey` is the fingerprint (source, error
+/// name, normalised message, route or top frame) together with the tenant, so every group belongs
+/// to one tenant or, with `companyId` null, to the platform; that is what lets the table sit under
+/// the same nullable-companyId policy as OpsAlert (migration 0028). `fingerprint` alone joins one
+/// fault across tenants. Written and read only in the system context: the API's and the worker's
+/// error recorders, and the platform operator's routes.
+///
+/// `hourly` counts occurrences per UTC hour (`"2026-10-21T13": n`) for the last eight days, so "in
+/// the last 24 hours" and "in the last 7 days" stay derivable although only the newest occurrences
+/// are kept. A new occurrence clears `resolvedAt`: a resolved fault that comes back is open again.
+model ErrorGroup {
+  id           String    @id @default(cuid())
+  groupKey     String    @unique
+  fingerprint  String
+  companyId    String?
+  source       String // api | worker | web | browser
+  severity     String // error | warning
+  name         String
+  message      String
+  route        String?
+  jobName      String?
+  count        Int       @default(1)
+  hourly       Json      @default("{}")
+  firstSeenAt  DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  resolvedAt   DateTime?
+  resolvedById String?
+
+  company     Company?          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  occurrences ErrorOccurrence[]
+
+  @@index([lastSeenAt])
+  @@index([companyId, lastSeenAt])
+  @@index([fingerprint])
+}
+
+/// One stored occurrence of an ErrorGroup; only the newest few per group are kept (D-477). Every
+/// text field is redacted and truncated before it is written (packages/core/src/errorlog): no
+/// request body, no header, no participant answer, no address. `userId` is a staff user and
+/// `sessionId` a participant's interview, ids only.
+model ErrorOccurrence {
+  id         String   @id @default(cuid())
+  groupId    String
+  companyId  String?
+  occurredAt DateTime @default(now())
+  source     String
+  severity   String
+  name       String
+  message    String
+  stack      String?
+  route      String?
+  path       String?
+  method     String?
+  status     Int?
+  requestId  String?
+  userId     String?
+  sessionId  String?
+  release    String?
+  userAgent  String?
+  jobName    String?
+  jobAttempt Int?
+  jobFinal   Boolean?
+
+  group   ErrorGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  company Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, occurredAt])
+  @@index([occurredAt])
+  @@index([companyId])
 }

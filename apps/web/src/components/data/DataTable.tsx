@@ -310,7 +310,7 @@ export function DataTable({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={ALL}>
-                          {f.label}: {k.any}
+                          {f.label}: {f.defaultLabel ?? k.any}
                         </SelectItem>
                         {f.options.map((o) => (
                           <SelectItem key={o.value} value={o.value}>

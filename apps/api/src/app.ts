@@ -26,12 +26,14 @@ import { installAuditDeclarationCheck } from "./auth/audit-actions.js";
 import { authPlugin } from "./auth/plugin.js";
 import { PrincipalResolver } from "./auth/principal.js";
 import type { AppContext, RouteContext } from "./context.js";
+import { installErrorCapture } from "./lib/error-capture.js";
 import { errorHandler } from "./lib/errors.js";
 import { principalKey, RATE_LIMIT_WINDOW } from "./lib/rate-limit.js";
 import { analysisRoutes } from "./modules/analysis/routes.js";
 import { auditRoutes } from "./modules/audit/routes.js";
 import { brandingRoutes } from "./modules/branding/routes.js";
 import { campaignRoutes } from "./modules/campaigns/routes.js";
+import { errorLogRoutes } from "./modules/errors/routes.js";
 import { exportsRoutes } from "./modules/exports/routes.js";
 import { healthRoutes } from "./modules/health/routes.js";
 import { internalAuthRoutes } from "./modules/internal-auth/routes.js";
@@ -162,6 +164,8 @@ export async function buildApp(ctx: AppContext): Promise<App> {
   });
   // After the limiter, so the guard is ordered behind its hook; before every route, so none escapes.
   const plain = app as unknown as FastifyInstance;
+  // Every 5xx answer goes to the built-in error log, after it is sent (D-477).
+  installErrorCapture(plain, ctx.errors, ctx.config.AIDP_VERSION);
   installAccessGuard(plain);
   installAuditDeclarationCheck(app);
   // Operator access to a tenant and sensitive reads leave a row (A2, D-262).
@@ -216,6 +220,7 @@ export async function buildApp(ctx: AppContext): Promise<App> {
       await requirementsRoutes(a, routes);
       await exportsRoutes(a, routes);
       await operatorRoutes(a, routes);
+      await errorLogRoutes(a, routes);
       a.get("/openapi.json", { ...guard.public() }, async () => a.swagger());
     },
     { prefix: API_PREFIX },

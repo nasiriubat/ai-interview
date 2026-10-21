@@ -35,6 +35,18 @@
       "crossTenantAdmin": 403
     }
   },
+  "DELETE /operator/errors/:id": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
   "DELETE /operator/providers/:id": {
     "access": "operator",
     "isolation": true,
@@ -360,6 +372,42 @@
     }
   },
   "GET /operator/crypto/status": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/errors": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/errors/:id": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "GET /operator/errors/summary": {
     "access": "operator",
     "isolation": false,
     "statuses": {
@@ -1331,6 +1379,42 @@
       "crossTenantAdmin": 403
     }
   },
+  "HEAD /operator/errors": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /operator/errors/:id": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
+      "crossTenantAdmin": 403
+    }
+  },
+  "HEAD /operator/errors/summary": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
   "HEAD /operator/health": {
     "access": "operator",
     "isolation": false,
@@ -2267,6 +2351,18 @@
       "crossTenantAdmin": 401
     }
   },
+  "POST /internal/errors": {
+    "access": "internal",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 401,
+      "admin": 401,
+      "operator": 401,
+      "crossTenantAdmin": 401
+    }
+  },
   "POST /me/sessions/revoke": {
     "access": "staff",
     "isolation": false,
@@ -2300,6 +2396,18 @@
       "member": 403,
       "admin": 403,
       "operator": 200,
+      "crossTenantAdmin": 403
+    }
+  },
+  "POST /operator/errors/:id/resolve": {
+    "access": "operator",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 403,
+      "operator": 404,
       "crossTenantAdmin": 403
     }
   },
@@ -2673,6 +2781,18 @@
       "admin": 404,
       "operator": 404,
       "crossTenantAdmin": 404
+    }
+  },
+  "POST /public/errors": {
+    "access": "public",
+    "isolation": false,
+    "statuses": {
+      "anonymous": 400,
+      "participant": 400,
+      "member": 400,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 400
     }
   },
   "POST /public/pilot-requests": {

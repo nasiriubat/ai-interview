@@ -10,12 +10,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
+import { ErrorsCard } from "@/components/admin/operator/ErrorsCard";
 import { Panel } from "@/components/admin/Panel";
 import { StatTile } from "@/components/admin/StatTile";
 import { DataTable } from "@/components/data/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { t } from "@/i18n";
-import type { PlatformHealth } from "@/lib/api/schemas";
+import type { ErrorSummary, PlatformHealth } from "@/lib/api/schemas";
 import { formatBytes } from "@/lib/format";
 import { cn, formatCents, formatDate, formatDuration, formatNumber, formatPercent } from "@/lib/utils";
 
@@ -70,7 +71,14 @@ function limit(u: PlatformHealth["tenants"][number]["utilisation"][number] | und
  * here" is a finding and not an empty box. Rendered on the server from one request; reloading is
  * the refresh.
  */
-export function HealthPanel({ health }: { health: PlatformHealth }): React.JSX.Element {
+export function HealthPanel({
+  health,
+  errors,
+}: {
+  health: PlatformHealth;
+  /** The error log's numbers (D-477); absent when they could not be read. */
+  errors?: ErrorSummary | undefined;
+}): React.JSX.Element {
   const worst: Status = health.signals.some((x) => x.status === "critical")
     ? "critical"
     : health.signals.some((x) => x.status === "warn")
@@ -159,6 +167,8 @@ export function HealthPanel({ health }: { health: PlatformHealth }): React.JSX.E
           icon={DatabaseBackupIcon}
         />
       </section>
+
+      {errors ? <ErrorsCard summary={errors} /> : null}
 
       <Panel title={s.signals} headingLevel={2}>
         {health.signals.length === 0 ? (

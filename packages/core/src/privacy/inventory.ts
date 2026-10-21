@@ -105,6 +105,14 @@ export const PARTICIPANT_DATA: Record<string, TableCoverage> = {
     erasure: "retained",
     note: "The cost ledger keeps the session id; the session row is anonymised.",
   },
+  ErrorOccurrence: {
+    export: {
+      kind: "not_personal",
+      why: "A server or browser failure seen during the interview: the error, the route and an id, never what was said (D-477).",
+    },
+    erasure: "retained",
+    note: "Keeps the session id like the cost ledger; the row expires with the error log's retention (ops.errorLogRetentionDays, 7 days).",
+  },
   CampaignEmailHash: {
     export: {
       kind: "pseudonymous",

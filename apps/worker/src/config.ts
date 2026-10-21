@@ -52,6 +52,8 @@ const Env = z.object({
     (v) => (v === "" ? undefined : v),
     z.coerce.number().int().min(0).max(65535).default(0),
   ),
+  /** The running release, stamped on the error log's entries (D-477). Set by compose. */
+  AIDP_VERSION: z.string().optional(),
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
   /**
    * How long running jobs may take after SIGTERM before they are aborted and redelivered. Keep it

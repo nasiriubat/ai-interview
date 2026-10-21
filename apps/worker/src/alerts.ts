@@ -1,4 +1,11 @@
-import { deadLetterKey, type Alert, type JobFailure, type JobName } from "@aidp/core";
+import {
+  deadLetterKey,
+  describeThrown,
+  type Alert,
+  type ErrorEvent,
+  type JobFailure,
+  type JobName,
+} from "@aidp/core";
 
 /**
  * The alert for a job whose last attempt just failed (D-92).
@@ -27,5 +34,31 @@ export function deadLetterAlert(name: JobName, jobId: string, failure: JobFailur
     ...(companyId ? { companyId } : {}),
     // The tenant sees "analysis failed" in its own screens; this is for the person running the box.
     audience: ["operator"],
+  };
+}
+
+/**
+ * The error-log entry for a failed attempt (D-477). Every attempt is recorded, and the two kinds
+ * are told apart: a retry is a warning, the last attempt (the job is about to be dead-lettered) is
+ * an error, and they fingerprint as separate groups. The tenant comes from the payload; nothing
+ * else of the payload is kept.
+ */
+export function jobFailureEvent(
+  name: JobName,
+  err: unknown,
+  failure: JobFailure,
+  release: string | undefined,
+): ErrorEvent {
+  const data = failure.data as { companyId?: unknown } | null;
+  const companyId = typeof data?.companyId === "string" ? data.companyId : undefined;
+  return {
+    source: "worker",
+    severity: failure.final ? "error" : "warning",
+    ...describeThrown(err),
+    jobName: name,
+    jobAttempt: failure.attempt,
+    jobFinal: failure.final,
+    ...(companyId ? { companyId } : {}),
+    ...(release ? { release } : {}),
   };
 }
