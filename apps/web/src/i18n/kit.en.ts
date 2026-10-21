@@ -195,7 +195,7 @@ export const kitEn = {
     errorTitle: "We could not sign you in",
     errorBody: "The link may have expired or been used already. Request a new one and try again.",
     confirmTitle: "Finish signing in",
-    confirmBody: (email: string) => `Select the button to sign in as ${email}.`,
+    confirmBody: (email: string): string => `Select the button to sign in as ${email}.`,
     confirmButton: "Sign in",
     confirmHelp:
       "This extra step keeps your link safe: email security filters open links to check them, and would otherwise use it up before you do.",
