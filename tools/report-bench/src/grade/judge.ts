@@ -107,7 +107,8 @@ export async function observe(
 const JudgeSchema = z.object({
   mapping: z.array(
     z.object({
-      item: z.number().int(),
+      // An entry without an item number (null) is dropped below; the item then reads as unmapped.
+      item: z.number().int().nullable(),
       // The judge sometimes names the ground-truth kind instead ("distractor", "works_well"); the
       // problem ids it gives decide the mapping then, so an unknown kind reads as other_supported.
       kind: z

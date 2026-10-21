@@ -1,0 +1,10 @@
+{
+  "notes": [
+    "instance http://127.0.0.1:4290, embedding route openai/text-embedding-3-small",
+    "simulator anthropic/claude-haiku-5.5 (temperature 0.7, seed 7)"
+  ],
+  "spend": {
+    "openrouter_key_delta_before_grading": 2.4726522799999984,
+    "product_ledger_this_run": 2.6389472800000036
+  }
+}

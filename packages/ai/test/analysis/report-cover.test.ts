@@ -146,6 +146,15 @@ describe("confidence in the report (D-478)", () => {
       expect(row.split("|").length - 2).toBe(4);
   });
 
+  it("never lists a small sample as a quick win or a strategic bet (D-479)", () => {
+    const big = { ...opp("Shared form", 5), rankScore: 80 };
+    const thin = { ...opp("Lab call", 1), clusterKey: "lab", rankScore: 90 };
+    const md = renderReport(input({ opportunities: [thin, big] }));
+    const quick = md.slice(md.indexOf("**Quick wins**"), md.indexOf("**Strategic bets**"));
+    expect(quick).toContain("Shared form");
+    expect(quick).not.toContain("Lab call");
+  });
+
   it("sets each quote as a blockquote of its own, so two people's words never run together", () => {
     const o = opp("Shared form", 5);
     const md = renderReport(
