@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { getStrings, requestLocale } from "@/i18n/server";
 import { requireMe } from "@/lib/admin/me";
+import { parseSmallSample } from "@/lib/analysis/confidence";
 import { isWeightsPreset, parseWeights } from "@/lib/analysis/rank";
 import { RESULTS_TABS } from "@/lib/analysis/tabs";
 import { isApiError } from "@/lib/api/errors";
@@ -118,6 +119,10 @@ export default async function ResultsPage({ params, searchParams }: Props): Prom
             canPromote={settled(tenantR).data?.effective?.["features.chaining"] !== false}
             canEdit={canEdit}
             k={typeof k === "number" ? k : 3}
+            smallSample={parseSmallSample(
+              settled(settingsR).data?.effective?.["analysis.smallSampleInterviews"] ??
+                values["analysis.smallSampleInterviews"],
+            )}
             departments={departmentsR.status === "fulfilled" ? departmentsR.value : null}
             departmentsFailed={wantsExtras && departmentsR.status === "rejected"}
             edits={editsR.status === "fulfilled" ? editsR.value : []}

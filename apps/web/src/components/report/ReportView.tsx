@@ -1,13 +1,17 @@
 "use client";
 
-import { REPORT_SECTIONS, type ReportSection } from "@aidp/shared";
+import { REPORT_SECTIONS, reportReviewMarkdown, type ReportSection } from "@aidp/shared";
 import {
+  BadgeCheckIcon,
   CheckIcon,
   ChevronDownIcon,
   DownloadIcon,
+  FilePenLineIcon,
   FileTextIcon,
   Loader2Icon,
   PrinterIcon,
+  RotateCcwIcon,
+  ShieldCheckIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -17,6 +21,7 @@ import { Panel } from "@/components/admin/Panel";
 import { startNavigationProgress } from "@/components/common/NavigationProgress";
 import { notify } from "@/components/common/notify";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox } from "@/components/ui/combobox";
@@ -32,7 +37,7 @@ import { Label } from "@/components/ui/label";
 import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
-import type { Analysis, Report } from "@/lib/api/schemas";
+import type { Analysis, Report, ReportReviewView } from "@/lib/api/schemas";
 import { analysisReportPdfUrl } from "@/lib/api/staff";
 import { saveFromUrl, saveText } from "@/lib/exports/download";
 import { splitReportSections, visibleMarkdown } from "@/lib/report/sections";
@@ -59,6 +64,8 @@ export function ReportView({
   selected,
   report,
   initialSections,
+  canReview = false,
+  language = "en",
 }: {
   campaignId: string;
   campaignName: string;
@@ -66,11 +73,38 @@ export function ReportView({
   selected: Analysis | undefined;
   report: Report | null;
   initialSections: ReportSection[];
+  /** Administrators mark a report reviewed; members see its state (D-478). */
+  canReview?: boolean;
+  /** `analysis.language`: the language the downloaded status line is written in. */
+  language?: string;
 }): React.JSX.Element {
   const s = t.admin.report;
   const router = useRouter();
   const [enabled, setEnabled] = React.useState<ReportSection[]>(initialSections);
   const [busy, setBusy] = React.useState(false);
+  const [review, setReview] = React.useState<ReportReviewView | null>(report?.review ?? null);
+  const [reviewBusy, setReviewBusy] = React.useState(false);
+  const reviewed = review?.status === "reviewed";
+  const reviewer = review?.reviewedBy ?? "";
+  const reviewedOn = formatDate(review?.reviewedAt);
+
+  const setReviewStatus = (status: "draft" | "reviewed"): void => {
+    if (!selected) return;
+    setReviewBusy(true);
+    staffClient.analyses
+      .review(selected.id, status)
+      .then((next) => {
+        setReview(next);
+        notify.success(status === "reviewed" ? s.review.marked : s.review.reopened);
+        router.refresh();
+      })
+      .catch((e: unknown) => {
+        notify.error(e instanceof Error ? e.message : t.app.unknownError);
+      })
+      .finally(() => {
+        setReviewBusy(false);
+      });
+  };
   const enabledSet = React.useMemo(() => new Set<string>(enabled), [enabled]);
   const chunks = React.useMemo(
     () => (report ? splitReportSections(report.markdown, report.sections) : []),
@@ -91,8 +125,19 @@ export function ReportView({
 
   const downloadMarkdown = (): void => {
     if (!report) return;
+    // Every copy says whether it was reviewed, and by whom (D-478).
+    const status = review
+      ? reportReviewMarkdown(
+          {
+            status: review.status,
+            reviewedBy: review.reviewedBy ?? null,
+            reviewedAt: review.reviewedAt ? new Date(review.reviewedAt) : null,
+          },
+          language,
+        )
+      : "";
     const file = saveText(
-      markdown,
+      status ? `${status}\n\n${markdown}` : markdown,
       `${slugOf(campaignName)}-report-v${String(report.version)}.md`,
       "text/markdown",
     );
@@ -118,9 +163,72 @@ export function ReportView({
   };
 
   const versions = analyses.filter((a) => a.status === "done");
+  const checks = selected?.stats.verification;
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[19rem_minmax(0,1fr)] print:block">
       <aside aria-label={s.optionsLabel} className="grid gap-4 xl:sticky xl:top-20 print:hidden">
+        {report && review ? (
+          <Panel title={s.review.title} headingLevel={2}>
+            <div className="grid gap-3 px-5 py-4" data-testid="report-review">
+              <div className="flex items-center gap-2">
+                <Badge variant={reviewed ? "success" : "warning"}>
+                  {reviewed ? <BadgeCheckIcon aria-hidden="true" /> : <FilePenLineIcon aria-hidden="true" />}
+                  {reviewed ? s.review.reviewed : s.review.draft}
+                </Badge>
+              </div>
+              <p className="text-muted-foreground text-sm leading-relaxed" role="status" aria-live="polite">
+                {reviewed
+                  ? s.review.reviewedBody(reviewer, reviewedOn)
+                  : canReview
+                    ? s.review.draftBody
+                    : s.review.draftBodyMember}
+              </p>
+              {canReview && !reviewed ? (
+                <Button
+                  onClick={() => {
+                    setReviewStatus("reviewed");
+                  }}
+                  loading={reviewBusy}
+                  disabled={!selected}
+                >
+                  <BadgeCheckIcon aria-hidden="true" /> {s.review.markReviewed}
+                </Button>
+              ) : null}
+              {canReview && reviewed ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-muted-foreground text-xs">{s.review.editsHint}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setReviewStatus("draft");
+                    }}
+                    loading={reviewBusy}
+                  >
+                    <RotateCcwIcon aria-hidden="true" /> {s.review.reopen}
+                  </Button>
+                </div>
+              ) : null}
+              {checks && (checks.quotesDropped > 0 || checks.figuresRemoved > 0) ? (
+                <p className="text-muted-foreground flex items-start gap-1.5 border-t pt-3 text-xs leading-relaxed">
+                  <ShieldCheckIcon className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+                  <span>
+                    {[
+                      checks.quotesDropped > 0
+                        ? t.admin.results.checks.quotesDropped(checks.quotesDropped)
+                        : "",
+                      checks.figuresRemoved > 0
+                        ? t.admin.results.checks.figuresRemoved(checks.figuresRemoved)
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+          </Panel>
+        ) : null}
         <Panel title={s.optionsTitle} headingLevel={2}>
           <div className="grid gap-4 px-5 py-4">
             {versions.length > 0 ? (
@@ -138,7 +246,7 @@ export function ReportView({
                     value: a.id,
                     label: `${s.generated(a.version, formatDate(a.finishedAt ?? a.createdAt))}${
                       a.preliminary ? ` · ${t.admin.results.preliminary}` : ""
-                    }`,
+                    }${a.review?.status === "reviewed" ? ` · ${s.review.reviewed}` : ""}`,
                   }))}
                   labels={{
                     placeholder: t.admin.results.version,
@@ -150,7 +258,13 @@ export function ReportView({
             ) : null}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button disabled={!report} loading={busy}>
+                <Button
+                  disabled={!report}
+                  loading={busy}
+                  // One primary action at a time: while an administrator still has to review the
+                  // report, that is it; afterwards, sharing it is.
+                  variant={canReview && review && !reviewed ? "outline" : "default"}
+                >
                   <DownloadIcon /> {t.kit.export.label}
                   <ChevronDownIcon className="ml-auto" />
                 </Button>
@@ -250,6 +364,26 @@ export function ReportView({
             aria-label={s.title}
             className="report-sheet bg-card shadow-raised mx-auto w-full max-w-[52rem] rounded-md px-5 py-8 sm:px-10 sm:py-12 md:px-14 print:max-w-none print:rounded-none print:p-0 print:shadow-none"
           >
+            {review ? (
+              reviewed ? (
+                <p
+                  className="bg-success-soft text-success-soft-foreground mb-6 flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium"
+                  data-testid="report-banner"
+                >
+                  <BadgeCheckIcon className="size-4 shrink-0" aria-hidden="true" />
+                  {s.review.bannerReviewed(reviewer, reviewedOn)}
+                </p>
+              ) : (
+                <div
+                  role="note"
+                  className="border-warning bg-warning-soft text-warning-soft-foreground mb-6 rounded-md border-l-4 px-4 py-2.5 text-sm"
+                  data-testid="report-banner"
+                >
+                  <p className="font-semibold">{s.review.bannerDraft}</p>
+                  <p className="mt-0.5 opacity-90">{s.review.bannerDraftBody}</p>
+                </div>
+              )
+            ) : null}
             <p className="text-muted-foreground mb-8 border-b pb-3 text-xs">
               {campaignName} ·{" "}
               {s.generated(report.version, formatDate(report.createdAt ?? selected?.finishedAt))}

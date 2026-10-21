@@ -547,6 +547,27 @@ suite("audit rows: every administrative mutation writes one", () => {
     });
   });
 
+  it("POST /analyses/:id/review marks a report reviewed and returns it to draft (D-478)", async () => {
+    const analysis = await world.db.analysis.create({
+      data: { companyId: world.companyId, campaignId: s.campaign!, version: 95, status: "done" },
+    });
+    await world.db.report.create({
+      data: { companyId: world.companyId, analysisId: analysis.id, version: 95, markdown: "# R" },
+    });
+    await audited(
+      "POST /analyses/:id/review",
+      `/analyses/${analysis.id}/review`,
+      { status: "reviewed" },
+      { action: "report.review", targetType: "analysis", targetId: analysis.id, actor: "admin" },
+    );
+    await audited(
+      "POST /analyses/:id/review",
+      `/analyses/${analysis.id}/review`,
+      { status: "draft" },
+      { action: "report.review_reopen", targetType: "analysis", targetId: analysis.id, actor: "admin" },
+    );
+  });
+
   it("cluster merge, split, rename and undo (FR-18)", async () => {
     const factor = { score: 3, rationale: "r" };
     const factors = {

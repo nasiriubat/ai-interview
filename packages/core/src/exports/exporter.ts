@@ -29,6 +29,10 @@ export interface PdfRequest {
   /** Short label for the cover and footer, such as `Version 3`. */
   versionLabel: string;
   date: Date;
+  /** The review status line (D-478); see `PdfInput.notice`. */
+  notice?: { text: string; tone: "draft" | "ok" } | undefined;
+  /** A diagonal mark across every page of a draft. */
+  watermark?: string | undefined;
 }
 
 export interface ExporterDeps {
@@ -83,6 +87,8 @@ export class PdfExporter {
         language: req.language,
         versionLabel: req.versionLabel,
         date: req.date,
+        ...(req.notice ? { notice: req.notice } : {}),
+        ...(req.watermark ? { watermark: req.watermark } : {}),
         brand,
         kroki: this.deps.kroki,
         ...(this.deps.limits ? { limits: this.deps.limits } : {}),

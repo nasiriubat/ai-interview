@@ -69,6 +69,7 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /campaigns/:id/analyses": ["analysis.start"],
   "PATCH /opportunities/:id": ["opportunity.override", "cluster.rename"],
   "POST /analyses/:id/opportunities/merge": ["cluster.merge"],
+  "POST /analyses/:id/review": ["report.review", "report.review_reopen"],
   "POST /opportunities/:id/split": ["cluster.split"],
   "DELETE /campaigns/:id/cluster-edits/:editId": ["cluster.edit.undo"],
   "POST /opportunities/:id/status": ["opportunity.*"],

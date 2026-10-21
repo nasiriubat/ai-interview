@@ -1,5 +1,5 @@
 import { compareDepartments, type AnalysisFact } from "@aidp/ai";
-import type { AnalysisService, SettingsService } from "@aidp/core";
+import { ReportNotFoundError, type AnalysisService, type SettingsService } from "@aidp/core";
 import { tenantBatch } from "@aidp/db";
 import {
   FactSchema,
@@ -7,6 +7,7 @@ import {
   toListResponse,
   type DepartmentComparison,
   type ListEnvelope,
+  type ReportReview,
   type SolutionClass,
 } from "@aidp/shared";
 import type { Prisma, PrismaClient } from "@prisma/client";
@@ -26,6 +27,19 @@ export type AnalysisListQuery = z.output<typeof AnalysisListQuery>;
 
 type Weights = Parameters<typeof rankScore>[1];
 
+interface ReportRow {
+  reviewStatus: string;
+  reviewedByName: string | null;
+  reviewedAt: Date | null;
+}
+
+/** The review state as the API shows it: who by name and when, never the user id (D-478). */
+export const reviewView = (r: ReportRow): ReportReview => ({
+  status: r.reviewStatus === "reviewed" ? "reviewed" : "draft",
+  reviewedBy: r.reviewStatus === "reviewed" ? r.reviewedByName : null,
+  reviewedAt: r.reviewStatus === "reviewed" ? r.reviewedAt : null,
+});
+
 interface AnalysisRow {
   id: string;
   campaignId: string;
@@ -36,6 +50,8 @@ interface AnalysisRow {
   startedAt: Date | null;
   finishedAt: Date | null;
   createdAt: Date;
+  /** The newest report of the run, when it was loaded with it. */
+  reports?: ReportRow[];
 }
 
 export interface AnalysisView {
@@ -48,6 +64,8 @@ export interface AnalysisView {
   startedAt: Date | null;
   finishedAt: Date | null;
   createdAt: Date;
+  /** The review state of its report (D-478); absent when the run has no report. */
+  review?: ReportReview;
 }
 
 export const analysisView = (a: AnalysisRow): AnalysisView => ({
@@ -60,6 +78,7 @@ export const analysisView = (a: AnalysisRow): AnalysisView => ({
   startedAt: a.startedAt,
   finishedAt: a.finishedAt,
   createdAt: a.createdAt,
+  ...(a.reports?.[0] ? { review: reviewView(a.reports[0]) } : {}),
 });
 
 type OpportunityRow = Prisma.OpportunityGetPayload<{ include: { evidence: true } }>;
@@ -85,7 +104,14 @@ const opportunityView = (o: OpportunityRow, weights: Weights) => ({
   // process facts); it says nothing to a reader and is not returned (D-143).
   evidence: o.evidence
     .filter((e) => e.snippet !== "")
-    .map((e) => ({ factId: e.factId, snippet: e.snippet, anonymized: e.anonymized })),
+    .map((e) => ({
+      factId: e.factId,
+      snippet: e.snippet,
+      anonymized: e.anonymized,
+      // Only `quote` was found word for word in the transcript it cites; the rest is shown as a
+      // paraphrase, never in quotation marks (D-478).
+      kind: e.kind === "quote" || e.kind === "paraphrase" ? e.kind : "unverified",
+    })),
 });
 
 export type OpportunityView = ReturnType<typeof opportunityView>;
@@ -100,6 +126,7 @@ export interface AnalysisDetail {
     markdown: string;
     sections: unknown;
     createdAt: Date;
+    review: ReportReview;
   } | null;
 }
 
@@ -150,6 +177,13 @@ export class AnalysisQueryService {
       this.db.analysis.findMany({
         where,
         orderBy: listOrder<Prisma.AnalysisOrderByWithRelationInput, typeof query.sort>(AnalysisList, query),
+        include: {
+          reports: {
+            orderBy: { version: "desc" },
+            take: 1,
+            select: { reviewStatus: true, reviewedByName: true, reviewedAt: true },
+          },
+        },
         take: query.limit,
         skip: query.offset,
       }),
@@ -195,6 +229,7 @@ export class AnalysisQueryService {
             markdown: report.markdown,
             sections: report.sections,
             createdAt: report.createdAt,
+            review: reviewView(report),
           }
         : null,
     };
@@ -285,6 +320,37 @@ export class AnalysisQueryService {
             before.title !== after.title),
       );
     return { added, removed, changed };
+  }
+
+  /**
+   * Marks the report of an analysis reviewed, or returns it to draft (D-478). The reviewer's name is
+   * read now and kept with the report, so every export prints who reviewed it.
+   */
+  async review(
+    companyId: string,
+    analysisId: string,
+    status: "draft" | "reviewed",
+    user: { id: string; email: string },
+  ): Promise<{ review: ReportReview; before: string; reportId: string }> {
+    const a = await this.db.analysis.findFirst({
+      where: { id: analysisId, campaign: { companyId } },
+      select: { id: true, status: true },
+    });
+    if (!a) throw notFound("Analysis");
+    if (a.status !== "done") throw new AppError("conflict", "The analysis has not finished", { analysisId });
+    const row = await this.db.user.findUnique({ where: { id: user.id }, select: { name: true } });
+    const trimmed = row?.name?.trim() ?? "";
+    const name = trimmed === "" ? user.email : trimmed;
+    let result;
+    try {
+      result = await this.analysis.review(companyId, analysisId, status, { id: user.id, name });
+    } catch (e) {
+      if (e instanceof ReportNotFoundError)
+        throw new AppError("conflict", "This analysis has no report yet", { analysisId });
+      throw e;
+    }
+    const report = await this.db.report.findUniqueOrThrow({ where: { id: result.reportId } });
+    return { review: reviewView(report), before: result.before, reportId: result.reportId };
   }
 
   async opportunity(companyId: string, id: string): Promise<{ opportunity: OpportunityView }> {

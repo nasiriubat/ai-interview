@@ -17,6 +17,7 @@ import {
   InfoIcon,
   ListOrderedIcon,
   Loader2Icon,
+  ShieldCheckIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -46,6 +47,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAnalysisPolling } from "@/hooks/useAnalysisPolling";
 import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { t } from "@/i18n";
+import { DEFAULT_SMALL_SAMPLE } from "@/lib/analysis/confidence";
 import { editErrorText } from "@/lib/analysis/edit-errors";
 import {
   effectiveClass,
@@ -82,6 +84,8 @@ export interface ResultsViewProps {
   /** The versions table, rendered by the server page (it is a paginated list). */
   versions?: React.ReactNode;
   initialTab?: ResultsTab;
+  /** `analysis.smallSampleInterviews` in force (D-478). */
+  smallSample?: number;
 }
 
 /** The classes shown as groups of their own, in order; the rest form the "not the answer" section. */
@@ -103,6 +107,7 @@ export function ResultsView({
   edits = [],
   versions = null,
   initialTab = "overview",
+  smallSample = DEFAULT_SMALL_SAMPLE,
 }: ResultsViewProps): React.JSX.Element {
   const s = t.admin.results;
   const router = useRouter();
@@ -264,6 +269,8 @@ export function ResultsView({
     } catch (e) {
       throw new Error(editErrorText(e, k));
     }
+    // A rename returns a reviewed report to draft (D-478); the header says so after a refresh.
+    router.refresh();
   };
 
   const q = filters.query.trim().toLowerCase();
@@ -282,6 +289,9 @@ export function ResultsView({
   const notAi = visible.filter((o) => isNotAi(effectiveClass(o)));
 
   const opened = openId ? (opps.find((o) => o.id === openId) ?? null) : null;
+  // "N of M interviews": M is what this version analysed (D-478).
+  const interviewsTotal = selected?.stats.sessions ?? 0;
+  const checks = selected?.stats.verification;
 
   const row = (o: Opportunity, inNotAi: boolean): React.JSX.Element => (
     <OpportunityRow
@@ -290,6 +300,8 @@ export function ResultsView({
       busy={action.busy}
       active={openId === o.id}
       whyNotAiFirst={inNotAi}
+      interviewsTotal={interviewsTotal}
+      smallSample={smallSample}
       onOpen={() => {
         setOpenId(o.id);
       }}
@@ -363,7 +375,11 @@ export function ResultsView({
           <Alert variant="warning">
             <InfoIcon aria-hidden="true" />
             <AlertTitle>{s.preliminaryTitle}</AlertTitle>
-            <AlertDescription>{s.preliminaryHint}</AlertDescription>
+            <AlertDescription>
+              {selected.stats.needed !== undefined && selected.stats.needed > selected.stats.sessions
+                ? s.preliminaryCounts(selected.stats.sessions, selected.stats.needed)
+                : s.preliminaryHint}
+            </AlertDescription>
           </Alert>
         ) : null}
         {latest?.status === "queued" && latest.stats.trigger === "auto" && latest.stats.autoStartAt ? (
@@ -371,6 +387,22 @@ export function ResultsView({
             <InfoIcon aria-hidden="true" />
             <AlertDescription>{s.autoWaiting(formatDate(latest.stats.autoStartAt))}</AlertDescription>
           </Alert>
+        ) : null}
+        {selected?.status === "done" && checks && (checks.quotesDropped > 0 || checks.figuresRemoved > 0) ? (
+          <p
+            className="text-muted-foreground flex items-start gap-1.5 text-xs leading-relaxed"
+            data-testid="evidence-checks"
+          >
+            <ShieldCheckIcon className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              {[
+                checks.quotesDropped > 0 ? s.checks.quotesDropped(checks.quotesDropped) : "",
+                checks.figuresRemoved > 0 ? s.checks.figuresRemoved(checks.figuresRemoved) : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            </span>
+          </p>
         ) : null}
         {canEdit && selected?.status === "done" && !onNewest && !newerReady ? (
           <p className="text-muted-foreground text-xs">{s.onlyNewest}</p>
@@ -575,6 +607,8 @@ export function ResultsView({
               : undefined
           }
           onRename={editable ? (title) => rename(opened, title) : undefined}
+          interviewsTotal={interviewsTotal}
+          smallSample={smallSample}
         />
       ) : null}
       {splitting ? (
@@ -601,7 +635,10 @@ export function ResultsView({
           onOpenChange={(open) => {
             if (!open) setEditing(null);
           }}
-          onSaved={replace}
+          onSaved={(o) => {
+            replace(o);
+            router.refresh();
+          }}
         />
       ) : null}
       {promoting ? (

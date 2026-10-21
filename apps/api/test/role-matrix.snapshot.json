@@ -2219,6 +2219,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "POST /analyses/:id/review": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 400,
+      "operator": 400,
+      "crossTenantAdmin": 404
+    }
+  },
   "POST /budgets": {
     "access": "admin",
     "isolation": true,

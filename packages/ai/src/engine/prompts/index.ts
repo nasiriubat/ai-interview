@@ -1,6 +1,6 @@
 import { clusteringPromptV2 } from "../../analysis/prompts/clustering.v2.js";
-import { opportunityPromptV2 } from "../../analysis/prompts/opportunity.v2.js";
-import { reportPromptV2 } from "../../analysis/prompts/report.v2.js";
+import { opportunityPromptV3 } from "../../analysis/prompts/opportunity.v3.js";
+import { reportPromptV3 } from "../../analysis/prompts/report.v3.js";
 import { fileSummaryPromptV2 } from "../../ingest/prompts/file-summary.v2.js";
 import { imageDescribePromptV2 } from "../../ingest/prompts/image-describe.v2.js";
 import { issuesPromptV3 } from "../../spec/prompts/issues.v3.js";
@@ -31,8 +31,8 @@ export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
   turn_meta_repair: turnMetaRepairPromptV3,
   extraction: extractionPromptV4,
   clustering: clusteringPromptV2,
-  opportunity: opportunityPromptV2,
-  report: reportPromptV2,
+  opportunity: opportunityPromptV3,
+  report: reportPromptV3,
   issues: issuesPromptV3,
   spec: specPromptV3,
   requirement_merge: requirementMergePromptV3,

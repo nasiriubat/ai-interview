@@ -134,7 +134,11 @@ class Model {
   }
 }
 
-async function run(k = K) {
+/** What each participant said: their quote, word for word, so every quote verifies (D-478). */
+const said = (): Map<string, string[]> =>
+  new Map(facts.map((f) => [f.sessionId, ["quote" in f.fact && f.fact.quote ? f.fact.quote : ""]]));
+
+async function run(k = K, transcripts: Map<string, string[]> = said()) {
   const model = new Model();
   const result = await runAnalysis(
     {
@@ -156,6 +160,7 @@ async function run(k = K) {
       language: "en",
       sections: ["executive_summary", "participation", "work_map", "opportunities"] as ReportSection[],
       overrides: {},
+      transcripts,
     },
   );
   const byCluster = (key: string) => result.opportunities.find((o) => o.clusterKey === key)!;
@@ -201,6 +206,46 @@ describe("evidence snippets", () => {
     expect(two.byCluster(KEY.duo).evidence.every((e) => e.snippet !== "")).toBe(true);
     expect(two.byCluster(KEY.solo).evidence.every((e) => e.snippet === "")).toBe(true);
     expect(four.byCluster(KEY.trio).evidence.every((e) => e.snippet === "")).toBe(true);
+  });
+});
+
+describe("quotes that are not in the transcript (D-478)", () => {
+  it("are not shown as quotes: the fact stays as a paraphrase, another verified quote is used, and the drop is counted", async () => {
+    const transcripts = said();
+    // The participant behind "same numbers twice" said something else.
+    transcripts.set("s_p5", ["We type the same values into two systems every evening."]);
+    const { result, byCluster } = await run(K, transcripts);
+    const trio = byCluster(KEY.trio);
+
+    expect(trio.stats.quotes).not.toContain("same numbers twice");
+    expect(trio.stats.quotes).toHaveLength(2);
+    const p5 = trio.evidence.find((e) => e.factId === "trio2")!;
+    expect(p5.kind).toBe("paraphrase");
+    expect(p5.snippet).toContain("Charting in two systems");
+    expect(p5.snippet).not.toContain("same numbers twice");
+    // Verified quotes come first.
+    expect(trio.evidence.map((e) => e.kind)).toEqual(["quote", "quote", "paraphrase"]);
+    expect(result.stats.verification).toMatchObject({
+      quotesChecked: 6,
+      quotesVerified: 5,
+      quotesDropped: 1,
+    });
+    expect(result.report.markdown).not.toContain("same numbers twice");
+    expect(result.report.markdown).toContain("1 quote could not be verified and was left out");
+  });
+
+  it("does not count a dropped quote below k, where it would not have been shown anyway", async () => {
+    const transcripts = said();
+    transcripts.delete("s_p1");
+    const { result } = await run(K, transcripts);
+    expect(result.stats.verification.quotesDropped).toBe(0);
+    expect(result.stats.verification.quotesVerified).toBe(5);
+  });
+
+  it("are all left out when there are no transcripts at all", async () => {
+    const { result, byCluster } = await run(K, new Map());
+    expect(byCluster(KEY.trio).stats.quotes).toEqual([]);
+    expect(result.stats.verification.quotesDropped).toBe(3);
   });
 });
 

@@ -11,6 +11,8 @@ Extends contract 16. All routes are staff routes under `/api/v1`, tenant-scoped.
 | GET    | `/analyses/:id`               |      | `{ analysis: Analysis, opportunities: Opportunity[], report: Report \| null }`   |
 | GET    | `/analyses/:id/diff/:otherId` |      | `{ added: Opportunity[], removed: Opportunity[], changed: [{ before, after }] }` |
 
+Report review (D-478), admin: `POST /analyses/:id/review` with `{ status: "reviewed" | "draft" }` answers `{ review: { status, reviewedBy: string | null, reviewedAt: string | null } }`. `Report` and each listed `Analysis` carry the same `review`; `Analysis.stats` gains `started`, `needed` and `verification: { quotesChecked, quotesVerified, quotesDropped, figuresChecked, figuresRemoved }`; `ClusterStats` gains `sessions`; evidence rows gain `kind: "quote" | "paraphrase" | "unverified"`, and only `quote` is shown as a quote.
+
 `Analysis`: `{ id, campaignId, version, status: "queued" \| "running" \| "done" \| "failed", preliminary: boolean, stats: { sessions, facts, clusters, participants, thresholdMet: boolean, error?: string }, startedAt?, finishedAt?, createdAt }`.
 
 `Opportunity`: `{ id, analysisId, clusterKey, title, summary, solutionClass, factors: { [key]: { score, rationale } }, rationale, rankScore, status, adminOverride: OpportunityOverride \| null, stats: ClusterStats, dataNeeded: string[], risks: string[], whyNotAi?: string, evidence: [{ factId, snippet, anonymized }] }`.
@@ -47,7 +49,7 @@ Refusals are `409` with `details.reason` of `stale_analysis`, `rerun_required`, 
 
 ## Weights and report settings
 
-Through `/settings` with scope `campaign` or `tenant`: `analysis.weightsPreset`, `analysis.weights`, `analysis.similarityThreshold`, `analysis.reportSections`, `analysis.preliminaryVisibleToMembers`, `analysis.departmentComparison`, `analysis.language`. Changing weights re-ranks stored opportunities on the next GET (rank is computed from stored factors).
+Through `/settings` with scope `campaign` or `tenant`: `analysis.weightsPreset`, `analysis.weights`, `analysis.similarityThreshold`, `analysis.reportSections`, `analysis.preliminaryVisibleToMembers`, `analysis.departmentComparison`, `analysis.language`, `analysis.smallSampleInterviews` (D-478). Changing weights re-ranks stored opportunities on the next GET (rank is computed from stored factors).
 
 ## Trigger
 

@@ -6,3 +6,4 @@ export * from "./clustering.js";
 export * from "./edits.js";
 export * from "./departments.js";
 export * from "./split.js";
+export * from "./verify.js";

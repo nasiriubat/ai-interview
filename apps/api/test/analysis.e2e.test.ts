@@ -107,8 +107,22 @@ suite("analysis end to end", () => {
             minutesPerOccurrence: 30,
             tools: ["Excel"],
             painScore: 6,
-            quote: `quote ${i}`,
+            quote: `I type every note twice on shift ${i}`,
           },
+        },
+      });
+      // What the participant said. The third did not say their quote: it was invented, and the
+      // check against the transcript leaves it out (D-478).
+      await db.message.create({
+        data: {
+          companyId: world.companyId,
+          sessionId: session.id,
+          seq: 1,
+          role: "user",
+          content:
+            i < 2
+              ? `Honestly? I type every note twice on shift ${i}, once in each system.`
+              : "We mostly chart once, then the spreadsheet is filled in by someone else.",
         },
       });
     }
@@ -141,11 +155,11 @@ suite("analysis end to end", () => {
         id: string;
         clusterKey: string;
         rankScore: number;
-        stats: { participants: number; quotes: string[] };
-        evidence: unknown[];
+        stats: { participants: number; sessions: number; quotes: string[] };
+        evidence: { kind: string; snippet: string }[];
         status: string;
       }[];
-      report: { markdown: string } | null;
+      report: { markdown: string; review: { status: string; reviewedBy: string | null } } | null;
     }>();
     expect(body.analysis.status).toBe("done");
     expect(body.analysis.stats).toMatchObject({
@@ -153,14 +167,48 @@ suite("analysis end to end", () => {
       clusters: 1,
       embedding: "lexical",
       thresholdMet: false,
+      started: 3,
+      verification: { quotesChecked: 3, quotesVerified: 2, quotesDropped: 1 },
     });
     expect(body.opportunities).toHaveLength(1);
     const opp = body.opportunities[0]!;
     expect(opp.stats.participants).toBe(3);
-    expect(opp.stats.quotes).toHaveLength(3); // k = 3 met
-    expect(opp.evidence).toHaveLength(3);
+    expect(opp.stats.sessions).toBe(3);
+    // k = 3 is met, so quotes are shown: the two that were said, not the invented one.
+    expect(opp.stats.quotes).toEqual([
+      "I type every note twice on shift 0",
+      "I type every note twice on shift 1",
+    ]);
+    expect(opp.evidence.map((e) => e.kind)).toEqual(["quote", "quote", "paraphrase"]);
+    expect(JSON.stringify(opp.evidence)).not.toContain("shift 2");
     expect(opp.rankScore).toBeGreaterThan(50);
     expect(body.report?.markdown).toContain("Single entry of notes");
+    expect(body.report?.markdown).toContain("**Based on 3 completed interviews.**");
+    expect(body.report?.markdown).toContain("Mentioned in 3 of 3 interviews");
+    expect(body.report?.markdown).toContain("1 quote could not be verified and was left out");
+    expect(body.report?.markdown).toContain("**Small sample.** The campaign set 5 completed interviews");
+
+    // Review (D-478): a new version is a draft; an administrator marks it reviewed.
+    expect(body.report?.review).toEqual({ status: "draft", reviewedBy: null, reviewedAt: null });
+    const reviewed = await app.inject({
+      method: "POST",
+      url: `/api/v1/analyses/${analysis.id}/review`,
+      headers: h,
+      payload: { status: "reviewed" },
+    });
+    expect(reviewed.statusCode).toBe(200);
+    expect(reviewed.json<{ review: { status: string; reviewedBy: string } }>().review).toMatchObject({
+      status: "reviewed",
+      reviewedBy: expect.any(String),
+    });
+    const listed = await app.inject({
+      method: "GET",
+      url: `/api/v1/campaigns/${campaign.id}/analyses`,
+      headers: h,
+    });
+    expect(listed.json<{ analyses: { review?: { status: string } }[] }>().analyses[0]?.review?.status).toBe(
+      "reviewed",
+    );
 
     // Override: title and a factor; rank re-computed; then status and promotion.
     const patched = await app.inject({
@@ -180,6 +228,9 @@ suite("analysis end to end", () => {
     expect(after.title).toBe("One place for notes");
     expect(after.rankScore).toBeGreaterThan(opp.rankScore);
     expect(after.adminOverride.note).toBe("checked with the ward lead");
+    // The reviewed report no longer says what the version says: it is a draft again.
+    const reread = await app.inject({ method: "GET", url: `/api/v1/analyses/${analysis.id}`, headers: h });
+    expect(reread.json<{ report: { review: { status: string } } }>().report.review.status).toBe("draft");
 
     expect(
       (
@@ -219,7 +270,7 @@ suite("analysis end to end", () => {
     }>();
     expect(session.templateKey).toBe("requirements_discovery");
     expect(handoff.tools).toEqual(["Excel"]);
-    expect(handoff.evidenceQuotes).toHaveLength(3);
+    expect(handoff.evidenceQuotes).toHaveLength(2);
     const row = await db.session.findUniqueOrThrow({ where: { id: session.id } });
     expect(row.sourceKind).toBe("handoff");
     expect((await db.opportunity.findUniqueOrThrow({ where: { id: opp.id } })).status).toBe("promoted");

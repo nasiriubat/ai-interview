@@ -2,11 +2,12 @@
 
 import {
   ClockIcon,
+  MessagesSquareIcon,
   PanelRightOpenIcon,
   PencilIcon,
   RotateCcwIcon,
+  SproutIcon,
   StarIcon,
-  UsersIcon,
   XIcon,
 } from "lucide-react";
 import * as React from "react";
@@ -15,6 +16,7 @@ import { IconButton, RowActions } from "@/components/admin/IconButton";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { t } from "@/i18n";
+import { confidenceOf, DEFAULT_SMALL_SAMPLE } from "@/lib/analysis/confidence";
 import { effectiveClass, effectiveTitle } from "@/lib/analysis/rank";
 import type { Opportunity } from "@/lib/api/schemas";
 import type { OpportunityStatusInput } from "@/lib/api/staff";
@@ -33,6 +35,8 @@ export function OpportunityRow({
   onStatus,
   merge,
   whyNotAiFirst = false,
+  interviewsTotal = 0,
+  smallSample = DEFAULT_SMALL_SAMPLE,
 }: {
   opportunity: Opportunity;
   busy: boolean;
@@ -42,8 +46,13 @@ export function OpportunityRow({
   onStatus: (status: OpportunityStatusInput) => void;
   merge?: { selected: boolean; disabled: boolean; onChange: (selected: boolean) => void } | undefined;
   whyNotAiFirst?: boolean;
+  /** Interviews analysed in the version, for "In 3 of 12 interviews" (D-478). */
+  interviewsTotal?: number;
+  /** `analysis.smallSampleInterviews`. */
+  smallSample?: number;
 }): React.JSX.Element {
   const s = t.admin.results;
+  const confidence = confidenceOf(o.stats, interviewsTotal, smallSample);
   const title = effectiveTitle(o);
   const cls = effectiveClass(o);
   const dismissed = o.status === "dismissed";
@@ -103,10 +112,26 @@ export function OpportunityRow({
         ) : null}
         <dl className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
           <div className="flex items-center gap-1.5">
-            <dt className="sr-only">{s.card.participants}</dt>
-            <UsersIcon className="size-3.5" aria-hidden="true" />
-            <dd className="tabular-nums">{t.ws.opportunity.people(o.stats.participants)}</dd>
+            <dt className="sr-only">{t.ws.opportunity.confidence}</dt>
+            <MessagesSquareIcon className="size-3.5" aria-hidden="true" />
+            <dd className="tabular-nums" title={t.ws.opportunity.people(o.stats.participants)}>
+              {t.ws.opportunity.interviews(confidence.interviews, confidence.total)}
+            </dd>
           </div>
+          {confidence.small ? (
+            <div className="flex items-center">
+              <dt className="sr-only">{t.ws.opportunity.smallSample}</dt>
+              <dd>
+                <Badge
+                  variant="outline"
+                  className="text-muted-foreground font-normal"
+                  title={t.ws.opportunity.smallSampleBody(confidence.interviews)}
+                >
+                  <SproutIcon aria-hidden="true" /> {t.ws.opportunity.smallSample}
+                </Badge>
+              </dd>
+            </div>
+          ) : null}
           <div className="flex items-center gap-1.5">
             <dt className="sr-only">{s.card.minutesPerWeek}</dt>
             <ClockIcon className="size-3.5" aria-hidden="true" />

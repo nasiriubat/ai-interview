@@ -186,6 +186,11 @@ const input = (over: object = {}) => ({
     "next_steps",
   ] as ReportSection[],
   overrides: {},
+  // What was said in each interview: the two quotes, verbatim inside longer answers (D-478).
+  transcripts: new Map([
+    ["s1", ["Honestly, I type everything twice, once in each system."]],
+    ["s2", ["It is the same numbers in two places, every single shift."]],
+  ]),
   ...over,
 });
 
@@ -273,7 +278,7 @@ describe("runAnalysis", () => {
     expect(r.report.markdown).toContain("Where AI is not the answer");
     expect(r.report.markdown).toContain("Night shift staffing");
     expect(model.calls.filter((c) => c.name === "opportunity")).toHaveLength(3);
-    expect(r.stats.promptVersions).toEqual(["clustering@2", "opportunity@2", "report@2"]);
+    expect(r.stats.promptVersions).toEqual(["clustering@2", "opportunity@3", "report@3"]);
   });
 
   it("draws the process map once enough participants stand behind the cluster", async () => {

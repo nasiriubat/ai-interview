@@ -1,5 +1,12 @@
-import type { ClusterStats, DepartmentComparison, Factors, ReportSection, SolutionClass } from "@aidp/shared";
-import { FACTOR_KEYS, isNotAi } from "@aidp/shared";
+import type {
+  ClusterStats,
+  DepartmentComparison,
+  Factors,
+  ReportSection,
+  SolutionClass,
+  VerificationStats,
+} from "@aidp/shared";
+import { FACTOR_KEYS, interviewsOf, isNotAi } from "@aidp/shared";
 
 export interface ReportOpportunity {
   clusterKey: string;
@@ -22,6 +29,10 @@ export interface ReportInput {
     sessionsAnalyzed: number;
     facts: number;
     thresholdMet: boolean;
+    /** Interviews begun, completed or not; printed next to the completed count when known. */
+    started?: number | undefined;
+    /** The campaign's completion threshold, for the small-sample note when it is not met. */
+    needed?: number | undefined;
   };
   opportunities: ReportOpportunity[];
   narrative: { executiveSummary: string; nextSteps: string[]; caveats: string };
@@ -36,6 +47,24 @@ export interface ReportInput {
    * the cover says nothing about it rather than guessing.
    */
   provenance?: ReportProvenance | undefined;
+  /** A group mentioned in this many interviews or fewer is marked as a small sample (default 2). */
+  smallSample?: number | undefined;
+  /** What the evidence check removed, stated in the method note (D-478). */
+  verification?: VerificationStats | undefined;
+}
+
+export const DEFAULT_SMALL_SAMPLE = 2;
+
+/** "Mentioned in 3 of 12 interviews": distinct interviews, never how often it was said. */
+export function mentionedIn(stats: ClusterStats, total: number): string {
+  return `Mentioned in ${interviewsOf(stats)} of ${total} interview${total === 1 ? "" : "s"}`;
+}
+
+/** The calm note for a group that rests on one or two interviews; empty when it does not. */
+export function smallSampleNote(stats: ClusterStats, smallSample = DEFAULT_SMALL_SAMPLE): string {
+  const n = interviewsOf(stats);
+  if (n > smallSample) return "";
+  return `Small sample: this rests on ${n === 1 ? "one interview" : `${n} interviews`}, so treat it as a lead to check rather than a finding.`;
 }
 
 export interface ReportProvenance {
@@ -67,6 +96,11 @@ const FACTOR_LABEL: Record<(typeof FACTOR_KEYS)[number], string> = {
 /** Deterministic Markdown with Mermaid process maps (spec 04, FR-17a). Narrative pieces come from the model. */
 export function renderReport(input: ReportInput): string {
   const on = (s: ReportSection): boolean => input.sections.includes(s);
+  const total = input.participation.sessionsAnalyzed;
+  const small = (o: ReportOpportunity): string => {
+    const note = smallSampleNote(o.stats, input.smallSample);
+    return note ? ` ${note}` : "";
+  };
   const ranked = [...input.opportunities].sort((a, b) => b.rankScore - a.rankScore);
   const out: string[] = [
     `# Discovery report: ${input.campaignName}`,
@@ -100,7 +134,7 @@ export function renderReport(input: ReportInput): string {
       out.push(
         `### ${o.title}`,
         "",
-        `${o.stats.participants} participant${o.stats.participants === 1 ? "" : "s"}${o.stats.minutesPerWeekTotal ? `, about ${Math.round(o.stats.minutesPerWeekTotal / 60)} hours per week in total as they described it` : ""}${o.stats.tools.length ? `, tools: ${o.stats.tools.join(", ")}` : ""}.${o.stats.participants < input.k ? ` Fewer than ${input.k} participants described this, so quotes, roles, tools and process maps are withheld.` : ""}`,
+        `${mentionedIn(o.stats, input.participation.sessionsAnalyzed)} (${o.stats.participants} participant${o.stats.participants === 1 ? "" : "s"})${o.stats.minutesPerWeekTotal ? `, about ${Math.round(o.stats.minutesPerWeekTotal / 60)} hours per week in total as they described it` : ""}${o.stats.tools.length ? `, tools: ${o.stats.tools.join(", ")}` : ""}.${o.stats.participants < input.k ? ` Fewer than ${input.k} participants described this, so quotes, roles, tools and process maps are withheld.` : ""}${small(o)}`,
         "",
       );
       for (const proc of o.processes.slice(0, 2)) out.push(processMap(proc), "");
@@ -117,17 +151,18 @@ export function renderReport(input: ReportInput): string {
       out.push(
         `### ${CLASS_LABEL[cls]}`,
         "",
-        `| Rank | Opportunity | ${FACTOR_KEYS.map((k) => FACTOR_LABEL[k]).join(" | ")} |`,
-        `|---|---|${FACTOR_KEYS.map(() => "---").join("|")}|`,
+        `| Rank | Opportunity | Interviews | ${FACTOR_KEYS.map((k) => FACTOR_LABEL[k]).join(" | ")} |`,
+        `|---|---|---|${FACTOR_KEYS.map(() => "---").join("|")}|`,
       );
       for (const o of items)
         out.push(
-          `| ${o.rankScore} | ${o.title} | ${FACTOR_KEYS.map((k) => o.factors[k].score).join(" | ")} |`,
+          `| ${o.rankScore} | ${o.title} | ${interviewsOf(o.stats)} of ${total} | ${FACTOR_KEYS.map((k) => o.factors[k].score).join(" | ")} |`,
         );
       out.push("");
       for (const o of items) {
-        out.push(`**${o.title}.** ${o.summary}`);
-        if (o.stats.quotes.length) out.push("", ...o.stats.quotes.slice(0, 3).map((q) => `> ${q}`));
+        out.push(`**${o.title}.** ${o.summary}`, "", `*${mentionedIn(o.stats, total)}.${small(o)}*`);
+        // One blockquote per quote: consecutive "> " lines would run three people's words together.
+        if (o.stats.quotes.length) out.push(...o.stats.quotes.slice(0, 3).flatMap((q) => ["", `> ${q}`]));
         out.push("");
       }
     }
@@ -151,12 +186,18 @@ export function renderReport(input: ReportInput): string {
       "",
       "**Quick wins** (high simplicity, real impact):",
       "",
-      ...(quick.length ? quick.map((o) => `- ${o.title} (rank ${o.rankScore})`) : ["- none identified"]),
+      ...(quick.length
+        ? quick.map(
+            (o) => `- ${o.title} (rank ${o.rankScore}; ${interviewsOf(o.stats)} of ${total} interviews)`,
+          )
+        : ["- none identified"]),
       "",
       "**Strategic bets** (high impact, larger effort):",
       "",
       ...(strategic.length
-        ? strategic.map((o) => `- ${o.title} (rank ${o.rankScore})`)
+        ? strategic.map(
+            (o) => `- ${o.title} (rank ${o.rankScore}; ${interviewsOf(o.stats)} of ${total} interviews)`,
+          )
         : ["- none identified"]),
       "",
     );
@@ -196,12 +237,24 @@ export function cover(input: ReportInput): string[] {
     p.invited >= p.completed && p.invited > 0
       ? `${p.completed} of ${p.invited} invited people completed`
       : `${p.completed} ${p.completed === 1 ? "person" : "people"} completed`;
+  const started = p.started !== undefined && p.started > p.sessionsAnalyzed ? ` (${p.started} started)` : "";
   const out = [
+    `**Based on ${p.sessionsAnalyzed} completed interview${p.sessionsAnalyzed === 1 ? "" : "s"}${started}.**`,
+    "",
+  ];
+  if (!p.thresholdMet)
+    out.push(
+      `**Small sample.** ${p.needed !== undefined && p.needed > p.sessionsAnalyzed ? `The campaign set ${p.needed} completed interviews as the point where results are representative, and this report has ${p.sessionsAnalyzed}.` : "The campaign has not reached its completion threshold yet."} Read the patterns below as early signals; they can change as more people take part.`,
+      "",
+    );
+  out.push(
     `**Method.** ${who} a structured interview about how their work is done; ${p.sessionsAnalyzed} ${p.sessionsAnalyzed === 1 ? "interview was" : "interviews were"} analyzed. Everyone followed the same template and was asked one question at a time. Facts were extracted on a fixed schema, grouped across all interviews and scored on seven factors. Durations are self-reported.`,
     "",
     `**What this report does not do.** It does not name or attribute anything to an individual: a quote, a role or a department appears only when at least ${input.k} participants are behind it. It does not assume AI is the answer: each opportunity is classified as AI, automation, software, process or no change recommended, with the reason.`,
     "",
-  ];
+    `**How to read the evidence.** ${evidenceNote(input)}`,
+    "",
+  );
   const v = input.provenance;
   if (v) {
     const parts: string[] = [];
@@ -212,6 +265,33 @@ export function cover(input: ReportInput): string[] {
     if (parts.length) out.push(`**Reproducibility.** ${parts.join("; ")}.`, "");
   }
   return out;
+}
+
+/**
+ * The method note on confidence and checks (D-478): what "N of M" counts, what a small sample is,
+ * and what the verification removed, with its counts.
+ */
+function evidenceNote(input: ReportInput): string {
+  const n = input.smallSample ?? DEFAULT_SMALL_SAMPLE;
+  const parts = [
+    `"Mentioned in N of M interviews" counts the distinct interviews in which a topic came up, not how often it was said. A topic that rests on ${n === 1 ? "one interview" : `${n} interviews or fewer`} is marked as a small sample: a lead to check, not a finding.`,
+    "Every quote was checked word for word against the interview it comes from; a quote that could not be found there is not shown as a quote.",
+    "Counts, shares and hours stated in the written summaries were compared with the computed figures, and a sentence whose figure did not match was removed.",
+  ];
+  const v = input.verification;
+  if (v && (v.quotesDropped > 0 || v.figuresRemoved > 0)) {
+    const dropped: string[] = [];
+    if (v.quotesDropped > 0)
+      dropped.push(
+        `${v.quotesDropped} quote${v.quotesDropped === 1 ? "" : "s"} could not be verified and ${v.quotesDropped === 1 ? "was" : "were"} left out`,
+      );
+    if (v.figuresRemoved > 0)
+      dropped.push(
+        `${v.figuresRemoved} sentence${v.figuresRemoved === 1 ? "" : "s"} with an unconfirmed figure ${v.figuresRemoved === 1 ? "was" : "were"} removed`,
+      );
+    parts.push(`In this version, ${dropped.join(", and ")}.`);
+  }
+  return parts.join(" ");
 }
 
 /** A left-to-right Mermaid flowchart of a described process. Labels are quoted so punctuation is safe. */

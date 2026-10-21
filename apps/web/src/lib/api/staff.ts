@@ -55,6 +55,8 @@ import {
   ClusterEditListSchema,
   type ClusterEditResult,
   ClusterEditResultSchema,
+  ReportReviewResultSchema,
+  type ReportReviewView,
   AnalysisDetailSchema,
   type AnalysisDiff,
   AnalysisDiffSchema,
@@ -468,6 +470,13 @@ export function staffApi(transport: Transport): StaffApi {
           path: `/campaigns/${campaignId}/cluster-edits/${editId}`,
           schema: ClusterEditResultSchema,
         }),
+      review: (id, status) =>
+        request(transport, {
+          method: "POST",
+          path: `/analyses/${id}/review`,
+          body: { status },
+          schema: ReportReviewResultSchema,
+        }).then((r) => r.review),
     },
 
     opportunities: {
@@ -1045,6 +1054,8 @@ export interface StaffApi {
     merge(id: string, body: { opportunityIds: string[]; title?: string }): Promise<ClusterEditResult>;
     clusterEdits(campaignId: string): Promise<ClusterEdit[]>;
     undoClusterEdit(campaignId: string, editId: string): Promise<ClusterEditResult>;
+    /** Marks the report of a version reviewed, or returns it to draft (D-478). */
+    review(id: string, status: "draft" | "reviewed"): Promise<ReportReviewView>;
   };
   opportunities: {
     /** The cluster's facts as text, grouped by similarity, for the split dialog. */

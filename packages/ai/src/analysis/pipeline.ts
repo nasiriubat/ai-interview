@@ -6,6 +6,7 @@ import type {
   OpportunityOverride,
   ReportSection,
   SolutionClass,
+  VerificationStats,
   Weights,
 } from "@aidp/shared";
 import {
@@ -34,9 +35,10 @@ import {
 import { compareDepartments } from "./departments.js";
 import { applyClusterEdits, type ClusterEditOp } from "./edits.js";
 import { LEXICAL_THRESHOLD, LexicalEmbeddings, type EmbeddingSource } from "./embeddings.js";
-import { weeklyMinutes } from "./minutes.js";
+import { PER_WEEK, weeklyMinutes } from "./minutes.js";
 import { renderReport, type ReportOpportunity } from "./report.js";
 import { sanitizeSnippet } from "./sanitize.js";
+import { checkFigures, matchQuote, type FigureFacts } from "./verify.js";
 
 export interface AnalysisFact {
   id: string;
@@ -53,8 +55,24 @@ export interface AnalysisInput {
   campaignId: string;
   campaignName: string;
   facts: AnalysisFact[];
-  participation: { invited: number; completed: number; sessionsAnalyzed: number };
+  participation: {
+    invited: number;
+    completed: number;
+    sessionsAnalyzed: number;
+    /** Interviews that were begun (consented or further), completed or not. */
+    started?: number | undefined;
+    /** Completed interviews the campaign set as its threshold. */
+    needed?: number | undefined;
+  };
   thresholdMet: boolean;
+  /**
+   * What each participant said, per session id: the transcripts every quote is checked against
+   * before it is shown (D-478). A session that is not here has no verifiable quote, so leaving this
+   * out drops every quote rather than trusting them.
+   */
+  transcripts?: ReadonlyMap<string, readonly string[]> | undefined;
+  /** `analysis.smallSampleInterviews`: a group in this many interviews or fewer is a small sample. */
+  smallSample?: number | undefined;
   k: number;
   weights: Weights;
   similarityThreshold: number;
@@ -106,7 +124,8 @@ export interface AnalysisOpportunity {
   dataNeeded: string[];
   risks: string[];
   whyNotAi?: string | undefined;
-  evidence: { factId: string; snippet: string; anonymized: boolean }[];
+  /** `quote`: verbatim and verified against its transcript; `paraphrase`: the fact in the analysis' words. */
+  evidence: { factId: string; snippet: string; anonymized: boolean; kind: "quote" | "paraphrase" }[];
   /** Every member fact, not only the evidence rows: what edits and the next edit run anchor to. */
   factIds: string[];
   override: OpportunityOverride | null;
@@ -137,6 +156,8 @@ export interface AnalysisResult {
     unassignedNew?: number;
     /** Opportunities an edit run carried over unchanged, with no model call. */
     reusedOpportunities?: number;
+    /** What the evidence check found (D-478). */
+    verification: VerificationStats;
   };
 }
 
@@ -169,7 +190,13 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
   const participants = new Set(facts.map((f) => f.participantKey)).size;
   const versions: string[] = [];
   if (facts.length === 0) {
-    const empty = await narrative(deps, ctx, input, [], versions);
+    const verification = emptyVerification();
+    const empty = checkNarrative(
+      await narrative(deps, ctx, input, [], versions),
+      figureFacts(input, [], 0, []),
+      verification,
+      input.language,
+    );
     const markdown = renderReport({
       campaignName: input.campaignName,
       generatedAt: (deps.now ?? (() => new Date()))(),
@@ -179,6 +206,8 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
       sections: input.sections,
       k: input.k,
       language: input.language,
+      smallSample: input.smallSample,
+      verification,
     });
     return {
       clusters: [],
@@ -192,6 +221,7 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
         participants,
         embedding: "lexical",
         promptVersions: versions,
+        verification,
       },
     };
   }
@@ -216,7 +246,14 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
   // 3. Per-cluster aggregates with k-anonymity. Every fact is in a cluster; opportunities are
   // generated for the highest-ranked clusters only, so the number of model calls does not grow
   // with the campaign (a 500-fact campaign used to mean hundreds of sequential calls).
-  const byId = new Map(facts.map((f) => [f.id, f]));
+  // Quotes are checked against the transcripts here, after clustering: the clustering saw the facts
+  // as extracted, so the check cannot move a fact between groups. From here on a fact whose quote
+  // was not found is a fact without a quote (D-478).
+  const verification = emptyVerification();
+  const checked = verifyFactQuotes(facts, input.transcripts);
+  verification.quotesChecked = checked.checked;
+  verification.quotesVerified = checked.checked - checked.unverified.size;
+  const byId = new Map(checked.facts.map((f) => [f.id, f]));
   const anchored = matchOverrides(clusters, input.anchoredOverrides ?? []);
   const cap = input.maxOpportunities ?? DEFAULT_MAX_OPPORTUNITIES;
   const candidates = clusters
@@ -257,11 +294,28 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
   });
   if (selected.length > 0 && failed === selected.length) throw firstError;
   const opportunities: AnalysisOpportunity[] = [];
+  const allStats = candidates.map((x) => x.stats);
+  const totalMinutes = weeklyMinutes(checked.facts);
   selected.forEach(({ c, members, stats }, i) => {
-    const draft = results[i];
-    if (!draft) return;
+    const raw = results[i];
+    if (!raw) return;
+    // The model's figures about the campaign are compared with the computed ones; a sentence with
+    // one that does not match is removed (D-478). The administrator's own wording is theirs.
+    const draft = checkDraft(
+      raw,
+      figureFacts(input, allStats, totalMinutes, members, stats),
+      verification,
+      input.language,
+    );
     const override = anchored.byKey.get(c.key) ?? input.overrides[c.key] ?? null;
     const factors = applyFactorOverride(draft.factors, override);
+    const shown = stats.participants >= input.k;
+    if (shown)
+      verification.quotesDropped += new Set(
+        members.filter((m) => checked.unverified.has(m.id)).map((m) => checked.unverified.get(m.id)),
+      ).size;
+    // Verified quotes first, so a group whose first facts lost their quote still shows one of its own.
+    const ordered = [...members].sort((a, b) => Number(hasQuote(b.fact)) - Number(hasQuote(a.fact)));
     opportunities.push({
       clusterKey: c.key,
       title: override?.title ?? c.title ?? draft.title,
@@ -277,10 +331,11 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
       // Below k the cluster is one or two people, and a quote from it is attributable by anyone
       // who knows the team. The rows stay (the hand-off to a requirements session follows them to
       // the process facts) but carry no text, and the results API does not return them (D-143).
-      evidence: members.slice(0, 12).map((m) => ({
+      evidence: ordered.slice(0, 12).map((m) => ({
         factId: m.id,
-        snippet: stats.participants >= input.k ? sanitizeSnippet(snippet(m.fact)) : "",
+        snippet: shown ? sanitizeSnippet(snippet(m.fact)) : "",
         anonymized: true,
+        kind: hasQuote(m.fact) ? ("quote" as const) : ("paraphrase" as const),
       })),
       factIds: c.factIds,
       override,
@@ -300,7 +355,12 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     whyNotAi: o.whyNotAi,
     processes: o.stats.participants >= input.k ? c(o.clusterKey, clusters, byId) : [],
   }));
-  const story = await narrative(deps, ctx, input, opportunities, versions);
+  const story = checkNarrative(
+    await narrative(deps, ctx, input, opportunities, versions),
+    figureFacts(input, allStats, totalMinutes, checked.facts),
+    verification,
+    input.language,
+  );
   const departments = compareDepartments({
     facts,
     opportunities: opportunities.map((o) => ({
@@ -323,6 +383,8 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     language: input.language,
     departments,
     provenance: { ...input.provenance, promptVersions: [...new Set(versions)] },
+    smallSample: input.smallSample,
+    verification,
   });
 
   return {
@@ -343,6 +405,7 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
       orphanedEdits: applied.orphaned,
       unassignedNew: applied.unassignedNew,
       reusedOpportunities: reused,
+      verification,
     },
   };
 }
@@ -537,7 +600,7 @@ async function opportunityFor(
   const body = [
     `Cluster: ${cluster.name}`,
     cluster.summary ? `Summary: ${cluster.summary}` : "",
-    `Participants describing it: ${stats.participants} of ${input.participation.sessionsAnalyzed} interviewed${stats.roles.length ? ` (roles: ${stats.roles.join(", ")})` : ""}`,
+    `Mentioned in ${interviewsOfStats(stats)} of ${input.participation.sessionsAnalyzed} interviews (${stats.participants} distinct participant${stats.participants === 1 ? "" : "s"})${stats.roles.length ? `; roles: ${stats.roles.join(", ")}` : ""}`,
     stats.minutesPerWeekTotal
       ? `Self-reported time: about ${Math.round(stats.minutesPerWeekTotal)} minutes per week in total`
       : "",
@@ -576,12 +639,15 @@ async function narrative(
 ) {
   const prompt = await deps.prompts.get(input.companyId, "report", input.campaignId);
   versions.push(promptVersionTag(prompt));
+  const p = input.participation;
   const body = [
-    `Campaign: ${input.campaignName}. Invited ${input.participation.invited}, completed ${input.participation.completed}, analyzed ${input.participation.sessionsAnalyzed}. Threshold met: ${input.thresholdMet}.`,
-    opportunities.length ? "Opportunities (rank, class, title, summary):" : "No facts were extracted yet.",
+    `Campaign: ${input.campaignName}. Invited ${p.invited}${p.started !== undefined ? `, started ${p.started}` : ""}, completed ${p.completed}, analyzed ${p.sessionsAnalyzed}.${p.needed !== undefined ? ` Completion threshold: ${p.needed}.` : ""} Threshold met: ${input.thresholdMet}.`,
+    opportunities.length
+      ? "Opportunities (rank, class, title, interviews mentioning it, summary):"
+      : "No facts were extracted yet.",
     ...opportunities.map(
       (o) =>
-        `- ${o.rankScore} | ${o.solutionClass} | ${o.title} | ${o.summary}${o.whyNotAi ? ` | not AI because: ${o.whyNotAi}` : ""}`,
+        `- ${o.rankScore} | ${o.solutionClass} | ${o.title} | ${interviewsOfStats(o.stats)} of ${p.sessionsAnalyzed} interviews | ${o.summary}${o.whyNotAi ? ` | not AI because: ${o.whyNotAi}` : ""}`,
     ),
   ].join("\n");
   try {
@@ -609,6 +675,7 @@ async function narrative(
 
 export function clusterStats(members: AnalysisFact[], k: number): ClusterStats {
   const participants = new Set(members.map((m) => m.participantKey)).size;
+  const sessions = new Set(members.map((m) => m.sessionId)).size;
   const roles = uniq(members.map((m) => m.role));
   const departments = uniq(members.map((m) => m.department));
   // Tools name what a person works with, so they are a breakdown like roles and departments: held
@@ -626,6 +693,7 @@ export function clusterStats(members: AnalysisFact[], k: number): ClusterStats {
       : [];
   return {
     participants,
+    sessions,
     facts: members.length,
     roles: participants >= k ? roles : [],
     departments: participants >= k ? departments : [],
@@ -666,7 +734,114 @@ export function factText(f: Fact, opts: { quotes?: boolean } = {}): string {
 
 function snippet(f: Fact): string {
   if ("quote" in f && f.quote) return f.quote;
-  return factText(f).slice(0, 200);
+  return factText(f, { quotes: false }).slice(0, 200);
+}
+
+function hasQuote(f: Fact): boolean {
+  return "quote" in f && typeof f.quote === "string" && f.quote !== "";
+}
+
+const interviewsOfStats = (s: ClusterStats): number => s.sessions ?? s.participants;
+
+function emptyVerification(): VerificationStats {
+  return { quotesChecked: 0, quotesVerified: 0, quotesDropped: 0, figuresChecked: 0, figuresRemoved: 0 };
+}
+
+/**
+ * Every fact's quote looked up in the transcript of the session it came from (D-478). A fact whose
+ * quote is not found keeps everything else and loses the quote; `unverified` maps its id to the
+ * quote text, so a dropped quote is counted once however many facts repeated it.
+ */
+export function verifyFactQuotes(
+  facts: readonly AnalysisFact[],
+  transcripts: ReadonlyMap<string, readonly string[]> | undefined,
+): { facts: AnalysisFact[]; checked: number; unverified: Map<string, string> } {
+  const unverified = new Map<string, string>();
+  let checked = 0;
+  const out = facts.map((f) => {
+    if (!("quote" in f.fact) || !f.fact.quote) return f;
+    checked++;
+    const quote = f.fact.quote;
+    if (matchQuote(quote, transcripts?.get(f.sessionId) ?? []).ok) return f;
+    unverified.set(f.id, quote);
+    const { quote: _dropped, ...rest } = f.fact;
+    return { ...f, fact: rest };
+  });
+  return { facts: out, checked, unverified };
+}
+
+/**
+ * What the figures in model text may be checked against. Counts are the campaign's totals, the
+ * anonymity threshold and the completion threshold, and every group's interviews and people (an
+ * opportunity's text may also state its own number of facts). Hours per week are the campaign's
+ * and each group's, and each of the given facts' own.
+ */
+function figureFacts(
+  input: AnalysisInput,
+  groups: readonly ClusterStats[],
+  totalMinutes: number,
+  members: readonly AnalysisFact[],
+  own?: ClusterStats,
+): FigureFacts {
+  const p = input.participation;
+  const people = new Set(input.facts.map((f) => f.participantKey)).size;
+  const totals = [p.invited, p.completed, p.sessionsAnalyzed, people];
+  if (p.started !== undefined) totals.push(p.started);
+  const counts = [...totals, input.k];
+  if (p.needed !== undefined) counts.push(p.needed);
+  for (const g of groups) counts.push(g.participants, interviewsOfStats(g));
+  if (own) counts.push(own.participants, interviewsOfStats(own), own.facts);
+  const hours = [totalMinutes / 60, ...groups.map((g) => g.minutesPerWeekTotal / 60)];
+  for (const m of members)
+    if (m.fact.kind === "task")
+      hours.push((m.fact.minutesPerOccurrence * (PER_WEEK[m.fact.frequency] ?? 1)) / 60);
+  return {
+    counts: [...new Set(counts)],
+    totals: [...new Set(totals.filter((x) => x > 0))],
+    hoursPerWeek: hours,
+  };
+}
+
+const FIGURE_PLACEHOLDER: Record<string, string> = { en: "[figure removed]", fi: "[luku poistettu]" };
+
+function figureCheck(text: string, facts: FigureFacts, v: VerificationStats, language: string): string {
+  const placeholder = FIGURE_PLACEHOLDER[language.slice(0, 2).toLowerCase()] ?? "[figure removed]";
+  const r = checkFigures(text, facts, placeholder);
+  v.figuresChecked += r.checked;
+  v.figuresRemoved += r.removed;
+  return r.text;
+}
+
+function checkDraft(
+  draft: OpportunityDraft,
+  facts: FigureFacts,
+  v: VerificationStats,
+  language: string,
+): OpportunityDraft {
+  const factors = { ...draft.factors };
+  for (const key of Object.keys(factors) as (keyof Factors)[])
+    factors[key] = { ...factors[key], rationale: figureCheck(factors[key].rationale, facts, v, language) };
+  return {
+    ...draft,
+    summary: figureCheck(draft.summary, facts, v, language),
+    rationale: figureCheck(draft.rationale, facts, v, language),
+    factors,
+    ...(draft.whyNotAi ? { whyNotAi: figureCheck(draft.whyNotAi, facts, v, language) } : {}),
+  };
+}
+
+interface Narrative {
+  executiveSummary: string;
+  nextSteps: string[];
+  caveats: string;
+}
+
+function checkNarrative(n: Narrative, facts: FigureFacts, v: VerificationStats, language: string): Narrative {
+  return {
+    executiveSummary: figureCheck(n.executiveSummary, facts, v, language),
+    nextSteps: n.nextSteps.map((s) => figureCheck(s, facts, v, language)),
+    caveats: figureCheck(n.caveats, facts, v, language),
+  };
 }
 
 function uniq(xs: (string | undefined)[]): string[] {

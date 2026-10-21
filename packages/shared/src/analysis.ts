@@ -127,6 +127,11 @@ export type OpportunityDraft = z.infer<typeof OpportunityDraftSchema>;
 
 export const ClusterStatsSchema = z.object({
   participants: z.number().int().nonnegative(),
+  /**
+   * Distinct interviews (sessions) the group was mentioned in, the "N of M interviews" figure
+   * (D-478). Absent on analyses stored before it existed; readers fall back to `participants`.
+   */
+  sessions: z.number().int().nonnegative().optional(),
   facts: z.number().int().nonnegative(),
   roles: z.array(z.string()).default([]),
   departments: z.array(z.string()).default([]),
@@ -135,6 +140,29 @@ export const ClusterStatsSchema = z.object({
   quotes: z.array(z.string()).default([]), // present only when participants >= k
 });
 export type ClusterStats = z.infer<typeof ClusterStatsSchema>;
+
+/** Interviews behind a group: `sessions` when the analysis recorded it, `participants` before that. */
+export const interviewsOf = (stats: { participants: number; sessions?: number | undefined }): number =>
+  stats.sessions ?? stats.participants;
+
+/**
+ * What the evidence check of one analysis run found (D-478): quotes looked up in the transcripts
+ * they cite, and campaign figures in model-written text compared with computed values.
+ */
+export const VerificationStatsSchema = z.object({
+  quotesChecked: z.number().int().nonnegative(),
+  quotesVerified: z.number().int().nonnegative(),
+  /** Distinct quotes that would have been shown (their group is at or above k) and were left out. */
+  quotesDropped: z.number().int().nonnegative(),
+  figuresChecked: z.number().int().nonnegative(),
+  /** Sentences removed because a figure in them did not match what was computed. */
+  figuresRemoved: z.number().int().nonnegative(),
+});
+export type VerificationStats = z.infer<typeof VerificationStatsSchema>;
+
+/** How an evidence row may be shown: a verified verbatim quote, or a paraphrase of the fact. */
+export const EvidenceKindSchema = z.enum(["quote", "paraphrase", "unverified"]);
+export type EvidenceKind = z.infer<typeof EvidenceKindSchema>;
 
 export const OpportunityStatusSchema = z.enum(["new", "shortlisted", "promoted", "dismissed"]);
 export type OpportunityStatus = z.infer<typeof OpportunityStatusSchema>;

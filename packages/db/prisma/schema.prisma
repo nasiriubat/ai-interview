@@ -412,6 +412,8 @@ model OpportunityEvidence {
   factId        String
   snippet       String
   anonymized    Boolean @default(true)
+  /// quote (verbatim, found in the cited transcript) | paraphrase | unverified (written before D-478)
+  kind          String  @default("unverified")
 
   opportunity Opportunity @relation(fields: [opportunityId, companyId], references: [id, companyId], onDelete: Cascade)
   fact        Fact        @relation(fields: [factId, companyId], references: [id, companyId], onDelete: Cascade)
@@ -428,6 +430,12 @@ model Report {
   sections      Json     @default("[]")
   pdfStorageKey String?
   createdAt     DateTime @default(now())
+  /// draft | reviewed (D-478). A new run is a draft; an edit of its opportunities returns it to draft.
+  reviewStatus   String    @default("draft")
+  /// Who marked it reviewed: the user id (also in the audit log) and their name as it was then.
+  reviewedById   String?
+  reviewedByName String?
+  reviewedAt     DateTime?
 
   analysis Analysis @relation(fields: [analysisId, companyId], references: [id, companyId], onDelete: Cascade)
 
