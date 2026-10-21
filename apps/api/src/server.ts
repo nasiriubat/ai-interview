@@ -1,5 +1,6 @@
 import {
   BossJobs,
+  describeThrown,
   NoopMetrics,
   PgBossJobAdmin,
   PromMetrics,
@@ -48,6 +49,20 @@ async function main(): Promise<void> {
     jobAdmin: new PgBossJobAdmin(jobs.boss, db),
   });
   const app = await buildApp(ctx);
+  // A failure outside any request still reaches the error log (D-477), and still ends the process
+  // as Node would have: what is waiting is written first, for at most two seconds.
+  const crash = (kind: string) => (err: unknown) => {
+    log.error({ err }, kind);
+    ctx.errors.capture({
+      source: "api",
+      ...describeThrown(err),
+      route: kind,
+      ...(config.AIDP_VERSION ? { release: config.AIDP_VERSION } : {}),
+    });
+    void ctx.errors.close().finally(() => process.exit(1));
+  };
+  process.on("uncaughtException", crash("uncaughtException"));
+  process.on("unhandledRejection", crash("unhandledRejection"));
   // The on-server speech model is this process's to report (the worker never loads it). Read at
   // scrape time: 0 absent, 1 downloading, 2 ready, 3 failed.
   if (metrics instanceof PromMetrics) {
@@ -75,6 +90,7 @@ async function main(): Promise<void> {
     await app.close();
     clearTimeout(drain);
     await jobs.stop();
+    await ctx.errors.close();
     await db.$disconnect();
     await telemetry?.shutdown();
     process.exit(0);

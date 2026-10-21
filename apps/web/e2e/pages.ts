@@ -403,6 +403,9 @@ export const PAGES: Entry[] = [
   operator("operator-tenant", "/admin/operator/tenants/c2", "app/admin/operator/tenants/[id]/page.tsx"),
   operator("operator-statements", "/admin/operator/statements", "app/admin/operator/statements/page.tsx"),
   operator("operator-health-empty", "/admin/operator/health", "app/admin/operator/health/page.tsx", "empty"),
+  operator("operator-errors", "/admin/operator/errors", "app/admin/operator/errors/page.tsx"),
+  operator("operator-errors-empty", "/admin/operator/errors", "app/admin/operator/errors/page.tsx", "empty"),
+  operator("operator-error", "/admin/operator/errors/eg1", "app/admin/operator/errors/[id]/page.tsx"),
   operator("operator-tenants-empty", "/admin/operator", "app/admin/operator/page.tsx", "empty"),
 ];
 
@@ -411,6 +414,7 @@ export const NOT_DOCUMENTS = new Set([
   "app/api/auth/[...nextauth]/route.ts",
   "app/api/branding/logo/route.ts",
   "app/api/csp-report/route.ts",
+  "app/api/errors/route.ts",
   "app/api/health/route.ts",
   "app/api/pilot/route.ts",
   "app/api/participant/[...path]/route.ts",

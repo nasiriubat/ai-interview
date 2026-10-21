@@ -677,6 +677,15 @@ export const SETTINGS = {
     category: "ops",
     description: "Hours without a successful backup before it is reported missing",
   }),
+  // The built-in error log (D-477): how long a fault that has stopped happening stays listed.
+  "ops.errorLogRetentionDays": def({
+    schema: z.number().int().min(1).max(90),
+    default: 7,
+    scopes: ["platform"],
+    category: "ops",
+    description: "Days an error group and its occurrences are kept after they were last seen",
+    since: "2026.10",
+  }),
   // Notifications to a tenant's own people (spec 07: warn before a budget is gone, never silent).
   "notifications.recipients": def({
     schema: z.array(z.string().refine(isEmailAddress, { message: "Must be an email address" })).max(20),

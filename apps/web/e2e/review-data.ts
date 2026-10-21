@@ -893,6 +893,14 @@ export function scenarioRead(name: string, path: string): Out {
       },
     };
   }
+  // The error log with nothing in it (D-477).
+  if (path === "/operator/errors" && (empty || broken)) {
+    if (broken) return SCENARIO_ERROR;
+    return { body: page("groups", []) };
+  }
+  if (path === "/operator/errors/summary" && empty) {
+    return { body: { open24h: 0, last24h: 0, last7d: 0, groups7d: 0 } };
+  }
   if (path === "/operator/health") {
     if (broken) return SCENARIO_ERROR;
     return { body: HEALTH(name) };

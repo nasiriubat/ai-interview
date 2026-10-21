@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 import { requestLocale } from "@/i18n/server";
 import { getMe } from "@/lib/admin/me";
+import { staffServer } from "@/lib/api/server";
 
 export const dynamic = "force-dynamic";
 
@@ -60,9 +61,19 @@ export default async function AdminLayout({
                 detail: undefined,
               };
   const collapsed = parseSidebar((await cookies()).get(SIDEBAR_COOKIE)?.value);
+  // The operator's sidebar carries the count of open errors (D-477). A failure here only means no
+  // badge: the page itself must never depend on it.
+  let openErrors: number | undefined;
+  if (me?.user.role === "platform_operator") {
+    try {
+      openErrors = (await (await staffServer()).operator.errors.summary()).open24h;
+    } catch {
+      openErrors = undefined;
+    }
+  }
   return (
     <CurrencyProvider currency={me?.company?.currency}>
-      <AdminShell me={me} initialCollapsed={collapsed}>
+      <AdminShell me={me} initialCollapsed={collapsed} counts={{ openErrors }}>
         {blocked ? (
           <StateView
             size="panel"

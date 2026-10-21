@@ -93,6 +93,7 @@ platform and tenant: it decides which of a tenant's own people receive that tena
 | `ops.diskCriticalPercent`      | int      | platform         | no     | `90`      | Disk use that raises it as critical                                                       |
 | `ops.providerErrorRateWarn`    | number   | platform         | no     | `0.25`    | Share of a provider's calls that failed in ten minutes (at least ten calls)               |
 | `ops.backupMaxAgeHours`        | int      | platform         | no     | `26`      | Hours without a successful backup before `backup.missing`                                 |
+| `ops.errorLogRetentionDays`    | int      | platform         | no     | `7`       | Days an error group is kept after it was last seen (1 to 90); the error log (D-477)       |
 | `notifications.recipients`     | string[] | platform, tenant | no     | `[]`      | Whose addresses receive the tenant's notices; empty means every admin of the tenant       |
 | `notifications.budgetWarnings` | boolean  | platform, tenant | no     | `true`    | Email the tenant's admins when a budget passes its warning threshold (not the exhaustion) |
 

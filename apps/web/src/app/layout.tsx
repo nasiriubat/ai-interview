@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import * as React from "react";
 import { BrandingProvider } from "@/components/common/Branding";
+import { ErrorReporter } from "@/components/common/ErrorReporter";
 import { NavigationProgress } from "@/components/common/NavigationProgress";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { ToasterHost } from "@/components/common/ToasterHost";
@@ -77,6 +78,7 @@ export default async function RootLayout({
           </BrandingProvider>
           <ToasterHost />
           <OfflineBanner />
+          <ErrorReporter />
         </LocaleProvider>
       </body>
     </html>

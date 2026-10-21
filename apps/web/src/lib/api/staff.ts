@@ -69,6 +69,13 @@ import {
   type Campaign,
   DeadJobListSchema,
   type DeadJob,
+  ErrorGroupDetailSchema,
+  ErrorGroupPageSchema,
+  ErrorGroupEnvelopeSchema,
+  ErrorSummarySchema,
+  type ErrorGroup,
+  type ErrorGroupDetail,
+  type ErrorSummary,
   PlatformHealthSchema,
   type PlatformHealth,
   QueueListSchema,
@@ -225,6 +232,7 @@ export type AuditListQuery = ListQueryOf<(typeof LISTS)["audit"]>;
 export type BudgetListQuery = ListQueryOf<(typeof LISTS)["budgets"]>;
 export type PriceListQuery = ListQueryOf<(typeof LISTS)["prices"]>;
 export type TenantListQuery = ListQueryOf<(typeof LISTS)["tenants"]>;
+export type ErrorListQuery = ListQueryOf<(typeof LISTS)["errors"]>;
 
 /**
  * `templates.list()` feeds pickers (a campaign's template, a requirements template), which want
@@ -903,6 +911,24 @@ export function staffApi(transport: Transport): StaffApi {
         runNow: (name) =>
           ok(request(transport, { method: "POST", path: `/operator/jobs/run/${encodeURIComponent(name)}` })),
       },
+      errors: {
+        list: (q) =>
+          request(transport, { path: "/operator/errors", query: { ...q }, schema: ErrorGroupPageSchema }),
+        summary: () => request(transport, { path: "/operator/errors/summary", schema: ErrorSummarySchema }),
+        get: (id) =>
+          request(transport, {
+            path: `/operator/errors/${encodeURIComponent(id)}`,
+            schema: ErrorGroupDetailSchema,
+          }),
+        resolve: (id) =>
+          request(transport, {
+            method: "POST",
+            path: `/operator/errors/${encodeURIComponent(id)}/resolve`,
+            schema: ErrorGroupEnvelopeSchema,
+          }).then((r) => r.group),
+        remove: (id) =>
+          ok(request(transport, { method: "DELETE", path: `/operator/errors/${encodeURIComponent(id)}` })),
+      },
     },
   };
 }
@@ -1130,6 +1156,14 @@ export interface StaffApi {
       retry(queue: string, id: string): Promise<void>;
       discard(queue: string, id: string): Promise<void>;
       runNow(name: string): Promise<void>;
+    };
+    /** The built-in error log (D-477): groups, one group's occurrences, the badge numbers. */
+    errors: {
+      list(q?: ErrorListQuery): Promise<Paged<ErrorGroup>>;
+      summary(): Promise<ErrorSummary>;
+      get(id: string): Promise<ErrorGroupDetail>;
+      resolve(id: string): Promise<ErrorGroup>;
+      remove(id: string): Promise<void>;
     };
   };
 }

@@ -91,6 +91,11 @@ export const JOBS = {
    */
   "ops.health-sweep": { schema: z.object({}), retryLimit: 1, expireInSeconds: 240 },
   /**
+   * Keeps the error log bounded (D-477): groups not seen for `ops.errorLogRetentionDays` go, and
+   * the ceiling on stored occurrences is enforced. Daily; the next day is the better retry.
+   */
+  "ops.error-log-sweep": { schema: z.object({}), retryLimit: 1, expireInSeconds: 300 },
+  /**
    * Walks every tenant's audit chain and writes the chain heads to the log (A2, D-163). A broken
    * chain fails the job, which dead-letters and is raised by the health sweep like any other.
    */
@@ -198,6 +203,8 @@ export const RECURRING_JOBS: {
   "ops.health-sweep": { cron: "*/5 * * * *", payload: {}, tz: "UTC" },
   // Daily, after the retention sweep: its heads are the values to copy into the backup log.
   "audit.verify": { cron: "27 5 * * *", payload: {}, tz: "UTC" },
+  // Daily, after the retention sweep: the error log keeps a week by default (D-477).
+  "ops.error-log-sweep": { cron: "37 3 * * *", payload: {}, tz: "UTC" },
   // The 1st, 02:17 UTC: the month that just ended is closed, so its statement is final (D-224).
   "billing.statement": { cron: "17 2 1 * *", payload: {}, tz: "UTC" },
 };

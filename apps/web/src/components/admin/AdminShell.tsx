@@ -6,7 +6,7 @@ import { Dialog as DrawerPrimitive } from "radix-ui";
 import * as React from "react";
 import { CommandPalette } from "@/components/admin/shell/CommandPalette";
 import { CrumbProvider } from "@/components/admin/shell/crumbs";
-import { navFor } from "@/components/admin/shell/nav";
+import { navFor, type NavCounts } from "@/components/admin/shell/nav";
 import { Brand, SideNav } from "@/components/admin/shell/Sidebar";
 import { sidebarCookie } from "@/components/admin/shell/sidebar-state";
 import { TopBar } from "@/components/admin/shell/TopBar";
@@ -26,17 +26,20 @@ import { cn } from "@/lib/utils";
 export function AdminShell({
   me,
   initialCollapsed = false,
+  counts,
   children,
 }: {
   me: Me | null;
   initialCollapsed?: boolean;
+  /** Numbers the sidebar shows beside items: open errors for the operator (D-477). */
+  counts?: NavCounts | undefined;
   children: React.ReactNode;
 }): React.JSX.Element {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(initialCollapsed);
   const [drawer, setDrawer] = React.useState(false);
   const [search, setSearch] = React.useState(false);
-  const groups = navFor(me?.user.role);
+  const groups = navFor(me?.user.role, counts);
   const branding = useBranding();
 
   // A route change closes the drawer: the link that was tapped is the reason it was open.

@@ -337,6 +337,40 @@ const factories: Record<string, Factory> = {
         title: "t",
       },
     }),
+  ErrorGroup: (db, w, tag) =>
+    db.errorGroup.create({
+      data: {
+        companyId: w.companyId,
+        groupKey: `eg-${tag}-${Math.random()}`,
+        fingerprint: `fp-${tag}`,
+        source: "api",
+        severity: "error",
+        name: "Error",
+        message: "m",
+      },
+    }),
+  // The group is created with it, in the same tenant, so the write is refused as a whole.
+  ErrorOccurrence: (db, w, tag) =>
+    db.errorOccurrence.create({
+      data: {
+        company: { connect: { id: w.companyId } },
+        source: "api",
+        severity: "error",
+        name: "Error",
+        message: "m",
+        group: {
+          create: {
+            company: { connect: { id: w.companyId } },
+            groupKey: `eo-${tag}-${Math.random()}`,
+            fingerprint: `fp-${tag}`,
+            source: "api",
+            severity: "error",
+            name: "Error",
+            message: "m",
+          },
+        },
+      },
+    }),
 };
 
 /** The column that names the owner: `id` for Company itself, `companyId` for everything else. */
@@ -442,6 +476,8 @@ describeDb("row-level security conformance (D-140)", () => {
     await owner.budget.deleteMany({ where });
     await purgeAuditLog(owner, [companyId]);
     await owner.opsAlert.deleteMany({ where });
+    await owner.errorOccurrence.deleteMany({ where });
+    await owner.errorGroup.deleteMany({ where });
     await owner.sentEmail.deleteMany({ where });
     await owner.promptVersion.deleteMany({ where });
     await owner.interviewTemplate.deleteMany({ where });

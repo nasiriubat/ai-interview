@@ -1,5 +1,6 @@
 import {
   ActivityIcon,
+  BugIcon,
   BuildingIcon,
   ClipboardListIcon,
   CoinsIcon,
@@ -26,6 +27,16 @@ export interface NavItem {
   icon: LucideIcon;
   /** Active only on this exact path, not on its children. */
   exact?: boolean;
+  /** A count beside the label (open errors, D-477); nothing is drawn for 0. */
+  badge?: number;
+  /** What the badge means, read with the label: "3 open". */
+  badgeLabel?: string;
+}
+
+/** Live numbers some navigation items carry. */
+export interface NavCounts {
+  /** Unresolved error groups seen in the last 24 hours (D-477). */
+  openErrors?: number | undefined;
 }
 
 export interface NavGroup {
@@ -68,7 +79,8 @@ export function mainNav(): NavGroup[] {
   ];
 }
 
-export function operatorNav(): NavItem[] {
+export function operatorNav(counts: NavCounts = {}): NavItem[] {
+  const errors = counts.openErrors ?? 0;
   return [
     { href: "/admin/operator", label: t.admin.nav.tenants, icon: BuildingIcon, exact: true },
     { href: "/admin/operator/providers", label: t.admin.nav.platformProviders, icon: ServerIcon },
@@ -76,15 +88,21 @@ export function operatorNav(): NavItem[] {
     { href: "/admin/operator/stats", label: t.admin.nav.platformStats, icon: ActivityIcon },
     { href: "/admin/operator/health", label: t.admin.nav.platformHealth, icon: HeartPulseIcon },
     { href: "/admin/operator/jobs", label: t.admin.nav.platformJobs, icon: ListChecksIcon },
+    {
+      href: "/admin/operator/errors",
+      label: t.admin.nav.platformErrors,
+      icon: BugIcon,
+      ...(errors > 0 ? { badge: errors, badgeLabel: t.admin.operator.errors.navOpen(errors) } : {}),
+    },
     { href: "/admin/operator/statements", label: t.ws.statements.title, icon: FileSpreadsheetIcon },
   ];
 }
 
 /** The groups a person sees: the tenant's, plus the platform's for an operator. */
-export function navFor(role: Role | undefined): NavGroup[] {
+export function navFor(role: Role | undefined, counts: NavCounts = {}): NavGroup[] {
   const main = mainNav();
   return role === "platform_operator"
-    ? [...main, { label: t.admin.nav.operator, items: operatorNav() }]
+    ? [...main, { label: t.admin.nav.operator, items: operatorNav(counts) }]
     : main;
 }
 

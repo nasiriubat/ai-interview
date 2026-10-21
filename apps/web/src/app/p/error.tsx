@@ -5,6 +5,7 @@ import * as React from "react";
 import { StatusScreen } from "@/components/participant/StatusScreen";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
+import { reportBrowserError } from "@/lib/errors/browser-report";
 
 export default function ParticipantError({
   error,
@@ -15,6 +16,8 @@ export default function ParticipantError({
 }): React.JSX.Element {
   React.useEffect(() => {
     console.error(error);
+    // To the error log, once per page load (D-477).
+    reportBrowserError(error, "boundary");
   }, [error]);
   return (
     <StatusScreen

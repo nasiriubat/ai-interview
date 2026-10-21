@@ -110,6 +110,9 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   // the platform's logo (D-434)
   "PUT /operator/branding/logo": ["branding.logo_update"],
   "DELETE /operator/branding/logo": ["branding.logo_remove"],
+  // the error log (D-477), filed under the operator's own company like the other platform verbs
+  "POST /operator/errors/:id/resolve": ["error_group.resolve"],
+  "DELETE /operator/errors/:id": ["error_group.delete"],
 };
 
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);

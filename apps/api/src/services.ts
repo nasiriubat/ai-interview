@@ -6,6 +6,7 @@ import type {
   Crypto,
   EgressGuard,
   EmailPort,
+  ErrorLogPort,
   PdfExporter,
   JobAdminPort,
   JobPublisher,
@@ -22,6 +23,7 @@ import { AnalysisQueryService } from "./modules/analysis/service.js";
 import { AuditService } from "./modules/audit/service.js";
 import { BrandingService } from "./modules/branding/service.js";
 import { CampaignService } from "./modules/campaigns/service.js";
+import { ErrorLogService } from "./modules/errors/service.js";
 import { ExportsService } from "./modules/exports/service.js";
 import { HealthService } from "./modules/health/service.js";
 import { VerificationTokenService } from "./modules/internal-auth/service.js";
@@ -71,6 +73,8 @@ export interface Services {
   /** Documents composed on request: the report PDF (D-211). */
   exports: ExportsService;
   operator: OperatorService;
+  /** The built-in error log, for the operator and for the reports browsers and the web send (D-477). */
+  errorLog: ErrorLogService;
   cryptoAdmin: CryptoAdminService;
   voiceSetup: VoiceSetupService;
   participant: ParticipantService;
@@ -107,6 +111,8 @@ export interface ServiceDeps {
   jobAdmin: JobAdminPort;
   /** Abuse counters and the alert port for open links (D-261). Absent in tools that do not alert. */
   abuse?: AbuseControls;
+  /** Where failures are recorded (D-477). */
+  errors: ErrorLogPort;
 }
 
 export function buildServices(d: ServiceDeps): Services {
@@ -202,6 +208,7 @@ export function buildServices(d: ServiceDeps): Services {
     analysisQueries,
     exports: new ExportsService(d.db, analysisQueries, d.exporter),
     cryptoAdmin: new CryptoAdminService(d.db, d.crypto, audit),
+    errorLog: new ErrorLogService(d.db, audit, d.errors, d.config.AIDP_VERSION),
     operator: new OperatorService(d.db, d.settings, d.tenants, audit, {
       jobs: d.jobs,
       ceilings: d.ceilings,

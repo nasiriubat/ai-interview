@@ -7,6 +7,7 @@ import {
   Crypto,
   EgressGuard,
   EngineFactory,
+  ErrorRecorder,
   GitHubApi,
   HttpKroki,
   MemoryEmail,
@@ -15,6 +16,7 @@ import {
   PlatformHealthService,
   PdfExporter,
   PrismaAlertState,
+  PrismaErrorStore,
   PrismaUsageCounters,
   PrismaHealthInputs,
   RequirementsService,
@@ -93,6 +95,8 @@ export interface AppContext {
   tenantExporter: TenantExporter;
   /** Every platform signal and per-tenant utilisation, for `/operator/health` (D-222). */
   platformHealth: PlatformHealthService;
+  /** The built-in error log's recorder (D-477): 5xx responses and the reports routed to it. */
+  errors: ErrorRecorder;
 }
 
 /**
@@ -123,6 +127,8 @@ export function buildContext(input: {
   jobAdmin?: JobAdminPort;
   /** Tests pass a PromMetrics to read what was recorded; the default records nothing. */
   metrics?: Metrics;
+  /** Tests pass a recorder over a MemoryErrorStore; the default writes to the database (D-477). */
+  errors?: ErrorRecorder;
 }): AppContext {
   const { config, db, log } = input;
   const metrics = input.metrics ?? new NoopMetrics();
@@ -293,6 +299,15 @@ export function buildContext(input: {
     },
     version: config.AIDP_VERSION,
   });
+  // Writes in the background and never fails the request it records (D-477).
+  const errors =
+    input.errors ??
+    new ErrorRecorder({
+      store: new PrismaErrorStore(db),
+      warn: (message, meta) => {
+        log.warn(meta ?? {}, message);
+      },
+    });
   const services = buildServices({
     db,
     config,
@@ -313,6 +328,7 @@ export function buildContext(input: {
     tenantExporter,
     jobAdmin,
     abuse: { counters: new PrismaUsageCounters(db), alerts },
+    errors,
   });
   return {
     config,
@@ -345,5 +361,6 @@ export function buildContext(input: {
     }),
     tenantExporter,
     platformHealth,
+    errors,
   };
 }

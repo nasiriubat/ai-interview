@@ -16,3 +16,4 @@ export * from "./lists.js";
 export * from "./stats.js";
 export * from "./welcome.js";
 export * from "./pilot.js";
+export * from "./errorlog.js";

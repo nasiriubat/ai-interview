@@ -563,6 +563,7 @@ export const en = {
       platformStats: "Platform stats",
       platformJobs: "Background jobs",
       platformHealth: "Platform health",
+      platformErrors: "Errors",
       groups: {
         research: "Interviews",
         configuration: "Configuration",
@@ -2453,6 +2454,94 @@ export const en = {
       utilisation: "Use of limits",
       noLimit: "no limit",
       setupProgress: (done: number, total: number): string => `${done} of ${total} set up`,
+      errors: {
+        title: "Errors",
+        subtitle:
+          "Failures in the API, background jobs, the web server and people's browsers, grouped so a repeat is one row. An error is kept for 7 days after it was last seen.",
+        search: "Search errors",
+        emptyTitle: "No errors in the last 7 days",
+        emptyBody: "Failures from the API, the background worker, the web server and browsers appear here.",
+        noOpenTitle: "No open errors in the last 7 days",
+        noOpenBody:
+          "Everything seen this week is marked resolved. Choose Status: Open and resolved to see it.",
+        columns: {
+          error: "Error",
+          source: "Source",
+          where: "Route or job",
+          tenant: "Tenant",
+          count: "Count",
+          lastSeen: "Last seen",
+          firstSeen: "First seen",
+          status: "Status",
+        },
+        filters: { source: "Source", status: "Status", period: "Period" },
+        sources: { api: "API", worker: "Worker", web: "Web server", browser: "Browser" } as Record<
+          string,
+          string
+        >,
+        severities: { error: "Error", warning: "Warning" } as Record<string, string>,
+        statuses: { open: "Open", resolved: "Resolved", all: "Open and resolved" } as Record<string, string>,
+        periods: { "24h": "Last 24 hours", "7d": "Last 7 days", all: "Everything kept" } as Record<
+          string,
+          string
+        >,
+        platform: "Platform",
+        in24h: (n: string): string => `${n} in 24 h`,
+        open: (name: string): string => `Open error: ${name}`,
+        detailTitle: "Error",
+        detailSubtitle: "The fault, how often it happened, and its most recent occurrences.",
+        allErrors: "All errors",
+        resolve: "Mark resolved",
+        resolvedDone: "Marked resolved. A new occurrence opens it again.",
+        resolvedOn: (at: string): string => `Resolved ${at}`,
+        remove: "Delete group",
+        removeTitle: "Delete this error group?",
+        removeBody:
+          "The group and its stored occurrences are deleted. If the error happens again, it starts a new group.",
+        removedDone: "Error group deleted",
+        summary: "Summary",
+        total: "Total",
+        last24h: "Last 24 hours",
+        last7d: "Last 7 days",
+        severity: "Severity",
+        route: "Route",
+        job: "Job",
+        fingerprint: "Fingerprint",
+        spread: "Other tenants",
+        elsewhere: (n: number): string =>
+          n === 0 ? "Seen only here" : `Also seen in ${n} other ${n === 1 ? "tenant" : "tenants"}`,
+        occurrences: "Recent occurrences",
+        occurrencesHint:
+          "Newest first. The 20 most recent are kept; repeats within ten seconds are counted, not kept.",
+        noOccurrences:
+          "No occurrence is stored for this group yet. Repeats within ten seconds are counted only.",
+        fields: {
+          time: "Time",
+          request: "Request",
+          path: "Path",
+          requestId: "Request ID",
+          tenant: "Tenant",
+          user: "Staff user",
+          session: "Interview session",
+          release: "Release",
+          userAgent: "Browser",
+          job: "Job",
+        },
+        attempt: (n: number): string => `attempt ${n}`,
+        finalAttempt: "last attempt",
+        willRetry: "will retry",
+        stack: "Stack trace",
+        noStack: "No stack trace was recorded.",
+        copy: "Copy details",
+        copied: "Copied",
+        card: {
+          title: "Errors",
+          description: "Failures recorded by the error log.",
+          open: (n: number): string => (n === 0 ? "None open" : `${n} open in the last 24 hours`),
+          view: "View errors",
+        },
+        navOpen: (n: number): string => `${n} open`,
+      },
       jobs: {
         title: "Background jobs",
         subtitle:
@@ -3145,6 +3234,10 @@ export const en = {
       "ops.backupMaxAgeHours": {
         label: "Hours without a backup before an alert",
         description: "A backup older than this is reported as missing.",
+      },
+      "ops.errorLogRetentionDays": {
+        label: "Days to keep errors",
+        description: "An error that has not happened again for this many days is removed from the error log.",
       },
       "notifications.recipients": {
         label: "Who receives notices",

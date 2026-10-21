@@ -62,11 +62,14 @@ function NavLink({
   onNavigate?: (() => void) | undefined;
 }): React.JSX.Element {
   const Icon = item.icon;
+  const badge = item.badge !== undefined && item.badge > 0 ? item.badge : undefined;
+  const fullLabel = badge !== undefined && item.badgeLabel ? `${item.label}, ${item.badgeLabel}` : item.label;
+  const badgeText = badge !== undefined ? (badge > 99 ? "99+" : String(badge)) : "";
   const link = (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      aria-label={collapsed ? item.label : undefined}
+      aria-label={collapsed || badge !== undefined ? fullLabel : undefined}
       {...(onNavigate ? { onClick: onNavigate } : {})}
       className={cn(
         "text-sidebar-foreground hover:bg-muted hover:text-foreground flex h-9 items-center gap-2.5 rounded-md text-sm font-medium transition-colors",
@@ -75,11 +78,29 @@ function NavLink({
           "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
       )}
     >
-      <Icon
-        className={cn("size-[18px] shrink-0", active ? "text-primary" : "text-muted-foreground")}
-        aria-hidden="true"
-      />
-      {collapsed ? null : <span className="truncate">{item.label}</span>}
+      <span className="relative inline-flex shrink-0">
+        <Icon
+          className={cn("size-[18px] shrink-0", active ? "text-primary" : "text-muted-foreground")}
+          aria-hidden="true"
+        />
+        {collapsed && badge !== undefined ? (
+          <span
+            aria-hidden="true"
+            data-nav-badge=""
+            className="bg-destructive ring-sidebar absolute -top-1 -right-1.5 size-2 rounded-full ring-2"
+          />
+        ) : null}
+      </span>
+      {collapsed ? null : <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+      {!collapsed && badge !== undefined ? (
+        <span
+          aria-hidden="true"
+          data-nav-badge=""
+          className="bg-destructive-soft text-destructive-soft-foreground ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold tabular-nums"
+        >
+          {badgeText}
+        </span>
+      ) : null}
     </Link>
   );
   if (!collapsed) return link;
@@ -87,7 +108,7 @@ function NavLink({
     <Tooltip>
       <TooltipTrigger asChild>{link}</TooltipTrigger>
       <TooltipContent side="right" sideOffset={10}>
-        {item.label}
+        {fullLabel}
       </TooltipContent>
     </Tooltip>
   );

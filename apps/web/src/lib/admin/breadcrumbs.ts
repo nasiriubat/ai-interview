@@ -27,6 +27,7 @@ function sectionLabels(): Record<string, string> {
     "/admin/operator/stats": n.platformStats,
     "/admin/operator/jobs": n.platformJobs,
     "/admin/operator/health": n.platformHealth,
+    "/admin/operator/errors": n.platformErrors,
     "/admin/operator/statements": t.ws.statements.title,
     "/admin/budgets/statements": t.ws.statements.title,
   };

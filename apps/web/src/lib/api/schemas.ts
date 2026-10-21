@@ -1418,3 +1418,67 @@ export const OffboardResultSchema = z.looseObject({
   purgeAfter: z.string().nullish(),
 });
 export type OffboardResult = z.infer<typeof OffboardResultSchema>;
+
+/** The built-in error log (D-477): one group, as `GET /operator/errors` lists it. */
+export const ERROR_SOURCES = ["api", "worker", "web", "browser"] as const;
+export type ErrorSource = (typeof ERROR_SOURCES)[number];
+export const ErrorGroupSchema = z.looseObject({
+  id: z.string(),
+  fingerprint: z.string(),
+  source: z.string(),
+  severity: z.string(),
+  name: z.string(),
+  message: z.string(),
+  route: z.string().nullish(),
+  jobName: z.string().nullish(),
+  companyId: z.string().nullish(),
+  tenantName: z.string().nullish(),
+  count: z.number(),
+  count24h: z.number().default(0),
+  count7d: z.number().default(0),
+  firstSeenAt: iso,
+  lastSeenAt: iso,
+  resolvedAt: iso.nullish(),
+  status: z.enum(["open", "resolved"]),
+});
+export type ErrorGroup = z.infer<typeof ErrorGroupSchema>;
+export const ErrorGroupPageSchema = pagedOf(ErrorGroupSchema, "groups");
+
+/** One stored occurrence: redacted, bounded, ids only (D-477). */
+export const ErrorOccurrenceSchema = z.looseObject({
+  id: z.string(),
+  companyId: z.string().nullish(),
+  occurredAt: iso,
+  source: z.string(),
+  severity: z.string(),
+  name: z.string(),
+  message: z.string(),
+  stack: z.string().nullish(),
+  route: z.string().nullish(),
+  path: z.string().nullish(),
+  method: z.string().nullish(),
+  status: z.number().nullish(),
+  requestId: z.string().nullish(),
+  userId: z.string().nullish(),
+  sessionId: z.string().nullish(),
+  release: z.string().nullish(),
+  userAgent: z.string().nullish(),
+  jobName: z.string().nullish(),
+  jobAttempt: z.number().nullish(),
+  jobFinal: z.boolean().nullish(),
+});
+export type ErrorOccurrence = z.infer<typeof ErrorOccurrenceSchema>;
+export const ErrorGroupDetailSchema = z.looseObject({
+  group: ErrorGroupSchema,
+  occurrences: z.array(ErrorOccurrenceSchema),
+  elsewhere: z.number().default(0),
+});
+export type ErrorGroupDetail = z.infer<typeof ErrorGroupDetailSchema>;
+export const ErrorSummarySchema = z.looseObject({
+  open24h: z.number(),
+  last24h: z.number(),
+  last7d: z.number(),
+  groups7d: z.number(),
+});
+export type ErrorSummary = z.infer<typeof ErrorSummarySchema>;
+export const ErrorGroupEnvelopeSchema = z.looseObject({ group: ErrorGroupSchema });

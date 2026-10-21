@@ -14,12 +14,12 @@ deploy/dc logs --tail 100 -f api   # one service
 
 ## The routine
 
-| When                | What                                                                                                                                                    | How long |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| When an alert comes | Open its section in the [alert runbook](#alert-runbook). Each says what to look at, what to do and how you know it is fixed.                            | minutes  |
-| Daily               | Operator → **Platform health**: nothing red. `deploy/dc ps`: nothing `unhealthy` or restarting. Operator → Background jobs: dead letters at 0.          | 1 minute |
-| Weekly              | Platform health → Restore drill: `Restored and matched`, within the last nine days. `offsite` is `ok` (or you have accepted that it is not configured). | 1 minute |
-| Monthly             | `pnpm audit` in a checkout; host OS updates; look at Operator → Platform stats for spend; restore a backup into a scratch database (below).             | 30 min   |
+| When                | What                                                                                                                                                                                                                        | How long |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| When an alert comes | Open its section in the [alert runbook](#alert-runbook). Each says what to look at, what to do and how you know it is fixed.                                                                                                | minutes  |
+| Daily               | Operator → **Platform health**: nothing red. `deploy/dc ps`: nothing `unhealthy` or restarting. Operator → Background jobs: dead letters at 0. Operator → [Errors](#the-error-log): no badge, or each open group looked at. | 1 minute |
+| Weekly              | Platform health → Restore drill: `Restored and matched`, within the last nine days. `offsite` is `ok` (or you have accepted that it is not configured).                                                                     | 1 minute |
+| Monthly             | `pnpm audit` in a checkout; host OS updates; look at Operator → Platform stats for spend; restore a backup into a scratch database (below).                                                                                 | 30 min   |
 
 Nothing in this list needs remembering to _look_ for a failure: failures are sent to you. The
 routine is for the things that fail slowly.
@@ -561,7 +561,8 @@ running, how many are dead-lettered, and its time limit and attempts.
   budget, discard deletes it; both are audited (`job.retry`, `job.discard`) and clear the alert.
   The page shows identifiers and the last error, never the payload's text.
 - **Run now** is offered for the jobs that take no payload: the retention sweep, the verification
-  token prune, the health sweep, the audit verification and the monthly statement.
+  token prune, the health sweep, the error log sweep, the audit verification and the monthly
+  statement.
 - **The health sweep** runs every five minutes in the worker and raises or resolves the alerts that
   need looking: stuck jobs, dead letters the worker did not see (it was killed mid-job), the backup
   status, the disk and provider error rates.
@@ -891,6 +892,57 @@ Three levels, from the cheapest to read.
 spans. A request is one trace: `session.turn` with its `model.call` children in the API, and the
 `job <name>` spans of the follow-up jobs it queued in the worker, joined by the `traceparent` carried
 in each job's payload. With no endpoint nothing is loaded and nothing is paid for.
+
+## The error log
+
+Operator → **Errors** (`/admin/operator/errors`, D-477) is the platform's own error tracker; there
+is no external service to sign up for and nothing leaves the box. The badge on the sidebar entry is
+the number of open groups seen in the last 24 hours, and Platform health has a card with the counts
+for 24 hours and 7 days.
+
+**What is recorded.**
+
+| Source    | What                                                                                                                                |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `api`     | Every 5xx answer, with what was thrown, and an uncaught exception or unhandled rejection (the process still exits, as before)       |
+| `worker`  | Every failed job attempt: a retry is a `warning`, the last attempt (the job is about to be dead-lettered) an `error`                |
+| `web`     | A page or route handler that failed on the web server (Next.js `onRequestError`), sent to the API over the internal route           |
+| `browser` | An uncaught error, an unhandled rejection or an error boundary in a participant's or an admin's browser, through `POST /api/errors` |
+
+A 4xx answer (validation, sign-in, a rate limit, a missing record) is the API doing its job and is
+never recorded. Browser reports are capped at 8 KB and ten a minute per address, sent once per error
+per page load, and the noise is dropped before it is sent (browser extensions, the ResizeObserver
+loop warning, fetches the page aborted).
+
+**What is stored.** The time, source, severity, error name, message (1 KB), stack (8 KB), route
+pattern, URL path, method and status, request id, tenant, the staff user id or the participant's
+session id, the release (`AIDP_VERSION`), the user agent and, for a job, its name and attempt.
+Never a request body, a header, a participant's answer, a name or an address. Paths, messages and
+stacks go through the Caddy access-log rules (link and invitation tokens become `<token>`; the
+values of `token`, `code`, `email` and `callbackUrl` become `REDACTED`) and the log scrub (bearer
+tokens, addresses, bare tokens).
+
+**How it stays small.** Occurrences are grouped by fingerprint (source, error name, the message
+with ids and numbers taken out, and the route pattern or the top stack frame), per tenant. A group
+keeps its total, an hourly counter for the 24-hour and 7-day figures, and the newest 20
+occurrences. At most one occurrence per group is stored every 10 seconds; the rest are counted.
+The daily `ops.error-log-sweep` job (03:37 UTC, also under Run now) deletes groups not seen for
+`ops.errorLogRetentionDays` (Settings, platform, default 7) and holds the log to 20 000
+occurrences and 5 000 groups. Writing is in the background: a request that failed is never slowed
+by being recorded, and if the database cannot take the write the process says so once on stdout
+(`could not write to the error log`) and drops it.
+
+**Working through it.** Filter by source, tenant, status and period, or search the message, route
+or job. A group shows its recent occurrences with every field, the stack and a copy button, and
+whether the same fault was seen in other tenants. **Mark resolved** when it is fixed: a new
+occurrence reopens it, so a resolved group that comes back is open again on its own. **Delete
+group** removes it and its occurrences. Both are in the audit log (`error_group.resolve`,
+`error_group.delete`), under the operator's own organization.
+
+**Access.** Only the platform operator. Both tables are under row-level security like every other
+tenant table (a group belongs to one tenant, or to the platform); the recorders and the operator's
+pages read and write as the system tenant. Offboarding a tenant removes its error rows with the rest
+of its data, and a tenant export carries them without the stack.
 
 ## What is never logged
 
