@@ -18,7 +18,9 @@ describe("self-identifying quotes (D-479)", () => {
     "kukaan muu ei tiedä miten se tehdään",
     "vain minä teen sen",
     "tein sen pohjan itse",
-  ])("flags %j", (quote) => expect(isSelfIdentifying(quote)).toBe(true));
+  ])("flags %j", (quote) => {
+    expect(isSelfIdentifying(quote)).toBe(true);
+  });
 
   it.each([
     "we type the same numbers twice",
@@ -26,7 +28,9 @@ describe("self-identifying quotes (D-479)", () => {
     "I check it every morning",
     "it takes about two days a month",
     "Sama asia kirjoitetaan kahteen kertaan",
-  ])("leaves %j alone", (quote) => expect(isSelfIdentifying(quote)).toBe(false));
+  ])("leaves %j alone", (quote) => {
+    expect(isSelfIdentifying(quote)).toBe(false);
+  });
 });
 
 describe("sentences that single a person out (D-479)", () => {

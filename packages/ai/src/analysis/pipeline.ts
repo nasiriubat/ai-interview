@@ -138,7 +138,12 @@ export interface AnalysisOpportunity {
   override: OpportunityOverride | null;
 }
 
-/** What the grounding and anonymity rules of one run left out or changed (D-479). */
+/**
+ * What the grounding and anonymity rules of one run left out or changed (D-479). A type alias, not
+ * an interface, because it is stored in `Analysis.stats`: Prisma's JSON input accepts an alias of
+ * plain fields and refuses an interface (no index signature).
+ */
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- see above
 export type GroundingStats = {
   /** Groups that rested only on an idea or wish: listed apart, unranked, not opportunities. */
   ideas: number;
@@ -323,7 +328,13 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
       const support = prior.supportFactIds?.length
         ? members.filter((m) => prior.supportFactIds?.includes(m.id))
         : members;
-      return { draft: prior.draft, support, shared: null, basis: prior.draft.basis ?? "problem" } as Assessed;
+      const reusedDraft: Assessed = {
+        draft: prior.draft,
+        support,
+        shared: null,
+        basis: prior.draft.basis ?? "problem",
+      };
+      return reusedDraft;
     }
     try {
       const { draft, numbered } = await opportunityFor(deps, ctx, input, c, members, stats, versions);
@@ -686,7 +697,12 @@ async function consolidate(
     factIds: c.factIds,
     centroid: centroidOf(c.factIds.map((id) => vectors.get(id) ?? [])),
   }));
-  const clusterOf = new Map(groups.map((g, i) => [g.id, clusters[i] as NamedCluster]));
+  const clusterOf = new Map(
+    groups.flatMap((g, i) => {
+      const c = clusters[i];
+      return c ? [[g.id, c] as const] : [];
+    }),
+  );
   const nonce = newNonce();
   const render = (batch: DraftCluster[]): string =>
     batch
@@ -1483,7 +1499,7 @@ async function clusterFacts(
     centroid: centroidOf(idx.map((j) => vectors?.[j] ?? [])),
   }));
   const merged = await mergeAndName(deps, ctx, input, facts, drafts, versions);
-  const byId = new Map(facts.map((f, i) => [f.id, vectors?.[i] ?? []]));
+  const byId = new Map(facts.map((f, i) => [f.id, vectors[i] ?? []]));
   const clusters = await consolidate(deps, ctx, input, facts, merged, byId, versions);
   return { clusters, embedding, vectors: byId };
 }
