@@ -108,7 +108,13 @@ const JudgeSchema = z.object({
   mapping: z.array(
     z.object({
       item: z.number().int(),
-      kind: z.enum(["planted", "other_supported", "unsupported"]),
+      // The judge sometimes names the ground-truth kind instead ("distractor", "works_well"); the
+      // problem ids it gives decide the mapping then, so an unknown kind reads as other_supported.
+      kind: z
+        .string()
+        .transform((k): "planted" | "other_supported" | "unsupported" =>
+          k === "planted" || k === "unsupported" ? k : "other_supported",
+        ),
       problemIds: z.array(z.string()).default([]),
       note: z.string().default(""),
     }),

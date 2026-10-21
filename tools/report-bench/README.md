@@ -27,8 +27,9 @@ pnpm --filter @aidp/report-bench bench compare baseline after-change
 Creates database `ai_discovery_bench_<name>` on the development Postgres container, migrates it,
 bootstraps it with **only** the OpenRouter key (so the routes are the production defaults from
 `packages/ai/src/routes/defaults.ts`: interview and extraction on `anthropic/claude-sonnet-5`,
-clustering and the report on `anthropic/claude-opus-5`, all via OpenRouter; no embedding route, so
-clustering uses word overlap), and starts the built API (port 4290, `--port`) and worker. The
+clustering and the report on `anthropic/claude-opus-5`, all via OpenRouter), sets the platform
+`embedding` route through the operator API the way production has it (`--embedding-model`, default
+`openai/text-embedding-3-small` via OpenRouter; `none` clears it and clustering uses word overlap), and starts the built API (port 4290, `--port`) and worker. The
 database is **kept** between runs unless `--fresh`; its per-run secrets are in
 `runs/<name>/stack.json` (git-ignored, mode 600).
 
@@ -83,6 +84,7 @@ pnpm --filter @aidp/report-bench bench run --name prod-1 \
 | -------------------------------- | --------------------------------- | ----------------------------------------------------------- |
 | `--scenario <path>`              | `scenarios/kaarna-logistics.json` | Scenario file                                               |
 | `--local` / `--fresh` / `--port` | off / off / 4290                  | Local stack; drop and recreate its database; API port       |
+| `--embedding-model <slug>`       | `openai/text-embedding-3-small`   | Platform embedding route of the local stack; `none` = none  |
 | `--base-url`, `--staff-token`    |                                   | Remote instance (API root incl. `/api/v1`) and admin JWT    |
 | `--auth-secret`, `--staff-email` |                                   | Alternative: mint the JWT when you hold `AUTH_SECRET`       |
 | `--link`, `--campaign-id`        |                                   | Use an existing open campaign                               |

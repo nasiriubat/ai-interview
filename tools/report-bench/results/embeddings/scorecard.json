@@ -1,0 +1,518 @@
+{
+  "scenario": {
+    "id": "kaarna-logistics",
+    "version": 1
+  },
+  "run": "baseline",
+  "gradedAt": "2026-10-21T10:04:41.878Z",
+  "reportSource": "analysis cmvhxv4hs00092wbqnbztpxhx",
+  "judgeModel": "anthropic/claude-sonnet-5",
+  "mappingSource": "judge",
+  "keywordAgreement": 0.58,
+  "overall": 6.7,
+  "criteria": [
+    {
+      "key": "recall",
+      "label": "Recall of planted problems",
+      "weight": 20,
+      "score": 5.2,
+      "evidence": [
+        "invoice_rekeying (4 people): found in \"AI extraction of transport order details from free-text emails into the TMS\", \"Automated PDF invoice data capture into Procountor\", \"Integration of delivery data between TMS, billing spreadsheet and Procountor\", \"TMS-to-finance billing data transfer without integration\", \"TMS-to-billing-to-Procountor integration for the delivery-to-invoice chain\"; split across 5 items",
+        "approval_delays (4 people): found in \"Proactive shipment status and credit note notifications to cut repeat inbound calls\", \"Tracked invoice approval workflow for invoices above 2,000 euros\", \"Email-based approval bottleneck for forklift spare parts above 500 euros\", \"Late overtime approvals arriving after the payroll cutoff\"; split across 4 items; merged with shipment_status_calls",
+        "shift_handover_paper (3 people): found in \"Morning dispatch handover call based on handwritten shift sheets\", \"Paper-Based Shift Handover Forms at Shift Boundaries\", \"Illegible handwriting on the paper shift sheet forcing re-verification before dispatch reporting\", \"Digital night shift handover sheet for terminal-to-planner handoff\", \"Digital shift handover log for damaged pallets and unfinished loads\", \"Digital shift handover record for terminal cross-dock supervisors\"; split across 6 items",
+        "tachograph_compliance (1 people): found in \"Tachograph Violation Follow-Up Without Written Procedure or Outcome Log\", \"Automated tachograph compliance analysis replacing manual Excel review\"; split across 2 items",
+        "shipment_status_calls (2 people): found in \"Proactive shipment status and credit note notifications to cut repeat inbound calls\", \"Phone-based freight status lookups without customer self-service\"; split across 2 items; merged with approval_delays"
+      ]
+    },
+    {
+      "key": "prevalence",
+      "label": "Prevalence accuracy",
+      "weight": 12,
+      "score": 6.7,
+      "evidence": [
+        "invoice_rekeying: true 4 (planted 5), reported 2 (off)",
+        "approval_delays: true 4 (planted 4), reported 2 (off)",
+        "shift_handover_paper: true 3 (planted 3), reported 1 (off)",
+        "tachograph_compliance: true 1 (planted 1), reported 1",
+        "shipment_status_calls: true 2 (planted 2), reported 2"
+      ]
+    },
+    {
+      "key": "ranking",
+      "label": "Ranking sensibility",
+      "weight": 10,
+      "score": 8.1,
+      "evidence": [
+        "#1 \"AI extraction of transport order details from free-text emails into the TMS\" (74.3) -> invoice_rekeying",
+        "#2 \"Automated PDF invoice data capture into Procountor\" (71.4) -> invoice_rekeying",
+        "#3 \"Proactive shipment status and credit note notifications to cut repeat inbound calls\" (65.7) -> shipment_status_calls",
+        "#4 \"Integration of delivery data between TMS, billing spreadsheet and Procountor\" (65.7) -> invoice_rekeying",
+        "#5 \"Proof-of-delivery signature and photo capture in the driver app\" (65.7) -> pod_app_works"
+      ]
+    },
+    {
+      "key": "classification",
+      "label": "Classification (incl. no-change area)",
+      "weight": 15,
+      "score": 9.3,
+      "evidence": [
+        "invoice_rekeying: ai/ai/automation/automation/automation (accept automation/ai/software) -> ok",
+        "approval_delays: automation/automation/automation/automation (accept process/software/automation) -> ok",
+        "shift_handover_paper: software/software/software/software/software/software (accept software/process/automation) -> ok",
+        "tachograph_compliance: process/automation (accept automation/software) -> partly",
+        "shipment_status_calls: automation/automation (accept software/automation/ai) -> ok",
+        "pod_app_works: none (accept none) -> ok",
+        "ai_everything (distractor): raised as none -> ok"
+      ]
+    },
+    {
+      "key": "quote_fidelity",
+      "label": "Quote fidelity",
+      "weight": 10,
+      "score": 8.9,
+      "evidence": [
+        "8 of 9 quotes verbatim in a participant answer",
+        "not_found (50% of words): \"Mentioned in N of M interviews\""
+      ]
+    },
+    {
+      "key": "hallucination",
+      "label": "No hallucination",
+      "weight": 13,
+      "score": 5,
+      "evidence": [
+        "0 unsupported item(s), 0 major and 10 minor unsupported claim(s)",
+        "minor: about 1 hours per week in total as they described it (AI extraction of order details item) (No participant gave an hours-per-week figure for this task; P09 only gave a share-of-time estimate ('about a third of the team's time'), not an hours/week number.)",
+        "minor: about 0 hours per week in total as they described it (PDF invoice capture item) (P01 reported about three hours per morning (roughly 15 hours/week), not close to 0; the displayed figure contradicts the transcript.)",
+        "minor: Participants describe about a third of the team's time going to this retyping (Supported by P09's own estimate, but report presents it as from 'participants' plural when only one (P09) gave this figure; minor overgeneralization.)",
+        "minor: This appeared in 2 of 10 interviews, so it is a narrow but deep pain concentrated in accounts payable (invoice capture item) (Only P01 described the PDF invoice capture task in this detail; the second interview count seems to come from loosely related mentions (P02's general description), stretching the 'participants' count.)",
+        "minor: about 70 invoices a day consuming roughly three hours each morning (Supported directly by P01's own statement, not a hallucination but restated correctly - included for completeness, not flagged as hallucination.)",
+        "minor: This cluster was mentioned in 2 of 10 interviews (proactive shipment status / credit note item) (Only P08 and P09 touch on status calls/credit notes tangentially; counting this as a clean 2-interview finding when the credit note detail comes from a single sentence in P08 stretches the evidence.)",
+        "minor: Terminal operations ... 75% ... Proof-of-delivery signature and photo capture in the driver app (75%) (The department comparison table's specific percentage breakdowns are derived figures not stated by any participant verbatim; presented as precise without transcript support for the exact percentage.)",
+        "minor: about 8 hours per week in total as they described it (TMS-to-finance billing data transfer item) (P06 reported about 90 minutes per day, i.e. roughly 7.5 hours per week, which rounds close but the report states 8 hours; minor rounding, not a major error.)",
+        "minor: about 5 hours per week in total as they described it (Shift-time loss from equipment breakdowns) (No participant explicitly quantified weekly hours for breakdowns in a way clearly matching 5 hours/week; this appears to be an extrapolated/invented figure not directly traceable to a transcript statement.)",
+        "minor: Facts extracted: 222 (This is a template-generated count with no way to verify against transcripts, but per instructions data artefacts of the report template are not hallucinations.)"
+      ]
+    },
+    {
+      "key": "anonymity",
+      "label": "Anonymity",
+      "weight": 10,
+      "score": 5.5,
+      "evidence": [
+        "judge: \"only one person knows how to do it... if I'm on holiday that work simply doesn't get done\" tied to tachograph compliance / Payroll and HR administrator role (Describes a uniquely identifiable single role/task combination (sole person who does tachograph checks) in a report meant to protect individuals when fewer than 3 participants are behind a theme.)",
+        "judge: References to 'the transport manager rarely replies' regarding a named single administrator's escalation emails (Narrow, single-participant anecdote about a specific interpersonal dynamic (administrator vs transport manager) that could identify the individuals involved even without naming them.)",
+        "judge: \"according to the single participant\" language attached to specific role descriptions like 'evening/night shift supervisor' with specific details (12 workers, 14:00-22:00 shift) (Combined with narrow single-interview sourcing, these specific shift and headcount details could identify the individual supervisor in a small team.)"
+      ]
+    },
+    {
+      "key": "actionability",
+      "label": "Actionability of next steps",
+      "weight": 5,
+      "score": 6,
+      "evidence": [
+        "Next steps name three concrete opportunities with rationale tied to evidence (volumes, pain ratings) but no owners are specified.",
+        "Sequencing is sensible (order entry, then invoice capture, then integration) but doesn't explicitly prioritize cheaper process fixes (e.g., approval workflow, tachograph procedure) ahead of larger AI/integration builds.",
+        "Quick wins list mixes process fixes and automation builds without clear owner assignment, reducing actionability slightly.",
+        "The 'Where AI is not the answer' section gives good signal on what not to build, aiding focus."
+      ]
+    },
+    {
+      "key": "executive_summary",
+      "label": "Executive-summary accuracy",
+      "weight": 5,
+      "score": 6,
+      "evidence": [
+        "Leads with invoice_rekeying-related opportunities (order entry, PDF invoice capture, integration), which are prevalent in the ground truth and rightly prioritized.",
+        "Mentions POD app as a working example appropriately.",
+        "Omits or buries other major ground-truth problems such as approval_delays, shift_handover_paper and tachograph_compliance, which recur across many items but are not foregrounded as major themes in the summary.",
+        "Correctly flags the distractor (AI chatbot/forecasting ideas) as unsupported speculation without a concrete problem."
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "invoice_rekeying",
+      "kind": "problem",
+      "planted": 5,
+      "observed": 4,
+      "foundIn": [
+        "AI extraction of transport order details from free-text emails into the TMS",
+        "Automated PDF invoice data capture into Procountor",
+        "Integration of delivery data between TMS, billing spreadsheet and Procountor",
+        "TMS-to-finance billing data transfer without integration",
+        "TMS-to-billing-to-Procountor integration for the delivery-to-invoice chain"
+      ],
+      "reportedParticipants": 2,
+      "classes": [
+        "ai",
+        "ai",
+        "automation",
+        "automation",
+        "automation"
+      ]
+    },
+    {
+      "id": "approval_delays",
+      "kind": "problem",
+      "planted": 4,
+      "observed": 4,
+      "foundIn": [
+        "Proactive shipment status and credit note notifications to cut repeat inbound calls",
+        "Tracked invoice approval workflow for invoices above 2,000 euros",
+        "Email-based approval bottleneck for forklift spare parts above 500 euros",
+        "Late overtime approvals arriving after the payroll cutoff"
+      ],
+      "reportedParticipants": 2,
+      "classes": [
+        "automation",
+        "automation",
+        "automation",
+        "automation"
+      ]
+    },
+    {
+      "id": "shift_handover_paper",
+      "kind": "problem",
+      "planted": 3,
+      "observed": 3,
+      "foundIn": [
+        "Morning dispatch handover call based on handwritten shift sheets",
+        "Paper-Based Shift Handover Forms at Shift Boundaries",
+        "Illegible handwriting on the paper shift sheet forcing re-verification before dispatch reporting",
+        "Digital night shift handover sheet for terminal-to-planner handoff",
+        "Digital shift handover log for damaged pallets and unfinished loads",
+        "Digital shift handover record for terminal cross-dock supervisors"
+      ],
+      "reportedParticipants": 1,
+      "classes": [
+        "software",
+        "software",
+        "software",
+        "software",
+        "software",
+        "software"
+      ]
+    },
+    {
+      "id": "tachograph_compliance",
+      "kind": "problem",
+      "planted": 1,
+      "observed": 1,
+      "foundIn": [
+        "Tachograph Violation Follow-Up Without Written Procedure or Outcome Log",
+        "Automated tachograph compliance analysis replacing manual Excel review"
+      ],
+      "reportedParticipants": 1,
+      "classes": [
+        "process",
+        "automation"
+      ]
+    },
+    {
+      "id": "shipment_status_calls",
+      "kind": "problem",
+      "planted": 2,
+      "observed": 2,
+      "foundIn": [
+        "Proactive shipment status and credit note notifications to cut repeat inbound calls",
+        "Phone-based freight status lookups without customer self-service"
+      ],
+      "reportedParticipants": 2,
+      "classes": [
+        "automation",
+        "automation"
+      ]
+    },
+    {
+      "id": "pod_app_works",
+      "kind": "works_well",
+      "planted": 3,
+      "observed": 2,
+      "foundIn": [
+        "Proof-of-delivery signature and photo capture in the driver app"
+      ],
+      "reportedParticipants": 3,
+      "classes": [
+        "none"
+      ]
+    },
+    {
+      "id": "ai_everything",
+      "kind": "distractor",
+      "planted": 1,
+      "observed": 1,
+      "foundIn": [
+        "Speculative AI assistant ideas for customer service, offer drafting and cross-team handoffs"
+      ],
+      "reportedParticipants": 1,
+      "classes": [
+        "none"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "title": "AI extraction of transport order details from free-text emails into the TMS",
+      "solutionClass": "ai",
+      "rankScore": 74.3,
+      "participants": 2,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Automated PDF invoice data capture into Procountor",
+      "solutionClass": "ai",
+      "rankScore": 71.4,
+      "participants": 2,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Proactive shipment status and credit note notifications to cut repeat inbound calls",
+      "solutionClass": "automation",
+      "rankScore": 65.7,
+      "participants": 2,
+      "mappedTo": "shipment_status_calls+approval_delays"
+    },
+    {
+      "title": "Integration of delivery data between TMS, billing spreadsheet and Procountor",
+      "solutionClass": "automation",
+      "rankScore": 65.7,
+      "participants": 2,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Proof-of-delivery signature and photo capture in the driver app",
+      "solutionClass": "none",
+      "rankScore": 65.7,
+      "participants": 3,
+      "mappedTo": "pod_app_works"
+    },
+    {
+      "title": "Ad-hoc diagnosis of delayed-order causes during status calls",
+      "solutionClass": "process",
+      "rankScore": 62.9,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Proactive reconciliation of customer invoices against TMS delivery data",
+      "solutionClass": "automation",
+      "rankScore": 62.9,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Incomplete information on daily purchase approval requests",
+      "solutionClass": "automation",
+      "rankScore": 62.9,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Morning dispatch handover call based on handwritten shift sheets",
+      "solutionClass": "software",
+      "rankScore": 62.9,
+      "participants": 1,
+      "mappedTo": "shift_handover_paper"
+    },
+    {
+      "title": "Tracked invoice approval workflow for invoices above 2,000 euros",
+      "solutionClass": "automation",
+      "rankScore": 62.9,
+      "participants": 1,
+      "mappedTo": "approval_delays"
+    },
+    {
+      "title": "Automated cross-checking of order emails, Excel attachments and TMS entries",
+      "solutionClass": "ai",
+      "rankScore": 62.9,
+      "participants": 3,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Tachograph Violation Follow-Up Without Written Procedure or Outcome Log",
+      "solutionClass": "process",
+      "rankScore": 62.9,
+      "participants": 1,
+      "mappedTo": "tachograph_compliance"
+    },
+    {
+      "title": "Shift-time loss from equipment breakdowns and damaged goods",
+      "solutionClass": "process",
+      "rankScore": 60,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "TMS-to-finance billing data transfer without integration",
+      "solutionClass": "automation",
+      "rankScore": 60,
+      "participants": 1,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Automated reconciliation of subcontractor freight invoices against TMS delivery records",
+      "solutionClass": "automation",
+      "rankScore": 60,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Manual handling of supplier invoice reference mismatches between TMS and Procountor",
+      "solutionClass": "automation",
+      "rankScore": 60,
+      "participants": 2,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Paper-Based Shift Handover Forms at Shift Boundaries",
+      "solutionClass": "software",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "shift_handover_paper"
+    },
+    {
+      "title": "Handheld scanning for consignment note verification against physical pallets",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Phone-based freight status lookups without customer self-service",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "shipment_status_calls"
+    },
+    {
+      "title": "Email-based approval bottleneck for forklift spare parts above 500 euros",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "approval_delays"
+    },
+    {
+      "title": "Illegible handwriting on the paper shift sheet forcing re-verification before dispatch reporting",
+      "solutionClass": "software",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "shift_handover_paper"
+    },
+    {
+      "title": "TMS-to-billing-to-Procountor integration for the delivery-to-invoice chain",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Digital night shift handover sheet for terminal-to-planner handoff",
+      "solutionClass": "software",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "shift_handover_paper"
+    },
+    {
+      "title": "Late overtime approvals arriving after the payroll cutoff",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "approval_delays"
+    },
+    {
+      "title": "Digital shift handover log for damaged pallets and unfinished loads",
+      "solutionClass": "software",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "shift_handover_paper"
+    },
+    {
+      "title": "Live route-change push from TMS to the driver proof-of-delivery app",
+      "solutionClass": "software",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Unverified TMS export capability for finance's shipment data fields",
+      "solutionClass": "process",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Pending-clarification orders invisible to dispatch in the TMS",
+      "solutionClass": "software",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Automated tachograph compliance analysis replacing manual Excel review",
+      "solutionClass": "automation",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "tachograph_compliance"
+    },
+    {
+      "title": "Validation of manually entered payment amounts and reference numbers in Procountor",
+      "solutionClass": "automation",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Phone-based delay handoff from customer service desk to key account manager",
+      "solutionClass": "automation",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Digital shift handover record for terminal cross-dock supervisors",
+      "solutionClass": "software",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "shift_handover_paper"
+    },
+    {
+      "title": "Monthly management report assembly in Excel and PowerPoint after close",
+      "solutionClass": "automation",
+      "rankScore": 48.6,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Contract renewal prep from HubSpot terms and shipment history",
+      "solutionClass": "none",
+      "rankScore": 45.7,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Speculative AI assistant ideas for customer service, offer drafting and cross-team handoffs",
+      "solutionClass": "none",
+      "rankScore": 45.7,
+      "participants": 1,
+      "mappedTo": "ai_everything"
+    },
+    {
+      "title": "Weekly customer offer preparation from emailed pricing tables",
+      "solutionClass": "none",
+      "rankScore": 45.7,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    }
+  ],
+  "spend": {
+    "openrouter_key_delta_before_grading": 1.9012472799999998,
+    "product_ledger_this_run": 2.1481772799999996,
+    "harness_grading_this_time": 0
+  },
+  "notes": [
+    "instance http://127.0.0.1:4290, embedding route openai/text-embedding-3-small",
+    "simulator anthropic/claude-haiku-5.5 (temperature 0.7, seed 7)",
+    "judge samples: 3; actionability 6/6/6, executive summary 6/6/6, hallucination findings 6/4/10, unsupported items 0/0/0 (median or majority used)"
+  ]
+}
