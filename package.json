@@ -9,7 +9,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r build && pnpm -r typecheck",
     "test": "pnpm -r build && pnpm -r test",
-    "lint": "eslint packages apps tools/evals tools/live-run tools/fake-provider",
+    "lint": "eslint packages apps tools/evals tools/live-run tools/report-bench tools/fake-provider",
     "check": "tsx scripts/check.ts",
     "format": "prettier --write .",
     "docs:privacy": "tsx scripts/gen-privacy-docs.ts",

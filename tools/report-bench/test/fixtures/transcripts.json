@@ -1,0 +1,47 @@
+[
+  {
+    "personaId": "anna_ap",
+    "sessionId": "s1",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "What takes most of your day?",
+        "reply": "I type every PDF invoice into Procountor by hand, it takes about three hours a day."
+      },
+      {
+        "interviewer": "And approvals?",
+        "reply": "Invoices over 2,000 euros wait for the department head, sometimes six working days."
+      },
+      { "interviewer": "Thank you, that is all.", "reply": null }
+    ]
+  },
+  {
+    "personaId": "heidi_cs",
+    "sessionId": "s2",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "Tell me about orders.",
+        "reply": "Half of the orders come by email and I retype each one into the TMS, five to eight minutes per order."
+      },
+      {
+        "interviewer": "Anything else?",
+        "reply": "Customers call all day asking where their shipment is."
+      }
+    ]
+  },
+  {
+    "personaId": "sari_terminal",
+    "sessionId": "s3",
+    "ended": false,
+    "endReason": "turn cap reached",
+    "exchanges": [
+      {
+        "interviewer": "How does your shift start?",
+        "reply": "Luen yövuoron paperisen vuoronvaihtolomakkeen, ja käsiala on usein lukukelvotonta."
+      }
+    ]
+  }
+]
