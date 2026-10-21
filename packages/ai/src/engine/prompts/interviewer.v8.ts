@@ -1,5 +1,5 @@
-import type { PromptDefinition } from "./index.js";
 import { interviewerPromptV7 } from "./interviewer.v7.js";
+import type { PromptDefinition } from "./index.js";
 
 const V7_NAME_RULE = `- Use the participant's name at most once in the whole conversation, and only if it helps. Do not greet by name on later turns.`;
 

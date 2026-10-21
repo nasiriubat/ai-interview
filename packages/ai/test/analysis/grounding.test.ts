@@ -12,7 +12,7 @@ import {
   type AnalysisFact,
   type AnalysisOpportunity,
 } from "../../src/analysis/pipeline.js";
-import type { CallRequest, ModelCaller } from "../../src/callModel.js";
+import type { CallContext, CallRequest, ModelCallerPort } from "../../src/callModel.js";
 import { ShippedPromptSource } from "../../src/engine/prompts/index.js";
 import { ProviderError } from "../../src/providers/types.js";
 
@@ -70,6 +70,25 @@ const draft = (over: Partial<OpportunityDraft> = {}): OpportunityDraft => ({
   ...over,
 });
 
+type Complete = <T>(
+  purpose: string,
+  ctx: CallContext,
+  req: CallRequest,
+  schema: z.ZodType<T>,
+  name?: string,
+) => Promise<T>;
+
+/** A model port from a scripted `complete`: no embedding route (lexical vectors), no chat. */
+function port(complete: Complete): ModelCallerPort {
+  return {
+    chat: () => {
+      throw new Error("the analysis does not chat");
+    },
+    complete: (purpose, ctx, req, schema, name) => complete(purpose, ctx, req, schema, name),
+    embed: () => Promise.resolve(undefined),
+  };
+}
+
 /** Answers the opportunity pass per cluster (by the cluster name in the prompt) and the narrative. */
 class GroundingModel {
   calls: { name?: string | undefined; content: string }[] = [];
@@ -97,8 +116,8 @@ class GroundingModel {
     }
     return schema.parse(this.story);
   }
-  asCaller(): ModelCaller {
-    return this as unknown as ModelCaller;
+  asCaller(): ModelCallerPort {
+    return port((purpose, ctx, req, schema, name) => this.complete(purpose, ctx, req, schema, name));
   }
   narrativeInput(): string {
     return this.calls.find((c) => c.name === "narrative")?.content ?? "";
@@ -343,22 +362,32 @@ describe("model-written text keeps nobody singled out (D-479)", () => {
 });
 
 describe("the executive summary follows the ranking (D-479)", () => {
-  const opp = (title: string, sessions: number): AnalysisOpportunity =>
-    ({
-      clusterKey: title,
-      title,
-      basis: "problem",
-      stats: {
-        participants: sessions,
-        sessions,
-        facts: sessions,
-        roles: [],
-        departments: [],
-        tools: [],
-        minutesPerWeekTotal: 0,
-        quotes: [],
-      },
-    }) as unknown as AnalysisOpportunity;
+  const opp = (title: string, sessions: number): AnalysisOpportunity => ({
+    clusterKey: title,
+    title,
+    summary: "",
+    solutionClass: "automation",
+    rationale: "",
+    factors: draft().factors,
+    rankScore: 50,
+    dataNeeded: [],
+    risks: [],
+    evidence: [],
+    factIds: [],
+    supportFactIds: [],
+    override: null,
+    basis: "problem",
+    stats: {
+      participants: sessions,
+      sessions,
+      facts: sessions,
+      roles: [],
+      departments: [],
+      tools: [],
+      minutesPerWeekTotal: 0,
+      quotes: [],
+    },
+  });
 
   it("recognises a title by its content words", () => {
     expect(
@@ -498,9 +527,8 @@ describe("consolidation merges (D-479)", () => {
       fact("f4", "p4", pain("Night shift handover form is lost or unreadable")),
     ];
     const calls: string[] = [];
-    const caller = {
-      embed: async () => undefined,
-      complete: async <T>(_p: string, _c: unknown, req: CallRequest, schema: z.ZodType<T>, name?: string) => {
+    const caller = port(
+      async <T>(_p: string, _c: CallContext, req: CallRequest, schema: z.ZodType<T>, name?: string) => {
         calls.push(name ?? "");
         const content = String(req.messages[0]?.content ?? "");
         if (name === "cluster_consolidation") {
@@ -522,7 +550,7 @@ describe("consolidation merges (D-479)", () => {
         if (name === "cluster_merges") return schema.parse({ merges: [], names: [] });
         return schema.parse({ executiveSummary: "Typed twice. Handover.", nextSteps: ["x"], caveats: "c" });
       },
-    } as unknown as ModelCaller;
+    );
     const r = await runAnalysis(
       { caller, prompts: new ShippedPromptSource(), logger },
       {
@@ -556,9 +584,8 @@ describe("the item-level merge (D-479)", () => {
       fact("f4", "p4", pain("Night shift handover form is lost or unreadable")),
     ];
     const asked: string[] = [];
-    const caller = {
-      embed: async () => undefined,
-      complete: async <T>(_p: string, _c: unknown, req: CallRequest, schema: z.ZodType<T>, name?: string) => {
+    const caller = port(
+      async <T>(_p: string, _c: CallContext, req: CallRequest, schema: z.ZodType<T>, name?: string) => {
         const content = String(req.messages[0]?.content ?? "");
         asked.push(name ?? "");
         if (name === "item_consolidation") {
@@ -585,7 +612,7 @@ describe("the item-level merge (D-479)", () => {
           caveats: "c",
         });
       },
-    } as unknown as ModelCaller;
+    );
     const r = await runAnalysis(
       { caller, prompts: new ShippedPromptSource(), logger },
       {
