@@ -2188,6 +2188,10 @@ export const fi: Strings = {
           name: "Ryhmittely",
           description: "Ryhmittelee samankaltaiset poiminnat haastattelujen yli ja nimeää ryhmät.",
         },
+        consolidation: {
+          name: "Ryhmien yhdistäminen",
+          description: "Käy läpi kampanjan kaikki ryhmät kerralla ja yhdistää ne, jotka ovat sama ongelma.",
+        },
         opportunity: {
           name: "Mahdollisuuden kuvaus",
           description: "Kuvaa yhden ryhmitellyn mahdollisuuden ja sen, sopiiko se tekoälylle.",

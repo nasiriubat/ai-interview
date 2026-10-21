@@ -296,6 +296,8 @@ export class AnalysisService {
               clusterKey: o.clusterKey,
               ...(o.override ? { adminOverride: o.override } : {}),
               factIds: o.factIds,
+              basis: o.basis,
+              supportFactIds: o.supportFactIds,
               // Shortlisted, dismissed and promoted survive a re-run for a cluster that is still
               // there (promoted only when its members are unchanged: the session was about them).
               ...carriedStatus(carried.get(o.clusterKey), o.factIds),
@@ -498,7 +500,10 @@ export class AnalysisService {
         : [];
     });
     if (!base || clusters.length === 0) throw new RerunRequiredError();
-    const reuse = new Map<string, { factIds: string[]; draft: z.infer<typeof OpportunityDraftSchema> }>();
+    const reuse = new Map<
+      string,
+      { factIds: string[]; draft: z.infer<typeof OpportunityDraftSchema>; supportFactIds?: string[] }
+    >();
     for (const o of base.opportunities) {
       const factIds = stringList(o.factIds);
       // What the model generated is what is reused; the admin's overrides are applied again on top.
@@ -511,8 +516,15 @@ export class AnalysisService {
         dataNeeded: o.dataNeeded,
         risks: o.risks,
         ...(o.whyNotAi ? { whyNotAi: o.whyNotAi } : {}),
+        basis: o.basis === "works_well" ? "works_well" : "problem",
       });
-      if (draft.success && factIds.length > 0) reuse.set(o.clusterKey, { factIds, draft: draft.data });
+      const supportFactIds = stringList(o.supportFactIds);
+      if (draft.success && factIds.length > 0)
+        reuse.set(o.clusterKey, {
+          factIds,
+          draft: draft.data,
+          ...(supportFactIds.length ? { supportFactIds } : {}),
+        });
     }
     return { clusters, reuse };
   }
@@ -792,7 +804,9 @@ export class AnalysisService {
         ...(merged.summary ? { summary: merged.summary } : {}),
         ...(merged.solutionClass ? { solutionClass: merged.solutionClass } : {}),
         factors: factors,
-        rankScore: rankScore(factors as Parameters<typeof rankScore>[0], weights),
+        // A works-well item stays unranked whatever its factors say (D-479).
+        rankScore:
+          o.basis === "works_well" ? 0 : rankScore(factors as Parameters<typeof rankScore>[0], weights),
       },
     });
     // What was reviewed is no longer what the version says (D-478).

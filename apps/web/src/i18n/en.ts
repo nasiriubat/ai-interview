@@ -2185,6 +2185,11 @@ export const en = {
           name: "Grouping",
           description: "Groups similar extracted items across interviews and names the groups.",
         },
+        consolidation: {
+          name: "Merging groups",
+          description:
+            "Looks at every group of a campaign at once and merges the ones that are the same problem.",
+        },
         opportunity: {
           name: "Opportunity write-up",
           description: "Describes one grouped opportunity and why it is or is not a fit for AI.",

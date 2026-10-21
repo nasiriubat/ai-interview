@@ -174,8 +174,21 @@ export function matchQuote(quote: string, messages: readonly string[]): QuoteMat
 export interface FigureFacts {
   /** Counts a "N interviews / people" claim may state: totals, per-group counts, k, the threshold. */
   counts: readonly number[];
-  /** Denominators for "N of M" and for percentages: the campaign's totals. */
+  /** Denominators for "N of M" and for percentages: the campaign's totals of people and interviews. */
   totals: readonly number[];
+  /**
+   * Numerators for "N of M" and for percentages (D-479): how many people or interviews a group or
+   * the campaign has. Absent: any of `counts`. With it, "4 of 12 interviews" must be a group's
+   * count over a total, and a share such as 66% must be one of those pairs, not a coincidence of
+   * two unrelated campaign figures (started over invited).
+   */
+  shareNumerators?: readonly number[];
+  /**
+   * Participation pairs that may be stated as "N of M" ("10 of 15 people who started completed").
+   * Never as a percentage: a share in the text is a topic's share of the people, and 67% matched
+   * completed over started by coincidence.
+   */
+  pairs?: readonly (readonly [number, number])[];
   /** Hours per week that were computed (a group's total, a fact's own, the campaign's). */
   hoursPerWeek: readonly number[];
 }
@@ -273,12 +286,14 @@ function confirmed(
       return near(values[0] ?? NaN, facts.counts, exact);
     case "of": {
       const [a = NaN, b = NaN] = values;
-      return a <= b && near(a, facts.counts, exact) && near(b, facts.totals, exact);
+      const numerators = facts.shareNumerators ?? facts.counts;
+      if (a <= b && near(a, numerators, exact) && near(b, facts.totals, exact)) return true;
+      return (facts.pairs ?? []).some(([x, y]) => Math.abs(x - a) <= exact(x) && Math.abs(y - b) <= exact(y));
     }
     case "percent": {
       const p = values[0] ?? NaN;
       const shares: number[] = [];
-      for (const a of facts.counts)
+      for (const a of facts.shareNumerators ?? facts.counts)
         for (const b of facts.totals) if (b > 0 && a <= b) shares.push((100 * a) / b);
       return near(p, shares, () => (approx ? 5 : 1.5));
     }

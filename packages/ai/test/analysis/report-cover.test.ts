@@ -124,11 +124,26 @@ describe("confidence in the report (D-478)", () => {
   it("puts 'Mentioned in N of M interviews' on every opportunity, and marks the ones that rest on one or two", () => {
     const md = renderReport(input({ opportunities: [opp("Shared form", 5), opp("Lab call", 1)] }));
     expect(md).toContain("Mentioned in 5 of 6 interviews");
-    expect(md).toContain("| 70 | Shared form | 5 of 6 |");
+    expect(md).toContain("| 1 | Shared form | 5 of 6 | 70 |");
     expect(md).toContain(
       "*Mentioned in 1 of 6 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*",
     );
     expect(md).not.toMatch(/Shared form[^\n]*Small sample/);
+  });
+
+  it("keeps the opportunity table to four columns and prints every factor score under its item (D-479)", () => {
+    const a = { ...opp("Shared form", 5), rankScore: 80 };
+    const b = { ...opp("Lab call", 3), clusterKey: "lab", solutionClass: "process" as const, rankScore: 60 };
+    const md = renderReport(input({ opportunities: [b, a] }));
+    expect(md).toContain("| Rank | Opportunity | Interviews | Score |\n|---|---|---|---|");
+    // The rank is the overall position, the same in every class table.
+    expect(md).toContain("| 1 | Shared form | 5 of 6 | 80 |");
+    expect(md).toContain("| 2 | Lab call | 3 of 6 | 60 |");
+    expect(md).toContain(
+      "Factor scores (1 to 5, higher is better): Impact 4 · People 4 · Frequency 4 · Simplicity 4 · Data 4 · Low risk 4 · AI fit 4.",
+    );
+    for (const row of md.split("\n").filter((l) => l.startsWith("| ") && l.includes(" of 6 |")))
+      expect(row.split("|").length - 2).toBe(4);
   });
 
   it("sets each quote as a blockquote of its own, so two people's words never run together", () => {

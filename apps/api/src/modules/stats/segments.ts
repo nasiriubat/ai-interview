@@ -190,7 +190,7 @@ export async function discovery(
         campaign: { select: { name: true } },
         opportunities: {
           where: { status: { not: "dismissed" } },
-          select: { id: true, title: true, solutionClass: true, factors: true, stats: true },
+          select: { id: true, title: true, solutionClass: true, factors: true, stats: true, basis: true },
         },
       },
     });
@@ -212,6 +212,8 @@ export async function discovery(
         : "none";
       byClass[cls]++;
       opportunities++;
+      // "No change recommended" items count in their class but are not top opportunities (D-479).
+      if (o.basis === "works_well") continue;
       candidates.push({
         id: o.id,
         title: o.title,

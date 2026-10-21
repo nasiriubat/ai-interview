@@ -1,0 +1,372 @@
+{
+  "scenario": {
+    "id": "kaarna-logistics",
+    "version": 1
+  },
+  "run": "baseline",
+  "gradedAt": "2026-10-21T10:38:30.042Z",
+  "reportSource": "analysis cmvhz2orh00012w2yzyw72vqo",
+  "judgeModel": "anthropic/claude-sonnet-5",
+  "mappingSource": "judge",
+  "keywordAgreement": 0.75,
+  "overall": 8.4,
+  "criteria": [
+    {
+      "key": "recall",
+      "label": "Recall of planted problems",
+      "weight": 20,
+      "score": 8.8,
+      "evidence": [
+        "invoice_rekeying (4 people): found in \"Manual keying of PDF invoice data into the accounting system\", \"Manual re-keying of unstructured order details into the order system\", \"Manual re-keying of delivery data between TMS, billing spreadsheet and Procountor\"; split across 3 items",
+        "approval_delays (4 people): found in \"Email-Based Approval Routing Without Status Tracking or Reminders\", \"Status Uncertainty During Credit Note Approval Driving Repeat Inbound Calls\"; split across 2 items",
+        "shift_handover_paper (3 people): found in \"Digital Shift Handover Record Replacing the Paper A4 Form\"",
+        "tachograph_compliance (1 people): found in \"Manual compliance check with undefined follow-up and single-person dependency\"",
+        "shipment_status_calls (2 people): found in \"Self-service shipment tracking and tracked follow-up for held orders\""
+      ]
+    },
+    {
+      "key": "prevalence",
+      "label": "Prevalence accuracy",
+      "weight": 12,
+      "score": 9,
+      "evidence": [
+        "invoice_rekeying: true 4 (planted 5), reported 3 (off)",
+        "approval_delays: true 4 (planted 4), reported 3 (off)",
+        "shift_handover_paper: true 3 (planted 3), reported 3",
+        "tachograph_compliance: true 1 (planted 1), reported 1",
+        "shipment_status_calls: true 2 (planted 2), reported 2"
+      ]
+    },
+    {
+      "key": "ranking",
+      "label": "Ranking sensibility",
+      "weight": 10,
+      "score": 9.4,
+      "evidence": [
+        "#1 \"Manual keying of PDF invoice data into the accounting system\" (74.3) -> invoice_rekeying",
+        "#2 \"Email-Based Approval Routing Without Status Tracking or Reminders\" (68.6) -> approval_delays",
+        "#3 \"Manual re-keying of unstructured order details into the order system\" (68.6) -> invoice_rekeying",
+        "#4 \"Self-service shipment tracking and tracked follow-up for held orders\" (65.7) -> shipment_status_calls",
+        "#5 \"Manual re-keying of delivery data between TMS, billing spreadsheet and Procountor\" (65.7) -> invoice_rekeying"
+      ]
+    },
+    {
+      "key": "classification",
+      "label": "Classification (incl. no-change area)",
+      "weight": 15,
+      "score": 8.6,
+      "evidence": [
+        "invoice_rekeying: ai/ai/automation (accept automation/ai/software) -> ok",
+        "approval_delays: automation/automation (accept process/software/automation) -> ok",
+        "shift_handover_paper: software (accept software/process/automation) -> ok",
+        "tachograph_compliance: process (accept automation/software) -> WRONG",
+        "shipment_status_calls: software (accept software/automation/ai) -> ok",
+        "pod_app_works: none (accept none) -> ok",
+        "ai_everything (distractor): not raised as an item -> ok"
+      ]
+    },
+    {
+      "key": "quote_fidelity",
+      "label": "Quote fidelity",
+      "weight": 10,
+      "score": 10,
+      "evidence": [
+        "3 of 3 quotes verbatim in a participant answer"
+      ]
+    },
+    {
+      "key": "hallucination",
+      "label": "No hallucination",
+      "weight": 13,
+      "score": 8,
+      "evidence": [
+        "0 unsupported item(s), 0 major and 4 minor unsupported claim(s)",
+        "minor: Invoice approvals over 2,000 euros waiting 3 to 6 working days with weekly phone chasing on Thursday (item 2 summary) attributed consistently across 3 interviews including forklift parts (Forklift parts over 500 euros (P04) and invoice >2000 euro approvals (P01) are two different approval types merged into one flow without flagging they are separate thresholds/systems.)",
+        "minor: Executive summary states 'Ten people were invited, ten interviews were completed' implying a 100% completion and meeting of a threshold of ten (This is a template/participation artifact, not a substantive factual claim beyond data; acceptable per instructions but flagged as borderline embellishment with 'threshold... was met' framing not grounded in any stated target.)",
+        "minor: Item 7 description states 'about one in ten invoices does not pair cleanly' and 'template breaks when an export column moves or a new subcontractor appears' as established facts (P02 explicitly says these are rough estimates/guesses ('I don't track the exact share anywhere, so treat that one-in-ten as an estimate'), presented in report without that caveat in the item text itself (though caveated elsewhere in report).)",
+        "minor: Item 8 'a single incident can consume roughly an hour' presented as established data point class Process with Impact 3 (P04 gives this as a rough memory-based estimate ('I don't have exact timings logged... from memory'), reasonably supported but borderline over-precise framing.)"
+      ]
+    },
+    {
+      "key": "anonymity",
+      "label": "Anonymity",
+      "weight": 10,
+      "score": 7,
+      "evidence": [
+        "judge: Tachograph check item (item 12) describes 'about two days a month... only she does this' in ground truth and report text implies single-person dependency with gendered reference in underlying transcript (With only 1 participant behind this finding and a unique 'sole administrator' role, this could identify the payroll/HR administrator in a small org.)",
+        "judge: Item 9 overtime approvals 'payroll cutoff' tied to 1 interview (Single-participant finding tied to a specific administrative function could identify the payroll/HR administrator.)"
+      ]
+    },
+    {
+      "key": "actionability",
+      "label": "Actionability of next steps",
+      "weight": 5,
+      "score": 6,
+      "evidence": [
+        "Next steps name concrete scoping actions (PDF extraction, order extraction, approval workflow) with some owners ('finance with IT support', 'order entry and customer service')",
+        "Sequencing is sensible: cheaper requirements-discovery steps before larger builds, prioritizing based on rank",
+        "But two of the three next steps rest on 2-interview 'small sample' findings promoted to top priority ahead of the 3-interview approval delay issue, which is actually listed third despite broader support",
+        "No next step addresses the shift handover paper problem or tachograph compliance despite being well-evidenced ground-truth problems"
+      ]
+    },
+    {
+      "key": "executive_summary",
+      "label": "Executive-summary accuracy",
+      "weight": 5,
+      "score": 5,
+      "evidence": [
+        "Leads with two 2-interview AI items (invoice keying, order keying) ranked above the 3-interview approval delays, shift handover, and delivery re-keying issues, despite the latter having stronger evidence and quantified impact (2% billing errors, 90 min/day).",
+        "Mentions approval routing issue with correct concrete detail (3-6 day waits, forklift down).",
+        "Does correctly flag thin evidence caveat on top two items.",
+        "Mentions POD app works-well correctly but omits that the shift handover and delivery-rekeying problems (also 3-interview, strong evidence) are arguably more prevalent/impactful than the top-ranked 2-interview AI items, understating true top problems."
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "invoice_rekeying",
+      "kind": "problem",
+      "planted": 5,
+      "observed": 4,
+      "foundIn": [
+        "Manual keying of PDF invoice data into the accounting system",
+        "Manual re-keying of unstructured order details into the order system",
+        "Manual re-keying of delivery data between TMS, billing spreadsheet and Procountor"
+      ],
+      "reportedParticipants": 3,
+      "classes": [
+        "ai",
+        "ai",
+        "automation"
+      ]
+    },
+    {
+      "id": "approval_delays",
+      "kind": "problem",
+      "planted": 4,
+      "observed": 4,
+      "foundIn": [
+        "Email-Based Approval Routing Without Status Tracking or Reminders",
+        "Status Uncertainty During Credit Note Approval Driving Repeat Inbound Calls"
+      ],
+      "reportedParticipants": 3,
+      "classes": [
+        "automation",
+        "automation"
+      ]
+    },
+    {
+      "id": "shift_handover_paper",
+      "kind": "problem",
+      "planted": 3,
+      "observed": 3,
+      "foundIn": [
+        "Digital Shift Handover Record Replacing the Paper A4 Form"
+      ],
+      "reportedParticipants": 3,
+      "classes": [
+        "software"
+      ]
+    },
+    {
+      "id": "tachograph_compliance",
+      "kind": "problem",
+      "planted": 1,
+      "observed": 1,
+      "foundIn": [
+        "Manual compliance check with undefined follow-up and single-person dependency"
+      ],
+      "reportedParticipants": 1,
+      "classes": [
+        "process"
+      ]
+    },
+    {
+      "id": "shipment_status_calls",
+      "kind": "problem",
+      "planted": 2,
+      "observed": 2,
+      "foundIn": [
+        "Self-service shipment tracking and tracked follow-up for held orders"
+      ],
+      "reportedParticipants": 2,
+      "classes": [
+        "software"
+      ]
+    },
+    {
+      "id": "pod_app_works",
+      "kind": "works_well",
+      "planted": 3,
+      "observed": 2,
+      "foundIn": [
+        "Proof-of-delivery app feeding signatures and photos into the TMS"
+      ],
+      "reportedParticipants": 3,
+      "classes": [
+        "none"
+      ]
+    },
+    {
+      "id": "ai_everything",
+      "kind": "distractor",
+      "planted": 1,
+      "observed": 1,
+      "foundIn": [],
+      "reportedParticipants": null,
+      "classes": []
+    }
+  ],
+  "items": [
+    {
+      "title": "Manual keying of PDF invoice data into the accounting system",
+      "solutionClass": "ai",
+      "rankScore": 74.3,
+      "participants": 2,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Email-Based Approval Routing Without Status Tracking or Reminders",
+      "solutionClass": "automation",
+      "rankScore": 68.6,
+      "participants": 3,
+      "mappedTo": "approval_delays"
+    },
+    {
+      "title": "Manual re-keying of unstructured order details into the order system",
+      "solutionClass": "ai",
+      "rankScore": 68.6,
+      "participants": 2,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Self-service shipment tracking and tracked follow-up for held orders",
+      "solutionClass": "software",
+      "rankScore": 65.7,
+      "participants": 2,
+      "mappedTo": "shipment_status_calls"
+    },
+    {
+      "title": "Manual re-keying of delivery data between TMS, billing spreadsheet and Procountor",
+      "solutionClass": "automation",
+      "rankScore": 65.7,
+      "participants": 3,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Digital Shift Handover Record Replacing the Paper A4 Form",
+      "solutionClass": "software",
+      "rankScore": 62.9,
+      "participants": 3,
+      "mappedTo": "shift_handover_paper"
+    },
+    {
+      "title": "Automated reconciliation of freight invoice lines against delivery records",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 3,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Shift time lost to equipment breakdowns and damaged goods",
+      "solutionClass": "process",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Late overtime approvals arriving after the payroll cutoff",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Status Uncertainty During Credit Note Approval Driving Repeat Inbound Calls",
+      "solutionClass": "automation",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "approval_delays"
+    },
+    {
+      "title": "Live route-change push and confirmation for in-progress deliveries",
+      "solutionClass": "software",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Manual compliance check with undefined follow-up and single-person dependency",
+      "solutionClass": "process",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "tachograph_compliance"
+    },
+    {
+      "title": "Manual assembly of recurring customer review reports from separate system exports",
+      "solutionClass": "automation",
+      "rankScore": 48.6,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Infrequent contract renewal preparation from CRM and shipment data",
+      "solutionClass": "none",
+      "rankScore": 45.7,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Waiting on shared inputs when assembling customer offers from a template",
+      "solutionClass": "none",
+      "rankScore": 45.7,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Minor on-the-spot issue resolution during delivery stops",
+      "solutionClass": "none",
+      "rankScore": 42.9,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Missing Activity Time Records for Shift Work",
+      "solutionClass": "automation",
+      "rankScore": 42.9,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Existing scheduling overview for loading points works as intended",
+      "solutionClass": "none",
+      "rankScore": 0,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Recurring monthly reporting pack assembled manually after period close",
+      "solutionClass": "none",
+      "rankScore": 0,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Proof-of-delivery app feeding signatures and photos into the TMS",
+      "solutionClass": "none",
+      "rankScore": 0,
+      "participants": 3,
+      "mappedTo": "pod_app_works"
+    }
+  ],
+  "spend": {
+    "openrouter_key_delta_before_grading": 2.362837280000001,
+    "product_ledger_this_run": 2.723992279999999,
+    "harness_grading_this_time": 0.382742
+  },
+  "notes": [
+    "instance http://127.0.0.1:4290, embedding route openai/text-embedding-3-small",
+    "simulator anthropic/claude-haiku-5.5 (temperature 0.7, seed 7)",
+    "judge samples: 3; actionability 6/6/6, executive summary 6/5/5, hallucination findings 6/4/4, unsupported items 0/0/0 (median or majority used)"
+  ]
+}

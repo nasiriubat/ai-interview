@@ -38,6 +38,7 @@ const EXTRA_TOKENS: Record<string, string[]> = {
   turn_meta_repair: ['"areaKey"', '"stateDelta"'],
   recap: ['"recap"'],
   clustering: ["merges", "names"],
+  consolidation: ["merges"],
   issues: ['"findings"'],
   spec: ['"sections"', '"markdown"'],
 };

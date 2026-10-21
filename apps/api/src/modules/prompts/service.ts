@@ -37,6 +37,7 @@ export const PROMPT_GROUPS: Record<string, PromptGroup> = {
   turn_meta_repair: "interview",
   extraction: "interview",
   clustering: "analysis",
+  consolidation: "analysis",
   opportunity: "analysis",
   report: "analysis",
   issues: "requirements",

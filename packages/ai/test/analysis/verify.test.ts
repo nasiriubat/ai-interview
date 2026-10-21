@@ -148,3 +148,30 @@ describe("figure verification", () => {
     expect(checkFigures("It scores 4 of 5 on impact. Step 3 is manual.", FACTS).checked).toBe(0);
   });
 });
+
+describe("shares are of people over people (D-479)", () => {
+  // completed 10, analyzed 10, 10 people; no invitations (open link), 15 started; groups of 4 and 2.
+  const TIGHT: FigureFacts = {
+    counts: [10, 15, 3, 4, 2],
+    totals: [10],
+    shareNumerators: [10, 4, 2],
+    pairs: [[10, 15]],
+    hoursPerWeek: [],
+  };
+
+  it("accepts a group's count over the interviews or people", () => {
+    expect(checkFigures("It came up in 4 of 10 interviews.", TIGHT).removed).toBe(0);
+    expect(checkFigures("40% of participants described it.", TIGHT).removed).toBe(0);
+  });
+
+  it("rejects a share that only matches two unrelated campaign figures", () => {
+    // 67% is 10 completed of 15 started: true of the campaign, not of any topic.
+    expect(checkFigures("67% of participants described the approval delay.", TIGHT).removed).toBe(1);
+    expect(checkFigures("It came up in 3 of 15 interviews.", TIGHT).removed).toBe(1);
+    expect(checkFigures("30% of participants described it.", TIGHT).removed).toBe(1);
+  });
+
+  it("still accepts the participation pair stated as N of M", () => {
+    expect(checkFigures("10 of 15 people who started completed the interview.", TIGHT).removed).toBe(0);
+  });
+});

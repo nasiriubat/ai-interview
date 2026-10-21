@@ -1,0 +1,427 @@
+{
+  "scenario": {
+    "id": "kaarna-logistics",
+    "version": 1
+  },
+  "run": "baseline",
+  "gradedAt": "2026-10-21T10:28:07.807Z",
+  "reportSource": "analysis cmvhyox6100012wimldwjvrtt",
+  "judgeModel": "anthropic/claude-sonnet-5",
+  "mappingSource": "judge",
+  "keywordAgreement": 0.5,
+  "overall": 6.7,
+  "criteria": [
+    {
+      "key": "recall",
+      "label": "Recall of planted problems",
+      "weight": 20,
+      "score": 7.8,
+      "evidence": [
+        "invoice_rekeying (4 people): found in \"Manual keying of PDF purchase invoices into the finance system\", \"Automated extraction of order details from customer emails and attachments into a tool\", \"Automated transfer of delivery data from a tool into billing\"; split across 3 items; merged with approval_delays",
+        "approval_delays (4 people): found in \"Manual keying of PDF purchase invoices into the finance system\", \"Email-based invoice approval above a threshold with no status tracking\", \"Delayed spare-part approvals extending equipment downtime\", \"Lack of status visibility during credit note approval\", \"Late overtime approvals arriving after the payroll cutoff\"; split across 5 items; merged with invoice_rekeying",
+        "shift_handover_paper (3 people): found in \"Digital shift handover record for terminal night-to-morning status\"",
+        "tachograph_compliance (1 people): found in \"Driving-time compliance review and violation follow-up without documented procedure or logging\"",
+        "shipment_status_calls (2 people): found in \"Self-service shipment status instead of phone lookups\""
+      ]
+    },
+    {
+      "key": "prevalence",
+      "label": "Prevalence accuracy",
+      "weight": 12,
+      "score": 8,
+      "evidence": [
+        "invoice_rekeying: true 4 (planted 5), reported 2 (off)",
+        "approval_delays: true 4 (planted 4), reported 2 (off)",
+        "shift_handover_paper: true 3 (planted 3), reported 3",
+        "tachograph_compliance: true 1 (planted 1), reported 1",
+        "shipment_status_calls: true 2 (planted 2), reported 2"
+      ]
+    },
+    {
+      "key": "ranking",
+      "label": "Ranking sensibility",
+      "weight": 10,
+      "score": 7.8,
+      "evidence": [
+        "#1 \"Manual keying of PDF purchase invoices into the finance system\" (74.3) -> invoice_rekeying",
+        "#2 \"Automated extraction of order details from customer emails and attachments into a tool\" (74.3) -> invoice_rekeying",
+        "#3 \"Automated transfer of delivery data from a tool into billing\" (68.6) -> invoice_rekeying",
+        "#4 \"Visibility and follow-up for orders held pending customer clarification\" (62.9) -> other_supported",
+        "#5 \"Reactive detection of outgoing invoice errors\" (62.9) -> other_supported"
+      ]
+    },
+    {
+      "key": "classification",
+      "label": "Classification (incl. no-change area)",
+      "weight": 15,
+      "score": 8.3,
+      "evidence": [
+        "invoice_rekeying: ai/ai/automation (accept automation/ai/software) -> ok",
+        "approval_delays: ai/automation/automation/automation/automation (accept process/software/automation) -> partly",
+        "shift_handover_paper: software (accept software/process/automation) -> ok",
+        "tachograph_compliance: process (accept automation/software) -> WRONG",
+        "shipment_status_calls: automation (accept software/automation/ai) -> ok",
+        "pod_app_works: none (accept none) -> ok",
+        "ai_everything (distractor): not raised as an item -> ok"
+      ]
+    },
+    {
+      "key": "quote_fidelity",
+      "label": "Quote fidelity",
+      "weight": 10,
+      "score": null,
+      "evidence": [
+        "the report carries no quotes"
+      ]
+    },
+    {
+      "key": "hallucination",
+      "label": "No hallucination",
+      "weight": 13,
+      "score": 2.5,
+      "evidence": [
+        "0 unsupported item(s), 1 major and 9 minor unsupported claim(s)",
+        "minor: Executive summary states 'Ten people were invited and all ten interviews were completed' (Participation table says 10 completed/10 analyzed; this is consistent with data, not a hallucination of fact, but phrase 'invited' is an assumed artefact — not flagged as hallucination per instructions (template artefact).)",
+        "minor: Item 1 says invoices are opened 'one at a time' and keying takes 'a block of several hours' consuming the whole morning (P01 said ~70 invoices at ~3 min each is about 3 hours, consistent; 'several hours' is a reasonable restatement, not a hallucination.)",
+        "minor: Item 3 states 'about 2% of deliveries end up billed wrong or late as a result of the overall manual process' (This figure is directly from P02's own estimate, so it is supported, but the report applies it to 'the overall manual process' including order-entry retyping which P02 attributed specifically to the TMS-billing-Procountor chain; borderline but not clearly false.)",
+        "minor: Item 6 (shift handover) states reading takes 'about 25 minutes' and writing 'about 17 minutes per shift' (P04 said handover check 20-30 min and end-of-shift form 15-20 min; P05 said reading could take up to 30 min when walking; the specific numbers 25 and 17 minutes are oddly precise averages not stated by any participant verbatim, a mild embellishment.)",
+        "major: Department comparison table: Terminal operations 4 participants, 60 hours per week (No transcript supports an aggregate figure of 60 hours/week for terminal operations; this number cannot be verified against any participant's self-reported figures and appears to be a computed artifact not traceable to stated facts.)",
+        "minor: Department comparison table: Customer service 3 participants, 8 hours per week (Aggregated figure not clearly traceable to any single transcript statement; unclear provenance.)",
+        "minor: Department comparison table: Finance and administration 3 participants, 16 hours per week (Aggregated figure not clearly traceable to any single transcript statement; unclear provenance.)",
+        "minor: Item 10 text says 'The self-reported effort is about 480 minutes per week in total' (P02 described 4 working days a month on reconciliation, not an explicit weekly minutes figure; converting a monthly estimate to a precise weekly minute figure is an invented precision not stated by the participant.)",
+        "minor: Item 12 says self-reported time is 'about 25 minutes per week in total' (No participant gave a quantified weekly time figure for status calls; P09 said calls are 'short' with no number, so this specific figure appears fabricated/derived without basis.)",
+        "minor: Quick wins list includes 'Driving-time compliance review...' as a quick win despite the report itself describing it as 'a large and painful monthly effort' requiring written procedures (Internally inconsistent: item 18 says Simplicity 4 but text describes a heavy manual effort and organisational prerequisites, not a quick win.)"
+      ]
+    },
+    {
+      "key": "anonymity",
+      "label": "Anonymity",
+      "weight": 10,
+      "score": 7,
+      "evidence": [
+        "judge: Item 3/5/8 and others reference 'a tool' repeatedly as redacted system names alongside very specific role descriptions (e.g., single controller doing month-end close, single payroll/HR administrator) that map to a single transcript (P02, P03) (Items 10, 18, 21, 23 are each based on exactly 1 participant with a distinctive enough role (sole financial controller, sole payroll/HR administrator doing tachograph checks) that colleagues could identify who was interviewed, even though names are withheld.)",
+        "judge: Item 18 describes the tachograph compliance reviewer as the only person who knows how to do this and being away breaks the process (This level of detail (sole owner of a specific monthly task) makes the participant (P03) identifiable within a small admin team, especially combined with the 'single point of failure' framing.)"
+      ]
+    },
+    {
+      "key": "actionability",
+      "label": "Actionability of next steps",
+      "weight": 5,
+      "score": 6,
+      "evidence": [
+        "Next steps name concrete starting actions (sample mailbox, check field coverage, check if TMS has an export) and name owners like 'order intake together with IT' and 'finance and accounts payable'.",
+        "Sequencing is sensible: cheap discovery steps before any build, aligned with report's own caveats about thin evidence.",
+        "However, next steps only cover 3 of 26 items and ignore higher-confidence, well-evidenced items like the 3-participant shift handover problem (item 6) which has clearer support than the 2-participant top-ranked items.",
+        "No mention of owners for verification steps in items beyond the top three; most of the 26 items get no action plan at all."
+      ]
+    },
+    {
+      "key": "executive_summary",
+      "label": "Executive-summary accuracy",
+      "weight": 5,
+      "score": 4,
+      "evidence": [
+        "Leads with three 2-interview items (order email extraction, PDF invoice keying, delivery-to-billing transfer) as 'highest ranked', but these are narrower slices of the same re-keying problem and get disproportionate prominence over the 3-participant shift handover problem.",
+        "Approval delays (a major planted problem spanning purchase, overtime, and credit notes across multiple interviews) is not mentioned as a top theme in the executive summary at all, despite being one of the most repeated patterns across P01, P03, P04, P08.",
+        "Tachograph compliance, a clearly planted problem with serious single-point-of-failure risk, is omitted from the executive summary narrative.",
+        "Mentions what works well (POD app, CRM logging) accurately and flags the distractor-adjacent AI caution appropriately.",
+        "Counts given (2 of 10 interviews for top three) are accurate to the underlying data, but the thinness is itself evidence the ranking/summary over-weights sparse items."
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "invoice_rekeying",
+      "kind": "problem",
+      "planted": 5,
+      "observed": 4,
+      "foundIn": [
+        "Manual keying of PDF purchase invoices into the finance system",
+        "Automated extraction of order details from customer emails and attachments into a tool",
+        "Automated transfer of delivery data from a tool into billing"
+      ],
+      "reportedParticipants": 2,
+      "classes": [
+        "ai",
+        "ai",
+        "automation"
+      ]
+    },
+    {
+      "id": "approval_delays",
+      "kind": "problem",
+      "planted": 4,
+      "observed": 4,
+      "foundIn": [
+        "Manual keying of PDF purchase invoices into the finance system",
+        "Email-based invoice approval above a threshold with no status tracking",
+        "Delayed spare-part approvals extending equipment downtime",
+        "Lack of status visibility during credit note approval",
+        "Late overtime approvals arriving after the payroll cutoff"
+      ],
+      "reportedParticipants": 2,
+      "classes": [
+        "ai",
+        "automation",
+        "automation",
+        "automation",
+        "automation"
+      ]
+    },
+    {
+      "id": "shift_handover_paper",
+      "kind": "problem",
+      "planted": 3,
+      "observed": 3,
+      "foundIn": [
+        "Digital shift handover record for terminal night-to-morning status"
+      ],
+      "reportedParticipants": 3,
+      "classes": [
+        "software"
+      ]
+    },
+    {
+      "id": "tachograph_compliance",
+      "kind": "problem",
+      "planted": 1,
+      "observed": 1,
+      "foundIn": [
+        "Driving-time compliance review and violation follow-up without documented procedure or logging"
+      ],
+      "reportedParticipants": 1,
+      "classes": [
+        "process"
+      ]
+    },
+    {
+      "id": "shipment_status_calls",
+      "kind": "problem",
+      "planted": 2,
+      "observed": 2,
+      "foundIn": [
+        "Self-service shipment status instead of phone lookups"
+      ],
+      "reportedParticipants": 2,
+      "classes": [
+        "automation"
+      ]
+    },
+    {
+      "id": "pod_app_works",
+      "kind": "works_well",
+      "planted": 3,
+      "observed": 2,
+      "foundIn": [
+        "Proof-of-delivery capture via mobile app into the transport system"
+      ],
+      "reportedParticipants": 3,
+      "classes": [
+        "none"
+      ]
+    },
+    {
+      "id": "ai_everything",
+      "kind": "distractor",
+      "planted": 1,
+      "observed": 1,
+      "foundIn": [],
+      "reportedParticipants": null,
+      "classes": []
+    }
+  ],
+  "items": [
+    {
+      "title": "Manual keying of PDF purchase invoices into the finance system",
+      "solutionClass": "ai",
+      "rankScore": 74.3,
+      "participants": 2,
+      "mappedTo": "invoice_rekeying+approval_delays"
+    },
+    {
+      "title": "Automated extraction of order details from customer emails and attachments into a tool",
+      "solutionClass": "ai",
+      "rankScore": 74.3,
+      "participants": 2,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Automated transfer of delivery data from a tool into billing",
+      "solutionClass": "automation",
+      "rankScore": 68.6,
+      "participants": 2,
+      "mappedTo": "invoice_rekeying"
+    },
+    {
+      "title": "Visibility and follow-up for orders held pending customer clarification",
+      "solutionClass": "software",
+      "rankScore": 62.9,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Reactive detection of outgoing invoice errors",
+      "solutionClass": "automation",
+      "rankScore": 62.9,
+      "participants": 2,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Digital shift handover record for terminal night-to-morning status",
+      "solutionClass": "software",
+      "rankScore": 62.9,
+      "participants": 3,
+      "mappedTo": "shift_handover_paper"
+    },
+    {
+      "title": "Email-based invoice approval above a threshold with no status tracking",
+      "solutionClass": "automation",
+      "rankScore": 60,
+      "participants": 1,
+      "mappedTo": "approval_delays"
+    },
+    {
+      "title": "Slow resolution of flagged order-data mismatches before period close",
+      "solutionClass": "automation",
+      "rankScore": 60,
+      "participants": 2,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Incomplete information attached to purchase approval requests",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Automated reconciliation of subcontractor freight invoices against delivery records",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Dependency on other a tool for figures and a tool in customer-facing documents",
+      "solutionClass": "process",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Self-service shipment status instead of phone lookups",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 2,
+      "mappedTo": "shipment_status_calls"
+    },
+    {
+      "title": "Standardized handling and proactive notification of delivery delays",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 2,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Delayed spare-part approvals extending equipment downtime",
+      "solutionClass": "automation",
+      "rankScore": 57.1,
+      "participants": 1,
+      "mappedTo": "approval_delays"
+    },
+    {
+      "title": "Lack of status visibility during credit note approval",
+      "solutionClass": "automation",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "approval_delays"
+    },
+    {
+      "title": "Paper-based verification of consignment notes against physical stock",
+      "solutionClass": "automation",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Late overtime approvals arriving after the payroll cutoff",
+      "solutionClass": "automation",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "approval_delays"
+    },
+    {
+      "title": "Driving-time compliance review and violation follow-up without documented procedure or logging",
+      "solutionClass": "process",
+      "rankScore": 54.3,
+      "participants": 1,
+      "mappedTo": "tachograph_compliance"
+    },
+    {
+      "title": "Live push of mid-route delivery changes to drivers with recorded confirmation",
+      "solutionClass": "software",
+      "rankScore": 51.4,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Keying errors in manual payment entry detected only after supplier contact",
+      "solutionClass": "automation",
+      "rankScore": 51.4,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Manual preparation of the monthly management report pack",
+      "solutionClass": "automation",
+      "rankScore": 48.6,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Missing time records for shift activities",
+      "solutionClass": "automation",
+      "rankScore": 45.7,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Monthly payroll run dependent on individual knowledge",
+      "solutionClass": "process",
+      "rankScore": 42.9,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Phone-based escalation of delayed or damaged shipments",
+      "solutionClass": "none",
+      "rankScore": 40,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    },
+    {
+      "title": "Proof-of-delivery capture via mobile app into the transport system",
+      "solutionClass": "none",
+      "rankScore": 0,
+      "participants": 3,
+      "mappedTo": "pod_app_works"
+    },
+    {
+      "title": "Daily CRM logging of customer notes and deal status for handover",
+      "solutionClass": "none",
+      "rankScore": 0,
+      "participants": 1,
+      "mappedTo": "other_supported"
+    }
+  ],
+  "spend": {
+    "openrouter_key_delta_before_grading": 2.2087122800000003,
+    "product_ledger_this_run": 2.277352279999997,
+    "harness_grading_this_time": 0.7430999999999999
+  },
+  "notes": [
+    "instance http://127.0.0.1:4290, embedding route openai/text-embedding-3-small",
+    "simulator anthropic/claude-haiku-5.5 (temperature 0.7, seed 7)",
+    "judge samples: 3; actionability 6/6/6, executive summary 5/4/4, hallucination findings 6/10/10, unsupported items 0/0/0 (median or majority used)"
+  ]
+}

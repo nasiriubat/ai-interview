@@ -105,6 +105,11 @@ export const ClusterMergeResultSchema = z.object({
 });
 export type ClusterMergeResult = z.infer<typeof ClusterMergeResultSchema>;
 
+/** What an analysed group rests on (D-479); see `OpportunityDraftSchema.basis`. */
+export const OPPORTUNITY_BASES = ["problem", "works_well", "idea", "no_issue"] as const;
+export const OpportunityBasisSchema = z.enum(OPPORTUNITY_BASES);
+export type OpportunityBasis = z.infer<typeof OpportunityBasisSchema>;
+
 /** Output of the opportunity pass for one cluster. */
 export const OPPORTUNITY_TEXT_MAX = 1200;
 /**
@@ -122,6 +127,25 @@ export const OpportunityDraftSchema = z.object({
   dataNeeded: z.array(z.string()).default([]),
   risks: z.array(z.string()).default([]),
   whyNotAi: z.string().max(600).optional(), // required by prompt when solutionClass is process or none
+  /**
+   * What the group rests on (D-479): `problem` (participants report pain, time lost, delays, errors
+   * or risk), `works_well` (they say it works and should stay as it is), `idea` (a suggestion or
+   * wish with no reported problem behind it) or `no_issue` (work described without a problem).
+   * Only `problem` and `works_well` become opportunities. Absent (an older or tenant prompt): problem.
+   */
+  basis: OpportunityBasisSchema.optional(),
+  /**
+   * The numbers (F1 = 1) of the facts that directly support this item. The counts, quotes and
+   * evidence come from these alone; an explicit empty list means nothing supports it and the item is
+   * dropped. Absent: every fact of the group supports it.
+   */
+  supportingFacts: z.array(z.number().int()).optional(),
+  /**
+   * The numbers of the facts whose quote makes a point that at least k different people in the
+   * group make, and does not reveal who said it (D-479). Absent: every supporting fact's quote may
+   * be considered; the deterministic checks still apply.
+   */
+  sharedQuotes: z.array(z.number().int()).optional(),
 });
 export type OpportunityDraft = z.infer<typeof OpportunityDraftSchema>;
 
