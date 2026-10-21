@@ -135,7 +135,7 @@ describe("confidence in the report (D-478)", () => {
     const a = { ...opp("Shared form", 5), rankScore: 80 };
     const b = { ...opp("Lab call", 3), clusterKey: "lab", solutionClass: "process" as const, rankScore: 60 };
     const md = renderReport(input({ opportunities: [b, a] }));
-    expect(md).toContain("| Rank | Opportunity | Interviews | Score |\n|---|---|---|---|");
+    expect(md).toContain("| # | Opportunity | Interviews | Score |\n|---|---|---|---|");
     // The rank is the overall position, the same in every class table.
     expect(md).toContain("| 1 | Shared form | 5 of 6 | 80 |");
     expect(md).toContain("| 2 | Lab call | 3 of 6 | 60 |");
