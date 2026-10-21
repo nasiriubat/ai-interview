@@ -471,6 +471,7 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
         input.language,
       ),
       grounding,
+      input.participation.invited,
     ),
     opportunities,
     input.participation.sessionsAnalyzed,
@@ -1191,11 +1192,12 @@ function anonymizeDraft(
   };
 }
 
-function stripNarrative(n: Narrative, g: GroundingStats): Narrative {
+function stripNarrative(n: Narrative, g: GroundingStats, invited: number): Narrative {
   const clean = (text: string): string => {
     const r = stripSingling(text);
     g.singlingRemoved += r.removed;
-    return r.text;
+    // An open-link campaign invited nobody; a sentence about invitations is then made up (D-479).
+    return invited > 0 ? r.text : dropSentences(r.text, /\binvit/i);
   };
   return {
     executiveSummary: clean(n.executiveSummary),
@@ -1254,6 +1256,16 @@ export function ensureTopCovered(
 function joinList(xs: string[]): string {
   if (xs.length <= 1) return xs.join("");
   return `${xs.slice(0, -1).join("; ")} and ${xs[xs.length - 1] ?? ""}`;
+}
+
+/** Removes the sentences matching `re`, unless that would leave nothing. */
+export function dropSentences(text: string, re: RegExp): string {
+  const parts = text.match(/[^.!?]+(?:[.!?]+(?:\s+|$)|$)/g) ?? [text];
+  const kept = parts
+    .filter((p) => !re.test(p))
+    .join("")
+    .trim();
+  return kept || text;
 }
 
 /** A fact in the analysis' words, never the participant's: what an evidence row shows instead of a quote. */

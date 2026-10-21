@@ -455,6 +455,24 @@ describe("participation without invitations (D-479)", () => {
     expect(r.report.markdown).not.toContain("Invited");
     expect(model.narrativeInput()).not.toMatch(/invited/i);
   });
+
+  it("drops a narrative sentence about invitations when nobody was invited", async () => {
+    const model = new GroundingModel(
+      { Approvals: draft({ title: "Approval delays" }) },
+      {
+        executiveSummary: "Ten people were invited and all completed. Approval delays lead.",
+        nextSteps: ["x"],
+        caveats: "c",
+      },
+    );
+    const r = await run(
+      model,
+      [fact("a1", "p1", pain("Approvals wait"))],
+      [{ key: "k1", name: "Approvals", factIds: ["a1"] }],
+    );
+    expect(r.report.markdown).toContain("Approval delays lead.");
+    expect(r.report.markdown).not.toContain("were invited");
+  });
 });
 
 describe("consolidation merges (D-479)", () => {

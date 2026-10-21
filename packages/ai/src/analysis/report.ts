@@ -103,6 +103,13 @@ const FACTOR_LABEL: Record<(typeof FACTOR_KEYS)[number], string> = {
   ai_suitability: "AI fit",
 };
 
+/** "1 hour", "8 hours", "under an hour": a weekly total as the report prints it. */
+export function hoursLabel(minutes: number): string {
+  const h = Math.round(minutes / 60);
+  if (h === 0) return "under an hour";
+  return `${h} hour${h === 1 ? "" : "s"}`;
+}
+
 /** "Impact 4 · People 3 · ...": the seven factor scores of one item, in the catalogue's order. */
 export function factorLine(factors: Factors): string {
   return FACTOR_KEYS.map((k) => `${FACTOR_LABEL[k]} ${factors[k].score}`).join(" · ");
@@ -152,7 +159,7 @@ export function renderReport(input: ReportInput): string {
       out.push(
         `### ${o.title}`,
         "",
-        `${mentionedIn(o.stats, input.participation.sessionsAnalyzed)} (${o.stats.participants} participant${o.stats.participants === 1 ? "" : "s"})${o.stats.minutesPerWeekTotal ? `, about ${Math.round(o.stats.minutesPerWeekTotal / 60)} hours per week in total as they described it` : ""}${o.stats.tools.length ? `, tools: ${o.stats.tools.join(", ")}` : ""}.${o.stats.participants < input.k ? ` Fewer than ${input.k} participants described this, so quotes, roles, tools and process maps are withheld.` : ""}${small(o)}`,
+        `${mentionedIn(o.stats, input.participation.sessionsAnalyzed)} (${o.stats.participants} participant${o.stats.participants === 1 ? "" : "s"})${o.stats.minutesPerWeekTotal ? `, about ${hoursLabel(o.stats.minutesPerWeekTotal)} per week in total as they described it` : ""}${o.stats.tools.length ? `, tools: ${o.stats.tools.join(", ")}` : ""}.${o.stats.participants < input.k ? ` Fewer than ${input.k} participants described this, so quotes, roles, tools and process maps are withheld.` : ""}${small(o)}`,
         "",
       );
       for (const proc of o.processes.slice(0, 2)) out.push(processMap(proc), "");
@@ -232,6 +239,8 @@ export function renderReport(input: ReportInput): string {
       (o) =>
         o.solutionClass !== "none" &&
         o.basis !== "works_well" &&
+        // A lead to check is not a quick win (D-479): a small sample is never listed here.
+        interviewsOf(o.stats) > (input.smallSample ?? DEFAULT_SMALL_SAMPLE) &&
         o.factors.implementation_complexity.score >= 4 &&
         o.factors.expected_impact.score >= 3,
     );
@@ -239,6 +248,7 @@ export function renderReport(input: ReportInput): string {
       (o) =>
         o.solutionClass !== "none" &&
         o.basis !== "works_well" &&
+        interviewsOf(o.stats) > (input.smallSample ?? DEFAULT_SMALL_SAMPLE) &&
         o.factors.expected_impact.score >= 4 &&
         o.factors.implementation_complexity.score <= 3,
     );
