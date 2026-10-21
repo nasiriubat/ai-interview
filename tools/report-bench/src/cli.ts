@@ -78,6 +78,7 @@ const { values: opt, positionals } = parseArgs({
     "save-as": { type: "string" },
     port: { type: "string", default: "4290" },
     "pg-container": { type: "string", default: "ai-interview-postgres-1" },
+    "embedding-model": { type: "string", default: "openai/text-embedding-3-small" },
   },
 });
 
@@ -194,6 +195,7 @@ async function cmdRun(): Promise<void> {
         pgContainer: opt["pg-container"],
         openRouterKey: key,
         fresh: opt.fresh,
+        embeddingModel: opt["embedding-model"] === "none" ? null : opt["embedding-model"],
       });
       if (opt.fresh) {
         delete state.campaignId;
@@ -299,7 +301,7 @@ async function cmdRun(): Promise<void> {
     const usageAfter = await keyUsageUsd(key);
     const meta: RunMeta = {
       notes: [
-        `instance ${base.replace(/\/api\/v1$/, "")}`,
+        `instance ${base.replace(/\/api\/v1$/, "")}${opt.local ? `, embedding route ${opt["embedding-model"]}` : ""}`,
         `simulator ${opt["sim-model"]} (temperature ${opt.temperature}, seed ${opt.seed})`,
       ],
       spend: {

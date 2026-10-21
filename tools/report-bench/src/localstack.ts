@@ -14,7 +14,8 @@ import { randomBytes } from "node:crypto";
 import { createWriteStream, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { log, redact, registerSecret, REPO_ROOT, sleep } from "./openrouter.js";
+import { Client, mintStaffToken } from "./client.js";
+import { listPrices, log, redact, registerSecret, REPO_ROOT, sleep } from "./openrouter.js";
 
 const run = promisify(execFile);
 
@@ -72,6 +73,11 @@ export async function startLocalStack(opts: {
   pgContainer: string;
   openRouterKey: string;
   fresh: boolean;
+  /**
+   * The platform embedding route to set, as production has it (an OpenRouter embedding model), or
+   * null for none (clustering then falls back to word overlap).
+   */
+  embeddingModel: string | null;
 }): Promise<LocalStack> {
   const secretsFile = join(opts.runDir, "stack.json");
   const psql = (sql: string): Promise<{ stdout: string }> =>
@@ -185,5 +191,52 @@ export async function startLocalStack(opts: {
     }
     await sleep(1000);
   }
+  try {
+    await routeEmbeddings(baseUrl, secrets.authSecret, opts.embeddingModel);
+  } catch (e) {
+    await stop();
+    throw e;
+  }
   return { baseUrl, authSecret: secrets.authSecret, adminEmail: BENCH_ADMIN_EMAIL, stop };
+}
+
+/** What text-embedding-3-small costs when OpenRouter's chat model list does not carry it. */
+const EMBEDDING_PRICE_FALLBACK = 0.02;
+
+/**
+ * Sets (or clears) the platform `embedding` route the supported way, as the operator does on the
+ * model-assignment page: through the operator API, with the model's price so the ledger is right.
+ * Idempotent: a route that already says the same thing is left alone.
+ */
+async function routeEmbeddings(baseUrl: string, authSecret: string, model: string | null): Promise<void> {
+  const operator = new Client(baseUrl, await mintStaffToken(OPERATOR_EMAIL, authSecret));
+  const { routes } = await operator.ok<{ routes: { purpose: string; model?: string | null }[] }>(
+    "GET",
+    "/operator/routes",
+  );
+  const current = routes.find((r) => r.purpose === "embedding")?.model ?? null;
+  if (current === model) {
+    log(`embedding route: ${model ?? "none"} (unchanged)`);
+    return;
+  }
+  if (model === null) {
+    await operator.ok("PUT", "/operator/routes", { routes: [{ purpose: "embedding", providerId: null }] });
+    log("embedding route cleared: clustering uses word overlap");
+    return;
+  }
+  const { providers } = await operator.ok<{ providers: { id: string; kind: string }[] }>(
+    "GET",
+    "/operator/providers",
+  );
+  const openrouter = providers.find((p) => p.kind === "openrouter");
+  if (!openrouter) throw new Error("no platform OpenRouter provider to route embeddings to");
+  const listed = await listPrices().catch(() => new Map<string, { inputPerMtok: number }>());
+  const inputPerMtok = listed.get(model)?.inputPerMtok ?? EMBEDDING_PRICE_FALLBACK;
+  await operator.ok("PUT", `/operator/providers/${openrouter.id}/prices`, {
+    prices: [{ model, inputPerMtok, outputPerMtok: 0 }],
+  });
+  await operator.ok("PUT", "/operator/routes", {
+    routes: [{ purpose: "embedding", providerId: openrouter.id, model, maxOutputTokens: 0 }],
+  });
+  log(`embedding route set: ${model} via OpenRouter ($${inputPerMtok}/Mtok)`);
 }

@@ -1,0 +1,412 @@
+# Discovery report: Report bench: Kaarna Logistiikka discovery
+
+Generated 2026-10-21.
+
+**Based on 10 completed interviews.**
+
+**Method.** 10 people completed a structured interview about how their work is done; 10 interviews were analyzed. Everyone followed the same template and was asked one question at a time. Facts were extracted on a fixed schema, grouped across all interviews and scored on seven factors. Durations are self-reported.
+
+**What this report does not do.** It does not name or attribute anything to an individual: a quote, a role or a department appears only when at least 3 participants are behind it. It does not assume AI is the answer: each opportunity is classified as AI, automation, software, process or no change recommended, with the reason.
+
+**How to read the evidence.** "Mentioned in N of M interviews" counts the distinct interviews in which a topic came up, not how often it was said. A topic that rests on 2 interviews or fewer is marked as a small sample: a lead to check, not a finding. Every quote was checked word for word against the interview it comes from; a quote that could not be found there is not shown as a quote. Counts, shares and hours stated in the written summaries were compared with the computed figures, and a sentence whose figure did not match was removed. In this version, 5 sentences with an unconfirmed figure were removed.
+
+**Reproducibility.** template opportunity_discovery v1; prompts clustering@2, opportunity@3, report@3; weights preset balanced.
+
+## Executive summary
+
+Ten interviews were completed and analyzed out of ten started, meeting the completion threshold, so the material is a reasonable but small sample of the organization. What comes through is a logistics operation where information is entered by hand several times along the same chain: customer orders arrive as free-text emails and Excel attachments and are retyped into the TMS, completed loads are retyped from the TMS into a billing spreadsheet, and supplier invoices are keyed field by field into Procountor. The highest-value opportunities follow that chain. First, extracting transport order details from order emails into the TMS, described as consuming about a third of the customer service team's time in the interviews where it came up. Second, capturing PDF invoice data into Procountor, where the reported load is around 70 invoices a day and roughly three hours each morning, with pain rated 7 out of 10. Third, integrating delivery data between the TMS, the billing spreadsheet and Procountor, which is the root of the re-keying, the roughly 2% of deliveries billed wrong or late, and the matching work that fills the first days of the month. Note that the two document-extraction opportunities each rest on 2 of 10 interviews, so the pain is deep but narrowly evidenced. AI is not the answer in several recurring areas: the paper shift handover sheets need a structured digital form, not a model; invoice and purchase approvals need tracked workflows with reminders and escalation; tachograph compliance checks are fixed legal thresholds that rules handle more auditably; and the driver proof-of-delivery app already works and should be left alone. One participant also raised chatbot and AI-offer ideas that describe no current process or measured loss, so there is nothing yet to scope there.
+
+## Participation and method
+
+| Invited | Completed interviews | Interviews analyzed | Facts extracted |
+|---|---|---|---|
+| 0 | 10 | 10 | 222 |
+
+Quotes and breakdowns appear only where at least 3 participants are behind them. Durations are self-reported.
+
+This analysis rests on ten interviews, which is enough to meet the threshold but not enough to establish how widely each problem is felt; several opportunities, including two of the three recommended ones, appear in only one or two interviews. All durations, volumes and pain ratings are self-reported by participants and have not been checked against system data. Interviews were anonymous, so findings cannot be traced back to specific roles or teams for follow-up questions, and overlapping descriptions of the same workflow may come from one person or several. Requirements discovery should verify volumes and current system capabilities before any build decision.
+
+## Work map
+
+Clusters of activity by share of participants who described them.
+
+### AI extraction of transport order details from free-text emails into the TMS
+
+Mentioned in 2 of 10 interviews (2 participants), about 1 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.
+
+### Automated PDF invoice data capture into Procountor
+
+Mentioned in 2 of 10 interviews (2 participants), about 0 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.
+
+### Proof-of-delivery signature and photo capture in the driver app
+
+Mentioned in 3 of 10 interviews (3 participants), about 0 hours per week in total as they described it, tools: delivery app.
+
+### Integration of delivery data between TMS, billing spreadsheet and Procountor
+
+Mentioned in 2 of 10 interviews (2 participants). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.
+
+### Proactive shipment status and credit note notifications to cut repeat inbound calls
+
+Mentioned in 2 of 10 interviews (2 participants). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.
+
+### Automated cross-checking of order emails, Excel attachments and TMS entries
+
+Mentioned in 3 of 10 interviews (3 participants).
+
+### Tracked invoice approval workflow for invoices above 2,000 euros
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Tachograph Violation Follow-Up Without Written Procedure or Outcome Log
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Morning dispatch handover call based on handwritten shift sheets
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Incomplete information on daily purchase approval requests
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Proactive reconciliation of customer invoices against TMS delivery data
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Ad-hoc diagnosis of delayed-order causes during status calls
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Manual handling of supplier invoice reference mismatches between TMS and Procountor
+
+Mentioned in 2 of 10 interviews (2 participants). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.
+
+### Automated reconciliation of subcontractor freight invoices against TMS delivery records
+
+Mentioned in 1 of 10 interviews (1 participant), about 8 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### TMS-to-finance billing data transfer without integration
+
+Mentioned in 1 of 10 interviews (1 participant), about 8 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Shift-time loss from equipment breakdowns and damaged goods
+
+Mentioned in 1 of 10 interviews (1 participant), about 5 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Digital shift handover log for damaged pallets and unfinished loads
+
+Mentioned in 1 of 10 interviews (1 participant), about 1 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Late overtime approvals arriving after the payroll cutoff
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Digital night shift handover sheet for terminal-to-planner handoff
+
+Mentioned in 1 of 10 interviews (1 participant), about 3 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### TMS-to-billing-to-Procountor integration for the delivery-to-invoice chain
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Illegible handwriting on the paper shift sheet forcing re-verification before dispatch reporting
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Email-based approval bottleneck for forklift spare parts above 500 euros
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Phone-based freight status lookups without customer self-service
+
+Mentioned in 1 of 10 interviews (1 participant), about 0 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Handheld scanning for consignment note verification against physical pallets
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Paper-Based Shift Handover Forms at Shift Boundaries
+
+Mentioned in 1 of 10 interviews (1 participant), about 4 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Digital shift handover record for terminal cross-dock supervisors
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Phone-based delay handoff from customer service desk to key account manager
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Validation of manually entered payment amounts and reference numbers in Procountor
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Automated tachograph compliance analysis replacing manual Excel review
+
+Mentioned in 1 of 10 interviews (1 participant), about 4 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Pending-clarification orders invisible to dispatch in the TMS
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Unverified TMS export capability for finance's shipment data fields
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Live route-change push from TMS to the driver proof-of-delivery app
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Monthly management report assembly in Excel and PowerPoint after close
+
+Mentioned in 1 of 10 interviews (1 participant), about 4 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Weekly customer offer preparation from emailed pricing tables
+
+Mentioned in 1 of 10 interviews (1 participant), about 1 hours per week in total as they described it. Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Speculative AI assistant ideas for customer service, offer drafting and cross-team handoffs
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+### Contract renewal prep from HubSpot terms and shipment history
+
+Mentioned in 1 of 10 interviews (1 participant). Fewer than 3 participants described this, so quotes, roles, tools and process maps are withheld. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.
+
+## Department comparison
+
+Each group below has at least 3 participants. Shares are of the group's own participants; hours are self-reported, not measured.
+
+| Group | Participants | Hours per week | AI | Automation | Software | Process |
+|---|---|---|---|---|---|---|
+| Terminal operations | 4 | 60 | withheld | withheld | 75% | withheld |
+| Customer service | 3 | 8 | withheld | 100% | withheld | withheld |
+| Finance and administration | 3 | 16 | withheld | 100% | withheld | withheld |
+
+Most shared by each group:
+
+- **Terminal operations:** Proof-of-delivery signature and photo capture in the driver app (75%)
+- **Customer service:** none shared by enough people
+- **Finance and administration:** none shared by enough people
+
+## Opportunities by solution class
+
+### AI
+
+| Rank | Opportunity | Interviews | Impact | People | Frequency | Simplicity | Data | Low risk | AI fit |
+|---|---|---|---|---|---|---|---|---|---|
+| 74.3 | AI extraction of transport order details from free-text emails into the TMS | 2 of 10 | 4 | 2 | 5 | 3 | 4 | 3 | 5 |
+| 71.4 | Automated PDF invoice data capture into Procountor | 2 of 10 | 4 | 2 | 5 | 3 | 4 | 3 | 4 |
+| 62.9 | Automated cross-checking of order emails, Excel attachments and TMS entries | 3 of 10 | 3 | 2 | 3 | 3 | 4 | 3 | 4 |
+
+**AI extraction of transport order details from free-text emails into the TMS.** Agents receive customer transport orders as free-text emails or Excel attachments, read them, check pickup and delivery addresses, dates and pallet or parcel counts against the email, and retype the key fields into the TMS. Simple orders take a few minutes, messy ones take longer, and mismatches trigger an email back to the customer and a wait for confirmation before entry can be completed. Participants describe about a third of the team's time going to this retyping, with pain rated 5 and 6 out of 10 on the entry tasks. A solution would use a language model to extract structured order fields from the email body and attachments, pre-fill the TMS order with confidence flags, and leave the agent to confirm or correct rather than type. Structured Excel attachments could be handled by simple parsing rules, so the AI layer is mainly needed for the free-text variants.
+
+*Mentioned in 2 of 10 interviews. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.*
+
+**Automated PDF invoice data capture into Procountor.** Supplier and subcontractor invoices arrive as PDF attachments and e-invoices in the invoices@ mailbox, and each PDF is opened and keyed into Procountor field by field (supplier, invoice number, due date, net amount, VAT, cost centre). The described volume is about 70 invoices a day consuming roughly three hours each morning, with the cause stated as no automated data extraction from PDF invoices; the pain is rated 7/10. Invoices over 2,000 euros are then emailed to a department head for approval before release for payment, adding manual handoffs. A solution would use invoice OCR/document extraction to pre-fill Procountor entries for review, and route approvals by rule instead of ad hoc email. This appeared in 2 of 10 interviews, so it is a narrow but deep pain concentrated in accounts payable.
+
+*Mentioned in 2 of 10 interviews. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.*
+
+**Automated cross-checking of order emails, Excel attachments and TMS entries.** Customer service agents enter orders that arrive by email with Excel attachments, manually matching fields such as pickup and delivery addresses, dates and pallet counts. A few times a week the email text and the attachment disagree (for example a postcode that does not match the street name, or differing pallet counts), which pauses order entry until the customer confirms; addresses are the slowest fields because they must be matched carefully. Dispatch separately flags mismatches between what was entered in the TMS and the original email, and mismatches with no delivery record can take a day or two to resolve with dispatch, which in turn delays the month-end close and the management report. A solution would parse the email body and the attachment, extract the order fields, compare them against each other and against the TMS entry, and surface a ranked list of discrepancies with a suggested resolution before the order is entered or the close begins. This both removes manual field-by-field comparison and catches entry errors earlier than the dispatch feedback loop.
+
+*Mentioned in 3 of 10 interviews.*
+
+> it sometimes takes a day or two to get a clear answer...the occasional one with no clear answer from dispatch can hold up the close for a couple of days
+
+> The real timing risk is upstream: if a mismatch with dispatch drags on for a couple of days, the close slips and the report slips with it.
+
+> Usually it's a small thing, like a postcode that doesn't match the street name or a pallet count written differently in the email and the Excel file.
+
+### Automation
+
+| Rank | Opportunity | Interviews | Impact | People | Frequency | Simplicity | Data | Low risk | AI fit |
+|---|---|---|---|---|---|---|---|---|---|
+| 65.7 | Integration of delivery data between TMS, billing spreadsheet and Procountor | 2 of 10 | 4 | 2 | 5 | 3 | 4 | 3 | 2 |
+| 65.7 | Proactive shipment status and credit note notifications to cut repeat inbound calls | 2 of 10 | 3 | 2 | 5 | 3 | 4 | 4 | 2 |
+| 62.9 | Tracked invoice approval workflow for invoices above 2,000 euros | 1 of 10 | 3 | 2 | 4 | 3 | 4 | 4 | 2 |
+| 62.9 | Incomplete information on daily purchase approval requests | 1 of 10 | 2 | 2 | 4 | 4 | 4 | 4 | 2 |
+| 62.9 | Proactive reconciliation of customer invoices against TMS delivery data | 1 of 10 | 3 | 2 | 3 | 4 | 4 | 4 | 2 |
+| 60 | Manual handling of supplier invoice reference mismatches between TMS and Procountor | 2 of 10 | 2 | 2 | 4 | 4 | 4 | 3 | 2 |
+| 60 | Automated reconciliation of subcontractor freight invoices against TMS delivery records | 1 of 10 | 3 | 2 | 2 | 4 | 5 | 3 | 2 |
+| 60 | TMS-to-finance billing data transfer without integration | 1 of 10 | 3 | 2 | 4 | 3 | 5 | 3 | 1 |
+| 57.1 | Late overtime approvals arriving after the payroll cutoff | 1 of 10 | 3 | 2 | 2 | 4 | 4 | 4 | 1 |
+| 57.1 | TMS-to-billing-to-Procountor integration for the delivery-to-invoice chain | 1 of 10 | 3 | 2 | 4 | 3 | 3 | 3 | 2 |
+| 57.1 | Email-based approval bottleneck for forklift spare parts above 500 euros | 1 of 10 | 3 | 2 | 2 | 4 | 4 | 4 | 1 |
+| 57.1 | Phone-based freight status lookups without customer self-service | 1 of 10 | 2 | 1 | 4 | 3 | 5 | 4 | 1 |
+| 57.1 | Handheld scanning for consignment note verification against physical pallets | 1 of 10 | 3 | 2 | 4 | 3 | 3 | 4 | 1 |
+| 54.3 | Phone-based delay handoff from customer service desk to key account manager | 1 of 10 | 2 | 1 | 3 | 4 | 3 | 5 | 1 |
+| 54.3 | Validation of manually entered payment amounts and reference numbers in Procountor | 1 of 10 | 2 | 2 | 2 | 3 | 4 | 4 | 2 |
+| 54.3 | Automated tachograph compliance analysis replacing manual Excel review | 1 of 10 | 3 | 2 | 2 | 3 | 4 | 3 | 2 |
+| 48.6 | Monthly management report assembly in Excel and PowerPoint after close | 1 of 10 | 2 | 1 | 1 | 3 | 4 | 4 | 2 |
+
+**Integration of delivery data between TMS, billing spreadsheet and Procountor.** Delivery and invoice data is currently entered two or three times across email, TMS, a billing spreadsheet and Procountor because the systems are not linked. The most fragile step is re-keying delivery confirmations from TMS into the billing spreadsheet, where a wrong quantity, date or single digit produces an incorrect invoice that finance must chase, and about 2% of deliveries end up billed wrong or late. The mismatches also drive the manual matching work that consumes the first four days of the month. The fix is a data integration: push confirmed delivery records from TMS into the billing sheet and onward into Procountor automatically, with rule-based validation and an exception queue for records that do not match. This is deterministic record transfer, so rules and interfaces, not AI, are the core of the solution.
+
+*Mentioned in 2 of 10 interviews. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.*
+
+**Proactive shipment status and credit note notifications to cut repeat inbound calls.** Customer service staff field recurring phone calls asking where a load is, complaining about late pickups and chasing the status of credit note approvals, with the queue peaking between 9 and 11 in the morning. The underlying causes named in the facts are slow credit note approval and the absence of proactive updates, so customers call again while they wait. The fix is to push status automatically: milestone and exception notifications from the TMS (pickup, delay, delivery) and a status update whenever a credit note moves a step in the approval chain, plus a self-service status view for customers. This removes the trigger for the call rather than handling the call faster. This cluster was mentioned in 2 of 10 interviews, so the scope of the problem across the organization is not yet established.
+
+*Mentioned in 2 of 10 interviews. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.*
+
+**Tracked invoice approval workflow for invoices above 2,000 euros.** Invoices over 2,000 euros are emailed as PDFs to department heads, who reply with a marked-up PDF that the finance person uses as the trigger to update invoice status and file the confirmation. Because there is no approval step or tracking in Procountor, the finance person waits part of each afternoon, phones to chase when nothing has come back by Thursday, and approvals still take 3-6 working days, costing early-payment discounts and sometimes late fees. It is also unclear whether the approval emails are retained anywhere outside Procountor, which weakens the audit trail. The fix is a tracked approval workflow: approvals requested, reminded and recorded in the invoice system itself, with automatic escalation reminders and a visible queue status, replacing email ping-pong and phone chasing. This is rules-and-integration work, not a prediction or language task.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Incomplete information on daily purchase approval requests.** One participant approves purchase requests daily and finds that the requests often arrive with thin information, so the approver must chase details before deciding. The decision itself appears quick; the delay comes from missing fields and context in the submitted request. The fix is mostly upstream: a required set of fields and attachments enforced at submission time, with validation rules in the existing request form or procurement tool so an incomplete request cannot be submitted. This is mentioned in 1 of 10 interviews with low reported pain (1/10 and 3/10 on the two tasks, severity 4/10 on the pain point), so it should be treated as a small, cheap improvement rather than a program.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Proactive reconciliation of customer invoices against TMS delivery data.** Customer invoices are issued without the systematic comparison against TMS delivery and order records that is already applied to subcontractor invoices. As a result, wrong or late invoices are only detected when revenue looks off or when the customer or sales team complains, after which billing manually pulls the original delivery record and issues a correction or credit note. A rule-based reconciliation job could compare each outgoing invoice against the corresponding TMS delivery data on fields such as quantity, route, surcharges and date, and flag mismatches or missing invoices for review before they reach the customer. This mirrors a control that reportedly already exists on the subcontractor side, so the logic and data access paths are largely known. The facts come from a single interview, so the scope and volume of billing errors are not established.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Manual handling of supplier invoice reference mismatches between TMS and Procountor.** Accounts payable staff reconcile supplier invoices against system records, and the pairing is done with formulas that depend on reference numbers being written the same way in both TMS and Procountor. Because references are typed inconsistently, roughly one in ten invoices falls out of automatic pairing and must be reviewed by hand, and discrepancy queries are handled daily. A fix would combine normalization and fuzzy matching of reference strings (stripping separators, padding, handling transpositions) with validation at the point of entry so fewer mismatches are created in the first place. This would cut the manual fallout queue and make the remaining exceptions a short review list rather than a daily search task.
+
+*Mentioned in 2 of 10 interviews. Small sample: this rests on 2 interviews, so treat it as a lead to check rather than a finding.*
+
+**Automated reconciliation of subcontractor freight invoices against TMS delivery records.** Finance exports subcontractor invoice lines from Procountor and delivery records from the TMS each month and pairs them in an Excel template using lookup formulas on load reference, date and route, with pivot tables totalling freight cost per subcontractor and period. About one in ten records fails to match and is reviewed by hand in a separate tab, and the reconciled summary is emailed as a workbook attachment to dispatch and accounts payable. The template breaks when an export column moves or a new subcontractor appears, so formula ranges must be fixed manually, and the whole file depends on one person maintaining it. A scripted or tool-based matching job reading both exports (or the source systems directly) on deterministic keys would produce the matched set, the exception list and the per-subcontractor summary automatically, leaving only genuine exceptions for a person. This was mentioned in 1 of 10 interviews, by a single participant, with a self-reported 480 minutes per week in total.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**TMS-to-finance billing data transfer without integration.** At the end of each day the transport planner opens every completed shipment in the TMS and copies the shipment number, weight and extra charges such as waiting time into finance's billing spreadsheet, then re-checks each row against the TMS before sending it on. Because there is no link between the TMS and the spreadsheet, the work is purely mechanical retyping plus a second manual verification pass, reported at about 90 minutes a day and rated 8/10 for pain. The fix is a scheduled export or API/integration that writes the completed-shipment fields directly into the billing spreadsheet (or a shared billing table), leaving the planner to review exceptions only. This is structured, field-to-field data movement with no judgement involved, so rules and an integration are sufficient; the manual verification step also largely disappears once the source is authoritative. Note that this is mentioned in 1 of 10 interviews by a single participant, so the organizational breadth is unproven.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Late overtime approvals arriving after the payroll cutoff.** Terminal and transport managers send overtime approvals to the payroll and HR administrator by email, and these frequently arrive one to two days after the payroll cutoff, sometimes later. The work is monthly and rated 7/10 for pain by the one participant who described it. A fix would be a structured submission and deadline workflow: a form or system entry for overtime approvals, automated reminders to managers ahead of the cutoff, and an automatic carry-over list so late cases are tracked without manual notes. This is mentioned in 1 of 10 interviews, so the scope appears narrow and local to the payroll function.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**TMS-to-billing-to-Procountor integration for the delivery-to-invoice chain.** Dispatch confirms a completed load in the TMS and then re-types that confirmation into a billing spreadsheet within a day or two, from which the billing team raises customer invoices; separately, subcontractor PDF invoices arriving by email are keyed into Procountor line by line. A fix would connect TMS delivery confirmations to the billing step through an integration or export-import flow, removing the re-typing and giving billing a single authoritative source. The participant explicitly asks for an end-to-end review of the whole chain rather than point fixes at individual desks. This is deterministic, structured data movement, so rules and integrations are the core of the solution, not AI.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Email-based approval bottleneck for forklift spare parts above 500 euros.** Shift supervisors request approval for spare parts costing more than 500 euros by sending an email to the terminal manager, who approves it manually. The request can sit unactioned in the inbox for up to three or four days, during which the broken forklift stays out of service, loading slows on that side of the dock and workers improvise around the missing machine. A fix would move the request into a tracked approval workflow with a clear owner, automatic reminders, escalation or a deputy approver after a set waiting time, and possibly an auto-approval band for routine maintenance parts. The underlying issue is a single-point manual approval with no visibility or deadline, not a lack of analysis or judgement. This was raised in 1 of 10 interviews by a single participant, so the organizational spread is unclear from this material.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Phone-based freight status lookups without customer self-service.** A customer service participant receives calls asking where a shipment is, searches the TMS by reference number or consignment details, reads the current status off the screen and relays it verbally. The work is short but recurs daily, and the pain is rated low (3/10) with about 25 minutes per week in total self-reported time. The obvious fix is customer-facing self-service: a tracking page or automated status notification driven by the reference number, so routine status calls never reach a person. This is mentioned in 1 of 10 interviews by a single participant, so the evidence base for organization-wide value is thin.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Handheld scanning for consignment note verification against physical pallets.** On shift, consignment notes are compared to physical pallets entirely on paper, with no handheld scanner in use. When the note and the pallet do not match, the supervisor writes the discrepancy up by hand on the handover form and passes it to the customer service desk or terminal manager. Resolving a missing stock item then means walking to the bay, confirming the note matches what is physically there, having a worker move the pallet to the correct bay or outbound door, and recording the shipment reference and new location on the handover form. A barcode or RFID handheld tied to the warehouse system would confirm pallet identity and location at the point of check, log mismatches directly instead of on paper, and remove the manual handover write-up. This is mentioned in 1 of 10 interviews (1 distinct participant), so the scale of the problem across the terminal is not established by this material.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Phone-based delay handoff from customer service desk to key account manager.** When a shipment is delayed, the customer service desk phones the key account manager with the shipment number and new expected delivery time; the manager then checks HubSpot to see whether the customer already knows, calls or emails the customer, logs a note, and raises it in the weekly sync if relevant. The pain is timing: occasionally the customer learns of the delay from their own email first and contacts the account manager before the desk has passed on details, leaving the manager without the full picture for a couple of hours. A fix would push delay events to the account manager automatically — a triggered message or HubSpot record carrying shipment number and revised delivery time the moment the delay is registered — instead of relying on a phone call. This is reported in 1 of 10 interviews by a single participant, and the participant rated the two related pains only 2/10 and 3/10 in severity.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Validation of manually entered payment amounts and reference numbers in Procountor.** Invoice amounts and reference numbers are typed manually into Procountor, with no formal verification beyond a careful second visual look before saving. Swapped digits lead to roughly five payment corrections a month, each requiring the entry to be fixed, the supplier contacted, and the payment team involved for money already sent. It is also unclear whether a corrected Procountor entry automatically notifies the payment side. A practical fix is rule-based validation at entry: reference-number checksum validation, amount cross-check against the invoice total, and duplicate/anomaly flags, plus a clarified notification path to the payment team. This is mentioned in 1 of 10 interviews, so the scope of the issue beyond this one role is unknown.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Automated tachograph compliance analysis replacing manual Excel review.** Every month an administrator downloads each driver's tachograph data from the card reader software, pastes it into an Excel template and checks driving time, working time and rest periods by eye, reported as about 960 minutes a month (self-reported as about 240 minutes per week in total). The work is slow and error-prone, and because only one person knows how to do it and no written procedure exists, the compliance check is skipped entirely when she is on holiday. Dedicated tachograph analysis software, or an automated import plus rule-based checks on the existing Excel data, would evaluate the legal driving, working and rest time limits and flag only violations for human review. A documented procedure and a trained backup would remove the single-person dependency, including follow-up after a detected violation. This was mentioned in 1 of 10 interviews, so the scope is narrow but the compliance exposure is specific.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Monthly management report assembly in Excel and PowerPoint after close.** After the month-end close is locked, Finance spends roughly a full day assembling an Excel workbook and a PowerPoint deck that is then emailed or handed off to leadership within a week. The work is recurring and manual, but the reporting structure is stable and the delivery is described as reliable, with low reported pain (2/10). A templated automation could pull the locked close figures into a fixed workbook and auto-generate the deck slides, leaving Finance to review and write commentary. This would remove most of the copy-paste assembly while keeping a human in the loop for the narrative. The signal is thin: this is mentioned in 1 of 10 interviews by a single participant, with about 240 minutes per week in total self-reported.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+### Software
+
+| Rank | Opportunity | Interviews | Impact | People | Frequency | Simplicity | Data | Low risk | AI fit |
+|---|---|---|---|---|---|---|---|---|---|
+| 62.9 | Morning dispatch handover call based on handwritten shift sheets | 1 of 10 | 2 | 2 | 4 | 4 | 4 | 4 | 2 |
+| 57.1 | Digital shift handover log for damaged pallets and unfinished loads | 1 of 10 | 2 | 2 | 4 | 4 | 4 | 3 | 1 |
+| 57.1 | Digital night shift handover sheet for terminal-to-planner handoff | 1 of 10 | 2 | 2 | 4 | 4 | 3 | 4 | 1 |
+| 57.1 | Illegible handwriting on the paper shift sheet forcing re-verification before dispatch reporting | 1 of 10 | 2 | 2 | 3 | 4 | 4 | 3 | 2 |
+| 57.1 | Paper-Based Shift Handover Forms at Shift Boundaries | 1 of 10 | 2 | 2 | 5 | 3 | 3 | 3 | 2 |
+| 54.3 | Digital shift handover record for terminal cross-dock supervisors | 1 of 10 | 2 | 1 | 3 | 4 | 4 | 4 | 1 |
+| 54.3 | Pending-clarification orders invisible to dispatch in the TMS | 1 of 10 | 2 | 2 | 3 | 3 | 3 | 4 | 2 |
+| 54.3 | Live route-change push from TMS to the driver proof-of-delivery app | 1 of 10 | 3 | 2 | 3 | 3 | 4 | 3 | 1 |
+
+**Morning dispatch handover call based on handwritten shift sheets.** Each morning the shift supervisor phones dispatch to report which loads did not leave overnight and which shipments are still open. The information originates on a paper shift sheet, so the supervisor has to decipher unclear handwriting and verify details live on the call, which stretches the conversation and leaves dispatch without visibility into the underlying document. The fix is to capture the shift status digitally at source, so that load and shipment status is entered once in a shared form or list that dispatch can read directly, turning the call into a short exception discussion or removing it entirely. This is mentioned in 1 of 10 interviews (1 distinct participant), and no duration was recorded for the call, so the time saving is unquantified. The root cause is the paper medium and single-channel handover, not a judgement task that needs AI.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Digital shift handover log for damaged pallets and unfinished loads.** The night shift records damaged pallets, unfinished shipments and loads that did not depart on a handwritten shift sheet, which the morning supervisor reads to establish what is still pending. Poor handwriting forces the supervisor to guess at the contents, and when the sheet is missing entirely he walks the whole terminal for about 30 minutes, leaving dock control unattended while the team's questions wait. A simple structured digital handover form, filled in on a tablet or terminal during the night shift and visible to the morning supervisor, would make the handover legible, always present and searchable. This came up in only one of ten interviews, with a self-reported total of about 30 minutes per week, so the measured scope is narrow even though the reported pain is high (severity 7/10 and 8/10).
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Digital night shift handover sheet for terminal-to-planner handoff.** The night shift in the terminal records open items on a paper sheet that stays in the terminal office, so the transport planner phones each morning for a verbal summary of late or unloaded loads, pallet count mismatches against the TMS and unassigned trailers. The call takes about 30 minutes daily and the planner never sees the sheet, so details that were not mentioned surface later as problems. The fix is a simple structured digital handover form (mobile or terminal PC) with fixed fields per category, visible to the planner before the shift starts, ideally linked to the TMS load and trailer records. The morning call would then become a short exception check rather than a full readout. This was described in 1 of 10 interviews, by a single participant, so the scope beyond this one planner and terminal is unverified.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Illegible handwriting on the paper shift sheet forcing re-verification before dispatch reporting.** The night shift records loads and shipments by hand on a shift sheet, and the day shift supervisor must read those lines before reporting to dispatch. When the handwriting is unclear, the supervisor re-reads the line, confirms the load number, and at times walks to the loading dock to physically verify pallets or shipments, adding a couple of minutes or somewhat more per occurrence and making the needed time hard to estimate. The root cause is that the handover is captured on paper at all; the fix is to replace the handwritten shift sheet with structured digital entry, where load numbers are selected or scanned rather than written. This removes ambiguity at the source instead of trying to decipher it afterwards. Mentioned in 1 of 10 interviews, so the scope seen so far is one shift handover point.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Paper-Based Shift Handover Forms at Shift Boundaries.** At each shift boundary one operator reads the previous shift's handover on a paper form (about 25 minutes) and writes the end-of-shift handover on paper (about 17 minutes), reported as about 210 minutes per week in total. The pain is rated low (3/10 for both tasks), and the main friction appears to be the paper medium itself rather than the content of the handover. A simple digital handover form, structured by section and pre-filled with shift metadata and recurring items, would cut writing time and make reading faster through structure and search. This is a workflow and tooling change, not a reasoning problem, so a lightweight shift-log application or form in existing tooling is the natural fix.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Digital shift handover record for terminal cross-dock supervisors.** Evening and night shift supervisors at the cross-dock terminal fill in a paper A4 handover form at the end of the shift covering open shipments, damaged goods, forklift faults and missing staff, and leave it on the terminal office desk for the incoming supervisor. The form is reported lost, coffee-stained or unreadable about once a week, which forces the incoming shift to walk the floor bay by bay and recreate the status, costing 20 to 30 minutes of shift time per occurrence according to the single participant. A simple structured digital form (tablet or phone entry, or a shared template) with persistent storage would remove the loss risk, make previous handovers searchable and let the incoming supervisor read the status before walking the floor. This is a straightforward data-capture problem: the content is short, structured and written by the supervisor, so no model is needed. The scope is narrow, so a lightweight tool rather than a platform project is appropriate.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Pending-clarification orders invisible to dispatch in the TMS.** When an order arrives with unclear or conflicting details, the order clerk emails the customer and leaves the order out of the TMS until a reply comes back. During that waiting period dispatchers have no visibility of the pickup, so they cannot pre-plan capacity, and nobody tracks how long customers take to respond or whether reminders are needed. A fix would be a provisional or 'pending clarification' order state in the TMS, with the open question attached, a visible age on the item and a reminder trigger when no reply arrives. This is mentioned in 1 of 10 interviews, and the facts explicitly note it is unknown whether this has caused missed or delayed pickups, so the size of the effect is unverified.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Live route-change push from TMS to the driver proof-of-delivery app.** When a customer calls to move a delivery after the truck has departed, the planner locates the job in the TMS list view, checks the new time window against available trucks and drivers, reshuffles other stops if the TMS flags a clash, then phones the driver while simultaneously re-entering the change in the TMS. The pain is the double manual step and the absence of any confirmation that the driver actually received and accepted the new stop (severity rated 5/10 and 6/10 in the facts). The fix is a software/integration change: push confirmed route changes from the TMS to the driver proof-of-delivery app, with an acknowledgement signal back to the planner. The planner's call then becomes optional context rather than the only channel, and the TMS record updates once instead of being typed during a phone call. This was mentioned in 1 of 10 interviews, by a single participant, so scope and breadth are unclear.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+### Process
+
+| Rank | Opportunity | Interviews | Impact | People | Frequency | Simplicity | Data | Low risk | AI fit |
+|---|---|---|---|---|---|---|---|---|---|
+| 62.9 | Tachograph Violation Follow-Up Without Written Procedure or Outcome Log | 1 of 10 | 3 | 2 | 3 | 5 | 4 | 4 | 1 |
+| 62.9 | Ad-hoc diagnosis of delayed-order causes during status calls | 1 of 10 | 2 | 1 | 3 | 5 | 4 | 5 | 2 |
+| 60 | Shift-time loss from equipment breakdowns and damaged goods | 1 of 10 | 2 | 2 | 5 | 4 | 2 | 4 | 2 |
+| 54.3 | Unverified TMS export capability for finance's shipment data fields | 1 of 10 | 2 | 1 | 3 | 5 | 2 | 5 | 1 |
+
+**Tachograph Violation Follow-Up Without Written Procedure or Outcome Log.** Tachograph violation findings are identified by the payroll and HR administrator and sent by email to the transport manager, but there is no written procedure defining who does what, no documented consequence for a confirmed violation, and no log of outcomes. The transport manager rarely replies, so the administrator must ask directly and often still cannot confirm whether a driver was spoken to or any action taken. The pain is accountability and audit trail rather than data processing: findings are already detected, they simply disappear after being emailed. The fix is primarily organizational — a written escalation procedure with a named owner, a defined consequence ladder (for example warning or retraining) and a mandatory acknowledgement step — supported by a simple shared log or tracker of findings and their outcomes. This is mentioned in 1 of 10 interviews by a single participant, so scope and scale are unconfirmed.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Ad-hoc diagnosis of delayed-order causes during status calls.** When a customer calls about an order that is late, the participant looks up the order's current status and recorded events in the TMS and, if the delay is still unexplained, asks the customer for a reference or what they were told, sometimes also asking colleagues. There is no agreed routine, so the depth of the investigation depends on the individual call and the time available, which makes answers inconsistent and hard to reproduce. A fix would be a short, documented checklist for delay diagnosis: which TMS fields and event types to read in which order, which questions to ask the customer, and when to escalate to dispatch or the carrier. This is mentioned in 1 of 10 interviews by a single participant and the pain is rated 3 out of 10, so it is a small, local gap rather than an organizational problem.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Shift-time loss from equipment breakdowns and damaged goods.** A warehouse or production shift worker handles equipment breakdowns and damaged goods as they occur during the shift, mentioned in 1 of 10 interviews. The incidents happen daily and a single one can consume about an hour of the shift, with a self-reported total of about 300 minutes per week; pain is rated 5/10 and severity 6/10. The underlying cause is physical: equipment failing or goods arriving damaged, so the time loss is in the repair, the rerouting of work and the reporting, not in an information task. A sensible first step is a process fix: a clear escalation and stand-in routine (who to call, what to do with the pallet, where work continues) plus structured incident logging so recurring equipment failures become visible for maintenance planning. Only once such logs exist would predictive maintenance or defect-image classification be worth considering.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+**Unverified TMS export capability for finance's shipment data fields.** A participant manually retypes shipment number, weight and extra charges from the TMS screen into the layout finance requires, because nobody has checked whether the TMS already offers an export or report function for those fields. The pain is low-grade but self-inflicted: manual transcription continues only because the system's capability is unknown. The fix is a short investigation with the TMS administrator or fleet manager to confirm which export or report options exist and whether the required fields can be produced in a file. Only after that answer does it make sense to decide between configuring an existing report, building an integration, or leaving the process as is. This is mentioned in 1 of 10 interviews, so the scope of the problem is currently unproven.
+
+*Mentioned in 1 of 10 interviews. Small sample: this rests on one interview, so treat it as a lead to check rather than a finding.*
+
+## Quick wins and strategic bets
+
+**Quick wins** (high simplicity, real impact):
+
+- Tachograph Violation Follow-Up Without Written Procedure or Outcome Log (rank 62.9; 1 of 10 interviews)
+- Proactive reconciliation of customer invoices against TMS delivery data (rank 62.9; 1 of 10 interviews)
+- Automated reconciliation of subcontractor freight invoices against TMS delivery records (rank 60; 1 of 10 interviews)
+- Late overtime approvals arriving after the payroll cutoff (rank 57.1; 1 of 10 interviews)
+- Email-based approval bottleneck for forklift spare parts above 500 euros (rank 57.1; 1 of 10 interviews)
+
+**Strategic bets** (high impact, larger effort):
+
+- AI extraction of transport order details from free-text emails into the TMS (rank 74.3; 2 of 10 interviews)
+- Automated PDF invoice data capture into Procountor (rank 71.4; 2 of 10 interviews)
+- Integration of delivery data between TMS, billing spreadsheet and Procountor (rank 65.7; 2 of 10 interviews)
+
+## Where AI is not the answer
+
+- **Proof-of-delivery signature and photo capture in the driver app** (No change recommended): The facts describe a problem that the existing delivery app already solved: pain is 0/10 to 1/10 and total self-reported effort is about 3 minutes per week, so there is no measurable gain to justify building anything, with or without AI.
+- **Tachograph Violation Follow-Up Without Written Procedure or Outcome Log** (Process): The violations are already detected and reported; what is missing is a written escalation procedure, a named owner, a defined consequence and an acknowledgement step — policy decisions that no model can make. Any supporting log is simple record-keeping, not an AI task.
+- **Ad-hoc diagnosis of delayed-order causes during status calls** (Process): The stated cause is the absence of a standardized investigation process; the underlying status and event data is already available in the TMS, and unexplained cases are resolved by asking the customer, so a checklist and escalation rules solve it without a model. With one mention out of ten interviews and no volume figures, there is also no basis for an AI investment.
+- **Shift-time loss from equipment breakdowns and damaged goods** (Process): The problem is a physical breakdown and the organizational response to it; no failure history or defect data exists yet, so rules and a clear handling routine come before any model.
+- **Unverified TMS export capability for finance's shipment data fields** (Process): The underlying issue is a knowledge gap about existing TMS export functionality, not a task requiring language understanding, prediction or retrieval; the resolution is a clarification with the TMS administrator, and any follow-up would be configuration or rule-based automation.
+- **Weekly customer offer preparation from emailed pricing tables** (No change recommended): The participant rates the task 1/10 and the waiting dependency 2/10 and states it is not a real blocker; at about 60 minutes per week for one person, no build is justified. Any fix would also be a shared price-table location or template merge, i.e. rules and process, not AI.
+- **Speculative AI assistant ideas for customer service, offer drafting and cross-team handoffs** (No change recommended): The facts contain only wishes, with no described process, volume, time loss or data source. There is no problem statement concrete enough to build against; discovery into the actual offer and handoff workflows must come first.
+- **Contract renewal prep from HubSpot terms and shipment history** (No change recommended): The participant rates the task rare and pain 0/10 with no time recorded, and the steps are a structured HubSpot lookup plus a fixed Word template; a model adds no judgement here and any build cost would exceed the benefit.
+
+## Recommended next steps
+
+1. AI extraction of transport order details from free-text emails into the TMS, because order entry is the largest reported time drain in customer service and the free-text variants are the part that simple parsing rules cannot cover.
+2. Automated PDF invoice data capture into Procountor, because the described volume and daily morning effort are concrete and the pain rating is the highest in the material, even though it rests on 2 of 10 interviews.
+3. Integration of delivery data between TMS, billing spreadsheet and Procountor, because it removes the double and triple entry behind the billing errors and the month-end matching work, and it is deterministic record transfer rather than an AI build.
