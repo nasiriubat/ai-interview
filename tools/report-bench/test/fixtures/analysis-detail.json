@@ -1,0 +1,54 @@
+{
+  "analysis": { "id": "an_1", "status": "done" },
+  "opportunities": [
+    {
+      "id": "o1",
+      "title": "Manual invoice and order re-keying",
+      "summary": "PDF invoices and emailed orders are retyped by hand into Procountor and the TMS.",
+      "solutionClass": "automation",
+      "rankScore": 80,
+      "stats": {
+        "participants": 5,
+        "facts": 12,
+        "roles": ["Accounts payable clerk"],
+        "departments": ["Finance and administration"],
+        "quotes": ["I type every PDF invoice into Procountor by hand"]
+      }
+    },
+    {
+      "id": "o2",
+      "title": "Approval delays",
+      "summary": "Purchase and credit-note approvals wait in email inboxes for days; people chase approval by phone.",
+      "solutionClass": "process",
+      "rankScore": 70,
+      "stats": { "participants": 3, "facts": 6, "roles": [], "departments": [], "quotes": [] },
+      "whyNotAi": "A clear approval rule fixes this."
+    },
+    {
+      "id": "o3",
+      "title": "Proof-of-delivery app",
+      "summary": "The POD driver app with signatures works well.",
+      "solutionClass": "none",
+      "rankScore": 30,
+      "stats": { "participants": 3, "facts": 3, "roles": [], "departments": [], "quotes": [] }
+    },
+    {
+      "id": "o4",
+      "title": "Tachograph working time compliance report",
+      "summary": "Driver tachograph data is checked for working time by hand.",
+      "solutionClass": "automation",
+      "rankScore": 50,
+      "stats": {
+        "participants": 1,
+        "facts": 2,
+        "roles": ["Payroll and HR administrator"],
+        "departments": [],
+        "quotes": []
+      }
+    }
+  ],
+  "report": {
+    "markdown": "# Discovery report\n\n## Executive summary\n\nRe-keying is the largest problem. Anna Lindqvist said so.\n\n> I type every PDF invoice into Procountor by hand\n\n> Our customers love the new AI chatbot we built last year\n\nShe told us “it takes about three hours a day” and that it is the worst part.\n",
+    "sections": []
+  }
+}

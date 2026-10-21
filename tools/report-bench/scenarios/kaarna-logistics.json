@@ -1,0 +1,329 @@
+{
+  "id": "kaarna-logistics",
+  "version": 1,
+  "company": {
+    "name": "Kaarna Logistiikka Oy",
+    "description": "a fictional mid-size Finnish road-freight and warehousing company in Vantaa, about 140 employees, running a cross-dock terminal, 45 trucks and a customer service desk for about 300 business customers",
+    "language": "en"
+  },
+  "campaign": {
+    "name": "Report bench: Kaarna Logistiikka discovery",
+    "maxTurns": 14
+  },
+  "k": 3,
+  "problems": [
+    {
+      "id": "invoice_rekeying",
+      "kind": "problem",
+      "title": "Re-keying invoices and orders between email/PDF and the business systems",
+      "description": "Supplier and subcontractor invoices arrive as PDF attachments and are typed by hand into the accounting system (Procountor); customer transport orders arrive by email and are typed into the transport management system (TMS); delivery confirmations are typed again for billing. Same data keyed two or three times, with typing errors and month-end reconciliation work.",
+      "plantedIn": ["anna_ap", "mikko_controller", "timo_dispatch", "heidi_cs", "oskari_cs_lead"],
+      "expectedClasses": ["automation", "ai", "software"],
+      "impact": 5,
+      "keywords": [
+        "invoice",
+        "re-key",
+        "rekey",
+        "retyp",
+        "manual entry",
+        "manually",
+        "typing",
+        "pdf",
+        "order entry",
+        "data entry",
+        "procountor",
+        "email order",
+        "double entry",
+        "keying"
+      ]
+    },
+    {
+      "id": "approval_delays",
+      "kind": "problem",
+      "title": "Approvals stuck in email inboxes",
+      "description": "Purchase approvals, overtime approvals and customer credit-note approvals are requested by email to department heads; they wait two to six working days, people chase by phone, payroll and customers are affected.",
+      "plantedIn": ["anna_ap", "leena_payroll", "jari_terminal", "heidi_cs"],
+      "expectedClasses": ["process", "software", "automation"],
+      "impact": 4,
+      "keywords": [
+        "approval",
+        "approve",
+        "sign-off",
+        "sign off",
+        "credit note",
+        "overtime",
+        "purchase request",
+        "waiting",
+        "chase",
+        "bottleneck",
+        "authoris",
+        "authoriz"
+      ]
+    },
+    {
+      "id": "shift_handover_paper",
+      "kind": "problem",
+      "title": "Paper shift-handover form at the terminal",
+      "description": "The cross-dock terminal hands over between shifts on a paper A4 form (open shipments, damaged goods, forklift faults, missing staff). The form gets lost or is unreadable, the next shift re-checks everything, and dispatch cannot see it.",
+      "plantedIn": ["jari_terminal", "sari_terminal", "timo_dispatch"],
+      "expectedClasses": ["software", "process", "automation"],
+      "impact": 3,
+      "keywords": [
+        "handover",
+        "hand-over",
+        "shift change",
+        "shift",
+        "paper form",
+        "paper",
+        "terminal",
+        "log book",
+        "logbook"
+      ]
+    },
+    {
+      "id": "tachograph_compliance",
+      "kind": "problem",
+      "title": "Monthly tachograph working-time report compiled by hand (one person)",
+      "description": "One payroll and HR administrator downloads drivers' tachograph data each month, copies it into an Excel template and checks working-time and rest-period compliance by eye, about two days a month. Only she does this.",
+      "plantedIn": ["leena_payroll"],
+      "expectedClasses": ["automation", "software"],
+      "impact": 2,
+      "keywords": [
+        "tachograph",
+        "driving time",
+        "working time",
+        "working-time",
+        "rest period",
+        "compliance",
+        "driver hours"
+      ]
+    },
+    {
+      "id": "shipment_status_calls",
+      "kind": "problem",
+      "title": "Customers phone to ask where their shipment is",
+      "description": "Customer service answers 40 to 60 calls a day asking for shipment status; the agent looks the shipment up in the TMS and reads the status out. Customers have no self-service tracking link.",
+      "plantedIn": ["heidi_cs", "oskari_cs_lead"],
+      "expectedClasses": ["software", "automation", "ai"],
+      "impact": 3,
+      "keywords": ["where is", "status", "tracking", "track", "calls", "phone", "inquir", "enquir", "eta"]
+    },
+    {
+      "id": "pod_app_works",
+      "kind": "works_well",
+      "title": "Electronic proof-of-delivery app works well",
+      "description": "Drivers capture signatures and photos on the proof-of-delivery (POD) phone app introduced last year; it syncs to the TMS within minutes, disputes dropped sharply, and everyone who uses it is happy. Nothing to change.",
+      "plantedIn": ["timo_dispatch", "ville_driver", "jari_terminal"],
+      "expectedClasses": ["none"],
+      "impact": 0,
+      "keywords": [
+        "proof of delivery",
+        "proof-of-delivery",
+        "pod",
+        "signature",
+        "delivery app",
+        "driver app",
+        "e-pod",
+        "epod"
+      ]
+    },
+    {
+      "id": "ai_everything",
+      "kind": "distractor",
+      "title": "Wants AI everywhere without a concrete problem",
+      "description": "A key account manager is enthusiastic about AI (chatbots, AI forecasting, AI-written offers) but, asked about his own work, has no concrete pain: his CRM and offer process work fine. Should not become a ranked opportunity.",
+      "plantedIn": ["petri_sales"],
+      "expectedClasses": ["none"],
+      "impact": 0,
+      "keywords": [
+        "chatbot",
+        "ai forecasting",
+        "forecast",
+        "ai assistant",
+        "generative",
+        "ai-written",
+        "ai tools"
+      ]
+    }
+  ],
+  "personas": [
+    {
+      "id": "anna_ap",
+      "name": "Anna Lindqvist",
+      "role": "Accounts payable clerk",
+      "department": "Finance and administration",
+      "participation": "identified",
+      "language": "en",
+      "talkativeness": "normal",
+      "attitudes": "Conscientious, a bit tired of the month-end rush, open to change but sceptical of big IT projects.",
+      "facts": [
+        "Handles about 70 supplier and subcontractor invoices a day; about 80 percent arrive as PDF attachments to invoices@ mailbox, the rest as e-invoices that flow in automatically.",
+        "Types each PDF invoice by hand into Procountor: supplier, invoice number, due date, net amount, VAT, cost centre. About 3 minutes each, so roughly 3 hours a day.",
+        "Typing errors (swapped digits in amounts or reference numbers) cause about 5 payment corrections a month.",
+        "Invoices above 2,000 euros need approval from the department head. She emails the PDF to them and waits; approvals take 3 to 6 working days, and she chases by phone every Thursday. Late approvals cost early-payment discounts and sometimes late fees.",
+        "Likes the e-invoices that come in automatically; wishes more subcontractors sent them.",
+        "Works in the Vantaa office, has been at Kaarna for 7 years."
+      ],
+      "identifiers": ["seven years", "7 years"]
+    },
+    {
+      "id": "mikko_controller",
+      "name": "Mikko Rantanen",
+      "role": "Financial controller",
+      "department": "Finance and administration",
+      "participation": "identified",
+      "language": "en",
+      "talkativeness": "talkative",
+      "attitudes": "Analytical, likes numbers, talkative, a little impatient with manual work, thinks the company grew faster than its systems.",
+      "facts": [
+        "Runs month-end close. Spends the first four working days of every month reconciling subcontractor freight invoices against delivery records in the TMS, which means exporting both to Excel and matching by hand because the invoices were typed in separately.",
+        "Customer billing is built from delivery confirmations that dispatch re-types from the TMS into a billing spreadsheet; about 2 percent of deliveries are billed wrong or late as a result.",
+        "Produces the monthly management report in Excel and PowerPoint, about one day; he is fine with that and does not see it as a problem.",
+        "Has been asked to approve purchases too but says he answers within a day, the bottlenecks are elsewhere.",
+        "Thinks the same data is keyed two or three times between email, TMS, billing and Procountor."
+      ],
+      "identifiers": []
+    },
+    {
+      "id": "leena_payroll",
+      "name": "Leena Korhonen",
+      "role": "Payroll and HR administrator",
+      "department": "Finance and administration",
+      "participation": "anonymous",
+      "language": "en",
+      "talkativeness": "normal",
+      "attitudes": "Careful, worried about compliance, the only person who knows her part of the work.",
+      "facts": [
+        "Runs payroll for about 140 employees twice a month.",
+        "Overtime has to be approved by the terminal manager or the transport manager before she can pay it. Approval requests go by email and often arrive after the payroll cut-off, so about 15 to 20 people a month get their overtime one payroll late and complain to her.",
+        "Once a month she downloads every driver's tachograph data from the card reader software, copies it into an Excel template she built herself and checks driving time, working time and rest periods by eye. It takes about two full days. She is the only one who knows how to do it, and she worries about what happens when she is on holiday.",
+        "Sick-leave notices come by text message to supervisors who forward them to her; that works acceptably.",
+        "Uses the payroll system Palkkaus for payroll itself, no complaints."
+      ],
+      "identifiers": ["template she built herself", "only one who knows"]
+    },
+    {
+      "id": "jari_terminal",
+      "name": "Jari Nieminen",
+      "role": "Terminal shift supervisor (evening and night)",
+      "department": "Terminal operations",
+      "participation": "identified",
+      "language": "en",
+      "talkativeness": "normal",
+      "attitudes": "Practical, direct, proud of his team, impatient with paperwork.",
+      "facts": [
+        "Supervises 12 warehouse workers on the evening and night shift at the cross-dock terminal, 14:00 to 22:00 or 22:00 to 06:00.",
+        "At the end of every shift he fills in a paper A4 handover form: open shipments, damaged goods, forklift faults, missing staff. It is left on the desk in the terminal office. About once a week it is lost, coffee-stained or unreadable, and the next shift has to walk the floor and re-check everything, 20 to 30 minutes.",
+        "Purchases of forklift spare parts above 500 euros need the terminal manager's approval by email; a broken forklift can wait three or four days for a part because the approval sits in an inbox.",
+        "The proof-of-delivery app the drivers use works great; since it came in, he no longer gets night calls about missing signatures.",
+        "Shift rosters are in an Excel file, which is fine for his team size."
+      ],
+      "identifiers": []
+    },
+    {
+      "id": "sari_terminal",
+      "name": "Sari Mäkinen",
+      "role": "Terminal shift supervisor (morning)",
+      "department": "Terminal operations",
+      "participation": "anonymous",
+      "language": "fi",
+      "talkativeness": "normal",
+      "attitudes": "Calm, experienced, prefers to speak Finnish, a bit wary of new systems but welcomes anything that saves walking around.",
+      "facts": [
+        "Supervises the morning shift at the terminal, 06:00 to 14:00, about 15 workers.",
+        "Starts every shift by reading the paper handover form from the night shift. Handwriting is often unreadable, and when the form is missing she walks the whole terminal to find damaged pallets and open shipments, about half an hour lost several times a week.",
+        "Dispatch phones her in the morning to ask what was left over from the night, because they cannot see the paper form.",
+        "Loading-bay scheduling is on a whiteboard and works fine for the volume they have.",
+        "Answers the interviewer in Finnish even if the questions are in English."
+      ],
+      "identifiers": []
+    },
+    {
+      "id": "timo_dispatch",
+      "name": "Timo Heikkinen",
+      "role": "Transport planner (dispatcher)",
+      "department": "Terminal operations",
+      "participation": "anonymous",
+      "language": "en",
+      "talkativeness": "talkative",
+      "attitudes": "Energetic, fast talker, likes the TMS for route planning, frustrated with copying data around.",
+      "facts": [
+        "Plans routes for about 45 trucks a day in the TMS; route planning itself works well.",
+        "After deliveries, he copies delivery confirmations (shipment number, weight, extra charges like waiting time) from the TMS into the billing spreadsheet that finance uses, about 90 minutes every afternoon. Errors in that copy cause wrong invoices.",
+        "Every morning he has to phone the terminal to learn what the night shift left open, because the handover is on paper in the terminal office.",
+        "The proof-of-delivery app on drivers' phones is the best thing that happened in years: signatures and photos arrive in the TMS within minutes and disputes about deliveries dropped to almost nothing.",
+        "Fuel cards and vehicle maintenance are handled by the fleet manager and work fine."
+      ],
+      "identifiers": []
+    },
+    {
+      "id": "ville_driver",
+      "name": "Ville Salo",
+      "role": "Truck driver",
+      "department": "Terminal operations",
+      "participation": "anonymous",
+      "language": "en",
+      "talkativeness": "terse",
+      "attitudes": "Laconic, content with his job, dislikes long conversations.",
+      "facts": [
+        "Drives a distribution route in the Helsinki region, 15 to 25 stops a day.",
+        "Uses the proof-of-delivery app on his phone for signatures and photos; it works fine and is quick, much better than the old paper delivery notes.",
+        "Gets his route on the phone app in the morning; no problems.",
+        "Only complaint, if pressed: sometimes waits at customer loading docks, but that is the customer's business."
+      ],
+      "identifiers": []
+    },
+    {
+      "id": "heidi_cs",
+      "name": "Heidi Laaksonen",
+      "role": "Customer service agent",
+      "department": "Customer service",
+      "participation": "identified",
+      "language": "en",
+      "talkativeness": "normal",
+      "attitudes": "Friendly, a little stressed, wants fewer interruptions.",
+      "facts": [
+        "About half of customer transport orders arrive by email (free text or Excel attachment); she types each one into the TMS, 5 to 8 minutes per order, about 30 orders a day.",
+        "Answers 40 to 60 phone calls a day from customers asking where their shipment is; she looks it up in the TMS and reads out the status. Customers have no tracking link.",
+        "Credit notes for damaged or late deliveries need approval from the customer service manager by email; they take up to a week, and customers call again in the meantime.",
+        "Uses Outlook, the TMS and Excel all day."
+      ],
+      "identifiers": []
+    },
+    {
+      "id": "oskari_cs_lead",
+      "name": "Oskari Virtanen",
+      "role": "Customer service team lead",
+      "department": "Customer service",
+      "participation": "anonymous",
+      "language": "en",
+      "talkativeness": "terse",
+      "attitudes": "Busy, short answers, numbers-oriented, a bit guarded.",
+      "facts": [
+        "Leads a team of 5 agents.",
+        "Estimates the team spends about a third of its time re-typing emailed orders into the TMS.",
+        "Shipment status calls are the biggest interruption; the phone queue peaks at 9 to 11 in the morning.",
+        "He compiles a weekly customer complaint summary in Excel, about an hour, and is fine with it."
+      ],
+      "identifiers": []
+    },
+    {
+      "id": "petri_sales",
+      "name": "Petri Aaltonen",
+      "role": "Key account manager",
+      "department": "Customer service",
+      "participation": "identified",
+      "language": "en",
+      "talkativeness": "talkative",
+      "attitudes": "Very enthusiastic about AI after reading about it; wants AI for everything (chatbots, AI forecasting, AI-written offers, an AI assistant for the whole company) but has no concrete problem in his own work.",
+      "facts": [
+        "Manages about 25 large customer accounts; meets customers, prepares offers and contract renewals.",
+        "Offers are made from a Word template with price tables from the pricing team; it takes about an hour per offer and he is fine with that.",
+        "Uses HubSpot CRM, which he likes; it works well for him.",
+        "When asked about problems he talks in general terms about 'AI transformation', competitors using AI, and wanting a chatbot and AI demand forecasting, but cannot name a task that actually wastes his time.",
+        "If pressed for a concrete pain, admits his own work runs smoothly."
+      ],
+      "identifiers": []
+    }
+  ]
+}

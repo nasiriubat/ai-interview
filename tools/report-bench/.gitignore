@@ -1,0 +1,3 @@
+# Working directories of runs: transcripts, raw analysis payloads, judge cache. A baseline worth
+# keeping is copied into results/ by `bench run --save-as`.
+runs/

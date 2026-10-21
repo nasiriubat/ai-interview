@@ -26,7 +26,7 @@ This file is for coding agents and new engineers. It is the short version of
 | `apps/web`         | Next.js app: participant flow, admin, requirements workspace                                                               |
 | `packages/testing` | Dev-only fakes and gates: `MemorySessionStore`, `ScriptedModel`, `describeDb`, the network guard                           |
 | `deploy`           | Production stack (`compose.yml`, `Caddyfile`) and operator commands; `backup/`, `lib/`, `ops/`, `observability/`, `test/`  |
-| `tools`            | `evals` (engine replays), `live-run`, `load` (k6), `rehearsal` (drill, chaos), `fake-provider`, `eslint-rules`, `patches`  |
+| `tools`            | `evals`, `live-run`, `report-bench`, `load` (k6), `rehearsal` (drill, chaos), `fake-provider`, `eslint-rules`, `patches`   |
 | `scripts`          | Repository scripts: `check.ts` (the gate), env-file loader and `env:migrate`, security and migration gates                 |
 
 ## Conventions

@@ -11,3 +11,7 @@ prisma/migrations
 docs/SUBPROCESSORS.md
 docs/PRIVACY-PROCESSING.md
 docs/discovery/decisions.md
+
+# report-bench: run working directories and generated scorecards and reports, byte for byte as written.
+tools/report-bench/runs/
+tools/report-bench/results/
