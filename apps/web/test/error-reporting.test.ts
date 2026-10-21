@@ -174,11 +174,11 @@ describe("the web server's report", () => {
 
   it("posts with the internal secret and swallows a failure", async () => {
     vi.stubEnv("AUTH_SECRET", "test-secret-test-secret-test-secret");
-    const send = vi.fn(async () => new Response(null, { status: 204 }));
+    const send = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
     await reportServerError(new Error("x"), { path: "/", method: "GET", headers: {} }, {}, send);
-    const [url, init] = send.mock.calls[0] as unknown as [string, RequestInit];
+    const [url, init] = send.mock.calls[0]!;
     expect(url).toMatch(/\/api\/v1\/internal\/errors$/);
-    expect((init.headers as Record<string, string>)["x-internal-auth"]).toBeTruthy();
+    expect((init?.headers as Record<string, string>)["x-internal-auth"]).toBeTruthy();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const failing = vi.fn(async () => {
       throw new Error("down");
