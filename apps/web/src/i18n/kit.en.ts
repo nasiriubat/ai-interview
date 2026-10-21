@@ -194,6 +194,11 @@ export const kitEn = {
     tryAgain: "Use a different address",
     errorTitle: "We could not sign you in",
     errorBody: "The link may have expired or been used already. Request a new one and try again.",
+    confirmTitle: "Finish signing in",
+    confirmBody: (email: string) => `Select the button to sign in as ${email}.`,
+    confirmButton: "Sign in",
+    confirmHelp:
+      "This extra step keeps your link safe: email security filters open links to check them, and would otherwise use it up before you do.",
     errorMailTitle: "The sign-in email could not be sent",
     errorMailBody:
       "This deployment's mail server did not accept the message. Try again in a minute. If it keeps happening, whoever runs this installation needs to check the mail relay (SMTP_HOST and the other SMTP_* settings in the root .env) or sign in with Google if it is set up.",
