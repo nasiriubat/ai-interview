@@ -196,7 +196,8 @@ describe("the recorder: fire and forget, bounded, throttled", () => {
     const rec = new ErrorRecorder({ store, autoFlush: false, warn });
     expect(() => {
       rec.capture(event);
-      rec.capture(null as unknown as ErrorEvent);
+      // Not an event at all, as a careless caller could pass from untyped code.
+      Reflect.apply(rec.capture.bind(rec), undefined, [null]);
     }).not.toThrow();
     await rec.flush();
     rec.capture({ ...event, message: "second" });
