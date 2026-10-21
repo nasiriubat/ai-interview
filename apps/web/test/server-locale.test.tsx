@@ -145,6 +145,41 @@ describe("server pages follow the lang cookie", () => {
     expect(screen.queryByText(fi.kit.authPages.errorBody)).not.toBeInTheDocument();
   });
 
+  // Mail scanners open the emailed link; landing here must not spend the token (2026-10-21).
+  it("the sign-in confirmation page spends nothing: a form to the callback, no link to it", async () => {
+    vi.stubEnv("AUTH_URL", "https://aiscope.example");
+    const { default: ConfirmPage } = await import("@/app/auth/confirm/page");
+    const token = "d38eddb2ca259787584e4fe7986828311d600c8705b6de2d56ef7730582ccaf7";
+    const { container } = render(
+      await ConfirmPage({
+        searchParams: Promise.resolve({
+          token,
+          email: "a@b.fi",
+          callbackUrl: "https://aiscope.example/admin",
+        }),
+      }),
+    );
+    expect(screen.getByText(fi.kit.authPages.confirmBody("a@b.fi"))).toBeInTheDocument();
+    const form = container.querySelector("form");
+    expect(form?.getAttribute("action")).toBe("/api/auth/callback/nodemailer");
+    expect(form?.getAttribute("method")).toBe("get");
+    expect((container.querySelector("input[name=token]") as HTMLInputElement | null)?.value).toBe(token);
+    expect(container.querySelector('a[href*="/api/auth/callback"]')).toBeNull();
+    expect(screen.getByRole("button", { name: fi.kit.authPages.confirmButton })).toBeInTheDocument();
+    vi.unstubAllEnvs();
+  });
+
+  it("the confirmation page refuses a link that is not ours and offers a new sign-in", async () => {
+    vi.stubEnv("AUTH_URL", "https://aiscope.example");
+    const { default: ConfirmPage } = await import("@/app/auth/confirm/page");
+    const { container } = render(
+      await ConfirmPage({ searchParams: Promise.resolve({ token: "x", email: "a@b.fi" }) }),
+    );
+    expect(container.querySelector("form")).toBeNull();
+    expect(screen.getByText(fi.kit.authPages.errorBody)).toBeInTheDocument();
+    vi.unstubAllEnvs();
+  });
+
   it("not-found page in Finnish, with no way to the staff sign-in for a participant", async () => {
     const { default: NotFound } = await import("@/app/not-found");
     await renderPage(NotFound());

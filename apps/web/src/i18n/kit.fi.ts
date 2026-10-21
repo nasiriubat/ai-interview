@@ -189,6 +189,11 @@ export const kitFi: KitStrings = {
     tryAgain: "Käytä toista osoitetta",
     errorTitle: "Kirjautuminen ei onnistunut",
     errorBody: "Linkki on voinut vanhentua tai se on jo käytetty. Pyydä uusi linkki ja yritä uudelleen.",
+    confirmTitle: "Viimeistele kirjautuminen",
+    confirmBody: (email: string) => `Kirjaudu osoitteella ${email} valitsemalla painike.`,
+    confirmButton: "Kirjaudu",
+    confirmHelp:
+      "Tämä lisävaihe suojaa linkkiäsi: sähköpostin tietoturvasuodattimet avaavat linkkejä tarkistaakseen ne ja käyttäisivät sen muuten ennen sinua.",
     errorMailTitle: "Kirjautumissähköpostia ei voitu lähettää",
     errorMailBody:
       "Tämän asennuksen postipalvelin ei hyväksynyt viestiä. Yritä hetken kuluttua uudelleen. Jos ongelma toistuu, asennuksen ylläpitäjän on tarkistettava postireleen asetus (SMTP_HOST ja muut SMTP_*-asetukset tiedostossa .env) tai käytettävä Google-kirjautumista, jos se on otettu käyttöön.",

@@ -4,6 +4,7 @@ import Nodemailer from "next-auth/providers/nodemailer";
 import { createTransport } from "nodemailer";
 import { authConfig } from "./auth.config";
 import { apiAdapter } from "./lib/auth/adapter";
+import { confirmLinkFor } from "./lib/auth/confirm-link";
 import { signInMailLocale, signInMessage } from "./lib/auth/signin-mail";
 import { resolveSmtpUrl } from "./lib/auth/smtp";
 import { apiBaseUrl } from "./lib/env";
@@ -31,7 +32,8 @@ const emailProvider = Nodemailer({
   async sendVerificationRequest({ identifier, url, expires, provider, request }) {
     const hours = Math.max(1, Math.round((expires.getTime() - Date.now()) / 3_600_000));
     const mail = signInMessage({
-      url,
+      // The confirmation page, not the callback: mail scanners open links (lib/auth/confirm-link.ts).
+      url: confirmLinkFor(url),
       productName: await productName(),
       locale: signInMailLocale(request.headers),
       hours,
