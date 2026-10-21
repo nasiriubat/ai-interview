@@ -7,11 +7,11 @@ import { cleanHeadings, hasForeignScript } from "../../src/spec/generate.js";
 import { neutralize, newNonce, wrapUntrusted } from "../../src/util/untrusted.js";
 import { MemoryStore, ScriptedCaller, snapshot, template } from "./helpers.js";
 
-describe("interviewer prompt v7 (v5 live run findings, requirements capture, spec quality)", () => {
+describe("interviewer prompt v8 (v5 live run findings, requirements capture, spec quality, no invented names)", () => {
   const body = SHIPPED_PROMPTS.interviewer!.body;
 
-  it("is version 7 and keeps every placeholder the engine fills", () => {
-    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(7);
+  it("is version 8 and keeps every placeholder the engine fills", () => {
+    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(8);
     for (const p of [
       "{{objective}}",
       "{{language}}",
@@ -33,7 +33,14 @@ describe("interviewer prompt v7 (v5 live run findings, requirements capture, spe
   it("forbids repeating an acknowledgement opener and limits the participant's name to once", () => {
     expect(body).toMatch(/do not open two messages the same way/i);
     expect(body).toMatch(/never use a stock acknowledgement more than once/i);
-    expect(body).toMatch(/participant's name at most once in the whole conversation/i);
+    expect(body).toMatch(/only if they wrote it themselves in this conversation, and then at most once/i);
+  });
+
+  it("never names a participant who did not give a name (D-479)", () => {
+    // The interviewer is never told a name; v7's "use the name at most once" made a model invent one.
+    expect(body).not.toMatch(/participant's name at most once in the whole conversation/i);
+    expect(body).toMatch(/You are not told the participant's name/);
+    expect(body).toMatch(/Never guess, invent or assume a name, also not in the closing summary/);
   });
 
   it("states a default and its consequence as statements, then asks once", () => {
