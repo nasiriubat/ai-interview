@@ -210,7 +210,7 @@ function renderFocusBody(
     case "closing":
       return `Engine focus: ask the closing question: "${template.closingQuestion}". Set areaKey to "closing".`;
     case "summary":
-      return `Engine focus: thank the participant and give a short summary (under 120 words) of what you captured, written to them, and invite corrections. Set areaKey to "summary" and endInterview to true.`;
+      return `Engine focus: thank the participant and give a short summary (under 120 words) of what you captured, written to them without a name unless they gave you theirs, and invite corrections. Set areaKey to "summary" and endInterview to true.`;
     case "done":
       return "Engine focus: the interview is complete.";
   }
