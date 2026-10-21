@@ -182,7 +182,7 @@ export function renderReport(input: ReportInput): string {
       out.push(
         `### ${CLASS_LABEL[cls]}`,
         "",
-        `| Rank | Opportunity | Interviews | Score |`,
+        `| # | Opportunity | Interviews | Score |`,
         `|---|---|---|---|`,
       );
       for (const o of items)
