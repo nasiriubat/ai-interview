@@ -397,6 +397,10 @@ model Opportunity {
   promotedSessionId String?
   /// Every fact in the cluster, not only the twelve evidence rows. Internal; never returned.
   factIds       Json     @default("[]")
+  /// problem | works_well (D-479): a works-well item is "no change recommended" and ranks last.
+  basis         String   @default("problem")
+  /// The member facts the counts, quotes and evidence come from (D-479); empty = every member. Internal.
+  supportFactIds Json    @default("[]")
   createdAt     DateTime @default(now())
 
   analysis Analysis              @relation(fields: [analysisId, companyId], references: [id, companyId], onDelete: Cascade)

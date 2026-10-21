@@ -18,6 +18,14 @@ export interface ReportOpportunity {
   stats: ClusterStats;
   whyNotAi?: string | undefined;
   processes: { name: string; steps: string[] }[];
+  /** `works_well`: participants said it works; listed as "no change recommended", not ranked (D-479). */
+  basis?: "problem" | "works_well" | undefined;
+}
+
+/** An idea mentioned without a reported problem behind it: listed apart, unranked (D-479). */
+export interface ReportIdea {
+  title: string;
+  stats: ClusterStats;
 }
 
 export interface ReportInput {
@@ -35,6 +43,8 @@ export interface ReportInput {
     needed?: number | undefined;
   };
   opportunities: ReportOpportunity[];
+  /** Ideas mentioned without a problem behind them; listed under the opportunities, unranked. */
+  ideas?: ReportIdea[] | undefined;
   narrative: { executiveSummary: string; nextSteps: string[]; caveats: string };
   sections: ReportSection[];
   k: number;
@@ -93,6 +103,11 @@ const FACTOR_LABEL: Record<(typeof FACTOR_KEYS)[number], string> = {
   ai_suitability: "AI fit",
 };
 
+/** "Impact 4 · People 3 · ...": the seven factor scores of one item, in the catalogue's order. */
+export function factorLine(factors: Factors): string {
+  return FACTOR_KEYS.map((k) => `${FACTOR_LABEL[k]} ${factors[k].score}`).join(" · ");
+}
+
 /** Deterministic Markdown with Mermaid process maps (spec 04, FR-17a). Narrative pieces come from the model. */
 export function renderReport(input: ReportInput): string {
   const on = (s: ReportSection): boolean => input.sections.includes(s);
@@ -114,12 +129,15 @@ export function renderReport(input: ReportInput): string {
 
   if (on("participation")) {
     const p = input.participation;
+    // A campaign shared by an open link has no invitations; "Invited 0" next to its completed
+    // interviews reads as an error, so the column is there only when people were invited (D-479).
+    const invited = p.invited > 0;
     out.push(
       "## Participation and method",
       "",
-      `| Invited | Completed interviews | Interviews analyzed | Facts extracted |`,
-      `|---|---|---|---|`,
-      `| ${p.invited} | ${p.completed} | ${p.sessionsAnalyzed} | ${p.facts} |`,
+      `| ${invited ? "Invited | " : ""}Completed interviews | Interviews analyzed | Facts extracted |`,
+      `|${invited ? "---|" : ""}---|---|---|`,
+      `| ${invited ? `${p.invited} | ` : ""}${p.completed} | ${p.sessionsAnalyzed} | ${p.facts} |`,
       "",
       `Quotes and breakdowns appear only where at least ${input.k} participants are behind them. Durations are self-reported.`,
       "",
@@ -145,26 +163,67 @@ export function renderReport(input: ReportInput): string {
 
   if (on("opportunities")) {
     out.push("## Opportunities by solution class", "");
+    // Position in the overall ranking, the same number in every class table.
+    const position = new Map(
+      ranked.filter((o) => o.basis !== "works_well").map((o, i) => [o.clusterKey, i + 1]),
+    );
     for (const cls of ["ai", "automation", "software", "process"] as const) {
-      const items = ranked.filter((o) => o.solutionClass === cls);
+      const items = ranked.filter((o) => o.solutionClass === cls && o.basis !== "works_well");
       if (!items.length) continue;
+      // Four columns (D-479): the seven factor scores were seven more, which made the table scroll
+      // on a laptop and wrap in the PDF. They are under each item instead, nothing left out.
       out.push(
         `### ${CLASS_LABEL[cls]}`,
         "",
-        `| Rank | Opportunity | Interviews | ${FACTOR_KEYS.map((k) => FACTOR_LABEL[k]).join(" | ")} |`,
-        `|---|---|---|${FACTOR_KEYS.map(() => "---").join("|")}|`,
+        `| Rank | Opportunity | Interviews | Score |`,
+        `|---|---|---|---|`,
       );
       for (const o of items)
         out.push(
-          `| ${o.rankScore} | ${o.title} | ${interviewsOf(o.stats)} of ${total} | ${FACTOR_KEYS.map((k) => o.factors[k].score).join(" | ")} |`,
+          `| ${position.get(o.clusterKey) ?? "-"} | ${o.title} | ${interviewsOf(o.stats)} of ${total} | ${o.rankScore} |`,
         );
       out.push("");
       for (const o of items) {
-        out.push(`**${o.title}.** ${o.summary}`, "", `*${mentionedIn(o.stats, total)}.${small(o)}*`);
+        out.push(
+          `**${o.title}.** ${o.summary}`,
+          "",
+          `*${mentionedIn(o.stats, total)}.${small(o)}*`,
+          "",
+          `Factor scores (1 to 5, higher is better): ${factorLine(o.factors)}.`,
+        );
         // One blockquote per quote: consecutive "> " lines would run three people's words together.
         if (o.stats.quotes.length) out.push(...o.stats.quotes.slice(0, 3).flatMap((q) => ["", `> ${q}`]));
         out.push("");
       }
+    }
+    const works = ranked.filter((o) => o.basis === "works_well");
+    if (works.length) {
+      out.push(
+        "### Working well: no change recommended",
+        "",
+        "Participants described these as working. They are not ranked, and nothing needs to be built for them.",
+        "",
+      );
+      for (const o of works) {
+        out.push(
+          `**${o.title}.** ${o.whyNotAi ?? o.summary}`,
+          "",
+          `*${mentionedIn(o.stats, total)}.${small(o)}*`,
+        );
+        if (o.stats.quotes.length) out.push(...o.stats.quotes.slice(0, 3).flatMap((q) => ["", `> ${q}`]));
+        out.push("");
+      }
+    }
+    const ideas = input.ideas ?? [];
+    if (ideas.length) {
+      out.push(
+        "### Ideas mentioned",
+        "",
+        "Suggestions made without a problem the participants reported behind them. They are not ranked: check whether there is a need before acting on one.",
+        "",
+        ...ideas.map((x) => `- ${x.title} (mentioned in ${interviewsOf(x.stats)} of ${total} interviews)`),
+        "",
+      );
     }
   }
 
@@ -172,12 +231,14 @@ export function renderReport(input: ReportInput): string {
     const quick = ranked.filter(
       (o) =>
         o.solutionClass !== "none" &&
+        o.basis !== "works_well" &&
         o.factors.implementation_complexity.score >= 4 &&
         o.factors.expected_impact.score >= 3,
     );
     const strategic = ranked.filter(
       (o) =>
         o.solutionClass !== "none" &&
+        o.basis !== "works_well" &&
         o.factors.expected_impact.score >= 4 &&
         o.factors.implementation_complexity.score <= 3,
     );
@@ -274,7 +335,7 @@ export function cover(input: ReportInput): string[] {
 function evidenceNote(input: ReportInput): string {
   const n = input.smallSample ?? DEFAULT_SMALL_SAMPLE;
   const parts = [
-    `"Mentioned in N of M interviews" counts the distinct interviews in which a topic came up, not how often it was said. A topic that rests on ${n === 1 ? "one interview" : `${n} interviews or fewer`} is marked as a small sample: a lead to check, not a finding.`,
+    `*Mentioned in N of M interviews* counts the distinct interviews in which a topic came up, not how often it was said. A topic that rests on ${n === 1 ? "one interview" : `${n} interviews or fewer`} is marked as a small sample: a lead to check, not a finding.`,
     "Every quote was checked word for word against the interview it comes from; a quote that could not be found there is not shown as a quote.",
     "Counts, shares and hours stated in the written summaries were compared with the computed figures, and a sentence whose figure did not match was removed.",
   ];

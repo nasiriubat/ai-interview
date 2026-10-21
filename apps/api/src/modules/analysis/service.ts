@@ -92,7 +92,9 @@ const opportunityView = (o: OpportunityRow, weights: Weights) => ({
   solutionClass: o.solutionClass,
   factors: o.factors,
   rationale: o.rationale,
-  rankScore: rankScore(o.factors as Parameters<typeof rankScore>[0], weights),
+  // A works-well item ("no change recommended", D-479) has nothing to rank and is listed last.
+  rankScore: o.basis === "works_well" ? 0 : rankScore(o.factors as Parameters<typeof rankScore>[0], weights),
+  basis: o.basis === "works_well" ? ("works_well" as const) : ("problem" as const),
   status: o.status,
   adminOverride: o.adminOverride,
   stats: o.stats,

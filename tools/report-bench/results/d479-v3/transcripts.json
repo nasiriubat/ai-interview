@@ -1,0 +1,714 @@
+[
+  {
+    "personaId": "anna_ap",
+    "sessionId": "cmvhvxvet000u2w6o723zg0ck",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "Hi, thanks for taking the time. To start, could you tell me about your role as an accounts payable clerk — what you're mainly responsible for, and who you work with most?",
+        "reply": "I'm mainly responsible for processing the supplier and subcontractor invoices that come into Kaarna, which is about 70 a day, and getting them entered and approved so they can be paid on time. Day to day I work most closely with the department heads, since anything over 2,000 euros needs their approval before I can release it. I also deal with our subcontractors when there's a question about an invoice."
+      },
+      {
+        "interviewer": "70 invoices a day is a solid volume. Besides entering and routing invoices for approval, are there other things you're responsible for — like handling payment runs, resolving supplier queries, or reconciling accounts?",
+        "reply": "Mostly the entering, routing and chasing approvals is what fills my day, and I don't run the payment batches myself, so I'm not the one doing the bank side of things. Supplier questions do come my way when an invoice doesn't match what we expected, and I sort those out with the supplier directly. I wouldn't say I do account reconciliation; that sits with someone else in the finance team."
+      },
+      {
+        "interviewer": "That's helpful context. Who sits in the finance team with you, and who else do you regularly hand off to or get invoices from — like a procurement team, or is it mostly direct from suppliers?",
+        "reply": "Most of the invoices come straight from suppliers and subcontractors to our invoices@ mailbox, about 80 percent of them as PDF attachments, and the rest arrive as e-invoices that flow in automatically. I don't think we have a separate procurement team handling them first; the department heads are the ones who approve anything over 2,000 euros. I'm not certain of the full make-up of the finance team beyond the people I work with directly, so I'd check that with someone in management."
+      },
+      {
+        "interviewer": "That gives me a good picture, thanks. Let's walk through a typical day — could you tell me what you did yesterday, from when you started working?",
+        "reply": "I started by going through the invoices@ mailbox, and yesterday there were around 70 invoices waiting, most of them PDFs that I had to open and type into Procountor one by one. For each one I enter the supplier, invoice number, due date, net amount, VAT and cost centre, which takes me about 3 minutes, so that alone is roughly 3 hours of my morning. Anything over 2,000 euros I then send to the department head by email and wait on, and that's where a fair bit of my afternoon goes."
+      },
+      {
+        "interviewer": "I noticed you mentioned Procountor this time, rather than Kaarna — are those two different systems you use together, or is Kaarna another name for the same one?",
+        "reply": "Kaarna is the name of the company, and Procountor is the accounting system I type the invoices into, so they're two different things. I'm not sure about the technical setup behind it, like whether it's connected to anything else, so that's a question for IT or whoever manages the finance tools."
+      },
+      {
+        "interviewer": "Good, that clears it up. Beyond the morning entry and afternoon approval-chasing, what does the rest of your day or week typically look like — any other recurring tasks?",
+        "reply": "The main other recurring task is chasing approvals, which I do by phone every Thursday, because invoices over 2,000 euros usually take 3 to 6 working days to come back from the department head. Late approvals can mean we lose early-payment discounts and sometimes pay late fees. Beyond that, the rest of the week is mostly more of the same invoice entry, and I also deal with typing mistakes when they come up, since swapped digits in amounts or reference numbers lead to about 5 payment corrections a month."
+      },
+      {
+        "interviewer": "That 3-6 day approval wait with real cost impact is a key detail. Walk me through one recent case where an approval was late and it caused a late fee or lost discount — what happened, step by step?",
+        "reply": "I don't have a specific recent case I can walk you through step by step, and I'd rather not make one up. What I can tell you is the usual pattern: I email the PDF to the department head, the approval often takes 3 to 6 working days, and if it hasn't come back by the Thursday I phone to chase it. When it runs past the early-payment date, we lose the discount, and occasionally the invoice ends up paid late and a late fee is charged. If you want an actual example with dates and amounts, the payment records in Procountor or whoever handles the payment runs would have the details."
+      },
+      {
+        "interviewer": "That's fair, thanks for the honest answer. On the typing mistakes — walk me through one recent case: how did the error get caught, what did you have to do to fix it, and how long did that take?",
+        "reply": "I don't have a specific recent case I can take you through step by step, so I won't invent one. What I can say is that the mistakes are usually swapped digits in an amount or a reference number, which I type in by hand from the PDF, and they come to about five payment corrections a month. The usual fix is correcting the entry in Procountor and making sure the payment is sorted out with the supplier, but for the exact timing and steps on a real case, the payment records or whoever handles the payment runs would have the detail."
+      },
+      {
+        "interviewer": "No specific example available this time — that's fine. When you catch a typing mistake yourself, before it becomes a payment correction, what usually tips you off that something's wrong?",
+        "reply": "Usually it's a mismatch when I check the entry against the PDF, or a number that looks off compared with what I'd expect from that supplier. Swapped digits are the usual culprit, so I'll sometimes notice a reference number that doesn't match the invoice in front of me. I don't have a particular routine beyond that, so it's mostly down to care and a second look before I save the entry."
+      },
+      {
+        "interviewer": "So some mistakes slip through if that \"second look\" doesn't catch them. When one does slip through and gets paid, how do you typically find out — does the supplier call you, or does it show up some other way?",
+        "reply": "I don't have a detailed picture of how each one surfaces, so I'd rather not guess at the exact route. What I can say is that the payment corrections I deal with come to about five a month, and they're usually caught after the payment has gone out. For the specifics of how a given one was flagged, the payment records or whoever handles the payment runs would be the right people to ask."
+      },
+      {
+        "interviewer": "That's a fair boundary — I'll leave those details with the payment team. When you do find out about a slipped-through mistake, what's your part in fixing it — do you correct the Procountor entry, contact the supplier, or something else?",
+        "reply": "Yes, my part is usually correcting the entry in Procountor so the record matches the actual invoice, and then I deal with the supplier about the wrong amount or reference so the right money or reference gets sorted out. I'm not the one doing the payment itself, so any correction to the money going out would go through the payment side. For the exact steps on a particular correction, the payment team would be the better source."
+      },
+      {
+        "interviewer": "That gives me a clear picture of your part in the fix. One more on flows — once you correct an entry in Procountor, does anyone downstream need to know about that change, or does it just update automatically for the payment team to see?",
+        "reply": "I'm not certain how the change is picked up downstream, because I don't see the payment side of Procountor and I don't know whether it updates automatically or needs a message to anyone. From my end, I save the corrected entry and then deal with the supplier, but I don't routinely send anyone a note about it. The payment team or whoever manages the Procountor setup would know how their side is notified."
+      },
+      {
+        "interviewer": "That's a useful gap to flag. Shifting focus slightly — when you route an invoice over 2,000 euros to a department head by email, how do you know the approval has actually come back: a reply email, a stamp, something in Procountor?",
+        "reply": "I usually know it's back when the department head replies to my email with the PDF marked as approved, and I then record the approval in Procountor before the payment is released. If I haven't heard by the Thursday, I phone them to ask, which is why I end up chasing so many of these by phone. I'm not sure whether Procountor has its own approval step or stamp that I'd use, since I've only ever worked from the email reply."
+      },
+      {
+        "interviewer": "Thinking about a typical approved invoice — once the department head emails back the marked-up PDF, what do you actually do with that email: do you file it, attach it in Procountor, or just use it as a trigger to update the status?",
+        "reply": "I save the marked-up PDF from the reply and attach it to the invoice record in Procountor, so the approval sits alongside the invoice itself. Then I update the status so it's ready for payment. I'm not sure whether the email itself is kept anywhere else, so I'd check with the finance team about their filing rules."
+      },
+      {
+        "interviewer": "That clarifies the manual attach-and-update step well. Last question: is there anything important about your work that I haven't asked about?",
+        "reply": null
+      }
+    ]
+  },
+  {
+    "personaId": "mikko_controller",
+    "sessionId": "cmvhvxvet000q2w6oi55ntvi0",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "Hi, thanks for taking the time. To start, could you tell me a bit about your role as financial controller and who you mainly work with day to day?",
+        "reply": "Thanks for having me. I'm the financial controller here at Kaarna, so I run the month-end close, prepare the monthly management report for the leadership team, and keep an eye on how the numbers hang together across the company. Day to day I work most closely with the accounts payable and billing people, and with dispatch and customer service, because a lot of what ends up in my numbers starts with their work. The company has grown from a much smaller operation to about 140 people and 45 trucks, and honestly my reporting processes have had to keep up with that, which is something we can get into later."
+      },
+      {
+        "interviewer": "That growth context is helpful. Beyond the month-end close and management report, what other responsibilities fall under your role — things like budgeting, audit, cash flow, or compliance?",
+        "reply": "Beyond the close and the management report, the other piece on my desk is purchase approvals. Requests come to me and I usually get back to people within a day, so that part isn't a bottleneck. I also do a lot of the reconciliation work behind the close, which takes a good chunk of the first week of"
+      },
+      {
+        "interviewer": "Got cut off there — you mentioned reconciliation takes a chunk of the first week. Could you finish that thought, what does that reconciliation work involve?",
+        "reply": "Sorry about that, I got carried away. The main reconciliation is matching subcontractor freight invoices against our delivery records. The first four working days of every month go to that, because the invoices were typed into Procountor separately from the TMS, so I export both to Excel and match them by hand. It's tedious, but it's also the part where I catch the mismatches, and once the matching is done the close itself moves quickly."
+      },
+      {
+        "interviewer": "That matching process sounds like a real pain point already. You mentioned earlier that reporting has had to scale with the company's growth to 140 people and 45 trucks — what specifically broke or got harder as that happened?",
+        "reply": "The clearest example is that the same information gets typed in more than once. A delivery gets confirmed in the TMS, then dispatch re-types the confirmation into the billing spreadsheet, and the subcontractor invoice gets keyed separately into Procountor, so the same data lives in email, the TMS, billing and Procountor. Because nothing links these systems directly, I end up matching by hand, and the billing side runs at roughly 2 percent of deliveries billed wrong or late. I'd say the reporting itself has held up fine, since producing the monthly management report in Excel and PowerPoint takes about a day and I don't mind that. The real strain is upstream, in the manual handoffs that were tolerable when we had a fraction of today's volume."
+      },
+      {
+        "interviewer": "That 2% billing error rate is a concrete number worth digging into. Can you walk me through a recent case where a delivery got billed wrong or late — where in that chain did it break down?",
+        "reply": "I don't have a specific recent case to walk you through, and I'd rather not invent one. What I can tell you is where the chain is weakest based on how it's built. A delivery is confirmed in the TMS, then dispatch re-types that confirmation into the billing spreadsheet, so the most likely point of failure is that re-keying step: a wrong quantity, a wrong date, or a delivery that was confirmed late and never made it across. The 2 percent figure is the rough share of deliveries that end up billed wrong or late from that process overall. If you want an actual example, the billing or dispatch team would be better placed to pull one from their records, because they see the individual mistakes and I only see the effect on the close."
+      },
+      {
+        "interviewer": "That's a fair distinction, thanks for being clear about where your visibility ends. From your side, then, how do you actually discover that something was billed wrong or late — is it something you catch during the matching, or does it surface later, like a customer complaint?",
+        "reply": "Mostly I catch it during the matching, though it isn't always clean. When I reconcile subcontractor invoices against delivery records in the first four working days, I'm looking at the cost side, so a mismatch shows up as a freight cost that doesn't line up with a confirmed delivery, or a delivery with no matching invoice. On the billing side I see it less directly, because customer invoices are built from the billing spreadsheet, and I don't re-check each line against the TMS the way I do with subcontractor invoices. So a wrong or late customer bill tends to show up when someone notices the revenue for a period looks off, or when the customer raises it, and I'd have to ask the billing team how those cases typically come to light. That gap is one I'd want to understand better before saying anything firm about it."
+      },
+      {
+        "interviewer": "That's a useful gap to flag. When a mismatch does turn up during your subcontractor reconciliation — a freight cost with no matching delivery, say — what do you actually do to resolve it, and roughly how long does that take per case?",
+        "reply": "When a mismatch turns up, the first thing I do is check whether the delivery exists in the TMS at all, because sometimes the invoice refers to a load that was confirmed under a different reference or date. If the delivery is there but the invoice doesn't match on price or quantity, I go back to the subcontractor's invoice and the rate agreed for that route, and that usually settles it within a few minutes. If there's no delivery record at all, I contact dispatch to ask whether the load ran, and that's where it can drag, because they're busy and it sometimes takes a day or two to get a clear answer. On average I'd say most cases take a few minutes to resolve on my side, and the occasional one with no clear answer from dispatch can hold up the close for a couple of days. I don't keep a log of these, so those numbers are my rough sense rather than measured figures."
+      },
+      {
+        "interviewer": "That dispatch delay is a good concrete bottleneck — thanks for the detail. Now, on that re-typing you mentioned: delivery confirmed in TMS, then retyped into the billing spreadsheet, and the subcontractor invoice keyed into Procountor — can you walk me through that chain step by step, including who does each step and roughly how long each takes?",
+        "reply": "Here's how I understand the chain, though I should be clear I don't do the re-typing myself, so the timings are my rough sense rather than measured figures. Step one is the delivery getting confirmed in the TMS, which is done by dispatch once the load is complete. Step two is dispatch re-typing that confirmation into the billing spreadsheet, which the billing team then uses to raise customer invoices, and I'd guess that happens within a day or two of delivery, though billing would know the real turnaround. Step three is the subcontractor invoice arriving by email and being keyed into Procountor, which I believe is handled by accounts payable, and that's where the duplication sits, because the same delivery now exists in the TMS, the billing sheet and Procountor. I don't know exactly how long each keying step takes per delivery, so for the actual minutes per entry I'd ask dispatch and AP directly."
+      },
+      {
+        "interviewer": "That's a clear picture of the chain. How does the subcontractor invoice actually arrive — is it a PDF by email that AP then manually types into Procountor line by line, or does it come in some other form?",
+        "reply": "From what I understand, subcontractor invoices arrive by email, usually as PDFs, and AP then keys them into Procountor line by line. I don't handle that keying myself, so I can't tell you the exact format each subcontractor uses or whether any of them send structured files. What I do see is the result: the invoices reach me in Procountor already typed, and that's the version I export to Excel to match against the TMS. If you want the details of the intake itself, the AP team is the right people to ask."
+      },
+      {
+        "interviewer": "Makes sense, that's a natural line for AP to answer. Once Procountor has the subcontractor invoice and you've exported both that and the TMS data to Excel for matching, what does that matching actually look like — are you using formulas, pivot tables, manual line-by-line eyeballing?",
+        "reply": "It's a mix, and I'd say it leans more on my own spreadsheet work than on eyeballing every line. I export the Procountor invoice lines and the TMS delivery records, then use lookup formulas to pair them on shared fields like the load reference, date and route, and pivot tables to total freight cost per subcontractor and per period so I can see the overall picture. Anything that doesn't pair cleanly, roughly one invoice in ten by my rough sense, gets pulled into a separate tab and I go through those by hand, which is where the dispatch questions come from. The formulas handle the bulk well, but they only work as cleanly as the reference numbers were typed consistently in the first place, so a slightly different reference format between the two systems is what usually forces the manual step. I don't track the exact share anywhere, so treat that one-in-ten as an estimate."
+      },
+      {
+        "interviewer": "That one-in-ten mismatch rate from inconsistent reference formats is a good concrete detail. When you build those lookup formulas and pivot tables each month, do you rebuild them from scratch on the new export, or do you have a template file you reuse and just refresh the data in?",
+        "reply": "I reuse a template. The workbook I keep has the lookup formulas already set up on the matching tab and the pivot tables pointing at the summary range, so each month I paste the new Procountor and TMS exports into the input sheets and refresh the pivots. The only real adjustment is when the export layout shifts, for example if a column moves or a new subcontractor appears, and then I fix the ranges by hand. So that's the option that fits: template reuse with a refresh, not a rebuild from scratch. It's been stable enough that I haven't felt the need to rebuild it, although it does depend on me keeping that one file up to date."
+      },
+      {
+        "interviewer": "That's helpful, thanks. Shifting to the billing side for a moment — when a customer invoice turns out wrong or late, how does the billing team typically find out, and what do they do to fix it?",
+        "reply": "I can't speak for how the billing team handles this in detail, since that sits outside my desk. From my side, the cases I'd expect to reach me are the ones that show up as revenue looking off for a period, or where a customer has raised it, and I'd have to ask billing how they usually learn about an error and what they do to correct it. I'd rather point you to them than guess at their process, because they're the ones who see the individual invoices and corrections. If it helps, I can tell you what the revenue side of a correction looks like in the close, but the step-by-step fix belongs to billing."
+      },
+      {
+        "interviewer": "That's fair, I'll follow up with billing directly on that. Sticking with handoffs on your side — once your month-end reconciliation and matching is done, who's waiting on your output, and how does it get to them?",
+        "reply": "Once the matching is done and the close is locked, the main people waiting on my output are the leadership team, who get the monthly management report, and whoever needs the final cost and revenue figures for the period. The management report is an Excel workbook with a PowerPoint built from it, which I produce over about a day and send out by email. I also share the reconciled subcontractor cost summary with dispatch and AP when there are open items, because those are the people who can clear the mismatches, so that goes back the same way, by email with the workbook attached. Honestly it's a fairly simple handoff, and I don't see it as the problem; the friction is still in getting the underlying data right before I get to it."
+      },
+      {
+        "interviewer": "That gives a complete picture of the downstream side. Does leadership or anyone else ever wait on that report past your usual one-day turnaround, or does it reliably go out on schedule?",
+        "reply": "It goes out on schedule as far as I know. The report takes me about a day to produce once the close is locked, and since the close itself usually finishes after the first four working days, the report generally lands within the first week of the month. I can't recall anyone chasing me for it, but I don't keep a record of when it's been delivered, so I can't give you a count of late cases. The real timing risk is upstream: if a mismatch with dispatch drags on for a couple of days, the close slips and the report slips with it."
+      },
+      {
+        "interviewer": "That connects the upstream bottleneck to the final deadline clearly, thanks. One last question: is there anything important about your work that I haven't asked about?",
+        "reply": "Yes, one thing I'd want on the record is the approvals side, because I think I've been too quick to wave it off. I do answer purchase requests within a day, and that part works well for me, but the approvals only move as fast as the information attached to each request, and that's often thin. I'd also say the piece that bothers me most isn't any single step but the fact that the same delivery data gets keyed two or three times across email, the TMS, billing and Procountor. Each copy is a chance for a mismatch, and that's what drives the matching work that eats my first four days. The company grew faster than the systems connecting them, and I'd rather someone looked at that chain end to end than at any one desk in isolation."
+      },
+      {
+        "interviewer": "Thank you, that's a really useful note to end on, especially the point about the same delivery being keyed multiple times across systems.\n\nHere's my summary: you're the controller running month-end close and the management report, with purchase approvals and reconciliation as recurring work. The core pain is upstream: delivery data gets retyped across TMS, billing spreadsheet and Procountor, causing ~1-in-10 reference mismatches you resolve by hand using a reused Excel template. Dispatch follow-ups on missing delivery records can stall close by 1-2 days. Downstream, your report reliably goes out within a week, no issues there. Billing-side invoice errors are outside your visibility - flagged for follow-up. Purchase approvals are fast but limited by thin request detail.\n\nDoes this match your sense of the conversation, or is anything off?",
+        "reply": null
+      }
+    ]
+  },
+  {
+    "personaId": "leena_payroll",
+    "sessionId": "cmvhvxvet000t2w6o7k7pau8g",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "Hi, thanks for taking the time. To start, could you tell me about your role as Payroll and HR administrator and what you're mainly responsible for?",
+        "reply": "I handle payroll for our roughly 140 employees, and I run it twice a month through Palkkaus, which works well for me. I also handle the HR side of things that touches pay, like overtime and sick-leave records. Most of my week goes to making sure the numbers are right and that everyone is paid correctly and on time, which is harder than it sounds with drivers and warehouse shifts."
+      },
+      {
+        "interviewer": "That sounds like a lot to track across different shift patterns. Who do you work with most closely to get the right data on overtime and sick leave for drivers and warehouse staff?",
+        "reply": "Mostly the terminal manager and the transport manager, since they are the ones who approve overtime before I can pay it. Their approval requests come by email, and when they arrive after the payroll cut-off, I can't include them, so about 15 to 20 people a month get their overtime one payroll late and come to me asking about it. Sick-leave notices work differently: they go by text message to the supervisors, who forward them to me, and that works acceptably for now."
+      },
+      {
+        "interviewer": "That overtime delay sounds like a real pain point for 15-20 people every month. Can you walk me through a recent example — when did an approval come in late, and what did you have to do once it did?",
+        "reply": "I don't have a specific date in front of me right now, so I can't give you the exact case without checking my records. What usually happens is that an email arrives from the terminal manager or transport manager after I've already closed the payroll run, so I can't add the hours to that period. I then have to tell the driver or warehouse worker that their overtime will show up on the next payslip, and I make a note so I don't lose track of it. If you need an actual example with names and dates, I'd have to pull the emails and the payroll file to find one."
+      },
+      {
+        "interviewer": "No need to dig up exact names, the pattern is clear enough. Roughly, how many days after the cutoff do those overtime approval emails typically arrive?",
+        "reply": "I don't have a precise figure, since I never logged the arrival times against the cut-off. From what I see when I open my inbox after a run has closed, most of the late approvals show up within a day or two after the cut-off, though a few take longer. If you want a real number, I'd have to go back through the email dates against the payroll dates, and I don't have that to hand."
+      },
+      {
+        "interviewer": "That one-to-two day lag is useful to know. Do you know what's driving the delay on the managers' side — are they waiting on timesheets, just slow to review email, or something else?",
+        "reply": "I don't know for certain what's holding them up, because I've never asked them directly and I don't see their side of the process. My guess is that they're checking the hours against the shift schedules before they approve, but that's an assumption on my part, not something I've been told. What I can say is that the approvals come by email, not through any system I can check, so I only find out about them once they land in my inbox."
+      },
+      {
+        "interviewer": "That makes sense — you're only seeing the end result once it lands in your inbox. Besides this overtime approval delay, is there another point in your work where things tend to stall or get held up?",
+        "reply": "The main other point is the monthly tachograph check, which is the part that takes the most time. Once a month I download every driver's tachograph data from the card reader software, copy it into an Excel template I built myself, and check driving time, working time and rest periods by eye. It takes about two full days, and I'm the only one who knows how to do it, so if I'm on holiday that work simply doesn't get done. That's the part that worries me most."
+      },
+      {
+        "interviewer": "That tachograph bottleneck sounds significant, especially given the single point of failure. Walking through a recent month's check — once you've copied the data into your Excel template, what exactly are you looking for by eye, and what happens if you spot a violation?",
+        "reply": "Once the data is in my template, I go through each driver's driving time, working time and rest periods and compare them against the limits I know, checking the totals and the gaps between rest periods by eye. Honestly, I don't have a written procedure for what happens when I find a violation, so I'd have to check with the transport manager on how they want it handled. That uncertainty is part of what worries me, because I'm the one catching these things and I'm not sure where my responsibility ends."
+      },
+      {
+        "interviewer": "That gap in knowing what happens next after a violation is flagged seems important. When you do spot something like a rest period breach, what do you actually do with that finding right now — email someone, make a note, or does it just stay in the spreadsheet?",
+        "reply": "Honestly, it's mostly a note in the spreadsheet and sometimes a short email to the transport manager, but I don't have a consistent routine for it. I haven't set up a log of findings or a way to track whether anything was actually done about them, so I can't tell you for certain what happened after each one. That's exactly the part I'd want someone else to look at, because I don't want to be the only one deciding what counts as a breach that needs action."
+      },
+      {
+        "interviewer": "That lack of a consistent follow-up routine is a real gap. Has there ever actually been a case where a violation was flagged and nothing happened afterward, or is this more a risk you're anticipating?",
+        "reply": "I can't point to a specific case, but I also can't rule one out, and that's the honest problem. Since I only keep a note in the spreadsheet or send a short email, and I have no log of what was done afterward, I have no way to confirm that every finding was acted on. So \"not sure\" fits best, because the gap is in my records, not necessarily in what the transport side did."
+      },
+      {
+        "interviewer": "That's a clear picture of the record-keeping gap. When a violation does get an email to the transport manager, do you ever hear back about what action was taken, or does it typically go quiet after you send it?",
+        "reply": "Usually it goes quiet. I might get a short reply now and then, but more often I don't hear anything back, so I don't know what the transport manager decided or whether the driver was spoken to. I'd have to ask them directly to find out, because nothing in my process tells me to expect a response."
+      },
+      {
+        "interviewer": "That confirms the follow-up loop isn't closed on your end. Is there a known consequence or action — like a warning or retraining — that's supposed to happen when a tachograph violation is confirmed, or is that undefined too?",
+        "reply": "I don't know of any defined consequence, such as a warning or retraining, that is supposed to follow a confirmed tachograph violation. As far as I know, that's up to the transport manager, and nobody has ever written it down for me, so I'd be guessing if I described a process. It's one of the questions I'd want answered by whoever owns driver compliance before I'd feel comfortable relying on my check."
+      },
+      {
+        "interviewer": "Good to know that's undefined — not something for me to solve, just flagging the gap. Shifting to the tachograph process itself: is the card reader software export and Excel copy-paste done once a month for all ~140 drivers in one batch, or spread across the month per driver?",
+        "reply": "It's done once a month in one batch, not spread across the month. I download every driver's data together from the card reader software, paste it into my Excel template, and then work through the checks in one go, which is why it takes about two full days. I don't know the exact number of drivers who have tachograph cards, so I can't confirm it is all 140 employees, since not every employee drives a truck."
+      },
+      {
+        "interviewer": "Good to clarify — not everyone drives. Of that two-day batch, roughly how much time goes to downloading and pasting the data versus actually reviewing it for violations?",
+        "reply": "I don't have an exact split, since I've never timed the two parts separately. My rough sense is that the download and copy-paste takes maybe half a day, and the checking by eye takes the rest, because the checking is what slows me down. That's an estimate, not something I've measured."
+      },
+      {
+        "interviewer": "That gives a clear split — half a day on data handling, about a day and a half on review. Roughly how many drivers have tachograph cards that you go through each month?",
+        "reply": "I don't know the exact number, because I've never counted the cards separately from the employee list. The company has 45 trucks, so I'd expect the number of drivers with tachograph cards to be somewhere around that, but that's an estimate on my part, not a figure I've checked. Someone in the transport office would have the real count."
+      },
+      {
+        "interviewer": "That's a reasonable estimate to work with, roughly 45 drivers. Before we wrap up — is there anything important about your work that I haven't asked about?",
+        "reply": "Not that I can think of beyond what we've covered, though the main thing I'd want on record is that the monthly tachograph check depends entirely on me. If I were off sick or on holiday, nobody else could do it, and I don't have a written procedure for what happens after a violation is found, so that part of the job is held together by my own judgment. The overtime delay is a smaller issue by comparison, and the rest of my payroll work runs fine in Palkkaus."
+      },
+      {
+        "interviewer": "Thank you for walking me through all of this so clearly. Here's a quick summary of what I captured:\n\n- Your role: payroll and HR admin for ~140 staff, running payroll via Palkkaus, which works fine day to day.\n- Bottleneck 1: overtime approvals from terminal/transport managers arrive by email after cutoff, causing ~15-20 people/month to be paid late.\n- Bottleneck 2: the monthly tachograph check (~45 drivers) takes ~2 days — half a day downloading/copy-pasting into your own Excel template, 1.5 days reviewing by eye.\n- You're the sole person who can do this check — a single point of failure if you're away.\n- No defined process exists for what happens after a violation is found; follow-up emails to the transport manager usually go unanswered, so there's no way to confirm violations were acted on.\n\nDoes this match your experience, or is there anything to correct?",
+        "reply": null
+      }
+    ]
+  },
+  {
+    "personaId": "jari_terminal",
+    "sessionId": "cmvhw0au800ak2w6oxhexkt8s",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "To start, could you tell me what you're responsible for as evening/night shift supervisor, and who you mainly work with during a shift?",
+        "reply": "I run the evening and night shifts at the cross-dock terminal, so it's 14:00 to 22:00 or 22:00 to 06:00, depending on the rota. I have 12 warehouse workers on my shift, and they're the people I work with most. Day to day that means keeping the floor moving, making sure trucks are loaded and out on time, and dealing with whatever breaks down or goes missing during the shift."
+      },
+      {
+        "interviewer": "Besides your 12 warehouse workers, do you coordinate with other roles too, like dispatch, drivers, or the day shift supervisor?",
+        "reply": "The main link"
+      },
+      {
+        "interviewer": "Could you say more about that - who's the main link, and what do you coordinate with them on?",
+        "reply": "The main link is the next shift. At the end of every shift I fill in a paper A4 handover form covering open shipments, damaged goods, forklift faults and missing staff, and leave it on the desk in the terminal office. About once a week it gets lost, coffee-stained or becomes unreadable, and then the next shift has to walk the floor and recheck everything, which takes 20 to 30 minutes."
+      },
+      {
+        "interviewer": "That handover form issue is useful to know. Let's talk about a typical shift now - walking me through yesterday, or a recent typical shift, from start to finish?",
+        "reply": "Let me walk you through a recent evening shift, from 14:00. I start by checking the handover from the day shift, which is the same paper form I described, and see what's open. Then I split the 12 workers across loading bays and check the dock schedule, making sure trucks are ready for the outbound runs. Through the shift I'm dealing with whatever comes up, like a damaged pallet or a forklift that won't start, and at 22:00 I fill in the A4 handover form for the night shift and leave it on the office desk."
+      },
+      {
+        "interviewer": "Of those activities - checking handover, splitting workers across bays, tracking the dock schedule, handling breakdowns, end-of-shift paperwork - roughly how do the hours split across an 8-hour shift?",
+        "reply": "I don't have exact timings logged, so I can't give you precise figures, but from memory the handover check at the start takes maybe 20 to 30 minutes, and the end-of-shift form another 15 to 20. Most of the rest goes on the floor: positioning people across the bays, watching the dock schedule, and dealing with breakdowns, which can eat up an hour on a bad night. If you need real numbers, the rota and the terminal logs would be better than my guesses."
+      },
+      {
+        "interviewer": "That gives a good picture. On a night with a breakdown eating up an hour, what usually causes it — is it more often equipment failure, damaged goods, or something else?",
+        "reply": "Equipment failure is the one that most often eats up the hour, and the forklifts are the main culprit. The problem is often not the breakdown itself but getting the part: spare parts over 500 euros need the terminal manager's approval by email, and that approval can sit in an inbox so a broken forklift waits three or four days for the part. So on those nights I'm not just fixing something, I'm working around a machine that's out of action for days."
+      },
+      {
+        "interviewer": "That forklift approval delay is a good example of a bottleneck to flag later. Going back to the handover form itself - what exactly do you write on it by hand, and does anyone re-type or re-enter that information anywhere else afterward?",
+        "reply": "I write down the open shipments, any damaged goods, forklift faults, and missing staff, all by hand on the A4 sheet. As far as I know nobody re-types it anywhere; it stays on the desk in the terminal office and the next shift works from that paper. If it goes missing or gets coffee on it, that's when the walk-the-floor recheck happens, but I'm not aware of it being entered into a system afterwards."
+      },
+      {
+        "interviewer": "Good to know that the form stays purely on paper. Besides the handover form, are there other things during a shift you record by hand - like damage reports, missing stock, or incident notes - before they end up anywhere else?",
+        "reply": "Mostly it's the same A4 handover form, since damaged goods, forklift faults and missing staff all go on it. I don't keep a separate damage report or incident book myself, so I can't say what happens to those beyond the form. For anything more specific, like how a missing-stock case gets logged in the system, the customer service desk or the terminal manager would know better than I do."
+      },
+      {
+        "interviewer": "Thinking about a specific case - when a missing stock item turns up during your shift, what do you actually do in that moment, step by step, before it gets written on the handover form?",
+        "reply": "When a missing item turns up, I first go and physically check it: find the pallet or bay, confirm the consignment note matches what's there, and make sure it's not just sitting in the wrong place. Then I get one of the lads to move it to the right bay or outbound door so it doesn't hold anything up. Only after that do I put it on the handover form, with the shipment reference and where it is now, so the next shift knows it's sorted. I don't have a fixed checklist beyond that, so the detail depends on the case."
+      },
+      {
+        "interviewer": "That's a clear walkthrough. When you confirm the consignment note against what's physically there, do you check it against a paper document, or something on a screen or handheld scanner?",
+        "reply": "Mostly it's the paper consignment note that comes with the pallet, so I compare the reference and the item count with what's on the pallet itself. I don't use a handheld scanner for that check on my shift. If the note and the load don't match, I'd write it up on the handover form and let the day side or the customer service desk sort out the system side."
+      },
+      {
+        "interviewer": "That confirms the consignment check is paper-based end to end. Going back to the lost or coffee-stained handover form - when that happens about once a week, what does the recheck actually involve, and who does it?",
+        "reply": "The next shift does the recheck, so whoever is on the incoming evening or night shift, usually me or the shift lead on the other rota. They walk the whole floor and go bay by bay, checking open shipments, damaged goods, forklift faults and missing staff against what's physically there, since they have no reliable paper to go on. It takes 20 to 30 minutes each time, which is time the shift could otherwise spend on the trucks."
+      },
+      {
+        "interviewer": "Besides the handover form going missing, what's another problem that comes up regularly - things like errors, rework, or missing information that trip up the shift?",
+        "reply": "Honestly, the one that comes up most regularly after the handover form is the forklift part approval. A broken forklift can sit for three or four days waiting on a spare part over 500 euros, because the terminal manager's email approval sits in an inbox. I can't point to a specific error rate for anything else, so I'd rather not guess at rework numbers. The proof-of-delivery app has actually been good, though, since I don't get night calls about missing signatures any more."
+      },
+      {
+        "interviewer": "Good to hear the proof-of-delivery app solved that. On the forklift delays, can you recall a specific recent time this happened - how long that particular forklift was down and what it held up?",
+        "reply": "I don't have the exact log for a specific forklift in front of me, so I can't give you the precise date or the exact downtime with confidence. What I can say is that the pattern is familiar: a machine goes down, the part is over 500 euros so it needs the terminal manager's email approval, and it waits three or four days while that sits in an inbox. The usual knock-on is that loading slows on that side of the dock and the lads have to work round the machine, but for the exact case and what it held up, the maintenance records or the terminal manager would have the detail."
+      },
+      {
+        "interviewer": "Understood, no exact log to hand. Beyond the handover form and the forklift approvals, is there any other recurring problem - even a smaller one - that slows the shift down or causes frustration?",
+        "reply": "Not really, nothing else that I'd call a regular problem. The walk-the-floor recheck after a lost handover form is the other one that keeps coming back, but that's already covered. The rest of the shift mostly runs fine with the team I've got."
+      },
+      {
+        "interviewer": "Is there anything important about your work that I didn't ask about?",
+        "reply": "Not really, I think we've covered the main things. The only thing I'd add is that most of the shift runs well, and the team is the reason for that, so if you talk to any of the lads on my rota they'll tell you the same. The handover paper and the forklift approvals are the two things I'd really want fixed, and the proof-of-delivery app has been a genuine improvement."
+      },
+      {
+        "interviewer": "Thanks for walking me through all of this, it's been really clear and concrete.\n\nHere's what I captured: you run the evening/night shift with 12 workers, handing off to the next shift purely via a paper A4 form (shipments, damage, forklift faults, missing staff). Missing-stock cases get checked physically against paper consignment notes, then logged on that same form. Two recurring pain points stood out: the handover form going missing or damaged about weekly, costing a 20-30 minute floor-wide recheck; and forklift parts over €500 needing the terminal manager's email approval, leaving machines down 3-4 days. The proof-of-delivery app has already fixed the old missing-signature issue.\n\nDoes that match your experience, or is there anything you'd adjust?",
+        "reply": null
+      }
+    ]
+  },
+  {
+    "personaId": "sari_terminal",
+    "sessionId": "cmvhw0g2j00be2w6ohkcfr5l2",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "Hi, thanks for taking the time. To start, could you tell me about your role as morning shift supervisor and who you mainly work with day to day?",
+        "reply": "Kiitos, että otitte minut mukaan. Olen aamuvuoron vuoroesimies terminaalissa, ja vuoro on kello 6–14. Vuorossa on noin 15 työntekijää, ja käytännössä teen eniten yhteistyötä heidän kanssaan lastauslaitureilla sekä dispatchin kanssa, joka soittaa minulle aamulla."
+      },
+      {
+        "interviewer": "Kiitos, tämä auttaa hahmottamaan tilannetta. Mitkä ovat sinun päävastuusi vuoron aikana - esimerkiksi henkilöstön ohjaus, laiturien aikataulutus vai jotain muuta?",
+        "reply": "Päivän alussa luen yön vuoropaperin, ja sen perusteella selvitän, mitä jäi kesken. Laiturien aikataulutus hoituu meillä taululla, ja se toimii hyvin nykyisellä volyymilla. Aamulla dispatch soittaa ja kysyy, mitä yöstä jäi auki, joten vastaan siihen samalla kun ohjaan lastaus- ja purkutyötä."
+      },
+      {
+        "interviewer": "Voitko kertoa tarkemmin siitä yövuoroparista - mitä tietoja siinä tyypillisesti on, ja mistä tunnistat, mitä jäi kesken?",
+        "reply": "Vuoropaperiin yövuoro kirjaa yleensä vaurioituneet lavat, keskeneräiset lähetykset ja ne kuormat, jotka eivät ehtineet lähtemään. Kesken jääneet asiat tunnistan siitä, mitä paperiin on merkitty, mutta käsiala on usein niin huonoa, että joudun arvaamaan. Kun paperi puuttuu kokonaan, kävelen koko terminaalin läpi etsimään vaurioituneita lavoja ja avoimia lähetyksiä, ja sellaiseen menee helposti puoli tuntia, joka on useita kertoja viikossa."
+      },
+      {
+        "interviewer": "Tuo on merkittävä löydös - käsialan tulkinta ja paperin puuttuminen vie aikaa useita kertoja viikossa. Palataan vielä siihen myöhemmin. Kun dispatch soittaa aamulla, mitä tietoja te tarkalleen vaihdatte puhelussa?",
+        "reply": "Dispatch kysyy, mitä yöstä jäi keskeneräiseksi, eli mitkä kuormat eivät lähteneet ja mitkä lähetykset ovat vielä kesken. Koska he eivät näe paperilomaketta, minun pitää lukea vastaukset suoraan siitä, ja jos käsiala on epäselvä, puhelu venyy ja joudun varmistamaan asioita. Käytännössä puhelu on siis se kanava, jolla dispatch saa tiedon yöstä."
+      },
+      {
+        "interviewer": "Kerro viimeisimmästä kerrasta, kun puhelu venyi epäselvän käsialan takia - kauanko puhelu tavallisesti kestää, ja kuinka paljon pidempi se oli silloin?",
+        "reply": "En ole kirjannut puhelujen kestoa ylös, joten en osaa antaa tarkkaa lukua. Tavallinen puhelu on minulta lyhyt, muutama minuutti, mutta kun käsiala on huono, joudun välillä katsomaan rivin uudelleen ja varmistamaan kuorman numeron, ja silloin puhelu venyy helposti useita minuutteja pidemmäksi."
+      },
+      {
+        "interviewer": "Entä mitä tapahtuu puhelun jälkeen - kuka käyttää dispatchille kertomiasi tietoja seuraavaksi, esimerkiksi reittisuunnittelussa tai asiakasviestinnässä?",
+        "reply": "En tiedä tarkalleen, mitä dispatch tekee tiedoilla puhelun jälkeen, koska se ei kuulu minun työhöni. Tiedän vain, että he tarvitsevat sen, jotta tietävät mitkä kuormat lähtevät ja mitkä jäävät odottamaan."
+      },
+      {
+        "interviewer": "Selvä, se riittää tähän. Onko muita vastaanottajia yövuoron tiedoille dispatchin lisäksi, esimerkiksi asiakaspalvelu tai varastonhallinta?",
+        "reply": "En osaa sanoa varmasti, kuka muu yövuoron tiedoista hyötyy, koska en ole itse seurannut sitä. Omasta näkökulmastani tieto kulkee yöstä aamuun paperilla ja sitten dispatchille puhelimessa, eikä minulla ole tietoa siitä, välittyykö se edelleen asiakaspalveluun tai varastonhallintaan."
+      },
+      {
+        "interviewer": "Mitä paperille tapahtuu sen jälkeen, kun olet lukenut sen ja puhelu dispatchin kanssa on käyty - arkistoitko sen, vai heitetäänkö se pois?",
+        "reply": "Paperi jää yleensä terminaalin toimistoon, ja sen säilytyksestä ja arkistoinnista huolehtii yleensä joku muu, minulla ei ole siitä tarkkaa tietoa. En ole itse ryhtynyt arkistoimaan sitä mihinkään erikseen, joten en osaa sanoa, kuinka kauan se säilyy tai mitä siitä tehdään myöhemmin."
+      },
+      {
+        "interviewer": "Kun käsiala on epäselvä, miten yleensä toimit - arvaatko parhaan tulkinnan, vai käytkö tarkistamassa jotain muuta kautta ennen kuin kerrot dispatchille?",
+        "reply": "Yleensä arvaan ensin parhaan tulkinnan kontekstin perusteella, esimerkiksi kuorman numeron ja reitin mukaan. Jos en ole varma, käyn katsomassa lavat tai lähetykset itse lastauslaiturilla, ja silloin ajan kulumista on taas vaikea arvioida tarkasti."
+      },
+      {
+        "interviewer": "Oletko koskaan antanut dispatchille väärän tiedon arvauksen perusteella, joka sitten huomattiin vääräksi myöhemmin?",
+        "reply": "En muista yhtään tapausta, jossa olisin antanut dispatchille väärän tiedon ja se olisi huomattu vasta myöhemmin. Koska arvaan vain silloin, kun en pysty tarkistamaan, pyrin kuitenkin käymään lavat tai lähetykset itse läpi ennen kuin kerron. En ole kuitenkaan kirjannut tällaisia tilanteita ylös, joten en osaa sanoa varmasti, eikä minulla ole tietoa siitä, huomaako kukaan virheitä jälkikäteen."
+      },
+      {
+        "interviewer": "That's helpful context - no known downstream errors, just the physical check as a safeguard. Besides the handwriting issue, are there other kinds of problems or mistakes that come up regularly during your shift?",
+        "reply": "Käsialan lisäksi tärkein ongelma on se, että paperi puuttuu joskus kokonaan, ja silloin joudun kävelemään terminaalin läpi etsimään vaurioituneita lavoja ja avoimia lähetyksiä. Muuten päivät sujuvat yleensä hyvin, ja laiturien aikataulutus taululla toimii meille hyvin nykyisellä määrällä."
+      },
+      {
+        "interviewer": "How often does the paper go missing entirely - is that a daily thing, or more like once or twice a week?",
+        "reply": "Paperi puuttuu kokonaan useita kertoja viikossa, mutta en ole laskenut tarkkaa lukua. Yleensä se on siis muutaman kerran viikossa, ei joka päivä, ja silloin kävely terminaalin läpi vie puolisen tuntia."
+      },
+      {
+        "interviewer": "When handwriting is unclear and you don't walk out to check physically, roughly how many extra minutes does the call usually take - a couple, or more like five or ten?",
+        "reply": "Kahden minuutin vaihtoehto sopii mielestäni parhaiten, tai ehkä hieman enemmän. Kun käsiala on epäselvä, joudun yleensä vain katsomaan rivin uudelleen ja varmistamaan kuorman numeron, eikä se ole kovin pitkä lisäys. Viiden tai kymmenen minuutin vaihtoehto ei kuvaa tavallista tilannetta, mutta en ole mitannut tätä, joten tämä on vain arvio."
+      },
+      {
+        "interviewer": "Kiitos tarkennuksesta - pari minuuttia käsialaongelmaan sopii hyvin kuvaan. Kun lähdet kävelemään terminaalia läpi puuttuvan paperin takia, keskeytyykö samalla muu työsi, kuten laitureiden ohjaus?",
+        "reply": "Kyllä, kun lähden kävelemään terminaalin läpi, joudun jättämään laiturien ohjauksen hetkeksi, ja muut ryhmän jäsenet jatkavat lastausta ilman minua. Yleensä siitä ei tule suurta ongelmaa, mutta kun kävely venyy, kysymykset jäävät odottamaan, kunnes palaan takaisin."
+      },
+      {
+        "interviewer": "That's a clear picture of how the walk-through ripples into supervision work. One last thing - is there anything important about your work that I haven't asked about?",
+        "reply": "Ei oikeastaan muuta olennaista, mutta sanoisin, että kaikki ei ole ongelmaa. Laiturien aikataulutus taululla toimii meille hyvin, ja vuoro sujuu pääosin ilman suurempia häiriöitä, kun paperi on paikallaan ja luettavissa."
+      },
+      {
+        "interviewer": "Thank you for walking me through your shift so clearly. Here's a short summary:\n\nYou supervise the morning dock shift (6am-14pm), read the night handover paper, direct loading, and update dispatch by phone. The whiteboard scheduling works well as-is. Two recurring issues: unclear handwriting adds a couple minutes per call (resolved by rereading or a dock check), and the handover paper goes missing several times a week, triggering a ~30-minute walk-through where you step away from dock oversight and questions queue up. No known cases of bad info reaching dispatch undetected. Downstream use of the info (beyond dispatch) and paper archiving are outside your visibility.\n\nDoes this match your experience, or is there anything to correct?",
+        "reply": null
+      }
+    ]
+  },
+  {
+    "personaId": "timo_dispatch",
+    "sessionId": "cmvhw0r3000cw2w6opqeyhc5l",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "Hi, thanks for taking the time. To start, can you tell me a bit about your role as a transport planner — what you're mainly responsible for day to day?",
+        "reply": "Sure, thanks for having me. My main job is planning the routes for our trucks, so on a normal day I'm looking after about 45 vehicles across the Vantaa area and further out, making sure every load gets to the right place in the right window. I do all of that in the TMS, the transport management system, and honestly route planning is the part that works really well for me. I can rebuild a route in a few minutes when a customer calls to move a delivery, and I can see straight away which driver is free and which truck has the capacity. Once the trucks are out, I keep an eye on how the day is going and deal with whatever comes up, like a late pickup at the terminal or a customer who wants a different time slot. It's busy, but it's the kind of busy I like."
+      },
+      {
+        "interviewer": "That sounds like a role with a lot of moving parts. Besides the TMS, who do you mainly work with day to day — drivers, customers, terminal staff?",
+        "reply": "Mostly drivers and the terminal, honestly, and customers come in when something changes. The drivers are on their phones all day, and since we rolled out the proof-of-delivery app, I get signatures and photos in the TMS within minutes of each drop, which has cut disputes about deliveries to almost nothing. The terminal is where the trucks are loaded and where the night shift leaves things, so I'm talking to them constantly about what's ready and what's late. Finance is in the loop too, though more at the end of the day, when I send the delivery details over for billing. Fuel cards and maintenance go through the fleet manager, and those just work, so I don't spend much time on them."
+      },
+      {
+        "interviewer": "You mentioned sending delivery details to finance for billing at the end of the day — can you walk me through what that process looks like, step by step?",
+        "reply": "So after the deliveries are done, I go into the TMS and pull up each completed shipment, and for every one I copy the shipment number, the weight, and any extra charges like waiting time into the billing spreadsheet that finance uses. Then I check the rows against what the TMS shows, because one wrong digit means a wrong invoice and somebody in finance has to chase it. It takes me about 90 minutes every afternoon, and honestly that's the part of my day I dislike most. It's all copying from one screen to another, and I know it's exactly the kind of thing a machine should be doing. I'd happily see that link automated."
+      },
+      {
+        "interviewer": "That's a clear case of manual double-handling. How many shipments roughly do you copy over like that each day?",
+        "reply": "Roughly 45 trucks go out a day, and most of them do two or three drops, so I'd estimate somewhere around 100 to 130 shipment lines a day. Some are simple, a single pallet with no extras, but a fair number carry waiting time or a second stop, and those take a bit longer to get right. On a busy day I can feel how tired my eyes get by the end of the 90 minutes. I don't have an exact count in front of me, though, because the number changes so much with the season and the customer mix. If finance wants the precise figure, the TMS export or the billing sheet itself would give you the real number."
+      },
+      {
+        "interviewer": "That gives a good sense of scale. Walking through a concrete recent one — what format is the billing spreadsheet, is it Excel, shared online, something else?",
+        "reply": "I'm honestly not sure of the exact format, to be fair. As far as I know it's a spreadsheet that finance keeps, and I add my rows to it, but whether it's an Excel file on a shared drive or something hosted online is a question for finance. What I can tell you is what I see on my side: I have the TMS open in one window and the billing sheet in another, and I type across by hand. If you want the specifics, someone in finance would know exactly how it's stored and who has access."
+      },
+      {
+        "interviewer": "That's fair, finance would know the technical side. Does the TMS let you export those shipment details at all, or is manual copy-paste the only way to get data out?",
+        "reply": "I'm not certain what the TMS export options are, to be honest. I've never had to use an export, because I've always just worked from the screen and typed across. I'd guess there's some kind of report or download function since most systems have one, but I don't know whether it gives you the fields finance needs in the layout they use. The fleet manager or whoever administers the TMS would be the one to ask. If there is an export, it could be worth looking at before anyone builds a bigger fix."
+      },
+      {
+        "interviewer": "Good to know — that's worth flagging for whoever looks into this. Thinking about yesterday specifically, roughly how many of those 100-130 lines did you have to double-check or fix because something didn't match?",
+        "reply": "I can't give you a precise number for yesterday, and I'd rather not make one up. What I can say is that I do check each row against the TMS before I send it, because a single wrong digit in the weight or a missed waiting-time charge turns into a wrong invoice that finance has to chase. Most rows match straight away, but I wouldn't want to guess how many needed a second look on one particular day. If you want an accurate figure, the easiest source would be the corrections or invoice queries that came back from finance, since those would show where the mismatches actually ended up."
+      },
+      {
+        "interviewer": "That makes sense, thanks for being upfront about that. Since you've never had reason to try an export, would it be fair to say the TMS administrator or fleet manager is the right person to confirm what export options exist?",
+        "reply": "The TMS administrator is the right person for the technical question, and I'd include the fleet manager too, since they use the system a lot and would know what reports they pull. I'm not sure whether the fleet manager actually administers the TMS, or whether that's someone in IT or the office. Either way, I'd point them to what I described: the shipment number, weight and extra charges that I copy every afternoon. If they can tell you whether those fields come out in a file, that would answer most of the question."
+      },
+      {
+        "interviewer": "Good, that's clear. Switching gears a bit — what does your screen actually look like in the TMS when you're planning routes, is it a map view, a list of jobs, something else?",
+        "reply": "It's a mix, and I like that about it. The main planning view is a list of jobs on the left, each with its pickup, drop, time window and weight, and when I drag a job onto a truck the route updates on a map on the right. So I can see the stops and the travel times at a glance, and I can tell straight away if a truck is over capacity or would miss a delivery window. I can also see which drivers are available and which vehicles are free, all in the same screen, which saves me a lot of phoning around. I don't use the map as much as the list, honestly, because the list is faster when I'm moving ten jobs at once. I couldn't tell you the exact layout settings, though, since I just use what's been set up for us."
+      },
+      {
+        "interviewer": "When a job comes in to move a delivery, like that customer call you mentioned earlier — do you make the change directly in that list view, or is there another step first?",
+        "reply": "Usually I do it directly in the list view. A customer rings, I find the job in the list, check the new time window against which truck and driver are free, and drag it onto the right route, and the map on the right redraws the stops so I can see the knock-on effect. If the new slot clashes with another delivery, the TMS flags it, and I shuffle one of the other jobs before I confirm. The only extra step is when the customer wants a change that affects a driver who's already on the road, because then I have to phone the driver, since the app doesn't push route changes as far as I know. Most calls are sorted in a couple of minutes this way."
+      },
+      {
+        "interviewer": "That's a useful detail about the driver app not pushing live updates. When you have to phone a driver mid-route about a change, how does that update eventually get back into the TMS?",
+        "reply": "Honestly, the update goes back in through me. When I phone the driver, I make the change in the TMS list view myself, at the same time, so the route and the map on my side are correct. The driver confirms by voice, and I don't have a formal step where they sign off the change in the system. I should also be clearer about the app: I said earlier that it doesn't"
+      },
+      {
+        "interviewer": "It sounds like that message got cut off — no worries, that's clear enough on the TMS update side. Shifting to the billing cross-check: do you know if finance ever logs or tracks how often they catch an error that traces back to your handoff?",
+        "reply": "I don't know whether finance keeps a log of errors that trace back to my copying, so I can't tell you how often it happens. I haven't seen any such record, and I don't want to guess a number. If you're after that figure, finance would be the people to ask, since they'd be the ones chasing the wrong invoices.\n\nAlso, I should finish my earlier point, because I cut myself off. I was going to say that the proof-of-delivery app is the one thing I'd call a clear success. Signatures and photos reach the TMS within minutes, and disputes about deliveries have dropped to almost nothing, so that part of the process works well for me."
+      },
+      {
+        "interviewer": "Good to hear the POD app works that well. Outside of billing mismatches, is there another spot — maybe route conflicts or driver comms — where things commonly go wrong or cause rework?",
+        "reply": "Honestly, route planning itself is solid for me, so I wouldn't point to conflicts in the TMS as a regular source of rework. The driver side is where I'd look, though, because of what I mentioned about the app: it doesn't push route changes to drivers, so when a customer moves a delivery after a truck has left, I phone the driver and change the TMS myself at the same time. That works, but it's a manual double step, and I'd want to be sure the driver actually has the new stop before I move on. I don't have a record of how often that happens, so I can't give you a figure.\n\nThe other spot is the morning handover. Every morning I have to phone the terminal to find out what the night shift left open, because the handover is on paper in the terminal office. That's not really a planning error, but it does eat into my first half hour, and anything that got missed on the paper gets found by phone rather than in the system. Fuel cards and maintenance I wouldn't flag at all; those work fine."
+      },
+      {
+        "interviewer": "That paper handover sounds like a daily friction point. Can you walk me through a recent morning — what's on that paper, and what do you typically end up phoning about?",
+        "reply": "I'll be straight about the limits here: I haven't seen the paper itself in detail, since it lives in the terminal office and I only get the gist when I phone. What I can tell you is what I usually end up asking about. Typically it's loads that were picked up late or not loaded, a pallet count that doesn't match the TMS, or a trailer that's still parked at the dock with no job attached. Last week, for example, I phoned about two outbound loads that the night shift had started but not closed, so I couldn't tell if they'd gone out. I also don't have an exact count of how many mornings it's a problem, so I'd rather not put a number on it. If you want the actual content of the handover sheet, the terminal supervisor would be the person to ask."
+      },
+      {
+        "interviewer": "That's a clear example, thanks. One last thing before we wrap up — is there anything important about your work that I haven't asked about?",
+        "reply": null
+      }
+    ]
+  },
+  {
+    "personaId": "ville_driver",
+    "sessionId": "cmvhw2w5300lg2w6o0ggikls6",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "To start, could you tell me about your role — what you're mainly responsible for day to day, and who you typically work with or report to?",
+        "reply": "I drive a distribution route here in the Helsinki region."
+      },
+      {
+        "interviewer": "Who do you usually coordinate with to get your route done — dispatch, terminal staff, customers, others?",
+        "reply": "Mostly the app. I get the route on my phone in the morning."
+      },
+      {
+        "interviewer": "Good to know. So the route comes through an app each morning — do you ever need to talk to a dispatcher or terminal staff directly, like if something's wrong with the route or a delivery?",
+        "reply": "Not really. The app covers it, and if something's off I just sort it out at the stop."
+      },
+      {
+        "interviewer": "Let's walk through a typical day, then. Can you tell me what yesterday looked like, from when you started to when you finished?",
+        "reply": "Morning, got the route on the phone, loaded up, then drove the stops. Around twenty stops, the usual."
+      },
+      {
+        "interviewer": "Roughly how much time does the loading part take versus the actual driving and delivering across the day?",
+        "reply": "I don't time it that way. Loading is quick, the rest is driving and stops."
+      },
+      {
+        "interviewer": "Roughly, how long does a full day take from start to finish — like what time do you usually begin and when do you wrap up?",
+        "reply": "I start early and finish when the route's done. Usually somewhere around seven to four, give or take."
+      },
+      {
+        "interviewer": "That gives a good sense of the day. Out of those stops, about how many of them usually have some kind of issue or hiccup you need to sort out on the spot?",
+        "reply": "Not many. Maybe one or two a day, and usually it's a missing signature or a door code."
+      },
+      {
+        "interviewer": "Good, that's a clear picture of the day. Thinking about tasks you do the same way, every single day — what's something that's basically identical each time?",
+        "reply": "Signing off each delivery on the app with a photo."
+      },
+      {
+        "interviewer": "How long does that photo-and-sign step usually take per stop — just a few seconds, or longer if the app is slow?",
+        "reply": "Just a few seconds. The app's quick, no lag."
+      },
+      {
+        "interviewer": "Besides confirming deliveries, is there anything else you do the same way every day or every week — like vehicle checks, fuel logging, or paperwork?",
+        "reply": "Pre-trip check on the truck in the morning, then fuel card at the station."
+      },
+      {
+        "interviewer": "Could you walk me through that pre-trip check — what exactly do you look at, and do you record it anywhere, like a paper checklist or a form?",
+        "reply": "Lights, tyres, brakes, mirrors, fluid levels. Takes about ten minutes.\n\nRecorded where? I don't know the exact system, but it's on the phone with the rest of the app, not paper."
+      },
+      {
+        "interviewer": "Good, that answers both the check and the recording method. What's the name of that phone app you use for the route, pre-trip check, and delivery confirmations?",
+        "reply": "I don't know the exact name. It's the company app on my phone, the same one for route and signatures."
+      },
+      {
+        "interviewer": "That's fine, just the company app is clear enough. What about the fuel card at the station — do you log anything about that, or does it just happen automatically when you pay?",
+        "reply": "Mostly automatic when I pay. I enter the mileage at the pump, that's about it."
+      },
+      {
+        "interviewer": "When you enter the mileage at the pump, is that on a screen built into the pump itself, or on a separate device like the fuel card terminal?",
+        "reply": "I don't know the details of the pump setup. I just type the mileage in when it asks."
+      },
+      {
+        "interviewer": "That covers the fuel card step well enough. Is there anything important about your work that I haven't asked about?",
+        "reply": "Not really. The route, the app and the checks cover most of it."
+      },
+      {
+        "interviewer": "Thanks for walking me through your day. Here's what I've got: you start around 7am, get your route through the company app, do a ~10 minute pre-trip check (lights, tyres, brakes, mirrors, fluids) recorded in the same app, drive about 20 stops confirming each delivery with a photo and signature (quick, no lag), handle the odd issue (1-2/day, like a missing signature or door code) on the spot, fuel up with the card and enter mileage at the pump, and wrap up around 4pm. Nothing major stands out as broken — it's a fairly smooth routine. Let me know if I've missed or misstated anything.",
+        "reply": null
+      }
+    ]
+  },
+  {
+    "personaId": "heidi_cs",
+    "sessionId": "cmvhw33s000ms2w6o82k4522f",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "Hi, thanks for taking the time. To start, could you tell me what your role covers day to day and who you mainly work with?",
+        "reply": "I'm a customer service agent here, so most of my day is about making sure customers know where their freight is and that their orders get entered correctly. I work mainly with customers, who contact us by email and phone, and with the customer service manager, who approves credit notes. I also work closely with the dispatchers and the warehouse team, because they're the ones who can tell me when something has actually moved."
+      },
+      {
+        "interviewer": "That gives a good picture. Could you walk me through a recent, specific example of entering an order and tracking freight status for a customer?",
+        "reply": "Sure. Last Tuesday a customer emailed me a transport order as an Excel attachment, asking for a pallet pickup in Tampere on Thursday morning and delivery to their site in Oulu. I opened the attachment, checked the addresses and pallet count against the email, and typed the order into the TMS, which usually takes me five to eight minutes per order. Later that afternoon the same customer called asking where their earlier shipment was, so I looked it up in the TMS and read out the status over the phone, since they have no tracking link to check themselves."
+      },
+      {
+        "interviewer": "That's a clear example, thanks. When you check pallet count and addresses against the email before entering into the TMS, do you ever find mismatches that need resolving?",
+        "reply": "Yes, it happens fairly often, though I wouldn't say it's the majority of orders. Usually it's a small thing, like a postcode that doesn't match the street name or a pallet count written differently in the email and the Excel file. I then reply to the customer to confirm which version is correct before I enter the order, because a wrong address costs us more than a short delay in entry."
+      },
+      {
+        "interviewer": "Got it — so when there's a mismatch, you pause entry and email the customer to confirm, which adds a wait before you can finish that order. Roughly how long does that confirmation usually take to come back?",
+        "reply": "I don't have a precise average, because it depends on the customer. Some reply within the hour, but I've also had to wait until the next morning, and in the meantime the order sits unentered. I don't track the turnaround time in any system, so I can't give you a reliable number."
+      },
+      {
+        "interviewer": "That's helpful context, thanks. Roughly how often does this kind of mismatch happen — more like daily, or a few times a week?",
+        "reply": "I'd say a few times a week, so it's not every day but it's far from rare. With about 30 orders a day and roughly half arriving by email, there are usually a handful of emails that need a second look, and most of them are small things like a postcode that doesn't match the street. \"A few times a week\" fits best because it's frequent enough to notice, but it's not something I see on most days."
+      },
+      {
+        "interviewer": "Thanks for the detail on frequency. When an order sits unentered waiting for that confirmation, has it ever caused the pickup to be missed or delayed on the dispatcher's end?",
+        "reply": "I don't know for sure, because I don't see the dispatch schedule or know when a dispatcher actually plans a pickup. What I can say is that if an order is still sitting unentered, the dispatchers won't see it in the TMS yet, so they can't plan it. The dispatchers would be the right people to ask whether that has ever caused a missed or late pickup."
+      },
+      {
+        "interviewer": "That's a useful boundary to flag — it points to a downstream question for dispatch rather than something you can confirm directly. Does the confirmation delay ever cause other problems on your end, like a backlog of unentered orders piling up?",
+        "reply": "Sometimes, yes, especially on busy mornings when the email orders come in faster than I can type them, since each one takes five to eight minutes. If a few orders are waiting on customer confirmation at the same time, they stack up alongside the new ones, and I have to keep track of which ones are on hold so I don't forget to come back to them. It's manageable most days, but it does add to the pressure when the phones are also ringing with status questions."
+      },
+      {
+        "interviewer": "That makes sense — busy mornings with overlapping holds and ringing phones sounds like a lot to track manually. Shifting gears a bit: what's the name of the TMS you use for entering orders and checking freight status?",
+        "reply": "I'm not certain what the TMS is called, since everyone here just says \"the TMS\" and I've never needed the product name. It's the system I use for entering orders and looking up freight status, so if you need the exact product name, IT or the customer service manager would know for sure."
+      },
+      {
+        "interviewer": "That's fine, the name isn't critical. Can you describe what the order entry screen in the TMS actually looks like — what fields you fill in?",
+        "reply": "I don't remember every field name exactly, but the main things I fill in are the pickup and delivery addresses, the dates and time windows, the pallet or piece count, and the customer reference. The addresses take the longest because I have to match them carefully against the email or Excel file. If you need the full list of fields and which ones are mandatory, the TMS super-user or IT could show you the screen directly."
+      },
+      {
+        "interviewer": "Good to know, addresses being the slowest part fits with what you described earlier. Aside from the TMS, what do you use to receive and manage those order emails — a particular email client, or shared inbox?",
+        "reply": "I use Outlook for email, and the customer orders come into a shared customer service mailbox that I and my colleagues check. I don't know the exact setup of the shared mailbox, like whether it's a group address or delegated access, so IT would be the right people to confirm that. In practice, I open each order email from there, check the attachment, and then enter it into the TMS."
+      },
+      {
+        "interviewer": "And for the phone side — when a customer calls asking about freight status, what system or screen do you use to look that up?",
+        "reply": "I use the same TMS for that. I search for the customer's shipment, usually by their reference number or the consignment details, and read the current status straight off the screen while I'm on the phone. Since customers have no tracking link, that lookup is what I rely on for every status call, which is why the phones can get busy when I'm also trying to enter orders."
+      },
+      {
+        "interviewer": "You mentioned the dispatchers would know if confirmation delays caused missed pickups. Do you ever get feedback or complaints flowing back from dispatch or the customer when that happens, or does it stay invisible to you?",
+        "reply": "I don't really get structured feedback from dispatch about that, so it mostly stays invisible to me. If a customer is unhappy about a late pickup, it usually comes back to me as another status call, and I only connect it to the earlier order if I happen to remember it. I don't know whether dispatch logs those cases anywhere, so the dispatchers or the customer service manager would be better placed to say."
+      },
+      {
+        "interviewer": "That confirms the feedback loop is pretty much one-way back to you. When you do get a status call tied to an earlier delayed order, how do you piece together what happened — do you check the TMS history, or ask the customer for details?",
+        "reply": "I usually start in the TMS, looking at the order's current status and any recorded events, to see where the shipment is now. If that doesn't explain the delay, I ask the customer for the reference or what they were told, because they often have details I can't see. I don't have a set routine for this, so it depends on the call and how much time I have that day."
+      },
+      {
+        "interviewer": "On busy mornings, when email orders, holds, and phone calls all pile up at once, what usually gives first — does something get delayed, or skipped, or do you just push through?",
+        "reply": "Honestly, I push through, and the thing that usually slips is the follow-up on held orders, because I'm answering phones and typing new orders at the same time. I try to keep the status calls short so the customers aren't waiting, and I return to the held emails when there's a gap, which isn't always soon. It works most days, but on the worst mornings a held order can sit a bit longer than I'd like before I get back to it."
+      },
+      {
+        "interviewer": "That's a clear picture of how the pressure plays out on busy mornings — thank you for walking through all of this. Before we wrap up, is there anything important about your work that I haven't asked about?",
+        "reply": "Not really anything major that I can think of. Honestly, the parts that work well are the shared mailbox, which means nothing gets lost between colleagues, and the TMS itself, which gives me what I need for both entry and status lookups. The main thing I'd still like to see improved is the credit note approval, because customers call again while they wait, but that's something we haven't really touched on yet, so I'm happy to talk about it if that's useful."
+      },
+      {
+        "interviewer": "Thank you for all the detail today. Here's a quick summary of what I captured:\n\n- Your role covers order entry (manual Excel-to-TMS, 5-8 min/order, addresses are slowest) and freight status lookups by phone/email, with no customer self-tracking.\n- Orders arrive via a shared Outlook mailbox; mismatches trigger a confirmation loop with customers, sometimes stacking up on busy mornings.\n- Held orders are the first thing to slip under pressure, since phone calls and new entries take priority.\n- You have no visibility into dispatch's pickup planning, and no structured feedback comes back when a delay causes a missed pickup — that link only happens if you remember it.\n- Credit note approval delays also cause repeat customer calls while they wait.\n\nDoes this match your experience, or is there anything you'd like to correct?",
+        "reply": null
+      }
+    ]
+  },
+  {
+    "personaId": "oskari_cs_lead",
+    "sessionId": "cmvhw370z00ni2w6ohs7iv928",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "To start, could you tell me a bit about your role as team lead and who you work with most closely?",
+        "reply": "I lead a team of five customer service agents. Most of my day goes to them and to whoever is on the phone."
+      },
+      {
+        "interviewer": "Besides supporting your agents and handling calls, do you also work with other teams or managers as part of your role—like escalations going to another department?",
+        "reply": "Yes, escalations go to the terminal and to dispatch when a shipment is late or damaged. I don't have more detail on that than that."
+      },
+      {
+        "interviewer": "Can you walk me through a recent example of an escalation—what happened, who you contacted, and how it got resolved?",
+        "reply": "I don't have a specific case to walk you through on the spot. I can say the usual route is a call to the terminal or dispatch, but I'd be guessing at the details of a particular one, so I won't invent it."
+      },
+      {
+        "interviewer": "That's fine, no need to guess. Let's talk about your day-to-day instead—what did yesterday look like for you, from start to finish?",
+        "reply": "Mostly the phone and the inbox. I can't recall yesterday hour by hour, so I'd rather not reconstruct it. The regular pattern is what I can speak to: the phone gets busy first thing, and a lot of my team's time goes to typing orders in from email."
+      },
+      {
+        "interviewer": "Typing orders in from email sounds like a big chunk of time—can you tell me more about that? What does an order email look like, and what do agents do with it step by step?",
+        "reply": "An order email is usually a customer's free-text message with pickup and delivery addresses, dates, and pallet or parcel counts. The agent reads it and retypes the key fields into the TMS by hand. My estimate is about a third of the team's time goes to that. I don't have a detailed step-by-step breakdown beyond that, so I won't make one up."
+      },
+      {
+        "interviewer": "Roughly how long does it take an agent to type up one order email into the TMS, start to finish?",
+        "reply": "I don't time it per order, so I don't have a solid number. From what I see on the floor, a simple one takes a few minutes and a messy one takes longer, but I'd rather not give you a figure I haven't measured."
+      },
+      {
+        "interviewer": "That's a fair distinction between simple and messy. Roughly how many order emails does the team handle in a typical day?",
+        "reply": "I don't have a daily count to hand. The team handles a steady flow of order emails alongside the calls, but I'd rather not give you a number I can't back up. If you need it, the TMS inbound log or the shared inbox would give you the real figure."
+      },
+      {
+        "interviewer": "Good to know those logs exist if needed. When an agent copies details from the email into the TMS, do they type everything manually field by field, or is any part of it copy-pasted or pulled in automatically?",
+        "reply": "Mostly by hand, field by field. I don't know the details of whether any part gets copy-pasted, so I won't guess at that."
+      },
+      {
+        "interviewer": "After an agent finishes entering an order into the TMS, what happens next—does anyone check it or use it before the order moves forward?",
+        "reply": "I don't know the exact check steps after entry, so I won't guess. What I can say is that dispatch uses the order once it's in the TMS, but I'd be speculating on how they verify it."
+      },
+      {
+        "interviewer": "That gives a clear picture of the hand-off to dispatch. Does dispatch ever come back to your team to flag an error or ask for clarification on an order that was entered?",
+        "reply": "I don't have a clear picture of how often that happens, so I won't put a number on it. It does happen sometimes, usually when an address or a date doesn't match what the customer sent. I'd check with dispatch for the actual frequency."
+      },
+      {
+        "interviewer": "When dispatch flags a mismatch like that, what happens next—does it come back to the same agent, and how does it get corrected in the TMS?",
+        "reply": "I don't know the exact routing for those. I'd assume it goes back to whoever entered the order, but I haven't set that up myself, so I won't say for sure. Correction in the TMS is done by the agent, as far as I know."
+      },
+      {
+        "interviewer": "Let's shift to repetitive tasks more broadly. Besides the email-to-TMS order entry, are there other tasks your team does the same way, over and over, each day or week?",
+        "reply": "Yes, the shipment status calls are the big one. The phone queue peaks between 9 and 11 in the morning. Each call is someone asking where their load is.\n\nOn a weekly basis, I compile the customer complaint summary in Excel. It takes about an hour, and I'm fine with it."
+      },
+      {
+        "interviewer": "For those shipment status calls, how does an agent find the answer—what systems or screens do they check to tell the customer where their load is?",
+        "reply": "I don't know the exact screens they use for that, so I won't guess. I'd assume they look in the TMS for the shipment, but I haven't walked through the steps with them myself."
+      },
+      {
+        "interviewer": "Roughly how long does a typical \"where's my load\" call take, start to finish?",
+        "reply": "I don't time those calls, so I don't have a number. Most are short, a quick lookup and a reply, but I wouldn't put a figure on it."
+      },
+      {
+        "interviewer": "Thanks for walking me through all of that. Before we wrap up, is there anything important about your work that I haven't asked about?",
+        "reply": "Not really. The main things are the order re-typing and the morning phone peak. The weekly complaint summary is fine as it is."
+      },
+      {
+        "interviewer": "Thanks for your time today. Here's a quick summary of what I captured:\n\nYou lead a team of 5 agents, handling calls and escalations to terminal and dispatch. Mornings are phone-heavy, with shipment status calls peaking 9-11am - quick lookups, likely in the TMS. A big chunk of team time goes to manually retyping order details from free-text emails into the TMS, field by field - simple ones are quick, messy ones take longer. Dispatch sometimes flags address or date mismatches back, likely to the same agent for correction, though exact frequency and routing aren't confirmed. The weekly Excel complaint summary takes about an hour and works fine as is.\n\nDoes this match your sense of how things work?",
+        "reply": null
+      }
+    ]
+  },
+  {
+    "personaId": "petri_sales",
+    "sessionId": "cmvhw4wmm00w02w6ohrjrp66d",
+    "ended": true,
+    "endReason": "engine ended the interview",
+    "exchanges": [
+      {
+        "interviewer": "Hi! To start, could you tell me a bit about your role as a key account manager — what you're mainly responsible for, and who you work with most closely?",
+        "reply": "Sure, happy to. I look after about 25 of our large customer accounts, so the bigger shippers and warehousing clients that give us the most volume. My main jobs are meeting those customers regularly, preparing offers, and handling contract renewals when they come up. Day to day I work most closely with the pricing team, who give me the price tables I need for offers, and with our customer service desk, since they handle the daily orders and questions from my accounts. I also live in HubSpot CRM, which is where all my customer notes and deal stages sit, and honestly it works really well for me."
+      },
+      {
+        "interviewer": "That's a clear picture, thanks. Of those main jobs — customer meetings, offers, and contract renewals — which one takes up the most of your time in a typical week?",
+        "reply": "Honestly, I'd say customer meetings take up the most of my week. With 25 large accounts, I try to see each of the bigger ones at least every few weeks, and some of them I talk to almost every day by phone or Teams. Offers and renewals come in waves, so they're heavy in some weeks and light in others, but meetings are steady. Most of that time is spent just listening to what the customer needs next, which is really the core of the job."
+      },
+      {
+        "interviewer": "Could you walk me through yesterday, or a typical recent day — what did it actually look like from start to end?",
+        "reply": "Yesterday was fairly typical. I started around eight by going through HubSpot, checking which accounts had new notes or deal stages changed overnight, and replying to a couple of emails from customers about shipment timing. Then I had a Teams call with one of our bigger retail clients, about 45 minutes, to talk about volume for the autumn season. After lunch I spent roughly an hour finishing an offer for a warehousing customer, using our Word template and the price tables the pricing team sent me, which is the usual routine and I'm fine with it. The afternoon was a mix of phone calls with customer service about a delayed pallet delivery and a short in-person visit to a customer's office in Espoo. I wrapped up by logging my notes in HubSpot so the next person who picks up the account knows where things stand."
+      },
+      {
+        "interviewer": "That's a really concrete walkthrough, thank you. You mentioned finishing an offer using the Word template and price tables — roughly how often in a typical week do you prepare offers like that?",
+        "reply": "Probably two or three offers a week on average, though it really depends on the season. In the autumn and early in the year there are more renewals and new volume requests, so it can go up to four or five, and in quieter weeks there might be none. Each one takes me about an hour, from pulling the right price table from the pricing team to adjusting the customer details and terms in the template. I don't mind that time at all, because the template keeps everything consistent and the pricing team's tables are reliable, so I'm not really looking for a shortcut there."
+      },
+      {
+        "interviewer": "That gives me a good sense of offers. Beyond meetings, offers, and the HubSpot logging — is there anything else that comes up regularly during your week, like reporting, internal meetings, or account reviews?",
+        "reply": "Yes, a few things come up regularly. There's a short internal sync with the customer service desk and the pricing team, usually once a week for about 30 minutes, to go over accounts with delayed shipments or upcoming price changes. I also prepare a monthly account review for each of my bigger customers, which is basically a summary of volumes, delivery punctuality and open issues, and I pull those numbers from our transport system and HubSpot and put them into a slide. Honestly those reviews take a fair bit of time, maybe an hour or two per customer, but I don't find them frustrating; the customers appreciate them and they help me spot where a relationship needs attention. Apart from that, my week is mostly the meetings, offers and renewals we already talked about."
+      },
+      {
+        "interviewer": "That monthly account review sounds like a meaty task. For a recent one, how did you actually pull the volume and delivery numbers from the transport system — was that a manual export, or something else?",
+        "reply": "I'm not entirely sure about the technical side, to be honest, since our transport system is handled by the operations and IT people. From what I've seen, I usually ask someone in the terminal or customer service team to send me an export for the account, and then I copy the relevant figures into my slide template and check them against what I have in HubSpot. For a bigger customer that might take an hour or two, mostly because I'm double-checking that the numbers match what the customer has seen on their side. I don't know exactly which reports they run or how the export is set up, so if you need that detail, Jukka in operations would be the right person to ask."
+      },
+      {
+        "interviewer": "Good to know — I'll leave the export detail aside then. Going back to the offer prep: when you get the price table from the pricing team, how does it actually arrive to you — email, shared file, something in HubSpot?",
+        "reply": "I'm not completely sure about every detail there, but from what I remember, the pricing team usually sends the price table to me by email as a spreadsheet attachment, and sometimes they put an updated version in a shared folder. I don't think it comes through HubSpot directly; I copy the figures from the table into the Word template myself. If you want the exact process, the pricing team lead would know it better than I do, since I only see the finished tables when they reach my inbox."
+      },
+      {
+        "interviewer": "That's helpful — so copying figures from the emailed spreadsheet into the Word template by hand is part of that hourly routine. When you do that copying, do you ever hit mismatches, like the spreadsheet format changing or numbers not lining up with the template fields?",
+        "reply": "Not really, to be honest. The price tables from the pricing team have been pretty consistent in format for as long as I've been working with them, so I don't remember the spreadsheet layout changing on me. When I copy the figures into the template, I double-check the totals and the customer name and terms before sending, and that check is part of the hour I budget. Occasionally I'll need to ask the pricing team to confirm a line if something looks off, but that's rare and quick to sort out by email. It's a routine I'm comfortable with, and I wouldn't say it's causing me any real trouble."
+      },
+      {
+        "interviewer": "Good to hear that one's smooth. Besides offer prep and the monthly review, is there any other task you'd say you repeat the same way every time — maybe the weekly sync prep, or something with contract renewals?",
+        "reply": "Yes, contract renewals follow the same pattern every time, and it's a pretty solid process. About 60 to 90 days before a contract ends, I pull the current terms and volumes from HubSpot, check the last few months of shipment data with the customer service desk, and then start the renewal offer using the same Word template I use for regular offers. For the weekly sync, I usually just bring a short list of my accounts with delayed shipments or upcoming price changes, which I already have from my HubSpot notes, so there's very little prep. Honestly, I don't see a task where I'm doing the same thing over and over in a way that wastes my time. My whole week runs fairly smoothly, though I'd still say an AI assistant or a chatbot for customers could be valuable for the company down the line."
+      },
+      {
+        "interviewer": "Noted on the AI point, I'll come back to that later. On the monthly review export — when you ask the terminal or customer service team for that data, how long does it usually take for them to send it back to you?",
+        "reply": "I don't have a precise figure for that, to be honest, since I don't track it. From what I've experienced, the export usually comes back within a day or two when I ask customer service or the terminal team, sometimes the same afternoon if it's a smaller account. If I need it urgently before a customer meeting, I'll just send a quick message and they tend to prioritise it. I haven't really noticed it being a bottleneck, though, because I plan the monthly reviews a week or so ahead. If you want actual turnaround times, Jukka in operations or the terminal supervisor would have a better sense of how requests are handled on their side."
+      },
+      {
+        "interviewer": "When a customer service issue comes up, like that delayed pallet yesterday — how does that information actually reach you, and what do you do with it once you have it?",
+        "reply": "The delayed pallet came to me through a phone call from someone on the customer service desk, which is the usual route for anything urgent on my accounts. They tell me what happened, the shipment number and the expected new delivery time, and I check the details in HubSpot to see whether the customer has already been told. Then I call or email the customer myself, because for my key accounts I like to be the one giving them the update rather than having them hear it second-hand. After that I add a note in HubSpot so the record is complete, and if the delay affects the next weekly sync, I bring it up there. It's a simple chain and it works well for me, though I can't tell you exactly how the desk logs their side of it, since that's their system."
+      },
+      {
+        "interviewer": "That chain sounds workable for you personally. Does the phone call always come through quickly, or have there been times the delay happened and you only found out about it later, after the customer already noticed?",
+        "reply": "I'd say it mostly comes through quickly, so I can't point to a clear pattern of me hearing about things after the customer has already noticed. For the most part, the desk calls me as soon as they know about a delay on one of my accounts, usually within the same hour in my experience. There have been a couple of occasions where I learned about a delay from a customer's own email before the desk got back to me, but I wouldn't call that a regular problem. It's the kind of thing that happens in any busy operation, and when it does, I just catch up quickly. So if I had to pick from the options, it's \"mostly quick,\" with the occasional exception that doesn't really disrupt my week."
+      },
+      {
+        "interviewer": "Can you remember a specific time when a customer emailed you about a delay before the desk reached you — what happened, and how did you handle catching up?",
+        "reply": "I can think of one example, though I don't remember every detail precisely. A few months back, a warehousing customer emailed me on a Monday morning about a pallet that hadn't arrived on the expected day, and I only got a call from the customer service desk a couple of hours later with the shipment number and the new delivery time. I didn't have the full picture when the customer wrote, so I replied briefly to say we were looking into it and then went back to the desk for the details. Once I had them, I called the customer, updated the HubSpot note and confirmed the new date in writing the same afternoon. It was a bit awkward in the moment, but the customer was fine once they had a clear answer, and it didn't affect the rest of my week."
+      },
+      {
+        "interviewer": "That example is clear — thanks. With that and the usual quick route covered, is there any other point in your week where you find yourself waiting on someone else before you can move forward?",
+        "reply": "Not really in a way that holds up my week. The main points where I wait are for the pricing team's tables before an offer, and for the customer service desk's export or delay details, but those usually come back within a few hours or a day, and I plan around them. If a price table is late, I can work on the customer context in HubSpot first, so there's always something useful to do. I'd say the waiting is normal for a shared process between sales, pricing and operations, and I haven't found it to be a real blocker. That said, I do think AI forecasting or an AI assistant could help the whole company see these handoffs sooner, which would be a nice improvement down the line."
+      },
+      {
+        "interviewer": "Thanks for walking me through all of that so clearly — it gives a good picture of how your week runs. Is there anything important about your work that I haven't asked about?",
+        "reply": "Not really, I think we've covered the main parts of my week. The one thing I'd add is that I'm genuinely enthusiastic about AI for the company: I'd like to see a customer chatbot, AI-assisted forecasting, and maybe even AI-written first drafts of offers, plus an AI assistant that different teams could use. But I should be honest that none of that comes from a specific pain point in my own work. My accounts, offers, reviews and renewals run fairly smoothly, and HubSpot works well for me. If there's a place where the wider company could benefit, I'd look at the handoffs between sales, pricing and operations, but that's more of an observation than something that's costing me time today."
+      },
+      {
+        "interviewer": "Thanks for all the detail today. Here's a quick summary of what I captured: you manage about 25 key accounts, with customer meetings as your biggest time block, plus offer prep (2-5/week), monthly account reviews, and renewals (60-90 days out) — all following solid, consistent routines using HubSpot and Word templates. You wait occasionally on pricing tables and operations/customer service exports, but plan around both and don't see them as real blockers. No major recurring problems, aside from the rare price-line mismatch or a customer hearing about a delay slightly before the desk calls. You also flagged interest in AI for the wider company — chatbot, forecasting, assistant tools — though not tied to a specific pain point in your own day-to-day. Does that match your experience?",
+        "reply": null
+      }
+    ]
+  }
+]

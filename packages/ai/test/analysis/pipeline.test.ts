@@ -278,7 +278,7 @@ describe("runAnalysis", () => {
     expect(r.report.markdown).toContain("Where AI is not the answer");
     expect(r.report.markdown).toContain("Night shift staffing");
     expect(model.calls.filter((c) => c.name === "opportunity")).toHaveLength(3);
-    expect(r.stats.promptVersions).toEqual(["clustering@2", "opportunity@3", "report@3"]);
+    expect(r.stats.promptVersions).toEqual(["clustering@2", "consolidation@1", "opportunity@4", "report@4"]);
   });
 
   it("draws the process map once enough participants stand behind the cluster", async () => {

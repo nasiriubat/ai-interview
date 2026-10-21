@@ -6,6 +6,9 @@
   "clustering@2": {
     "sha256": "5894c152ca0d442eeb45d93adfe0326b0d28ab2f0eb0bb7152f21ca6c710bc62"
   },
+  "consolidation@1": {
+    "sha256": "4874d0b97a909eaec60c48b0d19fb5fc70c9787c9fafd755f286aca2f478a871"
+  },
   "extraction@1": {
     "sha256": "bdef863f517a348d9d21060ffe7b81aecfac9a4aa6930e4f4a4d77dae60822a5",
     "retired": true
@@ -48,7 +51,11 @@
     "retired": true
   },
   "interviewer@7": {
-    "sha256": "63a3d409758d75c6446bf664f97cf26bd179a7e25b1cc95ab6baafe9bbfc336d"
+    "sha256": "63a3d409758d75c6446bf664f97cf26bd179a7e25b1cc95ab6baafe9bbfc336d",
+    "retired": true
+  },
+  "interviewer@8": {
+    "sha256": "cb71cc0cd4920464a02d74f029a793f45005e11cd87623fc816a04ace3274f9e"
   },
   "issues@2": {
     "sha256": "e4431e8aa06b088a08a5bb800cac7539fdecd03aa9442cd5cd7521c94c333ad1",
@@ -66,7 +73,11 @@
     "retired": true
   },
   "opportunity@3": {
-    "sha256": "655b4e79e861adfe0836b60fbcbf6bbbeeab2bc683c78e4bc3aed80db2a231ff"
+    "sha256": "655b4e79e861adfe0836b60fbcbf6bbbeeab2bc683c78e4bc3aed80db2a231ff",
+    "retired": true
+  },
+  "opportunity@4": {
+    "sha256": "d1b53f6869020684f2171af7ab06e7674b50a249d7348de064a3c65753f4fffb"
   },
   "recap@1": {
     "sha256": "03e2f9c6538c3805e6b5efd7873b03b9dc9ffc69cec41e1f057f4d7b497f130b"
@@ -80,7 +91,11 @@
     "retired": true
   },
   "report@3": {
-    "sha256": "470d042ed30be1482f39db54b5f81a3a1cc105cec60f339b6c6d10534c053457"
+    "sha256": "470d042ed30be1482f39db54b5f81a3a1cc105cec60f339b6c6d10534c053457",
+    "retired": true
+  },
+  "report@4": {
+    "sha256": "681ba88fe854cd2c94fd4c1c18f5093b81b57543cb55b2915b816d1ead5752d3"
   },
   "requirement_merge@1": {
     "sha256": "e65670d2d12d7f2f5fc8f7a87e81b850d8a11000f2cb66138c2b8151adbdc001",

@@ -1,13 +1,14 @@
 import { clusteringPromptV2 } from "../../analysis/prompts/clustering.v2.js";
-import { opportunityPromptV3 } from "../../analysis/prompts/opportunity.v3.js";
-import { reportPromptV3 } from "../../analysis/prompts/report.v3.js";
+import { consolidationPromptV1 } from "../../analysis/prompts/consolidation.v1.js";
+import { opportunityPromptV4 } from "../../analysis/prompts/opportunity.v4.js";
+import { reportPromptV4 } from "../../analysis/prompts/report.v4.js";
 import { fileSummaryPromptV2 } from "../../ingest/prompts/file-summary.v2.js";
 import { imageDescribePromptV2 } from "../../ingest/prompts/image-describe.v2.js";
 import { issuesPromptV3 } from "../../spec/prompts/issues.v3.js";
 import { requirementMergePromptV3 } from "../../spec/prompts/requirement-merge.v3.js";
 import { specPromptV3 } from "../../spec/prompts/spec.v3.js";
 import { extractionPromptV4 } from "./extraction.v4.js";
-import { interviewerPromptV7 } from "./interviewer.v7.js";
+import { interviewerPromptV8 } from "./interviewer.v8.js";
 import { recapPromptV1 } from "./recap.v1.js";
 import { summaryPromptV2 } from "./summary.v2.js";
 import { turnMetaRepairPromptV3 } from "./turn-meta-repair.v3.js";
@@ -25,14 +26,15 @@ export interface PromptDefinition {
 
 /** Prompts shipped with the code (FR-50). Tenant overrides come through a PromptSource. */
 export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
-  interviewer: interviewerPromptV7,
+  interviewer: interviewerPromptV8,
   summary: summaryPromptV2,
   recap: recapPromptV1,
   turn_meta_repair: turnMetaRepairPromptV3,
   extraction: extractionPromptV4,
   clustering: clusteringPromptV2,
-  opportunity: opportunityPromptV3,
-  report: reportPromptV3,
+  consolidation: consolidationPromptV1,
+  opportunity: opportunityPromptV4,
+  report: reportPromptV4,
   issues: issuesPromptV3,
   spec: specPromptV3,
   requirement_merge: requirementMergePromptV3,
