@@ -121,6 +121,11 @@ export const PAGES: Entry[] = [
   publicPage("signin-expired", "/auth/signin?reason=expired", "app/auth/signin/page.tsx"),
   publicPage("signin-signed-out", "/auth/signin?signedOut=1", "app/auth/signin/page.tsx"),
   publicPage("verify-request", "/auth/verify", "app/auth/verify/page.tsx"),
+  publicPage(
+    "signin-confirm",
+    "/auth/confirm?token=0123456789abcdef0123456789abcdef&email=ada%40example.test",
+    "app/auth/confirm/page.tsx",
+  ),
   publicPage("signout", "/auth/signout", "app/auth/signout/page.tsx"),
   publicPage("maintenance", "/maintenance", "app/maintenance/page.tsx"),
   publicPage("pilot", "/pilot", "app/pilot/page.tsx"),
