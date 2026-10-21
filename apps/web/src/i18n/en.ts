@@ -1178,6 +1178,21 @@ export const en = {
       preliminary: "Preliminary",
       preliminaryHint:
         "Started below the completion threshold; results may change as more interviews finish.",
+      preliminaryCounts: (completed: number, needed: number): string =>
+        `Based on ${String(completed)} completed ${completed === 1 ? "interview" : "interviews"}; the campaign aims for ${String(needed)} before drawing conclusions. Results may change as more interviews finish.`,
+      basedOn: (completed: number, started: number): string =>
+        `Based on ${String(completed)} completed ${completed === 1 ? "interview" : "interviews"}${started > completed ? ` (${String(started)} started)` : ""}`,
+      checks: {
+        quotesDropped: (n: number): string =>
+          `${String(n)} ${n === 1 ? "quote" : "quotes"} could not be verified against the interviews and ${n === 1 ? "was" : "were"} left out.`,
+        figuresRemoved: (n: number): string =>
+          `${String(n)} ${n === 1 ? "sentence" : "sentences"} with a figure that did not match the computed numbers ${n === 1 ? "was" : "were"} removed.`,
+      },
+      review: {
+        draft: "Report: draft",
+        reviewed: "Report: reviewed",
+        reviewedTitle: (who: string, date: string): string => `Reviewed by ${who} on ${date}`,
+      },
       failedBody: (error: string): string => `The analysis failed: ${error}`,
       noAnalyses:
         "No analysis yet. Choose “Analyze now” once enough interviews are complete; an earlier run is marked preliminary.",
@@ -1478,6 +1493,26 @@ export const en = {
         "This diagram came out too large to read when drawn. The source is shown instead; splitting it into two diagrams usually helps.",
       preliminaryNote:
         "Preliminary: fewer interviews than the completion threshold. Counts may change, so treat the ranking as indicative.",
+      review: {
+        title: "Review",
+        draft: "Draft",
+        reviewed: "Reviewed",
+        draftBody:
+          "Read it through, adjust groups, names and sections in Results if needed, then mark it as reviewed. Until then every download is marked as a draft.",
+        draftBodyMember:
+          "An administrator has not reviewed this report yet. Downloads are marked as a draft.",
+        reviewedBody: (who: string, date: string): string => `Reviewed by ${who} on ${date}.`,
+        editsHint: "Changing an opportunity returns the report to draft.",
+        markReviewed: "Mark as reviewed",
+        reopen: "Return to draft",
+        marked: "Marked as reviewed. Downloads now carry your name and the date.",
+        reopened: "Returned to draft.",
+        bannerDraft: "Draft – not yet reviewed",
+        bannerDraftBody:
+          "No one has checked this report yet. Figures and wording may still change before it is shared.",
+        bannerReviewed: (who: string, date: string): string => `Reviewed by ${who} on ${date}`,
+      },
+      checks: "Evidence checks",
     },
     sessions: {
       title: (id: string): string => `Interview ${id}`,
@@ -3279,6 +3314,11 @@ export const en = {
         label: "Compare departments",
         description:
           "Show a department comparison when every department has at least the minimum number of people.",
+      },
+      "analysis.smallSampleInterviews": {
+        label: "Small-sample marker",
+        description:
+          "An opportunity mentioned in this many interviews or fewer is marked as resting on a small sample.",
       },
       "analysis.language": {
         label: "Report language",

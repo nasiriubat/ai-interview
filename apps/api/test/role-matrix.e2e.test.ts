@@ -251,6 +251,7 @@ suite("role matrix: every route against every kind of caller", () => {
       "PATCH /opportunities/:id": { note: "x" },
       "POST /opportunities/:id/status": { status: "new" },
       "POST /analyses/:id/opportunities/merge": { opportunityIds: ["a", "b"] },
+      "POST /analyses/:id/review": { status: "reviewed" },
       "POST /opportunities/:id/split": { parts: [["a"], ["b"]] },
       "POST /requirements/:id/path": { path: "technical" },
       "PUT /requirements/:id/sections/:key": { markdown: "x" },

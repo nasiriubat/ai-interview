@@ -36,6 +36,7 @@ export async function exportsRoutes(app: App, ctx: RouteContext): Promise<void> 
         diff: {
           format: "pdf",
           version: file.version,
+          review: file.review,
           pages: file.pages,
           ...(file.warnings.length ? { warnings: file.warnings } : {}),
         },

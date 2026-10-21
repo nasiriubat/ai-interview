@@ -27,6 +27,7 @@ import {
   SpecDocumentSchema,
   SpecRequirementSchema,
   SpecVersionStatsSchema,
+  VerificationStatsSchema,
   WidgetResponseSchema,
   WidgetSchema,
 } from "@aidp/shared";
@@ -1018,8 +1019,23 @@ export const AnalysisStatsSchema = z.looseObject({
   trigger: z.enum(["manual", "auto", "edit"]).optional().catch(undefined),
   /** An automatic run waits for the interviews still finishing; this is when it starts. */
   autoStartAt: z.string().optional().catch(undefined),
+  /** Completed interviews when it ran, the campaign's threshold, and interviews begun (D-478). */
+  completed: z.number().optional().catch(undefined),
+  needed: z.number().optional().catch(undefined),
+  started: z.number().optional().catch(undefined),
+  /** What the evidence check removed (D-478); absent on runs made before it. */
+  verification: VerificationStatsSchema.optional().catch(undefined),
 });
 export type AnalysisStats = z.infer<typeof AnalysisStatsSchema>;
+
+/** The review state of a report version (D-478). */
+export const ReportReviewViewSchema = z.looseObject({
+  status: z.enum(["draft", "reviewed"]).catch("draft"),
+  reviewedBy: z.string().nullish(),
+  reviewedAt: iso.nullish(),
+});
+export type ReportReviewView = z.infer<typeof ReportReviewViewSchema>;
+export const ReportReviewResultSchema = z.object({ review: ReportReviewViewSchema });
 
 export const AnalysisSchema = z.looseObject({
   id: z.string(),
@@ -1037,6 +1053,7 @@ export const AnalysisSchema = z.looseObject({
   startedAt: iso.nullish(),
   finishedAt: iso.nullish(),
   createdAt: iso.default(""),
+  review: ReportReviewViewSchema.optional().catch(undefined),
 });
 export type Analysis = z.infer<typeof AnalysisSchema>;
 export const AnalysisPageSchema = pagedOf(AnalysisSchema, "analyses");
@@ -1062,6 +1079,8 @@ export const EvidenceSchema = z.looseObject({
   factId: z.string().default(""),
   snippet: z.string(),
   anonymized: z.boolean().default(true),
+  /** Only `quote` is shown as a quote: it was found word for word in its transcript (D-478). */
+  kind: z.enum(["quote", "paraphrase", "unverified"]).catch("unverified"),
 });
 export type Evidence = z.infer<typeof EvidenceSchema>;
 
@@ -1115,6 +1134,7 @@ export const ReportSchema = z.looseObject({
   markdown: z.string().default(""),
   sections: z.array(z.string()).default([]),
   createdAt: iso.nullish(),
+  review: ReportReviewViewSchema.default({ status: "draft", reviewedBy: null, reviewedAt: null }),
 });
 export type Report = z.infer<typeof ReportSchema>;
 

@@ -11,6 +11,7 @@ export * from "./events.js";
 export * from "./settings.js";
 export * from "./smtp.js";
 export * from "./analysis.js";
+export * from "./report-review.js";
 export * from "./requirements.js";
 export * from "./lists.js";
 export * from "./stats.js";

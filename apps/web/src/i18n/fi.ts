@@ -1176,6 +1176,21 @@ export const fi: Strings = {
       preliminary: "Alustava",
       preliminaryHint:
         "Käynnistetty ennen valmistumisrajaa; tulokset voivat muuttua, kun lisää haastatteluja valmistuu.",
+      preliminaryCounts: (completed: number, needed: number): string =>
+        `Perustuu ${String(completed)} valmiiseen haastatteluun; kampanjan tavoite ennen johtopäätöksiä on ${String(needed)}. Tulokset voivat muuttua, kun lisää haastatteluja valmistuu.`,
+      basedOn: (completed: number, started: number): string =>
+        `Perustuu ${String(completed)} valmiiseen haastatteluun${started > completed ? ` (${String(started)} aloitettu)` : ""}`,
+      checks: {
+        quotesDropped: (n: number): string =>
+          `${String(n)} ${n === 1 ? "sitaatti" : "sitaattia"} ei voitu tarkistaa haastatteluista, joten ${n === 1 ? "se jätettiin" : "ne jätettiin"} pois.`,
+        figuresRemoved: (n: number): string =>
+          `${String(n)} ${n === 1 ? "virke, jonka" : "virkettä, joiden"} luku ei vastannut laskettuja lukuja, poistettiin.`,
+      },
+      review: {
+        draft: "Raportti: luonnos",
+        reviewed: "Raportti: tarkistettu",
+        reviewedTitle: (who: string, date: string): string => `Tarkistanut ${who} ${date}`,
+      },
       failedBody: (error: string): string => `Analyysi epäonnistui: ${error}`,
       noAnalyses:
         "Ei vielä analyysiä. Valitse ”Analysoi nyt”, kun riittävän moni haastattelu on valmis; aiempi ajo merkitään alustavaksi.",
@@ -1480,6 +1495,26 @@ export const fi: Strings = {
         "Kaavio piirtyi liian suureksi luettavaksi. Sen sijaan näytetään lähdekoodi; kaavion jakaminen kahteen auttaa yleensä.",
       preliminaryNote:
         "Alustava: haastatteluja on vähemmän kuin valmistumisraja edellyttää. Määrät voivat muuttua, joten pidä järjestystä suuntaa antavana.",
+      review: {
+        title: "Tarkistus",
+        draft: "Luonnos",
+        reviewed: "Tarkistettu",
+        draftBody:
+          "Lue raportti läpi, muokkaa tarvittaessa ryhmiä, nimiä ja osioita Tuloksissa ja merkitse se sitten tarkistetuksi. Siihen asti jokainen lataus on merkitty luonnokseksi.",
+        draftBodyMember:
+          "Ylläpitäjä ei ole vielä tarkistanut tätä raporttia. Lataukset on merkitty luonnokseksi.",
+        reviewedBody: (who: string, date: string): string => `Tarkistanut ${who} ${date}.`,
+        editsHint: "Mahdollisuuden muuttaminen palauttaa raportin luonnokseksi.",
+        markReviewed: "Merkitse tarkistetuksi",
+        reopen: "Palauta luonnokseksi",
+        marked: "Merkitty tarkistetuksi. Latauksissa näkyy nyt nimesi ja päivämäärä.",
+        reopened: "Palautettu luonnokseksi.",
+        bannerDraft: "Luonnos – ei vielä tarkistettu",
+        bannerDraftBody:
+          "Kukaan ei ole vielä tarkistanut tätä raporttia. Luvut ja sanamuodot voivat muuttua ennen jakamista.",
+        bannerReviewed: (who: string, date: string): string => `Tarkistanut ${who} ${date}`,
+      },
+      checks: "Näytön tarkistus",
     },
     sessions: {
       title: (id: string): string => `Haastattelu ${id}`,
@@ -3282,6 +3317,11 @@ export const fi: Strings = {
       "analysis.departmentComparison": {
         label: "Vertaa osastoja",
         description: "Näytä osastovertailu, kun jokaisessa osastossa on vähintään vähimmäismäärä ihmisiä.",
+      },
+      "analysis.smallSampleInterviews": {
+        label: "Pienen otoksen merkintä",
+        description:
+          "Mahdollisuus, joka mainitaan enintään näin monessa haastattelussa, merkitään pieneen otokseen perustuvaksi.",
       },
       "analysis.language": {
         label: "Raportin kieli",

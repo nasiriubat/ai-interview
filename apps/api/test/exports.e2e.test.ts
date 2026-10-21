@@ -199,11 +199,29 @@ suite("exports and editable diagrams", () => {
     expect(body).toContain("Internal: not for distribution");
     expect(pdf.imagesPerPage.reduce((a, b) => a + b, 0)).toBe(1);
     expect(kroki.calls).toHaveLength(1);
+    // Not reviewed yet (D-478): the cover and every page say so.
+    expect(pdf.pages[0]).toContain("Draft – not yet reviewed");
+    for (const page of pdf.pages.slice(1)) expect(page).toContain("Draft – not yet reviewed");
+    // The first content page carries the notice block as well as the footer line.
+    expect(pdf.pages[1]?.split("Draft – not yet reviewed").length).toBeGreaterThanOrEqual(3);
 
     const audit = await world.db.auditLog.findFirstOrThrow({
       where: { companyId: world.companyId, action: "analysis.report_export", targetId: analysis.id },
     });
-    expect(audit.diff).toMatchObject({ format: "pdf", version: 1 });
+    expect(audit.diff).toMatchObject({ format: "pdf", version: 1, review: "draft" });
+  });
+
+  it("prints who reviewed the report, and drops the draft line, once it is reviewed (D-478)", async () => {
+    const { analysis } = await reportOf();
+    const marked = await call("POST", `/analyses/${analysis.id}/review`, { status: "reviewed" });
+    expect(marked.statusCode).toBe(200);
+    const res = await call("GET", `/analyses/${analysis.id}/report.pdf`);
+    expect(res.statusCode).toBe(200);
+    const pdf = await readPdf(res.rawPayload);
+    const today = new Date().toISOString().slice(0, 10);
+    expect(pdf.pages[0]).toMatch(new RegExp(`Reviewed by .+ ${today}`));
+    expect(pdf.text).not.toContain("Draft – not yet reviewed");
+    expect(pdf.text).not.toContain("DRAFT");
   });
 
   it("still delivers the report when the renderer is down, with the diagram as source and a warning", async () => {

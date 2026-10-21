@@ -1,4 +1,5 @@
 import { slug, type PdfExporter } from "@aidp/core";
+import { reportReviewNotice, reportReviewWatermark } from "@aidp/shared";
 import type { PrismaClient } from "@prisma/client";
 import { AppError, notFound } from "../../lib/errors.js";
 import type { AnalysisQueryService } from "../analysis/service.js";
@@ -9,6 +10,8 @@ export interface ReportPdf {
   pages: number;
   warnings: string[];
   version: number;
+  /** `draft` or `reviewed`, for the audit row of the download (D-478). */
+  review: string;
 }
 
 const LABELS = {
@@ -50,6 +53,12 @@ export class ExportsService {
       language,
       versionLabel: label,
       date: detail.report.createdAt,
+      // Until an administrator has reviewed it, every page says it is a draft (D-478).
+      notice: {
+        text: reportReviewNotice(detail.report.review, language),
+        tone: detail.report.review.status === "reviewed" ? "ok" : "draft",
+      },
+      watermark: reportReviewWatermark(detail.report.review, language) ?? undefined,
     });
     return {
       filename: `${slug(meta.campaign.name)}-report-v${detail.report.version}.pdf`,
@@ -57,6 +66,7 @@ export class ExportsService {
       pages: pdf.pages,
       warnings: pdf.warnings,
       version: detail.report.version,
+      review: detail.report.review.status,
     };
   }
 }

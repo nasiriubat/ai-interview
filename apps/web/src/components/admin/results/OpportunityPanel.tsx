@@ -8,6 +8,7 @@ import {
   RocketIcon,
   RotateCcwIcon,
   SplitIcon,
+  SproutIcon,
   StarIcon,
   TypeIcon,
   XIcon,
@@ -29,6 +30,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { t } from "@/i18n";
+import { confidenceOf, DEFAULT_SMALL_SAMPLE } from "@/lib/analysis/confidence";
 import { effectiveClass, effectiveFactors, effectiveTitle } from "@/lib/analysis/rank";
 import type { Opportunity } from "@/lib/api/schemas";
 import type { OpportunityStatusInput } from "@/lib/api/staff";
@@ -74,6 +76,8 @@ export function OpportunityPanel({
   onPromote,
   onSplit,
   onRename,
+  interviewsTotal = 0,
+  smallSample = DEFAULT_SMALL_SAMPLE,
 }: {
   opportunity: Opportunity;
   open: boolean;
@@ -87,6 +91,10 @@ export function OpportunityPanel({
   onPromote: () => void;
   onSplit?: (() => void) | undefined;
   onRename?: ((title: string) => Promise<void>) | undefined;
+  /** Interviews analysed in the version, for "Mentioned in 3 of 12 interviews" (D-478). */
+  interviewsTotal?: number;
+  /** `analysis.smallSampleInterviews`. */
+  smallSample?: number;
 }): React.JSX.Element {
   const s = t.admin.results;
   const w = t.ws.opportunity;
@@ -96,10 +104,15 @@ export function OpportunityPanel({
   const overriddenKeys = FACTOR_KEYS.filter((key) => o.adminOverride?.factors?.[key] !== undefined);
   const promoted = o.status === "promoted";
   const dismissed = o.status === "dismissed";
+  const confidence = confidenceOf(o.stats, interviewsTotal, smallSample);
+  // Verified quotes first; a paraphrase is shown as one, never in quotation marks (D-478). The
+  // summary quotes are verified too, so they stand in when the evidence rows were not returned.
   const quotes =
     o.evidence.length > 0
-      ? o.evidence.map((e) => ({ text: e.snippet, anonymized: e.anonymized, source: e.factId }))
-      : o.stats.quotes.map((q) => ({ text: q, anonymized: true, source: "" }));
+      ? [...o.evidence]
+          .sort((a, b) => Number(b.kind === "quote") - Number(a.kind === "quote"))
+          .map((e) => ({ text: e.snippet, anonymized: e.anonymized, source: e.factId, kind: e.kind }))
+      : o.stats.quotes.map((q) => ({ text: q, anonymized: true, source: "", kind: "quote" as const }));
 
   const [renaming, setRenaming] = React.useState(false);
   const [draft, setDraft] = React.useState("");
@@ -196,13 +209,25 @@ export function OpportunityPanel({
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <RankMeter score={o.rankScore} />
               <span className="text-muted-foreground text-xs tabular-nums">
-                {w.people(o.stats.participants)} · {w.minutes(o.stats.minutesPerWeekTotal)}
+                {w.mentionedIn(confidence.interviews, confidence.total)} ·{" "}
+                {w.minutes(o.stats.minutesPerWeekTotal)}
               </span>
             </div>
           </SheetDescription>
         </SheetHeader>
 
         <div tabIndex={0} className="grid flex-1 content-start gap-6 overflow-y-auto px-5 py-5">
+          {confidence.small ? (
+            <div className="bg-muted/60 flex gap-3 rounded-lg px-4 py-3" data-testid="small-sample">
+              <SproutIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">{w.smallSample}</h3>
+                <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">
+                  {w.smallSampleBody(confidence.interviews)}
+                </p>
+              </div>
+            </div>
+          ) : null}
           {o.whyNotAi ? (
             <div className="bg-warning-soft text-warning-soft-foreground flex gap-3 rounded-lg px-4 py-3">
               <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
@@ -224,17 +249,21 @@ export function OpportunityPanel({
 
           <Section title={s.card.evidence}>
             {quotes.length > 0 ? (
-              <ul className="grid gap-2.5">
-                {quotes.map((q, i) => (
-                  <li key={i}>
-                    <QuoteBlock
-                      text={q.text}
-                      anonymized={q.anonymized}
-                      source={q.source ? `${w.fact} ${q.source.slice(-6)}` : undefined}
-                    />
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="grid gap-2.5">
+                  {quotes.map((q, i) => (
+                    <li key={i}>
+                      <QuoteBlock
+                        text={q.text}
+                        anonymized={q.anonymized}
+                        kind={q.kind}
+                        source={q.source ? `${w.fact} ${q.source.slice(-6)}` : undefined}
+                      />
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-muted-foreground text-xs">{w.evidenceChecked}</p>
+              </>
             ) : (
               <div className="bg-muted/50 flex items-start gap-3 rounded-lg px-4 py-3">
                 <Withheld />
@@ -278,6 +307,12 @@ export function OpportunityPanel({
 
           <Section title={w.reach}>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div className="col-span-2">
+                <dt className="text-muted-foreground text-xs">{w.confidence}</dt>
+                <dd className="font-medium tabular-nums">
+                  {w.mentionedIn(confidence.interviews, confidence.total)}
+                </dd>
+              </div>
               <div>
                 <dt className="text-muted-foreground text-xs">{s.card.participants}</dt>
                 <dd className="font-medium tabular-nums">{formatNumber(o.stats.participants)}</dd>

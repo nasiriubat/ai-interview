@@ -780,6 +780,15 @@ export const SETTINGS = {
     category: "analysis",
     description: "Compare departments when each has at least k participants",
   }),
+  "analysis.smallSampleInterviews": def({
+    schema: z.number().int().min(1).max(10),
+    default: 2,
+    scopes: ["platform", "tenant", "campaign"],
+    category: "analysis",
+    description:
+      "An opportunity mentioned in this many interviews or fewer is marked as resting on a small sample",
+    since: "2026.10",
+  }),
   "analysis.language": def({
     schema: z.string().min(2).max(5),
     default: "en",

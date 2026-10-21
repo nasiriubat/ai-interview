@@ -198,6 +198,7 @@ export class AnalysisService {
           "analysis.weightsPreset",
           "analysis.weights",
           "analysis.departmentComparison",
+          "analysis.smallSampleInterviews",
         ],
         chain,
       );
@@ -237,6 +238,13 @@ export class AnalysisService {
         for (let i = facts.length - 1; i >= 0; i--) if (!members.has(facts[i]?.id ?? "")) facts.splice(i, 1);
       }
       const threshold = await this.thresholdMet(analysis.campaignId, companyId);
+      const [transcripts, started] = await Promise.all([
+        this.transcripts(
+          companyId,
+          sessions.map((s) => s.id),
+        ),
+        db.session.count({ where: { campaignId: analysis.campaignId, status: { in: [...STARTED] } } }),
+      ]);
       const caller = await this.deps.callers.forCompany(companyId);
       const result = await runAnalysis(
         { caller, prompts: new PrismaPromptSource(db), logger: log },
@@ -249,8 +257,12 @@ export class AnalysisService {
             invited: threshold.invited,
             completed: threshold.completed,
             sessionsAnalyzed: sessions.length,
+            started,
+            needed: threshold.needed,
           },
           thresholdMet: threshold.met,
+          transcripts,
+          smallSample: values["analysis.smallSampleInterviews"] as number,
           k: values["privacy.kAnonymity"] as number,
           weights,
           similarityThreshold: values["analysis.similarityThreshold"] as number,
@@ -301,6 +313,7 @@ export class AnalysisService {
                 factId: e.factId,
                 snippet: e.snippet,
                 anonymized: e.anonymized,
+                kind: e.kind,
               })),
             });
         }
@@ -327,6 +340,7 @@ export class AnalysisService {
               completed: threshold.completed,
               invited: threshold.invited,
               needed: threshold.needed,
+              started,
             },
           },
         });
@@ -357,6 +371,66 @@ export class AnalysisService {
       });
       throw err;
     }
+  }
+
+  /**
+   * What each participant said, per session: their own messages in order, the text every quote of
+   * the analysis is checked against before it is shown (D-478). Only `user` messages: a quote put in
+   * the interviewer's mouth is not the participant's.
+   */
+  private async transcripts(companyId: string, sessionIds: string[]): Promise<Map<string, string[]>> {
+    const out = new Map<string, string[]>();
+    if (sessionIds.length === 0) return out;
+    const rows = await this.deps.db.message.findMany({
+      where: { companyId, sessionId: { in: sessionIds }, role: "user" },
+      select: { sessionId: true, content: true },
+      orderBy: [{ sessionId: "asc" }, { seq: "asc" }],
+    });
+    for (const r of rows) {
+      const list = out.get(r.sessionId) ?? [];
+      list.push(r.content);
+      out.set(r.sessionId, list);
+    }
+    return out;
+  }
+
+  /**
+   * Marks a report version reviewed, or returns it to draft (D-478). The reviewer's name is kept as
+   * it is now, for the line every export prints. Returns the state before, for the audit diff.
+   */
+  async review(
+    companyId: string,
+    analysisId: string,
+    status: "draft" | "reviewed",
+    reviewer: { id: string; name: string },
+  ): Promise<{ before: string; after: string; reportId: string }> {
+    const report = await this.deps.db.report.findFirst({
+      where: { analysisId, companyId, analysis: { campaign: { companyId } } },
+      orderBy: { version: "desc" },
+    });
+    if (!report) throw new ReportNotFoundError();
+    await this.deps.db.report.update({
+      where: { id: report.id },
+      data:
+        status === "reviewed"
+          ? {
+              reviewStatus: "reviewed",
+              reviewedById: reviewer.id,
+              reviewedByName: reviewer.name,
+              reviewedAt: new Date(),
+            }
+          : { reviewStatus: "draft", reviewedById: null, reviewedByName: null, reviewedAt: null },
+    });
+    return { before: report.reviewStatus, after: status, reportId: report.id };
+  }
+
+  /** An edit of what a report version says makes it a draft again; true when it was reviewed. */
+  private async reopenReview(analysisId: string): Promise<boolean> {
+    const r = await this.deps.db.report.updateMany({
+      where: { analysisId, reviewStatus: "reviewed" },
+      data: { reviewStatus: "draft", reviewedById: null, reviewedByName: null, reviewedAt: null },
+    });
+    return r.count > 0;
   }
 
   /**
@@ -696,7 +770,11 @@ export class AnalysisService {
   }
 
   /** Applies an admin override and re-ranks under the campaign's current weights. */
-  async override(companyId: string, opportunityId: string, override: OpportunityOverride): Promise<void> {
+  async override(
+    companyId: string,
+    opportunityId: string,
+    override: OpportunityOverride,
+  ): Promise<{ reviewReopened: boolean }> {
     const { db } = this.deps;
     const o = await this.load(companyId, opportunityId);
     const merged = OpportunityOverrideSchema.parse({
@@ -717,6 +795,8 @@ export class AnalysisService {
         rankScore: rankScore(factors as Parameters<typeof rankScore>[0], weights),
       },
     });
+    // What was reviewed is no longer what the version says (D-478).
+    return { reviewReopened: await this.reopenReview(o.analysisId) };
   }
 
   async setStatus(
@@ -876,3 +956,13 @@ export class OpportunityNotFoundError extends Error {
     this.name = "OpportunityNotFoundError";
   }
 }
+
+export class ReportNotFoundError extends Error {
+  constructor() {
+    super("This analysis has no report yet");
+    this.name = "ReportNotFoundError";
+  }
+}
+
+/** Sessions that were begun: the "M started" next to the completed count (D-478). */
+const STARTED = ["consented", "active", "paused", "completed"] as const;

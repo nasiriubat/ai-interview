@@ -4,7 +4,12 @@ import {
   OpportunityNotFoundError,
   RerunRequiredError,
 } from "@aidp/core";
-import { MergeBodySchema, OpportunityOverrideSchema, SplitBodySchema } from "@aidp/shared";
+import {
+  MergeBodySchema,
+  OpportunityOverrideSchema,
+  ReportReviewBodySchema,
+  SplitBodySchema,
+} from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
@@ -61,6 +66,30 @@ export async function analysisRoutes(app: App, ctx: RouteContext): Promise<void>
     reads.departments(req.companyId, staff(req).role, req.params.id),
   );
 
+  /**
+   * The review step before a report is shared (D-478): an administrator marks the report of a
+   * version reviewed, or returns it to draft. Exports print which it is.
+   */
+  app.post(
+    "/analyses/:id/review",
+    { ...guard.admin(), schema: { params: Id, body: ReportReviewBodySchema } },
+    async (req) => {
+      const p = staff(req);
+      const { review, before, reportId } = await reads.review(req.companyId, req.params.id, req.body.status, {
+        id: p.userId,
+        email: p.email,
+      });
+      await audit.record(req.companyId, {
+        actorId: p.userId,
+        action: req.body.status === "reviewed" ? "report.review" : "report.review_reopen",
+        targetType: "analysis",
+        targetId: req.params.id,
+        diff: { reportId, before, after: review.status },
+      });
+      return { review };
+    },
+  );
+
   app.get(
     "/analyses/:id/diff/:otherId",
     { ...guard.staff(), schema: { params: z.object({ id: z.string(), otherId: z.string() }) } },
@@ -90,7 +119,9 @@ export async function analysisRoutes(app: App, ctx: RouteContext): Promise<void>
     "/opportunities/:id",
     { ...guard.admin(), schema: { params: Id, body: OpportunityOverrideSchema } },
     async (req) => {
-      await wrapNotFound(() => svc.override(req.companyId, req.params.id, req.body));
+      const { reviewReopened } = await wrapNotFound(() =>
+        svc.override(req.companyId, req.params.id, req.body),
+      );
       // A title or summary on its own is a rename (FR-18); anything else is an override of the
       // assessment. The audit log tells the two apart.
       const renameOnly =
@@ -102,7 +133,8 @@ export async function analysisRoutes(app: App, ctx: RouteContext): Promise<void>
         action: renameOnly ? "cluster.rename" : "opportunity.override",
         targetType: "opportunity",
         targetId: req.params.id,
-        diff: req.body,
+        // A reviewed report says something else now, so it is a draft again (D-478).
+        diff: { ...req.body, ...(reviewReopened ? { reportReview: "draft" } : {}) },
       });
       return reads.opportunity(req.companyId, req.params.id);
     },

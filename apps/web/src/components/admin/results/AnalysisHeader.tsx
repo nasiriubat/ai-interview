@@ -1,6 +1,14 @@
 "use client";
 
-import { CalendarClockIcon, Loader2Icon, PlayIcon, ZapIcon } from "lucide-react";
+import {
+  BadgeCheckIcon,
+  CalendarClockIcon,
+  FilePenLineIcon,
+  Loader2Icon,
+  PlayIcon,
+  ZapIcon,
+} from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { startNavigationProgress } from "@/components/common/NavigationProgress";
@@ -101,6 +109,29 @@ export function AnalysisHeader({
               <Badge variant="warning" title={s.preliminaryHint}>
                 {s.preliminary}
               </Badge>
+            ) : null}
+            {selected?.status === "done" && selected.review ? (
+              <Link
+                href={`/admin/campaigns/${campaignId}/report?version=${selected.id}`}
+                className="rounded-md"
+                title={
+                  selected.review.status === "reviewed"
+                    ? s.review.reviewedTitle(
+                        selected.review.reviewedBy ?? "",
+                        formatDate(selected.review.reviewedAt ?? undefined),
+                      )
+                    : undefined
+                }
+              >
+                <Badge variant={selected.review.status === "reviewed" ? "success" : "outline"}>
+                  {selected.review.status === "reviewed" ? (
+                    <BadgeCheckIcon aria-hidden="true" />
+                  ) : (
+                    <FilePenLineIcon aria-hidden="true" />
+                  )}
+                  {selected.review.status === "reviewed" ? s.review.reviewed : s.review.draft}
+                </Badge>
+              </Link>
             ) : null}
             {selected?.status === "done" && selected.finishedAt ? (
               <span className="text-muted-foreground flex items-center gap-1 text-xs">

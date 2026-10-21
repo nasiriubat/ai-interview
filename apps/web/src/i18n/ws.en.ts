@@ -10,6 +10,9 @@ export const wsEn = {
     excerpt: "Interview excerpt",
     anonymised: "Anonymised",
     verbatim: "Not anonymised",
+    verified: "Checked against the interview",
+    paraphrase: "Summary, not a quote",
+    unverified: "Not checked (analysed before quotes were verified)",
   },
   factorsShort: {
     expected_impact: "Impact",
@@ -68,6 +71,22 @@ export const wsEn = {
     fact: "fact",
     quotesWithheld: (k: number): string =>
       `Quotes are shown only when at least ${String(k)} people described the same work, so nobody can be traced from one. This opportunity has fewer, or none were allowed through.`,
+    interviews: (n: number, total: number): string =>
+      total > 0
+        ? `In ${String(n)} of ${String(total)} interviews`
+        : n === 1
+          ? "In 1 interview"
+          : `In ${String(n)} interviews`,
+    mentionedIn: (n: number, total: number): string =>
+      total > 0
+        ? `Mentioned in ${String(n)} of ${String(total)} interviews`
+        : `Mentioned in ${n === 1 ? "1 interview" : `${String(n)} interviews`}`,
+    smallSample: "Small sample",
+    smallSampleBody: (n: number): string =>
+      `This rests on ${n === 1 ? "one interview" : `${String(n)} interviews`}. Treat it as a lead to check with the team, not a finding.`,
+    confidence: "Confidence",
+    evidenceChecked:
+      "Quotes are checked word for word against the interview they come from before they are shown.",
   },
   departments: {
     matrixTitle: "Share of each class by department",

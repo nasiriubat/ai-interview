@@ -8,6 +8,9 @@ export const wsFi: WsStrings = {
     excerpt: "Ote haastattelusta",
     anonymised: "Anonymisoitu",
     verbatim: "Ei anonymisoitu",
+    verified: "Tarkistettu haastattelusta",
+    paraphrase: "Tiivistelmä, ei sitaatti",
+    unverified: "Ei tarkistettu (analysoitu ennen sitaattien tarkistusta)",
   },
   factorsShort: {
     expected_impact: "Vaikutus",
@@ -67,6 +70,18 @@ export const wsFi: WsStrings = {
     fact: "tieto",
     quotesWithheld: (k: number): string =>
       `Sitaatit näytetään vain, kun vähintään ${String(k)} henkilöä kuvasi samaa työtä, jotta ketään ei voi tunnistaa. Tässä mahdollisuudessa on vähemmän, tai sitaatteja ei päästetty läpi.`,
+    interviews: (n: number, total: number): string =>
+      total > 0 ? `${String(n)}/${String(total)} haastattelussa` : `${String(n)} haastattelussa`,
+    mentionedIn: (n: number, total: number): string =>
+      total > 0
+        ? `Mainittu ${String(n)} haastattelussa ${String(total)}:stä`
+        : `Mainittu ${String(n)} haastattelussa`,
+    smallSample: "Pieni otos",
+    smallSampleBody: (n: number): string =>
+      `Tämä perustuu ${n === 1 ? "yhteen haastatteluun" : `${String(n)} haastatteluun`}. Pidä sitä tiiminä tarkistettavana vihjeenä, ei havaintona.`,
+    confidence: "Luotettavuus",
+    evidenceChecked:
+      "Sitaatit tarkistetaan sanasta sanaan haastattelusta, josta ne ovat, ennen kuin ne näytetään.",
   },
   departments: {
     matrixTitle: "Luokkien osuudet osastoittain",

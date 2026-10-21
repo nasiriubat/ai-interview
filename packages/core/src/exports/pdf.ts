@@ -61,6 +61,14 @@ export interface PdfInput {
   /** Absent when no renderer is configured: every diagram is then shown as source. */
   kroki: KrokiPort | null;
   limits?: Partial<PdfLimits>;
+  /**
+   * A status line printed on the cover (or under the title) and in every footer, such as
+   * "Draft – not yet reviewed" or "Reviewed by … on …" (D-478). `draft` prints it in the warning
+   * tone; `ok` in the muted one.
+   */
+  notice?: { text: string; tone: "draft" | "ok" } | undefined;
+  /** A light diagonal word across every page, for a draft that is passed around. */
+  watermark?: string | undefined;
 }
 
 export interface PdfResult {
@@ -275,6 +283,28 @@ export async function renderPdf(input: PdfInput): Promise<PdfResult> {
   }
 
   const tocItems = body.content.filter((n) => (n as { tocItem?: boolean }).tocItem === true).length;
+  const noticeText = input.notice ? cleanText(input.notice.text).trim().slice(0, 160) : "";
+  const noticeColor = input.notice?.tone === "draft" ? "#8a4b00" : "#2f6b3a";
+  // A fresh node each time: pdfmake lays a node out in place, so one object placed twice prints
+  // its text only the first time.
+  const noticeBlock = (margin: number[]): unknown =>
+    noticeText
+      ? {
+          table: {
+            widths: ["*"],
+            body: [
+              [{ text: noticeText, bold: true, color: noticeColor, fontSize: 10.5, margin: [8, 5, 8, 5] }],
+            ],
+          },
+          layout: {
+            hLineWidth: () => 0,
+            vLineWidth: (i: number) => (i === 0 ? 3 : 0),
+            vLineColor: () => noticeColor,
+            fillColor: () => (input.notice?.tone === "draft" ? "#fff4e5" : "#eef7f0"),
+          },
+          margin,
+        }
+      : null;
   const front: unknown[] = [];
   if (input.brand.cover) {
     front.push(
@@ -286,6 +316,7 @@ export async function renderPdf(input: PdfInput): Promise<PdfResult> {
       { text: title, fontSize: 28, bold: true, lineHeight: 1.1, margin: [0, 0, 0, 14] },
       { text: input.versionLabel, fontSize: 13, color: "#444444", margin: [0, 0, 0, 4] },
       { text: L.generated(date), fontSize: 11, color: "#666666" },
+      ...(noticeText ? [noticeBlock([0, 18, 0, 0])] : []),
       { text: "", pageBreak: "after" },
     );
   } else {
@@ -297,6 +328,8 @@ export async function renderPdf(input: PdfInput): Promise<PdfResult> {
       margin: [0, 0, 0, 12],
     });
   }
+  // On the first content page as well, so a reader who skips the cover still sees it.
+  if (noticeText) front.push(noticeBlock([0, 10, 0, 12]));
   if (tocItems >= 2) {
     front.push({
       toc: { title: { text: L.contents, fontSize: 15, bold: true, color, margin: [0, 0, 0, 6] } },
@@ -305,7 +338,11 @@ export async function renderPdf(input: PdfInput): Promise<PdfResult> {
   }
 
   const footerLeft = [productName, title, input.versionLabel].filter(Boolean).join(" · ");
+  const watermark = input.watermark ? cleanText(input.watermark).trim().slice(0, 24) : "";
   const definition = {
+    ...(watermark
+      ? { watermark: { text: watermark, color: "#b45309", opacity: 0.08, bold: true, angle: -45 } }
+      : {}),
     info: {
       title,
       author: productName || undefined,
@@ -316,7 +353,8 @@ export async function renderPdf(input: PdfInput): Promise<PdfResult> {
     language: lang,
     displayTitle: true,
     pageSize: { width: size.width, height: size.height },
-    pageMargins: [MARGIN, 56, MARGIN, 52],
+    // The status line is one more footer line (D-478).
+    pageMargins: [MARGIN, 56, MARGIN, noticeText ? 62 : 52],
     maxPagesNumber: limits.maxPages + 1,
     content: [...front, ...body.content],
     images,
@@ -362,6 +400,9 @@ export async function renderPdf(input: PdfInput): Promise<PdfResult> {
                 ],
                 margin: [0, 4, 0, 0],
               },
+              ...(noticeText
+                ? [{ text: noticeText, fontSize: 7.5, bold: true, color: noticeColor, margin: [0, 2, 0, 0] }]
+                : []),
               ...(footerText
                 ? [{ text: footerText, fontSize: 7.5, color: "#888888", margin: [0, 2, 0, 0] }]
                 : []),

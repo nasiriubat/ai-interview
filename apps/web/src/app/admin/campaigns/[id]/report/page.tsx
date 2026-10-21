@@ -15,6 +15,8 @@ import type { Report } from "@/lib/api/schemas";
 import { staffServer } from "@/lib/api/server";
 import { parseReportSections } from "@/lib/report/sections";
 
+const reportLanguage = (v: unknown): string => (typeof v === "string" && v.length >= 2 ? v : "en");
+
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getStrings()).admin.report.title };
 }
@@ -26,7 +28,7 @@ interface Props {
 
 export default async function ReportPage({ params, searchParams }: Props): Promise<React.JSX.Element> {
   await requestLocale();
-  await requireMe();
+  const me = await requireMe();
   const { id } = await params;
   const sp = await searchParams;
   const requested = typeof sp.version === "string" ? sp.version : undefined;
@@ -82,6 +84,10 @@ export default async function ReportPage({ params, searchParams }: Props): Promi
         selected={selected}
         report={report}
         initialSections={parseReportSections(values["analysis.reportSections"])}
+        canReview={me?.user.role === "admin" || me?.user.role === "platform_operator"}
+        language={reportLanguage(
+          settled(settingsR).data?.effective?.["analysis.language"] ?? values["analysis.language"],
+        )}
       />
     </>
   );
