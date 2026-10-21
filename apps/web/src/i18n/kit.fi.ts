@@ -190,7 +190,7 @@ export const kitFi: KitStrings = {
     errorTitle: "Kirjautuminen ei onnistunut",
     errorBody: "Linkki on voinut vanhentua tai se on jo käytetty. Pyydä uusi linkki ja yritä uudelleen.",
     confirmTitle: "Viimeistele kirjautuminen",
-    confirmBody: (email: string) => `Kirjaudu osoitteella ${email} valitsemalla painike.`,
+    confirmBody: (email: string): string => `Kirjaudu osoitteella ${email} valitsemalla painike.`,
     confirmButton: "Kirjaudu",
     confirmHelp:
       "Tämä lisävaihe suojaa linkkiäsi: sähköpostin tietoturvasuodattimet avaavat linkkejä tarkistaakseen ne ja käyttäisivät sen muuten ennen sinua.",

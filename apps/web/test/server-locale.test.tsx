@@ -163,7 +163,7 @@ describe("server pages follow the lang cookie", () => {
     const form = container.querySelector("form");
     expect(form?.getAttribute("action")).toBe("/api/auth/callback/nodemailer");
     expect(form?.getAttribute("method")).toBe("get");
-    expect((container.querySelector("input[name=token]") as HTMLInputElement | null)?.value).toBe(token);
+    expect(container.querySelector<HTMLInputElement>("input[name=token]")?.value).toBe(token);
     expect(container.querySelector('a[href*="/api/auth/callback"]')).toBeNull();
     expect(screen.getByRole("button", { name: fi.kit.authPages.confirmButton })).toBeInTheDocument();
     vi.unstubAllEnvs();
