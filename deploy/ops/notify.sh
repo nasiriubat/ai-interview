@@ -25,6 +25,7 @@
 #     resolveSmtpEnv in packages/shared/src/smtp.ts (D-447), written again here because this image
 #     carries no Node.
 #   PUBLIC_HOSTNAME (subjects, TLS check), API_READY_URL, TLS_CONNECT (default caddy:443)
+#   CADDY_LOCAL_CERTS (set: Caddy issues its own short-lived certificates, so no expiry check)
 #   ALERT_EMAIL_MIN_SEVERITY (warning), ALERT_WEBHOOK_MIN_SEVERITY (info)
 #   DISK_WARN_PERCENT (80), DISK_CRITICAL_PERCENT (90), DISK_PATH (/watch/uploads)
 #   BACKUP_MAX_AGE_HOURS (26)
@@ -64,6 +65,10 @@ BACKUP_MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-26}"
 HEARTBEAT_STALE_SECONDS="${HEARTBEAT_STALE_SECONDS:-300}"
 API_DOWN_SECONDS="${API_DOWN_SECONDS:-300}"
 TLS_WARN_DAYS="${TLS_WARN_DAYS:-14}"
+case "${CADDY_LOCAL_CERTS:-}" in
+'' | 0 | false | no | off) LOCAL_CERTS=0 ;;
+*) LOCAL_CERTS=1 ;;
+esac
 
 ALERTS="$STATE/alerts"
 SENT="$ALERTS/sent"
@@ -360,8 +365,15 @@ check_disk() {
 
 # Once a day: is the certificate Caddy serves going to be valid for another TLS_WARN_DAYS days.
 # `openssl x509 -checkend` answers exactly that without parsing a date, which differs by userland.
+# With CADDY_LOCAL_CERTS (behind a proxy such as Cloudflare) Caddy's internal authority issues
+# 12-hour certificates and renews them itself, so every one is under the threshold by design and
+# the visitor-facing certificate belongs to the proxy: there is nothing here to check.
 check_tls() {
 	local marker="$WATCH/tls-checked" t last cert days
+	if [ "$LOCAL_CERTS" = 1 ]; then
+		clear_condition tls.renewal
+		return 0
+	fi
 	t=$(now)
 	last=$(cat "$marker" 2>/dev/null || echo 0)
 	[ $((t - last)) -ge 86400 ] || return 0

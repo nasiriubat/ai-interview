@@ -396,6 +396,9 @@ open). `deploy/dc restart caddy` retries immediately.
 **Fixed when** `deploy/dc logs caddy | grep -i "certificate obtained"` shows a recent line; the
 daily check clears the alert.
 
+**Not raised** with `CADDY_LOCAL_CERTS` set (behind Cloudflare or another TLS proxy): Caddy then
+serves its own 12-hour certificates, renewed internally, and visitors see the proxy's certificate.
+
 ### audit.chain_broken
 
 **Symptom** The `audit.verify` job failed and is in the dead-letter queue, or `preflight` refused

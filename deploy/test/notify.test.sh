@@ -243,6 +243,14 @@ echo 60 >"$SB/state/tls-days"
 pass_once
 assert_eq "a healthy certificate raises nothing" 0 "$(posts | wc -l | tr -d ' ')"
 rm -rf "$SB"
+for v in 1 local_certs; do
+	setup
+	rm -f "$SB/ops/watchdog/tls-checked"
+	echo 0 >"$SB/state/tls-days"
+	CADDY_LOCAL_CERTS=$v pass_once
+	assert_eq "with CADDY_LOCAL_CERTS=$v, Caddy's own 12-hour certificate raises nothing" 0 "$(posts | wc -l | tr -d ' ')"
+	rm -rf "$SB"
+done
 
 echo "with the worker down, the backup and the disk are read here"
 setup
