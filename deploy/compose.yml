@@ -593,6 +593,8 @@ services:
       BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-26}
       API_READY_URL: http://api:4000/api/v1/health/ready
       TLS_CONNECT: caddy:443
+      # Set, Caddy serves its own 12-hour certificates and the expiry check stands down.
+      CADDY_LOCAL_CERTS: ${CADDY_LOCAL_CERTS:-}
       DISK_PATH: /watch/uploads
       OPS_STATE_DIR: /ops-state
     volumes:
