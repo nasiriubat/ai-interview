@@ -34,9 +34,9 @@
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import-x": "^4.17.1",
-    "prettier": "^3.9.6",
-    "tsx": "^4.19.0",
-    "typescript-eslint": "^8.70.0"
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript-eslint": "^8.72.0"
   },
   "type": "module"
 }

@@ -15,7 +15,7 @@
     "@aidp/db": "workspace:*",
     "@aidp/shared": "workspace:*",
     "@aidp/testing": "workspace:*",
-    "zod": "^4.0.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
