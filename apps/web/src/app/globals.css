@@ -83,6 +83,9 @@
     0 0 0 1px rgb(10 37 64 / 0.06), 0 13px 27px -5px rgb(50 50 93 / 0.18), 0 8px 16px -8px rgb(0 0 0 / 0.14);
   /* Form controls: the 1px boundary is the 3:1 `--input` token (D-110). */
   --shadow-control: 0 0 0 1px var(--input), 0 1px 1px rgb(10 37 64 / 0.06);
+  /* A focused text field: its edge turns primary with a soft halo. One ring, flush with the field
+     (D-486); it resolves against the active theme's --primary and --ring. */
+  --shadow-focus: 0 0 0 1px var(--primary), 0 0 0 4px color-mix(in srgb, var(--ring) 24%, transparent);
   /* Buttons are identified by their text and fill, so they keep the soft decorative edge. */
   --shadow-button: 0 1px 1px rgb(10 37 64 / 0.06), 0 0 0 1px rgb(10 37 64 / 0.1);
 }
@@ -246,6 +249,7 @@
   --shadow-card: var(--shadow-card);
   --shadow-raised: var(--shadow-raised);
   --shadow-control: var(--shadow-control);
+  --shadow-focus: var(--shadow-focus);
   --shadow-button: var(--shadow-button);
   --color-input-hover: var(--input-hover);
   --color-switch-track: var(--switch-track);
@@ -294,6 +298,20 @@
   /* WCAG 2.2: visible focus for keyboard users everywhere. */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;
+  }
+  /* Text fields show focus with their own ring (--shadow-focus), not the outline: a clicked field
+     matches :focus-visible too, and the offset outline on top of the field's ring read as a heavy
+     double border (D-486). Checkboxes, radios and every other control keep the outline. */
+  :where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]),
+    textarea
+  ):focus-visible {
+    outline: none;
+  }
+  /* A heading or region focused by script (tabindex="-1", so a screen reader starts there) is not
+     a control: it gets no focus box. Keyboard users never land on it with Tab. */
+  [tabindex="-1"]:focus-visible:not(button, a, input, textarea, select) {
+    outline: none;
   }
   /* Selection and scrollbars follow the tokens, so dark mode is not a white strip (D-396). */
   ::selection {

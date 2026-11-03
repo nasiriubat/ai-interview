@@ -83,7 +83,10 @@ export function AdminShell({
   return (
     <DirtyGuardProvider>
       <CrumbProvider>
-        <div className="flex min-h-dvh gap-2 lg:p-2 print:block print:p-0">
+        {/* A page that marks its root `data-fill-viewport` (a workspace with panes that scroll on
+            their own) gets exactly the viewport: the shell stops growing with the content and the
+            page itself never scrolls. Every other page keeps normal document scrolling. */}
+        <div className="flex min-h-dvh gap-2 has-[[data-fill-viewport]]:h-dvh has-[[data-fill-viewport]]:overflow-hidden lg:p-2 print:block print:h-auto print:overflow-visible print:p-0">
           <aside
             aria-label={t.kit.shell.sidebar}
             data-collapsed={collapsed}
@@ -126,7 +129,7 @@ export function AdminShell({
             ) : null}
           </aside>
 
-          <div className="bg-card shadow-card flex min-w-0 flex-1 flex-col lg:rounded-xl print:shadow-none">
+          <div className="bg-card shadow-card flex min-h-0 min-w-0 flex-1 flex-col lg:rounded-xl print:shadow-none">
             <TopBar
               me={me}
               collapsed={collapsed}
@@ -142,7 +145,7 @@ export function AdminShell({
             <main
               id="main"
               tabIndex={-1}
-              className="mx-auto w-full max-w-[120rem] flex-1 px-4 py-5 outline-hidden sm:px-6 md:py-6 lg:px-8 print:max-w-none print:p-0"
+              className="mx-auto w-full max-w-[120rem] flex-1 px-4 py-5 outline-hidden has-[[data-fill-viewport]]:flex has-[[data-fill-viewport]]:min-h-0 has-[[data-fill-viewport]]:flex-col has-[[data-fill-viewport]]:pb-4 sm:px-6 md:py-6 lg:px-8 print:max-w-none print:p-0"
             >
               {children}
             </main>

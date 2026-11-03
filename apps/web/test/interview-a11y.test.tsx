@@ -245,7 +245,7 @@ describe("Composer keyboard rules", () => {
     expect(onSend).not.toHaveBeenCalled();
     expect(box).toHaveValue("Hello\n");
     await user.keyboard("more{Enter}");
-    expect(onSend).toHaveBeenCalledWith("Hello\nmore");
+    expect(onSend).toHaveBeenCalledWith("Hello\nmore", "text");
   });
 
   it("makes Enter a line break on a touch device, where only the Send button sends", async () => {
@@ -259,7 +259,7 @@ describe("Composer keyboard rules", () => {
     expect(onSend).not.toHaveBeenCalled();
     expect(box).toHaveValue("One\nTwo");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    expect(onSend).toHaveBeenCalledWith("One\nTwo");
+    expect(onSend).toHaveBeenCalledWith("One\nTwo", "text");
     // No keyboard tip on a phone.
     expect(screen.queryByText(/Shift\+Enter/)).not.toBeInTheDocument();
   });

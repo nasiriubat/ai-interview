@@ -51,8 +51,10 @@ export const AdaptivitySchema = z.object({
 
 export const WidgetPolicySchema = z.object({
   allowedTypes: z.array(z.enum(WIDGET_TYPES)).default([...WIDGET_TYPES]),
-  maxPerTurns: z.number().int().min(0).max(10).default(1), // at most one widget every N turns; 0 disables
-  everyTurns: z.number().int().min(1).max(10).default(2),
+  maxPerTurns: z.number().int().min(0).max(10).default(1), // 0 disables widgets
+  // A widget may follow the previous one after this many turns. 1 allows one every turn: choices
+  // are the easiest way to answer, and a spacing the model was not told about dropped them (D-482).
+  everyTurns: z.number().int().min(1).max(10).default(1),
 });
 
 export const IssueDetectionSchema = z.object({

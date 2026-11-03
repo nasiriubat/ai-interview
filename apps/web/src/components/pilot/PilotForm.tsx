@@ -135,7 +135,7 @@ function NativeSelect({
           }}
           className={cn(
             "bg-card text-foreground shadow-control h-9 w-full min-w-0 appearance-none rounded-md border-0 py-1 pr-9 pl-3 text-base transition-[color,box-shadow] md:text-sm",
-            "hover:shadow-[0_0_0_1px_var(--input-hover)] focus-visible:shadow-[0_0_0_1px_var(--primary)]",
+            "hover:shadow-[0_0_0_1px_var(--input-hover)] focus-visible:shadow-focus",
             "aria-invalid:shadow-[0_0_0_1px_var(--destructive)]",
             value === "" && "text-muted-foreground",
           )}

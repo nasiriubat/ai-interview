@@ -14,9 +14,12 @@ export function MultiChoiceWidget({
   widget,
   disabled,
   onSubmit,
+  other: withOther = true,
 }: {
   widget: Extract<Widget, { type: "multi_choice" }>;
   disabled?: boolean | undefined;
+  /** The "Other" field. Off where the answer box right below already takes a written answer. */
+  other?: boolean | undefined;
   onSubmit: (response: WidgetResponse) => void;
 }): React.JSX.Element {
   const id = React.useId();
@@ -44,7 +47,7 @@ export function MultiChoiceWidget({
         onSubmit({ type: "multi_choice", keys, ...(trimmed ? { other: trimmed } : {}) });
       }}
     >
-      <fieldset className="grid gap-3" disabled={disabled}>
+      <fieldset className="grid gap-2 sm:grid-cols-2" disabled={disabled}>
         <legend className="text-muted-foreground mb-1 text-xs">
           {max !== undefined ? t.participant.session.widgetMaxHint(max) : t.participant.session.widgetAnswer}
         </legend>
@@ -71,7 +74,9 @@ export function MultiChoiceWidget({
           );
         })}
       </fieldset>
-      <OtherInput id={`${id}-other`} value={other} onChange={setOther} disabled={disabled} />
+      {withOther ? (
+        <OtherInput id={`${id}-other`} value={other} onChange={setOther} disabled={disabled} />
+      ) : null}
       <Button type="submit" disabled={!canSubmit} className="w-full sm:w-auto">
         {t.participant.session.widgetSubmit}
       </Button>

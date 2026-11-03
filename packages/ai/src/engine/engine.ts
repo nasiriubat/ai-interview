@@ -16,7 +16,7 @@ import type {
 } from "./ports.js";
 import { promptVersionTag, type PromptSource } from "./prompts/index.js";
 import { areasComplete, chooseFocus, contextComplete, type Focus } from "./selection.js";
-import { admitWidget, applyDelta, isMinimalAnswer, noteUserAnswer } from "./state.js";
+import { admitWidget, applyDelta, droppedWidgetText, isMinimalAnswer, noteUserAnswer } from "./state.js";
 import { settleTurnContract, type ContractReport } from "./turn-contract.js";
 import { TurnParser } from "./turn-parser.js";
 
@@ -63,6 +63,12 @@ const isControl = (a: TurnAnswer): a is ControlAnswer => "control" in a;
 
 export type EngineEvent =
   | { type: "text"; text: string }
+  /**
+   * The visible message is complete and the model is now writing the turn metadata (the widget,
+   * coverage, captured facts). Sent once per turn, so a client can say "preparing your options"
+   * instead of looking stuck in the seconds before the turn arrives (D-481).
+   */
+  | { type: "composing" }
   /** A control was applied; sent before the interviewer's turn. */
   | { type: "control"; control: AppliedControl; at: string; state: SessionState }
   | { type: "turn"; turn: TurnObject; message: StoredMessage; focus: Focus; state: SessionState }
@@ -243,12 +249,18 @@ export class InterviewEngine {
       },
       { system: ctx.system, messages: ctx.messages, cachePrefix: true, ...(signal ? { signal } : {}) },
     );
+    let composing = false;
     for await (const ev of stream) {
       if (ev.type === "text") {
         const out = parser.push(ev.text);
         if (out) yield { type: "text", text: out };
+        if (!composing && parser.inMetadata) {
+          composing = true;
+          yield { type: "composing" };
+        }
       }
     }
+    if (!composing) yield { type: "composing" };
     const { message, meta: parsedMeta, rest, error } = parser.finish();
     if (rest) yield { type: "text", text: rest };
     if (error)
@@ -290,6 +302,9 @@ export class InterviewEngine {
     });
     const widget = admitWidget(meta.widget ?? undefined, state, session.template);
     if (widget) state = { ...state, lastWidgetTurn: nextTurnCount };
+    // A widget the policy refused still leaves its choices in the message (D-482).
+    const dropped = widget ? "" : droppedWidgetText(meta.widget ?? undefined);
+    const shown = dropped ? `${message.trimEnd()}\n\n${dropped}` : message;
 
     if (focus.mode === "closing") state = { ...state, closingAsked: true, phase: "closing" };
     const ended = focus.mode === "summary" || meta.endInterview === true;
@@ -300,7 +315,7 @@ export class InterviewEngine {
     else if (focus.mode !== "closing") state = { ...state, phase: "areas" };
 
     const turn = TurnObjectSchema.parse({
-      message: message || "…",
+      message: shown || "…",
       ...(widget ? { widget } : {}),
       ...(meta.voiceShortForm ? { voiceShortForm: meta.voiceShortForm } : {}),
       areaKey: "areaKey" in focus ? focus.areaKey : focus.mode,

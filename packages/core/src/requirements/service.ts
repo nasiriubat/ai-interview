@@ -68,6 +68,11 @@ export class RequirementsService {
   setPath(...a: Parameters<RequirementsSessions["setPath"]>): ReturnType<RequirementsSessions["setPath"]> {
     return this.sessions.setPath(...a);
   }
+  assertAccess(
+    ...a: Parameters<RequirementsSessions["assertAccess"]>
+  ): ReturnType<RequirementsSessions["assertAccess"]> {
+    return this.sessions.assertAccess(...a);
+  }
   assertTurnAllowed(
     ...a: Parameters<RequirementsSessions["assertTurnAllowed"]>
   ): ReturnType<RequirementsSessions["assertTurnAllowed"]> {

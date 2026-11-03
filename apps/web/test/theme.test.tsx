@@ -3,12 +3,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ThemeSwitch } from "@/components/common/ThemeSwitch";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { setClientLocale } from "@/i18n";
 import { applyTheme, readTheme, THEME_BOOT_SCRIPT, THEME_KEY } from "@/lib/theme";
 
 /*
- * The theme choice (D-238): System, Light or Dark, applied at once, remembered in this browser,
+ * The theme choice (D-238, D-485): the device's until somebody picks Light or Dark, applied at once, remembered in this browser,
  * and never able to break the page when storage is not there.
  */
 
@@ -95,30 +95,70 @@ describe("the script that runs before first paint", () => {
   });
 });
 
-describe("ThemeSwitch", () => {
-  it("is one group with three named choices, the current one pressed", async () => {
+/** Stands in for the device's setting: matchMedia is not in jsdom. */
+function deviceIs(theme: "light" | "dark"): void {
+  vi.spyOn(window, "matchMedia").mockImplementation((query: string): MediaQueryList => ({
+    matches: theme === "dark" && query.includes("dark"),
+    media: query,
+    onchange: null,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    dispatchEvent: () => false,
+  }));
+}
+
+describe("ThemeToggle (D-485)", () => {
+  beforeEach(() => {
+    if (typeof window.matchMedia !== "function")
+      Object.defineProperty(window, "matchMedia", {
+        configurable: true,
+        writable: true,
+        value: () => undefined,
+      });
+  });
+
+  it("shows the device's theme until somebody picks, with no third state", async () => {
+    deviceIs("dark");
+    render(<ThemeToggle />);
+    const toggle = await screen.findByRole("button", { name: "Dark mode" });
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(window.localStorage.getItem(THEME_KEY)).toBeNull();
+  });
+
+  it("switches to the other theme and remembers it", async () => {
+    deviceIs("light");
     const user = userEvent.setup();
-    render(<ThemeSwitch />);
-    const group = screen.getByRole("radiogroup", { name: "Appearance" });
-    expect(group).toBeInTheDocument();
-    const dark = screen.getByRole("radio", { name: "Dark" });
-    await user.click(dark);
-    expect(dark).toHaveAttribute("aria-checked", "true");
+    render(<ThemeToggle />);
+    const toggle = await screen.findByRole("button", { name: "Dark mode" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await user.click(toggle);
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-    await user.click(screen.getByRole("radio", { name: "System" }));
-    expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
+    expect(window.localStorage.getItem(THEME_KEY)).toBe("dark");
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await user.click(toggle);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });
 
-  it("starts on the stored choice", async () => {
-    window.localStorage.setItem(THEME_KEY, "light");
-    render(<ThemeSwitch />);
-    expect(await screen.findByRole("radio", { name: "Light" })).toHaveAttribute("aria-checked", "true");
+  it("keeps every toggle on the page in step", async () => {
+    deviceIs("light");
+    const user = userEvent.setup();
+    render(
+      <>
+        <ThemeToggle />
+        <ThemeToggle showName />
+      </>,
+    );
+    const [first, second] = await screen.findAllByRole("button", { name: "Dark mode" });
+    await user.click(first!);
+    expect(second).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("is named in Finnish", () => {
+  it("is named in Finnish", async () => {
+    deviceIs("light");
     setClientLocale("fi");
-    render(<ThemeSwitch />);
-    expect(screen.getByRole("radiogroup", { name: "Ulkoasu" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Tumma" })).toBeInTheDocument();
+    render(<ThemeToggle />);
+    expect(await screen.findByRole("button", { name: "Tumma tila" })).toBeInTheDocument();
   });
 });

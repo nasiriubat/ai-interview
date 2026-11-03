@@ -23,11 +23,14 @@ export const COMPLETION_REQUESTED_TURN_COUNT = 1_000_000;
  * - `skip_area`: stop asking about an area; the engine acknowledges it and moves on.
  * - `return_area`: come back to an area that was skipped (or any open one); asked next.
  * - `finish`: "I'm done". The next turn is the closing one.
+ * - `wrap_up`: "Wrap up sooner" (D-484). Only the essential areas still open are asked, with no
+ *   more follow-ups, and then the interview closes as usual.
  */
 export const TurnControlSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("skip_area"), areaKey: z.string().min(1).max(120) }),
   z.object({ type: z.literal("return_area"), areaKey: z.string().min(1).max(120) }),
   z.object({ type: z.literal("finish") }),
+  z.object({ type: z.literal("wrap_up") }),
 ]);
 export type TurnControl = z.infer<typeof TurnControlSchema>;
 
@@ -116,7 +119,10 @@ const SessionStateObjectSchema = z.object({
   requestedAreaKey: z.string().optional(),
   /** The cached resume recap; never part of the transcript or the model's context (D-172). */
   recap: RecapCacheSchema.optional(),
+  /** Only essential areas are asked: the participant's answers are minimal, or they asked to wrap up. */
   shortened: z.boolean().default(false),
+  /** The participant asked to wrap up sooner (D-484): no more follow-ups, essential areas only. */
+  wrapUp: z.boolean().default(false),
   flaggedForAdmin: z.string().optional(),
   phase: z
     .enum(["path", "context", "areas", "findings", "mvp_challenge", "closing", "summary", "done"])
@@ -195,7 +201,11 @@ export const TurnObjectSchema = z.object({
 });
 export type TurnObject = z.infer<typeof TurnObjectSchema>;
 
-export const ModalitySchema = z.enum(["text", "voice", "file", "widget"]);
+/**
+ * How an answer was given. `dictated` is speech the person turned into text, read and corrected
+ * before sending (D-483): it counts as their words, like `text`, and no audio is kept with it.
+ */
+export const ModalitySchema = z.enum(["text", "voice", "dictated", "file", "widget"]);
 export type Modality = z.infer<typeof ModalitySchema>;
 
 /**

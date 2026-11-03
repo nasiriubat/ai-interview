@@ -6,6 +6,7 @@ import { encode } from "next-auth/jwt";
 import { en } from "../src/i18n/en";
 import { fi } from "../src/i18n/fi";
 import { PAGES } from "./pages";
+import { PARTICIPANT_COOKIE } from "./participant-cookie";
 
 /** What the error boundaries say. A page showing one has been drawn from a fixture the app no longer parses. */
 const ERROR_SCREENS = [
@@ -54,7 +55,7 @@ for (const entry of PAGES) {
     if (entry.auth === "participant") {
       await context.addCookies([
         {
-          name: "aidp_participant",
+          ...PARTICIPANT_COOKIE,
           value: entry.token ?? "e2e-participant-token",
           domain: origin.hostname,
           path: "/",

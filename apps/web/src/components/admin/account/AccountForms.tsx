@@ -16,7 +16,8 @@ import { t } from "@/i18n";
 import { LOCALES, type Locale } from "@/i18n/locale";
 import { staffClient } from "@/lib/api/browser";
 import type { Me } from "@/lib/api/schemas";
-import { applyTheme, readTheme, type ThemeChoice } from "@/lib/theme";
+import { applyTheme, type ThemeChoice } from "@/lib/theme";
+import { useTheme } from "@/lib/useTheme";
 
 const schema = z.object({ name: z.string().max(120) });
 
@@ -42,10 +43,9 @@ export function AccountForms({
     },
   });
   const { shown, change } = useLocaleSwitch();
-  const [theme, setTheme] = React.useState<ThemeChoice>("system");
-  React.useEffect(() => {
-    setTheme(readTheme());
-  }, []);
+  // The stored choice, so "Match device" can be chosen here (D-485); kept in step with the
+  // quick toggles elsewhere on the page.
+  const theme = useTheme().choice ?? "system";
   const [confirm, setConfirm] = React.useState(false);
   const [revoking, setRevoking] = React.useState(false);
   const signOutForm = React.useRef<HTMLFormElement>(null);
@@ -91,10 +91,7 @@ export function AccountForms({
               { value: "light", label: t.app.theme.light },
               { value: "dark", label: t.app.theme.dark },
             ]}
-            onChange={(v) => {
-              setTheme(v);
-              applyTheme(v);
-            }}
+            onChange={applyTheme}
           />
         </div>
       </FormSection>

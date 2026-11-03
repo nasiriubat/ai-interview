@@ -3,6 +3,8 @@
 import {
   AlertCircleIcon,
   AudioLinesIcon,
+  CheckIcon,
+  LoaderCircleIcon,
   MicIcon,
   PaperclipIcon,
   SendHorizontalIcon,
@@ -15,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCoarsePointer } from "@/hooks/useMediaQuery";
 import { recorderProblemMessage, useRecorder } from "@/hooks/useRecorder";
 import { t } from "@/i18n";
+import { participantErrorText } from "@/lib/api/errors";
 import { acceptFor, DEFAULT_ALLOWED_TYPES, formatClock } from "@/lib/attachments";
 
 const HINT_KEY = "aidp.composerHintDismissed";
@@ -28,25 +31,30 @@ function hintDismissed(): boolean {
 }
 
 /**
- * The answer box: typing, a recording (FR-30) and a file (FR-31).
+ * The answer box: typing, dictation (FR-30, D-483) and a file (FR-31).
+ *
+ * Dictation puts the words in the box, never straight into the conversation: the person reads
+ * what was heard, corrects it, and sends it like anything they typed. The answer then goes out
+ * as `dictated`, so the record still says it was spoken.
  *
  * Enter sends on a pointer-and-keyboard device, with Shift+Enter for a new line. On a touch device
  * the keyboard has no Shift+Enter, so Enter is the line break and only the Send button sends.
  *
- * The microphone and the paperclip appear only when the screen passes a handler for them, so the
- * owner-side requirements workspace — which has no such routes — keeps the plain composer.
+ * The microphone and the paperclip appear only when the screen passes a handler for them, so a
+ * tenant with voice or files off gets the plain composer.
  */
 export function Composer({
   disabled,
   onSend,
   autoFocus = false,
-  onVoice,
+  onDictate,
   onFile,
   accept,
   voiceFirst = false,
   focusToken = 0,
   sending = false,
   onTalk,
+  placeholder,
 }: {
   disabled: boolean;
   /**
@@ -60,10 +68,10 @@ export function Composer({
    * Resolves `false` when the answer was not delivered; the text is then put back, so a failed
    * send never costs the person what they wrote.
    */
-  onSend: (text: string) => Promise<boolean>;
+  onSend: (text: string, modality: "text" | "dictated") => Promise<boolean>;
   autoFocus?: boolean;
-  /** Recorded voice. Absent hides the microphone — as it is when the tenant has voice off. */
-  onVoice?: ((audio: Blob, durationMs: number) => void) | undefined;
+  /** Dictation: a recording to words for the box. Absent hides the microphone (voice off). */
+  onDictate?: ((audio: Blob, durationMs: number) => Promise<string>) | undefined;
   /** File attachments. Absent hides the paperclip. */
   onFile?: ((file: File) => void) | undefined;
   /** What the picker offers; defaults to the shipped types when the screen names none. */
@@ -72,6 +80,8 @@ export function Composer({
   voiceFirst?: boolean;
   /** Changing to a new positive number moves focus into the answer box (the recap's Continue). */
   focusToken?: number;
+  /** Replaces "Type your answer…": with options above, the box is their "Other" entry. */
+  placeholder?: string | undefined;
 }): React.JSX.Element {
   const s = t.participant.session;
   const [text, setText] = React.useState("");
@@ -87,34 +97,68 @@ export function Composer({
   React.useEffect(() => {
     if (focusToken > 0) textRef.current?.focus();
   }, [focusToken]);
-  const canSend = !disabled && !sending && text.trim().length > 0;
+  // Whether what is in the box came, at least in part, from dictation. Cleared when the box is.
+  const [dictated, setDictated] = React.useState(false);
+  const [transcribing, setTranscribing] = React.useState(false);
+  const [dictationError, setDictationError] = React.useState<string | null>(null);
+  const textValue = React.useRef(text);
+  textValue.current = text;
+  const canSend = !disabled && !sending && !transcribing && text.trim().length > 0;
 
   const recorder = useRecorder((audio, durationMs) => {
+    if (!onDictate) return;
     setAnnouncement(s.recordingSending);
-    onVoice?.(audio, durationMs);
+    setTranscribing(true);
+    setDictationError(null);
+    onDictate(audio, durationMs)
+      .then((said) => {
+        // Added to whatever was already typed, never replacing it.
+        const current = textValue.current.trimEnd();
+        setText(current ? `${current} ${said}` : said);
+        setDictated(true);
+        setAnnouncement(s.dictationAdded);
+        // The caret goes to the end of the words, ready for a correction or Send.
+        requestAnimationFrame(() => {
+          const el = textRef.current;
+          if (!el) return;
+          el.focus();
+          el.setSelectionRange(el.value.length, el.value.length);
+        });
+      })
+      .catch((e: unknown) => {
+        setDictationError(participantErrorText(e, "interview"));
+      })
+      .finally(() => {
+        setTranscribing(false);
+      });
   });
   const recording = recorder.status === "recording";
 
-  // Focus follows the control that just appeared, and returns to the microphone when the recording
-  // bar goes away, so a keyboard user is never left focused on a button that no longer exists.
+  // Focus follows the control that just appeared. When the recording bar goes away it goes to the
+  // box (where the words will land), so a keyboard user is never left on a button that is gone.
   const wasRecording = React.useRef(false);
   React.useEffect(() => {
     if (recording) stopRef.current?.focus();
-    else if (wasRecording.current) micRef.current?.focus();
+    else if (wasRecording.current) (onDictate ? textRef : micRef).current?.focus();
     wasRecording.current = recording;
-  }, [recording]);
+  }, [recording, onDictate]);
 
   const submit = (): void => {
     if (!canSend) return;
     const sent = text.trim();
-    const result: unknown = onSend(sent);
+    const modality = dictated ? "dictated" : "text";
+    const result: unknown = onSend(sent, modality);
     setText("");
+    setDictated(false);
     // Focus stays in the box, so on a phone the keyboard stays up for the next answer.
     textRef.current?.focus();
     if (result instanceof Promise) {
       void result.then((delivered: unknown) => {
         // Only when nothing new was typed meanwhile: never overwrite what the person wrote next.
-        if (delivered === false) setText((current) => (current === "" ? sent : current));
+        if (delivered === false && textValue.current === "") {
+          setText(sent);
+          setDictated(modality === "dictated");
+        }
       });
     }
   };
@@ -133,6 +177,7 @@ export function Composer({
 
   const record = (): void => {
     setAnnouncement(s.recordingStarted);
+    setDictationError(null);
     void recorder.start();
   };
   const discard = (): void => {
@@ -186,9 +231,10 @@ export function Composer({
             size="icon"
             className="size-11 shrink-0"
             aria-label={s.recordStop}
+            title={s.recordStop}
             onClick={recorder.stop}
           >
-            <SendHorizontalIcon className="size-5" />
+            <CheckIcon className="size-5" />
           </Button>
         </div>
       ) : (
@@ -234,7 +280,7 @@ export function Composer({
             value={text}
             rows={1}
             autoFocus={autoFocus && !voiceFirst}
-            placeholder={s.composerPlaceholder}
+            placeholder={transcribing ? s.recordingSending : (placeholder ?? s.composerPlaceholder)}
             className="max-h-40 min-h-11 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 text-base placeholder:text-sm shadow-none hover:shadow-none focus-visible:shadow-none"
             enterKeyHint={coarse ? "enter" : "send"}
             aria-describedby={hintOpen ? hintId : undefined}
@@ -242,6 +288,8 @@ export function Composer({
             onFocus={showHint}
             onChange={(e) => {
               setText(e.target.value);
+              if (e.target.value === "") setDictated(false);
+              if (dictationError) setDictationError(null);
               // Typing is the answer to "the microphone is blocked, or type your answer".
               if (recorder.problem) recorder.dismissProblem();
             }}
@@ -254,7 +302,7 @@ export function Composer({
               }
             }}
           />
-          {onVoice ? (
+          {onDictate ? (
             <Button
               ref={micRef}
               type="button"
@@ -262,11 +310,17 @@ export function Composer({
               size="icon"
               className="size-11 shrink-0"
               autoFocus={autoFocus && voiceFirst && !onTalk}
-              disabled={disabled || recorder.status === "starting"}
+              disabled={disabled || transcribing || recorder.status === "starting"}
               aria-label={s.recordStart}
+              aria-busy={transcribing}
+              title={s.recordStart}
               onClick={record}
             >
-              <MicIcon className="size-5" />
+              {transcribing ? (
+                <LoaderCircleIcon className="size-5 motion-safe:animate-spin" aria-hidden="true" />
+              ) : (
+                <MicIcon className="size-5" />
+              )}
             </Button>
           ) : null}
           {onTalk ? (
@@ -289,7 +343,7 @@ export function Composer({
           <Button
             type="submit"
             size="icon"
-            variant={voiceFirst && (onVoice || onTalk) ? "outline" : "default"}
+            variant={voiceFirst && (onDictate || onTalk) ? "outline" : "default"}
             className="size-11 shrink-0"
             disabled={!canSend}
             aria-label={s.send}
@@ -310,16 +364,21 @@ export function Composer({
           </button>
         </p>
       ) : null}
-      {recorder.problem ? (
+      {recorder.problem || dictationError ? (
         <p
           className="bg-destructive-soft text-destructive-soft-foreground flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm leading-snug"
           role="alert"
         >
           <AlertCircleIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span className="flex-1">{recorderProblemMessage(recorder.problem)}</span>
+          <span className="flex-1">
+            {recorder.problem ? recorderProblemMessage(recorder.problem) : dictationError}
+          </span>
           <button
             type="button"
-            onClick={recorder.dismissProblem}
+            onClick={() => {
+              recorder.dismissProblem();
+              setDictationError(null);
+            }}
             aria-label={t.app.close}
             className="-m-1 shrink-0 rounded-md p-1 opacity-80 hover:opacity-100"
           >

@@ -91,6 +91,9 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /requirements/:id/turns": {
     none: "A conversation turn is the interview itself, stored as messages; it is not an administrative action.",
   },
+  "POST /requirements/:id/transcribe": {
+    none: "Dictation returns a draft for the owner's answer box and stores nothing; the model call is in the ledger.",
+  },
   // operator
   "POST /operator/tenants": ["tenant.create"],
   "PATCH /operator/tenants/:id": ["tenant.update"],

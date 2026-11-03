@@ -24,7 +24,10 @@ export interface SelectionInput {
   mvpChallenge?: "mandatory" | "optional" | "off";
 }
 
-/** Areas that apply to this session: filtered by path, and by essential when shortened. */
+/**
+ * Areas that apply to this session: filtered by path, and by essential when shortened. An area the
+ * participant asked to come back to stays in for that one question, essential or not.
+ */
 export function applicableAreas(
   template: InterviewTemplate,
   state: SessionState,
@@ -33,8 +36,24 @@ export function applicableAreas(
   return template.coverageAreas.filter((a) => {
     if (a.paths && path && !a.paths.includes(path)) return false;
     if (a.paths && !path && a.paths.length > 0) return false;
-    if (state.shortened && !a.essential) return false;
+    if (state.shortened && !a.essential && a.key !== state.requestedAreaKey) return false;
     return true;
+  });
+}
+
+/**
+ * The topics as the participant sees them: every area of the template with its status, where an
+ * area that a shortened interview will no longer ask counts as `skipped` (D-484), so "3 of 5
+ * topics" shrinks to what is actually left instead of promising questions that will not come.
+ */
+export function progressAreas(
+  template: { coverageAreas: readonly { key: string; name: string; essential?: boolean | undefined }[] },
+  state: { coverage?: Record<string, { status: string } | undefined>; shortened?: boolean | undefined },
+): { key: string; name: string; status: string }[] {
+  return template.coverageAreas.map((a) => {
+    const status = state.coverage?.[a.key]?.status ?? "untouched";
+    const dropped = state.shortened && !a.essential && status === "untouched";
+    return { key: a.key, name: a.name, status: dropped ? "skipped" : status };
   });
 }
 
@@ -48,10 +67,12 @@ export function areasComplete(template: InterviewTemplate, state: SessionState, 
   return applicableAreas(template, state, path).every((a) => !isOpenArea(a, state));
 }
 
+/** Untouched, or partial with follow-ups left. After "wrap up sooner" a started area is done (D-484). */
 function isOpenArea(a: CoverageArea, state: SessionState): boolean {
   const e = state.coverage[a.key];
   const status = e?.status ?? "untouched";
-  return status === "untouched" || (status === "partial" && (e?.followUpsUsed ?? 0) < a.maxFollowUps);
+  if (status === "untouched") return true;
+  return status === "partial" && !state.wrapUp && (e?.followUpsUsed ?? 0) < a.maxFollowUps;
 }
 
 export function chooseFocus(input: SelectionInput): Focus {
@@ -97,7 +118,7 @@ export function chooseFocus(input: SelectionInput): Focus {
 
   // 1 and 2. Stay on the current area while it is partial, follow-ups remain, and the participant is engaged.
   const current = state.lastAreaKey ? areas.find((a) => a.key === state.lastAreaKey) : undefined;
-  if (current && status(current.key) === "partial" && !input.lastAnswerMinimal) {
+  if (current && status(current.key) === "partial" && !input.lastAnswerMinimal && !state.wrapUp) {
     const used = entry(current.key)?.followUpsUsed ?? 0;
     if (used < current.maxFollowUps) return { mode: "continue", areaKey: current.key };
   }

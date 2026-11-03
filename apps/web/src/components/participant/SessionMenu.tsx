@@ -1,10 +1,16 @@
 "use client";
 
-import { CheckCircle2Icon, DownloadIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import {
+  CheckCircle2Icon,
+  DownloadIcon,
+  FastForwardIcon,
+  MoreHorizontalIcon,
+  Trash2Icon,
+} from "lucide-react";
 import * as React from "react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { LanguageMenu } from "@/components/common/PreferenceMenus";
-import { ThemeSwitch } from "@/components/common/ThemeSwitch";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,15 +46,18 @@ async function saveMyData(format: "json" | "md"): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-/** Pause, "I'm done", "Download my data" and "Delete my data": always one tap away. */
+/** "Wrap up sooner", "I'm done", "Download my data" and "Delete my data": always one tap away. */
 export function SessionMenu({
   onDone,
+  onWrapUp,
   onDelete,
   disabled,
   deleteOpen,
   onDeleteOpenChange,
 }: {
   onDone: () => void;
+  /** "Wrap up sooner" (D-484); absent once asked. The header shows it from 768 px, this menu always. */
+  onWrapUp?: (() => void) | undefined;
   onDelete: () => void;
   disabled?: boolean;
   /** The side panel can ask for the same confirmation: the screen then owns whether it is open. */
@@ -86,6 +95,25 @@ export function SessionMenu({
         <PopoverContent align="end" className="w-72 max-w-[calc(100vw-1.5rem)] p-2">
           <p className="text-muted-foreground px-2 pb-2 text-xs">{t.participant.session.sessionMenuHint}</p>
           <div className="grid gap-1">
+            {onWrapUp ? (
+              <Button
+                variant="ghost"
+                className="h-auto min-h-11 justify-start py-2 text-left"
+                disabled={disabled}
+                onClick={() => {
+                  setOpen(false);
+                  onWrapUp();
+                }}
+              >
+                <FastForwardIcon />
+                <span className="grid">
+                  <span>{t.participant.session.wrapUp}</span>
+                  <span className="text-muted-foreground text-xs font-normal whitespace-normal">
+                    {t.participant.session.wrapUpHint}
+                  </span>
+                </span>
+              </Button>
+            ) : null}
             <Button
               variant="ghost"
               className="h-11 justify-start"
@@ -137,7 +165,7 @@ export function SessionMenu({
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground text-xs">{t.app.theme.label}</span>
-              <ThemeSwitch />
+              <ThemeToggle showName />
             </div>
           </div>
           {/* Announced to a screen reader as it changes, so a slow export is not silent. */}

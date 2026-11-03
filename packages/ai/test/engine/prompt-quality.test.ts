@@ -7,11 +7,11 @@ import { cleanHeadings, hasForeignScript } from "../../src/spec/generate.js";
 import { neutralize, newNonce, wrapUntrusted } from "../../src/util/untrusted.js";
 import { MemoryStore, ScriptedCaller, snapshot, template } from "./helpers.js";
 
-describe("interviewer prompt v8 (v5 live run findings, requirements capture, spec quality, no invented names)", () => {
+describe("interviewer prompt v9 (v5 live run findings, requirements capture, spec quality, no invented names, choices first)", () => {
   const body = SHIPPED_PROMPTS.interviewer!.body;
 
-  it("is version 8 and keeps every placeholder the engine fills", () => {
-    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(8);
+  it("is version 9 and keeps every placeholder the engine fills", () => {
+    expect(SHIPPED_PROMPTS.interviewer?.version).toBe(9);
     for (const p of [
       "{{objective}}",
       "{{language}}",
@@ -22,6 +22,13 @@ describe("interviewer prompt v8 (v5 live run findings, requirements capture, spe
       "{{outputInstructions}}",
     ])
       expect(body).toContain(p);
+  });
+
+  it("prefers a widget whenever the likely answers can be listed, and keeps words for stories (D-482)", () => {
+    expect(body).toContain("Prefer answers people can pick over answers they have to write.");
+    expect(body).toContain("When the Engine focus says a widget is available");
+    expect(body).toContain('includes an "Other" entry');
+    expect(body).not.toContain("You may attach at most one widget when it makes answering easier");
   });
 
   it("asks for exactly one interrogative and forbids joined or confirming questions", () => {

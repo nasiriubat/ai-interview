@@ -67,6 +67,23 @@ describe("InterviewEngine", () => {
     expect(result.ended).toBe(false);
   });
 
+  it("says once, after the visible text and before the turn, that the turn's options are being prepared (D-481)", async () => {
+    const store = new MemoryStore();
+    const caller = new ScriptedCaller([turn("What is your role?", { areaKey: "role" })]);
+    const engine = new InterviewEngine({
+      caller: caller.asCaller(),
+      store,
+      prompts: new ShippedPromptSource(),
+      recall: new LexicalRecall(store, 10),
+      logger,
+    });
+    const { events } = await run(engine, snapshot(template()), undefined, settings);
+    const types = events.map((e) => e.type);
+    expect(types.filter((t) => t === "composing")).toHaveLength(1);
+    expect(types.indexOf("composing")).toBeGreaterThan(types.lastIndexOf("text"));
+    expect(types.indexOf("composing")).toBeLessThan(types.indexOf("turn"));
+  });
+
   it("carries the turn's signal into the model request", async () => {
     const store = new MemoryStore();
     const caller = new ScriptedCaller([turn("Hello?", { areaKey: "role" })]);

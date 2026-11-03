@@ -25,6 +25,7 @@ import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
+import { transcribeDraft } from "../participant/voice.js";
 import { answerFromBody, parseTurnBody } from "../sessions/turn-body.js";
 import { runTurn } from "../sessions/turn-runner.js";
 import { RequirementsListQuery, requirementsListArgs } from "./service.js";
@@ -150,6 +151,24 @@ export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<v
           { event: "spec", data: { spec: await svc.liveSpec(companyId, sessionId, state) } },
         ],
       });
+    },
+  );
+
+  /**
+   * Dictation for the owner's answer box (D-483): the recording comes back as an editable draft;
+   * nothing is sent and the audio is not kept. Held to the owner's access to the session, and to the
+   * recorded-voice switch of the session's template and tenant.
+   */
+  app.post(
+    "/requirements/:id/transcribe",
+    {
+      ...guard.staff({ config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }),
+      schema: { params: Id, hide: true },
+    },
+    async (req) => {
+      // Access only: a path is needed for a turn, not for words in the box.
+      await wrap(() => svc.assertAccess(req.companyId, req.params.id, viewerOf(req)));
+      return transcribeDraft(ctx, { companyId: req.companyId, sessionId: req.params.id }, req);
     },
   );
 

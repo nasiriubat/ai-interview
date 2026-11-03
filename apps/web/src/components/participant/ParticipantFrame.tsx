@@ -1,10 +1,11 @@
 "use client";
 
-import { InfoIcon, PanelRightIcon, PauseIcon } from "lucide-react";
+import { FastForwardIcon, InfoIcon, PanelRightIcon, PauseIcon } from "lucide-react";
 import * as React from "react";
 import { IconButton } from "@/components/admin/IconButton";
 import { useBranding } from "@/components/common/Branding";
-import { LanguageMenu, ThemeMenu } from "@/components/common/PreferenceMenus";
+import { LanguageMenu } from "@/components/common/PreferenceMenus";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -64,7 +65,7 @@ export function PreferenceMenus({ className }: { className?: string }): React.JS
   return (
     <div className={cn("flex items-center gap-1", className)}>
       <LanguageMenu className="h-9" />
-      <ThemeMenu className="size-9" />
+      <ThemeToggle className="size-9" />
     </div>
   );
 }
@@ -171,6 +172,7 @@ export function InterviewFrame({
   progress,
   onPause,
   pauseDisabled,
+  onWrapUp,
   menu,
   panel,
   banner,
@@ -181,6 +183,8 @@ export function InterviewFrame({
   progress: { done: number; total: number };
   onPause: () => void;
   pauseDisabled?: boolean;
+  /** "Wrap up sooner" (D-484); absent once asked, or when it cannot apply. In the menu on phones. */
+  onWrapUp?: (() => void) | undefined;
   /** The overflow menu (finish, download, delete). */
   menu: React.ReactNode;
   /** The side panel's content; mounted in the aside and, below 1280 px, in the sheet when open. */
@@ -218,6 +222,19 @@ export function InterviewFrame({
         centre={<HeaderProgress done={progress.done} total={progress.total} />}
         actions={
           <>
+            {onWrapUp ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="hidden h-9 md:inline-flex"
+                onClick={onWrapUp}
+                title={s.wrapUpHint}
+              >
+                <FastForwardIcon aria-hidden="true" />
+                {s.wrapUp}
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"

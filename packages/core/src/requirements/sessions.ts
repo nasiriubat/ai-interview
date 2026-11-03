@@ -202,6 +202,11 @@ export class RequirementsSessions {
   }
 
   /** The engine must have a path before the first turn when the template asks for one. */
+  /** The viewer may work in this session (owner or admin); throws not-found or forbidden otherwise. */
+  async assertAccess(companyId: string, id: string, viewer: Viewer): Promise<void> {
+    await this.cx.load(companyId, id, viewer);
+  }
+
   async assertTurnAllowed(companyId: string, id: string, viewer: Viewer): Promise<void> {
     const row = await this.cx.load(companyId, id, viewer);
     if (row.template.pathSelection !== "none" && !row.path) throw new PathRequiredError();

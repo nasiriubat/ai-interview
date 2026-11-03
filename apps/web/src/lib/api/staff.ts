@@ -26,7 +26,7 @@ import {
 import { type z } from "zod";
 import { request, requestStream, type Transport } from "./http";
 import type { LISTS, ListQueryOf } from "./lists";
-import type { TurnInput } from "./participant";
+import { recordingName, TranscriptSchema, uploadForm, type TurnInput } from "./participant";
 import {
   type DiagramSaveResult,
   DiagramSaveResultSchema,
@@ -752,6 +752,13 @@ export function staffApi(transport: Transport): StaffApi {
           body: { outcome, ...(note ? { note } : {}) },
           schema: LiveSpecEnvelopeSchema,
         }).then((r) => r.spec),
+      transcribe: (id, audio, durationMs) =>
+        request(transport, {
+          method: "POST",
+          path: `/requirements/${id}/transcribe`,
+          body: uploadForm(audio, recordingName(audio.type), durationMs),
+          schema: TranscriptSchema,
+        }).then((r) => r.text),
       sendTurn: (id, input, signal) =>
         requestStream(transport, {
           method: "POST",
@@ -977,6 +984,8 @@ export interface RequirementsApi {
   settleFinding(id: string, findingId: string, outcome: FindingOutcome, note?: string): Promise<LiveSpec>;
   /** Same SSE stream as the participant turn, plus `event: spec` after each turn. */
   sendTurn(id: string, input: TurnInput | undefined, signal?: AbortSignal): Promise<Response>;
+  /** A recording to an editable draft for the answer box; nothing is sent (D-483). */
+  transcribe(id: string, audio: Blob, durationMs?: number): Promise<string>;
   /** "I'm done" and the other participant controls, as a state operation rather than a message (D-170). */
   sendControl(id: string, control: TurnControl, signal?: AbortSignal): Promise<Response>;
   versions: {

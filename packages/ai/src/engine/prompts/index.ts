@@ -8,7 +8,7 @@ import { issuesPromptV3 } from "../../spec/prompts/issues.v3.js";
 import { requirementMergePromptV3 } from "../../spec/prompts/requirement-merge.v3.js";
 import { specPromptV3 } from "../../spec/prompts/spec.v3.js";
 import { extractionPromptV4 } from "./extraction.v4.js";
-import { interviewerPromptV8 } from "./interviewer.v8.js";
+import { interviewerPromptV9 } from "./interviewer.v9.js";
 import { recapPromptV1 } from "./recap.v1.js";
 import { summaryPromptV2 } from "./summary.v2.js";
 import { turnMetaRepairPromptV3 } from "./turn-meta-repair.v3.js";
@@ -26,7 +26,7 @@ export interface PromptDefinition {
 
 /** Prompts shipped with the code (FR-50). Tenant overrides come through a PromptSource. */
 export const SHIPPED_PROMPTS: Record<string, PromptDefinition> = {
-  interviewer: interviewerPromptV8,
+  interviewer: interviewerPromptV9,
   summary: summaryPromptV2,
   recap: recapPromptV1,
   turn_meta_repair: turnMetaRepairPromptV3,

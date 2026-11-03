@@ -132,9 +132,9 @@ test("an opportunity opens in a side panel that stays on screen, with its eviden
     .toBeLessThanOrEqual(viewport.width + 1);
   const settled = await dialog.boundingBox();
   expect(settled?.x ?? -1).toBeGreaterThanOrEqual(-1);
-  expect(await dialog.locator("blockquote").count()).toBeGreaterThan(0);
-  // Provenance is printed under the quote.
-  await expect(dialog.getByText(/Interview excerpt|Ote haastattelusta/).first()).toBeVisible();
+  // Evidence is a quote figure (D-478), with its verification and provenance printed under it.
+  expect(await dialog.locator("figure").count()).toBeGreaterThan(0);
+  await expect(dialog.locator("figure").first()).toContainText(/op1-f\d/);
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
 });
@@ -201,4 +201,57 @@ test("an active tenant cannot be offboarded before it is suspended", async ({ pa
   await signIn(page, host(info), { role: "platform_operator" });
   await page.goto("/admin/operator/tenants/c1", { waitUntil: "networkidle" });
   await expect(page.getByRole("button", { name: /^(Offboard|Poista käytöstä)$/ })).toBeDisabled();
+});
+
+/*
+ * The requirements workspace fits the screen (D-481): the page itself never scrolls, the answer box
+ * is on screen after a long conversation, the conversation opens at its end and scrolls on its own,
+ * and on a phone conversation and specification are two views of one pane.
+ */
+test("requirements workspace: fits the viewport, composer on screen, panes scroll on their own", async ({
+  page,
+}, info) => {
+  await signIn(page, host(info));
+  await page.goto("/admin/requirements/reqlong", { waitUntil: "networkidle" });
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("no viewport");
+
+  const pageScroll = await page.evaluate(
+    () => document.documentElement.scrollHeight - document.documentElement.clientHeight,
+  );
+  expect(pageScroll, "the page itself scrolls").toBeLessThanOrEqual(1);
+  expect(await overflow(page), "page scrolls sideways").toBeLessThanOrEqual(1);
+
+  const box = page.getByLabel(/^(Your answer|Vastauksesi)$/);
+  await expect(box).toBeVisible();
+  const rect = await box.boundingBox();
+  expect(rect && rect.y + rect.height, "answer box below the fold").toBeLessThanOrEqual(viewport.height);
+
+  // The conversation scrolls inside its own pane and opens at the newest message.
+  const scroller = page.locator("[data-chat-scroller]");
+  const metrics = await scroller.evaluate((el) => ({
+    scrollable: el.scrollHeight > el.clientHeight,
+    fromEnd: el.scrollHeight - el.scrollTop - el.clientHeight,
+  }));
+  expect(metrics.scrollable, "the conversation has its own scroller").toBe(true);
+  expect(metrics.fromEnd, "the conversation opens at its end").toBeLessThanOrEqual(2);
+  await expect(page.getByText("Question 15:", { exact: false })).toBeInViewport();
+
+  // Scrolling the conversation up does not move the page, and offers the way back.
+  await scroller.hover();
+  await page.mouse.wheel(0, -1500);
+  await expect(
+    page.getByRole("button", { name: /Jump to latest|Siirry uusimpaan|uusimpaan/i }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY), "the page moved").toBe(0);
+
+  if (viewport.width < 1024) {
+    // A phone: one pane, switched.
+    const spec = page.getByRole("button", { name: /^(Specification|Määrittely)$/ });
+    await spec.click();
+    await expect(spec).toHaveAttribute("aria-pressed", "true");
+    await expect(box).toBeHidden();
+    await page.getByRole("button", { name: /^(Conversation|Keskustelu)$/ }).click();
+    await expect(box).toBeVisible();
+  }
 });

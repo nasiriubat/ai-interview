@@ -74,6 +74,8 @@ describe("the dark theme", () => {
       "brand-gradient",
       "brand-band",
       "brand-panel",
+      // Built from --primary and --ring, which each theme sets.
+      "shadow-focus",
     ]);
     const missing = Object.keys(light).filter(
       (k) => !(k in darkOwn) && !SAME.has(k) && !k.startsWith("switch-track"),

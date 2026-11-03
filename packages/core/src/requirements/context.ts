@@ -1,4 +1,4 @@
-import { renderLiveSpec, resolvePolicy } from "@aidp/ai";
+import { progressAreas, renderLiveSpec, resolvePolicy } from "@aidp/ai";
 import { tenantTransaction } from "@aidp/db";
 import {
   HandoffSchema,
@@ -96,11 +96,10 @@ export class RequirementsContext {
   sessionView(row: SessionRow): RequirementsSession {
     const state = SessionStateSchema.safeParse(row.state);
     const coverage = state.success ? state.data.coverage : {};
-    const areas = templateFromRow(row.template).coverageAreas.map((a) => ({
-      key: a.key,
-      name: a.name,
-      status: coverage[a.key]?.status ?? "untouched",
-    }));
+    const areas = progressAreas(templateFromRow(row.template), {
+      coverage,
+      shortened: state.success && state.data.shortened,
+    });
     const handoff = row.handoff ? HandoffSchema.safeParse(row.handoff) : undefined;
     return {
       id: row.id,

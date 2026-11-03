@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Dialog } from "radix-ui";
 import * as React from "react";
 import { ProductMark } from "@/components/common/Branding";
-import { LanguageMenu, ThemeMenu } from "@/components/common/PreferenceMenus";
+import { LanguageMenu } from "@/components/common/PreferenceMenus";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import type { Branding } from "@/lib/branding-shared";
 
@@ -76,7 +77,7 @@ export function LandingHeader({
         <div className="ml-auto flex items-center gap-2 xl:ml-0">
           <div className="hidden items-center gap-0.5 md:flex">
             <LanguageMenu />
-            <ThemeMenu />
+            <ThemeToggle />
           </div>
           {request ? (
             <>
@@ -135,12 +136,7 @@ export function LandingHeader({
                       side="top"
                       className="border-border justify-between border"
                     />
-                    <ThemeMenu
-                      showName
-                      align="end"
-                      side="top"
-                      className="border-border justify-between border"
-                    />
+                    <ThemeToggle showName className="border-border border" />
                   </div>
                   <Button asChild variant="outline" size="lg">
                     <Link href={signIn.href}>{signIn.label}</Link>

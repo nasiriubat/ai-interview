@@ -156,7 +156,7 @@ export function LiveVoiceScreen({
             </p>
           </header>
 
-          <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto px-5 py-6">
+          <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto px-5 py-6">
             <div className="flex flex-col items-center gap-3 pt-2 text-center">
               <span
                 aria-hidden="true"

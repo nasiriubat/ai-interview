@@ -2915,6 +2915,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "POST /requirements/:id/transcribe": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "POST /requirements/:id/turns": {
     "access": "staff",
     "isolation": true,

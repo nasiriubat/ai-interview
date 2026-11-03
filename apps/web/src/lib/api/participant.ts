@@ -25,7 +25,7 @@ import {
 
 export interface TurnInput {
   content: string;
-  modality: "text" | "widget";
+  modality: "text" | "dictated" | "widget";
   widgetResponse?: WidgetResponse;
 }
 
@@ -41,14 +41,14 @@ const AUDIO_EXTENSIONS: Record<string, string> = {
 };
 
 /** Browsers append codec parameters (`audio/webm;codecs=opus`); the extension follows the container. */
-const TranscriptSchema = z.looseObject({ text: z.string() });
+export const TranscriptSchema = z.looseObject({ text: z.string() });
 
-function recordingName(mime: string): string {
+export function recordingName(mime: string): string {
   const base = mime.split(";")[0]?.trim().toLowerCase() ?? "";
   return `recording.${AUDIO_EXTENSIONS[base] ?? "webm"}`;
 }
 
-function uploadForm(file: Blob, filename: string, durationMs?: number): FormData {
+export function uploadForm(file: Blob, filename: string, durationMs?: number): FormData {
   const form = new FormData();
   form.append("file", file, filename);
   if (durationMs !== undefined) form.append("durationMs", String(Math.round(durationMs)));

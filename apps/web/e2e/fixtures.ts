@@ -786,6 +786,22 @@ export const requirementsDetailWithDiagrams = {
   spec: { ...requirementsDetail.spec, diagrams: demoDiagrams },
 };
 
+/** A conversation far taller than the screen, ending on a question: the workspace layout test (D-481). */
+export const requirementsDetailLong = {
+  ...requirementsDetail,
+  messages: Array.from({ length: 30 }, (_, i) => ({
+    id: `rl${String(i + 1)}`,
+    seq: i + 1,
+    role: i % 2 === 0 ? "assistant" : "user",
+    modality: "text",
+    content:
+      i % 2 === 0
+        ? `Question ${String(i / 2 + 1)}: what happens at the next step of the handover, and who does it?`
+        : "The charge nurse reads the notes aloud at the station, then each nurse takes the notes for their own patients and checks the medication list against the chart.",
+    createdAt: EARLIER,
+  })),
+};
+
 export const specVersionDetailWithDiagrams = {
   ...specVersionDetail,
   markdown: `${specVersionDetail.markdown}\n## Diagrams\n\n${demoDiagrams

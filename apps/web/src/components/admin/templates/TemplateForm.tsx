@@ -56,7 +56,7 @@ export const emptyTemplate: InterviewTemplate = {
     offerPathSwitch: true,
     toneByRole: true,
   },
-  widgetPolicy: { allowedTypes: [...WIDGET_TYPES], maxPerTurns: 1, everyTurns: 2 },
+  widgetPolicy: { allowedTypes: [...WIDGET_TYPES], maxPerTurns: 1, everyTurns: 1 },
   issueDetection: {
     enabled: false,
     everyTurns: 5,

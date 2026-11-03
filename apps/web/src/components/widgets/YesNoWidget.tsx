@@ -11,9 +11,12 @@ export function YesNoWidget({
   widget,
   disabled,
   onSubmit,
+  other: withOther = true,
 }: {
   widget: Extract<Widget, { type: "yes_no" }>;
   disabled?: boolean | undefined;
+  /** The "Other" field. Off where the answer box right below already takes a written answer. */
+  other?: boolean | undefined;
   onSubmit: (response: WidgetResponse) => void;
 }): React.JSX.Element {
   const id = React.useId();
@@ -52,7 +55,9 @@ export function YesNoWidget({
       {(widget.followUpOnYes ?? widget.followUpOnNo) ? (
         <p className="text-muted-foreground text-xs">{widget.followUpOnYes ?? widget.followUpOnNo}</p>
       ) : null}
-      <OtherInput id={`${id}-other`} value={other} onChange={setOther} disabled={disabled} />
+      {withOther ? (
+        <OtherInput id={`${id}-other`} value={other} onChange={setOther} disabled={disabled} />
+      ) : null}
     </div>
   );
 }

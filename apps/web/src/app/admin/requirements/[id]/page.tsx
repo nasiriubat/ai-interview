@@ -46,6 +46,7 @@ export default async function RequirementsSessionPage({ params }: Props): Promis
     <>
       <PageHeader
         crumbLabels={{ [id]: detail.session.title || t.admin.common.unnamed }}
+        className="mb-4 shrink-0"
         title={detail.session.title || t.admin.common.unnamed}
         subtitle={subtitle || undefined}
         actions={

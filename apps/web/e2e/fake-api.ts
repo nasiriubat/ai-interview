@@ -318,7 +318,11 @@ const READS: [RegExp, Handler][] = [
   [
     /^\/requirements\/[^/]+$/,
     (u) => ({
-      body: u.pathname.endsWith("/reqd") ? f.requirementsDetailWithDiagrams : f.requirementsDetail,
+      body: u.pathname.endsWith("/reqd")
+        ? f.requirementsDetailWithDiagrams
+        : u.pathname.endsWith("/reqlong")
+          ? f.requirementsDetailLong
+          : f.requirementsDetail,
     }),
   ],
   [/^\/requirements\/[^/]+\/versions$/, () => ({ body: { versions: f.specVersions } })],
