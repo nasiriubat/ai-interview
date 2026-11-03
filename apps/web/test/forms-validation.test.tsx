@@ -351,9 +351,9 @@ describe("arrival flow field errors", () => {
     const user = userEvent.setup();
     render(<ArrivalFlow linkToken="t" campaign={campaign} api={api({})} />);
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await user.type(screen.getByLabelText("Email"), "not-an-address");
+    await user.type(screen.getByLabelText(/^Email/), "not-an-address");
     await user.click(screen.getByRole("button", { name: "Send code" }));
-    const input = screen.getByLabelText("Email");
+    const input = screen.getByLabelText(/^Email/);
     expect(input).toHaveFocus();
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByText("Enter a valid email address.")).toHaveAttribute("id", "email-error");
@@ -364,9 +364,9 @@ describe("arrival flow field errors", () => {
     const user = userEvent.setup();
     render(<ArrivalFlow linkToken="t" campaign={campaign} api={api({})} />);
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await user.type(screen.getByLabelText("Email"), "ada@example.com");
+    await user.type(screen.getByLabelText(/^Email/), "ada@example.com");
     await user.click(screen.getByRole("button", { name: "Send code" }));
-    const code = await screen.findByLabelText("Six-digit code");
+    const code = await screen.findByLabelText(/^Six-digit code/);
     await user.type(code, "123456");
     await user.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => {
@@ -389,14 +389,14 @@ describe("arrival flow field errors", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByText("A few details");
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    expect(screen.getByLabelText("Role")).toHaveFocus();
-    expect(screen.getByLabelText("Role")).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByLabelText("Team")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText(/^Role/)).toHaveFocus();
+    expect(screen.getByLabelText(/^Role/)).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText(/^Team/)).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByText("Role is required.")).toBeInTheDocument();
     expect(screen.getByText("Team is required.")).toBeInTheDocument();
     // Typing clears that field's error only.
-    await user.type(screen.getByLabelText("Role"), "Analyst");
-    expect(screen.getByLabelText("Role")).not.toHaveAttribute("aria-invalid");
-    expect(screen.getByLabelText("Team")).toHaveAttribute("aria-invalid", "true");
+    await user.type(screen.getByLabelText(/^Role/), "Analyst");
+    expect(screen.getByLabelText(/^Role/)).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText(/^Team/)).toHaveAttribute("aria-invalid", "true");
   });
 });

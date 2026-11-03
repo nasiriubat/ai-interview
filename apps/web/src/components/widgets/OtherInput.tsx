@@ -117,3 +117,38 @@ export function OtherInput({
     </div>
   );
 }
+
+/** The value an "Other" choice carries inside a radio group; never sent (the text is). */
+export const OTHER_KEY = "__other__";
+
+/**
+ * The text field an "Other" choice opens inside its tile (D-482). Focused when it appears, since
+ * picking "Other" means the person is about to write.
+ */
+export function OtherField({
+  id,
+  value,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean | undefined;
+}): React.JSX.Element {
+  return (
+    <Input
+      id={id}
+      value={value}
+      disabled={disabled}
+      autoFocus
+      autoComplete="off"
+      aria-label={t.participant.session.widgetOther}
+      placeholder={t.participant.session.widgetOtherPlaceholder}
+      className="mt-2"
+      onChange={(e) => {
+        onChange(e.target.value);
+      }}
+    />
+  );
+}

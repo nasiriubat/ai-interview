@@ -171,7 +171,7 @@ export function widgetNote(state: SessionState, template: InterviewTemplate): st
   if (template.widgetPolicy.maxPerTurns === 0 || template.widgetPolicy.allowedTypes.length === 0)
     return "Widgets are off for this interview: ask in words.";
   return widgetAllowed(state, template, state.turnCount + 1)
-    ? "A widget is available this turn. When the likely answers can be listed (a role, a frequency, a tool, a priority, yes or no), attach one rather than asking for free text; the participant can still write their own answer."
+    ? "A widget is available this turn. When the likely answers can be listed (a role, a frequency, a tool, a priority, yes or no), attach one rather than asking for free text; the participant can still write their own answer. Use multi_choice whenever more than one answer can be true at once (tools, tasks, problems, who is involved), single_choice only when exactly one applies, and yes_no or scale where they fit."
     : "No widget this turn (one was shown very recently). If the answer has a few likely options, name two to four of them briefly in your message and invite the participant's own words.";
 }
 

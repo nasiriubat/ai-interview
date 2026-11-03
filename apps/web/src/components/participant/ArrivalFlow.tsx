@@ -308,7 +308,9 @@ export function ArrivalFlow({
             }}
           >
             <div className="grid gap-1.5">
-              <Label htmlFor="email">{t.participant.verify.emailLabel}</Label>
+              <Label htmlFor="email" required>
+                {t.participant.verify.emailLabel}
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -364,7 +366,9 @@ export function ArrivalFlow({
             }}
           >
             <div className="grid gap-1.5">
-              <Label htmlFor="code">{t.participant.verify.codeLabel}</Label>
+              <Label htmlFor="code" required>
+                {t.participant.verify.codeLabel}
+              </Label>
               <Input
                 id="code"
                 inputMode="numeric"
@@ -469,7 +473,7 @@ export function ArrivalFlow({
             ) : null}
             {campaign.participantFields.map((f) => (
               <div key={f.key} className="grid gap-1.5">
-                <Label htmlFor={`field-${f.key}`}>
+                <Label htmlFor={`field-${f.key}`} required={f.required}>
                   {f.label}
                   {!f.required ? (
                     <span className="text-muted-foreground font-normal"> ({t.app.optional})</span>

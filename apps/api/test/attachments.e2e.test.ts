@@ -401,6 +401,18 @@ suite("attachments and recorded voice", () => {
     expect(bad.statusCode).toBe(400);
   });
 
+  it("refuses a recording on the file route, which would skip the voice settings and never be read (D-489)", async () => {
+    const token = await participant();
+    const body = multipart({ name: "a.webm", type: "audio/webm", body: webm("opus") });
+    const res = await world.app.inject({
+      method: "POST",
+      url: "/api/v1/p/session/attachments",
+      headers: { authorization: token, ...body.headers },
+      payload: body.payload,
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it("refuses transcription without a participant session", async () => {
     const body = multipart({ name: "x.webm", type: "audio/webm", body: webm("x") });
     const res = await world.app.inject({

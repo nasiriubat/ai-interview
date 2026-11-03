@@ -439,6 +439,14 @@ export const fi: Strings = {
       attachmentPending: "Luetaan tiedostoa…",
       attachmentReady: "Valmis",
       attachmentFailed: "Tiedostoa ei voitu lukea",
+      attachmentFailedReason: {
+        noText: "Tiedostosta ei löytynyt tekstiä. Jos se on skannaus, kerro mitä siinä näkyy.",
+        tooBig:
+          "Tiedosto on liian suuri tai monimutkainen luettavaksi. Kokeile lyhyempää versiota tai kuvaile se.",
+        damaged: "Tiedosto näyttää vioittuneelta tai suojatulta. Tallenna se uudelleen tai kuvaile se.",
+        mismatch: "Tiedosto ei ole sitä tyyppiä, joksi se on merkitty. Tallenna se tuettuun muotoon.",
+        retry: "Tiedoston lukeminen epäonnistui. Poista se ja liitä uudelleen hetken päästä.",
+      },
       attachmentRemoved: (name: string): string => `Poistettu: ${name}.`,
       attachmentRemove: (name: string): string => `Poista ${name}`,
       attachmentPlay: (name: string): string => `Toista ${name}`,

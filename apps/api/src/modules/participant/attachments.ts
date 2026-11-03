@@ -44,6 +44,12 @@ export async function participantAttachmentRoutes(app: App, ctx: RouteContext): 
       // so a file over any of them is cut off at the limit rather than after the last byte.
       const file = await readOneFile(req, PLATFORM_MAX_UPLOAD_MB * 1024 * 1024);
       const durationMs = durationFrom(file);
+      // Recordings have their own routes (voice turns, dictation), which hold them to the voice
+      // settings and transcribe them. Here audio would skip the file allowlist and never be read.
+      if (file.mimetype.toLowerCase().startsWith("audio/")) {
+        file.file.resume();
+        throw toHttp(new AttachmentRejected("type", "That file type is not accepted"));
+      }
 
       try {
         const created = await ctx.attachments.createFromStream({
@@ -95,7 +101,12 @@ export async function participantAttachmentRoutes(app: App, ctx: RouteContext): 
         reply
           .header("content-type", found.mime)
           .header("x-content-type-options", "nosniff")
-          .header("content-disposition", `attachment; filename="${encodeURIComponent(found.filename)}"`)
+          // `filename*` (RFC 6266) keeps a non-ASCII name such as "työvuorot.pdf" readable; the plain
+          // `filename` is the ASCII fallback, which the stored name already almost always is.
+          .header(
+            "content-disposition",
+            `attachment; filename="${found.filename.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "")}"; filename*=UTF-8''${encodeURIComponent(found.filename)}`,
+          )
           // Nothing in these bytes may run, load or embed anything if a browser is ever pointed at them.
           .header("content-security-policy", "sandbox; default-src 'none'")
           .header("cache-control", "private, no-store")

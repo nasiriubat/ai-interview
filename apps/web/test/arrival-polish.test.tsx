@@ -176,9 +176,9 @@ describe("a new sign-in code", () => {
     const m = mocks();
     render(<ArrivalFlow linkToken="t" campaign={campaign} api={api(m)} />);
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await user.type(screen.getByLabelText("Email"), "ada@example.com");
+    await user.type(screen.getByLabelText(/^Email/), "ada@example.com");
     await user.click(screen.getByRole("button", { name: "Send code" }));
-    await screen.findByLabelText("Six-digit code");
+    await screen.findByLabelText(/^Six-digit code/);
 
     // The first code started the wait.
     const resend = screen.getByRole("button", { name: `Send a new code in ${String(RESEND_SECONDS)} s` });
@@ -207,9 +207,9 @@ describe("a new sign-in code", () => {
     const user = userEvent.setup();
     render(<ArrivalFlow linkToken="t" campaign={campaign} api={api()} />);
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await user.type(screen.getByLabelText("Email"), "ada@example.com");
+    await user.type(screen.getByLabelText(/^Email/), "ada@example.com");
     await user.click(screen.getByRole("button", { name: "Send code" }));
-    await screen.findByLabelText("Six-digit code");
+    await screen.findByLabelText(/^Six-digit code/);
     const row = screen.getByRole("button", { name: "Change email" }).parentElement!;
     expect(row.className).toContain("flex-col");
     expect(row.className).toContain("sm:flex-row");

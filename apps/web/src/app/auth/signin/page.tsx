@@ -79,7 +79,9 @@ export default async function SignInPage({ searchParams }: Props): Promise<React
           <form action={signInWithEmail} className="grid gap-4">
             <input type="hidden" name="callbackUrl" value={callbackUrl} />
             <div className="grid gap-1.5">
-              <Label htmlFor="email">{t.auth.emailLabel}</Label>
+              <Label htmlFor="email" required>
+                {t.auth.emailLabel}
+              </Label>
               <Input
                 id="email"
                 name="email"

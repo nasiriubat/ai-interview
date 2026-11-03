@@ -190,7 +190,7 @@ describe("attachments", () => {
             filename: "scan.png",
             kind: "image",
             status: "failed",
-            error: "We could not read any text in that image",
+            error: "no_text",
           }),
           // A recording is not listed here: a spoken answer lives in its own bubble.
           attachment({ id: "v1", kind: "audio", filename: "recording.webm", durationMs: 7000 }),
@@ -204,7 +204,8 @@ describe("attachments", () => {
 
     expect(screen.getByText(/Reading your file…/)).toBeInTheDocument();
     expect(screen.getByText("2 kB · Ready")).toBeInTheDocument();
-    expect(screen.getByText(/We could not read any text in that image/)).toBeInTheDocument();
+    // A code from the server, shown as a sentence the participant can act on (D-489).
+    expect(screen.getByText(/No text found in this file/)).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
     expect(screen.queryByText(/recording/i)).not.toBeInTheDocument();
 
