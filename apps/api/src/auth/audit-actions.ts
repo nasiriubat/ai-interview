@@ -91,6 +91,12 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /requirements/:id/turns": {
     none: "A conversation turn is the interview itself, stored as messages; it is not an administrative action.",
   },
+  "POST /requirements/:id/attachments": {
+    none: "The owner's own interview material, stored with the session exactly like a participant's file; not an administrative action.",
+  },
+  "DELETE /requirements/:id/attachments/:attachmentId": {
+    none: "The owner removing their own interview material, as a participant can; not an administrative action.",
+  },
   "POST /requirements/:id/transcribe": {
     none: "Dictation returns a draft for the owner's answer box and stores nothing; the model call is in the ledger.",
   },

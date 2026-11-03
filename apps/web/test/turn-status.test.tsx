@@ -133,3 +133,25 @@ describe("useFocusOnTurn", () => {
     elsewhere.remove();
   });
 });
+
+describe("the first turn can wait (D-490)", () => {
+  it("is not asked while held, and is asked once the hold lifts", async () => {
+    const stream = controlledStream();
+    const sendTurn = vi.fn(() => Promise.resolve(stream.response));
+    const api = { ...participantApi({ fetch: () => Promise.resolve(stream.response) }), sendTurn };
+    const fresh: ParticipantSession = { ...session, messages: [] };
+    const { rerender } = renderHook(
+      ({ hold }: { hold: boolean }) => useInterview(api, fresh, { holdFirstTurn: hold }),
+      {
+        initialProps: { hold: true },
+      },
+    );
+    await new Promise((r) => setTimeout(r, 20));
+    expect(sendTurn).not.toHaveBeenCalled();
+    rerender({ hold: false });
+    await waitFor(() => {
+      expect(sendTurn).toHaveBeenCalledTimes(1);
+    });
+    stream.close();
+  });
+});

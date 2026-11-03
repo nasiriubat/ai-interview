@@ -89,6 +89,41 @@ export interface SpecGenerationInput {
    * specification (D-191).
    */
   minRequirements?: number;
+  /**
+   * Files attached to the interview that could be read (D-490): a README, a PRD, screenshots.
+   * Source material for detail; what the interview recorded decides, and anything taken only from
+   * a document is attributed to it in the text.
+   */
+  documents?: readonly SpecDocumentSource[];
+}
+
+/** One readable attachment as the generator sees it: its summary and a bounded excerpt. */
+export interface SpecDocumentSource {
+  filename: string;
+  summary: string;
+  text: string;
+}
+
+/** Per document, and for all of them: the excerpt is source material, not the whole file. */
+const DOCUMENT_CHARS = 12_000;
+const DOCUMENTS_CHARS = 36_000;
+
+/** The documents block of the generation request, fenced as untrusted, within the budgets above. */
+export function renderDocuments(documents: readonly SpecDocumentSource[], nonce: string): string {
+  if (documents.length === 0) return "";
+  let room = DOCUMENTS_CHARS;
+  const parts: string[] = [];
+  for (const d of documents) {
+    const excerpt = d.text.slice(0, Math.min(DOCUMENT_CHARS, Math.max(0, room)));
+    room -= excerpt.length;
+    const body = `File: ${d.filename}\nSummary: ${d.summary}${excerpt ? `\n\n${excerpt}` : ""}`;
+    parts.push(wrapUntrusted("document", body, { nonce }));
+  }
+  return [
+    "",
+    'Documents attached to this interview (source material; the specification state above is what was agreed. Use a document for detail the interview did not cover, and where a statement comes only from a document, name the file in the text, e.g. "(from README.md)"; where a document contradicts the interview, follow the interview and list the difference under open questions):',
+    ...parts,
+  ].join("\n");
 }
 
 export type ReadBackStatus = "confirmed" | "unanswered" | "never";
@@ -474,6 +509,7 @@ export async function generateSpec(
       "Specification state:",
       wrapUntrusted("spec_state", renderSpecState(input.state, input.path, input.edits), { nonce }),
       input.summary ? `\nConversation summary:\n${wrapUntrusted("summary", input.summary, { nonce })}` : "",
+      renderDocuments(input.documents ?? [], nonce),
     ]
       .filter((l) => l !== "")
       .join("\n");

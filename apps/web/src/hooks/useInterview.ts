@@ -10,6 +10,12 @@ import { readTurnStream } from "@/lib/api/sse";
 export interface InterviewOptions {
   /** Called with the live spec after each turn of a requirements session (`event: spec`, contract 18). */
   onSpec?: (spec: LiveSpec) => void;
+  /**
+   * Keeps the first turn from starting while true: the requirements workspace holds it while the
+   * documents the owner started from are still being read, so the first question already knows
+   * them (D-490). The screen is responsible for letting go (it does after a time limit).
+   */
+  holdFirstTurn?: boolean;
 }
 
 export interface InterviewError {
@@ -468,7 +474,8 @@ export function useInterview(
     };
   }, []);
 
-  const needsFirstTurn = initial.messages.length === 0 && !isCompleted(initial.status);
+  const needsFirstTurn =
+    initial.messages.length === 0 && !isCompleted(initial.status) && options.holdFirstTurn !== true;
   React.useEffect(() => {
     if (startedRef.current || !needsFirstTurn) return;
     // Deferred by a tick so React's development double-mount cancels the first schedule

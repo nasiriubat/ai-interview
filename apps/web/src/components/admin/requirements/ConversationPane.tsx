@@ -1,9 +1,10 @@
 "use client";
 
 import type { Path } from "@aidp/shared";
-import { AlertTriangleIcon, CheckIcon, FastForwardIcon, RotateCcwIcon } from "lucide-react";
+import { AlertTriangleIcon, CheckIcon, FastForwardIcon, Loader2Icon, RotateCcwIcon } from "lucide-react";
 import * as React from "react";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { AttachmentList } from "@/components/participant/AttachmentList";
 import { ChatViewport } from "@/components/participant/ChatViewport";
 import { Composer } from "@/components/participant/Composer";
 import { MessageList } from "@/components/participant/MessageList";
@@ -12,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { choiceTileClass } from "@/components/ui/choice-tile";
 import { WidgetRenderer } from "@/components/widgets";
+import { useAttachments } from "@/hooks/useAttachments";
 import { useInterview } from "@/hooks/useInterview";
 import { useCoarsePointer } from "@/hooks/useMediaQuery";
 import { t } from "@/i18n";
@@ -21,6 +23,9 @@ import type { LiveSpec, ParticipantSession } from "@/lib/api/schemas";
 import { cn } from "@/lib/utils";
 
 const PATHS = ["technical", "nontechnical"] as const;
+
+/** The longest the first question waits for starting documents to be read. */
+const FIRST_TURN_WAIT_MS = 45_000;
 
 function PathSwitch({
   value,
@@ -151,10 +156,30 @@ function ConversationBody({
 }): React.JSX.Element {
   const s = t.admin.requirements.workspace;
   const p = t.participant.session;
+  // The owner's own material (D-490): a README, a PRD, screenshots. Read like a participant's file,
+  // so the interviewer asks about it and the specification can draw on it.
+  const attachments = useAttachments(api, {
+    initial: initial.attachments,
+    capabilities: initial.capabilities,
+    enabled: initial.capabilities.fileUpload,
+  });
+  // Documents attached at creation are still being read when the workspace opens: the first
+  // question waits for them, so it starts from what they say, but never for longer than this.
+  const [holdOver, setHoldOver] = React.useState(false);
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setHoldOver(true);
+    }, FIRST_TURN_WAIT_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
+  const reading =
+    !holdOver && initial.messages.length === 0 && attachments.items.some((a) => a.status === "pending");
   const { state, activeWidget, sendText, sendWidget, sendControl, retry, clearError } = useInterview(
     api,
     initial,
-    { onSpec },
+    { onSpec, holdFirstTurn: reading },
   );
   const [path, setPath] = React.useState<Path | null>(initial.path ?? null);
   const [busy, setBusy] = React.useState(false);
@@ -274,6 +299,12 @@ function ConversationBody({
           pending={state.pending}
           announcement={state.lastAnnouncement}
         >
+          {reading ? (
+            <p role="status" className="text-muted-foreground flex items-center gap-2 text-sm">
+              <Loader2Icon className="size-4 motion-safe:animate-spin" aria-hidden="true" />
+              {s.readingDocuments}
+            </p>
+          ) : null}
           {state.error ? (
             <Alert variant={isBudget ? "warning" : "destructive"} className="mt-2">
               <AlertTriangleIcon />
@@ -339,6 +370,15 @@ function ConversationBody({
               />
             </section>
           ) : null}
+          <AttachmentList
+            items={attachments.items}
+            uploading={attachments.uploading}
+            progress={attachments.progress}
+            onCancel={attachments.cancelUpload}
+            error={attachments.error}
+            onRemove={attachments.remove}
+            fetchBytes={attachments.bytes}
+          />
           <TurnStatus phase={phase} widget={showWidget} canDictate />
           <div className="bg-muted/60 has-[textarea:focus]:bg-card has-[textarea:focus]:shadow-focus shrink-0 rounded-2xl p-1.5 transition-shadow">
             <Composer
@@ -349,6 +389,14 @@ function ConversationBody({
               placeholder={showWidget ? p.composerPlaceholderOther : undefined}
               onSend={(text, modality) => sendText(text, modality)}
               onDictate={(audio, durationMs) => api.transcribe(audio, durationMs)}
+              onFile={
+                initial.capabilities.fileUpload
+                  ? (file) => {
+                      attachments.upload(file);
+                    }
+                  : undefined
+              }
+              accept={attachments.accept}
             />
           </div>
         </footer>

@@ -1329,6 +1329,16 @@ export const RequirementsDetailSchema = z.looseObject({
   spec: LiveSpecSchema.prefault({}),
   versions: z.array(SpecVersionSummarySchema).default([]),
   invitations: z.array(SessionInvitationSchema).default([]),
+  /** The files attached to the session, the owner's and invitees' (D-490). */
+  attachments: z.array(AttachmentSchema).default([]),
+  /** Whether the owner may attach files, and the limits in force. */
+  uploads: z
+    .looseObject({
+      enabled: z.boolean().default(false),
+      maxSizeMb: z.number().default(DEFAULT_MAX_SIZE_MB),
+      allowedTypes: z.array(z.string()).default([...DEFAULT_ALLOWED_TYPES]),
+    })
+    .prefault({}),
 });
 export type RequirementsDetail = z.infer<typeof RequirementsDetailSchema>;
 

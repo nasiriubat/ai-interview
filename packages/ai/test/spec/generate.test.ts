@@ -117,6 +117,34 @@ const modelOutput = {
 };
 
 describe("generateSpec", () => {
+  it("reads the interview's documents as fenced source material, attributed by file (D-490)", async () => {
+    const caller = new ScriptedCaller([JSON.stringify(modelOutput)]);
+    await generateSpec(
+      { caller: caller.asCaller(), prompts: new ShippedPromptSource(), logger, now },
+      {
+        ...input,
+        documents: [
+          { filename: "README.md", summary: "A ward notes tool.", text: "Notes sync to both systems." },
+          { filename: "huge.pdf", summary: "Very long.", text: "x".repeat(50_000) },
+        ],
+      },
+    );
+    const user = String(caller.requests[0]?.req.messages[0]?.content);
+    expect(user).toContain("File: README.md");
+    expect(user).toContain("Notes sync to both systems.");
+    expect(user).toContain('name the file in the text, e.g. "(from README.md)"');
+    expect(user).toContain("follow the interview and list the difference under open questions");
+    // Fenced like every other untrusted input, and bounded per document.
+    expect(user).toMatch(/<untrusted-[0-9a-f]+ kind="document"/);
+    expect(user.match(/x+/g)?.reduce((n, run) => Math.max(n, run.length), 0)).toBeLessThanOrEqual(12_000);
+  });
+
+  it("adds no documents block when nothing was attached", async () => {
+    const caller = new ScriptedCaller([JSON.stringify(modelOutput)]);
+    await generateSpec({ caller: caller.asCaller(), prompts: new ShippedPromptSource(), logger, now }, input);
+    expect(String(caller.requests[0]?.req.messages[0]?.content)).not.toContain("Documents attached");
+  });
+
   it("assembles the document from the model, keeps owner edits authoritative, renders spec.md and the bundle", async () => {
     const caller = new ScriptedCaller([JSON.stringify(modelOutput)]);
     const r = await generateSpec(

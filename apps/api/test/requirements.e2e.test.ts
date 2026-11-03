@@ -176,6 +176,95 @@ suite("requirements interview end to end", () => {
     expect(other.statusCode).toBe(403);
   });
 
+  it("lets the owner attach their own documents, held to their access and the tenant's limits (D-490)", async () => {
+    const { app, adminToken } = world;
+    const h = { authorization: `Bearer ${adminToken}` };
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/requirements",
+      headers: h,
+      payload: { title: "From a README", prompt: "A ward notes tool." },
+    });
+    const id = created.json<{ session: { id: string } }>().session.id;
+    const boundary = `----test${Math.random().toString(36).slice(2)}`;
+    const file = (name: string, type: string, body: string) => ({
+      payload: Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\nContent-Type: ${type}\r\n\r\n${body}\r\n--${boundary}--\r\n`,
+      ),
+      headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+    });
+
+    const readme = file(
+      "README.md",
+      "text/markdown",
+      "# Ward notes\nNurses enter each note once; it syncs to both systems.",
+    );
+    const up = await app.inject({
+      method: "POST",
+      url: `/api/v1/requirements/${id}/attachments`,
+      headers: { ...h, ...readme.headers },
+      payload: readme.payload,
+    });
+    expect(up.statusCode).toBe(200);
+    const attachment = up.json<{ attachment: { id: string; filename: string; status: string } }>().attachment;
+    expect(attachment).toMatchObject({ filename: "README.md", status: "pending" });
+
+    // The workspace is told what was attached and the limits in force.
+    const detail = await app.inject({ method: "GET", url: `/api/v1/requirements/${id}`, headers: h });
+    expect(detail.json()).toMatchObject({
+      attachments: [{ id: attachment.id }],
+      uploads: { enabled: true, maxSizeMb: expect.any(Number) },
+    });
+
+    // Bytes come back as a download, never inline.
+    const bytes = await app.inject({
+      method: "GET",
+      url: `/api/v1/requirements/${id}/attachments/${attachment.id}`,
+      headers: h,
+    });
+    expect(bytes.statusCode).toBe(200);
+    expect(bytes.headers["content-disposition"]).toMatch(/^attachment;/);
+
+    // The same checks as a participant's file: content that is not what it claims is refused.
+    const fake = file("notes.pdf", "application/pdf", "not a pdf at all");
+    const refused = await app.inject({
+      method: "POST",
+      url: `/api/v1/requirements/${id}/attachments`,
+      headers: { ...h, ...fake.headers },
+      payload: fake.payload,
+    });
+    expect(refused.statusCode).toBe(400);
+
+    // Someone without access to the interview can neither add to it nor read from it.
+    const member = { authorization: `Bearer ${memberToken}` };
+    const intruder = await app.inject({
+      method: "POST",
+      url: `/api/v1/requirements/${id}/attachments`,
+      headers: { ...member, ...readme.headers },
+      payload: readme.payload,
+    });
+    expect(intruder.statusCode).toBe(403);
+    const peek = await app.inject({
+      method: "GET",
+      url: `/api/v1/requirements/${id}/attachments`,
+      headers: member,
+    });
+    expect(peek.statusCode).toBe(403);
+
+    const removed = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/requirements/${id}/attachments/${attachment.id}`,
+      headers: h,
+    });
+    expect(removed.statusCode).toBe(200);
+    const after = await app.inject({
+      method: "GET",
+      url: `/api/v1/requirements/${id}/attachments`,
+      headers: h,
+    });
+    expect(after.json().attachments).toEqual([]);
+  });
+
   it("creates from a prompt, interviews with a live spec, versions, exports, invites, and scopes access", async () => {
     const { app, adminToken, db } = world;
     const h = { authorization: `Bearer ${adminToken}` };

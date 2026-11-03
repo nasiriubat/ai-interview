@@ -100,6 +100,48 @@ describe("requirementsSessionApi", () => {
     await expect(api.putSummary("x")).rejects.toThrow("not available");
   });
 
+  it("puts the owner's files on the owner's own routes, with the limits the server sent (D-490)", async () => {
+    const attachment = {
+      id: "a1",
+      kind: "document",
+      filename: "README.md",
+      mime: "text/markdown",
+      sizeBytes: 10,
+      status: "pending",
+      createdAt: "",
+    };
+    const { transport, calls } = fakeTransport((call) => {
+      if (call.path === "/requirements/s1/attachments" && call.method === "POST") return { attachment };
+      if (call.path === "/requirements/s1/attachments") return { attachments: [attachment] };
+      return { ok: true };
+    });
+    const api = requirementsSessionApi("s1", staffApi(transport));
+    await api.uploadAttachment(new File(["# hi"], "README.md", { type: "text/markdown" }));
+    expect(await api.listAttachments()).toMatchObject([{ id: "a1" }]);
+    await api.deleteAttachment("a1");
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
+      "POST /requirements/s1/attachments",
+      "GET /requirements/s1/attachments",
+      "DELETE /requirements/s1/attachments/a1",
+    ]);
+
+    const session = toParticipantSession(
+      RequirementsDetailSchema.parse({
+        ...detail,
+        attachments: [attachment],
+        uploads: { enabled: true, maxSizeMb: 5, allowedTypes: ["text/markdown"] },
+      }),
+    );
+    expect(session.capabilities).toMatchObject({
+      fileUpload: true,
+      maxSizeMb: 5,
+      allowedTypes: ["text/markdown"],
+    });
+    expect(session.attachments.map((a) => a.id)).toEqual(["a1"]);
+    // An older API, or a tenant with uploads off: no paperclip.
+    expect(toParticipantSession(RequirementsDetailSchema.parse(detail)).capabilities.fileUpload).toBe(false);
+  });
+
   it("converts a workspace detail into the hook's session shape", () => {
     const parsed = RequirementsDetailSchema.parse({ ...detail, session: { ...detail.session, path: null } });
     expect(toParticipantSession(parsed)).toMatchObject({

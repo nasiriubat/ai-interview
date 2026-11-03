@@ -215,6 +215,7 @@ describe("forwardToApi", () => {
       expect(bodyLimitFor(["p", "session", "voice-turns"])).toBe(UPLOAD_BODY_LIMIT_BYTES);
       expect(bodyLimitFor(["p", "session", "transcribe"])).toBe(UPLOAD_BODY_LIMIT_BYTES);
       expect(bodyLimitFor(["requirements", "r1", "transcribe"])).toBe(UPLOAD_BODY_LIMIT_BYTES);
+      expect(bodyLimitFor(["requirements", "r1", "attachments"])).toBe(UPLOAD_BODY_LIMIT_BYTES);
       expect(bodyLimitFor(["requirements", "r1", "turns"])).toBe(DEFAULT_BODY_LIMIT_BYTES);
       expect(bodyLimitFor(["campaigns"])).toBe(DEFAULT_BODY_LIMIT_BYTES);
       expect(bodyLimitFor(["p", "session", "turns"])).toBe(DEFAULT_BODY_LIMIT_BYTES);

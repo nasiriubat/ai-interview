@@ -1594,6 +1594,15 @@ export const fi: Strings = {
         titleField: "Otsikko",
         promptField: "Kuvaa idea",
         promptHint: "Kuvaa idea muutamalla lauseella.",
+        documentsField: "Lähtöaineisto",
+        documentsHint:
+          "Valinnainen: README, PRD, muistiinpanot tai kuvakaappaukset. Haastattelija lukee ne ennen ensimmäistä kysymystä ja kysyy siitä, mitä ne jättävät auki; määrittely voi käyttää niitä ja nimeää tiedoston.",
+        documentsRejected: (mb: number): string =>
+          `Osa tiedostoista jätettiin pois: PDF, Word, Excel, teksti, Markdown, CSV, PNG tai JPEG, enintään ${mb} Mt kukin.`,
+        documentsRemove: (name: string): string => `Poista ${name}`,
+        documentsRefused: (names: string): string =>
+          `Haastattelu luotiin, mutta näitä tiedostoja ei voitu liittää: ${names}. Voit liittää ne keskustelussa.`,
+        documentsContinue: "Avaa haastattelu",
         pathField: "Polku",
         templateField: "Mallipohja",
         templateHint: "Julkaistut vaatimusmallipohjat.",
@@ -1612,6 +1621,7 @@ export const fi: Strings = {
         reopen: "Avaa uudelleen",
         reopened: "Haastattelu avattu uudelleen",
         completedNote: "Tämä haastattelu on valmis. Avaa se uudelleen, jos haluat hioa määrittelyä.",
+        readingDocuments: "Luetaan dokumenttejasi ennen ensimmäistä kysymystä…",
         tabs: { spec: "Luonnos", findings: "Havainnot", versions: "Määrittelydokumentit" },
         panelLabel: "Määrittelypaneeli",
         viewLabel: "Työtilan näkymä",
