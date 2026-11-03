@@ -69,15 +69,23 @@ export interface SpeechRunnerOptions {
   idleUnloadMs?: number;
 }
 
+/** What the API, the providers and the readiness check need from on-server speech to text. */
+export interface SpeechService {
+  status(): SpeechStatus;
+  warmUp(model: string, onProgress?: (fraction: number | undefined) => void): Promise<void>;
+  transcribe(model: string, audio: Float32Array, hint?: LanguageHint): Promise<SpeechResult>;
+}
+
 /**
  * Whisper on the CPU is one heavy job at a time. Running two at once does not finish either sooner
  * — they share the same cores — it only doubles the memory and makes both late, so requests queue.
  */
-export class SpeechRunner {
+export class SpeechRunner implements SpeechService {
   private tail: Promise<unknown> = Promise.resolve();
   private current: string | null = null;
   private state: Omit<SpeechStatus, "queued"> = { model: null, state: "not_loaded" };
   private waiting = 0;
+  private active = 0;
   private readonly startTimeoutMs: number;
   private readonly runTimeoutMs: (audioSeconds: number) => number;
   private readonly maxQueued: number;
@@ -98,6 +106,11 @@ export class SpeechRunner {
 
   status(): SpeechStatus {
     return { ...this.state, queued: this.waiting };
+  }
+
+  /** Recordings this runner holds: waiting, and the one running. What a pool balances on. */
+  load(): number {
+    return this.waiting + this.active;
   }
 
   /**
@@ -135,7 +148,12 @@ export class SpeechRunner {
       if (request.abandoned) return undefined;
       leaveQueue();
       markStarted();
-      return this.run(model, audio, hint);
+      this.active++;
+      try {
+        return await this.run(model, audio, hint);
+      } finally {
+        this.active--;
+      }
     });
 
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -310,19 +328,75 @@ function readCpuMax(): string {
   }
 }
 
-let shared: SpeechRunner | undefined;
+/**
+ * Several runners side by side (D-494), each with its own engine, model copy and share of the CPU,
+ * and each recording sent to the one with the least waiting. One engine given every core does not
+ * scale with them: measured on whisper-small, two engines with two threads each finish four
+ * recordings about a quarter sooner than one engine with four, and a short answer no longer waits
+ * behind a long one. Each runner keeps its own queue, timeouts and idle unloading.
+ */
+export class SpeechPool implements SpeechService {
+  constructor(private readonly runners: readonly SpeechRunner[]) {
+    if (runners.length === 0) throw new Error("SpeechPool needs at least one runner");
+  }
+
+  status(): SpeechStatus {
+    const all = this.runners.map((r) => r.status());
+    // The pool is as ready as its best runner, and everything waiting anywhere is waiting.
+    const best =
+      all.find((s) => s.state === "ready") ??
+      all.find((s) => s.state === "downloading") ??
+      all.find((s) => s.state === "error") ??
+      all[0];
+    if (!best) return { model: null, state: "not_loaded", queued: 0 };
+    return { ...best, queued: all.reduce((n, s) => n + s.queued, 0) };
+  }
+
+  async warmUp(model: string, onProgress?: (fraction: number | undefined) => void): Promise<void> {
+    // The first downloads the model and reports it; the rest then load it from the disk cache.
+    const [first, ...rest] = this.runners;
+    await first?.warmUp(model, onProgress);
+    await Promise.all(rest.map((r) => r.warmUp(model)));
+  }
+
+  transcribe(model: string, audio: Float32Array, hint: LanguageHint = {}): Promise<SpeechResult> {
+    const target = this.runners.reduce((a, b) => (b.load() < a.load() ? b : a));
+    return target.transcribe(model, audio, hint);
+  }
+}
+
+/** `SPEECH_WORKERS`: how many engines transcribe side by side. Default 1. */
+export function speechWorkers(env: NodeJS.ProcessEnv = process.env): number {
+  const n = Number(env.SPEECH_WORKERS?.trim());
+  return Number.isInteger(n) && n >= 1 && n <= 8 ? n : 1;
+}
+
+let shared: SpeechService | undefined;
 
 /**
- * The process-wide runner: one thread, one model in memory, however many providers and tenants
- * route to it. Created on first use, so a process that never transcribes never starts a thread.
+ * The process-wide speech service: `SPEECH_WORKERS` engines, each with its share of the threads
+ * (`speechThreads` divided between them, at least one, unless SPEECH_MODEL_THREADS sets it per
+ * engine), however many providers and tenants route to it. Created on first use, so a process that
+ * never transcribes never starts a thread.
  */
-export function localSpeechRunner(): SpeechRunner {
-  shared ??= new SpeechRunner(
-    new WorkerThreadEngine({ cacheDir: modelCacheDir(), threads: speechThreads() }),
-    {
-      idleUnloadMs: idleUnloadMs(),
-    },
-  );
+export function localSpeechRunner(): SpeechService {
+  if (!shared) {
+    const workers = speechWorkers();
+    const explicit = Number(process.env.SPEECH_MODEL_THREADS?.trim());
+    const threads =
+      Number.isInteger(explicit) && explicit > 0
+        ? explicit
+        : Math.max(1, Math.floor(speechThreads() / workers));
+    const runners = Array.from(
+      { length: workers },
+      () =>
+        new SpeechRunner(new WorkerThreadEngine({ cacheDir: modelCacheDir(), threads }), {
+          idleUnloadMs: idleUnloadMs(),
+        }),
+    );
+    const [only] = runners;
+    shared = runners.length === 1 && only ? only : new SpeechPool(runners);
+  }
   return shared;
 }
 

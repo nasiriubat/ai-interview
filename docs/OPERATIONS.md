@@ -366,6 +366,31 @@ long, check the fallback's budget line and that its answers are acceptable.
 
 **Fixed when** The circuit is closed (Platform health shows it) and the alert resolves with it.
 
+### deploy.skipped_unverified
+
+**Symptom** A commit reached `main` without a `verified/<sha>` tag, so the server kept the version
+it was running (D-493). Usually a `git push` made by hand instead of `pnpm ship`.
+
+**Look at** `journalctl -u aidp-autodeploy` on the server: the skipped commit is named.
+
+**Do** On your machine, check out that commit and run `pnpm ship` (gate, browser suite, dependency
+audit; it pushes the tag when they pass). In an emergency only, deploy it untested on the server with
+`deploy/autodeploy.sh --allow-unverified`, which raises `deploy.unverified`.
+
+**Fixed when** The commit has its tag and `journalctl -u aidp-autodeploy` shows `release: done`.
+
+### deploy.unverified
+
+**Symptom** A commit was deployed with `deploy/autodeploy.sh --allow-unverified`: the gate, the
+browser suite and the dependency audit were not confirmed for what is running now.
+
+**Look at** The commit named in the alert, and what changed in it.
+
+**Do** Run `pnpm ship --no-push` on that commit as soon as possible; if anything fails, fix it and
+ship the fix, or `deploy/rollback.sh`.
+
+**Fixed when** A verified commit is running again.
+
 ### rls.preflight_failed
 
 **Symptom** The row-level-security gate refused to start the stack: `api` and `worker` are not

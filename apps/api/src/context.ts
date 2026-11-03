@@ -1,4 +1,4 @@
-import { localSpeechRunner, type SpeechRunner } from "@aidp/ai";
+import { localSpeechRunner, type SpeechService } from "@aidp/ai";
 import {
   AlertRouter,
   AnalysisService,
@@ -78,7 +78,7 @@ export interface AppContext {
   /** What the server may connect to on a tenant's say-so (S4). */
   egress: EgressGuard;
   /** Whisper on this server (D-75): one runner per process, shared by every `local` provider. */
-  speech: SpeechRunner;
+  speech: SpeechService;
   /**
    * Aborted when the process is draining and the grace period for running turns is over. Streams
    * still open at that point end with an `error` event of code `shutting_down`, so the client
@@ -123,7 +123,7 @@ export function buildContext(input: {
   /** Tests pass a guard with a fake resolver; production builds one from the environment. */
   egress?: EgressGuard;
   /** Tests pass a runner over an in-memory engine, so nothing loads a model. */
-  speech?: SpeechRunner;
+  speech?: SpeechService;
   /** Tests pass a MemoryAlerts; production gets an AlertRouter over the database. */
   alerts?: AlertPort;
   /** Required in production (PgBossJobAdmin); tests get a MemoryJobAdmin. */

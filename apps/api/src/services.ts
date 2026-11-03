@@ -1,4 +1,4 @@
-import type { SpeechRunner } from "@aidp/ai";
+import type { SpeechService } from "@aidp/ai";
 import type {
   AnalysisService,
   AttachmentService,
@@ -97,7 +97,7 @@ export interface ServiceDeps {
   settings: SettingsService;
   callers: CallerFactory;
   egress: EgressGuard;
-  speech: SpeechRunner;
+  speech: SpeechService;
   email: EmailPort;
   tenants: TenantGate;
   analysis: AnalysisService;

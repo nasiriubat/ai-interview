@@ -396,6 +396,8 @@ export const en = {
         "Recording. Speak, then press Stop; your words appear in the box to check before sending.",
       recordingDiscarded: "Recording discarded.",
       recordingSending: "Turning your recording into text…",
+      recordingSlow:
+        "Still turning your recording into text: the server is busy, it may take a few more seconds…",
       dictationAdded: "Your words are in the box. Check them, then press Send.",
       recordingMaxed:
         "Recordings stop at five minutes. What you said so far is in the box; you can record more.",

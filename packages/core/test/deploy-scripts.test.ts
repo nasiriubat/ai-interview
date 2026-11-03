@@ -141,11 +141,19 @@ describe("shell producers and the alert catalog", () => {
     for (const m of text.matchAll(/\braise\s+([a-z_.]+)\s+(?:info|warning|critical)/g)) found.add(m[1] ?? "");
     for (const m of text.matchAll(/"kind":"([a-z_.]+)"/g)) found.add(m[1] ?? "");
     for (const m of text.matchAll(/--arg kind "([a-z_.]+)"/g)) found.add(m[1] ?? "");
+    for (const m of text.matchAll(/\bhost_alert\s+([a-z_.]+)\s+(?:info|warning|critical)/g))
+      found.add(m[1] ?? "");
     found.delete("");
     return [...found];
   }
 
-  for (const file of ["backup/backup.sh", "backup/restore-drill.sh", "lib/preflight.sh", "ops/notify.sh"]) {
+  for (const file of [
+    "backup/backup.sh",
+    "backup/restore-drill.sh",
+    "lib/preflight.sh",
+    "ops/notify.sh",
+    "autodeploy.sh",
+  ]) {
     it(`${file} only emits kinds the catalog defines`, () => {
       const kinds = emitted(read("deploy", file));
       expect(kinds.length, `${file} should emit at least one alert`).toBeGreaterThan(0);
@@ -155,9 +163,13 @@ describe("shell producers and the alert catalog", () => {
 
   it("together emit the shell-side alerts the plan lists", () => {
     const all = new Set(
-      ["backup/backup.sh", "backup/restore-drill.sh", "lib/preflight.sh", "ops/notify.sh"].flatMap((f) =>
-        emitted(read("deploy", f)),
-      ),
+      [
+        "backup/backup.sh",
+        "backup/restore-drill.sh",
+        "lib/preflight.sh",
+        "ops/notify.sh",
+        "autodeploy.sh",
+      ].flatMap((f) => emitted(read("deploy", f))),
     );
     for (const k of [
       "rls.preflight_failed",
@@ -169,6 +181,8 @@ describe("shell producers and the alert catalog", () => {
       "worker.heartbeat_stale",
       "api.down",
       "tls.renewal",
+      "deploy.skipped_unverified",
+      "deploy.unverified",
     ])
       expect([...all], `no shell producer emits ${k}`).toContain(k);
   });

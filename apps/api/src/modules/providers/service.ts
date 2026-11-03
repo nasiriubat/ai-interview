@@ -5,7 +5,7 @@ import {
   ProbeLimitError,
   ProviderError,
   type ModelPrice,
-  type SpeechRunner,
+  type SpeechService,
 } from "@aidp/ai";
 import {
   classifyConnectFailure,
@@ -147,7 +147,7 @@ export class ProviderService {
     private readonly crypto: Crypto,
     private readonly callers: CallerFactory,
     private readonly egress: EgressGuard,
-    private readonly speech?: SpeechRunner,
+    private readonly speech?: SpeechService,
   ) {}
 
   /**

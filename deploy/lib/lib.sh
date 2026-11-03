@@ -204,3 +204,19 @@ smoke() {
 	[ "$code" = "200" ] || { warn "$scheme://$host:$port/auth/signin answered $code through Caddy"; return 1; }
 	return 0
 }
+
+# Hands an alert to ops-notify from the host (D-493), the way the preflight does from inside a
+# container: one JSON file in the ops-state volume's alerts directory, written to a hidden name and
+# renamed so the sidecar never reads half a file. Best effort: no sidecar, no alert, no failure.
+#   host_alert <kind> <severity> <title> <message>
+host_alert() {
+	local kind=$1 severity=$2 title=$3 message=$4 id now
+	id=$(container_of ops-notify)
+	[ -n "$id" ] || { warn "no ops-notify container; alert not sent: $title"; return 0; }
+	now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+	esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr '\n' ' '; }
+	printf '{"kind":"%s","severity":"%s","key":"%s","title":"%s","message":"%s","occurredAt":"%s"}\n' \
+		"$kind" "$severity" "$kind" "$(esc "$title")" "$(esc "$message")" "$now" |
+		docker exec -i "$id" sh -c 'f=/ops-state/alerts/'"$kind"'-$(date -u +%Y%m%dT%H%M%SZ).json; cat >/ops-state/alerts/.tmp.$$ && mv /ops-state/alerts/.tmp.$$ "$f"' ||
+		warn "could not hand the alert to ops-notify: $title"
+}

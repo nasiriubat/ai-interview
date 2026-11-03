@@ -799,8 +799,14 @@ carries the live-voice WebSocket and the interview's server-sent events unbuffer
 every minute and runs `deploy/upgrade.sh` when it moved (`deploy/autodeploy.sh`). No CI runner and no
 inbound port: the server pulls with a read-only deploy key. A commit that fails to deploy is rolled
 back by `upgrade.sh`, recorded in `deploy/.autodeploy-failed` and not retried; the next push is.
-`journalctl -u aidp-autodeploy -f` shows each deploy. Run `pnpm check` before pushing to `main`: the
-GitHub workflows are manual-only.
+`journalctl -u aidp-autodeploy -f` shows each deploy.
+
+Only a **verified** commit is deployed (D-493). Ship with `pnpm ship` from your machine: it runs the
+quality gate, the full browser suite on fresh servers and the dependency audit, then pushes a
+`verified/<sha>` tag and `main`. A plain `git push` to `main` is skipped and raises
+[`deploy.skipped_unverified`](OPERATIONS.md#deployskipped_unverified). In an emergency,
+`deploy/autodeploy.sh --allow-unverified` on the server deploys the branch head untested and raises
+[`deploy.unverified`](OPERATIONS.md#deployunverified). The GitHub workflows are manual-only.
 
 ## Rehearsing a deployment
 

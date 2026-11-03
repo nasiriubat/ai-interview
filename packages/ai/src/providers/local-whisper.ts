@@ -10,14 +10,14 @@ import {
 } from "@aidp/shared";
 import type { z } from "zod";
 import { localWhisperModel, LOCAL_WHISPER_MODELS } from "./local-whisper/models.js";
-import { localSpeechRunner, type SpeechRunner } from "./local-whisper/runner.js";
+import { localSpeechRunner, type SpeechService } from "./local-whisper/runner.js";
 import { looksLikeWav, WavFormatError, wavToWhisperInput, WHISPER_SAMPLE_RATE } from "./local-whisper/wav.js";
 import { ProviderError, UnsupportedAudioError, type Provider } from "./types.js";
 
 export interface LocalWhisperOptions {
   id: string;
   /** Test seam; production shares the one process-wide runner. */
-  runner?: SpeechRunner;
+  runner?: SpeechService;
 }
 
 /**
@@ -43,7 +43,7 @@ export class LocalWhisperProvider implements Provider {
     // A finished recording only: no socket to stream into (D-75). Live calls need OpenAI (D-77).
     streamingTranscription: false,
   };
-  private readonly runnerOverride: SpeechRunner | undefined;
+  private readonly runnerOverride: SpeechService | undefined;
 
   constructor(opts: LocalWhisperOptions) {
     this.id = opts.id;

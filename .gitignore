@@ -25,3 +25,5 @@ apps/web/e2e/results/
 apps/web/test-results/
 apps/web/playwright-report/
 deploy/.autodeploy-failed
+deploy/.autodeploy-unverified
+deploy/.autodeploy-allow-unverified

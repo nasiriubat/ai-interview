@@ -10,7 +10,7 @@ import {
   type ModelCallerDeps,
   type Provider,
   type RealtimeSocketFactory,
-  type SpeechRunner,
+  type SpeechService,
 } from "@aidp/ai";
 import type { ProviderConfig } from "@aidp/shared";
 import type { PrismaClient } from "@prisma/client";
@@ -50,7 +50,7 @@ export interface CallerFactoryDeps {
    */
   egress?: EgressGuard;
   /** The on-server Whisper runner (D-75); the process-wide one when absent. Tests pass a fake. */
-  speech?: SpeechRunner;
+  speech?: SpeechService;
   now?: () => Date;
   /** Where call, circuit and budget numbers go (D-222). Absent in tests that do not measure. */
   metrics?: Metrics;
@@ -143,7 +143,7 @@ export class CallerFactory {
   }
 
   /** An adapter for one provider row, on the guarded transport. Used by "test connection" and "list models". */
-  adapterFor(cfg: ProviderConfig, extra: { speech?: SpeechRunner } = {}): Provider {
+  adapterFor(cfg: ProviderConfig, extra: { speech?: SpeechService } = {}): Provider {
     const speech = extra.speech ?? this.deps.speech;
     return createProvider(cfg, {
       ...(speech ? { speech } : {}),

@@ -167,6 +167,19 @@ export const ALERT_KINDS = {
     repeatMinutes: 60,
     summary: "The API has not answered its readiness check",
   },
+  // Raised by deploy/autodeploy.sh on the host (D-493): only a commit `pnpm ship` verified deploys.
+  "deploy.skipped_unverified": {
+    severity: "warning",
+    audience: ["operator"],
+    repeatMinutes: 24 * 60,
+    summary: "A push to the deploy branch was not deployed: it has no verified/ tag",
+  },
+  "deploy.unverified": {
+    severity: "warning",
+    audience: ["operator"],
+    repeatMinutes: 24 * 60,
+    summary: "A commit was deployed with --allow-unverified",
+  },
   // An interview link hit one of its abuse limits (D-261): a campaign's hourly or total cap, the
   // tenant's hourly cap, or one client address asking codes for too many different addresses. The
   // tenant's admins hear about it because the link is theirs; the operator because it is also the
