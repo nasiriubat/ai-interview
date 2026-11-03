@@ -17,29 +17,29 @@
     "@aidp/db": "workspace:*",
     "@aidp/shared": "workspace:*",
     "@auth/core": "^0.41.0",
-    "@fastify/cookie": "^11.0.0",
-    "@fastify/cors": "^11.0.0",
-    "@fastify/helmet": "^13.0.0",
-    "@fastify/multipart": "^10.1.1",
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/cors": "^11.3.1",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/multipart": "^10.1.6",
     "@fastify/rate-limit": "^10.0.0",
-    "@fastify/swagger": "^9.0.0",
-    "@fastify/websocket": "^11.3.0",
-    "@opentelemetry/api": "^1.9.0",
+    "@fastify/swagger": "^9.9.2",
+    "@fastify/websocket": "^11.3.6",
+    "@opentelemetry/api": "^1.10.0",
     "@prisma/client": "^6.19.0",
     "fastify": "^5.12.7",
     "fastify-plugin": "^5.0.0",
     "fastify-type-provider-zod": "^7.0.0",
     "pino": "^9.0.0",
-    "zod": "^4.0.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@aidp/testing": "workspace:*",
     "@types/node": "^22.0.0",
-    "@types/ws": "^8.18.1",
-    "pino-pretty": "^13.0.0",
-    "tsx": "^4.19.0",
+    "@types/ws": "^8.18.2",
+    "pino-pretty": "^13.2.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0",
-    "ws": "^8.21.3"
+    "ws": "^8.22.1"
   }
 }
