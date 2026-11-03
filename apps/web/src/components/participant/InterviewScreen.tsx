@@ -384,6 +384,7 @@ export function InterviewScreen({
   const panel = (
     <SessionPanel
       welcome={initial.about?.welcome}
+      backgroundShared={initial.about?.backgroundShared ?? false}
       areas={areas}
       disabled={inputDisabled}
       onSkip={skip}

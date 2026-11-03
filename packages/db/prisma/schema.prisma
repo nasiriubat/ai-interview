@@ -21,36 +21,37 @@ model Company {
   status             String   @default("active") // active | suspended
   createdAt          DateTime @default(now())
 
-  users        User[]
-  participants Participant[]
-  templates    InterviewTemplate[]
-  campaigns    Campaign[]
-  sessions     Session[]
-  attachments  Attachment[]
-  chunks       AttachmentChunk[]
-  facts        Fact[]
-  providers    Provider[]
-  routes       Route[]
-  budgets      Budget[]
-  fallbackRoutes FallbackRoute[]
-  statements   TenantStatement[]
-  llmCalls     LlmCall[]
-  auditLogs    AuditLog[]
-  opsAlerts    OpsAlert[]
-  usageCounters UsageCounter[]
-  errorGroups  ErrorGroup[]
-  errorOccurrences ErrorOccurrence[]
+  users             User[]
+  participants      Participant[]
+  templates         InterviewTemplate[]
+  campaigns         Campaign[]
+  sessions          Session[]
+  attachments       Attachment[]
+  chunks            AttachmentChunk[]
+  facts             Fact[]
+  providers         Provider[]
+  routes            Route[]
+  budgets           Budget[]
+  fallbackRoutes    FallbackRoute[]
+  statements        TenantStatement[]
+  llmCalls          LlmCall[]
+  auditLogs         AuditLog[]
+  opsAlerts         OpsAlert[]
+  usageCounters     UsageCounter[]
+  errorGroups       ErrorGroup[]
+  errorOccurrences  ErrorOccurrence[]
+  campaignDocuments CampaignDocument[]
 }
 
 model User {
-  id        String   @id @default(cuid())
-  companyId String
-  email     String   @unique // lower-case, one tenant per address (D-84); a CHECK enforces the case
-  name      String?
-  role      String // platform_operator | admin | member
-  createdAt DateTime @default(now())
+  id               String    @id @default(cuid())
+  companyId        String
+  email            String    @unique // lower-case, one tenant per address (D-84); a CHECK enforces the case
+  name             String?
+  role             String // platform_operator | admin | member
+  createdAt        DateTime  @default(now())
   /// Set when staff access is withdrawn. A disabled user's tokens stop resolving at once (D-161).
-  disabledAt DateTime?
+  disabledAt       DateTime?
   /// Tokens issued before this instant are refused, so disabling ends sessions already open and
   /// re-enabling does not bring them back: the person signs in again.
   tokensValidAfter DateTime?
@@ -124,33 +125,34 @@ model InterviewTemplate {
 // ---------- Campaigns and sessions ----------
 
 model Campaign {
-  id                  String   @id @default(cuid())
+  id                  String              @id @default(cuid())
   companyId           String
   templateId          String
   name                String
   participationMode   String // identified | anonymous | participant_choice
-  linkTokenHash       String   @unique
-  verification        String   @default("email_code") // invitation | email_code | open
-  allowedEmailDomains Json     @default("[]")
+  linkTokenHash       String              @unique
+  verification        String              @default("email_code") // invitation | email_code | open
+  allowedEmailDomains Json                @default("[]")
   expiresAt           DateTime?
-  maxTurns            Int      @default(60)
-  completionThreshold Int      @default(5)
-  weights             Json     @default("{}")
-  status              String   @default("draft") // draft | open | analyzing | closed
+  maxTurns            Int                 @default(60)
+  completionThreshold Int                 @default(5)
+  weights             Json                @default("{}")
+  status              String              @default("draft") // draft | open | analyzing | closed
   createdById         String
-  createdAt           DateTime @default(now())
+  createdAt           DateTime            @default(now())
   invitations         Invitation[]
   emailHashes         CampaignEmailHash[]
   emailCodes          EmailCode[]
 
-  company      Company           @relation(fields: [companyId], references: [id])
-  template     InterviewTemplate @relation(fields: [templateId], references: [id])
-  createdBy    User              @relation(fields: [createdById], references: [id])
+  company      Company            @relation(fields: [companyId], references: [id])
+  template     InterviewTemplate  @relation(fields: [templateId], references: [id])
+  createdBy    User               @relation(fields: [createdById], references: [id])
   participants Participant[]
   sessions     Session[]
   analyses     Analysis[]
   clusterEdits ClusterEdit[]
   llmCalls     LlmCall[]
+  documents    CampaignDocument[]
 
   @@unique([id, companyId])
   @@index([companyId])
@@ -159,40 +161,40 @@ model Campaign {
 }
 
 model Session {
-  id             String    @id @default(cuid())
-  companyId      String
-  templateId     String
-  campaignId     String?
-  participantId  String?
-  ownerUserId    String?
-  sourceKind     String    @default("campaign") // campaign | text | handoff
-  handoff        Json?
-  title          String    @default("") // requirements sessions: the product or idea name
-  specEdits      Json      @default("{}") // requirements sessions: owner edits by section key (FR-23)
-  invitations    Json      @default("[]") // requirements sessions: external invitations (contract 18)
-  status         String    @default("created") // created | consented | active | paused | completed | deleted
-  consentVersion String?
-  consentedAt    DateTime?
-  state          Json      @default("{}")
-  summary        String    @default("")
-  path           String? // technical | nontechnical
-  modePreference String    @default("chat") // chat | options | voice
-  turnLockedAt   DateTime? // set while a turn is running; guards against concurrent turns
-  templateVersion Int      @default(1)
-  startedAt      DateTime?
-  endedAt        DateTime?
-  createdAt      DateTime  @default(now())
+  id              String    @id @default(cuid())
+  companyId       String
+  templateId      String
+  campaignId      String?
+  participantId   String?
+  ownerUserId     String?
+  sourceKind      String    @default("campaign") // campaign | text | handoff
+  handoff         Json?
+  title           String    @default("") // requirements sessions: the product or idea name
+  specEdits       Json      @default("{}") // requirements sessions: owner edits by section key (FR-23)
+  invitations     Json      @default("[]") // requirements sessions: external invitations (contract 18)
+  status          String    @default("created") // created | consented | active | paused | completed | deleted
+  consentVersion  String?
+  consentedAt     DateTime?
+  state           Json      @default("{}")
+  summary         String    @default("")
+  path            String? // technical | nontechnical
+  modePreference  String    @default("chat") // chat | options | voice
+  turnLockedAt    DateTime? // set while a turn is running; guards against concurrent turns
+  templateVersion Int       @default(1)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime  @default(now())
   /// Last write to the row: every turn rewrites `state`, so this is the session's last activity (D-79).
-  updatedAt      DateTime  @default(now()) @updatedAt
+  updatedAt       DateTime  @default(now()) @updatedAt
   /// The engine raised a hostility or distress flag (D-173). The first flag wins; later ones are events only.
-  flagged        Boolean   @default(false)
+  flagged         Boolean   @default(false)
   /// Model prose: returned only to a viewer who may read the transcript.
-  flagReason     String?
-  flaggedAt      DateTime?
-  flagAckedAt    DateTime?
-  flagAckedBy    String?
+  flagReason      String?
+  flaggedAt       DateTime?
+  flagAckedAt     DateTime?
+  flagAckedBy     String?
   /// The participant gave their identity (false: anonymous, or not a campaign interview). Set at consent.
-  identified     Boolean   @default(false)
+  identified      Boolean   @default(false)
 
   company     Company           @relation(fields: [companyId], references: [id])
   template    InterviewTemplate @relation(fields: [templateId], references: [id])
@@ -217,11 +219,11 @@ model Session {
 }
 
 model Message {
-  id        String   @id @default(cuid())
+  id             String   @id @default(cuid())
   /// Denormalised from the session so the row carries its own tenant fence (migration 0016, D-140).
-  companyId String
-  sessionId String
-  seq       Int
+  companyId      String
+  sessionId      String
+  seq            Int
   role           String // user | assistant
   modality       String   @default("text") // text | voice | dictated | file | widget
   content        String
@@ -311,14 +313,14 @@ model AttachmentChunk {
 // ---------- Facts, analysis, opportunities ----------
 
 model Fact {
-  id               String                      @id @default(cuid())
+  id               String                       @id @default(cuid())
   companyId        String
   sessionId        String
   kind             String // task | process | information_flow | pain_point | opportunity_candidate | spec_field
   payload          Json
   embedding        Unsupported("vector(1536)")?
   extractorVersion String
-  extractedAt      DateTime                    @default(now())
+  extractedAt      DateTime                     @default(now())
   /// Highest message sequence of the extraction batch that produced this fact. With `ordinal` it
   /// is the idempotency key: replaying a batch cannot write its facts twice (D-100).
   batchEndSeq      Int
@@ -337,10 +339,10 @@ model Fact {
 }
 
 model Analysis {
-  id         String    @id @default(cuid())
-  companyId  String
-  campaignId String
-  version    Int
+  id          String    @id @default(cuid())
+  companyId   String
+  campaignId  String
+  version     Int
   status      String    @default("queued") // queued | running | done | failed
   preliminary Boolean   @default(false)
   stats       Json      @default("{}")
@@ -348,9 +350,9 @@ model Analysis {
   /// edit run (merge, split, undo) starts from these instead of clustering again (D-200). Never
   /// returned by the API: it is a list of fact ids.
   clusters    Json      @default("[]")
-  startedAt  DateTime?
-  finishedAt DateTime?
-  createdAt  DateTime  @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime  @default(now())
 
   campaign      Campaign      @relation(fields: [campaignId, companyId], references: [id, companyId])
   opportunities Opportunity[]
@@ -378,30 +380,30 @@ model ClusterEdit {
 }
 
 model Opportunity {
-  id            String   @id @default(cuid())
-  companyId     String
-  analysisId    String
-  title         String
-  summary       String
-  solutionClass String // ai | automation | software | process | none
-  factors       Json // seven factors, each { score, rationale }
-  rationale     String
-  rankScore     Float
-  status        String   @default("new") // new | shortlisted | promoted | dismissed
-  clusterKey    String
-  adminOverride Json?
-  stats         Json     @default("{}") // ClusterStats
-  dataNeeded    Json     @default("[]")
-  risks         Json     @default("[]")
-  whyNotAi      String?
+  id                String   @id @default(cuid())
+  companyId         String
+  analysisId        String
+  title             String
+  summary           String
+  solutionClass     String // ai | automation | software | process | none
+  factors           Json // seven factors, each { score, rationale }
+  rationale         String
+  rankScore         Float
+  status            String   @default("new") // new | shortlisted | promoted | dismissed
+  clusterKey        String
+  adminOverride     Json?
+  stats             Json     @default("{}") // ClusterStats
+  dataNeeded        Json     @default("[]")
+  risks             Json     @default("[]")
+  whyNotAi          String?
   promotedSessionId String?
   /// Every fact in the cluster, not only the twelve evidence rows. Internal; never returned.
-  factIds       Json     @default("[]")
+  factIds           Json     @default("[]")
   /// problem | works_well (D-479): a works-well item is "no change recommended" and ranks last.
-  basis         String   @default("problem")
+  basis             String   @default("problem")
   /// The member facts the counts, quotes and evidence come from (D-479); empty = every member. Internal.
-  supportFactIds Json    @default("[]")
-  createdAt     DateTime @default(now())
+  supportFactIds    Json     @default("[]")
+  createdAt         DateTime @default(now())
 
   analysis Analysis              @relation(fields: [analysisId, companyId], references: [id, companyId], onDelete: Cascade)
   evidence OpportunityEvidence[]
@@ -426,14 +428,14 @@ model OpportunityEvidence {
 }
 
 model Report {
-  id            String   @id @default(cuid())
-  companyId     String
-  analysisId    String
-  version       Int
-  markdown      String
-  sections      Json     @default("[]")
-  pdfStorageKey String?
-  createdAt     DateTime @default(now())
+  id             String    @id @default(cuid())
+  companyId      String
+  analysisId     String
+  version        Int
+  markdown       String
+  sections       Json      @default("[]")
+  pdfStorageKey  String?
+  createdAt      DateTime  @default(now())
   /// draft | reviewed (D-478). A new run is a draft; an edit of its opportunities returns it to draft.
   reviewStatus   String    @default("draft")
   /// Who marked it reviewed: the user id (also in the audit log) and their name as it was then.
@@ -472,24 +474,24 @@ model SpecVersion {
 
 /// Personal one-time links and email-code bindings (FR-10, FR-04). One session per invitation.
 model Invitation {
-  id         String    @id @default(cuid())
-  companyId  String
-  campaignId String
-  emailHash  String // salted hash; the plain email is kept only when the campaign is identified
-  email      String?
-  tokenHash  String    @unique
-  status     String    @default("pending") // pending | sent | opened | bound | revoked | expired
-  sessionId  String?   @unique
-  sentAt     DateTime?
-  openedAt   DateTime?
-  expiresAt  DateTime
-  createdAt  DateTime  @default(now())
+  id             String    @id @default(cuid())
+  companyId      String
+  campaignId     String
+  emailHash      String // salted hash; the plain email is kept only when the campaign is identified
+  email          String?
+  tokenHash      String    @unique
+  status         String    @default("pending") // pending | sent | opened | bound | revoked | expired
+  sessionId      String?   @unique
+  sentAt         DateTime?
+  openedAt       DateTime?
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
   /// Reminders sent for this invitation, and when the last went out (spec 07: reminders sent).
   reminderCount  Int       @default(0)
   lastRemindedAt DateTime?
 
   campaign Campaign @relation(fields: [campaignId, companyId], references: [id, companyId], onDelete: Cascade)
-  session  Session?@relation(fields: [sessionId, companyId], references: [id, companyId])
+  session  Session? @relation(fields: [sessionId, companyId], references: [id, companyId])
 
   @@unique([campaignId, emailHash])
   @@unique([sessionId, companyId])
@@ -591,15 +593,15 @@ model PlatformAsset {
 
 /// Tenant overrides and canaries of the versioned prompt files shipped in packages/ai.
 model PromptVersion {
-  id          String   @id @default(cuid())
-  companyId   String?
-  key         String
-  version     Int
-  body        String
-  canaryShare Float    @default(0) // 0..1 share of sessions using this version
-  active      Boolean  @default(false)
-  createdBy   String?
-  createdAt   DateTime @default(now())
+  id            String    @id @default(cuid())
+  companyId     String?
+  key           String
+  version       Int
+  body          String
+  canaryShare   Float     @default(0) // 0..1 share of sessions using this version
+  active        Boolean   @default(false)
+  createdBy     String?
+  createdAt     DateTime  @default(now())
   /// Why the version exists, in the author's words.
   note          String?
   /// When the version last became active, and when it last stopped being.
@@ -615,25 +617,25 @@ model PromptVersion {
 // ---------- Providers, routing, cost (FR-40 to FR-49) ----------
 
 model Provider {
-  id        String   @id @default(cuid())
-  companyId String? // null = platform-level
-  kind      String
-  name      String
-  baseUrl   String?
-  apiKeyEnc String
+  id         String   @id @default(cuid())
+  companyId  String? // null = platform-level
+  kind       String
+  name       String
+  baseUrl    String?
+  apiKeyEnc  String
   /// Legacy plaintext custom headers. Emptied by the backfill at boot; `headersEnc` replaces it
   /// and the column is dropped in a follow-up migration (D-147).
-  headers   Json     @default("{}")
+  headers    Json     @default("{}")
   /// Custom headers as one encrypted JSON object, like `apiKeyEnc`; "" means none.
-  headersEnc String  @default("")
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
+  headersEnc String   @default("")
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
 
-  company  Company?     @relation(fields: [companyId], references: [id])
-  prices   ModelPrice[]
-  routes   Route[]
+  company        Company?        @relation(fields: [companyId], references: [id])
+  prices         ModelPrice[]
+  routes         Route[]
   fallbackRoutes FallbackRoute[]
-  llmCalls LlmCall[]
+  llmCalls       LlmCall[]
 
   @@index([companyId])
 }
@@ -728,6 +730,35 @@ model ErasureLedger {
 /// every API replica and survives a restart. `key` names the subject (a campaign id, or a keyed
 /// hash of a client address: never an address itself) and carries no personal data. Rows older
 /// than two days are swept by the retention job.
+/// Background material the organisation gives a campaign (D-491): an org chart, a process
+/// description, the list of tools already in use. Read like a participant's attachment, but owned
+/// by the campaign, not by an interview: the interviewer sees its summary as background, and the
+/// analysis uses it as context only, never as evidence. Its bytes live under their own prefix
+/// (`campaign-docs/<company>/<campaign>/<id>`), outside the per-session folders the storage sweep
+/// reclaims.
+model CampaignDocument {
+  id            String    @id @default(cuid())
+  companyId     String
+  campaignId    String
+  filename      String
+  mime          String
+  kind          String // document | image
+  sizeBytes     Int       @default(0)
+  storageKey    String    @default("")
+  status        String    @default("pending") // pending | ready | failed
+  error         String?
+  summary       String?
+  extractedText String?
+  uploadedById  String?
+  createdAt     DateTime  @default(now())
+  ingestedAt    DateTime?
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, campaignId])
+}
+
 model UsageCounter {
   id          String   @id @default(cuid())
   companyId   String

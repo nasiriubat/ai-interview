@@ -127,6 +127,16 @@ const factories: Record<string, Factory> = {
         storageKey: `${w.companyId}/${tag}`,
       },
     }),
+  CampaignDocument: (db, w, tag) =>
+    db.campaignDocument.create({
+      data: {
+        companyId: w.companyId,
+        campaignId: w.campaignId,
+        kind: "document",
+        filename: `${tag}.md`,
+        mime: "text/markdown",
+      },
+    }),
   AttachmentChunk: (db, w, tag) =>
     db.attachmentChunk.create({
       data: {

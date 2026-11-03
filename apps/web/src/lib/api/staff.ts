@@ -169,7 +169,11 @@ import {
   VoiceReadinessSchema,
   AttachmentEnvelopeSchema,
   AttachmentListSchema,
+  CampaignDocumentEnvelopeSchema,
+  CampaignDocumentListSchema,
   type Attachment,
+  type CampaignDocument,
+  type CampaignDocumentList,
 } from "./schemas";
 
 /** `from` and `to` travel as ISO strings; unset fields are not sent. */
@@ -420,6 +424,26 @@ export function staffApi(transport: Transport): StaffApi {
         ok(request(transport, { method: "POST", path: `/campaigns/${id}/invitations/${invId}/revoke` })),
       sessions: (id, q) =>
         request(transport, { path: `/campaigns/${id}/sessions`, query: { ...q }, schema: SessionPageSchema }),
+      documents: {
+        list: (id) =>
+          request(transport, { path: `/campaigns/${id}/documents`, schema: CampaignDocumentListSchema }),
+        upload: (id, file, options) =>
+          request(transport, {
+            method: "POST",
+            path: `/campaigns/${id}/documents`,
+            body: uploadForm(file, file.name),
+            schema: CampaignDocumentEnvelopeSchema,
+            signal: options?.signal,
+            onUploadProgress: options?.onProgress,
+          }).then((r) => r.document),
+        remove: (id, documentId) =>
+          ok(
+            request(transport, {
+              method: "DELETE",
+              path: `/campaigns/${id}/documents/${encodeURIComponent(documentId)}`,
+            }),
+          ),
+      },
     },
 
     sessions: {
@@ -1081,6 +1105,16 @@ export interface StaffApi {
     remind(id: string, invId: string): Promise<void>;
     revoke(id: string, invId: string): Promise<void>;
     sessions(id: string, q?: CampaignSessionListQuery): Promise<Paged<SessionListItem>>;
+    /** The organisation's background documents for the campaign (D-491). */
+    documents: {
+      list(id: string): Promise<CampaignDocumentList>;
+      upload(
+        id: string,
+        file: File,
+        options?: { signal?: AbortSignal; onProgress?: (percent: number) => void },
+      ): Promise<CampaignDocument>;
+      remove(id: string, documentId: string): Promise<void>;
+    };
   };
   sessions: {
     get(id: string): Promise<StaffSession>;

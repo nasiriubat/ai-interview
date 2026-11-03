@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import * as React from "react";
 import { CampaignActions } from "@/components/admin/campaigns/CampaignActions";
+import { CampaignDocumentsPanel } from "@/components/admin/campaigns/CampaignDocumentsPanel";
 import { CampaignOverview, type OverviewData } from "@/components/admin/campaigns/CampaignOverview";
 import { CampaignSettingsTab } from "@/components/admin/campaigns/CampaignSettingsTab";
 import { CampaignTabs, tabFrom } from "@/components/admin/campaigns/CampaignTabs";
@@ -109,7 +110,7 @@ export default async function CampaignPage({ params, searchParams }: Props): Pro
       />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
         <CampaignTabs campaignId={campaign.id} current={tab} />
-        {tab === "overview" ? <Overview campaignId={id} campaign={campaign} /> : null}
+        {tab === "overview" ? <Overview campaignId={id} campaign={campaign} isAdmin={isAdmin} /> : null}
         {tab === "invitations" ? <Invitations campaignId={id} searchParams={sp} isAdmin={isAdmin} /> : null}
         {tab === "sessions" ? <Sessions campaignId={id} searchParams={sp} isAdmin={isAdmin} /> : null}
         {tab === "analysis" ? <AnalysisTab campaignId={id} searchParams={sp} /> : null}
@@ -122,16 +123,19 @@ export default async function CampaignPage({ params, searchParams }: Props): Pro
 async function Overview({
   campaignId,
   campaign,
+  isAdmin,
 }: {
   campaignId: string;
   campaign: Campaign;
+  isAdmin: boolean;
 }): Promise<React.JSX.Element> {
   const api = await staffServer();
-  const [analysesR, budgetsR, spendR, templateR] = await Promise.allSettled([
+  const [analysesR, budgetsR, spendR, templateR, documentsR] = await Promise.allSettled([
     api.analyses.list(campaignId, { limit: 1 }),
     api.budgets.list({ scope: "campaign", q: campaignId, limit: 5 }),
     api.spend({ from: new Date(Date.now() - SPEND_WINDOW_MS).toISOString(), groupBy: "campaign" }),
     campaign.templateId ? api.templates.get(campaign.templateId) : Promise.resolve(undefined),
+    api.campaigns.documents.list(campaignId),
   ]);
   const analyses = settled(analysesR);
   const budgets = settled(budgetsR);
@@ -148,7 +152,14 @@ async function Overview({
     spend: spend.data ? { spentCents: spent, limitCents: limit } : null,
     areaNames,
   };
-  return <CampaignOverview campaign={campaign} data={data} />;
+  return (
+    <div className="grid gap-6">
+      <CampaignOverview campaign={campaign} data={data} />
+      {documentsR.status === "fulfilled" ? (
+        <CampaignDocumentsPanel campaignId={campaignId} initial={documentsR.value} canEdit={isAdmin} />
+      ) : null}
+    </div>
+  );
 }
 
 /** One page of a list a tab shows, or the message that says why there is none (D-361). */

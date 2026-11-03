@@ -41,6 +41,11 @@ export interface SessionSnapshot {
    * itself is retrieved on demand through the recall source.
    */
   attachments?: AttachedFile[];
+  /**
+   * The organisation's background documents for the campaign (D-491), by summary: context the
+   * interviewer uses to ask better questions, never something to put to the participant as fact.
+   */
+  background?: { filename: string; summary: string }[];
 }
 
 export interface AttachedFile {

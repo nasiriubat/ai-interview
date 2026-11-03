@@ -180,3 +180,30 @@ describe("confidence in the report (D-478)", () => {
     );
   });
 });
+
+describe("background documents (D-491)", () => {
+  it("are named on the cover as context, never evidence, and only when there are some", async () => {
+    const withDocs = renderReport(input({ background: ["org-chart.pdf", "tools.xlsx"] }));
+    const cover = withDocs.slice(0, withDocs.indexOf("\n## "));
+    expect(cover).toContain("**Background documents.** The organisation provided org-chart.pdf, tools.xlsx.");
+    expect(cover).toContain("they are not evidence");
+    expect(renderReport(input())).not.toContain("**Background documents.**");
+  });
+
+  it("reach the model fenced, with the rule, summaries only per opportunity and bounded excerpts once", async () => {
+    const { renderBackground } = await import("../../src/analysis/pipeline.js");
+    const docs = [
+      { filename: "org.md", summary: "Who leads which shift.", text: "a".repeat(10_000) },
+      { filename: "tools.md", summary: "Systems in use.", text: "b".repeat(20_000) },
+    ];
+    const perOpportunity = renderBackground(docs, false);
+    expect(perOpportunity).toContain("context only, NOT evidence");
+    expect(perOpportunity).toContain("Never count it as a person, never quote it");
+    expect(perOpportunity).toContain("Summary: Who leads which shift.");
+    expect(perOpportunity).not.toContain("aaaa");
+    expect(perOpportunity).toMatch(/<untrusted-[0-9a-f]+ kind="background"/);
+    const narrative = renderBackground(docs, true);
+    expect(narrative.match(/a+/g)?.reduce((n, r) => Math.max(n, r.length), 0)).toBeLessThanOrEqual(6_000);
+    expect(renderBackground([], true)).toBe("");
+  });
+});

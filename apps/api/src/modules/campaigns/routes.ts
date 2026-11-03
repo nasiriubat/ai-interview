@@ -1,12 +1,16 @@
-import { toListResponse } from "@aidp/shared";
+import { MAX_CAMPAIGN_DOCUMENTS } from "@aidp/core";
+import { PLATFORM_MAX_UPLOAD_MB, toListResponse } from "@aidp/shared";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
 import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
+import { notFound } from "../../lib/errors.js";
+import { readOneFile, sendAttachment, toHttp } from "../participant/attachments.js";
 import { CampaignListQuery, CampaignSessionListQuery, InvitationListQuery } from "./service.js";
 
 const Id = z.object({ id: z.string() });
+const DocumentKey = z.object({ id: z.string(), documentId: z.string() });
 
 export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void> {
   const svc = ctx.services.campaigns;
@@ -262,5 +266,94 @@ export async function campaignRoutes(app: App, ctx: RouteContext): Promise<void>
       schema: { params: Id, querystring: CampaignSessionListQuery },
     },
     async (req) => svc.sessionsPage(req.companyId, req.params.id, req.query),
+  );
+
+  // ---------- Background documents (D-491) ----------
+  // The organisation's own material for the round: read like an attachment, used by the
+  // interviewer as background and by the analysis as context, never as evidence. Administrators
+  // add and remove them; anyone on staff can see which ones a campaign carries.
+
+  app.post(
+    "/campaigns/:id/documents",
+    {
+      ...guard.admin({ config: { rateLimit: { max: 20, timeWindow: "5 minutes" } } }),
+      schema: { params: Id, hide: true },
+    },
+    async (req) => {
+      await svc.get(req.companyId, req.params.id);
+      const file = await readOneFile(req, PLATFORM_MAX_UPLOAD_MB * 1024 * 1024);
+      let document;
+      try {
+        document = await ctx.campaignDocuments.create({
+          companyId: req.companyId,
+          campaignId: req.params.id,
+          filename: file.filename,
+          mime: file.mimetype,
+          stream: file.file,
+          uploadedById: staff(req).userId,
+        });
+      } catch (err) {
+        throw toHttp(err);
+      }
+      await ctx.jobs.publish(
+        "campaign-document.ingest",
+        { documentId: document.id, companyId: req.companyId },
+        { singletonKey: `campaign-doc:${document.id}` },
+      );
+      await ctx.services.audit.record(req.companyId, {
+        actorId: staff(req).userId,
+        action: "campaign.document.add",
+        targetType: "campaign",
+        targetId: req.params.id,
+        diff: { document: document.id, filename: document.filename },
+      });
+      return { document };
+    },
+  );
+
+  app.get(
+    "/campaigns/:id/documents",
+    { ...guard.staff(), schema: { params: Id, hide: true } },
+    async (req) => {
+      await svc.get(req.companyId, req.params.id);
+      const chain = [{ scope: "tenant" as const, scopeId: req.companyId }];
+      const values = await ctx.settings.resolveMany(["files.maxSizeMb", "files.allowedTypes"], chain);
+      return {
+        documents: await ctx.campaignDocuments.list(req.companyId, req.params.id),
+        // The picker checks a file against the limits actually in force before sending it.
+        uploads: {
+          maxSizeMb: values["files.maxSizeMb"] as number,
+          allowedTypes: values["files.allowedTypes"] as string[],
+          maxDocuments: MAX_CAMPAIGN_DOCUMENTS,
+        },
+      };
+    },
+  );
+
+  app.get(
+    "/campaigns/:id/documents/:documentId",
+    { ...guard.staff(), schema: { params: DocumentKey, hide: true } },
+    async (req, reply) => {
+      const found = await ctx.campaignDocuments.open(req.companyId, req.params.id, req.params.documentId);
+      if (!found) throw notFound("Document");
+      return sendAttachment(reply, found);
+    },
+  );
+
+  app.delete(
+    "/campaigns/:id/documents/:documentId",
+    { ...guard.admin(), schema: { params: DocumentKey, hide: true } },
+    async (req) => {
+      const removed = await ctx.campaignDocuments.remove(req.companyId, req.params.id, req.params.documentId);
+      if (!removed) throw notFound("Document");
+      await ctx.services.audit.record(req.companyId, {
+        actorId: staff(req).userId,
+        action: "campaign.document.remove",
+        targetType: "campaign",
+        targetId: req.params.id,
+        diff: { document: req.params.documentId },
+      });
+      return { ok: true as const };
+    },
   );
 }

@@ -319,14 +319,30 @@ export class AttachmentService {
         _sum: { sizeBytes: true },
         _count: { _all: true },
       }),
-      db.attachment.aggregate({ where: { companyId }, _sum: { sizeBytes: true } }),
+      this.storedBytes(companyId),
     ]);
     return {
       count: session._count._all,
       maxCount,
       sessionRoom: maxSessionMb * MB - (session._sum.sizeBytes ?? 0),
-      tenantRoom: tenantMb * MB - (tenant._sum.sizeBytes ?? 0),
+      tenantRoom: tenantMb * MB - tenant,
     };
+  }
+
+  /** Everything the tenant keeps in storage: interview attachments and campaign documents (D-491). */
+  async storedBytes(companyId: string): Promise<number> {
+    const [attachments, documents] = await Promise.all([
+      this.deps.db.attachment.aggregate({ where: { companyId }, _sum: { sizeBytes: true } }),
+      this.deps.db.campaignDocument.aggregate({ where: { companyId }, _sum: { sizeBytes: true } }),
+    ]);
+    return (attachments._sum.sizeBytes ?? 0) + (documents._sum.sizeBytes ?? 0);
+  }
+
+  /** What is left of the tenant's storage quota (`files.tenantQuotaMb`). */
+  async tenantRoom(companyId: string): Promise<number> {
+    const chain = [{ scope: "tenant" as const, scopeId: companyId }];
+    const quotaMb = await this.deps.settings.get("files.tenantQuotaMb", chain);
+    return quotaMb * MB - (await this.storedBytes(companyId));
   }
 
   private async discard(id: string, key: string): Promise<void> {

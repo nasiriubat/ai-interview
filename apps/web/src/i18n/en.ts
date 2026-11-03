@@ -519,6 +519,8 @@ export const en = {
       panelData: "How your answers are used",
       panelDataBody:
         "Your answers are combined with other people's. Quotes appear only when enough people said something similar.",
+      panelBackground:
+        "The organisation shared some background material (for example how work is organised) so the interviewer can ask more relevant questions. It is not about you, and only what you say is recorded.",
       panelBreak: "Need a break?",
       panelBreakBody: "Press Pause and save. Your place is kept and the same link brings you back.",
       panelPrivacy: "Privacy",
@@ -1176,6 +1178,20 @@ export const en = {
       remindUnavailableDone: "This person has already started, or the invitation is no longer valid.",
       uploadFileNamed: "Choose a file with addresses",
       settingsTitle: "Settings for this campaign",
+      documents: {
+        title: "Background documents",
+        description:
+          "Your own material for this round: an org chart, process descriptions, the tools you already use.",
+        reading: "Reading…",
+        ready: "Read",
+        add: "Add background documents",
+        remove: (name: string): string => `Remove ${name}`,
+        empty: "No background documents.",
+        emptyAdmin:
+          "None yet. Add material that helps the interviewer ask sharper questions and the analysis avoid recommending what you already have.",
+        full: (n: number): string => `A campaign holds up to ${n} documents. Remove one to add another.`,
+        note: "The interviewer uses them as background only and never tells participants what they say. The analysis reads them as context, not evidence: they are not counted, never quoted, and the report names any that changed a judgement. Participants are told that background material was shared.",
+      },
       settingsBody:
         "These apply to this campaign only and win over your organization's settings. Everything not listed here follows the organization.",
       settingsNone: "Nothing is changed for this campaign. It follows your organization's settings.",
