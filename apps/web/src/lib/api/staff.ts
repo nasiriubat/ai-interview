@@ -24,7 +24,7 @@ import {
   type TurnControl,
 } from "@aidp/shared";
 import { type z } from "zod";
-import { request, requestStream, type Transport } from "./http";
+import { request, requestBlob, requestStream, type Transport } from "./http";
 import type { LISTS, ListQueryOf } from "./lists";
 import { recordingName, TranscriptSchema, uploadForm, type TurnInput } from "./participant";
 import {
@@ -167,6 +167,9 @@ import {
   type User,
   type VoiceReadiness,
   VoiceReadinessSchema,
+  AttachmentEnvelopeSchema,
+  AttachmentListSchema,
+  type Attachment,
 } from "./schemas";
 
 /** `from` and `to` travel as ISO strings; unset fields are not sent. */
@@ -752,6 +755,29 @@ export function staffApi(transport: Transport): StaffApi {
           body: { outcome, ...(note ? { note } : {}) },
           schema: LiveSpecEnvelopeSchema,
         }).then((r) => r.spec),
+      attachments: {
+        upload: (id, file, options) =>
+          request(transport, {
+            method: "POST",
+            path: `/requirements/${id}/attachments`,
+            body: uploadForm(file, file.name),
+            schema: AttachmentEnvelopeSchema,
+            signal: options?.signal,
+            onUploadProgress: options?.onProgress,
+          }).then((r) => r.attachment),
+        list: (id) =>
+          request(transport, { path: `/requirements/${id}/attachments`, schema: AttachmentListSchema }),
+        bytes: (id, attachmentId) =>
+          requestBlob(transport, {
+            path: `/requirements/${id}/attachments/${encodeURIComponent(attachmentId)}`,
+          }),
+        remove: (id, attachmentId) =>
+          request(transport, {
+            method: "DELETE",
+            path: `/requirements/${id}/attachments/${encodeURIComponent(attachmentId)}`,
+            schema: OkSchema,
+          }).then(() => undefined),
+      },
       transcribe: (id, audio, durationMs) =>
         request(transport, {
           method: "POST",
@@ -984,6 +1010,17 @@ export interface RequirementsApi {
   settleFinding(id: string, findingId: string, outcome: FindingOutcome, note?: string): Promise<LiveSpec>;
   /** Same SSE stream as the participant turn, plus `event: spec` after each turn. */
   sendTurn(id: string, input: TurnInput | undefined, signal?: AbortSignal): Promise<Response>;
+  /** The owner's own files on the session (D-490), with the participant routes' limits. */
+  attachments: {
+    upload(
+      id: string,
+      file: File,
+      options?: { signal?: AbortSignal; onProgress?: (percent: number) => void },
+    ): Promise<Attachment>;
+    list(id: string): Promise<Attachment[]>;
+    bytes(id: string, attachmentId: string): Promise<Blob>;
+    remove(id: string, attachmentId: string): Promise<void>;
+  };
   /** A recording to an editable draft for the answer box; nothing is sent (D-483). */
   transcribe(id: string, audio: Blob, durationMs?: number): Promise<string>;
   /** "I'm done" and the other participant controls, as a state operation rather than a message (D-170). */

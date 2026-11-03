@@ -107,6 +107,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "DELETE /requirements/:id/attachments/:attachmentId": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "DELETE /requirements/:id/spec/diagrams/:key": {
     "access": "staff",
     "isolation": true,
@@ -804,6 +816,30 @@
     }
   },
   "GET /requirements/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /requirements/:id/attachments": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /requirements/:id/attachments/:attachmentId": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -1788,6 +1824,30 @@
     }
   },
   "HEAD /requirements/:id": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /requirements/:id/attachments": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /requirements/:id/attachments/:attachmentId": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -2829,6 +2889,18 @@
       "admin": 400,
       "operator": 400,
       "crossTenantAdmin": 400
+    }
+  },
+  "POST /requirements/:id/attachments": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
     }
   },
   "POST /requirements/:id/complete": {

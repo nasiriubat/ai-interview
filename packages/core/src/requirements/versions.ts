@@ -94,6 +94,19 @@ export class RequirementsVersions {
       const caller = await this.deps.callers.forCompany(session.companyId);
       const handoff = session.handoff ? HandoffSchema.safeParse(session.handoff) : undefined;
       const path = pathOf(session.path);
+      // What the owner and invitees attached and could be read (D-490). Images carry their
+      // description as both summary and text; audio is answers, already in the conversation.
+      const documents = await db.attachment.findMany({
+        where: {
+          companyId: session.companyId,
+          sessionId: session.id,
+          status: "ready",
+          kind: { in: ["document", "image"] },
+        },
+        orderBy: { createdAt: "asc" },
+        take: 20,
+        select: { filename: true, summary: true, extractedText: true },
+      });
       const result = await generateSpec(
         { caller, prompts: new PrismaPromptSource(db), logger: log },
         {
@@ -110,6 +123,11 @@ export class RequirementsVersions {
           diagramTypes: values["requirements.diagramTypes"] as DiagramType[],
           bundleFormat: values["exports.bundleFormat"] as BundleFormat,
           minRequirements: template.completeness.minRequirements,
+          documents: documents.map((d) => ({
+            filename: d.filename,
+            summary: d.summary ?? "",
+            text: d.extractedText ?? "",
+          })),
         },
       );
       if (result.failure) {

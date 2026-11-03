@@ -25,12 +25,15 @@ import { staff } from "../../auth/plugin.js";
 import type { RouteContext } from "../../context.js";
 import { AppError, forbidden, notFound } from "../../lib/errors.js";
 import { expensiveLimit } from "../../lib/rate-limit.js";
+import { sendAttachment, storeUpload } from "../participant/attachments.js";
 import { transcribeDraft } from "../participant/voice.js";
 import { answerFromBody, parseTurnBody } from "../sessions/turn-body.js";
 import { runTurn } from "../sessions/turn-runner.js";
 import { RequirementsListQuery, requirementsListArgs } from "./service.js";
 
 const Id = z.object({ id: z.string() });
+
+const AttachmentKey = z.object({ id: z.string(), attachmentId: z.string() });
 
 const VersionParams = z.object({ id: z.string(), v: z.coerce.number().int().positive() });
 
@@ -113,8 +116,75 @@ export async function requirementsRoutes(app: App, ctx: RouteContext): Promise<v
     },
   );
 
-  app.get("/requirements/:id", { ...guard.staff(), schema: { params: Id } }, async (req) =>
-    wrap(() => svc.get(req.companyId, req.params.id, viewerOf(req))),
+  app.get("/requirements/:id", { ...guard.staff(), schema: { params: Id } }, async (req) => {
+    const detail = await wrap(() => svc.get(req.companyId, req.params.id, viewerOf(req)));
+    // The owner attaches their own material (a README, a PRD, screenshots) like any interviewee
+    // (D-490); the browser is told the limits in force so it can check a file before sending it.
+    const values = await ctx.settings.resolveMany(
+      ["features.fileUpload", "files.maxSizeMb", "files.allowedTypes"],
+      [
+        { scope: "template", scopeId: detail.session.templateId },
+        { scope: "tenant", scopeId: req.companyId },
+      ],
+    );
+    return {
+      ...detail,
+      attachments: await ctx.attachments.list(req.companyId, req.params.id),
+      uploads: {
+        enabled: values["features.fileUpload"] as boolean,
+        maxSizeMb: values["files.maxSizeMb"] as number,
+        allowedTypes: values["files.allowedTypes"] as string[],
+      },
+    };
+  });
+
+  // ---------- The owner's attachments (D-490) ----------
+  // The same service, limits, checks and ingest as a participant's files; held to the owner's
+  // access to the session instead of a participant token.
+
+  app.post(
+    "/requirements/:id/attachments",
+    {
+      ...guard.staff({ config: { rateLimit: { max: 20, timeWindow: "5 minutes" } } }),
+      schema: { params: Id, hide: true },
+    },
+    async (req) => {
+      await wrap(() => svc.assertAccess(req.companyId, req.params.id, viewerOf(req)));
+      return {
+        attachment: await storeUpload(ctx, { companyId: req.companyId, sessionId: req.params.id }, req),
+      };
+    },
+  );
+
+  app.get(
+    "/requirements/:id/attachments",
+    { ...guard.staff(), schema: { params: Id, hide: true } },
+    async (req) => {
+      await wrap(() => svc.assertAccess(req.companyId, req.params.id, viewerOf(req)));
+      return { attachments: await ctx.attachments.list(req.companyId, req.params.id) };
+    },
+  );
+
+  app.get(
+    "/requirements/:id/attachments/:attachmentId",
+    { ...guard.staff(), schema: { params: AttachmentKey, hide: true } },
+    async (req, reply) => {
+      await wrap(() => svc.assertAccess(req.companyId, req.params.id, viewerOf(req)));
+      const found = await ctx.attachments.open(req.companyId, req.params.id, req.params.attachmentId);
+      if (!found) throw notFound("Attachment");
+      return sendAttachment(reply, found);
+    },
+  );
+
+  app.delete(
+    "/requirements/:id/attachments/:attachmentId",
+    { ...guard.staff(), schema: { params: AttachmentKey, hide: true } },
+    async (req) => {
+      await wrap(() => svc.assertAccess(req.companyId, req.params.id, viewerOf(req)));
+      const removed = await ctx.attachments.remove(req.companyId, req.params.id, req.params.attachmentId);
+      if (!removed) throw notFound("Attachment");
+      return { ok: true as const };
+    },
   );
 
   app.post(

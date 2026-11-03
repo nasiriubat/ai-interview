@@ -2,7 +2,6 @@ import { staffClient } from "./browser";
 import type { ParticipantApi } from "./participant";
 import type { ParticipantSession, RequirementsDetail } from "./schemas";
 import type { StaffApi } from "./staff";
-import { DEFAULT_ALLOWED_TYPES, DEFAULT_MAX_SIZE_MB } from "@/lib/attachments";
 
 const NOT_AVAILABLE = "not available";
 
@@ -20,17 +19,17 @@ export function toParticipantSession(detail: RequirementsDetail): ParticipantSes
     consented: true,
     progress: detail.session.progress,
     messages: detail.messages,
-    // The owner can dictate into the answer box (D-483); the server still holds dictation to the
-    // tenant's recorded-voice switch. There are no live-voice or attachment routes for the owner.
+    // The owner can dictate into the answer box (D-483) and attach their own material (D-490); the
+    // server holds both to the tenant's switches. There is no live voice on the owner's side.
     capabilities: {
       recordedVoice: true,
       liveVoice: false,
       captions: false,
-      fileUpload: false,
-      maxSizeMb: DEFAULT_MAX_SIZE_MB,
-      allowedTypes: [...DEFAULT_ALLOWED_TYPES],
+      fileUpload: detail.uploads.enabled,
+      maxSizeMb: detail.uploads.maxSizeMb,
+      allowedTypes: detail.uploads.allowedTypes,
     },
-    attachments: [],
+    attachments: detail.attachments,
     summary: null,
   };
 }
@@ -39,8 +38,8 @@ export function toParticipantSession(detail: RequirementsDetail): ParticipantSes
  * Adapts the staff requirements routes (contract 18) to the participant API so the
  * existing interview hook drives an owner session. Pausing is a no-op (the owner just
  * leaves the page); deleting data and the participant summary are not part of the
- * owner flow and reject with "not available". So do sent voice turns and attachments: those are
- * participant routes (FR-30, FR-31). Dictation is the owner's own route (D-483).
+ * owner flow and reject with "not available". So do sent voice turns, a participant route
+ * (FR-30). Dictation (D-483) and attachments (D-490) are the owner's own routes.
  */
 export function requirementsSessionApi(id: string, api: StaffApi = staffClient): ParticipantApi {
   const r = api.requirements;
@@ -59,10 +58,10 @@ export function requirementsSessionApi(id: string, api: StaffApi = staffClient):
     sendControl: (control, signal) => r.sendControl(id, control, signal),
     sendVoice: notAvailable,
     transcribe: (audio, durationMs) => r.transcribe(id, audio, durationMs),
-    uploadAttachment: notAvailable,
-    listAttachments: notAvailable,
-    attachmentBytes: notAvailable,
-    deleteAttachment: notAvailable,
+    uploadAttachment: (file, _durationMs, options) => r.attachments.upload(id, file, options),
+    listAttachments: () => r.attachments.list(id),
+    attachmentBytes: (attachmentId) => r.attachments.bytes(id, attachmentId),
+    deleteAttachment: (attachmentId) => r.attachments.remove(id, attachmentId),
     pause: () => Promise.resolve(),
     deleteData: notAvailable,
     getSummary: notAvailable,

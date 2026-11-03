@@ -1591,6 +1591,15 @@ export const en = {
         titleField: "Title",
         promptField: "Describe the idea",
         promptHint: "Describe the idea in a few sentences.",
+        documentsField: "Documents to start from",
+        documentsHint:
+          "Optional: a README, a PRD, notes or screenshots. The interviewer reads them before its first question and asks about what they leave open; the specification can draw on them, naming the file.",
+        documentsRejected: (mb: number): string =>
+          `Some files were left out: PDF, Word, Excel, text, Markdown, CSV, PNG or JPEG, up to ${mb} MB each.`,
+        documentsRemove: (name: string): string => `Remove ${name}`,
+        documentsRefused: (names: string): string =>
+          `The interview was created, but these files could not be attached: ${names}. You can attach them in the conversation.`,
+        documentsContinue: "Open the interview",
         pathField: "Path",
         templateField: "Template",
         templateHint: "Published requirements templates.",
@@ -1609,6 +1618,7 @@ export const en = {
         reopen: "Reopen",
         reopened: "Interview reopened",
         completedNote: "This interview is complete. Reopen it to keep refining the specification.",
+        readingDocuments: "Reading your documents before the first question…",
         tabs: { spec: "Draft", findings: "Findings", versions: "Specification documents" },
         panelLabel: "Specification panel",
         viewLabel: "Workspace view",

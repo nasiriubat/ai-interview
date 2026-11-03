@@ -1,7 +1,7 @@
 import { AttachmentRejected, StorageFull, type AttachmentView } from "@aidp/core";
 import { PLATFORM_MAX_UPLOAD_MB } from "@aidp/shared";
 import type { MultipartFile } from "@fastify/multipart";
-import type { FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { guard } from "../../auth/access.js";
@@ -38,41 +38,7 @@ export async function participantAttachmentRoutes(app: App, ctx: RouteContext): 
     },
     async (req) => {
       const p = participant(req);
-      // The body is never buffered whole (P11, D-160). The multipart parser is bounded by the
-      // platform ceiling, and the service caps the stream at the smallest of the tenant's file
-      // limit and the room left in the interview's and organization's quotas, before reading it,
-      // so a file over any of them is cut off at the limit rather than after the last byte.
-      const file = await readOneFile(req, PLATFORM_MAX_UPLOAD_MB * 1024 * 1024);
-      const durationMs = durationFrom(file);
-      // Recordings have their own routes (voice turns, dictation), which hold them to the voice
-      // settings and transcribe them. Here audio would skip the file allowlist and never be read.
-      if (file.mimetype.toLowerCase().startsWith("audio/")) {
-        file.file.resume();
-        throw toHttp(new AttachmentRejected("type", "That file type is not accepted"));
-      }
-
-      try {
-        const created = await ctx.attachments.createFromStream({
-          companyId: p.companyId,
-          sessionId: p.sessionId,
-          filename: file.filename,
-          mime: file.mimetype,
-          stream: file.file,
-          ...(durationMs === undefined ? {} : { durationMs }),
-        });
-
-        // Audio is transcribed on the turn path, so only documents and images need reading here.
-        if (created.kind !== "audio") {
-          await ctx.jobs.publish(
-            "attachment.ingest",
-            { attachmentId: created.id, companyId: p.companyId },
-            { singletonKey: `ingest:${created.id}` },
-          );
-        }
-        return { attachment: created };
-      } catch (err) {
-        throw toHttp(err);
-      }
+      return { attachment: await storeUpload(ctx, { companyId: p.companyId, sessionId: p.sessionId }, req) };
     },
   );
 
@@ -97,21 +63,7 @@ export async function participantAttachmentRoutes(app: App, ctx: RouteContext): 
       const p = participant(req);
       const found = await ctx.attachments.open(p.companyId, p.sessionId, req.params.attachmentId);
       if (!found) throw notFound("Attachment");
-      return (
-        reply
-          .header("content-type", found.mime)
-          .header("x-content-type-options", "nosniff")
-          // `filename*` (RFC 6266) keeps a non-ASCII name such as "työvuorot.pdf" readable; the plain
-          // `filename` is the ASCII fallback, which the stored name already almost always is.
-          .header(
-            "content-disposition",
-            `attachment; filename="${found.filename.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "")}"; filename*=UTF-8''${encodeURIComponent(found.filename)}`,
-          )
-          // Nothing in these bytes may run, load or embed anything if a browser is ever pointed at them.
-          .header("content-security-policy", "sandbox; default-src 'none'")
-          .header("cache-control", "private, no-store")
-          .send(found.stream)
-      );
+      return sendAttachment(reply, found);
     },
   );
 
@@ -124,6 +76,74 @@ export async function participantAttachmentRoutes(app: App, ctx: RouteContext): 
       if (!removed) throw notFound("Attachment");
       return { ok: true as const };
     },
+  );
+}
+
+/**
+ * One uploaded file into a session's attachments, then its reading queued: the participant's
+ * route and the requirements owner's (D-490) both come here, so the limits, checks and ingest are
+ * the same whoever attaches it.
+ *
+ * The body is never buffered whole (P11, D-160). The multipart parser is bounded by the platform
+ * ceiling, and the service caps the stream at the smallest of the tenant's file limit and the room
+ * left in the interview's and organization's quotas, before reading it, so a file over any of them
+ * is cut off at the limit rather than after the last byte.
+ */
+export async function storeUpload(
+  ctx: RouteContext,
+  scope: { companyId: string; sessionId: string },
+  req: FastifyRequest,
+): Promise<AttachmentView> {
+  const file = await readOneFile(req, PLATFORM_MAX_UPLOAD_MB * 1024 * 1024);
+  const durationMs = durationFrom(file);
+  // Recordings have their own routes (voice turns, dictation), which hold them to the voice
+  // settings and transcribe them. Here audio would skip the file allowlist and never be read.
+  if (file.mimetype.toLowerCase().startsWith("audio/")) {
+    file.file.resume();
+    throw toHttp(new AttachmentRejected("type", "That file type is not accepted"));
+  }
+  try {
+    const created = await ctx.attachments.createFromStream({
+      ...scope,
+      filename: file.filename,
+      mime: file.mimetype,
+      stream: file.file,
+      ...(durationMs === undefined ? {} : { durationMs }),
+    });
+    await ctx.jobs.publish(
+      "attachment.ingest",
+      { attachmentId: created.id, companyId: scope.companyId },
+      { singletonKey: `ingest:${created.id}` },
+    );
+    return created;
+  } catch (err) {
+    throw toHttp(err);
+  }
+}
+
+/**
+ * Streams an attachment back. `Content-Disposition: attachment` on everything, and
+ * `X-Content-Type-Options: nosniff`, because these bytes are whatever someone uploaded: served
+ * inline on the API's own origin, an uploaded HTML or SVG file could run script there.
+ */
+export function sendAttachment(
+  reply: FastifyReply,
+  found: { mime: string; filename: string; stream: NodeJS.ReadableStream },
+): FastifyReply {
+  return (
+    reply
+      .header("content-type", found.mime)
+      .header("x-content-type-options", "nosniff")
+      // `filename*` (RFC 6266) keeps a non-ASCII name such as "työvuorot.pdf" readable; the plain
+      // `filename` is the ASCII fallback, which the stored name already almost always is.
+      .header(
+        "content-disposition",
+        `attachment; filename="${found.filename.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "")}"; filename*=UTF-8''${encodeURIComponent(found.filename)}`,
+      )
+      // Nothing in these bytes may run, load or embed anything if a browser is ever pointed at them.
+      .header("content-security-policy", "sandbox; default-src 'none'")
+      .header("cache-control", "private, no-store")
+      .send(found.stream)
   );
 }
 
