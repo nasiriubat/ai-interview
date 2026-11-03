@@ -5,7 +5,6 @@ import { SquareIcon, Volume2Icon } from "lucide-react";
 import * as React from "react";
 import { VoiceClip, type ClipSource } from "./VoiceClip";
 import { controlChipOf, type Announcement, type ControlChip } from "@/hooks/useInterview";
-import { usePrefersReducedMotion } from "@/hooks/useMediaQuery";
 import type { Speech } from "@/hooks/useSpeech";
 import { t } from "@/i18n";
 import type { Message } from "@/lib/api/schemas";
@@ -119,6 +118,8 @@ export function controlChipText(chip: ControlChip): string {
       return s.controlReturned(name);
     case "finish":
       return s.controlFinished;
+    case "wrap_up":
+      return s.controlWrapUp;
   }
 }
 
@@ -160,14 +161,11 @@ export function MessageList({
   announcement,
   speech,
   children,
-  followEnd = true,
   clipFor,
   failedSend = false,
   onRetrySend,
 }: {
   messages: Message[];
-  /** False when a `ChatViewport` around the list owns scrolling (the interview screen). */
-  followEnd?: boolean;
   /** The recording that belongs to a spoken message, when the server has it. */
   clipFor?: ((message: Message) => ClipSource | undefined) | undefined;
   /** The last send failed: an empty spoken bubble then offers its retry instead of "sending". */
@@ -180,13 +178,6 @@ export function MessageList({
   speech?: Speech | undefined;
   children?: React.ReactNode;
 }): React.JSX.Element {
-  const endRef = React.useRef<HTMLDivElement>(null);
-  const reduceMotion = usePrefersReducedMotion();
-  React.useEffect(() => {
-    if (!followEnd) return;
-    endRef.current?.scrollIntoView({ block: "end", behavior: reduceMotion ? "auto" : "smooth" });
-  }, [messages.length, streaming, pending, reduceMotion, followEnd]);
-
   // A system message is not transcript; only the chips this screen made for a control are shown.
   const clipOf = (m: Message): React.ComponentProps<typeof MessageBubble>["clip"] => {
     if (m.role !== "user" || m.modality !== "voice") return undefined;
@@ -222,7 +213,6 @@ export function MessageList({
         {announcement ? announcementText(announcement) : ""}
       </p>
       {children}
-      <div ref={endRef} />
     </div>
   );
 }

@@ -14,9 +14,12 @@ export function SingleChoiceWidget({
   widget,
   disabled,
   onSubmit,
+  other: withOther = true,
 }: {
   widget: Extract<Widget, { type: "single_choice" }>;
   disabled?: boolean | undefined;
+  /** The "Other" field. Off where the answer box right below already takes a written answer. */
+  other?: boolean | undefined;
   onSubmit: (response: WidgetResponse) => void;
 }): React.JSX.Element {
   const id = React.useId();
@@ -41,6 +44,8 @@ export function SingleChoiceWidget({
         }}
         disabled={disabled}
         aria-label={t.participant.session.widgetAnswer}
+        // Two columns where there is room, so a list of options does not push "Send" out of view.
+        className="gap-2 sm:grid-cols-2"
       >
         {widget.options.map((o) => (
           <ChoiceTile key={o.key} as="div" className="flex-col" disabled={disabled ?? false}>
@@ -54,7 +59,9 @@ export function SingleChoiceWidget({
           </ChoiceTile>
         ))}
       </RadioGroup>
-      <OtherInput id={`${id}-other`} value={other} onChange={setOther} disabled={disabled} />
+      {withOther ? (
+        <OtherInput id={`${id}-other`} value={other} onChange={setOther} disabled={disabled} />
+      ) : null}
       <Button type="submit" disabled={!canSubmit} className="w-full sm:w-auto">
         {t.participant.session.widgetSubmit}
       </Button>

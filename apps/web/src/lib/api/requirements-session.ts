@@ -20,10 +20,10 @@ export function toParticipantSession(detail: RequirementsDetail): ParticipantSes
     consented: true,
     progress: detail.session.progress,
     messages: detail.messages,
-    // The staff requirements routes carry no voice or attachment endpoints, so the owner's
-    // session says so rather than offering controls that would 404.
+    // The owner can dictate into the answer box (D-483); the server still holds dictation to the
+    // tenant's recorded-voice switch. There are no live-voice or attachment routes for the owner.
     capabilities: {
-      recordedVoice: false,
+      recordedVoice: true,
       liveVoice: false,
       captions: false,
       fileUpload: false,
@@ -39,8 +39,8 @@ export function toParticipantSession(detail: RequirementsDetail): ParticipantSes
  * Adapts the staff requirements routes (contract 18) to the participant API so the
  * existing interview hook drives an owner session. Pausing is a no-op (the owner just
  * leaves the page); deleting data and the participant summary are not part of the
- * owner flow and reject with "not available". So do voice and attachments: those are
- * participant routes (FR-30, FR-31), and the owner workspace renders no controls for them.
+ * owner flow and reject with "not available". So do sent voice turns and attachments: those are
+ * participant routes (FR-30, FR-31). Dictation is the owner's own route (D-483).
  */
 export function requirementsSessionApi(id: string, api: StaffApi = staffClient): ParticipantApi {
   const r = api.requirements;
@@ -58,7 +58,7 @@ export function requirementsSessionApi(id: string, api: StaffApi = staffClient):
     sendTurn: (input, signal) => r.sendTurn(id, input, signal),
     sendControl: (control, signal) => r.sendControl(id, control, signal),
     sendVoice: notAvailable,
-    transcribe: notAvailable,
+    transcribe: (audio, durationMs) => r.transcribe(id, audio, durationMs),
     uploadAttachment: notAvailable,
     listAttachments: notAvailable,
     attachmentBytes: notAvailable,

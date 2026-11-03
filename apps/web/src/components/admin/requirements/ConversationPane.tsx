@@ -1,16 +1,19 @@
 "use client";
 
 import type { Path } from "@aidp/shared";
-import { AlertTriangleIcon, CheckIcon, RotateCcwIcon } from "lucide-react";
+import { AlertTriangleIcon, CheckIcon, FastForwardIcon, RotateCcwIcon } from "lucide-react";
 import * as React from "react";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { ChatViewport } from "@/components/participant/ChatViewport";
 import { Composer } from "@/components/participant/Composer";
 import { MessageList } from "@/components/participant/MessageList";
+import { TurnStatus, turnPhase, useFocusOnTurn } from "@/components/participant/TurnStatus";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { choiceTileClass } from "@/components/ui/choice-tile";
 import { WidgetRenderer } from "@/components/widgets";
 import { useInterview } from "@/hooks/useInterview";
+import { useCoarsePointer } from "@/hooks/useMediaQuery";
 import { t } from "@/i18n";
 import { errorMessage } from "@/lib/api/errors";
 import type { ParticipantApi } from "@/lib/api/participant";
@@ -189,19 +192,36 @@ function ConversationBody({
       await sendControl({ type: "finish" });
     });
   };
+  // "Wrap up sooner" (D-484): essential topics only, no follow-ups, then the closing question.
+  const [wrappedUp, setWrappedUp] = React.useState(false);
+  const wrapUp = (): void => {
+    setWrappedUp(true);
+    void sendControl({ type: "wrap_up" }).then((delivered) => {
+      if (!delivered) setWrappedUp(false);
+    });
+  };
 
-  const inputDisabled = state.pending || busy || state.ended;
+  // The box stays editable while the interviewer replies, so the next answer can be drafted;
+  // only sending waits (the composer's `sending`).
+  const inputDisabled = busy || state.ended;
   const showWidget = activeWidget !== undefined && !state.ended;
   const isBudget = state.error?.code === "budget_exceeded";
   const isProvider = state.error?.code === "provider_error";
   const lastId = state.messages[state.messages.length - 1]?.id;
+  const phase = turnPhase(state);
+  const coarse = useCoarsePointer();
+  const [focusToken, setFocusToken] = React.useState(0);
+  const focusComposer = React.useCallback(() => {
+    setFocusToken((n) => n + 1);
+  }, []);
+  useFocusOnTurn(phase, showWidget, coarse, focusComposer);
 
   return (
     <section
       aria-label={s.conversation}
-      className="bg-card shadow-card flex min-h-[60dvh] flex-col rounded-lg lg:sticky lg:top-20 lg:h-[calc(100dvh-6.5rem)] lg:min-h-0"
+      className="bg-card shadow-card flex min-h-0 flex-1 flex-col rounded-lg"
     >
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="truncate text-base font-semibold" title={title}>
             {s.conversation}
@@ -222,27 +242,38 @@ function ConversationBody({
               <RotateCcwIcon /> {s.reopen}
             </Button>
           ) : (
-            <Button size="sm" variant="outline" disabled={inputDisabled} onClick={done}>
-              <CheckIcon /> {s.done}
-            </Button>
+            <>
+              {!wrappedUp ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={inputDisabled || state.pending}
+                  title={p.wrapUpHint}
+                  onClick={wrapUp}
+                >
+                  <FastForwardIcon />
+                  <span className="max-sm:sr-only">{p.wrapUp}</span>
+                </Button>
+              ) : null}
+              <Button size="sm" variant="outline" disabled={inputDisabled || state.pending} onClick={done}>
+                <CheckIcon /> {s.done}
+              </Button>
+            </>
           )}
         </div>
       </header>
 
-      <div className="max-h-[70dvh] min-h-0 flex-1 overflow-y-auto px-4 py-4 lg:max-h-none">
-        <MessageList messages={state.messages} streaming={state.streaming} pending={state.pending}>
-          {showWidget ? (
-            <div aria-label={p.widgetAnswer} className="bg-card shadow-card mt-1 rounded-2xl p-4">
-              <WidgetRenderer
-                key={lastId}
-                widget={activeWidget}
-                disabled={inputDisabled}
-                onSubmit={(r) => {
-                  void sendWidget(activeWidget, r);
-                }}
-              />
-            </div>
-          ) : null}
+      <ChatViewport
+        count={state.messages.length}
+        contentKey={`${String(state.streaming?.length ?? -1)}|${String(state.pending)}|${state.error?.code ?? ""}|${String(state.ended)}`}
+        innerClassName="max-w-none px-4 py-4 sm:px-4"
+      >
+        <MessageList
+          messages={state.messages}
+          streaming={state.streaming}
+          pending={state.pending}
+          announcement={state.lastAnnouncement}
+        >
           {state.error ? (
             <Alert variant={isBudget ? "warning" : "destructive"} className="mt-2">
               <AlertTriangleIcon />
@@ -282,15 +313,44 @@ function ConversationBody({
             </Alert>
           ) : null}
         </MessageList>
-      </div>
+      </ChatViewport>
 
       {state.ended ? (
-        <footer className="text-muted-foreground flex items-center gap-2 border-t px-4 py-3 text-sm">
+        <footer className="text-muted-foreground flex shrink-0 items-center gap-2 border-t px-4 py-3 text-sm">
           <CheckIcon className="size-4 shrink-0" aria-hidden="true" /> {s.completedNote}
         </footer>
       ) : (
-        <footer className="border-t px-4 py-3">
-          <Composer disabled={inputDisabled} autoFocus={false} onSend={(text) => sendText(text)} />
+        <footer className="flex max-h-[60%] shrink-0 flex-col gap-1.5 border-t px-3 pt-2 pb-3">
+          {showWidget ? (
+            // Quick replies sit right above the box, as on the participant screen; the box stays
+            // usable, so the options can always be ignored in favour of a written answer.
+            <section
+              aria-label={p.widgetAnswer}
+              className="bg-muted/50 min-h-0 overflow-y-auto rounded-2xl p-3 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
+            >
+              <WidgetRenderer
+                key={lastId}
+                widget={activeWidget}
+                disabled={inputDisabled}
+                other={false}
+                onSubmit={(r) => {
+                  void sendWidget(activeWidget, r);
+                }}
+              />
+            </section>
+          ) : null}
+          <TurnStatus phase={phase} widget={showWidget} canDictate />
+          <div className="bg-muted/60 has-[textarea:focus]:bg-card has-[textarea:focus]:shadow-focus shrink-0 rounded-2xl p-1.5 transition-shadow">
+            <Composer
+              disabled={inputDisabled}
+              sending={state.pending}
+              autoFocus={false}
+              focusToken={focusToken}
+              placeholder={showWidget ? p.composerPlaceholderOther : undefined}
+              onSend={(text, modality) => sendText(text, modality)}
+              onDictate={(audio, durationMs) => api.transcribe(audio, durationMs)}
+            />
+          </div>
         </footer>
       )}
     </section>

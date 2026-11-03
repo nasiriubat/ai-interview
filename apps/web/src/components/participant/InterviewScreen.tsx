@@ -14,6 +14,7 @@ import { SessionMenu } from "./SessionMenu";
 import { SessionPanel } from "./SessionPanel";
 import { StatusScreen } from "./StatusScreen";
 import { SummaryView } from "./SummaryView";
+import { TurnStatus, turnPhase, useFocusOnTurn } from "./TurnStatus";
 import type { ClipSource } from "./VoiceClip";
 import { undoToast } from "@/components/common/undoToast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,7 +24,7 @@ import { WidgetVoiceProvider, type WidgetVoice } from "@/components/widgets/voic
 import { useAttachments } from "@/hooks/useAttachments";
 import { controlChipOf, NOT_HEARD, useInterview } from "@/hooks/useInterview";
 import { useLiveVoice } from "@/hooks/useLiveVoice";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useCoarsePointer, useMediaQuery } from "@/hooks/useMediaQuery";
 import { useOnline } from "@/hooks/useOnline";
 import { useSpeech } from "@/hooks/useSpeech";
 import { t } from "@/i18n";
@@ -65,7 +66,6 @@ export function InterviewScreen({
     live: sink,
     activeWidget,
     sendText,
-    sendVoice,
     sendWidget,
     sendControl,
     retry,
@@ -169,6 +169,12 @@ export function InterviewScreen({
   // On a phone the call is a screen of its own (D-238); elsewhere it stays the panel above the composer.
   const phone = useMediaQuery("(max-width: 767px)");
   const callScreen = phone && inCall;
+  const phase = turnPhase(state);
+  const coarse = useCoarsePointer();
+  const focusComposer = React.useCallback(() => {
+    setComposerFocus((n) => n + 1);
+  }, []);
+  useFocusOnTurn(phase, activeWidget !== undefined, coarse || inCall, focusComposer);
 
   // Nothing under the voice mode can work without a route that listens, so the interview moves to
   // typing rather than leaving a mode selected whose every control is broken.
@@ -226,6 +232,17 @@ export function InterviewScreen({
   const finish = (): void => {
     void run(async () => {
       await sendControl({ type: "finish" });
+    });
+  };
+  // "Wrap up sooner" (D-484): the interview keeps going, shorter. Not a confirmation: nothing is
+  // lost, and the conversation shows a chip saying it was asked. Offered once per visit.
+  const [wrappedUp, setWrappedUp] = React.useState(false);
+  const wrapUp = (): void => {
+    setWrappedUp(true);
+    typedTurn(() => {
+      void sendControl({ type: "wrap_up" }).then((delivered) => {
+        if (!delivered) setWrappedUp(false);
+      });
     });
   };
   const remove = (): void => {
@@ -356,6 +373,10 @@ export function InterviewScreen({
   ).length;
   const areas = state.progress.areas;
   const covered = areas.filter((a) => a.status === "covered").length;
+  // Skipped topics, and those a shortened interview will no longer ask, are not "left" (D-484).
+  const counted = areas.filter((a) => a.status !== "skipped").length;
+  const left = areas.filter((a) => a.status === "untouched" || a.status === "partial").length;
+  const canWrapUp = !wrappedUp && !state.ended && !busy && left > 0;
   const aboutName = initial.about?.name;
   const name =
     aboutName !== undefined && aboutName !== "" ? aboutName : (title ?? t.participant.session.title);
@@ -378,12 +399,14 @@ export function InterviewScreen({
       <InterviewFrame
         title={name}
         subtitle={initial.about?.productName}
-        progress={{ done: covered, total: areas.length }}
+        progress={{ done: covered, total: counted }}
         onPause={pause}
         pauseDisabled={busy || state.ended}
+        onWrapUp={canWrapUp ? wrapUp : undefined}
         menu={
           <SessionMenu
             onDone={finish}
+            onWrapUp={canWrapUp ? wrapUp : undefined}
             onDelete={remove}
             disabled={busy || state.ended}
             deleteOpen={deleteOpen}
@@ -429,7 +452,6 @@ export function InterviewScreen({
             pending={state.pending}
             announcement={state.lastAnnouncement}
             speech={speech}
-            followEnd={false}
             clipFor={clipFor}
             failedSend={state.error !== null}
             onRetrySend={() => {
@@ -517,13 +539,14 @@ export function InterviewScreen({
                   // box stays usable, so a person can always ignore the choices and type.
                   <section
                     aria-label={t.participant.session.widgetAnswer}
-                    className="bg-muted/50 mb-1 rounded-2xl p-3"
+                    className="bg-muted/50 mb-1 rounded-2xl p-3 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
                   >
                     <WidgetVoiceProvider value={widgetVoice}>
                       <WidgetRenderer
                         key={state.messages[state.messages.length - 1]?.id}
                         widget={activeWidget}
                         disabled={inputDisabled}
+                        other={false}
                         onSubmit={(r) => {
                           typedTurn(() => {
                             void sendWidget(activeWidget, r);
@@ -562,32 +585,36 @@ export function InterviewScreen({
                   fetchBytes={attachments.bytes}
                 />
               </div>
-              <div className="bg-muted/60 focus-within:bg-card focus-within:shadow-control shrink-0 rounded-2xl p-1.5 transition-shadow">
+              {!inCall ? (
+                <TurnStatus
+                  phase={phase}
+                  widget={showWidget}
+                  canDictate={can.recordedVoice && spokenAnswers}
+                />
+              ) : null}
+              <div className="bg-muted/60 has-[textarea:focus]:bg-card has-[textarea:focus]:shadow-focus shrink-0 rounded-2xl p-1.5 transition-shadow">
                 <Composer
                   disabled={state.ended || busy}
                   sending={state.pending}
                   autoFocus={!showWidget}
                   voiceFirst={preferred === "voice" && !inCall}
                   focusToken={composerFocus}
-                  onSend={(text) => {
+                  placeholder={showWidget ? t.participant.session.composerPlaceholderOther : undefined}
+                  onSend={(text, modality) => {
                     remember("chat");
                     live.end();
                     // Resolves false when the turn failed, so the composer can give the text back.
-                    return sendText(text);
+                    return sendText(text, modality);
                   }}
                   onTalk={liveOffered && !inCall ? talk : undefined}
-                  onVoice={
-                    // One microphone at a time: while a live call is up, recording an answer as
-                    // well would take a second turn on a session that only allows one. And with no
-                    // route that listens, recorded voice transcribes through the same missing thing
-                    // the call just failed on, so the button is withdrawn rather than left as a
-                    // dead end.
+                  onDictate={
+                    // One microphone at a time: while a live call is up, it holds the microphone.
+                    // And with no route that listens, dictation transcribes through the same
+                    // missing thing the call just failed on, so the button is withdrawn rather
+                    // than left as a dead end. The words come back to the box to be checked and
+                    // sent (D-483); nothing is sent and no audio is kept.
                     can.recordedVoice && !inCall && spokenAnswers
-                      ? (audio, durationMs) => {
-                          // The turn stores the audio server-side, so the list is re-read
-                          // afterwards and the participant can play back what they said.
-                          void sendVoice(audio, durationMs).then(attachments.refresh);
-                        }
+                      ? (audio, durationMs) => api.transcribe(audio, durationMs)
                       : undefined
                   }
                   onFile={

@@ -88,6 +88,7 @@ suite("requirements interview end to end", () => {
     model = await fakeModelServer(
       () => turnReply,
       (name) => (name === "findings" ? { findings: [] } : name === "specification" ? specification : {}),
+      () => ({ text: "The charge nurse reads them aloud.", duration: 3 }),
     );
     world = await testWorld(model.url);
     const { db, companyId } = world;
@@ -131,6 +132,48 @@ suite("requirements interview end to end", () => {
   afterAll(async () => {
     await world.close();
     model.server.close();
+  });
+
+  it("dictates into the owner's answer box: a draft back, nothing stored, held to the owner's access (D-483)", async () => {
+    const { app, adminToken, db } = world;
+    const h = { authorization: `Bearer ${adminToken}` };
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/requirements",
+      headers: h,
+      payload: { title: "Dictation", prompt: "Handover notes get lost." },
+    });
+    const id = created.json<{ session: { id: string } }>().session.id;
+    const boundary = `----test${Math.random().toString(36).slice(2)}`;
+    const payload = Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="a.webm"\r\nContent-Type: audio/webm\r\n\r\n`,
+      ),
+      Buffer.from([0x1a, 0x45, 0xdf, 0xa3]),
+      Buffer.from("opus"),
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const headers = { "content-type": `multipart/form-data; boundary=${boundary}` };
+    const before = await db.message.count({ where: { sessionId: id } });
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/v1/requirements/${id}/transcribe`,
+      headers: { ...h, ...headers },
+      payload,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ text: "The charge nurse reads them aloud." });
+    expect(await db.message.count({ where: { sessionId: id } })).toBe(before);
+
+    // A member who does not own the interview cannot dictate into it.
+    const other = await app.inject({
+      method: "POST",
+      url: `/api/v1/requirements/${id}/transcribe`,
+      headers: { authorization: `Bearer ${memberToken}`, ...headers },
+      payload,
+    });
+    expect(other.statusCode).toBe(403);
   });
 
   it("creates from a prompt, interviews with a live spec, versions, exports, invites, and scopes access", async () => {
@@ -197,7 +240,7 @@ suite("requirements interview end to end", () => {
       .map((e) => (e.data as { delta: string }).delta)
       .join("");
     expect(text.trim()).toBe("Who is the main user of this, and what do they do today?");
-    expect([...new Set(events.map((e) => e.event))]).toEqual(["text", "turn", "spec"]);
+    expect([...new Set(events.map((e) => e.event))]).toEqual(["text", "composing", "turn", "spec"]);
     const spec = (
       events.find((e) => e.event === "spec")?.data as {
         spec: { sections: { key: string; fields: unknown[]; status: string }[]; stats: { fields: number } };

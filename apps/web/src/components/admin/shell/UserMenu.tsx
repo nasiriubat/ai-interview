@@ -1,6 +1,6 @@
 "use client";
 
-import { LanguagesIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserRoundIcon } from "lucide-react";
+import { LanguagesIcon, LogOutIcon, MoonIcon, SunIcon, UserRoundIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useLocaleSwitch } from "@/components/common/useLocaleSwitch";
@@ -18,7 +18,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { t } from "@/i18n";
 import { LOCALES, type Locale } from "@/i18n/locale";
 import type { Me } from "@/lib/api/schemas";
-import { applyTheme, readTheme, type ThemeChoice } from "@/lib/theme";
+import { applyTheme, type EffectiveTheme } from "@/lib/theme";
+import { useTheme } from "@/lib/useTheme";
 
 /** Two letters for the avatar: the name's initials, or the start of the email's local part. */
 export function initialsOf(me: Me["user"] | null): string {
@@ -51,7 +52,7 @@ export function Avatar({
   );
 }
 
-const THEMES: readonly ThemeChoice[] = ["system", "light", "dark"];
+const THEMES: readonly EffectiveTheme[] = ["light", "dark"];
 
 /**
  * Everything that belongs to the signed-in person, in one menu in the top bar: profile, theme,
@@ -59,17 +60,11 @@ const THEMES: readonly ThemeChoice[] = ["system", "light", "dark"];
  */
 export function UserMenu({ me }: { me: Me | null }): React.JSX.Element {
   const k = t.kit.shell;
-  const [theme, setTheme] = React.useState<ThemeChoice>("system");
-  React.useEffect(() => {
-    setTheme(readTheme());
-  }, []);
+  // Light or dark as it is on screen (D-485); following the device again is on the account page.
+  const { theme } = useTheme();
   const { shown, change } = useLocaleSwitch();
-  const themeLabel: Record<ThemeChoice, string> = {
-    system: t.app.theme.system,
-    light: t.app.theme.light,
-    dark: t.app.theme.dark,
-  };
-  const ThemeIcon = { system: MonitorIcon, light: SunIcon, dark: MoonIcon };
+  const themeLabel: Record<EffectiveTheme, string> = { light: t.app.theme.light, dark: t.app.theme.dark };
+  const ThemeIcon = { light: SunIcon, dark: MoonIcon };
 
   return (
     <DropdownMenu>
@@ -121,12 +116,9 @@ export function UserMenu({ me }: { me: Me | null }): React.JSX.Element {
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{t.app.theme.label}</DropdownMenuLabel>
         <DropdownMenuRadioGroup
-          value={theme}
+          value={theme ?? ""}
           onValueChange={(v) => {
-            if (THEMES.includes(v as ThemeChoice)) {
-              setTheme(v as ThemeChoice);
-              applyTheme(v as ThemeChoice);
-            }
+            if (THEMES.includes(v as EffectiveTheme)) applyTheme(v as EffectiveTheme);
           }}
         >
           {THEMES.map((choice) => {

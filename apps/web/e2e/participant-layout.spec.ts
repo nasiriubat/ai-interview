@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { LINK_TOKEN } from "./fixtures";
+import { PARTICIPANT_COOKIE } from "./participant-cookie";
 
 /*
  * Layout assertions for the participant's screens (D-380): the people who open these links do it on
@@ -64,9 +65,7 @@ for (const state of STATES) {
   }, info) => {
     const hostname = new URL(info.project.use.baseURL ?? "http://localhost:3100").hostname;
     if (state.token)
-      await context.addCookies([
-        { name: "aidp_participant", value: state.token, domain: hostname, path: "/" },
-      ]);
+      await context.addCookies([{ ...PARTICIPANT_COOKIE, value: state.token, domain: hostname, path: "/" }]);
     await page.goto(state.path, { waitUntil: "networkidle" });
     await page.getByRole("heading").first().waitFor();
     expect(await findings(page)).toEqual([]);
@@ -75,9 +74,7 @@ for (const state of STATES) {
 
 test("a long unbroken word stays inside its bubble", async ({ page, context }, info) => {
   const hostname = new URL(info.project.use.baseURL ?? "http://localhost:3100").hostname;
-  await context.addCookies([
-    { name: "aidp_participant", value: "e2e-long-token", domain: hostname, path: "/" },
-  ]);
+  await context.addCookies([{ ...PARTICIPANT_COOKIE, value: "e2e-long-token", domain: hostname, path: "/" }]);
   await page.goto("/p/session", { waitUntil: "networkidle" });
   const bubble = page.getByText(/Supercalifragilistic/).first();
   await expect(bubble).toBeVisible();

@@ -36,6 +36,9 @@ for (const target of PAGES) {
   }, info) => {
     await signIn(page, new URL(info.project.use.baseURL ?? "http://localhost:3100").hostname);
     await page.goto(target.path, { waitUntil: "networkidle" });
+    // On a phone the requirements workspace shows one pane at a time (D-481).
+    const specView = page.getByRole("button", { name: /^(Specification|Määrittely)$/ });
+    if (await specView.isVisible()) await specView.click();
     const drawn = page.locator(".report-diagram svg");
     await expect(drawn).toHaveCount(demoDiagrams.length, { timeout: 30_000 });
 

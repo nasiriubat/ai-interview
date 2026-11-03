@@ -38,9 +38,9 @@ const AUDIO_MIMES = new Set([
 
 export async function participantVoiceRoutes(app: App, ctx: RouteContext): Promise<void> {
   /**
-   * Speech to text for one field, nothing else (D-239): the "Other" entry of a choice question
-   * accepts speech, and the words are put in the field for the participant to read, correct and
-   * send. No turn is taken, no message is written and the audio is not kept: what comes back is a
+   * Speech to text for one field, nothing else (D-239, D-483): the answer box and the "Other" entry
+   * of a choice question accept speech, and the words are put in the field for the participant to
+   * read, correct and send. No turn is taken, no message is written and the audio is not kept: what comes back is a
    * draft, and the answer is whatever the participant then sends. The call is budgeted and in the
    * ledger like any transcription; it is held to the recorded-voice switch and its rate limit.
    */
@@ -52,45 +52,7 @@ export async function participantVoiceRoutes(app: App, ctx: RouteContext): Promi
     },
     async (req) => {
       const p = participant(req);
-      const enabled = await ctx.services.participant.voiceAllowed(p.companyId, p.sessionId, "recorded");
-      if (!enabled) throw new AppError("feature_disabled", "Voice answers are turned off");
-
-      const file = await readAudio(req);
-      const bytes = await file.toBuffer();
-      const caller = await ctx.callers.forCompany(p.companyId);
-      const languages = speechLanguages(await ctx.attachments.languageFor(p.sessionId));
-      let transcript;
-      try {
-        transcript = await caller.transcribe(
-          { companyId: p.companyId, sessionId: p.sessionId, ref: { type: "session", id: p.sessionId } },
-          {
-            data: new Uint8Array(bytes),
-            mime: file.mimetype,
-            filename: file.filename || "recording.webm",
-            languages,
-          },
-        );
-      } catch (err) {
-        if (err instanceof UnsupportedAudioError) {
-          throw new AppError(
-            "validation",
-            "This browser's recording could not be read here; please type your answer instead",
-          );
-        }
-        if (err instanceof ProviderError && err.code === "unsupported") {
-          throw new AppError(
-            "provider_error",
-            "Voice answers need a transcription model, which is not configured yet",
-          );
-        }
-        throw err;
-      }
-      const text = transcript.text.trim().slice(0, 2000);
-      if (text.length === 0)
-        throw new AppError("validation", "I could not hear anything in that recording", {
-          reason: "no_speech",
-        });
-      return { text };
+      return transcribeDraft(ctx, { companyId: p.companyId, sessionId: p.sessionId }, req);
     },
   );
 
@@ -217,4 +179,58 @@ function durationFrom(file: { fields: Record<string, unknown> }): number | undef
     raw && typeof raw === "object" && !Array.isArray(raw) && "value" in raw ? raw.value : undefined;
   const parsed = typeof value === "string" ? Number.parseInt(value, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed >= 0 && parsed < 3_600_000 ? parsed : undefined;
+}
+
+/**
+ * A recording to a draft: the words come back for the person to correct and send, and nothing else
+ * happens (D-239, D-483). No turn, no message, and the audio is not kept. Budgeted and in the ledger
+ * like any transcription, and held to the recorded-voice switch of the session's scope. Shared by
+ * the participant's answer box and the requirements workspace.
+ */
+export async function transcribeDraft(
+  ctx: RouteContext,
+  scope: { companyId: string; sessionId: string },
+  req: FastifyRequest,
+): Promise<{ text: string }> {
+  const enabled = await ctx.services.participant.voiceAllowed(scope.companyId, scope.sessionId, "recorded");
+  if (!enabled) throw new AppError("feature_disabled", "Voice answers are turned off");
+
+  const file = await readAudio(req);
+  const bytes = await file.toBuffer();
+  const caller = await ctx.callers.forCompany(scope.companyId);
+  const languages = speechLanguages(await ctx.attachments.languageFor(scope.sessionId));
+  let transcript;
+  try {
+    transcript = await caller.transcribe(
+      {
+        companyId: scope.companyId,
+        sessionId: scope.sessionId,
+        ref: { type: "session", id: scope.sessionId },
+      },
+      {
+        data: new Uint8Array(bytes),
+        mime: file.mimetype,
+        filename: file.filename || "recording.webm",
+        languages,
+      },
+    );
+  } catch (err) {
+    if (err instanceof UnsupportedAudioError) {
+      throw new AppError(
+        "validation",
+        "This browser's recording could not be read here; please type your answer instead",
+      );
+    }
+    if (err instanceof ProviderError && err.code === "unsupported") {
+      throw new AppError(
+        "provider_error",
+        "Voice answers need a transcription model, which is not configured yet",
+      );
+    }
+    throw err;
+  }
+  const text = transcript.text.trim().slice(0, 2000);
+  if (text.length === 0)
+    throw new AppError("validation", "I could not hear anything in that recording", { reason: "no_speech" });
+  return { text };
 }

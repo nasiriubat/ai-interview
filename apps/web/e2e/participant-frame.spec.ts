@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
+import { PARTICIPANT_COOKIE } from "./participant-cookie";
 
 /*
  * The desktop frame and the messenger behaviour (D-420 to D-424). The owner took an interview on a
@@ -17,7 +18,7 @@ const SIZES = [
 
 async function signIn(context: BrowserContext, info: TestInfo, token: string): Promise<void> {
   const hostname = new URL(info.project.use.baseURL ?? "http://localhost:3100").hostname;
-  await context.addCookies([{ name: "aidp_participant", value: token, domain: hostname, path: "/" }]);
+  await context.addCookies([{ ...PARTICIPANT_COOKIE, value: token, domain: hostname, path: "/" }]);
 }
 
 interface Geometry {
@@ -115,21 +116,21 @@ test("a short conversation sits directly above the composer, not at the top of t
   expect(g.scrollerBottom - g.lastBottom).toBeLessThanOrEqual(40);
 });
 
-test("recording eight answers in a row never pushes the conversation out of view", async ({
+test("dictating eight answers in a row keeps the conversation and the composer in view (D-483)", async ({
   page,
   context,
 }, info) => {
   test.setTimeout(120_000);
   await context.grantPermissions(["microphone"]);
   await signIn(context, info, "e2e-participant-token");
+  let heard = 0;
+  await page.route("**/session/transcribe", (route) => {
+    heard += 1;
+    return route.fulfill({ json: { text: `Dictated answer number ${String(heard)}` } });
+  });
   let n = 0;
-  await page.route("**/session/voice-turns", (route) => {
+  await page.route("**/session/turns", (route) => {
     n += 1;
-    const transcript = {
-      text: `Spoken answer number ${String(n)}, said out loud.`,
-      attachmentId: `a${String(n)}`,
-      durationMs: 3000,
-    };
     const turn = {
       message: {
         id: `r${String(n)}`,
@@ -144,26 +145,30 @@ test("recording eight answers in a row never pushes the conversation out of view
     };
     return route.fulfill({
       contentType: "text/event-stream",
-      body: `event: transcript\ndata: ${JSON.stringify(transcript)}\n\nevent: turn\ndata: ${JSON.stringify(turn)}\n\n`,
+      body: `event: composing\ndata: {}\n\nevent: turn\ndata: ${JSON.stringify(turn)}\n\n`,
     });
   });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/p/session", { waitUntil: "networkidle" });
-  const mic = page.getByRole("button", { name: /record your answer|nauhoita vastauksesi/i });
+  const mic = page.getByRole("button", { name: /dictate your answer|sanele vastauksesi/i });
+  const box = page.getByRole("textbox", { name: /your answer|vastauksesi/i });
   for (let i = 1; i <= 8; i++) {
     await mic.click();
     await page.getByRole("timer").waitFor();
     await page.waitForTimeout(500);
-    await page.getByRole("button", { name: /stop and send|lopeta ja lähetä/i }).click();
+    await page.getByRole("button", { name: /stop and turn it into text|lopeta ja muuta tekstiksi/i }).click();
+    // The words land in the box to be checked; nothing is sent until Send.
+    await expect(box).toHaveValue(`Dictated answer number ${String(i)}`);
+    expect(n).toBe(i - 1);
+    await page.getByRole("button", { name: /^(send|lähetä)$/i }).click();
     await expect(page.getByText(`Reply number ${String(i)}.`).first()).toBeVisible({ timeout: 15_000 });
   }
   const g = await geometry(page);
   expect(g.pageScrollsY).toBe(false);
-  expect(g.attachmentsHeight).toBe(0);
   expect(g.lastBottom).toBeLessThanOrEqual(g.scrollerBottom + 1);
   expect(g.composerBottom).toBeLessThanOrEqual(g.vh);
   expect(g.footerHeight).toBeLessThanOrEqual(g.vh * 0.45 + 1);
-  await expect(page.getByText("Spoken answer number 8, said out loud.")).toBeVisible();
+  await expect(page.getByText("Dictated answer number 8")).toBeVisible();
 });
 
 test("scrolled up, the view stays put; the pill brings the newest message back", async ({

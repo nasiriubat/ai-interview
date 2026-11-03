@@ -78,7 +78,7 @@ async function startCall(page: Page): Promise<void> {
 
 /** Records with the composer's microphone and leaves the recorder open. */
 async function startRecording(page: Page): Promise<void> {
-  await page.getByRole("button", { name: /record your answer|nauhoita vastauksesi/i }).click();
+  await page.getByRole("button", { name: /dictate your answer|sanele vastauksesi/i }).click();
   await page.getByRole("timer").waitFor();
 }
 
@@ -219,7 +219,7 @@ export const PAGES: Entry[] = [
       await refuseMicrophone(page);
     },
     prepare: async (page: Page): Promise<void> => {
-      await page.getByRole("button", { name: /record your answer|nauhoita vastauksesi/i }).click();
+      await page.getByRole("button", { name: /dictate your answer|sanele vastauksesi/i }).click();
       await page
         .getByText(/Microphone access was blocked|Mikrofonin käyttö estettiin/)
         .first()

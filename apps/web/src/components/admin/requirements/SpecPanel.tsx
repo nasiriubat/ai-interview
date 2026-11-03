@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { t } from "@/i18n";
 import type { LiveSpec, SessionInvitation, SpecVersionSummary } from "@/lib/api/schemas";
 
-/** The right-hand panel of the workspace: Spec, Findings and Versions tabs. Tabs stay sticky on phones. */
+/** The right-hand panel of the workspace: Spec, Findings and Versions tabs. The tabs stay at the top of its scroller. */
 export function SpecPanel({
   sessionId,
   spec,
@@ -30,7 +30,7 @@ export function SpecPanel({
       aria-label={t.admin.requirements.workspace.panelLabel}
       className="min-w-0 gap-4"
     >
-      <TabsList className="bg-background/95 sticky top-[3.25rem] z-10 w-full backdrop-blur lg:static">
+      <TabsList className="bg-card/95 sticky top-0 z-10 w-full backdrop-blur">
         <TabsTrigger value="spec">{s.spec}</TabsTrigger>
         <TabsTrigger value="findings">
           {s.findings}

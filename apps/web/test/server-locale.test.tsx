@@ -201,10 +201,10 @@ describe("server pages follow the lang cookie", () => {
     await renderPage(NotFound());
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(fi.participant.arrival.invalidTitle);
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
-    // The only controls are the language and appearance menus in the frame's header.
+    // The only controls are the language menu and the theme toggle in the frame's header.
     expect(screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
       expect.stringMatching(/^(Kieli|Language): /),
-      expect.stringMatching(/^(Ulkoasu|Appearance): /),
+      expect.stringMatching(/^(Tumma tila|Dark mode)$/),
     ]);
   });
 

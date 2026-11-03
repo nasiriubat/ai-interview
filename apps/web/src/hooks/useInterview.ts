@@ -35,7 +35,7 @@ export interface Announcement {
  * gone after a reload, which is right: it is feedback, not a record.
  */
 export interface ControlChip {
-  kind: "skip_area" | "return_area" | "finish";
+  kind: "skip_area" | "return_area" | "finish" | "wrap_up";
   areaKey?: string | undefined;
   areaName?: string | undefined;
 }
@@ -75,6 +75,11 @@ export interface InterviewState {
   streaming: string | null;
   /** A turn is in flight (request sent, stream not finished). */
   pending: boolean;
+  /**
+   * The interviewer's text is complete and the turn's options are being prepared (`event:
+   * composing`). Only meaningful while `pending`; every new turn starts it at false.
+   */
+  composing: boolean;
   progress: Progress;
   ended: boolean;
   summaryAvailable: boolean;
@@ -115,7 +120,8 @@ export interface InterviewController {
    * failed (the error is in `state.error`). The composer uses that to give the text back.
    */
   send: (input: TurnInput | undefined) => Promise<boolean>;
-  sendText: (text: string) => Promise<boolean>;
+  /** A written answer; `dictated` when the words came from the microphone (D-483). */
+  sendText: (text: string, modality?: "text" | "dictated") => Promise<boolean>;
   sendWidget: (widget: Widget, response: WidgetResponse) => Promise<boolean>;
   /**
    * Recorded voice (FR-30): uploads the recording as the turn. The transcript arrives first and
@@ -201,6 +207,7 @@ export function useInterview(
     messages: initial.messages,
     streaming: null,
     pending: false,
+    composing: false,
     progress: initial.progress,
     ended: isCompleted(initial.status),
     summaryAvailable: isCompleted(initial.status),
@@ -272,6 +279,7 @@ export function useInterview(
       ...s,
       error: null,
       pending: true,
+      composing: false,
       streaming: null,
       // A new attempt after a failure replaces the failed one's optimistic copy instead of
       // stacking beside it (the composer hands the text back, so the person may well resend it).
@@ -289,6 +297,9 @@ export function useInterview(
         switch (ev.type) {
           case "text":
             setState((s) => ({ ...s, streaming: (s.streaming ?? "") + ev.delta }));
+            break;
+          case "composing":
+            setState((s) => ({ ...s, composing: true }));
             break;
           case "control": {
             const area = ev.progress.areas.find((a) => a.key === ev.areaKey);
@@ -477,7 +488,10 @@ export function useInterview(
     return last?.role === "assistant" && last.widget ? last.widget : undefined;
   }, [state.messages, state.ended, state.pending]);
 
-  const sendText = React.useCallback((text: string) => send({ content: text, modality: "text" }), [send]);
+  const sendText = React.useCallback(
+    (text: string, modality: "text" | "dictated" = "text") => send({ content: text, modality }),
+    [send],
+  );
   const sendWidget = React.useCallback(
     (widget: Widget, response: WidgetResponse) =>
       send({ content: widgetResponseToText(widget, response), modality: "widget", widgetResponse: response }),
@@ -534,6 +548,7 @@ export function useInterview(
           ...s,
           error: null,
           pending: true,
+          composing: false,
           messages: [...s.messages, heardMessage(said)],
         }));
       },

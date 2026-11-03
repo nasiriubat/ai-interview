@@ -3,7 +3,7 @@ import Link from "next/link";
 import * as React from "react";
 import { ProductMark } from "@/components/common/Branding";
 import { LanguageSwitch } from "@/components/common/LanguageSwitch";
-import { ThemeSwitch } from "@/components/common/ThemeSwitch";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ export function AuthShell({
   const b = t.kit.brand;
   const controls = (
     <div className="flex items-center gap-2 print:hidden">
-      <ThemeSwitch compact />
+      <ThemeToggle />
       <LanguageSwitch />
     </div>
   );

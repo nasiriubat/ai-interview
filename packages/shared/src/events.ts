@@ -54,7 +54,7 @@ export const ModeSwitchEventSchema = z.object({
 export type ModeSwitchEvent = z.infer<typeof ModeSwitchEventSchema>;
 
 export const ControlEventSchema = z.object({
-  kind: z.enum(["skip_area", "return_area", "finish"]),
+  kind: z.enum(["skip_area", "return_area", "finish", "wrap_up"]),
   areaKey: z.string().optional(),
   areaName: z.string().optional(),
   /** The sequence of the last message before the control, so a timeline can place it. */

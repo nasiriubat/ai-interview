@@ -102,6 +102,11 @@ export class TurnParser {
   private meta = "";
   private message = "";
 
+  /** The visible message is complete: everything from here on is metadata. */
+  get inMetadata(): boolean {
+    return this.inMeta;
+  }
+
   /** Feed a delta; returns the text safe to show now. */
   push(delta: string): string {
     if (this.inMeta) {

@@ -12,7 +12,7 @@ import { AppError } from "../../lib/errors.js";
 export const TurnBody = z
   .object({
     content: z.string().max(8000).default(""),
-    modality: z.enum(["text", "widget", "voice"]).default("text"),
+    modality: z.enum(["text", "widget", "voice", "dictated"]).default("text"),
     widgetResponse: WidgetResponseSchema.optional(),
     control: TurnControlSchema.optional(),
   })

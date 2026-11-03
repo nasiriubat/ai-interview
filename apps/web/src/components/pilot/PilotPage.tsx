@@ -3,7 +3,8 @@ import Link from "next/link";
 import * as React from "react";
 import { PilotForm } from "./PilotForm";
 import { ProductMark } from "@/components/common/Branding";
-import { LanguageMenu, ThemeMenu } from "@/components/common/PreferenceMenus";
+import { LanguageMenu } from "@/components/common/PreferenceMenus";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import type { Strings } from "@/i18n/en";
 import type { Branding } from "@/lib/branding-shared";
@@ -34,7 +35,7 @@ export function PilotPage({
           </Link>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <LanguageMenu />
-            <ThemeMenu />
+            <ThemeToggle />
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href="/">
                 <ArrowLeftIcon aria-hidden="true" />

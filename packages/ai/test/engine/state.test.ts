@@ -69,9 +69,12 @@ describe("state", () => {
 
   it("admits widgets only per policy", () => {
     const w = { type: "yes_no" as const };
-    expect(admitWidget(w, st({ turnCount: 1 }), t)).toEqual(w);
-    expect(admitWidget(w, st({ turnCount: 2, lastWidgetTurn: 1 }), t)).toBeUndefined(); // everyTurns 2
-    expect(admitWidget(w, st({ turnCount: 3, lastWidgetTurn: 1 }), t)).toEqual(w);
+    const spaced = template({ widgetPolicy: { everyTurns: 2 } });
+    expect(admitWidget(w, st({ turnCount: 1 }), spaced)).toEqual(w);
+    expect(admitWidget(w, st({ turnCount: 2, lastWidgetTurn: 1 }), spaced)).toBeUndefined();
+    expect(admitWidget(w, st({ turnCount: 3, lastWidgetTurn: 1 }), spaced)).toEqual(w);
+    // The default allows one on consecutive turns (D-482).
+    expect(admitWidget(w, st({ turnCount: 2, lastWidgetTurn: 1 }), t)).toEqual(w);
     expect(
       admitWidget(
         {

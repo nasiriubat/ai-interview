@@ -9,6 +9,7 @@ import type { EngineSettings, SessionSnapshot, StoredMessage } from "./ports.js"
 import type { PromptDefinition } from "./prompts/index.js";
 import { NO_CAPTURE_INSTRUCTIONS, SPEC_CAPTURE_INSTRUCTIONS } from "./prompts/interviewer.v7.js";
 import type { Focus } from "./selection.js";
+import { widgetAllowed } from "./state.js";
 import { TURN_MARKER } from "./turn-parser.js";
 
 /** The last line of every interviewer request (see `assembleContext`). */
@@ -151,9 +152,27 @@ export function renderState(
         `- [${f.id}] ${f.type} at ${f.section}${f.path ? `/${f.path}` : ""} (${f.status}): ${f.description}`,
       );
   }
-  if (state.shortened)
+  if (state.wrapUp)
+    lines.push(
+      "Note: the participant asked to wrap up sooner; only essential areas remain, with no follow-ups.",
+    );
+  else if (state.shortened)
     lines.push("Note: the participant gives minimal answers; the interview is shortened to essential areas.");
   return lines.join("\n");
+}
+
+/**
+ * Whether this turn may carry a widget, said next to the focus (D-482). Choices are the easiest
+ * way to answer, so when one is allowed the interviewer is asked to use it whenever the likely
+ * answers can be listed; when the spacing rules one out it names a few examples in its text
+ * instead of promising options that would then be dropped.
+ */
+export function widgetNote(state: SessionState, template: InterviewTemplate): string {
+  if (template.widgetPolicy.maxPerTurns === 0 || template.widgetPolicy.allowedTypes.length === 0)
+    return "Widgets are off for this interview: ask in words.";
+  return widgetAllowed(state, template, state.turnCount + 1)
+    ? "A widget is available this turn. When the likely answers can be listed (a role, a frequency, a tool, a priority, yes or no), attach one rather than asking for free text; the participant can still write their own answer."
+    : "No widget this turn (one was shown very recently). If the answer has a few likely options, name two to four of them briefly in your message and invite the participant's own words.";
 }
 
 export function renderFocus(
@@ -284,7 +303,7 @@ export function assembleContext(input: {
   // The interviewer's earlier messages are shown without their metadata block, so a model that
   // imitates its history stops writing one (about half the replies of a cheap model in the live
   // run of 2026-10-14). The reminder sits last, next to the question, where it is followed.
-  const focusText = `<engine_focus>\n${renderFocus(focus, session.template, session.path, session.state)}\n</engine_focus>\n\n${FORMAT_REMINDER}`;
+  const focusText = `<engine_focus>\n${renderFocus(focus, session.template, session.path, session.state)}\n${widgetNote(session.state, session.template)}\n</engine_focus>\n\n${FORMAT_REMINDER}`;
   used += estimateTokens(focusText);
 
   // Recent window: newest first until the budget is spent, then restore order.

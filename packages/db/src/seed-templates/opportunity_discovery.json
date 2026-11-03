@@ -85,7 +85,7 @@
   "widgetPolicy": {
     "allowedTypes": ["single_choice", "multi_choice", "scale", "yes_no"],
     "maxPerTurns": 1,
-    "everyTurns": 2
+    "everyTurns": 1
   },
   "issueDetection": { "enabled": false },
   "outputs": ["task", "process", "information_flow", "pain_point", "opportunity_candidate"],

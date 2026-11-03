@@ -1,4 +1,4 @@
-import { generateRecap, recapIsCurrent, type ModelCallerPort } from "@aidp/ai";
+import { generateRecap, progressAreas, recapIsCurrent, type ModelCallerPort } from "@aidp/ai";
 import {
   PrismaPromptSource,
   PrismaSessionStore,
@@ -65,12 +65,12 @@ export class ParticipantSessionReader {
       session.status === "deleted"
         ? []
         : await this.db.message.findMany({ where: { sessionId: session.id }, orderBy: { seq: "asc" } });
-    const state = session.state as { coverage?: Record<string, { status: string }> };
-    const areas = (session.template.coverageAreas as { key: string; name: string }[]).map((a) => ({
-      key: a.key,
-      name: a.name,
-      status: state.coverage?.[a.key]?.status ?? "untouched",
-    }));
+    const areas = progressAreas(
+      {
+        coverageAreas: session.template.coverageAreas as { key: string; name: string; essential?: boolean }[],
+      },
+      session.state as { coverage?: Record<string, { status: string }>; shortened?: boolean },
+    );
     // What the browser is allowed to do, resolved from the tenant's settings.
     //
     // Without this the client has to guess: it would offer a microphone to a tenant that turned

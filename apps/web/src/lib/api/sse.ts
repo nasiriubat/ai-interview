@@ -102,7 +102,7 @@ const TranscriptEventSchema = z.object({
  * turn. `progress` is the state after it, so the chips move at once.
  */
 const ControlEventSchema = z.object({
-  kind: z.enum(["skip_area", "return_area", "finish"]),
+  kind: z.enum(["skip_area", "return_area", "finish", "wrap_up"]),
   areaKey: z.string().optional(),
   at: z.string().default(""),
   progress: ProgressSchema.default({ areas: [] }),
@@ -110,9 +110,11 @@ const ControlEventSchema = z.object({
 
 export type TurnStreamEvent =
   | { type: "text"; delta: string }
+  /** The message is complete; the turn's options are being prepared (D-481). */
+  | { type: "composing" }
   | {
       type: "control";
-      kind: "skip_area" | "return_area" | "finish";
+      kind: "skip_area" | "return_area" | "finish" | "wrap_up";
       areaKey?: string | undefined;
       at: string;
       progress: z.infer<typeof ProgressSchema>;
@@ -150,6 +152,8 @@ export function toTurnStreamEvent(ev: SseEvent): TurnStreamEvent | undefined {
       const r = TextEventSchema.safeParse(json);
       return r.success ? { type: "text", delta: r.data.delta } : malformed(ev);
     }
+    case "composing":
+      return { type: "composing" };
     case "control": {
       const r = ControlEventSchema.safeParse(json);
       return r.success ? { type: "control", ...r.data } : malformed(ev);

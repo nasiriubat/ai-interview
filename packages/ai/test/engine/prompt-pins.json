@@ -55,7 +55,11 @@
     "retired": true
   },
   "interviewer@8": {
-    "sha256": "cb71cc0cd4920464a02d74f029a793f45005e11cd87623fc816a04ace3274f9e"
+    "sha256": "cb71cc0cd4920464a02d74f029a793f45005e11cd87623fc816a04ace3274f9e",
+    "retired": true
+  },
+  "interviewer@9": {
+    "sha256": "3927052fc294b333f0aa67efae4be5cd054401c70fd5f8bfdbea7d51f3b1d2da"
   },
   "issues@2": {
     "sha256": "e4431e8aa06b088a08a5bb800cac7539fdecd03aa9442cd5cd7521c94c333ad1",

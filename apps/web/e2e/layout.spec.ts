@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { encode } from "next-auth/jwt";
 import { LIVE_TOKEN, PARTICIPANT_TOKEN } from "./fixtures";
 import { PAGES } from "./pages";
+import { PARTICIPANT_COOKIE } from "./participant-cookie";
 
 /*
  * Layout assertions the accessibility pass cannot make (axe reads contrast and names, not whether a
@@ -78,7 +79,7 @@ for (const id of ["interview-voice", "interview-voice-denied", "interview-voice-
     const hostname = new URL(info.project.use.baseURL ?? "http://localhost:3100").hostname;
     await context.addCookies([
       {
-        name: "aidp_participant",
+        ...PARTICIPANT_COOKIE,
         value: entry.token ?? PARTICIPANT_TOKEN,
         domain: hostname,
         path: "/",

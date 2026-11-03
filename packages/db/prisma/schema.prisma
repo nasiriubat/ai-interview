@@ -223,7 +223,7 @@ model Message {
   sessionId String
   seq       Int
   role           String // user | assistant
-  modality       String   @default("text") // text | voice | file | widget
+  modality       String   @default("text") // text | voice | dictated | file | widget
   content        String
   widget         Json? // Widget offered with an assistant message
   widgetResponse Json? // WidgetResponse recorded with a user message

@@ -470,7 +470,7 @@ describe("the interview screen in a live call", () => {
     socket.emit({ type: "ready", captions: true, bargeIn: true });
     expect(screen.getByRole("button", { name: "End the call" })).toBeInTheDocument();
     // Only one microphone at a time: the record button steps aside while the call is up.
-    expect(screen.queryByRole("button", { name: "Record your answer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dictate your answer" })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "Four of us" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
@@ -486,7 +486,7 @@ describe("the interview screen in a live call", () => {
     socket.emit({ type: "unavailable", reason: "transcription_failed", fallback: "recorded" });
 
     expect(screen.getByText(/A live call is not possible right now/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Record your answer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dictate your answer" })).toBeInTheDocument();
     expect(screen.getByLabelText("Your answer")).toBeInTheDocument();
   });
 
@@ -518,7 +518,7 @@ describe("the interview screen in a live call", () => {
     socket.emit({ type: "unavailable", reason: "transcription_needs_wav", fallback: "recorded" });
     await settle();
     expect(screen.queryByRole("button", { name: "Talk" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Record your answer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dictate your answer" })).toBeInTheDocument();
   });
 
   it("withdraws every microphone when there is no route that listens, and moves to typing", async () => {
@@ -533,7 +533,7 @@ describe("the interview screen in a live call", () => {
     ).toBeInTheDocument();
     // Recorded voice transcribes through the same missing route, so pointing at it would be the
     // one suggestion guaranteed to fail.
-    expect(screen.queryByRole("button", { name: "Record your answer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dictate your answer" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "End the call" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start a voice call" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Talk" })).not.toBeInTheDocument();

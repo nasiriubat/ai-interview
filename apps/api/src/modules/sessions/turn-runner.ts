@@ -1,4 +1,4 @@
-import { CallAbortedError, type EngineEvent, type TurnAnswer } from "@aidp/ai";
+import { CallAbortedError, progressAreas, type EngineEvent, type TurnAnswer } from "@aidp/ai";
 import type { SessionState } from "@aidp/shared";
 import { context, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { FastifyReply } from "fastify";
@@ -161,7 +161,7 @@ async function* streamTurnInner(
     const snapshot = await bundle.store.snapshot(sessionId);
     // A control names an area of this interview's template. An unknown one is a malformed request,
     // not something to skip over quietly, so it is refused before the turn takes any state.
-    if (answer && "control" in answer && answer.control.type !== "finish") {
+    if (answer && "control" in answer && "areaKey" in answer.control) {
       const wanted = answer.control.areaKey;
       if (!snapshot.template.coverageAreas.some((a) => a.key === wanted))
         throw new AppError("validation", "Unknown interview area");
@@ -172,12 +172,7 @@ async function* streamTurnInner(
     }
     if (row.status !== "active") await turns.activate(row.companyId, sessionId, row.startedAt ?? new Date());
 
-    const progress = (state: { coverage: Record<string, { status: string }> }): ProgressArea[] =>
-      snapshot.template.coverageAreas.map((a) => ({
-        key: a.key,
-        name: a.name,
-        status: state.coverage[a.key]?.status ?? "untouched",
-      }));
+    const progress = (state: SessionState): ProgressArea[] => progressAreas(snapshot.template, state);
 
     try {
       for (const item of options?.prelude ?? []) yield item;
@@ -188,6 +183,7 @@ async function* streamTurnInner(
       while (!next.done) {
         const ev: EngineEvent = next.value;
         if (ev.type === "text") yield { event: "text", data: { delta: ev.text } };
+        else if (ev.type === "composing") yield { event: "composing", data: {} };
         else if (ev.type === "control") {
           // Echoed before the interviewer's turn so the client can show what it asked for and
           // move the progress chips at once. Never a message (D-170).

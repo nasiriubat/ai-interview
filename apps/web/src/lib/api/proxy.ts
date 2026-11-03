@@ -27,13 +27,21 @@ export const DEFAULT_BODY_LIMIT_BYTES = 1024 * 1024;
 export const UPLOAD_BODY_LIMIT_BYTES = 55 * 1024 * 1024;
 
 /**
- * Request-body ceiling for an API path. Only the two upload routes may carry a file; everything
- * else is JSON and gets the small default, so one endpoint cannot be used to push megabytes
- * through the web process for a route that will reject them anyway (S6, D-87).
+ * Request-body ceiling for an API path. Only the upload and recording routes may carry a file;
+ * everything else is JSON and gets the small default, so one endpoint cannot be used to push
+ * megabytes through the web process for a route that will reject them anyway (S6, D-87). The
+ * dictation routes carry a WAV of up to five minutes (about 10 MB), far past the JSON default
+ * (D-483).
  */
 export function bodyLimitFor(segments: string[]): number {
   const route = segments.join("/");
-  if (route === "p/session/attachments" || route === "p/session/voice-turns") return UPLOAD_BODY_LIMIT_BYTES;
+  if (
+    route === "p/session/attachments" ||
+    route === "p/session/voice-turns" ||
+    route === "p/session/transcribe" ||
+    (segments.length === 3 && segments[0] === "requirements" && segments[2] === "transcribe")
+  )
+    return UPLOAD_BODY_LIMIT_BYTES;
   return DEFAULT_BODY_LIMIT_BYTES;
 }
 

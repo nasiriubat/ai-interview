@@ -70,60 +70,85 @@ afterEach(() => {
 });
 
 describe("Composer recording", () => {
-  it("asks for the microphone only when recording starts, then sends the audio and releases the device", async () => {
+  it("asks for the microphone only when recording starts, then puts the words in the box and releases the device (D-483)", async () => {
     const mic = microphone();
-    const onVoice = vi.fn();
-    render(<Composer disabled={false} onSend={vi.fn()} onVoice={onVoice} />);
+    const onDictate = vi.fn((_audio: Blob, _durationMs: number) => Promise.resolve("I work nights"));
+    const onSend = vi.fn(() => Promise.resolve(true));
+    render(<Composer disabled={false} onSend={onSend} onDictate={onDictate} />);
     expect(mic.asked()).toBe(0);
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Record your answer" }));
+    await user.type(screen.getByLabelText("Your answer"), "Nurse.");
+    await user.click(screen.getByRole("button", { name: "Dictate your answer" }));
     expect(mic.asked()).toBe(1);
     expect(await screen.findByRole("timer", { name: "Recording, 0:00" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Stop and send the recording" }));
-    expect(onVoice).toHaveBeenCalledTimes(1);
-    const [audio, durationMs] = onVoice.mock.calls[0] as [Blob, number];
+    await user.click(screen.getByRole("button", { name: "Stop and turn it into text" }));
+    expect(onDictate).toHaveBeenCalledTimes(1);
+    const [audio, durationMs] = onDictate.mock.calls[0] ?? [new Blob(), -1];
     expect(audio.size).toBeGreaterThan(0);
     expect(durationMs).toBeGreaterThanOrEqual(0);
     expect(mic.stopped()).toBe(1);
-    expect(screen.getByRole("button", { name: "Record your answer" })).toBeInTheDocument();
+
+    // Added to what was typed, editable, and not sent.
+    const box = screen.getByLabelText("Your answer");
+    await waitFor(() => {
+      expect(box).toHaveValue("Nurse. I work nights");
+    });
+    expect(onSend).not.toHaveBeenCalled();
+    await user.type(box, ", mostly");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    expect(onSend).toHaveBeenCalledWith("Nurse. I work nights, mostly", "dictated");
   });
 
-  it("discards a recording without sending it", async () => {
-    const mic = microphone();
-    const onVoice = vi.fn();
-    render(<Composer disabled={false} onSend={vi.fn()} onVoice={onVoice} />);
+  it("shows why a dictation could not be turned into text, and keeps what was typed", async () => {
+    microphone();
+    const onDictate = vi.fn(() =>
+      Promise.reject(new ApiError(400, "validation", "I could not hear anything in that recording")),
+    );
+    render(<Composer disabled={false} onSend={vi.fn()} onDictate={onDictate} />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Record your answer" }));
+    await user.type(screen.getByLabelText("Your answer"), "Draft");
+    await user.click(screen.getByRole("button", { name: "Dictate your answer" }));
+    await user.click(await screen.findByRole("button", { name: "Stop and turn it into text" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByLabelText("Your answer")).toHaveValue("Draft");
+  });
+
+  it("discards a recording without transcribing it", async () => {
+    const mic = microphone();
+    const onDictate = vi.fn(() => Promise.resolve(""));
+    render(<Composer disabled={false} onSend={vi.fn()} onDictate={onDictate} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Dictate your answer" }));
     await user.click(await screen.findByRole("button", { name: "Discard the recording" }));
-    expect(onVoice).not.toHaveBeenCalled();
+    expect(onDictate).not.toHaveBeenCalled();
     expect(mic.stopped()).toBe(1);
   });
 
   it("explains a refused microphone and leaves typing available", async () => {
     microphone(() => Promise.reject(named("NotAllowedError")));
     const onSend = vi.fn();
-    render(<Composer disabled={false} onSend={onSend} onVoice={vi.fn()} />);
+    render(<Composer disabled={false} onSend={onSend} onDictate={vi.fn()} />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Record your answer" }));
+    await user.click(screen.getByRole("button", { name: "Dictate your answer" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Microphone access was blocked.");
     await user.type(screen.getByLabelText("Your answer"), "I typed it instead");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    expect(onSend).toHaveBeenCalledWith("I typed it instead");
+    expect(onSend).toHaveBeenCalledWith("I typed it instead", "text");
   });
 
   // On a phone the warning sat under the answer box for the rest of the interview (owner, 2026-10-21).
   it("lets the microphone warning be closed, and clears it once the person types", async () => {
     microphone(() => Promise.reject(named("NotAllowedError")));
-    render(<Composer disabled={false} onSend={vi.fn()} onVoice={vi.fn()} />);
+    render(<Composer disabled={false} onSend={vi.fn()} onDictate={vi.fn()} />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Record your answer" }));
+    await user.click(screen.getByRole("button", { name: "Dictate your answer" }));
     await screen.findByRole("alert");
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Record your answer" }));
+    await user.click(screen.getByRole("button", { name: "Dictate your answer" }));
     await screen.findByRole("alert");
     await user.type(screen.getByLabelText("Your answer"), "x");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -131,23 +156,23 @@ describe("Composer recording", () => {
 
   it("explains a missing microphone differently from a refused one", async () => {
     microphone(() => Promise.reject(named("NotFoundError")));
-    render(<Composer disabled={false} onSend={vi.fn()} onVoice={vi.fn()} />);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Record your answer" }));
+    render(<Composer disabled={false} onSend={vi.fn()} onDictate={vi.fn()} />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Dictate your answer" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("We could not find a microphone.");
   });
 
   it("explains a browser that cannot record without ever asking for the microphone", async () => {
     const mic = microphone();
     vi.stubGlobal("MediaRecorder", undefined);
-    render(<Composer disabled={false} onSend={vi.fn()} onVoice={vi.fn()} />);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Record your answer" }));
+    render(<Composer disabled={false} onSend={vi.fn()} onDictate={vi.fn()} />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Dictate your answer" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("This browser cannot record audio.");
     expect(mic.asked()).toBe(0);
   });
 
   it("hides the microphone and the paperclip when the screen offers neither", () => {
     render(<Composer disabled={false} onSend={vi.fn()} />);
-    expect(screen.queryByRole("button", { name: "Record your answer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dictate your answer" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Attach a file" })).not.toBeInTheDocument();
   });
 });
@@ -369,7 +394,7 @@ describe("capabilities", () => {
 
   it("offers the microphone, Talk and the paperclip when the session allows them", () => {
     render(<InterviewScreen initial={session({}) as never} api={api} />);
-    expect(screen.getByRole("button", { name: "Record your answer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dictate your answer" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Talk" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Attach a file" })).toBeInTheDocument();
   });
@@ -381,7 +406,7 @@ describe("capabilities", () => {
         api={api}
       />,
     );
-    expect(screen.queryByRole("button", { name: "Record your answer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dictate your answer" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Talk" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Attach a file" })).not.toBeInTheDocument();
   });

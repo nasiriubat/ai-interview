@@ -235,6 +235,16 @@ function applyMvpChallenge(
   return mvp;
 }
 
+/**
+ * Whether the template's widget policy lets turn number `turn` carry a widget. The interviewer is
+ * told before it writes (D-482), so it never promises options that are then taken away.
+ */
+export function widgetAllowed(state: SessionState, template: InterviewTemplate, turn: number): boolean {
+  const policy = template.widgetPolicy;
+  if (policy.maxPerTurns === 0 || policy.allowedTypes.length === 0) return false;
+  return state.lastWidgetTurn === 0 || turn - state.lastWidgetTurn >= policy.everyTurns;
+}
+
 /** Enforces the template's widget policy; returns the widget to show or undefined. */
 export function admitWidget(
   widget: Widget | undefined,
@@ -242,12 +252,19 @@ export function admitWidget(
   template: InterviewTemplate,
 ): Widget | undefined {
   if (!widget) return undefined;
-  const policy = template.widgetPolicy;
-  if (policy.maxPerTurns === 0) return undefined;
-  if (!policy.allowedTypes.includes(widget.type)) return undefined;
-  if (state.lastWidgetTurn > 0 && state.turnCount - state.lastWidgetTurn < policy.everyTurns)
-    return undefined;
+  if (!template.widgetPolicy.allowedTypes.includes(widget.type)) return undefined;
+  if (!widgetAllowed(state, template, state.turnCount)) return undefined;
   return widget;
+}
+
+/**
+ * The choices of a widget that could not be shown, as a plain list to append to the message: the
+ * interviewer was told not to list them in its text, so dropping the widget alone would leave
+ * "which of these?" with nothing to choose from (D-482). Labels only, so it reads in any language.
+ */
+export function droppedWidgetText(widget: Widget | undefined): string {
+  if (!widget || !("options" in widget)) return "";
+  return widget.options.map((o) => `• ${o.label}`).join("\n");
 }
 
 /** Shallow merge that ignores undefined patch values, so a partial delta never erases a field. */

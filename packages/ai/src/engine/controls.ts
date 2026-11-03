@@ -25,6 +25,8 @@ export type ControlResult =
  *   `requestedAreaKey`, which `chooseFocus` consumes once.
  * - `finish` sets `finishRequested`; the next turn is the closing question. A no-op once the
  *   closing question has already been asked.
+ * - `wrap_up` sets `wrapUp` and `shortened` (D-484): only essential areas still open are asked,
+ *   without follow-ups, then the interview closes. A no-op once closing, or when already set.
  */
 export function applyControl(
   state: SessionState,
@@ -38,6 +40,15 @@ export function applyControl(
       applied: true,
       state: { ...state, finishRequested: true },
       control: { kind: "finish" },
+    };
+  }
+  if (control.type === "wrap_up") {
+    if (state.closingAsked || state.phase === "done" || state.phase === "summary" || state.wrapUp)
+      return { applied: false, state, reason: "already_closing" };
+    return {
+      applied: true,
+      state: { ...state, wrapUp: true, shortened: true },
+      control: { kind: "wrap_up" },
     };
   }
   const area: CoverageArea | undefined = template.coverageAreas.find((a) => a.key === control.areaKey);
@@ -90,5 +101,7 @@ export function controlNote(control: AppliedControl): string {
       return `The participant asked to come back to "${control.areaName ?? control.areaKey}". Welcome them back to it in one sentence and continue there.`;
     case "finish":
       return "The participant asked to end the interview. Do not ask anything new beyond the closing question.";
+    case "wrap_up":
+      return "The participant asked to wrap up sooner. Acknowledge it in a few words, ask only what the focus names, keep each question short, and do not ask follow-ups.";
   }
 }
