@@ -98,7 +98,7 @@ describe("LiveVoicePanel (D-77)", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Connect OpenAI for live voice" });
     expect(dialog).toHaveTextContent("$0.017 per minute");
-    const key = screen.getByLabelText("OpenAI API key");
+    const key = screen.getByLabelText(/^OpenAI API key/);
     expect(key).toHaveAttribute("type", "password");
     // Nothing is switched on before a key has been checked.
     expect(setLive).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe("LiveVoicePanel (D-77)", () => {
     render(<LiveVoicePanel />);
 
     await user.click(await screen.findByRole("switch", { name: "Live voice calls" }));
-    const key = await screen.findByLabelText("OpenAI API key");
+    const key = await screen.findByLabelText(/^OpenAI API key/);
     await user.type(key, "sk-bad-0123456789abcdefghij");
     await user.click(screen.getByRole("button", { name: "Check and connect" }));
 
@@ -180,7 +180,7 @@ describe("LiveVoicePanel (D-77)", () => {
     render(<LiveVoicePanel />);
 
     await user.click(await screen.findByRole("button", { name: "Add streaming captions" }));
-    await user.type(await screen.findByLabelText("OpenAI API key"), "sk-test-0123456789abcdefghij");
+    await user.type(await screen.findByLabelText(/^OpenAI API key/), "sk-test-0123456789abcdefghij");
     await user.click(screen.getByRole("button", { name: "Check and connect" }));
 
     await waitFor(() => {

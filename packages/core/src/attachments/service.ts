@@ -258,6 +258,20 @@ export class AttachmentService {
       throw err;
     }
 
+    // Photos lose their metadata (GPS position, device, time) before anything else can read them,
+    // and the original is never kept: the stored copy is replaced here, at upload, rather than in
+    // the ingest job, where a failure or a job that never ran left the original downloadable.
+    if (kind === "image" && (input.mime === "image/png" || input.mime === "image/jpeg")) {
+      try {
+        const clean = await sanitizeImage(await readAll(await storage.get(key)), input.mime);
+        await storage.put(key, clean, { contentType: input.mime });
+        sizeBytes = clean.byteLength;
+      } catch {
+        await this.discard(row.id, key);
+        throw new AttachmentRejected("type", "That image could not be read");
+      }
+    }
+
     const stored = await db.attachment.update({
       where: { id: row.id },
       data: { storageKey: key, sizeBytes },
@@ -266,6 +280,10 @@ export class AttachmentService {
     // Two uploads can both pass the room check above. The totals are re-read with this row in
     // them, and whichever one tips over the line is the one that is refused.
     const after = await this.quotaRoom(input.companyId, input.sessionId);
+    if (after.count > after.maxCount) {
+      await this.discard(row.id, key);
+      throw new AttachmentRejected("count", `An interview can hold ${after.maxCount} attachments`);
+    }
     if (after.sessionRoom < 0 || after.tenantRoom < 0) {
       await this.discard(row.id, key);
       throw after.sessionRoom < 0
@@ -373,14 +391,8 @@ export class AttachmentService {
         return;
       }
 
-      let bytes = await readAll(await storage.get(row.storageKey));
-      if (row.kind === "image" && (row.mime === "image/png" || row.mime === "image/jpeg")) {
-        // Metadata (GPS, device, timestamps) is dropped before a model sees the image, and the
-        // stored copy is replaced so that the original is not kept either.
-        bytes = await sanitizeImage(bytes, row.mime);
-        await storage.put(row.storageKey, bytes, { contentType: row.mime });
-        await db.attachment.update({ where: { id: row.id }, data: { sizeBytes: bytes.byteLength } });
-      }
+      // Images were cleaned of their metadata when they were uploaded (see `createFromStream`).
+      const bytes = await readAll(await storage.get(row.storageKey));
       const language = await this.languageFor(row.sessionId);
       const limits = await this.ingestLimits(companyId);
       const result = await ingestAttachment(
@@ -445,9 +457,15 @@ export class AttachmentService {
         error: message,
         ...(err instanceof IngestRejected ? { code: err.code } : {}),
       });
+      // A code, never the exception's text: the participant sees this, translated (a provider's
+      // error or an internal path is not theirs to read). The detail is in the log above.
       await db.attachment.update({
         where: { id: row.id },
-        data: { status: "failed", error: message.slice(0, 500), ingestedAt: this.now() },
+        data: {
+          status: "failed",
+          error: err instanceof IngestRejected ? err.code : "ingest_failed",
+          ingestedAt: this.now(),
+        },
       });
     }
   }

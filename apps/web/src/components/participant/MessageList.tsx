@@ -8,6 +8,7 @@ import { controlChipOf, type Announcement, type ControlChip } from "@/hooks/useI
 import type { Speech } from "@/hooks/useSpeech";
 import { t } from "@/i18n";
 import type { Message } from "@/lib/api/schemas";
+import { renderInlineMarkup } from "@/lib/inline-markup";
 import { cn } from "@/lib/utils";
 
 /** "Writing" is a status, so it carries its words as text: that is what a live region announces. */
@@ -74,8 +75,10 @@ export function MessageBubble({
             state={clip.state}
             onRetry={clip.onRetry}
           />
-        ) : (
+        ) : isUser ? (
           message.content
+        ) : (
+          renderInlineMarkup(message.content)
         )}
         {streaming ? <span className="sr-only"> ({t.participant.session.streaming})</span> : null}
       </div>

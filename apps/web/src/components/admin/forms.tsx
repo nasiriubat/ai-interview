@@ -50,13 +50,8 @@ export function Field({
   const quiet = React.useContext(QuietFieldErrors);
   return (
     <div className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-1.5", className)}>
-      <Label htmlFor={id} className="leading-5">
+      <Label htmlFor={id} className="leading-5" required={required}>
         {label}
-        {required ? (
-          <span aria-hidden="true" className="text-destructive">
-            *
-          </span>
-        ) : null}
         {optional && !required ? (
           <span className="text-muted-foreground text-[13px] font-normal">({t.kit.form.optional})</span>
         ) : null}

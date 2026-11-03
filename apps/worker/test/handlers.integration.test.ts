@@ -138,5 +138,7 @@ describeDb("worker handlers against Postgres", () => {
     await h["privacy.retention-sweep"]({});
 
     expect([...outbox.rows.keys()]).toEqual(["new-key"]);
-  });
+    // The sweep walks every tenant in the database by design, and a development database keeps
+    // the tenants of every earlier test run, so its time grows with the database, not the code.
+  }, 30_000);
 });

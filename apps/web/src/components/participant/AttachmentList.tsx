@@ -8,10 +8,43 @@ import type { Attachment } from "@/lib/api/schemas";
 import { formatBytes } from "@/lib/attachments";
 import { cn } from "@/lib/utils";
 
+/**
+ * Why a file could not be read, in the participant's language. The server stores a code (D-489);
+ * anything else (a row from before, an unknown code) gets the general line, never raw text.
+ */
+export function attachmentFailure(code: string | null | undefined): string {
+  const r = t.participant.session.attachmentFailedReason;
+  switch (code) {
+    case "no_text":
+      return r.noText;
+    case "pdf_pages":
+    case "sheet_cells":
+    case "zip_entries":
+    case "zip_size":
+    case "zip_ratio":
+    case "timeout":
+    case "memory":
+      return r.tooBig;
+    case "pdf_malformed":
+    case "zip_malformed":
+    case "zip_encrypted":
+    case "zip_wrong_kind":
+    case "xml_doctype":
+      return r.damaged;
+    case "content_mismatch":
+      return r.mismatch;
+    case "worker_failed":
+    case "ingest_failed":
+      return r.retry;
+    default:
+      return t.participant.session.attachmentFailed;
+  }
+}
+
 function statusLine(a: Attachment): string {
   const s = t.participant.session;
   if (a.status === "pending") return s.attachmentPending;
-  if (a.status === "failed") return a.error ?? s.attachmentFailed;
+  if (a.status === "failed") return attachmentFailure(a.error);
   return s.attachmentReady;
 }
 

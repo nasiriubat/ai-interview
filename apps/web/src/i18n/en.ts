@@ -443,6 +443,13 @@ export const en = {
       attachmentPending: "Reading your file…",
       attachmentReady: "Ready",
       attachmentFailed: "Could not read this file",
+      attachmentFailedReason: {
+        noText: "No text found in this file. If it is a scan, describe what it shows instead.",
+        tooBig: "This file is too large or complex to read. Try a shorter version, or describe it.",
+        damaged: "This file looks damaged or protected. Try saving it again, or describe it.",
+        mismatch: "This file is not what its type says. Save it again in a supported format.",
+        retry: "Reading this file failed. Remove it and attach it again in a moment.",
+      },
       attachmentRemove: (name: string): string => `Remove ${name}`,
       attachmentRemoved: (name: string): string => `Removed ${name}.`,
       attachmentPlay: (name: string): string => `Play ${name}`,

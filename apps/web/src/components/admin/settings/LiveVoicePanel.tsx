@@ -224,7 +224,9 @@ export function LiveVoicePanel(): React.JSX.Element {
             </DialogHeader>
             <p className="text-muted-foreground text-sm">{s.dialog.cost}</p>
             <div className="grid gap-1.5">
-              <Label htmlFor={keyId}>{s.dialog.keyLabel}</Label>
+              <Label htmlFor={keyId} required>
+                {s.dialog.keyLabel}
+              </Label>
               <Input
                 id={keyId}
                 type="password"

@@ -76,6 +76,7 @@ describe("widget availability (D-482)", () => {
     const spaced = template({ widgetPolicy: { everyTurns: 3 } });
     expect(widgetNote(st({ turnCount: 3, lastWidgetTurn: 3 }), spaced)).toContain("No widget this turn");
     expect(widgetNote(st({ turnCount: 5, lastWidgetTurn: 3 }), spaced)).toContain("A widget is available");
+    expect(widgetNote(st({}), t)).toContain("Use multi_choice whenever more than one answer can be true");
     expect(widgetNote(st({}), template({ widgetPolicy: { maxPerTurns: 0 } }))).toContain("Widgets are off");
   });
 
