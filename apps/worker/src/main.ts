@@ -259,6 +259,7 @@ async function main(): Promise<void> {
     "analysis.run": 1,
     "spec.generate": 1,
     "attachment.ingest": 1,
+    "campaign-document.ingest": 1,
   };
 
   /**

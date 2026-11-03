@@ -9,6 +9,7 @@ import {
 import {
   AnalysisService,
   AttachmentService,
+  CampaignDocumentService,
   EMAIL_OUTBOX_RETENTION_MS,
   PrismaEmailOutbox,
   PrismaPromptSource,
@@ -221,6 +222,29 @@ export function handlers(deps: HandlerDeps): Handlers {
           prompts,
           caller,
         }).ingest(companyId, attachmentId);
+      },
+    ),
+
+    /** Reads a campaign's background document once (D-491), like an attachment. */
+    "campaign-document.ingest": active(
+      "campaign-document.ingest",
+      async ({ documentId, companyId }: JobPayload<"campaign-document.ingest">): Promise<void> => {
+        const caller = await deps.callers.forCompany(companyId);
+        const attachments = new AttachmentService({
+          db: deps.db,
+          storage: deps.storage,
+          settings: deps.settings,
+          log: deps.log,
+        });
+        await new CampaignDocumentService({
+          db: deps.db,
+          storage: deps.storage,
+          settings: deps.settings,
+          attachments,
+          log: deps.log,
+          prompts,
+          caller,
+        }).ingest(companyId, documentId);
       },
     ),
 

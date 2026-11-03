@@ -1,6 +1,7 @@
 import { tenantTransaction, withSystemTenant, withTenant } from "@aidp/db";
 import type { PrismaClient } from "@prisma/client";
 import type { AlertPort } from "../../alerts/port.js";
+import { campaignDocsPrefix } from "../../attachments/campaign-documents.js";
 import { companyPrefix, type StoragePort } from "../../storage/port.js";
 import type { ErasureLedger } from "./erasure-ledger.js";
 import { exportsPrefix } from "./export.js";
@@ -90,6 +91,7 @@ export class TenantPurger {
     // 3. Bytes.
     report.objects += await storage.deletePrefix(companyPrefix(companyId));
     report.objects += await storage.deletePrefix(exportsPrefix(companyId));
+    report.objects += await storage.deletePrefix(campaignDocsPrefix(companyId));
 
     // 4. Rows.
     const { ordered } = await withTenant(companyId, () => tenantTables(db));

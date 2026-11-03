@@ -74,6 +74,12 @@ export const JOBS = {
     retryLimit: 2,
     expireInSeconds: 600,
   },
+  /** Reads a campaign's background document (D-491); the same reading as an attachment. */
+  "campaign-document.ingest": {
+    schema: z.object({ documentId: z.string(), companyId: z.string() }),
+    retryLimit: 2,
+    expireInSeconds: 600,
+  },
   "analysis.run": {
     schema: z.object({ analysisId: z.string(), companyId: z.string() }),
     retryLimit: 2,

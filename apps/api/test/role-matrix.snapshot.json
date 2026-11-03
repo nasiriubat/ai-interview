@@ -23,6 +23,18 @@
       "crossTenantAdmin": 404
     }
   },
+  "DELETE /campaigns/:id/documents/:documentId": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
   "DELETE /operator/branding/logo": {
     "access": "operator",
     "isolation": false,
@@ -276,6 +288,30 @@
     }
   },
   "GET /campaigns/:id/cluster-edits": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /campaigns/:id/documents": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "GET /campaigns/:id/documents/:documentId": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -1296,6 +1332,30 @@
     }
   },
   "HEAD /campaigns/:id/cluster-edits": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /campaigns/:id/documents": {
+    "access": "staff",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 404,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "HEAD /campaigns/:id/documents/:documentId": {
     "access": "staff",
     "isolation": true,
     "statuses": {
@@ -2328,6 +2388,18 @@
     }
   },
   "POST /campaigns/:id/close": {
+    "access": "admin",
+    "isolation": true,
+    "statuses": {
+      "anonymous": 401,
+      "participant": 401,
+      "member": 403,
+      "admin": 404,
+      "operator": 404,
+      "crossTenantAdmin": 404
+    }
+  },
+  "POST /campaigns/:id/documents": {
     "access": "admin",
     "isolation": true,
     "statuses": {

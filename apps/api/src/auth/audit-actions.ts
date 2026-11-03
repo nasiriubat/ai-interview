@@ -36,6 +36,8 @@ export const AUDIT_DECLARATIONS: Readonly<Record<string, AuditDeclaration>> = {
   "POST /campaigns": ["campaign.create"],
   "PATCH /campaigns/:id": ["campaign.update"],
   "POST /campaigns/:id/open": ["campaign.open"],
+  "POST /campaigns/:id/documents": ["campaign.document.add"],
+  "DELETE /campaigns/:id/documents/:documentId": ["campaign.document.remove"],
   "POST /campaigns/:id/close": ["campaign.closed"],
   "POST /campaigns/:id/invitations": ["campaign.invite"],
   "POST /campaigns/:id/invitations/:invId/remind": ["invitation.remind"],

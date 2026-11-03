@@ -3,6 +3,7 @@ import {
   AlertRouter,
   AnalysisService,
   AttachmentService,
+  CampaignDocumentService,
   CallerFactory,
   Crypto,
   EgressGuard,
@@ -70,6 +71,8 @@ export interface AppContext {
   exporter: PdfExporter;
   storage: StoragePort;
   attachments: AttachmentService;
+  /** The organisation's background documents per campaign (D-491). */
+  campaignDocuments: CampaignDocumentService;
   /** Whether a tenant may act at all (suspension, S8). */
   tenants: TenantGate;
   /** What the server may connect to on a tenant's say-so (S4). */
@@ -249,6 +252,13 @@ export function buildContext(input: {
   // so it needs no model caller here.
   const storage = input.storage ?? createStorage(config.UPLOAD_DIR);
   const attachments = new AttachmentService({ db, storage, settings, log: engineLogger(log), ceilings });
+  const campaignDocuments = new CampaignDocumentService({
+    db,
+    storage,
+    settings,
+    attachments,
+    log: engineLogger(log),
+  });
   const requirements = new RequirementsService({
     db,
     callers,
@@ -347,6 +357,7 @@ export function buildContext(input: {
     exporter,
     storage,
     attachments,
+    campaignDocuments,
     tenants,
     egress,
     speech,

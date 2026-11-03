@@ -491,6 +491,27 @@ suite("audit rows: every administrative mutation writes one", () => {
 
   // ---------- analysis ----------
 
+  it("POST /campaigns/:id/documents and DELETE: background documents (D-491)", async () => {
+    const boundary = "----audit-doc";
+    const body = Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="org.md"\r\n` +
+        `Content-Type: text/markdown\r\n\r\n# Org\nTwo wards.\r\n--${boundary}--\r\n`,
+    );
+    const res = await audited(
+      "POST /campaigns/:id/documents",
+      `/campaigns/${s.campaign}/documents`,
+      new RawBody(body, `multipart/form-data; boundary=${boundary}`),
+      { action: "campaign.document.add", targetType: "campaign", targetId: s.campaign!, actor: "admin" },
+    );
+    const doc = res.json<{ document: { id: string } }>().document;
+    await audited(
+      "DELETE /campaigns/:id/documents/:documentId",
+      `/campaigns/${s.campaign}/documents/${doc.id}`,
+      undefined,
+      { action: "campaign.document.remove", targetType: "campaign", targetId: s.campaign!, actor: "admin" },
+    );
+  });
+
   it("POST /campaigns/:id/analyses", async () => {
     await audited("POST /campaigns/:id/analyses", `/campaigns/${s.campaign}/analyses`, undefined, {
       action: "analysis.start",

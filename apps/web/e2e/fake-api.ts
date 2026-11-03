@@ -253,6 +253,55 @@ const READS: [RegExp, Handler][] = [
     },
   ],
   [
+    /^\/campaigns\/[^/]+\/documents$/,
+    (u) => ({
+      body: {
+        // Background documents (D-491): one read, one being read, one refused, so the panel's
+        // three states are on the page the layout and accessibility passes visit.
+        documents:
+          campaignIdOf(u) === "campEmpty"
+            ? []
+            : [
+                {
+                  id: "doc1",
+                  kind: "document",
+                  filename: "org-chart.pdf",
+                  mime: "application/pdf",
+                  sizeBytes: 182_000,
+                  status: "ready",
+                  summary:
+                    "Three wards, each led by a charge nurse per shift; handover at 07:00, 15:00 and 23:00.",
+                  createdAt: "2026-10-10T08:00:00.000Z",
+                },
+                {
+                  id: "doc2",
+                  kind: "document",
+                  filename: "tools-in-use.xlsx",
+                  mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  sizeBytes: 24_000,
+                  status: "pending",
+                  createdAt: "2026-10-10T08:01:00.000Z",
+                },
+                {
+                  id: "doc3",
+                  kind: "image",
+                  filename: "whiteboard.jpg",
+                  mime: "image/jpeg",
+                  sizeBytes: 900_000,
+                  status: "failed",
+                  error: "no_text",
+                  createdAt: "2026-10-10T08:02:00.000Z",
+                },
+              ],
+        uploads: {
+          maxSizeMb: 20,
+          allowedTypes: ["application/pdf", "text/markdown", "image/png"],
+          maxDocuments: 10,
+        },
+      },
+    }),
+  ],
+  [
     /^\/campaigns\/[^/]+\/analyses$/,
     (u) => ({ body: page("analyses", campaignIdOf(u) === "campEmpty" ? [] : [f.analysis]) }),
   ],

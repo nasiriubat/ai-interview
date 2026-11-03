@@ -38,6 +38,7 @@ function Section({
  */
 export function SessionPanel({
   welcome,
+  backgroundShared = false,
   areas,
   disabled,
   onSkip,
@@ -46,6 +47,8 @@ export function SessionPanel({
 }: {
   /** The participant-facing welcome (D-460), never the template objective. */
   welcome?: string | undefined;
+  /** The organisation gave the interviewer background material (D-491); said beside how answers are used. */
+  backgroundShared?: boolean | undefined;
   areas: ProgressArea[];
   disabled: boolean;
   onSkip: (area: ProgressArea) => void;
@@ -69,6 +72,9 @@ export function SessionPanel({
       ) : null}
       <Section title={s.panelData} icon={<ShieldCheckIcon className="size-4" />}>
         <p className="text-muted-foreground text-sm leading-relaxed">{s.panelDataBody}</p>
+        {backgroundShared ? (
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{s.panelBackground}</p>
+        ) : null}
       </Section>
       <Section title={s.panelBreak} icon={<CoffeeIcon className="size-4" />}>
         <p className="text-muted-foreground text-sm leading-relaxed">{s.panelBreakBody}</p>

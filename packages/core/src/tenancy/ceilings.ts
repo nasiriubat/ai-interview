@@ -107,7 +107,11 @@ export class TenantCeilings {
         ? db.session.count({ where: { companyId, createdAt: { gte: since } } })
         : 0,
       want.has("storageBytes")
-        ? db.attachment.aggregate({ where: { companyId }, _sum: { sizeBytes: true } })
+        ? Promise.all([
+            db.attachment.aggregate({ where: { companyId }, _sum: { sizeBytes: true } }),
+            // Campaign background documents are stored bytes too (D-491).
+            db.campaignDocument.aggregate({ where: { companyId }, _sum: { sizeBytes: true } }),
+          ])
         : null,
       want.has("voiceMinutes")
         ? db.attachment.aggregate({
@@ -131,7 +135,7 @@ export class TenantCeilings {
     return {
       maxActiveCampaigns: campaigns,
       maxSessionsPerMonth: sessions,
-      storageBytes: storage?._sum.sizeBytes ?? 0,
+      storageBytes: (storage?.[0]._sum.sizeBytes ?? 0) + (storage?.[1]._sum.sizeBytes ?? 0),
       // The larger of the two readings, never their sum: a recorded answer is both an attachment
       // with a duration and a transcription in the ledger, and counting it twice would refuse early.
       voiceMinutes: Math.ceil(

@@ -238,6 +238,16 @@ rollback_after_failure() {
 	exit 1
 }
 
+# The Caddyfile is bind-mounted as one file, and `up -d` does not touch an unchanged caddy service:
+# a pull replaces the file on disk while the running container keeps reading the copy it mounted,
+# so an edited Caddyfile (a new upload route, D-491) would never take effect. Caddy is restarted
+# when what it runs differs from the file on disk; the maintenance page is up, so nobody notices.
+caddy_id=$(container_of caddy)
+if [ -n "$caddy_id" ] && ! docker exec "$caddy_id" cat /etc/caddy/Caddyfile 2>/dev/null | cmp -s - "$here/Caddyfile"; then
+	say "the Caddyfile changed: restarting caddy to load it"
+	act dcx restart caddy || warn "could not restart caddy; it is still running the previous Caddyfile"
+fi
+
 say "waiting for api, web and caddy to be healthy"
 wait_healthy 300 api worker web caddy || rollback_after_failure "a service did not become healthy within five minutes"
 # Caddy answers 503 for as long as the maintenance flag exists, so a check made through it while the

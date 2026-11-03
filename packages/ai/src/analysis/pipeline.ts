@@ -69,6 +69,12 @@ export interface AnalysisInput {
   };
   thresholdMet: boolean;
   /**
+   * The organisation's background documents for the campaign (D-491). Context for judging an
+   * opportunity (what already exists, what the strategy is), never evidence: it is not counted,
+   * quoted or cited as something people said.
+   */
+  background?: readonly { filename: string; summary: string; text: string }[] | undefined;
+  /**
    * What each participant said, per session id: the transcripts every quote is checked against
    * before it is shown (D-478). A session that is not here has no verifiable quote, so leaving this
    * out drops every quote rather than trusting them.
@@ -509,6 +515,7 @@ export async function runAnalysis(deps: AnalysisDeps, input: AnalysisInput): Pro
     k: input.k,
     language: input.language,
     departments,
+    background: input.background?.map((d) => d.filename),
     provenance: { ...input.provenance, promptVersions: [...new Set(versions)] },
     smallSample: input.smallSample,
     verification,
@@ -955,6 +962,37 @@ export function groundDraft(
   };
 }
 
+/** Per document and in all, for the one narrative call; the per-opportunity calls get summaries only. */
+const BACKGROUND_DOC_CHARS = 6_000;
+const BACKGROUND_TOTAL_CHARS = 18_000;
+
+/**
+ * The organisation's background documents as a fenced block (D-491). Summaries for each
+ * opportunity, which is called once per group; summaries with excerpts for the narrative, called
+ * once. The rule rides with the block: context, never evidence.
+ */
+export function renderBackground(background: AnalysisInput["background"], excerpts: boolean): string {
+  if (!background || background.length === 0) return "";
+  const nonce = newNonce();
+  let room = BACKGROUND_TOTAL_CHARS;
+  const docs = background.map((d) => {
+    const excerpt = excerpts ? d.text.slice(0, Math.min(BACKGROUND_DOC_CHARS, Math.max(0, room))) : "";
+    room -= excerpt.length;
+    return wrapUntrusted(
+      "background",
+      `File: ${d.filename}\nSummary: ${d.summary}${excerpt ? `\n\n${excerpt}` : ""}`,
+      {
+        nonce,
+      },
+    );
+  });
+  return [
+    "",
+    'Background the organisation provided (context only, NOT evidence): use it to judge feasibility and to avoid recommending what already exists. Never count it as a person, never quote it, and never present it as something participants said; where it changed your judgement, say so and name the file, e.g. "(per org-chart.pdf)".',
+    ...docs,
+  ].join("\n");
+}
+
 const PERSON_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const personLabel = (i: number): string =>
   i < PERSON_LABELS.length
@@ -1000,6 +1038,7 @@ async function opportunityFor(
         .join("\n"),
       { nonce: newNonce(), id: cluster.key },
     ),
+    renderBackground(input.background, false),
   ]
     .filter(Boolean)
     .join("\n");
@@ -1070,6 +1109,7 @@ async function narrative(
             : ["- none"]),
         ]
       : ["No facts were extracted yet."]),
+    ...(input.background?.length ? [renderBackground(input.background, true)] : []),
   ].join("\n");
   try {
     return await deps.caller.complete(

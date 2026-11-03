@@ -51,6 +51,8 @@ export interface ReportInput {
   language: string;
   /** Present when the comparison was computed; the section says why when it was not shown. */
   departments?: DepartmentComparison | undefined;
+  /** The organisation's background documents the analysis read as context (D-491), by file name. */
+  background?: readonly string[] | undefined;
   /**
    * What this report was made from, printed on the cover so a reader can tell whether two reports
    * are comparable. Every field is optional: a caller that does not know a value leaves it out and
@@ -326,6 +328,11 @@ export function cover(input: ReportInput): string[] {
     `**How to read the evidence.** ${evidenceNote(input)}`,
     "",
   );
+  if (input.background?.length)
+    out.push(
+      `**Background documents.** The organisation provided ${input.background.join(", ")}. They were read as context for judging feasibility and what already exists; they are not evidence, are not counted in "N of M" and are never quoted. Where one changed a judgement, the text names the file.`,
+      "",
+    );
   const v = input.provenance;
   if (v) {
     const parts: string[] = [];

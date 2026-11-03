@@ -79,13 +79,15 @@
 		}
 	}
 
-	# Request bodies are bounded here, before they reach the web process (S6, D-87). Two uploads
-	# may carry a file, up to the platform maximum of 50 MB plus multipart framing; every other
-	# route is JSON and gets 2 MB, the same ceiling the API itself enforces. The matchers are
-	# complements of one another so exactly one limit applies to a request: stacked limits would
-	# let the small one refuse the upload.
-	@uploads path /api/participant/p/session/attachments /api/participant/p/session/voice-turns
-	@bounded not path /api/participant/p/session/attachments /api/participant/p/session/voice-turns
+	# Request bodies are bounded here, before they reach the web process (S6, D-87). The routes that
+	# carry a file may take up to the platform maximum of 50 MB plus multipart framing: a
+	# participant's attachment, recorded answer and dictation; the requirements owner's attachments
+	# and dictation; a campaign's background documents (D-483, D-490, D-491). Every other route is
+	# JSON and gets 2 MB, the same ceiling the API itself enforces. The matchers are complements of
+	# one another so exactly one limit applies to a request: stacked limits would let the small one
+	# refuse the upload. Keep the list in step with `bodyLimitFor` in apps/web/src/lib/api/proxy.ts.
+	@uploads path_regexp upload ^/api/(participant/p/session/(attachments|voice-turns|transcribe)|staff/(requirements/[A-Za-z0-9_-]+/(attachments|transcribe)|campaigns/[A-Za-z0-9_-]+/documents))$
+	@bounded not path_regexp upload ^/api/(participant/p/session/(attachments|voice-turns|transcribe)|staff/(requirements/[A-Za-z0-9_-]+/(attachments|transcribe)|campaigns/[A-Za-z0-9_-]+/documents))$
 	request_body @uploads {
 		max_size 55MB
 	}

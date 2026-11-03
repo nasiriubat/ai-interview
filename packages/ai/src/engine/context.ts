@@ -50,9 +50,20 @@ export function renderState(
   path?: string,
   handoff?: SessionSnapshot["handoff"],
   attachments?: SessionSnapshot["attachments"],
+  background?: SessionSnapshot["background"],
 ): string {
   const lines: string[] = [];
   if (path) lines.push(`Path: ${path}`);
+  // The organisation's own documents for this round (D-491). They shape the questions (ask how
+  // someone uses a named system rather than which systems exist); they are not what this person
+  // said, so they are never put to them as fact or quoted back.
+  if (background && background.length > 0) {
+    lines.push("Background the organisation shared for this interview round (context only):");
+    for (const b of background) lines.push(`- ${b.filename}: ${b.summary}`);
+    lines.push(
+      "Use it to ask sharper, more specific questions. Do not tell the participant what it says, do not ask them to confirm it, and record only what they say.",
+    );
+  }
   const p = state.profile;
   const profile = [
     p.role && `role=${p.role}`,
@@ -270,7 +281,14 @@ export function assembleContext(input: {
     "Session context",
     wrapUntrusted(
       "session_state",
-      renderState(session.state, session.template, session.path, session.handoff, session.attachments),
+      renderState(
+        session.state,
+        session.template,
+        session.path,
+        session.handoff,
+        session.attachments,
+        session.background,
+      ),
       { nonce },
     ),
   ];

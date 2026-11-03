@@ -41,7 +41,8 @@ export function bodyLimitFor(segments: string[]): number {
     route === "p/session/transcribe" ||
     (segments.length === 3 &&
       segments[0] === "requirements" &&
-      (segments[2] === "transcribe" || segments[2] === "attachments"))
+      (segments[2] === "transcribe" || segments[2] === "attachments")) ||
+    (segments.length === 3 && segments[0] === "campaigns" && segments[2] === "documents")
   )
     return UPLOAD_BODY_LIMIT_BYTES;
   return DEFAULT_BODY_LIMIT_BYTES;

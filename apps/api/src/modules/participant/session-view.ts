@@ -21,7 +21,7 @@ export interface ParticipantSessionPayload {
      * What this interview is, for the side panel: the campaign's name and the participant-facing
      * welcome (D-460). Never the template's objective, which is written for the interviewer.
      */
-    about: { name: string; welcome: string; productName: string };
+    about: { name: string; welcome: string; productName: string; backgroundShared: boolean };
     /**
      * Two sentences on where the participant left off, for a banner above the conversation
      * (spec 06). Never a message: it is not in `messages`, the transcript or the model's context.
@@ -111,7 +111,7 @@ export class ParticipantSessionReader {
     const campaign = session.campaignId
       ? await this.db.campaign.findFirst({
           where: { id: session.campaignId, companyId },
-          select: { name: true },
+          select: { name: true, _count: { select: { documents: { where: { status: "ready" } } } } },
         })
       : null;
     const branding = await this.settings.resolveDetailed(
@@ -131,6 +131,9 @@ export class ParticipantSessionReader {
             session.template,
           ),
           productName: (branding["branding.productName"]?.value as string | undefined) ?? "",
+          // The interviewer was given the organisation's background documents (D-491): the
+          // participant is told so, beside how their answers are used.
+          backgroundShared: (campaign?._count.documents ?? 0) > 0,
         },
         progress: { areas },
         messages: messages.map(toStored),

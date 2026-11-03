@@ -226,6 +226,17 @@ export class PrismaSessionStore implements SessionStore {
           take: 20,
         },
         participant: { select: { fields: true } },
+        // The campaign's background documents (D-491); summaries only, every turn.
+        campaign: {
+          select: {
+            documents: {
+              where: { status: "ready" },
+              select: { filename: true, summary: true },
+              orderBy: { createdAt: "asc" },
+              take: 10,
+            },
+          },
+        },
       },
     });
     const parsed = templateFromRow(row.template);
@@ -250,6 +261,14 @@ export class PrismaSessionStore implements SessionStore {
               kind: a.kind,
               summary: a.summary ?? "",
               status: a.status,
+            })),
+          }
+        : {}),
+      ...(row.campaign && row.campaign.documents.length > 0
+        ? {
+            background: row.campaign.documents.map((d) => ({
+              filename: d.filename,
+              summary: d.summary ?? "",
             })),
           }
         : {}),

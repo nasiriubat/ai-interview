@@ -516,6 +516,8 @@ export const fi: Strings = {
       panelData: "Miten vastauksiasi käytetään",
       panelDataBody:
         "Vastauksesi yhdistetään muiden vastauksiin. Lainauksia näytetään vain, kun riittävän moni on sanonut jotain samankaltaista.",
+      panelBackground:
+        "Organisaatio antoi haastattelijalle taustamateriaalia (esimerkiksi siitä, miten työ on järjestetty), jotta kysymykset olisivat osuvampia. Se ei koske sinua, ja vain sanomasi tallennetaan.",
       panelBreak: "Tarvitsetko tauon?",
       panelBreakBody: "Paina Keskeytä ja tallenna. Paikkasi säilyy ja sama linkki palauttaa sinut tänne.",
       panelPrivacy: "Tietosuoja",
@@ -1175,6 +1177,21 @@ export const fi: Strings = {
       remindUnavailableDone: "Henkilö on jo aloittanut tai kutsu ei ole enää voimassa.",
       uploadFileNamed: "Valitse osoitetiedosto",
       settingsTitle: "Tämän kampanjan asetukset",
+      documents: {
+        title: "Taustadokumentit",
+        description:
+          "Omaa aineistoanne tälle kierrokselle: organisaatiokaavio, prosessikuvaukset, käytössä olevat työkalut.",
+        reading: "Luetaan…",
+        ready: "Luettu",
+        add: "Lisää taustadokumentteja",
+        remove: (name: string): string => `Poista ${name}`,
+        empty: "Ei taustadokumentteja.",
+        emptyAdmin:
+          "Ei vielä yhtään. Lisää aineistoa, joka auttaa haastattelijaa kysymään tarkemmin ja analyysia välttämään sen suosittelemista, mikä teillä jo on.",
+        full: (n: number): string =>
+          `Kampanjassa voi olla enintään ${n} dokumenttia. Poista yksi lisätäksesi toisen.`,
+        note: "Haastattelija käyttää niitä vain taustana eikä kerro osallistujille niiden sisältöä. Analyysi lukee ne kontekstina, ei näyttönä: niitä ei lasketa, niistä ei lainata, ja raportti nimeää ne, jotka vaikuttivat arvioon. Osallistujille kerrotaan, että taustamateriaalia on jaettu.",
+      },
       settingsBody:
         "Nämä koskevat vain tätä kampanjaa ja ohittavat organisaatiosi asetukset. Kaikki, mitä tässä ei ole, noudattaa organisaation asetuksia.",
       settingsNone: "Mitään ei ole muutettu tälle kampanjalle. Se noudattaa organisaatiosi asetuksia.",

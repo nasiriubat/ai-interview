@@ -215,6 +215,32 @@ export const AttachmentSchema = z.looseObject({
 });
 export type Attachment = z.infer<typeof AttachmentSchema>;
 export const AttachmentEnvelopeSchema = z.looseObject({ attachment: AttachmentSchema });
+
+/** A campaign's background document (D-491): read like an attachment, used as context only. */
+export const CampaignDocumentSchema = z.looseObject({
+  id: z.string(),
+  kind: z.string().default("document"),
+  filename: z.string(),
+  mime: z.string().default(""),
+  sizeBytes: z.number().default(0),
+  status: z.enum(["pending", "ready", "failed"]).catch("pending"),
+  summary: z.string().nullish(),
+  error: z.string().nullish(),
+  createdAt: z.string().default(""),
+});
+export type CampaignDocument = z.infer<typeof CampaignDocumentSchema>;
+export const CampaignDocumentListSchema = z.looseObject({
+  documents: z.array(CampaignDocumentSchema).default([]),
+  uploads: z
+    .looseObject({
+      maxSizeMb: z.number().default(DEFAULT_MAX_SIZE_MB),
+      allowedTypes: z.array(z.string()).default([...DEFAULT_ALLOWED_TYPES]),
+      maxDocuments: z.number().default(10),
+    })
+    .prefault({}),
+});
+export type CampaignDocumentList = z.infer<typeof CampaignDocumentListSchema>;
+export const CampaignDocumentEnvelopeSchema = z.looseObject({ document: CampaignDocumentSchema });
 export const AttachmentListSchema = listOf(AttachmentSchema, "attachments");
 
 /**
@@ -259,6 +285,8 @@ export const ParticipantSessionSchema = z.looseObject({
       name: z.string().default(""),
       welcome: z.string().default(""),
       productName: z.string().default(""),
+      /** The organisation gave the interviewer background documents for this round (D-491). */
+      backgroundShared: z.boolean().default(false),
     })
     .nullish(),
   summary: z.string().nullish(),

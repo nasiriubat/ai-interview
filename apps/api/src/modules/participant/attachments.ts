@@ -154,7 +154,7 @@ export function sendAttachment(
  * hanging. Requiring a single file and refusing the rest keeps that simple, and matches the
  * interface: one upload, one attachment, one thing to retry when it fails.
  */
-async function readOneFile(req: FastifyRequest, maxBytes: number): Promise<MultipartFile> {
+export async function readOneFile(req: FastifyRequest, maxBytes: number): Promise<MultipartFile> {
   if (!req.isMultipart()) throw new AppError("validation", "Expected a multipart upload");
   const file = await req.file({ limits: { fileSize: maxBytes, files: 1 } });
   if (!file) throw new AppError("validation", "No file in the upload");
@@ -177,7 +177,7 @@ function durationFrom(file: MultipartFile): number | undefined {
 }
 
 /** A rejection the participant caused becomes a 4xx they can act on; anything else is ours. */
-function toHttp(err: unknown): unknown {
+export function toHttp(err: unknown): unknown {
   if (err instanceof StorageFull) return storageFull();
   if (err instanceof AttachmentRejected) {
     const code =

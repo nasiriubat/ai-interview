@@ -261,6 +261,7 @@ export class AnalysisService {
             needed: threshold.needed,
           },
           thresholdMet: threshold.met,
+          background: await this.background(companyId, analysis.campaignId),
           transcripts,
           smallSample: values["analysis.smallSampleInterviews"] as number,
           k: values["privacy.kAnonymity"] as number,
@@ -380,6 +381,19 @@ export class AnalysisService {
    * the analysis is checked against before it is shown (D-478). Only `user` messages: a quote put in
    * the interviewer's mouth is not the participant's.
    */
+  /** The campaign's readable background documents (D-491): context for the analysis, not evidence. */
+  private async background(
+    companyId: string,
+    campaignId: string,
+  ): Promise<{ filename: string; summary: string; text: string }[]> {
+    const rows = await this.deps.db.campaignDocument.findMany({
+      where: { companyId, campaignId, status: "ready" },
+      orderBy: { createdAt: "asc" },
+      select: { filename: true, summary: true, extractedText: true },
+    });
+    return rows.map((r) => ({ filename: r.filename, summary: r.summary ?? "", text: r.extractedText ?? "" }));
+  }
+
   private async transcripts(companyId: string, sessionIds: string[]): Promise<Map<string, string[]>> {
     const out = new Map<string, string[]>();
     if (sessionIds.length === 0) return out;
