@@ -28,5 +28,12 @@ overrides:
   # Trivy filesystem scan, D-267); it is a test-time dependency and never ships, but the gate has no
   # reason to carry it.
   "tinypool@<2.1.2": "^2.1.2"
+  # Advisories of 2026-10 (D-493). mermaid pins dompurify, the OpenTelemetry host metrics pin
+  # systeminformation, fastify pins fast-uri; zod is direct everywhere but behind `^4.0.0`.
+  "dompurify@<3.4.17": "^3.4.17"
+  "systeminformation@<5.33.16": "^5.33.16"
+  "fast-uri@>=3.0.0 <3.1.9": "^3.1.9"
+  "fast-uri@>=4.0.0 <4.2.3": "^4.2.3"
+  "zod@<4.6.6": "^4.6.6"
 patchedDependencies:
   sonner: tools/patches/sonner.patch

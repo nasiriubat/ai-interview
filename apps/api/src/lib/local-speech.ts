@@ -1,4 +1,4 @@
-import { localWhisperModel, type SpeechRunner } from "@aidp/ai";
+import { localWhisperModel, type SpeechService } from "@aidp/ai";
 import { withSystemTenant } from "@aidp/db";
 import type { PrismaClient } from "@prisma/client";
 import type { Logger } from "pino";
@@ -32,7 +32,7 @@ export async function localSpeechModelToWarm(db: PrismaClient): Promise<string |
  * for a 250 MB download. Never throws and never delays startup: an offline server boots, logs why,
  * and the first transcription tries again.
  */
-export async function warmLocalSpeech(db: PrismaClient, log: Logger, runner: SpeechRunner): Promise<void> {
+export async function warmLocalSpeech(db: PrismaClient, log: Logger, runner: SpeechService): Promise<void> {
   let model: string | undefined;
   try {
     model = await localSpeechModelToWarm(db);

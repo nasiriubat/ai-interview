@@ -21,11 +21,14 @@
     "@aidp/ai": "workspace:*",
     "@aidp/shared": "workspace:*",
     "pdfjs-dist": "^6.4.299",
-    "vitest": "^3.2.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "peerDependencies": {
+    "vitest": "^3.2.0"
   }
 }

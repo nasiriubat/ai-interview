@@ -211,8 +211,14 @@ services:
       # Minutes the model stays in memory after the last recording (about 700 MB while loaded);
       # reloading from the volume takes about a second. 0 keeps it loaded.
       SPEECH_MODEL_IDLE_MINUTES: ${SPEECH_MODEL_IDLE_MINUTES:-10}
-      # Transcription threads; empty follows API_CPU_LIMIT (packages/ai, local-whisper/runner.ts).
+      # Transcription threads per engine; empty divides API_CPU_LIMIT between the engines
+      # (packages/ai, local-whisper/runner.ts).
       SPEECH_MODEL_THREADS: ${SPEECH_MODEL_THREADS:-}
+      # Engines transcribing side by side (D-494). Two finish a burst of recordings about a quarter
+      # sooner than one with the same CPUs, and a short answer stops waiting behind a long one; each
+      # holds its own copy of the model (about 0.9 GB, peaking near 2 GB), so raise API_MEMORY_LIMIT
+      # with it: about 2.3 GB per engine.
+      SPEECH_WORKERS: ${SPEECH_WORKERS:-1}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # The Prometheus scrape endpoint (D-222): on the compose network only, in no Caddy route.
       # Nothing scrapes it unless the observability profile is up (deploy/observability).

@@ -22,6 +22,9 @@ import { acceptFor, DEFAULT_ALLOWED_TYPES, formatClock } from "@/lib/attachments
 
 const HINT_KEY = "aidp.composerHintDismissed";
 
+/** After this long, a transcription in progress says it is still working. */
+const SLOW_TRANSCRIPTION_MS = 5000;
+
 function hintDismissed(): boolean {
   try {
     return window.localStorage.getItem(HINT_KEY) === "1";
@@ -100,6 +103,22 @@ export function Composer({
   // Whether what is in the box came, at least in part, from dictation. Cleared when the box is.
   const [dictated, setDictated] = React.useState(false);
   const [transcribing, setTranscribing] = React.useState(false);
+  // A busy server queues recordings (D-494): after a few seconds the box says it is still working,
+  // so a wait never looks like nothing happened.
+  const [slow, setSlow] = React.useState(false);
+  React.useEffect(() => {
+    if (!transcribing) {
+      setSlow(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setSlow(true);
+      setAnnouncement(s.recordingSlow);
+    }, SLOW_TRANSCRIPTION_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [transcribing, s.recordingSlow]);
   const [dictationError, setDictationError] = React.useState<string | null>(null);
   const textValue = React.useRef(text);
   textValue.current = text;
@@ -280,7 +299,13 @@ export function Composer({
             value={text}
             rows={1}
             autoFocus={autoFocus && !voiceFirst}
-            placeholder={transcribing ? s.recordingSending : (placeholder ?? s.composerPlaceholder)}
+            placeholder={
+              transcribing
+                ? slow
+                  ? s.recordingSlow
+                  : s.recordingSending
+                : (placeholder ?? s.composerPlaceholder)
+            }
             className="max-h-40 min-h-11 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 text-base placeholder:text-sm shadow-none hover:shadow-none focus-visible:shadow-none"
             enterKeyHint={coarse ? "enter" : "send"}
             aria-describedby={hintOpen ? hintId : undefined}

@@ -392,6 +392,8 @@ export const fi: Strings = {
         "Nauhoitetaan. Puhu rauhassa ja paina lopuksi Lopeta; sanasi tulevat kenttään tarkistettaviksi ennen lähettämistä.",
       recordingDiscarded: "Nauhoitus hylättiin.",
       recordingSending: "Muutetaan nauhoitusta tekstiksi…",
+      recordingSlow:
+        "Nauhoitusta muutetaan yhä tekstiksi: palvelin on kiireinen, tämä voi kestää vielä hetken…",
       dictationAdded: "Sanasi ovat kentässä. Tarkista ne ja paina Lähetä.",
       recordingMaxed:
         "Nauhoitus päättyy viiden minuutin kohdalla. Siihen asti sanomasi on kentässä; voit nauhoittaa lisää.",

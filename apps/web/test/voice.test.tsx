@@ -437,3 +437,34 @@ describe("participant uploads", () => {
     expect(sent instanceof File ? sent.name : "").toBe("recording.webm");
   });
 });
+
+describe("a slow transcription says so (D-494)", () => {
+  it("tells the person it is still working after a few seconds", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    microphone();
+    let finish!: (text: string) => void;
+    const onDictate = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(<Composer disabled={false} onSend={vi.fn()} onDictate={onDictate} />);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    await user.click(screen.getByRole("button", { name: "Dictate your answer" }));
+    await user.click(await screen.findByRole("button", { name: "Stop and turn it into text" }));
+    const box = screen.getByLabelText("Your answer");
+    expect(box).toHaveAttribute("placeholder", "Turning your recording into text…");
+    await act(async () => {
+      vi.advanceTimersByTime(5100);
+    });
+    expect(box.getAttribute("placeholder")).toMatch(/^Still turning your recording into text/);
+    await act(async () => {
+      finish("done");
+    });
+    await waitFor(() => {
+      expect(box).toHaveValue("done");
+    });
+    vi.useRealTimers();
+  });
+});

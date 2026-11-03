@@ -1,6 +1,6 @@
 import type { ProviderConfig, ProviderKind, Purpose } from "@aidp/shared";
 import { AnthropicProvider } from "./anthropic.js";
-import type { SpeechRunner } from "./local-whisper/runner.js";
+import type { SpeechService } from "./local-whisper/runner.js";
 import { LocalWhisperProvider } from "./local-whisper.js";
 import { OpenAICompatibleProvider } from "./openai-compatible.js";
 import type { ProviderTimeouts } from "./resilience.js";
@@ -20,7 +20,7 @@ export interface ProviderDeps {
   socket?: RealtimeSocketFactory;
   socketFor?: (cfg: ProviderConfig) => RealtimeSocketFactory | undefined;
   /** The on-server Whisper runner; defaults to the process-wide one. Tests pass a fake. */
-  speech?: SpeechRunner;
+  speech?: SpeechService;
   /** Deadlines and retries for every adapter built here (D-93); `PROVIDER_*` environment when absent. */
   timeouts?: ProviderTimeouts;
   /** Builds the adapter for a provider row, instead of `createProvider`: a test seam for fakes. */
