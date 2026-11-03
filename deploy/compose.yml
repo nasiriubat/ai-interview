@@ -540,7 +540,7 @@ services:
   # memory, set KROKI_URL= (empty) in .env and stop this service; exports then print diagrams as
   # source and nothing else changes.
   kroki-mermaid:
-    image: yuzutech/kroki-mermaid:0.26.0
+    image: yuzutech/kroki-mermaid:0.34.0
     restart: unless-stopped
     # No `ports:`. Only the API, on the `diagrams` network, can reach it.
     networks: [diagrams]
