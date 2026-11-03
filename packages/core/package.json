@@ -45,6 +45,6 @@
     "@types/pdfmake": "^0.3.3",
     "@types/ws": "^8.18.1",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.0"
+    "vitest": "^5.0.5"
   }
 }
