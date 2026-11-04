@@ -50,6 +50,15 @@ export const PROVIDER_SUBPROCESSORS: Record<ProviderKind, SubProcessor> = {
     transfer: "Two processors in a chain; confirm both and the routing policy",
     optional: true,
   },
+  meta: {
+    vendor: "Meta Platforms (Meta Model API)",
+    role: "Language model: interviewer turns, summaries, extraction, analysis",
+    location: "United States (see the vendor's terms)",
+    data: ["Interview answers and file summaries as prompt text", "Pseudonymous session context"],
+    transfer:
+      "Outside the EEA: confirm the vendor's data-processing terms. Route only the standard models: the `-contributor` models let the vendor train on prompts",
+    optional: true,
+  },
   litellm: {
     vendor: "The organization's own LiteLLM gateway, and the vendors behind it",
     role: "Language model gateway operated by the tenant",

@@ -90,7 +90,8 @@ services:
       BOOTSTRAP_TENANT_NAME: ${BOOTSTRAP_TENANT_NAME:-First tenant}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      # The only one of the three that can transcribe, speak and embed, so it is what turns on
+      MUSE_API_KEY: ${MUSE_API_KEY:-}
+      # The only one of these that can transcribe, speak and embed, so it is what turns on
       # voice and semantic clustering. See docs/DEPLOY.md, "Model configuration".
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     command:

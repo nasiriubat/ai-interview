@@ -3,9 +3,11 @@ import { fileURLToPath } from "node:url";
 import {
   DEFAULT_LOCAL_WHISPER_MODEL,
   defaultAnthropicRoutes,
+  defaultMetaRoutes,
   defaultOpenAIRoutes,
   defaultOpenRouterRoutes,
   LOCAL_WHISPER_MODELS,
+  META_SEED_PRICES,
   OpenAICompatibleProvider,
   PriceTable,
   SEED_PRICES,
@@ -22,6 +24,8 @@ import { seed } from "./seed.js";
  * - a platform Anthropic provider from ANTHROPIC_API_KEY with seed prices and default routes
  * - a platform OpenRouter provider from OPENROUTER_API_KEY with published prices and default routes
  *   (used only for purposes that have no route yet, so Anthropic wins when both keys are set)
+ * - a platform Meta provider from MUSE_API_KEY (Meta's Model API) with seed prices and default
+ *   routes, under the same rule: it fills only purposes nothing above claimed (D-495)
  * - a platform OpenAI provider from OPENAI_API_KEY for the purposes neither of the others can
  *   serve: transcription, streaming captions, speech and embeddings (D-73, D-80)
  * - always, a platform `local` provider that transcribes on this server with Whisper, routed to
@@ -153,6 +157,34 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
   }
 
   /**
+   * Meta's Model API, like any other language provider: created when its key is set, priced from
+   * the seed table (its model list publishes no prices), and routed only where no route exists yet,
+   * so the order of the keys decides nothing an admin cannot change in Model assignment (D-495).
+   */
+  if (env.MUSE_API_KEY) {
+    const provider =
+      (await db.provider.findFirst({ where: { companyId: null, kind: "meta" } })) ??
+      (await db.provider.create({
+        data: {
+          companyId: null,
+          kind: "meta",
+          name: "Meta Muse (platform)",
+          apiKeyEnc: crypto.encrypt(env.MUSE_API_KEY, "provider.apiKey"),
+          headers: {},
+        },
+      }));
+    for (const p of META_SEED_PRICES) {
+      await db.modelPrice.upsert({
+        where: { providerId_model: { providerId: provider.id, model: p.model } },
+        create: { providerId: provider.id, ...p },
+        update: {},
+      });
+    }
+    await createMissingRoutes(db, defaultMetaRoutes(provider.id));
+    providers.push("Meta");
+  }
+
+  /**
    * OpenAI last, and only for what the others cannot do.
    *
    * Anthropic has no audio or embedding endpoints and OpenRouter proxies chat models only, so
@@ -234,7 +266,7 @@ export async function bootstrap(db: PrismaClient, env: NodeJS.ProcessEnv): Promi
 
   const seeded = await seed(db);
   console.log(
-    `bootstrap: operator ${operatorEmail}, tenant "${tenantName}" admin ${adminEmail}, templates ${seeded.templates}${providers.length ? `, ${providers.join(" and ")} provider with default routes` : ", no provider (set ANTHROPIC_API_KEY, OPENROUTER_API_KEY or OPENAI_API_KEY, or add one in the admin UI)"}`,
+    `bootstrap: operator ${operatorEmail}, tenant "${tenantName}" admin ${adminEmail}, templates ${seeded.templates}${providers.length ? `, ${providers.join(" and ")} provider with default routes` : ", no provider (set ANTHROPIC_API_KEY, OPENROUTER_API_KEY, MUSE_API_KEY or OPENAI_API_KEY, or add one in the admin UI)"}`,
   );
   if (!env.PLATFORM_ENCRYPTION_KEY) console.log(`generated key: ${randomBytes(32).toString("base64")}`);
 }

@@ -81,10 +81,17 @@ export interface OpenAICompatibleOptions {
 const DEFAULT_BASE_URLS: Partial<Record<OpenAICompatibleKind, string>> = {
   openai: "https://api.openai.com/v1",
   openrouter: "https://openrouter.ai/api/v1",
+  meta: "https://api.meta.ai/v1",
 };
 
 /**
- * One adapter for OpenAI, OpenRouter, a LiteLLM proxy, and any other server that speaks
+ * Kinds that serve language models only: OpenRouter proxies chat models, and Meta's Model API
+ * publishes no OpenAI-style audio or realtime endpoint (D-495).
+ */
+const CHAT_ONLY: ReadonlySet<OpenAICompatibleKind> = new Set(["openrouter", "meta"]);
+
+/**
+ * One adapter for OpenAI, OpenRouter, Meta's Model API, a LiteLLM proxy, and any other server that speaks
  * the Chat Completions protocol (Ollama, vLLM, ...). Prices are read from the
  * provider's model list when it publishes them (OpenRouter, LiteLLM).
  */
@@ -129,16 +136,17 @@ export class OpenAICompatibleProvider implements Provider {
     this.capabilities = {
       caching: false, // OpenAI-style providers cache automatically; there is no marker to set
       structuredOutput: true, // json_schema response_format, with a JSON-mode fallback
-      effort: false,
+      // Meta's Model API takes `reasoning_effort` with the same scale as a route's effort (D-495).
+      effort: opts.kind === "meta",
       batch: false,
       vision: true,
-      transcription: opts.kind !== "openrouter",
-      // Same story as transcription: OpenRouter proxies chat models only.
-      speech: opts.kind !== "openrouter",
+      transcription: !CHAT_ONLY.has(opts.kind),
+      // Same story as transcription: these kinds serve chat models only.
+      speech: !CHAT_ONLY.has(opts.kind),
       // The Realtime transcription socket. OpenAI speaks it; an OpenAI-compatible server may or may
       // not, and a route pointing at one that does not fails at the start of a call, where the
       // live session drops to per-utterance transcription instead (D-77).
-      streamingTranscription: opts.kind !== "openrouter",
+      streamingTranscription: !CHAT_ONLY.has(opts.kind),
     };
   }
 
@@ -154,13 +162,18 @@ export class OpenAICompatibleProvider implements Provider {
   }
 
   /**
-   * The body fields that switch hidden reasoning off, when the request asks for it and the route is
-   * one that has the control. OpenRouter only: its `reasoning` object is the documented switch for
-   * reasoning-capable models, and a plain OpenAI-compatible server may reject an unknown field.
+   * The body fields that set hidden reasoning, on the kinds that document a control; a plain
+   * OpenAI-compatible server may reject an unknown field. OpenRouter: its `reasoning` object
+   * switches reasoning off. Meta: `reasoning_effort` takes the route's effort, and "off" becomes
+   * `minimal`, the lowest it accepts (it refuses `none`) (D-495).
    */
   private reasoningFields(model: string, req: ChatRequest): Record<string, unknown> {
-    if (req.reasoning !== "off" || this.kind !== "openrouter") return {};
     if (this.accepts.get(model)?.reasoningOff === false) return {};
+    if (this.kind === "meta") {
+      if (req.reasoning === "off") return { reasoning_effort: "minimal" };
+      return req.effort ? { reasoning_effort: req.effort } : {};
+    }
+    if (req.reasoning !== "off" || this.kind !== "openrouter") return {};
     return { reasoning: { effort: "none" } };
   }
 

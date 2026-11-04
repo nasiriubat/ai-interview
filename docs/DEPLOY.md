@@ -97,7 +97,7 @@ git clone <your-remote> ai-interview && cd ai-interview
 
 # 2. Fill in what it cannot invent. The stack does not start until SMTP_HOST (with SMTP_PORT,
 #    SMTP_SECURITY, SMTP_USER, SMTP_PASSWORD) names a real mail relay, and a failure reaches nobody until ALERT_EMAIL or ALERT_WEBHOOK_URL is set. (And if you have
-#    an ANTHROPIC_API_KEY or OPENROUTER_API_KEY, add it now so first boot seeds a provider with
+#    an ANTHROPIC_API_KEY, OPENROUTER_API_KEY or MUSE_API_KEY, add it now so a boot seeds a provider with
 #    default routes; you can also do it in the admin UI later.)
 $EDITOR .env
 

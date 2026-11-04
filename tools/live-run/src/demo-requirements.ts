@@ -1,21 +1,22 @@
 /**
- * Marketing demo, case 1 bridge and case 2: two requirements interviews played by the simulator
- * (one started from a discovered opportunity, one from a one-sentence idea), each with a version;
- * the second is reopened and revised so there is a diff to show.
+ * Marketing demo, three requirements interviews played by the simulator: two started from
+ * discovered opportunities (the `ops` and `billing` campaigns, when their analyses exist) and one
+ * from a one-sentence idea, which is then reopened and revised so there is a diff to show.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { Api, staffToken } from "./api.js";
+import { harnessBackend } from "./backend.js";
+import { demoDir, readDemo, readStackState, writeDemo } from "./demo-state.js";
 import { generateVersion, ownerSystemPrompt, runRequirementsTurns, type Handoff } from "./requirements.js";
-import { harnessSpend, loadOpenRouterKey, log } from "./runtime.js";
+import { harnessSpend, log } from "./runtime.js";
 import { ADMIN_EMAIL, OPERATOR_EMAIL } from "./stack.js";
 
-const state = JSON.parse(readFileSync(process.env.DEMO_STATE ?? "", "utf8")) as { authSecret: string };
-const a = JSON.parse(readFileSync("/private/tmp/claude-504/d/case1-analysis.json", "utf8")) as {
-  opportunities: { id: string; title: string }[];
-};
+const state = readStackState();
 const admin = new Api("admin", await staffToken(ADMIN_EMAIL, state.authSecret));
 const operator = new Api("operator", await staffToken(OPERATOR_EMAIL, state.authSecret));
-const sim = { apiKey: loadOpenRouterKey(), model: "qwen/qwen3-30b-a3b-instruct-2507" };
+const sim = harnessBackend().sim;
+const GENERATE_MS = 20 * 60_000;
 
 const { templates } = await admin.ok<{ templates: { id: string; key: string; version: number }[] }>(
   "GET",
@@ -37,32 +38,44 @@ const swap = (s: string): string =>
     )
     .replace("the hospital group's IT department", "the clinic network's IT department");
 
-// ---- bridge: promote the stock-counting opportunity
-// The demo analysis varies between runs, so fall back to the first opportunity when the named one is absent.
-const opp =
-  a.opportunities.find((o) => o.title.startsWith("Digital Inventory Tracking")) ?? a.opportunities[0];
-if (!opp) throw new Error("opportunity not found");
-const promoted = await admin.ok<{ session: { id: string }; handoff: Handoff }>(
-  "POST",
-  `/opportunities/${opp.id}/promote`,
-  {},
-);
-const bridgeId = promoted.session.id;
-await admin.ok("POST", `/requirements/${bridgeId}/path`, { path: "nontechnical" });
-const system1 = swap(ownerSystemPrompt("nontechnical", opp.title, promoted.handoff));
-const run1 = await runRequirementsTurns({
-  api: admin,
-  sessionId: bridgeId,
-  kind: "nontechnical",
-  system: system1,
-  sim,
-  maxTurns: 30,
-  label: "sim:bridge_owner",
-});
-const v1 = await generateVersion(admin, bridgeId, "From the discovery opportunity", 20 * 60_000);
-log(`bridge: ${run1.turns.length} turns, version ${v1.version} ${v1.status}`);
+const out: Record<string, unknown> = {};
 
-// ---- case 2: a one-sentence idea
+/** A requirements interview started from the top opportunity of one campaign's analysis. */
+async function fromOpportunity(which: string, prefer: RegExp): Promise<void> {
+  if (!existsSync(join(demoDir(), `case-${which}-analysis.json`))) {
+    log(`${which}: no analysis yet, skipped`);
+    return;
+  }
+  const a = readDemo(`case-${which}-analysis.json`) as {
+    opportunities: { id: string; title: string; solutionClass: string }[];
+  };
+  const opp = a.opportunities.find((o) => prefer.test(o.title)) ?? a.opportunities[0];
+  if (!opp) throw new Error(`${which}: the analysis found no opportunity`);
+  const promoted = await admin.ok<{ session: { id: string }; handoff: Handoff }>(
+    "POST",
+    `/opportunities/${opp.id}/promote`,
+    {},
+  );
+  const id = promoted.session.id;
+  await admin.ok("POST", `/requirements/${id}/path`, { path: "nontechnical" });
+  const run = await runRequirementsTurns({
+    api: admin,
+    sessionId: id,
+    kind: "nontechnical",
+    system: swap(ownerSystemPrompt("nontechnical", opp.title, promoted.handoff)),
+    sim,
+    maxTurns: 30,
+    label: `sim:${which}_owner`,
+  });
+  const v = await generateVersion(admin, id, "From the discovery opportunity", GENERATE_MS);
+  out[which] = { sessionId: id, opportunity: opp.title, version: v.version, status: v.status };
+  log(`${which}: "${opp.title}", ${run.turns.length} turns, version ${v.version} ${v.status}`);
+}
+
+await fromOpportunity("ops", /inventory|stock|supplies|booking/i);
+await fromOpportunity("billing", /invoice|claim|reconcil/i);
+
+// ---- a one-sentence idea, then a second thought
 const idea =
   "Parking Pass: a small web tool where clinic visitors and contractors register their car for the day, and reception can see who is on site and who has overstayed.";
 const created = await admin.ok<{ session: { id: string } }>("POST", "/requirements", {
@@ -70,47 +83,41 @@ const created = await admin.ok<{ session: { id: string } }>("POST", "/requiremen
   prompt: idea,
   path: "nontechnical",
 });
-const idea2 = created.session.id;
-const system2 = swap(ownerSystemPrompt("nontechnical", "Parking Pass", null)).replace(
+const ideaId = created.session.id;
+const system = swap(ownerSystemPrompt("nontechnical", "Parking Pass", null)).replace(
   "You have only the one-paragraph idea described above",
   `The idea: ${idea}. You have only that sentence`,
 );
-const run2 = await runRequirementsTurns({
+const run = await runRequirementsTurns({
   api: admin,
-  sessionId: idea2,
+  sessionId: ideaId,
   kind: "nontechnical",
-  system: system2,
+  system,
   sim,
   maxTurns: 30,
   label: "sim:idea_owner",
 });
-const c2v1 = await generateVersion(admin, idea2, "First specification", 20 * 60_000);
-log(`idea: ${run2.turns.length} turns, version ${c2v1.version} ${c2v1.status}`);
-const reopen = await admin.call("POST", `/requirements/${idea2}/reopen`);
-let c2v2: { version: number; status: string } | null = null;
+const v1 = await generateVersion(admin, ideaId, "First specification", GENERATE_MS);
+log(`idea: ${run.turns.length} turns, version ${v1.version} ${v1.status}`);
+const reopen = await admin.call("POST", `/requirements/${ideaId}/reopen`);
+let v2: { version: number; status: string } | null = null;
 if (reopen.status === 200) {
   await runRequirementsTurns({
     api: admin,
-    sessionId: idea2,
+    sessionId: ideaId,
     kind: "nontechnical",
-    system: system2,
+    system,
     sim,
     maxTurns: 5,
-    startIndex: run2.turns.length,
+    startIndex: run.turns.length,
     label: "sim:idea_owner_rev",
     nudge:
       "You have had second thoughts. Change one earlier decision to something different and say why, and add one requirement you forgot, for example an audit trail or a daily export.",
   });
-  c2v2 = await generateVersion(admin, idea2, "After a second thought", 20 * 60_000);
+  v2 = await generateVersion(admin, ideaId, "After a second thought", GENERATE_MS);
 }
-writeFileSync(
-  "/private/tmp/claude-504/d/case2.json",
-  JSON.stringify(
-    { bridgeId, bridgeVersion: v1.version, idea2, c2v1: c2v1.version, c2v2: c2v2?.version ?? null },
-    null,
-    2,
-  ),
-);
-log(`harness spend $${harnessSpend.usd.toFixed(3)}; case2 v2 ${JSON.stringify(c2v2)}`);
+out.idea = { sessionId: ideaId, v1: v1.version, v2: v2?.version ?? null };
+writeDemo("requirements.json", out);
+log(`harness spend $${harnessSpend.usd.toFixed(3)}; idea v2 ${JSON.stringify(v2)}`);
 const spend = await admin.ok<{ rows: { costCents: number }[] }>("GET", "/spend?groupBy=purpose");
 log(`ledger cents ${spend.rows.reduce((s, r) => s + r.costCents, 0).toFixed(1)}`);

@@ -28,8 +28,8 @@ over the file, so a host-style `DATABASE_URL=...localhost` in `.env` is correct 
 configuration, and `.env` is what it starts from:
 
 - _Bootstrap only:_ `BOOTSTRAP_*` (first operator, admin and tenant) and `ANTHROPIC_API_KEY`,
-  `OPENAI_API_KEY`, `OPENROUTER_API_KEY` (seed the platform providers and their routes on first
-  boot). They are not read again; change providers, routes and people in the admin.
+  `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `MUSE_API_KEY` (seed the platform providers and their
+  routes on first boot). They are not read again; change providers, routes and people in the admin.
 - _Fallback for an admin setting:_ the relay (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`,
   `SMTP_USER`, `SMTP_PASSWORD`; the deprecated `EMAIL_SMTP_URL` only while `SMTP_HOST` is empty)
   and `EMAIL_FROM` are used only while the settings `email.smtpUrl` and `email.from` are empty at both tenant and platform scope.
@@ -195,13 +195,19 @@ in production Caddy forwards that single path. Running the web app on :3000 agai
 :4000, set `NEXT_PUBLIC_VOICE_WS_URL=ws://localhost:4000/api/v1/p/session/live`.
 
 Provider configuration without an Anthropic key: sign in as the operator, add a provider
-(OpenAI, OpenRouter, LiteLLM, or any OpenAI-compatible server), fetch its models, and set
-routes per purpose. Nothing works until `interview_turn` has a route.
+(OpenAI, OpenRouter, Meta, LiteLLM, or any OpenAI-compatible server), fetch its models, and set
+routes per purpose. Nothing works until `interview_turn` has a route. To move from one provider to
+another, Model assignment has "Use one provider for every text task": pick the provider and model,
+apply, review and save.
 
 Bootstrap providers: `ANTHROPIC_API_KEY` creates a platform Anthropic provider with default
 routes; `OPENROUTER_API_KEY` creates a platform OpenRouter provider (Claude models through
 `vendor/model` slugs, prices imported from OpenRouter's model list). When both are set the
-Anthropic routes win; the OpenRouter routes fill only purposes without a route.
+Anthropic routes win; the OpenRouter routes fill only purposes without a route. `MUSE_API_KEY`
+creates a platform Meta provider (Meta's Model API at `api.meta.ai`, the Muse models) with seed
+prices and the same tiers on `muse-spark-1.3`, by reasoning effort; it too fills only purposes
+without a route (D-495). Meta, like OpenRouter, serves language models only: recorded answers
+are transcribed on the server, and embeddings need an OpenAI key.
 
 Requirements interviews (phase 3) also need routes for `issue_detection` (the separate
 findings pass, every few turns) and `spec_generation` (versions, run by the worker). Both

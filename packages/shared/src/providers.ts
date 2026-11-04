@@ -5,6 +5,11 @@ export const PROVIDER_KINDS = [
   "anthropic",
   "openai",
   "openrouter",
+  /**
+   * Meta's Model API (the Muse models), which speaks Chat Completions at api.meta.ai. Language
+   * only: it publishes no OpenAI-style transcription, speech or embedding endpoint (D-495).
+   */
+  "meta",
   "litellm",
   "openai_compatible",
   "stt",

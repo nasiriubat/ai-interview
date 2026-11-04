@@ -1,14 +1,15 @@
 /**
- * Marketing demo, case 1 part 2: waits for extraction, runs a fresh analysis on the settled facts
- * and prints what it found (counts and titles only).
+ * Marketing demo, a campaign's analysis (DEMO_CASE): waits for extraction, runs a fresh analysis on
+ * the settled facts and prints what it found (counts and titles only).
  */
-import { readFileSync, writeFileSync } from "node:fs";
 import { Api, staffToken } from "./api.js";
+import { demoCase, readDemo, readStackState, writeDemo } from "./demo-state.js";
 import { sleep } from "./runtime.js";
 import { ADMIN_EMAIL } from "./stack.js";
 
-const state = JSON.parse(readFileSync(process.env.DEMO_STATE ?? "", "utf8")) as { authSecret: string };
-const c1 = JSON.parse(readFileSync("/private/tmp/claude-504/d/case1.json", "utf8")) as { campaignId: string };
+const state = readStackState();
+const which = demoCase();
+const c1 = readDemo(`case-${which}.json`) as { campaignId: string };
 const admin = new Api("admin", await staffToken(ADMIN_EMAIL, state.authSecret));
 
 interface A {
@@ -36,9 +37,6 @@ const detail = await admin.ok<{
   opportunities: { id: string; title: string; solutionClass: string; rankScore: number }[];
 }>("GET", `/analyses/${latest.id}`);
 for (const o of detail.opportunities) console.warn(` - ${o.id} ${o.solutionClass} ${o.rankScore} ${o.title}`);
-writeFileSync(
-  "/private/tmp/claude-504/d/case1-analysis.json",
-  JSON.stringify({ analysisId: latest.id, opportunities: detail.opportunities }, null, 2),
-);
+writeDemo(`case-${which}-analysis.json`, { analysisId: latest.id, opportunities: detail.opportunities });
 const spend = await admin.ok<{ rows: { costCents: number }[] }>("GET", "/spend?groupBy=purpose");
 console.warn("ledger cents", spend.rows.reduce((s, r) => s + r.costCents, 0).toFixed(1));

@@ -11,10 +11,12 @@ import { useDirty } from "@/components/common/DirtyGuard";
 import { undoToast } from "@/components/common/undoToast";
 import { SaveBarView } from "@/components/form/Form";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/components/ui/sonner";
 import { t } from "@/i18n";
 import { staffClient } from "@/lib/api/browser";
 import type { ModelPrice, Provider, RouteRecord } from "@/lib/api/schemas";
@@ -31,6 +33,10 @@ const DEFAULT_MAX_OUTPUT = 4096;
  * on the page, because these rows are stored with 0.
  */
 const NOT_TEXT = NON_TEXT_PURPOSES;
+/** The tasks "use one provider" fills: everything that produces text. */
+const TEXT_PURPOSES = ROUTABLE_PURPOSES.filter((p) => !NOT_TEXT.has(p));
+/** Provider kinds with no language model, which the one-provider switch does not offer. */
+const AUDIO_ONLY_KINDS: ReadonlySet<string> = new Set(["local", "stt", "tts", "realtime"]);
 
 interface Draft {
   providerId: string;
@@ -135,6 +141,25 @@ export function RoutesForm({
     setDrafts((prev) => ({ ...prev, [p]: { ...prev[p], ...patch } }));
   };
 
+  /**
+   * Switching provider in one step (D-495): every text task gets the chosen provider and model and
+   * keeps its own effort and token limit; batching is cleared because it is a per-provider feature.
+   * Nothing is sent until the admin saves, so the rows can be reviewed first. Works the same for
+   * every kind: nothing here knows which providers exist.
+   */
+  const [bulkProvider, setBulkProvider] = React.useState("");
+  const [bulkModel, setBulkModel] = React.useState("");
+  const applyToAll = (): void => {
+    if (!bulkProvider || !bulkModel) return;
+    setDrafts((prev) => {
+      const next = { ...prev };
+      for (const p of TEXT_PURPOSES)
+        next[p] = { ...prev[p], providerId: bulkProvider, model: bulkModel, batchAllowed: false };
+      return next;
+    });
+    toast.success(s.bulkApplied(TEXT_PURPOSES.length));
+  };
+
   const routesPayload = (current: Record<Purpose, Draft>): Route[] => {
     const out: Route[] = [];
     for (const p of ROUTABLE_PURPOSES) {
@@ -208,6 +233,14 @@ export function RoutesForm({
     { value: INHERIT, label: inheritLabel },
     ...providers.map((pr) => ({ value: pr.id, label: pr.name, detail: enumLabel("providerKind", pr.kind) })),
   ];
+
+  const languageProviders = providers.filter((pr) => !AUDIO_ONLY_KINDS.has(pr.kind));
+  const bulkEntry = models[bulkProvider];
+  const bulkModels: ComboboxOption[] = (Array.isArray(bulkEntry) ? bulkEntry : []).map((m) => ({
+    value: m.id,
+    label: m.name || m.id,
+    detail: m.id,
+  }));
 
   const sourceLabel = (src: RouteSource): string =>
     src === "tenant" ? s.sourceTenant : src === "platform" ? s.sourcePlatform : s.sourceNone;
@@ -338,6 +371,75 @@ export function RoutesForm({
       }}
     >
       <Flash flash={action.flash} />
+      {languageProviders.length > 0 ? (
+        <section
+          aria-labelledby="routes-bulk-title"
+          className="bg-card shadow-card grid gap-3 rounded-lg px-4 py-3.5"
+        >
+          <div className="grid gap-1">
+            <h3 id="routes-bulk-title" className="text-foreground text-[15px] font-semibold">
+              {s.bulkTitle}
+            </h3>
+            <p className="text-muted-foreground text-sm">{s.bulkHint}</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[13rem_minmax(0,1fr)_auto] lg:items-end">
+            <div className="grid min-w-0 gap-1">
+              <span className="text-muted-foreground text-xs font-medium">{s.provider}</span>
+              <Combobox
+                id="route-bulk-provider"
+                size="sm"
+                value={bulkProvider}
+                aria-label={`${s.bulkTitle}: ${s.provider}`}
+                options={languageProviders.map((pr) => ({
+                  value: pr.id,
+                  label: pr.name,
+                  detail: enumLabel("providerKind", pr.kind),
+                }))}
+                labels={{
+                  placeholder: s.provider,
+                  search: t.admin.combobox.search,
+                  empty: t.admin.combobox.empty,
+                }}
+                onChange={(v) => {
+                  setBulkProvider(v);
+                  setBulkModel("");
+                  loadModels(v);
+                }}
+              />
+            </div>
+            <div className="grid min-w-0 gap-1">
+              <span className="text-muted-foreground text-xs font-medium">{s.model}</span>
+              <Combobox
+                id="route-bulk-model"
+                size="sm"
+                value={bulkModel}
+                disabled={!bulkProvider}
+                loading={bulkEntry === "loading"}
+                allowCustom
+                aria-label={`${s.bulkTitle}: ${s.model}`}
+                options={bulkModels}
+                labels={{
+                  placeholder: s.modelPlaceholder,
+                  search: t.admin.combobox.search,
+                  empty: s.noModels,
+                  loading: t.admin.combobox.loading,
+                  useCustom: t.admin.combobox.useCustom,
+                }}
+                onChange={setBulkModel}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!bulkProvider || !bulkModel}
+              onClick={applyToAll}
+            >
+              {s.bulkApply}
+            </Button>
+          </div>
+        </section>
+      ) : null}
       {/*
        * One card per task at every width (D-374): the title and where the setting comes from on the
        * first line, the five controls under it. A seven-column table needed a sideways scroll on a

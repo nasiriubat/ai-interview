@@ -2194,6 +2194,11 @@ export const en = {
       clearedRestored: "Override restored.",
       modelPlaceholder: "Choose a model…",
       noModels: "No models from this provider yet. Open the provider and refresh its catalogue.",
+      bulkTitle: "Use one provider for every text task",
+      bulkHint:
+        "Puts this provider and model on every task that produces text, keeping each task's effort and token limit. Speech and similarity search keep their own providers. Review the rows, then save.",
+      bulkApply: "Apply to all text tasks",
+      bulkApplied: (n: number): string => `Applied to ${n} tasks. Review them, then save.`,
     },
     prompts: {
       title: "Prompts",
@@ -2875,6 +2880,7 @@ export const en = {
       anthropic: "Anthropic",
       openai: "OpenAI",
       openrouter: "OpenRouter",
+      meta: "Meta (Muse models)",
       litellm: "LiteLLM proxy",
       openai_compatible: "OpenAI-compatible API",
       stt: "Speech-to-text service",

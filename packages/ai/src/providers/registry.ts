@@ -56,7 +56,10 @@ export function createProvider(cfg: ProviderConfig, deps: ProviderDeps = {}): Pr
   });
 }
 
-/** The purposes that need audio endpoints: Anthropic has none and OpenRouter proxies chat models only. */
+/**
+ * The purposes that need audio endpoints: Anthropic has none, OpenRouter proxies chat models only,
+ * and Meta's Model API publishes no OpenAI-style audio endpoint (D-495).
+ */
 const AUDIO_PURPOSES: ReadonlySet<Purpose> = new Set([
   "transcription",
   "stt_stream",
@@ -74,7 +77,7 @@ export function kindSupportsPurpose(kind: ProviderKind, purpose: Purpose): boole
   // streaming socket, no voice, and no chat model.
   if (kind === "local") return purpose === "transcription";
   if (!AUDIO_PURPOSES.has(purpose)) return true;
-  return kind !== "anthropic" && kind !== "openrouter";
+  return kind !== "anthropic" && kind !== "openrouter" && kind !== "meta";
 }
 
 /** Caches adapters per provider id so clients are reused across calls. */

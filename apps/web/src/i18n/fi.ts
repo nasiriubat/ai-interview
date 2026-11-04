@@ -2198,6 +2198,11 @@ export const fi: Strings = {
       modelPlaceholder: "Valitse malli…",
       noModels:
         "Tältä palveluntarjoajalta ei ole vielä malleja. Avaa palveluntarjoaja ja päivitä sen katalogi.",
+      bulkTitle: "Yksi palveluntarjoaja kaikkiin tekstitehtäviin",
+      bulkHint:
+        "Asettaa tämän palveluntarjoajan ja mallin jokaiseen tehtävään, joka tuottaa tekstiä, ja säilyttää kunkin tehtävän päättelyn tason ja tokenirajan. Puhe ja samankaltaisuushaku pitävät omat palveluntarjoajansa. Tarkista rivit ja tallenna.",
+      bulkApply: "Käytä kaikkiin tekstitehtäviin",
+      bulkApplied: (n: number): string => `Asetettu ${n} tehtävään. Tarkista ja tallenna.`,
     },
     prompts: {
       title: "Kehotteet",
@@ -2881,6 +2886,7 @@ export const fi: Strings = {
       anthropic: "Anthropic",
       openai: "OpenAI",
       openrouter: "OpenRouter",
+      meta: "Meta (Muse-mallit)",
       litellm: "LiteLLM-välityspalvelin",
       openai_compatible: "OpenAI-yhteensopiva rajapinta",
       stt: "Puheentunnistuspalvelu",

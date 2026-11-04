@@ -65,6 +65,31 @@ export function defaultOpenRouterRoutes(providerId: string): Route[] {
 }
 
 /**
+ * Meta's Model API (D-495). Muse Spark is one model for every text purpose; the effort field does
+ * the tiering here, sent as `reasoning_effort` (the adapter turns a low or medium route into
+ * `minimal`, as ModelCaller asks for no hidden reasoning below high effort). Only the standard
+ * model: the `-contributor` variants let the vendor train on prompts, which interview data must not
+ * allow. An admin changes any row, or moves every task to another provider, in Model assignment.
+ */
+export const META_DEFAULT_MODEL = "muse-spark-1.3";
+
+export function defaultMetaRoutes(providerId: string, model: string = META_DEFAULT_MODEL): Route[] {
+  const r = rowFor(providerId);
+  return [
+    r("interview_turn", model, "low", 4096),
+    r("resume_summary", model, "low", 2048),
+    r("extraction", model, "medium", 8192),
+    r("clustering", model, "medium", 16000),
+    r("analysis_report", model, "medium", 8000),
+    r("spec_turn", model, "medium", 2048),
+    r("issue_detection", model, "medium", 4096),
+    r("spec_generation", model, "high", 64000),
+    r("file_ingest", model, "low", 4096),
+    r("vision_ingest", model, "low", 4096),
+  ];
+}
+
+/**
  * OpenAI's recommended model for live transcription (checked September 2026: "Start with
  * gpt-live-transcribe"), priced per minute of audio. Used by the bootstrap and by the admin's
  * one-step live voice setup, so both route the same model.

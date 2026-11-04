@@ -65,7 +65,9 @@ export {
   DEFAULT_TRANSCRIPTION_MODEL,
   DEFAULT_TTS_MODEL,
   LIVE_TRANSCRIPTION_MODEL,
+  META_DEFAULT_MODEL,
   defaultAnthropicRoutes,
+  defaultMetaRoutes,
   defaultOpenAIRoutes,
   defaultOpenRouterRoutes,
 } from "./routes/defaults.js";

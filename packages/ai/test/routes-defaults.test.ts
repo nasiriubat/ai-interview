@@ -1,9 +1,12 @@
 import { PLANNED_PURPOSES, PURPOSES, ROUTABLE_PURPOSES, RouteSchema } from "@aidp/shared";
 import { describe, expect, it } from "vitest";
+import { META_SEED_PRICES } from "../src/cost/pricing.js";
 import {
   defaultAnthropicRoutes,
+  defaultMetaRoutes,
   defaultOpenAIRoutes,
   defaultOpenRouterRoutes,
+  META_DEFAULT_MODEL,
 } from "../src/routes/defaults.js";
 
 describe("platform default routes", () => {
@@ -11,6 +14,7 @@ describe("platform default routes", () => {
     for (const rows of [
       defaultAnthropicRoutes("p"),
       defaultOpenRouterRoutes("p"),
+      defaultMetaRoutes("p"),
       defaultOpenAIRoutes("p"),
     ]) {
       for (const r of rows) expect(PURPOSES).toContain(r.purpose);
@@ -21,6 +25,7 @@ describe("platform default routes", () => {
     for (const rows of [
       defaultAnthropicRoutes("p"),
       defaultOpenRouterRoutes("p"),
+      defaultMetaRoutes("p"),
       defaultOpenAIRoutes("p"),
     ]) {
       expect(new Set(rows.map((r) => r.purpose)).size).toBe(rows.length);
@@ -42,7 +47,7 @@ describe("platform default routes", () => {
 
   it("leaves audio and embeddings alone in the conversation providers, which cannot do them", () => {
     const audioAndVectors = new Set(["transcription", "tts", "stt_stream", "realtime_voice", "embedding"]);
-    for (const rows of [defaultAnthropicRoutes("p"), defaultOpenRouterRoutes("p")]) {
+    for (const rows of [defaultAnthropicRoutes("p"), defaultOpenRouterRoutes("p"), defaultMetaRoutes("p")]) {
       for (const r of rows) expect(audioAndVectors.has(r.purpose)).toBe(false);
     }
   });
@@ -56,6 +61,7 @@ describe("platform default routes", () => {
     for (const rows of [
       defaultAnthropicRoutes("p"),
       defaultOpenRouterRoutes("p"),
+      defaultMetaRoutes("p"),
       defaultOpenAIRoutes("p"),
     ]) {
       for (const r of rows) expect(RouteSchema.safeParse(r).success).toBe(true);
@@ -82,9 +88,32 @@ describe("platform default routes", () => {
     for (const rows of [
       defaultAnthropicRoutes("p"),
       defaultOpenRouterRoutes("p"),
+      defaultMetaRoutes("p"),
       defaultOpenAIRoutes("p"),
     ]) {
       expect(rows.map((r) => r.purpose)).not.toContain("probe");
     }
+  });
+});
+
+describe("Meta default routes (D-495)", () => {
+  it("cover the same purposes as the other language providers, at the same efforts", () => {
+    const byPurpose = (rows: ReturnType<typeof defaultMetaRoutes>) =>
+      Object.fromEntries(rows.map((r) => [r.purpose, r.effort]));
+    expect(byPurpose(defaultMetaRoutes("p"))).toEqual(byPurpose(defaultAnthropicRoutes("p")));
+  });
+
+  it("use one standard model, never a contributor variant, and every routed model has a seed price", () => {
+    const rows = defaultMetaRoutes("p");
+    expect(new Set(rows.map((r) => r.model))).toEqual(new Set([META_DEFAULT_MODEL]));
+    for (const r of rows) expect(r.model).not.toMatch(/contributor/);
+    const priced = new Set(META_SEED_PRICES.map((p) => p.model));
+    for (const r of rows) expect(priced.has(r.model)).toBe(true);
+  });
+
+  it("take another model when the operator names one", () => {
+    expect(new Set(defaultMetaRoutes("p", "muse-spark-1.2").map((r) => r.model))).toEqual(
+      new Set(["muse-spark-1.2"]),
+    );
   });
 });

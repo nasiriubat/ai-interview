@@ -78,6 +78,21 @@ async function runLogged(
   });
 }
 
+/**
+ * A mail relay for runs that sign in through the browser (the marketing demo): LIVE_SMTP_HOST and
+ * LIVE_SMTP_PORT, typically the development Mailpit. Absent, the stack sends no mail.
+ */
+function relayEnv(): Record<string, string> {
+  const host = process.env.LIVE_SMTP_HOST;
+  if (!host) return {};
+  return {
+    SMTP_HOST: host,
+    SMTP_PORT: process.env.LIVE_SMTP_PORT ?? "1025",
+    SMTP_SECURITY: "none",
+    EMAIL_FROM: process.env.LIVE_EMAIL_FROM ?? "no-reply@demo.example",
+  };
+}
+
 function childEnv(extra: Record<string, string>): NodeJS.ProcessEnv {
   // A minimal environment: no inherited provider keys reach the API or the worker.
   const base: NodeJS.ProcessEnv = {};
@@ -210,7 +225,12 @@ export async function dbIntegrity(): Promise<DbIntegrity> {
   };
 }
 
-export async function startStack(openRouterKey: string): Promise<Stack> {
+/**
+ * Starts the stack. `keys` is the bootstrap's provider environment: an OpenRouter key as a string
+ * (the live run), or e.g. `{ MUSE_API_KEY }` for a run on Meta's Model API (`backend.ts`).
+ */
+export async function startStack(keys: string | Record<string, string>): Promise<Stack> {
+  const providerEnv = typeof keys === "string" ? { OPENROUTER_API_KEY: keys } : keys;
   ensureDir(SCRATCH_DIR);
   const logs = {
     api: join(SCRATCH_DIR, "api.log"),
@@ -238,9 +258,9 @@ export async function startStack(openRouterKey: string): Promise<Stack> {
     logs.bootstrap,
   );
 
-  log("bootstrapping operator, tenant, OpenRouter provider and templates");
-  // Only the OpenRouter key is passed: an Anthropic or OpenAI key in the developer's environment
-  // would win the default routes, and this run is about the OpenRouter path.
+  log(`bootstrapping operator, tenant, ${Object.keys(providerEnv).join(", ")} provider and templates`);
+  // Only the run's own key is passed: an Anthropic or OpenAI key in the developer's environment
+  // would win the default routes, and this run is about one provider's path.
   await runLogged(
     "bootstrap",
     "pnpm",
@@ -251,7 +271,7 @@ export async function startStack(openRouterKey: string): Promise<Stack> {
       BOOTSTRAP_OPERATOR_EMAIL: OPERATOR_EMAIL,
       BOOTSTRAP_ADMIN_EMAIL: ADMIN_EMAIL,
       BOOTSTRAP_TENANT_NAME: process.env.LIVE_TENANT_NAME ?? "Live run tenant",
-      OPENROUTER_API_KEY: openRouterKey,
+      ...providerEnv,
     }),
     logs.bootstrap,
   );
@@ -276,13 +296,14 @@ export async function startStack(openRouterKey: string): Promise<Stack> {
       ...(process.env.LIVE_WEB_URL
         ? { PUBLIC_WEB_URL: process.env.LIVE_WEB_URL, WEB_ORIGIN: process.env.LIVE_WEB_URL }
         : {}),
+      ...relayEnv(),
     }),
     stdio: ["ignore", "pipe", "pipe"],
   });
   const apiStream = pipeTo(api, logs.api);
   const worker = spawn("node", ["apps/worker/dist/main.js"], {
     cwd: REPO_ROOT,
-    env: childEnv({ ...shared, WORKER_CONCURRENCY: "4" }),
+    env: childEnv({ ...shared, WORKER_CONCURRENCY: "4", ...relayEnv() }),
     stdio: ["ignore", "pipe", "pipe"],
   });
   const workerStream = pipeTo(worker, logs.worker);

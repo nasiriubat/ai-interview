@@ -28,6 +28,21 @@ export const SEED_PRICES: readonly Omit<ModelPrice, "providerId">[] = [
 ];
 
 /**
+ * Seed prices for Meta's Model API (USD per million tokens), as published for the standard tier in
+ * November 2026. Meta's model list carries no prices, so these are what the ledger books until an
+ * admin edits them. Hidden reasoning is billed as output.
+ */
+export const META_SEED_PRICES: readonly Omit<ModelPrice, "providerId">[] = [
+  {
+    model: "muse-spark-1.3",
+    inputPerMtok: 1.25,
+    cachedInputPerMtok: 0.15,
+    outputPerMtok: 4.25,
+    source: "seed",
+  },
+];
+
+/**
  * Seed prices for the OpenAI speech models, applied to the platform OpenAI provider at bootstrap
  * (USD; token fields zero because these models bill by audio minute or character).
  */

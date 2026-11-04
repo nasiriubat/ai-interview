@@ -250,3 +250,76 @@ describe("structured output against providers that ignore json_schema (seen with
     expect(extractJsonValue('{"unbalanced": [1, 2')).toBeUndefined();
   });
 });
+
+describe("Meta's Model API (D-495)", () => {
+  const completion = (content: string) =>
+    new Response(
+      JSON.stringify({
+        model: "muse-spark-1.3",
+        choices: [{ message: { content }, finish_reason: "stop" }],
+        usage: { prompt_tokens: 10, completion_tokens: 3 },
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  const req = {
+    messages: [{ role: "user" as const, content: "hi" }],
+    maxOutputTokens: 64,
+    cachePrefix: false,
+  };
+
+  it("defaults to api.meta.ai and serves language only, with an effort control", () => {
+    const p = new OpenAICompatibleProvider({ id: "m", kind: "meta", apiKey: "k" });
+    expect(p.capabilities).toMatchObject({
+      effort: true,
+      structuredOutput: true,
+      transcription: false,
+      speech: false,
+      streamingTranscription: false,
+    });
+  });
+
+  it("sends 'no hidden reasoning' as minimal effort and a route's effort as it stands", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const urls: string[] = [];
+    const fetchMock: typeof fetch = async (url, init) => {
+      urls.push(String(url));
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return sseResponse([
+        JSON.stringify({ choices: [{ delta: { content: "ok" }, finish_reason: "stop" }] }),
+      ]);
+    };
+    const p = new OpenAICompatibleProvider({ id: "m", kind: "meta", apiKey: "k", fetch: fetchMock });
+    const drain = async (r: Parameters<typeof p.chat>[1]) => {
+      for await (const _ of p.chat("muse-spark-1.3", r)) _;
+    };
+    await drain({ ...req, effort: "low", reasoning: "off" });
+    await drain({ ...req, effort: "high" });
+    await drain(req);
+    expect(urls[0]).toBe("https://api.meta.ai/v1/chat/completions");
+    expect(bodies[0]).toMatchObject({ reasoning_effort: "minimal" });
+    expect(bodies[1]).toMatchObject({ reasoning_effort: "high" });
+    expect(bodies[2]).not.toHaveProperty("reasoning_effort");
+    for (const b of bodies) expect(b).not.toHaveProperty("reasoning");
+  });
+
+  it("asks again without the control when a model refuses it, and remembers that", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock: typeof fetch = async (_url, init) => {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      bodies.push(body);
+      if ("reasoning_effort" in body)
+        return new Response(JSON.stringify({ error: { message: "reasoning_effort is not supported" } }), {
+          status: 400,
+        });
+      return completion('{"ok":true}');
+    };
+    const p = new OpenAICompatibleProvider({ id: "m", kind: "meta", apiKey: "k", fetch: fetchMock });
+    const schema = z.object({ ok: z.boolean() });
+    const first = await p.complete("muse-older", { ...req, reasoning: "off" }, schema);
+    const second = await p.complete("muse-older", { ...req, reasoning: "off" }, schema);
+    expect(first.value).toEqual({ ok: true });
+    expect(second.value).toEqual({ ok: true });
+    // One refusal, then never sent again for that model.
+    expect(bodies.filter((b) => "reasoning_effort" in b)).toHaveLength(1);
+  });
+});

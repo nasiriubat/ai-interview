@@ -107,7 +107,12 @@ export function writeJson(relative: string, value: unknown): string {
  * ever handed to child processes through their environment, never written anywhere.
  */
 export function loadOpenRouterKey(): string {
-  const fromEnv = process.env.OPENROUTER_API_KEY;
+  return loadEnvKey("OPENROUTER_API_KEY");
+}
+
+/** Any provider key, found the same way as OPENROUTER_API_KEY and registered for redaction. */
+export function loadEnvKey(name: string): string {
+  const fromEnv = process.env[name];
   if (fromEnv) {
     registerSecret(fromEnv);
     return fromEnv;
@@ -123,13 +128,13 @@ export function loadOpenRouterKey(): string {
   }
   for (const file of candidates) {
     if (!existsSync(file)) continue;
-    const key = parseDotenv(readFileSync(file, "utf8")).OPENROUTER_API_KEY;
+    const key = parseDotenv(readFileSync(file, "utf8"))[name];
     if (key) {
       registerSecret(key);
       return key;
     }
   }
-  throw new Error("OPENROUTER_API_KEY not found in the environment or in any .env above the worktree");
+  throw new Error(`${name} not found in the environment or in any .env above the worktree`);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -191,7 +196,21 @@ export const harnessSpend = {
   byLabel: {} as Record<string, number>,
 };
 
-/** Direct OpenRouter chat call for the simulators and the judge: outside the product on purpose. */
+/**
+ * Where the harness's own calls go when not to OpenRouter: any Chat Completions endpoint, with the
+ * extra body fields it needs, the tokens its hidden reasoning spends from `max_tokens`, and a price
+ * to book the call at when the response carries no cost (OpenRouter's does).
+ */
+export interface ChatEndpoint {
+  url: string;
+  body?: Record<string, unknown>;
+  reasoningHeadroom?: number;
+  price?: { inputPerMtok: number; outputPerMtok: number };
+}
+
+const OPENROUTER_CHAT: ChatEndpoint = { url: "https://openrouter.ai/api/v1/chat/completions" };
+
+/** Direct chat call for the simulators and the judge: outside the product on purpose. */
 export async function chat(opts: {
   apiKey: string;
   model: string;
@@ -200,20 +219,24 @@ export async function chat(opts: {
   maxTokens?: number;
   json?: boolean;
   temperature?: number;
+  endpoint?: ChatEndpoint;
 }): Promise<ChatResult> {
+  const endpoint = opts.endpoint ?? OPENROUTER_CHAT;
+  const isOpenRouter = endpoint === OPENROUTER_CHAT;
   for (let attempt = 0; ; attempt++) {
     const started = Date.now();
     try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const res = await fetch(endpoint.url, {
         method: "POST",
         headers: { authorization: `Bearer ${opts.apiKey}`, "content-type": "application/json" },
         body: JSON.stringify({
           model: opts.model,
           messages: opts.messages,
-          max_tokens: opts.maxTokens ?? 600,
+          max_tokens: (opts.maxTokens ?? 600) + (endpoint.reasoningHeadroom ?? 0),
           temperature: opts.temperature ?? 0.8,
-          usage: { include: true },
+          ...(isOpenRouter ? { usage: { include: true } } : {}),
           ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+          ...(endpoint.body ?? {}),
         }),
       });
       if (!res.ok) {
@@ -222,17 +245,22 @@ export async function chat(opts: {
           await sleep(1500 * (attempt + 1));
           continue;
         }
-        throw new Error(`OpenRouter ${res.status}: ${redact(text)}`);
+        throw new Error(`Harness model ${res.status}: ${redact(text)}`);
       }
       const body = (await res.json()) as {
         choices?: { message?: { content?: string | null } }[];
         usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
       };
+      const promptTokens = body.usage?.prompt_tokens ?? 0;
+      const completionTokens = body.usage?.completion_tokens ?? 0;
+      const priced = endpoint.price
+        ? (promptTokens * endpoint.price.inputPerMtok + completionTokens * endpoint.price.outputPerMtok) / 1e6
+        : 0;
       const result: ChatResult = {
         content: body.choices?.[0]?.message?.content ?? "",
-        promptTokens: body.usage?.prompt_tokens ?? 0,
-        completionTokens: body.usage?.completion_tokens ?? 0,
-        costUsd: body.usage?.cost ?? 0,
+        promptTokens,
+        completionTokens,
+        costUsd: body.usage?.cost ?? priced,
         ms: Date.now() - started,
       };
       harnessSpend.usd += result.costUsd;
@@ -242,7 +270,7 @@ export async function chat(opts: {
       harnessSpend.byLabel[opts.label] = (harnessSpend.byLabel[opts.label] ?? 0) + result.costUsd;
       return result;
     } catch (err) {
-      if (attempt < 3 && !(err instanceof Error && err.message.startsWith("OpenRouter 4"))) {
+      if (attempt < 3 && !(err instanceof Error && err.message.startsWith("Harness model 4"))) {
         await sleep(1500 * (attempt + 1));
         continue;
       }

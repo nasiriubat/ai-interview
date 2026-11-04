@@ -1,10 +1,12 @@
 import type { TurnInput, Widget, WidgetResponse } from "./api.js";
 import { extractJson } from "./pure.js";
-import { chat, type ChatMessage } from "./runtime.js";
+import { chat, type ChatEndpoint, type ChatMessage } from "./runtime.js";
 
 export interface SimulatorConfig {
   apiKey: string;
   model: string;
+  /** Another Chat Completions endpoint than OpenRouter's (see `backend.ts`). */
+  endpoint?: ChatEndpoint;
 }
 
 export interface Exchange {
@@ -40,6 +42,7 @@ export async function simulateReply(
     messages,
     maxTokens: 350,
     temperature: 0.9,
+    ...(cfg.endpoint ? { endpoint: cfg.endpoint } : {}),
   });
   return r.content.trim().replace(/^["“]|["”]$/g, "") || "I am not sure.";
 }
@@ -86,6 +89,7 @@ export async function simulateWidget(
     maxTokens: 120,
     json: true,
     temperature: 0.6,
+    ...(cfg.endpoint ? { endpoint: cfg.endpoint } : {}),
   });
   const parsed = extractJson(r.content) as Record<string, unknown> | null;
   if (!parsed) return null;
