@@ -7,7 +7,6 @@ dist-seeds/
 *.tsbuildinfo
 coverage/
 .next/
-.claude/
 
 # Written by deploy/upgrade.sh and rollback.sh: which image tag is running. Machine state.
 deploy/versions.env

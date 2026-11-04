@@ -2,7 +2,7 @@
 
 The release is a git SHA, as the stack deploys it (`deploy/versions.env` records the running and the
 previous one); there is no version number to quote. This is the state of the branch
-`claude/ai-discovery-platform-bzxmqw` at the end of the M5 paperwork, 2026-10-14, covering phases 0
+`main` at the end of the M5 paperwork, 2026-10-14, covering phases 0
 to 5 of [the phase plan](spec/15-phase-plan.md).
 
 Three documents sit under this one and carry the evidence. Read them before repeating any claim:

@@ -17,9 +17,5 @@ node_modules
 coverage
 **/coverage
 
-# Repository metadata and local scratch.
-.git
-.gitignore
-.github
-.claude
-.playwright-mcp
+# Every dot-entry at the root: repository metadata and local tool state. No Dockerfile copies one.
+.*
