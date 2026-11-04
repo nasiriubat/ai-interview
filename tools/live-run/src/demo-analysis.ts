@@ -25,11 +25,16 @@ const list = async (): Promise<A[]> =>
 await sleep(20_000);
 const before = await list();
 console.warn("existing analyses", JSON.stringify(before.map((a) => [a.version, a.status, a.stats.facts])));
-const started = await admin.ok<{ analysis: A }>("POST", `/campaigns/${c1.campaignId}/analyses`, {});
+// The product starts one by itself when a campaign reaches its threshold: follow that one if it is
+// still queued or running, and start a fresh one only when none is in flight.
+const inFlight = before.find((x) => x.status === "queued" || x.status === "running");
+const targetId =
+  inFlight?.id ??
+  (await admin.ok<{ analysis: A }>("POST", `/campaigns/${c1.campaignId}/analyses`, {})).analysis.id;
 let latest: A | undefined;
 for (;;) {
   await sleep(5000);
-  latest = (await list()).find((a) => a.id === started.analysis.id);
+  latest = (await list()).find((a) => a.id === targetId);
   if (latest && (latest.status === "done" || latest.status === "failed")) break;
 }
 console.warn("analysis", latest.status, JSON.stringify(latest.stats));

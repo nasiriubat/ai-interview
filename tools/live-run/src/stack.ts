@@ -19,8 +19,9 @@ import {
 
 const run = promisify(execFile);
 
-export const OPERATOR_EMAIL = "live-operator@example.test";
-export const ADMIN_EMAIL = "live-admin@example.test";
+/** Overridable so a demo's screens show a plausible person (LIVE_OPERATOR_EMAIL, LIVE_ADMIN_EMAIL). */
+export const OPERATOR_EMAIL = process.env.LIVE_OPERATOR_EMAIL ?? "live-operator@example.test";
+export const ADMIN_EMAIL = process.env.LIVE_ADMIN_EMAIL ?? "live-admin@example.test";
 
 export interface Stack {
   authSecret: string;

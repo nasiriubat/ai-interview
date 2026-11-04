@@ -140,8 +140,8 @@ export const SHOTS: readonly Shot[] = [
   s(
     10,
     "participant-voice-phone",
-    "A spoken answer as a voice clip with its transcript.",
-    "Voice answers where set up.",
+    "A dictated answer: the recording turned into text in the box, to check before sending.",
+    "Speaking instead of typing.",
     { viewport: "phone" },
   ),
   s(
@@ -206,7 +206,7 @@ export const SHOTS: readonly Shot[] = [
     24,
     "spec-export",
     "Exports: PDF, Markdown and the agent bundle for coding agents.",
-    "Hand-off to Claude Code or Codex.",
+    "Hand-off to a coding agent.",
   ),
   s(
     25,
@@ -223,6 +223,24 @@ export const SHOTS: readonly Shot[] = [
   s(30, "dark-results-overview", "Results in the dark theme.", "Variety in a deck; dark-mode users.", {
     theme: "dark",
   }),
+  s(
+    31,
+    "providers",
+    "Providers: every model provider the tenant can use, with its kind and a connection test.",
+    "Bring your own models; which vendor runs the interviews.",
+  ),
+  s(
+    32,
+    "model-assignment",
+    "Model assignment: one provider for every text task in one step, then each task's model and effort.",
+    "Switching provider without a migration (D-495).",
+  ),
+  s(
+    33,
+    "spend",
+    "Budgets and spend: every model call booked with its cost, by task.",
+    "Cost control; what a campaign really cost.",
+  ),
 ];
 
 export function fileName(shot: Shot): string {

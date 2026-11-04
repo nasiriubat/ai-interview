@@ -24,6 +24,6 @@ Before it finishes, it reads back what it understood, so the owner can correct i
 
 The result is a versioned specification with numbered requirements, and you can see exactly what changed between versions.
 
-Download it as a PDF, as Markdown, or as a bundle for coding agents like Claude Code or Codex.
+Download it as a PDF, as Markdown, or as a bundle for coding agents.
 
 It is built to run on a server you operate, with the AI providers you choose, and every model call is recorded with its cost. Understand the problem, before deciding what to build.

@@ -112,9 +112,14 @@ async function signIn(browser: Browser): Promise<string> {
   const since = Date.now() - 2000;
   await page.locator('input[type="email"]').fill(cfg.adminEmail);
   await page.locator('button[type="submit"]').click();
-  const link = linkIn(await mailTo(cfg.adminEmail, since), "/api/auth/callback");
-  if (!link) throw new Error("the sign-in mail carried no callback link");
+  const mail = await mailTo(cfg.adminEmail, since);
+  // The mail links to a confirmation page whose button spends the token, so a link scanner cannot;
+  // older builds linked straight to the Auth.js callback.
+  const confirm = linkIn(mail, "/auth/confirm");
+  const link = confirm ?? linkIn(mail, "/api/auth/callback");
+  if (!link) throw new Error("the sign-in mail carried no sign-in link");
   await page.goto(link);
+  if (confirm) await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/admin/);
   const state = path.join(mkdtempSync(path.join(tmpdir(), "aidp-capture-")), "state.json");
   await ctx.storageState({ path: state });
@@ -151,6 +156,30 @@ type Step = (page: Page, ids: Ids) => Promise<void>;
 const STAFF: Record<string, Step> = {
   "admin-overview": async (p) => {
     await p.goto(`${cfg.base}/admin`);
+  },
+  providers: async (p) => {
+    await p.goto(`${cfg.base}/admin/providers`);
+  },
+  "model-assignment": async (p) => {
+    await p.goto(`${cfg.base}/admin/routes`);
+    await settle(p);
+    // The one-step switch, applied but not saved, so the picture shows every task moving to one
+    // provider without changing the stack's routes. BULK_MODEL names the model (else the first).
+    await p.getByRole("button", { name: /every text task: Provider/ }).click();
+    await p.getByRole("option").first().click();
+    await p.getByRole("button", { name: /every text task: Model/ }).click();
+    const wanted = process.env.BULK_MODEL;
+    // The exact model, not a longer variant such as `<model>-contributor`.
+    const exact = wanted ? new RegExp(`${wanted.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w.-])`) : null;
+    const option = exact
+      ? p.getByRole("option").filter({ hasText: exact }).first()
+      : p.getByRole("option").first();
+    await option.click();
+    await p.getByRole("button", { name: /Apply to all text tasks/ }).click();
+    await sleep(800);
+  },
+  spend: async (p) => {
+    await p.goto(`${cfg.base}/admin/budgets`);
   },
   campaign: async (p, ids) => {
     await p.goto(`${cfg.base}/admin/campaigns/${ids.campaign}`);
@@ -423,12 +452,15 @@ async function interview(browser: Browser, ids: Ids, viewport: "desktop" | "phon
   await waitForQuestion();
   if (selected(chat, cfg.only)) await save(page, chat);
   if (viewport === "phone" && cfg.micWav && selected(voice, cfg.only)) {
-    await page.getByRole("button", { name: "Record your answer" }).click();
+    // Dictation (D-484): the recording becomes text in the answer box, to check before sending.
+    await page.getByRole("button", { name: "Dictate your answer" }).click();
     await sleep(Number(process.env.MIC_SECONDS ?? 12) * 1000);
-    await page.getByRole("button", { name: "Stop and send the recording" }).click();
-    await waitForQuestion();
-    await sleep(4000);
+    await page.getByRole("button", { name: "Stop and turn it into text" }).click();
+    for (let i = 0; i < 120 && (await composer.inputValue()).length < 20; i++) await sleep(1000);
+    await sleep(1200);
     await save(page, voice);
+    await send.click();
+    await waitForQuestion();
   }
   await page.getByRole("button", { name: "Interview options" }).click();
   await page.getByRole("button", { name: "I'm done" }).click();

@@ -112,7 +112,7 @@ The result is a versioned specification with numbered requirements, and you can 
 
 29
 00:03:02,000 --> 00:03:10,000
-Download it as a PDF, as Markdown, or as a bundle for coding agents like Claude Code or Codex.
+Download it as a PDF, as Markdown, or as a bundle for coding agents.
 
 30
 00:03:10,000 --> 00:03:18,380

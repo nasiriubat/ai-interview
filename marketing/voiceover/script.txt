@@ -69,8 +69,7 @@ The result is a versioned specification with numbered requirements, [pause 0.4s]
 exactly what changed between versions.
 
 SCENE 14  03:02-03:10  [24-spec-export.png]
-Download it as a PDF, as Markdown, [pause 0.4s] or as a bundle for coding agents like Claude Code or
-Codex.
+Download it as a PDF, as Markdown, [pause 0.4s] or as a bundle for coding agents.
 
 SCENE 15  03:10-03:22  [03-landing-trust.png]
 (slower) It is built to run on a server you operate, [pause 0.4s] with the AI providers you choose,
